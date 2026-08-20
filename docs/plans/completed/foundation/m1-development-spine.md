@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** ACTIVE
+**Status:** COMPLETED
 
 **Goal:** Establish the first real Foundation development spine: organized repository work documents and scripts, a reusable cross-platform repository process/tooling substrate, and the first two Foundation packages for canonical contracts plus crash-recoverable bootstrap state.
 
@@ -1641,7 +1641,7 @@ pnpm verify
 
 Expected: all `PASS`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/bootstrap-state
@@ -1662,7 +1662,7 @@ git commit -m "feat: add per-boot BootstrapJournal"
 **Interfaces:**
 - Produces: a completed M1 evidence record and a repository ready for M2 (`PathProfile` + bootstrap ownership) without implementing M2.
 
-- [ ] **Step 1: Verify there are no accidental out-of-scope dependencies**
+- [x] **Step 1: Verify there are no accidental out-of-scope dependencies**
 
 Inspect:
 
@@ -1681,7 +1681,7 @@ bootstrap-state: @heptalogos/foundation-contracts, typebox, ajv, write-file-atom
 
 plus `vitest` as package-local test tooling where declared. No PostgreSQL/DBOS/Cordis/Fastify/oclif/etc. may appear as a new direct dependency in M1.
 
-- [ ] **Step 2: Verify the Nx graph and all applicable targets**
+- [x] **Step 2: Verify the Nx graph and all applicable targets**
 
 ```bash
 pnpm exec nx show projects
@@ -1697,7 +1697,7 @@ Expected: `PASS`. `bootstrap-state` must have an internal workspace edge to `fou
 
 The generated graph HTML is verification output, not an Authority document; do not commit it unless repository policy explicitly treats it as evidence.
 
-- [ ] **Step 3: Run every permanent gate**
+- [x] **Step 3: Run every permanent gate**
 
 ```bash
 node .agents/heptalogos/validate-skill-resources.mjs
@@ -1717,7 +1717,7 @@ pnpm verify
 
 Every command must be actually run. Record `PASS`, `FAIL`, `BLOCKED`, or `NOT_RUN` truthfully in the M1 plan execution record.
 
-- [ ] **Step 4: Run focused M1 behavioral evidence**
+- [x] **Step 4: Run focused M1 behavioral evidence**
 
 ```bash
 pnpm exec nx run repo-kit:test
@@ -1742,7 +1742,7 @@ BootId journals remain isolated
 
 If the current platform is not Windows, record the Windows-specific pnpm-shim claim as `NOT_RUN`, not `PASS`. Do not block M1 solely because Windows was not the current executor platform; the cross-platform runner remains implemented and the Windows regression can be rerun on Windows later.
 
-- [ ] **Step 5: Record explicitly unproven claims**
+- [x] **Step 5: Record explicitly unproven claims**
 
 M1 completion record must preserve these as `NOT_RUN`:
 
@@ -1758,7 +1758,7 @@ service/headless qualification
 
 Unit tests do not upgrade those claims.
 
-- [ ] **Step 6: Final plan self-check and status update**
+- [x] **Step 6: Final plan self-check and status update**
 
 Update the plan header to:
 
@@ -1780,7 +1780,66 @@ remaining NOT_RUN/BLOCKED claims
 
 Do not place historical execution details into `Architecture_Corpus/`.
 
-- [ ] **Step 7: Move the plan to completed**
+### M1 execution record
+
+| Item | Evidence |
+| --- | --- |
+| Start HEAD | `4470fee47af8d9d027788e37047141cb639600d9` (Genesis governance reset) |
+| Final HEAD before completion commit | `0112b5c54f818d4e023ec324ce6e1d12c293aa8d` |
+| Runtime/toolchain | Node `24.19.0`, pnpm `11.22.0`, TypeScript 7 `7.0.2`, Ubuntu `26.04` / Linux `x86_64` |
+| Exact new Catalog pins | `execa 10.0.1`; `canonicalize 4.0.0`; `uuid 14.0.2`; `ajv 8.20.0`; `typebox 1.3.16`; `write-file-atomic 8.0.0` |
+| New direct dependency identities | repo-kit: `execa`; foundation-contracts: `canonicalize`, `uuid`; bootstrap-state: workspace `@heptalogos/foundation-contracts`, `ajv`, `typebox`, `write-file-atomic` |
+| Out-of-scope direct dependencies | PASS — no PostgreSQL, DBOS, Cordis, proper-lockfile, Fastify, oclif, AI, MCP, or speculative M2 package was materialized |
+| Nx graph | PASS — `foundation-contracts`, `bootstrap-state`, `repo-kit`, `repository`; static edge `bootstrap-state → foundation-contracts`; no future product project |
+
+#### Permanent verification
+
+| Gate | Status |
+| --- | --- |
+| `pnpm install --frozen-lockfile` | PASS |
+| `node .agents/heptalogos/validate-skill-resources.mjs` | PASS |
+| `pnpm check:corpus` | PASS |
+| `pnpm check:repository` | PASS |
+| `pnpm check:dependencies` | PASS |
+| `pnpm check:boundaries` | PASS |
+| `pnpm toolchain:check` | PASS |
+| `pnpm format:check` | PASS |
+| `pnpm lint` | PASS |
+| `pnpm typecheck` | PASS |
+| `pnpm tsc6` | PASS |
+| `pnpm test` | PASS |
+| `pnpm build` | PASS |
+| `pnpm verify` | PASS |
+
+#### Focused M1 behavioral evidence
+
+| Claim | Status | Evidence |
+| --- | --- | --- |
+| argv preservation without shell parsing | PASS | repo-kit process tests |
+| pnpm shim invocation on current platform | PASS | repo-kit process tests on Linux |
+| equivalent JSON has equivalent canonical bytes/digest | PASS | foundation-contracts tests |
+| digest domain separation | PASS | foundation-contracts tests |
+| UUIDv7 generated identity and digest content identity remain distinct | PASS | foundation-contracts tests |
+| BootstrapState validation is non-mutating | PASS | codec tests with unknown fields/string revision |
+| revision 1 → revision 2 preserves previous valid state | PASS | store tests |
+| corrupt latest → previous valid revision recovered | PASS | store tests |
+| both state files corrupt → explicit `CORRUPT` | PASS | store tests |
+| BootId journals remain isolated | PASS | journal tests |
+| Windows-specific pnpm shim behavior | NOT_RUN | current executor is Linux |
+
+#### Claims intentionally not proven in M1
+
+| Claim | Status |
+| --- | --- |
+| real filesystem power-loss durability on Windows/macOS/Linux | NOT_RUN |
+| symlink/junction/reparse-point root hardening | NOT_RUN |
+| bootstrap ownership/process exclusion | NOT_RUN |
+| private PostgreSQL lifecycle | NOT_RUN |
+| Host advisory lease and HostOwnershipFence | NOT_RUN |
+| source-less/native product closure | NOT_RUN |
+| service/headless qualification | NOT_RUN |
+
+- [x] **Step 7: Move the plan to completed**
 
 ```bash
 git mv docs/plans/active/foundation/m1-development-spine.md docs/plans/completed/foundation/m1-development-spine.md
@@ -1788,7 +1847,7 @@ git mv docs/plans/active/foundation/m1-development-spine.md docs/plans/completed
 
 Update `docs/plans/README.md` indexes so there is no active M1 entry after completion.
 
-- [ ] **Step 8: Final clean-tree verification**
+- [x] **Step 8: Final clean-tree verification**
 
 ```bash
 pnpm verify
@@ -1798,7 +1857,7 @@ git status --short
 
 Before committing, `git status --short` should contain only the expected M1 completion-record/index changes.
 
-- [ ] **Step 9: Commit M1 closure**
+- [x] **Step 9: Commit M1 closure**
 
 ```bash
 git add docs/plans
@@ -1806,7 +1865,7 @@ git add docs/plans
 git commit -m "docs: close Foundation M1 development spine"
 ```
 
-- [ ] **Step 10: Stop**
+- [x] **Step 10: Stop**
 
 Do not begin M2 in this execution. Report:
 
