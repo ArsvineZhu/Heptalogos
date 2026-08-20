@@ -1316,7 +1316,7 @@ export function sealBootstrapState(state: BootstrapStateBodyV1): BootstrapStateE
 export function parseBootstrapState(text: string): BootstrapStateParseResult;
 ```
 
-- [ ] **Step 1: Refresh and exact-pin TypeBox/Ajv**
+- [x] **Step 1: Refresh and exact-pin TypeBox/Ajv**
 
 ```bash
 pnpm view typebox@1 version engines peerDependencies --json
@@ -1335,7 +1335,7 @@ Choose the newest route-compatible eligible releases, exact-pin both in the root
 }
 ```
 
-- [ ] **Step 2: Write failing codec tests**
+- [x] **Step 2: Write failing codec tests**
 
 Cover all of these cases:
 
@@ -1350,7 +1350,7 @@ validation does not coerce a string revision into a number
 
 Use a valid base fixture with `revision: 1` and deterministic digest-like generation IDs produced from `digestCanonicalJson()` + `asContentDigest()`.
 
-- [ ] **Step 3: Run the codec test and observe RED**
+- [x] **Step 3: Run the codec test and observe RED**
 
 ```bash
 pnpm exec vitest run --root packages/bootstrap-state src/codec.test.ts
@@ -1358,7 +1358,7 @@ pnpm exec vitest run --root packages/bootstrap-state src/codec.test.ts
 
 Expected: `FAIL` because model/codec implementation does not exist.
 
-- [ ] **Step 4: Implement the TypeBox schema and non-mutating Ajv validator**
+- [x] **Step 4: Implement the TypeBox schema and non-mutating Ajv validator**
 
 Use the currently pinned TypeBox 1.x package API and Ajv 8. Configure validation so it does not coerce, insert defaults, or remove unknown fields. The schema must require:
 
@@ -1373,7 +1373,7 @@ additional properties are rejected
 
 The exported TypeScript interfaces remain Heptalogos-owned and must not expose TypeBox/Ajv implementation types.
 
-- [ ] **Step 5: Implement seal/parse integrity**
+- [x] **Step 5: Implement seal/parse integrity**
 
 `sealBootstrapState()` computes the digest over the `state` body using `BOOTSTRAP_STATE_DIGEST_DOMAIN`.
 
@@ -1396,7 +1396,7 @@ bootstrap.state.invalid_schema
 bootstrap.state.digest_mismatch
 ```
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 ```bash
 pnpm exec nx run bootstrap-state:test
