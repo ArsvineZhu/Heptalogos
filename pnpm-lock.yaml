@@ -12,6 +12,9 @@ catalogs:
     '@typescript/native':
       specifier: npm:typescript@7.0.2
       version: 7.0.2
+    canonicalize:
+      specifier: 4.0.0
+      version: 4.0.0
     eslint:
       specifier: 10.8.1
       version: 10.8.1
@@ -80,6 +83,10 @@ importers:
         version: 4.1.11(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(yaml@2.9.0))
 
   packages/foundation-contracts:
+    dependencies:
+      canonicalize:
+        specifier: 'catalog:'
+        version: 4.0.0
     devDependencies:
       vitest:
         specifier: 'catalog:'
@@ -1286,6 +1293,11 @@ packages:
 
   caniuse-lite@1.0.30001809:
     resolution: {integrity: sha512-xxWVywk6a6Arlk+hymeycyn/VgqEfLDxupvhH/xiY5SJ/18kmi9o6MiO320DCUzypORHLtvh0I4i04tUhCNHNQ==}
+
+  canonicalize@4.0.0:
+    resolution: {integrity: sha512-FEdXzwWs+N3rZqEqpqleiY9M1A6IAf9oo1zHFABnLW9FcJ/jzsu+G/Ks3Hq3FglmPKe80GeGBw8ZXLEnwPB0vQ==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   chai@6.2.2:
     resolution: {integrity: sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg==}
@@ -3704,6 +3716,8 @@ snapshots:
   callsites@3.1.0: {}
 
   caniuse-lite@1.0.30001809: {}
+
+  canonicalize@4.0.0: {}
 
   chai@6.2.2: {}
 

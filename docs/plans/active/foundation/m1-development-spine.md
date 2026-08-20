@@ -1024,7 +1024,7 @@ export interface Sha256Digest {
 export function digestCanonicalJson(domain: string, payload: CanonicalJsonValue): Sha256Digest;
 ```
 
-- [ ] **Step 1: Refresh and exact-pin `canonicalize`**
+- [x] **Step 1: Refresh and exact-pin `canonicalize`**
 
 ```bash
 pnpm view canonicalize@4 version engines peerDependencies --json
@@ -1041,7 +1041,7 @@ Choose the newest route-compatible release allowed by the 1440-minute policy and
 
 Do not add a different canonicalization library.
 
-- [ ] **Step 2: Write canonicalization tests first**
+- [x] **Step 2: Write canonicalization tests first**
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -1068,11 +1068,11 @@ pnpm exec vitest run --root packages/foundation-contracts src/canonical-json.tes
 
 Expected: `FAIL` because the implementation does not exist.
 
-- [ ] **Step 3: Implement `canonicalizeJson`**
+- [x] **Step 3: Implement `canonicalizeJson`**
 
 Wrap `canonicalize` behind the Heptalogos-owned function. Validate that the library returned a string and reject unsupported/non-finite numeric input rather than silently transforming it. No `canonicalize` library type may appear in the exported signature.
 
-- [ ] **Step 4: Write digest tests first**
+- [x] **Step 4: Write digest tests first**
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -1100,7 +1100,7 @@ describe("digestCanonicalJson", () => {
 
 Run and confirm `FAIL` before implementation.
 
-- [ ] **Step 5: Implement the domain-separated digest**
+- [x] **Step 5: Implement the domain-separated digest**
 
 Hash canonical UTF-8 bytes for an explicit envelope equivalent to:
 
@@ -1115,7 +1115,7 @@ Hash canonical UTF-8 bytes for an explicit envelope equivalent to:
 
 Use `node:crypto` SHA-256. Do not hash the bare payload without the domain/canonicalization envelope.
 
-- [ ] **Step 6: Export and verify**
+- [x] **Step 6: Export and verify**
 
 Export both modules from `src/index.ts`, then run:
 

@@ -15,6 +15,7 @@ catalog:
   "@nx/js": 23.1.1
   "@types/node": 24.13.3
   "@typescript/native": "npm:typescript@7.0.2"
+  canonicalize: 4.0.0
   eslint: 10.8.1
   execa: 10.0.1
   nx: 23.1.1
