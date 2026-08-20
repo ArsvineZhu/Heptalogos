@@ -1453,7 +1453,7 @@ directory/bootstrap-state.previous.json
 
 The constructor-supplied `directory` is the storage root; M1 does not implement `PathProfile` or platform default roots.
 
-- [ ] **Step 1: Refresh and exact-pin `write-file-atomic`**
+- [x] **Step 1: Refresh and exact-pin `write-file-atomic`**
 
 ```bash
 pnpm view write-file-atomic@8 version engines peerDependencies --json
@@ -1464,7 +1464,7 @@ Choose the newest route-compatible eligible 8.x release, exact-pin it in the roo
 
 If the selected package lacks usable bundled TypeScript declarations, verify that fact from package metadata before taking action. Do not silently add an ungoverned companion package. A necessary type-only companion may be materialized only after its package identity is explicitly recorded under the same adopted role and Corpus inventory hashes are regenerated.
 
-- [ ] **Step 2: Write failing store tests**
+- [x] **Step 2: Write failing store tests**
 
 Use real temporary directories. Required tests:
 
@@ -1480,7 +1480,7 @@ recovered previous can be followed by a valid next commit with revision previous
 
 The tests must corrupt bytes deliberately with `node:fs/promises.writeFile`; do not mock filesystem reads/writes for these behaviors.
 
-- [ ] **Step 3: Run RED**
+- [x] **Step 3: Run RED**
 
 ```bash
 pnpm exec vitest run --root packages/bootstrap-state src/store.test.ts
@@ -1488,7 +1488,7 @@ pnpm exec vitest run --root packages/bootstrap-state src/store.test.ts
 
 Expected: `FAIL` because `BootstrapStateStore` does not exist.
 
-- [ ] **Step 4: Implement `load()`**
+- [x] **Step 4: Implement `load()`**
 
 Algorithm:
 
@@ -1502,7 +1502,7 @@ if neither candidate is valid -> CORRUPT + Problem(bootstrap.state.no_valid_revi
 
 Do not infer authority from file modification time.
 
-- [ ] **Step 5: Implement `commit()`**
+- [x] **Step 5: Implement `commit()`**
 
 Rules:
 
@@ -1528,7 +1528,7 @@ Use `write-file-atomic` for the file-replacement mechanics. Do not claim this un
 
 Use stable Problem code `bootstrap.state.revision_conflict` for revision mismatch.
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 ```bash
 pnpm exec nx run bootstrap-state:test

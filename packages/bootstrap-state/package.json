@@ -9,7 +9,8 @@
   "dependencies": {
     "@heptalogos/foundation-contracts": "workspace:*",
     "ajv": "catalog:",
-    "typebox": "catalog:"
+    "typebox": "catalog:",
+    "write-file-atomic": "catalog:"
   },
   "devDependencies": {
     "vitest": "catalog:"
