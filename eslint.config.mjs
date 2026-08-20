@@ -19,7 +19,7 @@ export default [
     languageOptions: {
       parser,
       parserOptions: {
-        project: ["./tsconfig.json"],
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -29,6 +29,12 @@ export default [
     rules: {
       "@typescript-eslint/no-floating-promises": "error",
       "@typescript-eslint/no-misused-promises": "error",
+    },
+  },
+  {
+    files: ["**/*.mjs"],
+    languageOptions: {
+      sourceType: "module",
     },
   },
 ];

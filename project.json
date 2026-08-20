@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/nx/schemas/project-schema.json",
+  "name": "repository",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "nx:noop"
+    },
+    "typecheck": {
+      "executor": "nx:noop"
+    },
+    "test": {
+      "executor": "nx:noop"
+    },
+    "build": {
+      "executor": "nx:noop"
+    }
+  }
+}

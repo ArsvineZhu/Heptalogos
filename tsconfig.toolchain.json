@@ -4,5 +4,8 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src/index.ts"]
+  "include": [
+    "packages/foundation-contracts/src/index.ts",
+    "packages/bootstrap-state/src/index.ts"
+  ]
 }

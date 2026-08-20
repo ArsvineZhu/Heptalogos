@@ -1,0 +1,15 @@
+{
+  "name": "@heptalogos/bootstrap-state",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@heptalogos/foundation-contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "catalog:"
+  }
+}

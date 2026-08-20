@@ -775,7 +775,7 @@ git commit -m "feat: add cross-platform repository process substrate"
 - Produces two real private Foundation workspace packages: `@heptalogos/foundation-contracts` and `@heptalogos/bootstrap-state`.
 - Produces repo-wide `lint`, `typecheck`, `test`, and `build` commands that operate over all applicable Nx projects.
 
-- [ ] **Step 1: Create the package manifests**
+- [x] **Step 1: Create the package manifests**
 
 `packages/foundation-contracts/package.json`:
 
@@ -816,7 +816,7 @@ git commit -m "feat: add cross-platform repository process substrate"
 
 No other Foundation dependency enters until the task that has a real consumer for it.
 
-- [ ] **Step 2: Create Nx project definitions**
+- [x] **Step 2: Create Nx project definitions**
 
 Use the same structure for both packages, changing names/paths. For `foundation-contracts`:
 
@@ -845,7 +845,7 @@ Use the same structure for both packages, changing names/paths. For `foundation-
 
 For `bootstrap-state`, use project name `bootstrap-state` and its corresponding paths. Do not add speculative Nx architecture tags in M1.
 
-- [ ] **Step 3: Create package TypeScript configs**
+- [x] **Step 3: Create package TypeScript configs**
 
 For each package, create `tsconfig.json` (the block below is used in both package roots):
 
@@ -894,7 +894,7 @@ Root `tsconfig.json` becomes a solution config:
 
 If Nx's TypeScript sync requires a generated reference adjustment, use `nx sync`/the configured `@nx/js/typescript` mechanics; do not hand-maintain a parallel project graph that conflicts with Nx output.
 
-- [ ] **Step 4: Make ESLint multi-project aware**
+- [x] **Step 4: Make ESLint multi-project aware**
 
 Replace the single-root `parserOptions.project: ["./tsconfig.json"]` assumption with typescript-eslint project service:
 
@@ -909,7 +909,7 @@ Add an ESLint block for repository `.mjs` files using the normal JS parser seman
 
 Keep the existing `no-floating-promises` and `no-misused-promises` rules for TypeScript source.
 
-- [ ] **Step 5: Create minimal package entrypoints**
+- [x] **Step 5: Create minimal package entrypoints**
 
 Create both `src/index.ts` files as empty modules:
 
@@ -919,7 +919,7 @@ export {};
 
 This is temporary scaffolding inside the task and will gain real exports in Tasks 5-9; do not add placeholder domain APIs.
 
-- [ ] **Step 6: Replace root project-specific commands with repo-wide Nx commands**
+- [x] **Step 6: Replace root project-specific commands with repo-wide Nx commands**
 
 Set root scripts to:
 
@@ -957,11 +957,11 @@ build
 
 Do not add an M1-specific permanent gate merely to mirror the phase name.
 
-- [ ] **Step 7: Retire the Genesis smoke source**
+- [x] **Step 7: Retire the Genesis smoke source**
 
 Delete the root `src/` Genesis smoke files listed above. Do not transplant them into a new package. Update `docs/plans/completed/repository/repository-genesis.md` with a short historical note that `verify:genesis` passed immediately before M1 topology materialization and was then retired because its root-only assertions are intentionally phase-specific.
 
-- [ ] **Step 8: Install and inspect the real graph**
+- [x] **Step 8: Install and inspect the real graph**
 
 ```bash
 pnpm install
@@ -974,7 +974,7 @@ pnpm exec nx show project bootstrap-state
 
 Expected projects include exactly the three M1 projects above plus any repository project that Nx legitimately infers from retained root configuration. There must be no new empty future product project.
 
-- [ ] **Step 9: Run repo-wide verification**
+- [x] **Step 9: Run repo-wide verification**
 
 ```bash
 pnpm lint

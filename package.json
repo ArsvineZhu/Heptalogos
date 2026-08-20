@@ -10,12 +10,11 @@
   "scripts": {
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "nx run repository-genesis:lint",
-    "typecheck": "nx run repository-genesis:typecheck",
-    "tsc6": "nx run repository-genesis:tsc6",
-    "test": "nx run repository-genesis:test",
-    "build": "nx run repository-genesis:build",
-    "start": "nx run repository-genesis:start",
+    "lint": "nx run-many -t lint --all",
+    "typecheck": "nx run-many -t typecheck --all",
+    "tsc6": "tsc6 --noEmit -p tsconfig.ts6.json",
+    "test": "nx run-many -t test --all",
+    "build": "nx run-many -t build --all",
     "nx:check": "nx --version",
     "check:agents": "node .agents/heptalogos/validate-skill-resources.mjs",
     "check:corpus": "node scripts/verify/corpus-integrity.mjs",
@@ -23,7 +22,7 @@
     "check:dependencies": "node scripts/verify/dependencies.mjs",
     "check:boundaries": "node scripts/verify/boundaries.mjs",
     "toolchain:check": "node scripts/verify/toolchain.mjs",
-    "verify": "pnpm check:agents && pnpm check:corpus && pnpm check:repository && pnpm check:dependencies && pnpm check:boundaries && pnpm toolchain:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm tsc6 && pnpm test && pnpm build && pnpm start"
+    "verify": "pnpm check:agents && pnpm check:corpus && pnpm check:repository && pnpm check:dependencies && pnpm check:boundaries && pnpm toolchain:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm tsc6 && pnpm test && pnpm build"
   },
   "devDependencies": {
     "@nx/js": "catalog:",
