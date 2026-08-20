@@ -12,3 +12,10 @@ export type {
 } from "./model.js";
 export { BootstrapStateStore } from "./store.js";
 export type { BootstrapStateLoadResult } from "./store.js";
+export { BootstrapJournal } from "./journal.js";
+export type {
+  BootId,
+  BootstrapActivityId,
+  BootstrapJournalCheckpointV1,
+  BootstrapStageOutcome,
+} from "./journal.js";

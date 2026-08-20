@@ -1590,7 +1590,7 @@ directory/bootstrap-journal/{BootId}.json
 
 No shared `last.log`, no active/LKG decision, and no BootstrapState mutation API may exist in `BootstrapJournal`.
 
-- [ ] **Step 1: Write failing journal tests**
+- [x] **Step 1: Write failing journal tests**
 
 Required tests:
 
@@ -1604,7 +1604,7 @@ journal code has no dependency on BootstrapStateStore mutation
 
 Use explicit ISO-8601 UTC strings in test records; do not make tests depend on wall-clock time.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```bash
 pnpm exec vitest run --root packages/bootstrap-state src/journal.test.ts
@@ -1612,7 +1612,7 @@ pnpm exec vitest run --root packages/bootstrap-state src/journal.test.ts
 
 Expected: `FAIL` because `BootstrapJournal` does not exist.
 
-- [ ] **Step 3: Implement the journal**
+- [x] **Step 3: Implement the journal**
 
 Use `write-file-atomic` for each per-BootId snapshot update. Create the `bootstrap-journal/` directory lazily. Validate loaded JSON as an array of version-1 entries and fail with a canonical `ProblemError` on malformed existing journal bytes; do not silently truncate/correct them.
 
@@ -1626,11 +1626,11 @@ bootstrap.journal.boot_id_mismatch
 
 `at` is a persisted `Instant` string supplied by the caller in M1; do not introduce `TimeService` yet.
 
-- [ ] **Step 4: Verify the authority separation**
+- [x] **Step 4: Verify the authority separation**
 
 Use a static source check in the test to ensure `journal.ts` does not import `./store.js` or expose `commit()`/`activate()` semantics. The point is not a permanent architecture heuristic; it is a focused M1 regression proving that this journal implementation cannot mutate BootstrapState authority.
 
-- [ ] **Step 5: Run package and repository verification**
+- [x] **Step 5: Run package and repository verification**
 
 ```bash
 pnpm exec nx run bootstrap-state:test
