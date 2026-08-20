@@ -1185,7 +1185,7 @@ export class ProblemError extends Error {
 }
 ```
 
-- [ ] **Step 1: Refresh and exact-pin `uuid`**
+- [x] **Step 1: Refresh and exact-pin `uuid`**
 
 ```bash
 pnpm view uuid version dist-tags engines peerDependencies --json
@@ -1194,7 +1194,7 @@ pnpm view uuid time --json
 
 Choose the newest maintained ESM release compatible with Node 24 and the repository release-age policy. Exact-pin it in the root Catalog and add `uuid: "catalog:"` to `foundation-contracts` dependencies.
 
-- [ ] **Step 2: Write identity tests first**
+- [x] **Step 2: Write identity tests first**
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -1220,11 +1220,11 @@ describe("identity primitives", () => {
 
 Run and confirm `FAIL` before implementation.
 
-- [ ] **Step 3: Implement identity primitives**
+- [x] **Step 3: Implement identity primitives**
 
 Use `uuid`'s v7 implementation for generated IDs. `asContentDigest()` must return the already-proven digest hex and must never generate a new UUID. The `brand` arguments exist for type distinction; they are not authorization or secrecy mechanisms.
 
-- [ ] **Step 4: Write Problem tests first**
+- [x] **Step 4: Write Problem tests first**
 
 Cover at least:
 
@@ -1249,11 +1249,11 @@ describe("ProblemError", () => {
 });
 ```
 
-- [ ] **Step 5: Implement `Problem` / `ProblemError`**
+- [x] **Step 5: Implement `Problem` / `ProblemError`**
 
 `ProblemError` is an internal throwing convenience around the canonical `Problem`; the stable machine contract is `Problem`, not JavaScript exception text. Do not place stack traces, secrets, or arbitrary provider payloads into `Problem.metadata`.
 
-- [ ] **Step 6: Export and verify**
+- [x] **Step 6: Export and verify**
 
 ```bash
 pnpm exec nx run foundation-contracts:test

@@ -7,7 +7,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "canonicalize": "catalog:"
+    "canonicalize": "catalog:",
+    "uuid": "catalog:"
   },
   "devDependencies": {
     "vitest": "catalog:"

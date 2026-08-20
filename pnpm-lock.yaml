@@ -33,6 +33,9 @@ catalogs:
     typescript-eslint:
       specifier: 8.67.0
       version: 8.67.0
+    uuid:
+      specifier: 14.0.2
+      version: 14.0.2
     vitest:
       specifier: 4.1.11
       version: 4.1.11
@@ -87,6 +90,9 @@ importers:
       canonicalize:
         specifier: 'catalog:'
         version: 4.0.0
+      uuid:
+        specifier: 'catalog:'
+        version: 14.0.2
     devDependencies:
       vitest:
         specifier: 'catalog:'
@@ -2235,6 +2241,10 @@ packages:
 
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
+
+  uuid@14.0.2:
+    resolution: {integrity: sha512-xZe/16rV4aa+HGSOCiY2YeLT1OybRLrrkL/Rqaq7p7GMVXjFh+6wN4oMYgjFmnSnhY8t6Xpdl2l9qmnHYuMHwQ==}
+    hasBin: true
 
   vite@8.2.1:
     resolution: {integrity: sha512-EU/eS7BH3XROHh2YnBefjM6DBKA6ZeMZEYQbj7NLWg5wHYlhB8B/Mayd5XsgWq+NFYccDOTemRpdETWR6Ka/lw==}
@@ -4693,6 +4703,8 @@ snapshots:
       punycode: 2.3.1
 
   util-deprecate@1.0.2: {}
+
+  uuid@14.0.2: {}
 
   vite@8.2.1(@types/node@24.13.3)(yaml@2.9.0):
     dependencies:
