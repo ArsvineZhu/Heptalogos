@@ -12,18 +12,22 @@ repo/
 ├─ Architecture_Corpus/    # normative current-state architecture
 ├─ .agents/                # agent skills and routing metadata
 ├─ AGENTS.md               # always-on operating constraints
-└─ <implementation-plan>   # when present, kept at repository root
+└─ docs/                    # active plans and engineering knowledge
 ```
 
 Authority order for implementation work:
 
 1. `Architecture_Corpus/00-项目宪法与工程宪法.md`
 2. applicable Architecture Corpus specs / machine-readable authorities
-3. approved implementation plan at repository root
+3. approved implementation plan under `docs/plans/active/`
 4. current code as implementation reality
 
 The implementation plan sequences work; it does not override the Architecture Corpus. Existing code, folders, package boundaries, tests, or historical behavior are not architecture authority.
-Before implementation, read the approved root implementation plan named by the task or handoff. If multiple plan-like root files exist and no plan is designated, do not guess by filename or recency; surface the ambiguity.
+Active implementation plans live under `docs/plans/active/`.
+Completed implementation records live under `docs/plans/completed/`.
+Before implementation, read the plan explicitly named by the task.
+If multiple active plans could govern the task and none is designated, surface the ambiguity rather than guessing by filename or recency.
+For repository tooling, subprocess, package-manager, filesystem, or platform-development mechanics, consult `docs/engineering/GOTCHAS.md` and `docs/engineering/PLAYBOOK.md` when applicable.
 
 If code, plan, and Corpus disagree, surface the conflict. Do not silently preserve or locally invent a new architecture.
 

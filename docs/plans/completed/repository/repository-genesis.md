@@ -128,6 +128,15 @@ topology, and the absence of Foundation dependencies. The recorded donor
 commit is `8094be40f6b5ae04a4052f5daa09abb1db3df76d` in
 `GENESIS_EVIDENCE.json`.
 
+## Final preflight closure before Foundation M1
+
+The final pre-topology Genesis acceptance was `PASS` for
+`pnpm verify:genesis` on the clean-room root topology. M1 then materialized
+`docs/`, `tools/`, and `packages/`, so the phase-specific `check:genesis` and
+`verify:genesis` root commands were retired. `GENESIS_EVIDENCE.json` and the
+phase entrypoint remain as historical evidence and tools; permanent
+`pnpm verify` is the continuing repository correctness gate.
+
 ## Corrective review record
 
 | Review item | Status | Evidence |
