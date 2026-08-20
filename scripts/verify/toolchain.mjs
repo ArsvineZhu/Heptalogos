@@ -5,7 +5,7 @@ import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const require = createRequire(import.meta.url);
 const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const workspace = readFileSync(join(root, "pnpm-workspace.yaml"), "utf8");

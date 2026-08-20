@@ -7,9 +7,9 @@ import {
   packageRoutes,
   repositoryToolingPackages,
   routes,
-} from "./dependency-route-authority.mjs";
+} from "../../tools/repo-kit/src/dependency-authority.mjs";
 
-const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const workspacePath = join(root, "pnpm-workspace.yaml");
 const workspace = readFileSync(workspacePath, "utf8");
 const errors = [];

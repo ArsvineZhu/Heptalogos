@@ -18,11 +18,11 @@
     "start": "nx run repository-genesis:start",
     "nx:check": "nx --version",
     "check:agents": "node .agents/heptalogos/validate-skill-resources.mjs",
-    "check:corpus": "node scripts/check-corpus-integrity.mjs",
-    "check:repository": "node scripts/check-repository.mjs",
-    "check:dependencies": "node scripts/check-dependency-routes.mjs",
-    "check:boundaries": "node scripts/check-boundaries.mjs",
-    "toolchain:check": "node scripts/check-toolchain.mjs",
+    "check:corpus": "node scripts/verify/corpus-integrity.mjs",
+    "check:repository": "node scripts/verify/repository.mjs",
+    "check:dependencies": "node scripts/verify/dependencies.mjs",
+    "check:boundaries": "node scripts/verify/boundaries.mjs",
+    "toolchain:check": "node scripts/verify/toolchain.mjs",
     "verify": "pnpm check:agents && pnpm check:corpus && pnpm check:repository && pnpm check:dependencies && pnpm check:boundaries && pnpm toolchain:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm tsc6 && pnpm test && pnpm build && pnpm start"
   },
   "devDependencies": {

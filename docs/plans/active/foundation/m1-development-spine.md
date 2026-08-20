@@ -286,7 +286,7 @@ node --input-type=module -e "import { existsSync } from 'node:fs'; const ok=exis
 pnpm format:check
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add AGENTS.md package.json .agents/heptalogos/package-manifest.json docs
@@ -319,7 +319,7 @@ git commit -m "docs: organize plans and engineering knowledge"
 - Produces: `@heptalogos/repo-kit` as a private repository-only package; `scripts/*` become entrypoints rather than reusable libraries.
 - Produces: `dependency-authority.mjs` exporting the existing `authority`, `packageRoutes`, `repositoryToolingPackages`, `routes`, and `routeForDependency()` interface unchanged.
 
-- [ ] **Step 1: Add real workspace roots**
+- [x] **Step 1: Add real workspace roots**
 
 Change `pnpm-workspace.yaml` package discovery from root-only to:
 
@@ -332,7 +332,7 @@ packages:
 
 Do not create `apps/`, `extensions/`, or other future topology in M1.
 
-- [ ] **Step 2: Create `tools/repo-kit/package.json`**
+- [x] **Step 2: Create `tools/repo-kit/package.json`**
 
 ```json
 {
@@ -373,7 +373,7 @@ Create `tools/repo-kit/project.json`:
 }
 ```
 
-- [ ] **Step 3: Move the scripts with `git mv`**
+- [x] **Step 3: Move the scripts with `git mv`**
 
 ```bash
 node --input-type=module -e "import { mkdirSync } from 'node:fs'; for (const p of ['scripts/verify','scripts/phases','tools/repo-kit/src']) mkdirSync(p,{recursive:true})"
@@ -394,7 +394,7 @@ Update imports in `scripts/verify/dependencies.mjs` and `scripts/verify/boundari
 
 Do not duplicate the dependency Authority loader under `scripts/`.
 
-- [ ] **Step 4: Create repo-kit exports and READMEs**
+- [x] **Step 4: Create repo-kit exports and READMEs**
 
 `tools/repo-kit/src/index.mjs` initially exports only what exists:
 
@@ -412,7 +412,7 @@ Reusable code must move to tools/repo-kit rather than accumulate under scripts/.
 
 `tools/repo-kit/README.md` must state that this package is repository/development tooling, not a product/Foundation runtime dependency, and that new helpers are added only after a concrete repeated need exists.
 
-- [ ] **Step 5: Update root script paths without changing semantics yet**
+- [x] **Step 5: Update root script paths without changing semantics yet**
 
 Update `package.json` mappings to the new paths:
 
@@ -427,7 +427,7 @@ check:genesis      -> node scripts/phases/repository-genesis.mjs
 
 Keep permanent `verify` behavior unchanged in this task. Genesis-only root commands were retired in Task 1 after their final successful preflight run; do not reintroduce them.
 
-- [ ] **Step 6: Install and verify the pure move**
+- [x] **Step 6: Install and verify the pure move**
 
 ```bash
 pnpm install

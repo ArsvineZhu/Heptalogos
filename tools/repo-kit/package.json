@@ -1,0 +1,12 @@
+{
+  "name": "@heptalogos/repo-kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "devDependencies": {
+    "vitest": "catalog:"
+  }
+}

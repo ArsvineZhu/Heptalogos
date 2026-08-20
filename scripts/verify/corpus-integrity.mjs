@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const corpusRoot = join(root, "Architecture_Corpus");
 const manifestPath = join(corpusRoot, "manifest.json");
 const sumsPath = join(corpusRoot, "SHA256SUMS.txt");

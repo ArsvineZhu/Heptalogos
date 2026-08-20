@@ -5,9 +5,9 @@ import { fileURLToPath } from "node:url";
 import {
   packageRoutes,
   repositoryToolingPackages,
-} from "./dependency-route-authority.mjs";
+} from "../../tools/repo-kit/src/dependency-authority.mjs";
 
-const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const errors = [];
 const packageJsonCache = new Map();
 const ignoredDirectories = new Set([
