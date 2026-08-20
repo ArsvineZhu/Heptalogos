@@ -6,6 +6,9 @@
   "exports": {
     ".": "./src/index.mjs"
   },
+  "dependencies": {
+    "execa": "catalog:"
+  },
   "devDependencies": {
     "vitest": "catalog:"
   }

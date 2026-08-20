@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
-import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { runPnpm, runProcessChecked } from "../../tools/repo-kit/src/process.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const require = createRequire(import.meta.url);
@@ -31,26 +31,19 @@ function expectIncludes(label, values, expected) {
   }
 }
 
-function run(label, command, args) {
-  const isWindowsPnpm = process.platform === "win32" && command === "pnpm";
-  const executable = isWindowsPnpm ? (process.env.ComSpec ?? "cmd.exe") : command;
-  const executableArgs = isWindowsPnpm
-    ? ["/d", "/s", "/c", [command, ...args].join(" ")]
-    : args;
-  const result = spawnSync(executable, executableArgs, {
-    cwd: root,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  if (result.error) {
-    fail(`${label}: ${result.error.message}`);
-    return "";
+async function run(label, command, args) {
+  try {
+    const result =
+      command === "pnpm"
+        ? await runPnpm(args, { cwd: root })
+        : await runProcessChecked(command, args, { cwd: root });
+    return `${result.stdout}${result.stderr}`.trim();
+  } catch (error) {
+    const result = error.result;
+    const detail = result ? `${result.stdout}${result.stderr}`.trim() : error.message;
+    fail(`${label}: process failed${detail ? ` (${detail})` : ""}`);
+    return detail;
   }
-  if (result.status !== 0) {
-    const detail = `${result.stdout ?? ""}${result.stderr ?? ""}`.trim();
-    fail(`${label}: exited ${result.status}${detail ? ` (${detail})` : ""}`);
-  }
-  return `${result.stdout ?? ""}${result.stderr ?? ""}`.trim();
 }
 
 function packageVersion(name) {
@@ -87,7 +80,7 @@ if (!/^minimumReleaseAge:\s+1440$/m.test(workspace)) {
 if (/^nodeLinker:/m.test(workspace)) {
   fail("workspace nodeLinker: expected pnpm default isolated");
 }
-const pnpmConfigOutput = run("pnpm.config", "pnpm", ["config", "list", "--json"]);
+const pnpmConfigOutput = await run("pnpm.config", "pnpm", ["config", "list", "--json"]);
 try {
   const pnpmConfig = JSON.parse(pnpmConfigOutput);
   if (pnpmConfig.nodeLinker != null) {
@@ -169,14 +162,14 @@ expectEqual("tsconfig.strict", baseTsconfig.compilerOptions?.strict, true);
 expectEqual("tsconfig.skipLibCheck", baseTsconfig.compilerOptions?.skipLibCheck, false);
 
 const pnpmCommand = "pnpm";
-const pnpmVersion = run("pnpm.version", pnpmCommand, ["--version"]);
+const pnpmVersion = await run("pnpm.version", pnpmCommand, ["--version"]);
 expectEqual("pnpm.version", pnpmVersion, "11.22.0");
-const tsc7Version = run("tsc7.version", "pnpm", ["exec", "tsc", "--version"]);
+const tsc7Version = await run("tsc7.version", "pnpm", ["exec", "tsc", "--version"]);
 if (!tsc7Version.includes("7.0.2")) fail("tsc7.version: expected 7.0.2");
-run("tsc7.compile", "pnpm", ["exec", "tsc", "-p", "tsconfig.toolchain.json"]);
-const tsc6Version = run("tsc6.version", "pnpm", ["exec", "tsc6", "--version"]);
+await run("tsc7.compile", "pnpm", ["exec", "tsc", "-p", "tsconfig.toolchain.json"]);
+const tsc6Version = await run("tsc6.version", "pnpm", ["exec", "tsc6", "--version"]);
 if (!/^Version 6\./m.test(tsc6Version)) fail("tsc6.version: expected TypeScript 6");
-run("tsc6.compile", "pnpm", ["exec", "tsc6", "-p", "tsconfig.ts6.json"]);
+await run("tsc6.compile", "pnpm", ["exec", "tsc6", "-p", "tsconfig.ts6.json"]);
 
 const lockfile = readFileSync(join(root, "pnpm-lock.yaml"));
 const lockHash = createHash("sha256").update(lockfile).digest("hex");

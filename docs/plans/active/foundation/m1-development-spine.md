@@ -442,7 +442,7 @@ pnpm verify
 
 Expected: all permanent gates `PASS`. This task is a structural move and must not change permanent gate meaning.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add package.json pnpm-workspace.yaml pnpm-lock.yaml scripts tools/repo-kit
@@ -506,7 +506,7 @@ discoverWorkspacePackages(options?: { cwd?: string }): Promise<readonly Workspac
 
 - `runProcess*` never accepts a combined shell command string and never enables a shell implicitly.
 
-- [ ] **Step 1: Refresh Execa registry/upstream evidence and exact-pin it**
+- [x] **Step 1: Refresh Execa registry/upstream evidence and exact-pin it**
 
 Run:
 
@@ -527,7 +527,7 @@ Then add to `tools/repo-kit/package.json`:
 
 Run `pnpm install` and ensure the new lockfile is resolved from the Catalog.
 
-- [ ] **Step 2: Write the argument-preservation fixture**
+- [x] **Step 2: Write the argument-preservation fixture**
 
 Create `tools/repo-kit/test/fixtures/echo-argv.mjs`:
 
@@ -535,7 +535,7 @@ Create `tools/repo-kit/test/fixtures/echo-argv.mjs`:
 process.stdout.write(JSON.stringify(process.argv.slice(2)));
 ```
 
-- [ ] **Step 3: Write failing process-runner tests**
+- [x] **Step 3: Write failing process-runner tests**
 
 Create `tools/repo-kit/test/process.test.mjs` with at least these tests:
 
@@ -580,7 +580,7 @@ pnpm exec vitest run --root tools/repo-kit
 
 Expected: `FAIL` because `process.mjs` does not exist.
 
-- [ ] **Step 4: Implement the minimal process API**
+- [x] **Step 4: Implement the minimal process API**
 
 Create `tools/repo-kit/src/process.mjs` with these result semantics:
 
@@ -634,7 +634,7 @@ export function runNode(script, args = [], options = {}) {
 
 If Execa's actual current result shape differs, adapt only the normalization layer while preserving the exported repo-kit interface and test expectations above. Do not reintroduce `cmd.exe`, `.join(" ")`, or `shell: true` as an ordinary fallback.
 
-- [ ] **Step 5: Re-run the repo-kit tests**
+- [x] **Step 5: Re-run the repo-kit tests**
 
 ```bash
 pnpm exec vitest run --root tools/repo-kit
@@ -642,7 +642,7 @@ pnpm exec vitest run --root tools/repo-kit
 
 Expected: `PASS` on the current platform. If the current platform is Windows, the `runPnpm()` test is the M1 Windows shim regression evidence. If not Windows, record the Windows-specific claim as `NOT_RUN` while retaining the platform-neutral argv test as `PASS`.
 
-- [ ] **Step 6: Migrate `scripts/verify/toolchain.mjs` to repo-kit**
+- [x] **Step 6: Migrate `scripts/verify/toolchain.mjs` to repo-kit**
 
 Delete the current manual Windows branch that constructs:
 
@@ -660,7 +660,7 @@ pnpm toolchain:check
 
 Expected: `PASS`.
 
-- [ ] **Step 7: Add workspace discovery based on pnpm's real workspace view**
+- [x] **Step 7: Add workspace discovery based on pnpm's real workspace view**
 
 Create `tools/repo-kit/src/workspace.mjs`:
 
@@ -693,7 +693,7 @@ external direct dependency   -> catalog: + adopted Corpus package identity or ex
 
 Apply the check to `dependencies`, `devDependencies`, `optionalDependencies`, and `peerDependencies` according to the current governance rule.
 
-- [ ] **Step 8: Record the actual engineering knowledge**
+- [x] **Step 8: Record the actual engineering knowledge**
 
 Create `docs/engineering/gotchas/process/windows-command-shims.md` with these sections and facts:
 
@@ -729,7 +729,7 @@ and explicitly prohibit hand-built `cmd.exe`, `.cmd` selection, and joined shell
 
 Add one index row to each `GOTCHAS.md` / `PLAYBOOK.md`. Do not add unrelated entries.
 
-- [ ] **Step 9: Run the repository gates**
+- [x] **Step 9: Run the repository gates**
 
 ```bash
 pnpm check:dependencies
@@ -742,7 +742,7 @@ pnpm verify
 
 Expected: all permanent gates `PASS`.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add pnpm-workspace.yaml pnpm-lock.yaml tools/repo-kit scripts/verify docs/engineering

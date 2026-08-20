@@ -8,22 +8,12 @@ import {
   repositoryToolingPackages,
   routes,
 } from "../../tools/repo-kit/src/dependency-authority.mjs";
+import { discoverWorkspacePackages } from "../../tools/repo-kit/src/workspace.mjs";
 
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const workspacePath = join(root, "pnpm-workspace.yaml");
 const workspace = readFileSync(workspacePath, "utf8");
 const errors = [];
-const ignoredDirectories = new Set([
-  ".git",
-  ".nx",
-  ".pnpm-store",
-  ".vite",
-  ".cache",
-  "coverage",
-  "dist",
-  "node_modules",
-  "test-results",
-]);
 const nodeBuiltinNames = new Set([
   ...builtinModules,
   ...builtinModules
@@ -39,21 +29,6 @@ const dependencySections = [
 
 function fail(message) {
   errors.push(message);
-}
-
-function collectPackageManifests(directory, manifests = []) {
-  if (!existsSync(directory)) return manifests;
-  for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) {
-      if (!ignoredDirectories.has(entry.name)) {
-        collectPackageManifests(path, manifests);
-      }
-    } else if (entry.isFile() && entry.name === "package.json") {
-      manifests.push(path);
-    }
-  }
-  return manifests;
 }
 
 for (const roleId of ["runtime.node", "tooling.build", "testing.foundation"]) {
@@ -78,7 +53,10 @@ if (!materialization?.packageIdentity?.includes("routes[].packages")) {
   fail("dependency routing package identity authority is not present");
 }
 
-const packageManifests = collectPackageManifests(root);
+const workspacePackages = await discoverWorkspacePackages({ cwd: root });
+const packageManifests = workspacePackages.map(({ path }) =>
+  join(path, "package.json"),
+);
 const manifests = [];
 const workspacePackageNames = new Set();
 for (const manifestPath of packageManifests) {
