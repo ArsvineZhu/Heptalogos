@@ -12,18 +12,22 @@ repo/
 ├─ Architecture_Corpus/    # normative current-state architecture
 ├─ .agents/                # agent skills and routing metadata
 ├─ AGENTS.md               # always-on operating constraints
-└─ <implementation-plan>   # when present, kept at repository root
+└─ docs/                    # active plans and engineering knowledge
 ```
 
 Authority order for implementation work:
 
 1. `Architecture_Corpus/00-项目宪法与工程宪法.md`
 2. applicable Architecture Corpus specs / machine-readable authorities
-3. approved implementation plan at repository root
+3. approved implementation plan under `docs/plans/active/`
 4. current code as implementation reality
 
 The implementation plan sequences work; it does not override the Architecture Corpus. Existing code, folders, package boundaries, tests, or historical behavior are not architecture authority.
-Before implementation, read the approved root implementation plan named by the task or handoff. If multiple plan-like root files exist and no plan is designated, do not guess by filename or recency; surface the ambiguity.
+Active implementation plans live under `docs/plans/active/`.
+Completed implementation records live under `docs/plans/completed/`.
+Before implementation, read the plan explicitly named by the task.
+If multiple active plans could govern the task and none is designated, surface the ambiguity rather than guessing by filename or recency.
+For repository tooling, subprocess, package-manager, filesystem, or platform-development mechanics, consult `docs/engineering/GOTCHAS.md` and `docs/engineering/PLAYBOOK.md` when applicable.
 
 If code, plan, and Corpus disagree, surface the conflict. Do not silently preserve or locally invent a new architecture.
 
@@ -92,7 +96,29 @@ Do not create parallel authority paths for CLI, Web, Operator Assistant, extensi
 
 Any process-memory background work must have an owner and cancellable/drainable lifecycle. Any obligation that must survive restart must use a Foundation-owned durable primitive.
 
-## 6. Completion truth
+## 6. Branch and integration workflow
+
+Milestone work follows a branch → Draft PR → squash-merge flow:
+
+```text
+branch -> Draft PR -> Ready for Review -> independent review -> manual final CI -> squash merge
+```
+
+Ordinary pushes do not trigger CI. Agents may dispatch CI only for:
+
+- final pre-merge verification after independent review PASS;
+- a specific cross-platform regression not provable on the current host;
+- explicit user request.
+
+PR Ready is not merge authorization. The implementing Agent's self-review is insufficient. Final CI must verify the exact independently reviewed SHA. Any new commit invalidates prior review and final-CI authorization.
+
+master changes go through PRs; a direct push requires explicit one-off user authorization. The detailed operating procedure is in `docs/engineering/playbooks/repository/milestone-pr-closure.md`.
+
+All implementation verification gates must remain locally runnable and reproducible. GitHub Actions is not the sole verification substrate.
+
+Milestone closure additionally requires the manual cross-platform CI projection defined in §6.
+
+## 7. Completion truth
 
 Verification status is exactly:
 

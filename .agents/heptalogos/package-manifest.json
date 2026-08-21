@@ -5,7 +5,7 @@
     "architectureCorpus": "Architecture_Corpus/",
     "agentSkills": ".agents/skills/",
     "rootInstructions": "AGENTS.md",
-    "implementationPlan": "repository root (filename designated by task/handoff)"
+    "implementationPlan": "docs/plans/active/ (plan explicitly designated by task/handoff)"
   },
   "skills": [
     "heptalogos-architecture",
@@ -80,8 +80,8 @@
     },
     {
       "path": "AGENTS.md",
-      "size": 5963,
-      "sha256": "0c24f3a5ec370e5fd3018612dcc1bc78c15b76760242aca5cae188f44090c3ae"
+      "size": 7376,
+      "sha256": "cbcc20aec2a11458c38d318975954afc60409f4ccf31645651d8e36e68944f7b"
     }
   ]
 }

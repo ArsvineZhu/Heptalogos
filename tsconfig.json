@@ -1,10 +1,7 @@
 {
-  "extends": "./tsconfig.base.json",
-  "compilerOptions": {
-    "noEmit": true,
-    "types": ["node", "vitest/globals"]
-  },
-  "include": ["src/**/*.ts", "vitest.config.ts"],
-  "exclude": ["dist", "node_modules", "fixtures/ts6-api-lane.ts"],
-  "references": [{ "path": "./src/tsconfig.json" }]
+  "files": [],
+  "references": [
+    { "path": "./packages/foundation-contracts" },
+    { "path": "./packages/bootstrap-state" }
+  ]
 }

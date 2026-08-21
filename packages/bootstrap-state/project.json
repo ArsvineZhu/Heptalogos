@@ -1,0 +1,20 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "bootstrap-state",
+  "projectType": "library",
+  "sourceRoot": "packages/bootstrap-state/src",
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "eslint packages/bootstrap-state"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run --root packages/bootstrap-state"
+      }
+    }
+  }
+}
