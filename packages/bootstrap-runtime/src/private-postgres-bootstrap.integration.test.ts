@@ -1,4 +1,5 @@
 import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -26,6 +27,11 @@ import {
   prepareBootstrapPrelude,
   type OwnedBootstrapPrelude,
 } from "./bootstrap-prelude.js";
+import {
+  initializePrivatePostgresCluster,
+  resolvePrivatePostgresPlacement,
+  resolvePrivatePostgresToolchain,
+} from "@heptalogos/private-postgres";
 
 const pgBin = process.env.HEPTALOGOS_TEST_PG_BIN;
 if (!pgBin) {
@@ -51,7 +57,13 @@ interface TestPreparePrivatePostgresOptions {
     readonly readinessPollIntervalMs: number;
   };
   readonly keyProvider: BootstrapKeyProvider;
+  readonly __testHook?: (phase: TestFaultPhase) => void | Promise<void>;
 }
+
+type TestFaultPhase =
+  | "after-initdb-before-state-commit"
+  | "after-state-commit-before-start"
+  | "after-start-before-ready-return";
 
 interface TestReadyPrivatePostgres {
   readonly installationId: InstallationId;
@@ -136,6 +148,23 @@ function makeOptions(
     lifecycle: LIFECYCLE,
     keyProvider,
   };
+}
+
+function makeFaultHook(
+  phaseToStop: TestFaultPhase,
+): (phase: TestFaultPhase) => Promise<void> {
+  return async (phase) => {
+    if (phase === phaseToStop) {
+      throw new Error(`test fault injection: ${phase}`);
+    }
+  };
+}
+
+function withFaultHook(
+  options: TestPreparePrivatePostgresOptions,
+  phase: TestFaultPhase,
+): TestPreparePrivatePostgresOptions {
+  return { ...options, __testHook: makeFaultHook(phase) };
 }
 
 function callable(
@@ -352,6 +381,239 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         await secondOwned.close();
       }
     } finally {
+      await firstReady?.mechanics.stop().catch(() => undefined);
+      if (firstOwned.ownership.state !== "RELEASED") {
+        await firstOwned.close().catch(() => undefined);
+      }
+    }
+  }, 120_000);
+
+  it("requires recovery after a fault between initdb and V2 commit", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const contexts: BootstrapKeyRequestContext[] = [];
+
+    try {
+      await expect(
+        callable(owned).preparePrivatePostgres(
+          withFaultHook(
+            makeOptions(55440, contexts),
+            "after-initdb-before-state-commit",
+          ),
+        ),
+      ).rejects.toThrow("after-initdb-before-state-commit");
+      await owned.close();
+
+      await expect(loadState(fixture)).resolves.toMatchObject({
+        status: "CURRENT",
+        value: { state: { schemaVersion: 1, revision: 1 } },
+      });
+      await expect(
+        access(join(fixture.roots.DATA, "private-postgres", "PG_VERSION")),
+      ).resolves.toBeUndefined();
+
+      const recoveryPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+      const recoveryOwned = await recoveryPrepared.acquireOwnership({
+        heartbeatMs: 1_000,
+      });
+      try {
+        await expect(
+          callable(recoveryOwned).preparePrivatePostgres(
+            makeOptions(undefined, []),
+          ),
+        ).rejects.toMatchObject({
+          problem: { problemCode: "bootstrap.private_postgres.recovery_required" },
+        });
+      } finally {
+        await recoveryOwned.close();
+      }
+    } finally {
+      if (owned.ownership.state !== "RELEASED") {
+        await owned.close().catch(() => undefined);
+      }
+    }
+  }, 120_000);
+
+  it("recovers after a fault between V2 commit and PostgreSQL start", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const contexts: BootstrapKeyRequestContext[] = [];
+    let ready: TestReadyPrivatePostgres | undefined;
+
+    try {
+      await expect(
+        callable(owned).preparePrivatePostgres(
+          withFaultHook(
+            makeOptions(55441, contexts),
+            "after-state-commit-before-start",
+          ),
+        ),
+      ).rejects.toThrow("after-state-commit-before-start");
+      await owned.close();
+
+      await expect(loadState(fixture)).resolves.toMatchObject({
+        status: "CURRENT",
+        value: { state: { schemaVersion: 2, revision: 2 } },
+      });
+      await expect(
+        access(join(fixture.roots.DATA, "private-postgres", "postmaster.pid")),
+      ).rejects.toMatchObject({ code: "ENOENT" });
+
+      const recoveryPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+      const recoveryOwned = await recoveryPrepared.acquireOwnership({
+        heartbeatMs: 1_000,
+      });
+      try {
+        ready = await callable(recoveryOwned).preparePrivatePostgres(
+          makeOptions(undefined, []),
+        );
+        expect(ready.port).toBe(55441);
+        await ready.mechanics.stop();
+      } finally {
+        await ready?.mechanics.stop().catch(() => undefined);
+        await recoveryOwned.close();
+      }
+    } finally {
+      if (owned.ownership.state !== "RELEASED") {
+        await owned.close().catch(() => undefined);
+      }
+    }
+  }, 120_000);
+
+  it("recovers after a fault after start without changing the authoritative cluster", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const contexts: BootstrapKeyRequestContext[] = [];
+
+    try {
+      await expect(
+        callable(owned).preparePrivatePostgres(
+          withFaultHook(
+            makeOptions(55442, contexts),
+            "after-start-before-ready-return",
+          ),
+        ),
+      ).rejects.toThrow("after-start-before-ready-return");
+      await owned.close();
+
+      await expect(loadState(fixture)).resolves.toMatchObject({
+        status: "CURRENT",
+        value: { state: { schemaVersion: 2, revision: 2 } },
+      });
+      await expect(
+        access(join(fixture.roots.DATA, "private-postgres", "postmaster.pid")),
+      ).rejects.toMatchObject({ code: "ENOENT" });
+
+      const recoveryPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+      const recoveryOwned = await recoveryPrepared.acquireOwnership({
+        heartbeatMs: 1_000,
+      });
+      let ready: TestReadyPrivatePostgres | undefined;
+      try {
+        ready = await callable(recoveryOwned).preparePrivatePostgres(
+          makeOptions(undefined, []),
+        );
+        expect(ready.port).toBe(55442);
+      } finally {
+        await ready?.mechanics.stop().catch(() => undefined);
+        await recoveryOwned.close();
+      }
+    } finally {
+      if (owned.ownership.state !== "RELEASED") {
+        await owned.close().catch(() => undefined);
+      }
+    }
+  }, 120_000);
+
+  it("does not adopt a valid-looking PostgreSQL directory without V2 identity", async () => {
+    const fixture = await makeFixture();
+    const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
+    const placement = resolvePrivatePostgresPlacement(fixture.roots.DATA);
+    await initializePrivatePostgresCluster({
+      toolchain,
+      placement,
+      credentialTempRoot: fixture.roots.TEMP,
+      bootstrapPasswordUtf8: new TextEncoder().encode(
+        "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
+      ),
+      port: 55443,
+      lifecycle: LIFECYCLE,
+    });
+
+    const before = await readFile(
+      join(fixture.roots.INSTANCE, "bootstrap-state", "bootstrap-state.json"),
+      "utf8",
+    );
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const contexts: BootstrapKeyRequestContext[] = [];
+    try {
+      await expect(
+        callable(owned).preparePrivatePostgres(makeOptions(undefined, contexts)),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "bootstrap.private_postgres.recovery_required" },
+      });
+      expect(contexts).toHaveLength(0);
+      await expect(
+        readFile(
+          join(fixture.roots.INSTANCE, "bootstrap-state", "bootstrap-state.json"),
+          "utf8",
+        ),
+      ).resolves.toBe(before);
+    } finally {
+      await owned.close();
+    }
+  }, 120_000);
+
+  it("fails closed when an unrelated process occupies the authoritative port", async () => {
+    const fixture = await makeFixture();
+    const firstPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const firstOwned = await firstPrepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const firstContexts: BootstrapKeyRequestContext[] = [];
+    let firstReady: TestReadyPrivatePostgres | undefined;
+    const blocker = createServer();
+
+    try {
+      firstReady = await callable(firstOwned).preparePrivatePostgres(
+        makeOptions(55444, firstContexts),
+      );
+      await firstReady.mechanics.stop();
+      await firstOwned.close();
+      await new Promise<void>((resolve, reject) => {
+        blocker.once("error", reject);
+        blocker.listen(55444, "127.0.0.1", () => resolve());
+      });
+
+      const before = await readFile(
+        join(fixture.roots.INSTANCE, "bootstrap-state", "bootstrap-state.json"),
+        "utf8",
+      );
+      const secondPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+      const secondOwned = await secondPrepared.acquireOwnership({ heartbeatMs: 1_000 });
+      const secondContexts: BootstrapKeyRequestContext[] = [];
+      try {
+        await expect(
+          callable(secondOwned).preparePrivatePostgres(
+            makeOptions(undefined, secondContexts),
+          ),
+        ).rejects.toMatchObject({
+          problem: { problemCode: "private-postgres.lifecycle.start_failed" },
+        });
+        expect(secondContexts).toHaveLength(0);
+        await expect(
+          readFile(
+            join(fixture.roots.INSTANCE, "bootstrap-state", "bootstrap-state.json"),
+            "utf8",
+          ),
+        ).resolves.toBe(before);
+      } finally {
+        await secondOwned.close();
+      }
+    } finally {
+      await new Promise<void>((resolve) => blocker.close(() => resolve()));
       await firstReady?.mechanics.stop().catch(() => undefined);
       if (firstOwned.ownership.state !== "RELEASED") {
         await firstOwned.close().catch(() => undefined);

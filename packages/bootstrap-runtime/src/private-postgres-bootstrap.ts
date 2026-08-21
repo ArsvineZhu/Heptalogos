@@ -63,6 +63,19 @@ interface OwnedPrivatePostgresContext {
   readonly journal: BootstrapJournal;
 }
 
+type PrivatePostgresBootstrapTestPhase =
+  | "after-initdb-before-state-commit"
+  | "after-state-commit-before-start"
+  | "after-start-before-ready-return";
+
+interface InternalPreparePrivatePostgresOptions
+  extends PreparePrivatePostgresOptions {
+  // TEST_ONLY_INTERNAL_HOOK: qualification fault injection, intentionally absent from the public option type.
+  readonly __testHook?: (
+    phase: PrivatePostgresBootstrapTestPhase,
+  ) => void | Promise<void>;
+}
+
 const PRIVATE_POSTGRES_LOG_FILENAME = "private-postgres.log";
 const STAGE_TOOLCHAIN_VALIDATED = "bootstrap.postgres.toolchain_validated";
 const STAGE_CLUSTER_INITIALIZATION_STARTED =
@@ -132,6 +145,14 @@ async function recordFailure(
   await recordStage(context, STAGE_FAILED, "FAILED", problemCodeOf(error)).catch(
     () => undefined,
   );
+}
+
+async function invokeTestHook(
+  options: PreparePrivatePostgresOptions,
+  phase: PrivatePostgresBootstrapTestPhase,
+): Promise<void> {
+  const hook = (options as InternalPreparePrivatePostgresOptions).__testHook;
+  await hook?.(phase);
 }
 
 function stateBody(
@@ -359,6 +380,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
         },
       );
       await recordStage(context, STAGE_CLUSTER_INITIALIZED, "SUCCEEDED");
+      await invokeTestHook(options, "after-initdb-before-state-commit");
       expectedIdentity = expectedIdentityFromInitialization(
         context,
         placement,
@@ -367,6 +389,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
       assertOwnership(context);
       await context.state.commit(nextStateV2(currentBody, expectedIdentity, toolchain));
       await recordStage(context, STAGE_IDENTITY_COMMITTED, "SUCCEEDED");
+      await invokeTestHook(options, "after-state-commit-before-start");
     }
 
     assertOwnership(context);
@@ -387,6 +410,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
       logFilePath,
       lifecycle: options.lifecycle,
     });
+    await invokeTestHook(options, "after-start-before-ready-return");
     await recordStage(context, STAGE_READY, "SUCCEEDED");
 
     assertOwnership(context);
