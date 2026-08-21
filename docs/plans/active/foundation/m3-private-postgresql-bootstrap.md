@@ -2202,6 +2202,31 @@ independent review: NOT_RUN
 final Windows/macOS/Linux CI: NOT_RUN
 ```
 
+Task 0–10 execution evidence (current candidate before documentation closure):
+
+```text
+current implementation candidate SHA: 46e66c776f17b43ae06c0cef8229c4cd4666919c
+PostgreSQL toolchain provenance: Ubuntu package artifacts postgresql-18, postgresql-client-18, and libpq5 version 18.6-0ubuntu0.26.04.1, extracted into /tmp qualification roots; not a source-less shipping artifact
+PostgreSQL bin root: /tmp/tmp.lVC5dLOdfp/root/usr/lib/postgresql/18/bin
+postgres --version: postgres (PostgreSQL) 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
+initdb --version: initdb (PostgreSQL) 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
+pg_ctl --version: pg_ctl (PostgreSQL) 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
+pg_controldata --version: pg_controldata (PostgreSQL) 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
+pg_isready --version: pg_isready (PostgreSQL) 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
+focused unit status: PASS — bootstrap-runtime ownership/prelude tests 9/9; repository permanent unit suites PASS (bootstrap-state 47 passed + 2 skipped, private-postgres 27, bootstrap-runtime 34 + 1 skipped)
+real-PG integration status: PASS — private-postgres lifecycle/identity integration 11/11; bootstrap-runtime orchestration/failure matrix 8/8
+failure-matrix status: PASS — initdb-before-commit recovery-required, V2-before-start recovery, post-start recovery, unknown-directory rejection, and occupied-port fail-closed cases
+secret leakage audit: PASS — sentinel absent from generated state/journal/log assertions and from non-test source; ephemeral pwfile removed by callback-scoped credential helper
+permanent gate status: PASS — check:dependencies, check:boundaries, typecheck, tsc6, lint, test, build
+documentation gate status: PASS — check:corpus, check:repository, check:dependencies, and format:check
+pnpm verify status: PASS for inherited pre-M3 baseline; final post-documentation verify: NOT_RUN
+independent review: NOT_RUN on the current candidate SHA
+final Windows/macOS/Linux CI: NOT_RUN
+remaining NOT_RUN qualification debt: Windows real PostgreSQL; macOS real PostgreSQL; source-less shipping/ReleaseManifest/SBOM closure; service-account/installer ACL closure; cross-platform final CI; independent review
+new GOTCHA/PLAYBOOK knowledge: GOTCHA added at docs/engineering/gotchas/postgres/private-runtime.md — extracted/unprivileged PostgreSQL may fail on the default Unix socket directory; owned profile disables Unix sockets and readiness uses loopback TCP
+roadmap assumptions: CONFIRMED — M3 remains active/in review; H1 Host lease/fence, forward/reverse handoff, and abandoned-lock Recovery remain later work
+```
+
 At execution start, append concrete entries for:
 
 ```text

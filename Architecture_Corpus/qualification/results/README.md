@@ -26,6 +26,7 @@ Product qualification deferred to implementation
   Q-MSG-01
   Q-POLICY-01
   Q-BOOT-01
+  Q-PRIVATE-POSTGRES-01
 ```
 
 Machine-readable property ledger: `qualification-status.json`。
@@ -41,6 +42,7 @@ Machine-readable property ledger: `qualification-status.json`。
 | Q-MSG-01 | [Q-MSG-01.md](Q-MSG-01.md) |
 | Q-POLICY-01 | [Q-POLICY-01.md](Q-POLICY-01.md) |
 | Q-BOOT-01 | [Q-BOOT-01.md](Q-BOOT-01.md) |
+| Q-PRIVATE-POSTGRES-01 | [Q-PRIVATE-POSTGRES-01.md](Q-PRIVATE-POSTGRES-01.md) |
 | C-SCHEMA-01 | [C-SCHEMA-01.md](C-SCHEMA-01.md) |
 | C-MGMT-01 | [C-MGMT-01.md](C-MGMT-01.md) |
 | C-CLI-01 | [C-CLI-01.md](C-CLI-01.md) |

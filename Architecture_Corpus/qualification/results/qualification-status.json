@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-20T09:23:29.538Z",
+  "recordedAt": "2026-08-21T13:37:49.000Z",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": [
@@ -377,6 +377,65 @@
       "evidenceSource": {
         "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
       }
+    },
+    {
+      "qualificationId": "Q-PRIVATE-POSTGRES-01",
+      "testedProperty": "Exact PostgreSQL 18.6 private bootstrap initialization, portable identity, bounded lifecycle, ownership-held handoff, and fail-closed recovery boundaries",
+      "evidenceStatus": "PASS",
+      "qualificationState": "PARTIAL",
+      "evidence": {
+        "exact_toolchain_18_6": "PASS",
+        "first_init_empty_directory": "PASS",
+        "nonempty_unknown_directory_rejected": "PASS",
+        "cluster_system_identifier_persisted": "PASS",
+        "restart_same_cluster_identity": "PASS",
+        "persisted_port_stable": "PASS",
+        "port_occupied_fails_closed": "PASS",
+        "secret_not_in_argv_state_journal_logs": "PASS",
+        "v1_to_v2_under_bootstrap_ownership": "PASS",
+        "crash_after_init_before_state_commit_recovery_required": "PASS",
+        "crash_after_state_commit_before_start_recovers": "PASS",
+        "crash_after_start_before_ready_recovers": "PASS",
+        "ready_while_bootstrap_ownership_held": "PASS",
+        "linux_real_pg": "PASS",
+        "windows_real_pg": "NOT_RUN",
+        "macos_real_pg": "NOT_RUN",
+        "source_less_shipping_closure": "NOT_RUN",
+        "service_account_acl_closure": "NOT_RUN"
+      },
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "evidenceSource": {
+        "platform": "Linux PRTS 7.0.0-30-generic x86_64",
+        "runtime": "Node 24.19.0 / pnpm 11.22.0",
+        "postgresProvenance": "Ubuntu package artifacts postgresql-18, postgresql-client-18, and libpq5 version 18.6-0ubuntu0.26.04.1 extracted into a temporary qualification root; not a source-less shipping artifact",
+        "postgresBinDirectory": "/tmp/tmp.lVC5dLOdfp/root/usr/lib/postgresql/18/bin",
+        "exactVersionOutputs": {
+          "postgres": "18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)",
+          "initdb": "18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)",
+          "pg_ctl": "18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)",
+          "pg_controldata": "18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)",
+          "pg_isready": "18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)"
+        },
+        "candidateSha": "46e66c776f17b43ae06c0cef8229c4cd4666919c",
+        "testCommands": [
+          "pnpm nx run private-postgres:test:integration",
+          "pnpm exec vitest run --root packages/bootstrap-runtime src/private-postgres-bootstrap.integration.test.ts --testTimeout=120000",
+          "pnpm check:dependencies",
+          "pnpm check:boundaries",
+          "pnpm typecheck",
+          "pnpm tsc6",
+          "pnpm lint",
+          "pnpm test",
+          "pnpm build"
+        ]
+      },
+      "notRunReasons": {
+        "windows_real_pg": "No Windows PostgreSQL 18.6 runtime was available in the current host session; final cross-platform CI remains NOT_RUN.",
+        "macos_real_pg": "No macOS PostgreSQL 18.6 runtime was available in the current host session; final cross-platform CI remains NOT_RUN.",
+        "source_less_shipping_closure": "The qualification runtime was an extracted Ubuntu package set, not a source-less Heptalogos shipping artifact with ReleaseManifest/SBOM closure.",
+        "service_account_acl_closure": "M3 temporary-directory credential tests do not qualify installer/service-account ACL behavior on Windows, macOS, or Linux."
+      }
     }
   ],
   "architectureReviewRequired": [],
@@ -395,7 +454,8 @@
       "Q-SECRET-01",
       "Q-MSG-01",
       "Q-POLICY-01",
-      "Q-BOOT-01"
+      "Q-BOOT-01",
+      "Q-PRIVATE-POSTGRES-01"
     ]
   }
 }

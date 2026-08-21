@@ -11,7 +11,7 @@
     "deferredCount": 2,
     "rejectedForRoleCount": 7
   },
-  "contentFileCount": 71,
+  "contentFileCount": 72,
   "files": [
     {
       "path": "00-项目宪法与工程宪法.md",
@@ -224,6 +224,11 @@
       "sha256": "78ddb44d296b4b0ee8dfbe928431dd930f8098183f2690bcdd6d26caa829a6f9"
     },
     {
+      "path": "qualification/results/Q-PRIVATE-POSTGRES-01.md",
+      "size": 2325,
+      "sha256": "47735519d88909091e31cd9a7dd918ed233af7599657ef09fc4f28fe06a67244"
+    },
+    {
       "path": "qualification/results/Q-RUNTIME-01.md",
       "size": 1185,
       "sha256": "872e29b2efd89df2aeeb96b26c3c0c0f0ce89eb225e8729834ca94102b37fea3"
@@ -235,13 +240,13 @@
     },
     {
       "path": "qualification/results/README.md",
-      "size": 2014,
-      "sha256": "4399455ec94f06b44b1867b83c2ec1cfdd997f34faaca3b68583a6a6cea513ac"
+      "size": 2119,
+      "sha256": "dcb886c7e681ab8298776737e89e01109b8adccdc95f6ff931d47a8260663f8d"
     },
     {
       "path": "qualification/results/qualification-status.json",
-      "size": 17285,
-      "sha256": "13793638a78b0e8eda6444874814e1abc4d65938cd5658b80d1849b4241a4921"
+      "size": 20621,
+      "sha256": "dd155e869599c44ac83e980a580f0f9045f4d57c1e1c541d7908a88cf45a9aaf"
     },
     {
       "path": "qualification/依赖资格矩阵.md",

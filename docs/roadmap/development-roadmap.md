@@ -132,6 +132,7 @@ It does not prove private PostgreSQL, runtime supervision, durable work, system 
 
 - M2 pre-PostgreSQL bootstrap substrate is closed and merged.
 - M3 is the active implementation plan for exact private PostgreSQL bootstrap, cluster identity, lifecycle, and the `ReadyPrivatePostgres` seam.
+- M3 implementation evidence is now present on the Draft PR branch through Task 10: Linux PostgreSQL 18.6 initialization/lifecycle/orchestration and fail-closed recovery scenarios pass; the candidate remains in review and is not an H1 closure.
 - PostgreSQL Host lease/fencing, forward/reverse handoff, and bounded abandoned-lock Recovery remain later H1 work.
 - M2 automatic `proper-lockfile` stale takeover remains intentionally disabled; an abandoned pre-PostgreSQL lock is recovery-required until that later Recovery design is qualified.
 
