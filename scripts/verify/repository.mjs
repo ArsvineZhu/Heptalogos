@@ -66,6 +66,48 @@ for (const relativePath of implementationFiles) {
   }
 }
 
+const verifyWorkflowPath = join(root, ".github", "workflows", "verify.yml");
+
+if (!existsSync(verifyWorkflowPath)) {
+  fail("manual verify workflow missing: .github/workflows/verify.yml");
+} else {
+  const workflow = readFileSync(verifyWorkflowPath, "utf8");
+
+  if (!/^\s{2}workflow_dispatch:\s*$/mu.test(workflow)) {
+    fail("verify workflow must expose workflow_dispatch");
+  }
+
+  const forbiddenTriggers = [
+    "push",
+    "pull_request",
+    "pull_request_target",
+    "schedule",
+    "repository_dispatch",
+    "merge_group",
+    "workflow_call",
+  ];
+
+  for (const trigger of forbiddenTriggers) {
+    const pattern = new RegExp(`^\\s{2}${trigger}:`, "mu");
+    if (pattern.test(workflow)) {
+      fail(`verify workflow must not auto-trigger via ${trigger}`);
+    }
+  }
+
+  for (const input of ["target_sha:", "reason:"]) {
+    if (!workflow.includes(input)) {
+      fail(`verify workflow missing manual input: ${input}`);
+    }
+  }
+
+  const usesLines = [...workflow.matchAll(/^\s*-\s+uses:\s+([^@\s]+)@([^\s]+)\s*$/gmu)];
+  for (const [, action, ref] of usesLines) {
+    if (!/^[0-9a-f]{40}$/u.test(ref)) {
+      fail(`GitHub Action must be pinned to a full commit SHA: ${action}@${ref}`);
+    }
+  }
+}
+
 if (errors.length > 0) {
   for (const error of errors) console.error(`FAIL ${error}`);
   process.exitCode = 1;

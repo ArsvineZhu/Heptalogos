@@ -101,15 +101,20 @@ Any process-memory background work must have an owner and cancellable/drainable 
 Milestone work follows a branch → Draft PR → squash-merge flow:
 
 ```text
-1. branch    dev/<milestone> from master; all work commits land on the branch
-2. draft PR  open a Draft PR early so the verify matrix runs on every push
-3. finish    when the milestone plan is complete and all gates are green:
-             mark the PR ready, squash merge into master, delete the branch
+branch -> Draft PR -> Ready for Review -> independent review -> manual final CI -> squash merge
 ```
 
-master receives exactly one squash commit per milestone closure; never merge a partial milestone. Direct pushes to master are reserved for repository governance and history repair.
+Ordinary pushes do not trigger CI. Agents may dispatch CI only for:
 
-Local `pnpm verify` remains required evidence; CI is its automation projection, not a substitute.
+- final pre-merge verification after independent review PASS;
+- a specific cross-platform regression not provable on the current host;
+- explicit user request.
+
+PR Ready is not merge authorization. The implementing Agent's self-review is insufficient. Final CI must verify the exact independently reviewed SHA. Any new commit invalidates prior review and final-CI authorization.
+
+master changes go through PRs; a direct push requires explicit one-off user authorization. The detailed operating procedure is in `docs/engineering/playbooks/repository/milestone-pr-closure.md`.
+
+Local `pnpm verify` remains mandatory; CI is auxiliary cross-platform evidence, not a substitute.
 
 ## 7. Completion truth
 

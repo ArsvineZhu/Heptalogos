@@ -1,13 +1,27 @@
-name: verify
+name: verify-manual
 
 on:
-  push:
-    branches: [master]
-  pull_request:
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: Full commit SHA to verify
+        required: true
+        type: string
+      reason:
+        description: Why this CI run is justified
+        required: true
+        type: choice
+        options:
+          - final-pre-merge
+          - cross-platform-regression
+          - explicit-user-request
+
+permissions:
+  contents: read
 
 concurrency:
-  group: verify-${{ github.ref }}
-  cancel-in-progress: true
+  group: manual-verify-${{ inputs.target_sha }}
+  cancel-in-progress: false
 
 jobs:
   verify:
@@ -18,12 +32,32 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.target_sha }}
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version-file: .node-version
           cache: pnpm
+
+      - name: Verify checked-out SHA
+        env:
+          EXPECTED_SHA: ${{ inputs.target_sha }}
+        run: >-
+          node --input-type=module -e
+          "import { execFileSync } from 'node:child_process';
+          const actual=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+          if(actual!==process.env.EXPECTED_SHA){
+            console.error('expected '+process.env.EXPECTED_SHA+' but checked out '+actual);
+            process.exit(1);
+          }
+          console.log('PASS target SHA '+actual);"
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm verify
