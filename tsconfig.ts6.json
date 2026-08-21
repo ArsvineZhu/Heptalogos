@@ -9,7 +9,10 @@
       "@heptalogos/foundation-contracts": [
         "./packages/foundation-contracts/src/index.ts"
       ],
-      "@heptalogos/bootstrap-state": ["./packages/bootstrap-state/src/index.ts"]
+      "@heptalogos/bootstrap-state": ["./packages/bootstrap-state/src/index.ts"],
+      "@heptalogos/bootstrap-runtime": [
+        "./packages/bootstrap-runtime/src/index.ts"
+      ]
     },
     "skipLibCheck": true,
     "types": ["node"]
