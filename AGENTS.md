@@ -26,6 +26,11 @@ The implementation plan sequences work; it does not override the Architecture Co
 Active implementation plans live under `docs/plans/active/`.
 Completed implementation records live under `docs/plans/completed/`.
 Before implementation, read the plan explicitly named by the task.
+Before creating or materially revising a Foundation Implementation Plan, consult
+`docs/roadmap/development-roadmap.md` for capability-horizon, dependency-order,
+risk-retirement, and qualification guidance. The roadmap is planning guidance
+only; it does not override the Architecture Corpus or an explicitly approved
+plan.
 If multiple active plans could govern the task and none is designated, surface the ambiguity rather than guessing by filename or recency.
 For repository tooling, subprocess, package-manager, filesystem, or platform-development mechanics, consult `docs/engineering/GOTCHAS.md` and `docs/engineering/PLAYBOOK.md` when applicable.
 
@@ -128,6 +133,6 @@ PASS | FAIL | NOT_RUN | BLOCKED
 
 Never report `PASS` for a gate that was not actually run. Mocks do not prove live protocol compatibility; one OS does not prove another; a development tree does not prove a source-less artifact.
 
-Required gates must be runnable locally and reproducibly. GitHub Actions is not a required verification substrate.
+Permanent gates must remain locally runnable and reproducible; milestone closure additionally requires the manually dispatched cross-platform final CI projection after independent review on the exact reviewed HEAD SHA.
 
 Before claiming completion, ensure the applicable skill's completion checks and the claim-matched verification have been satisfied.

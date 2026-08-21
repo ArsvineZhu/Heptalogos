@@ -142,7 +142,7 @@ platform-specific claim
 → one OS PASS never implies another OS PASS
 ```
 
-当前验证路线不依赖 GitHub Actions；GitHub Actions 可以保持关闭，不能作为 Foundation selection、Implementation Plan 或本地验收的阻断条件。平台无关 property 可在代表性 host 上证明；真实 Windows/macOS/Linux claim 仍必须在对应 shipping qualification 时分别证明。
+Foundation selection、Implementation Plan 与常规本地验收必须保持可直接执行且可复现，不依赖 GitHub Actions；平台无关 property 可在代表性 host 上证明，真实 Windows/macOS/Linux claim 仍必须在对应 shipping qualification 时分别证明。当前仓库的里程碑集成在独立审查通过 exact reviewed SHA 后，还要求手动 dispatch cross-platform final CI 并确认其仍针对该 SHA。该 CI 是最终跨平台 closure projection，不是 dependency/architecture Authority 或唯一 verification substrate。
 
 ## 6. Stop Rule
 
