@@ -109,6 +109,15 @@
       ]
     },
     {
+      "roleId": "runtime.local-state-machine",
+      "route": "XState stable 5.x line using pure transition APIs",
+      "boundary": "implementation-only local complex FSM/statechart adapters; initial consumer @heptalogos/private-postgres lifecycle",
+      "directive": "USE",
+      "packages": [
+        "xstate"
+      ]
+    },
+    {
       "roleId": "schema.typebox-ajv",
       "route": [
         "typebox package 1.x",

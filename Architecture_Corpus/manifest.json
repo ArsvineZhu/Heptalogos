@@ -7,7 +7,7 @@
     "preImplementationSelection": "CLOSED",
     "primaryCandidateCount": 0,
     "unresolvedCount": 0,
-    "adoptedCount": 48,
+    "adoptedCount": 49,
     "deferredCount": 2,
     "rejectedForRoleCount": 7
   },
@@ -90,8 +90,8 @@
     },
     {
       "path": "15-技术与依赖决策账本.md",
-      "size": 16688,
-      "sha256": "86595f08d5329ff1464d76b496bf076dee0c851ad7e349e473d62d993c6dc8b2"
+      "size": 16868,
+      "sha256": "86ab2999c2104b625322e9ef91d2f16bfbaaf3047b02688961b9fda70669a2a7"
     },
     {
       "path": "16-验证与资格认定体系.md",
@@ -160,8 +160,8 @@
     },
     {
       "path": "qualification/dependency-status.json",
-      "size": 22015,
-      "sha256": "0ddd1085c9e8fd835dc64b5f38a4cf28add270f0852aa3a52daca96f546a531e"
+      "size": 22770,
+      "sha256": "107550397bc249d590999d1946d76fb8903a59dda62735dd58f8483bd3fee523"
     },
     {
       "path": "qualification/results/C-CLI-01.md",
@@ -275,8 +275,8 @@
     },
     {
       "path": "references/dependency-routing.json",
-      "size": 13144,
-      "sha256": "e73ad56a62cb4de46a67335d3c4256a1bcde910f509aef198f4a2a9509b1ce1b"
+      "size": 13479,
+      "sha256": "f509f1bcd6a9172f5459286920e7a2f6ce07902a7708b6f24a72194c9d359d23"
     },
     {
       "path": "references/storage-governance.json",

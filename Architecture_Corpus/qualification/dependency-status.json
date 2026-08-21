@@ -96,6 +96,16 @@
       "boundary": "Graphlib owns graph data structures/traversal/toposort/cycle mechanics; Heptalogos owns Service/Capability/Reconcile/Readiness/Generation semantics"
     },
     {
+      "id": "runtime.local-state-machine",
+      "role": "local complex finite-state/statechart mechanics",
+      "candidate": "XState stable 5.x line",
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "NOT_REQUIRED",
+      "qualification": "ordinary implementation transition/property tests; no separate provider-selection probe",
+      "boundary": "implementation-only local state-machine adapters; must not become global RuntimeSubstrate, product Authority, durable product state, or stable Extension contract",
+      "decisionBasis": "Foundation Library-First policy explicitly covers state-machine mechanics; M3 private PostgreSQL lifecycle has exceeded the maintainable threshold for hand-written transition logic"
+    },
+    {
       "id": "process.execa",
       "role": "bounded subprocess execution mechanics",
       "candidate": "Execa",

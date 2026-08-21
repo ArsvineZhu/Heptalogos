@@ -12,9 +12,11 @@
   },
   "dependencies": {
     "@heptalogos/foundation-contracts": "workspace:*",
-    "execa": "catalog:"
+    "execa": "catalog:",
+    "xstate": "catalog:"
   },
   "devDependencies": {
+    "fast-check": "catalog:",
     "vitest": "catalog:"
   }
 }
