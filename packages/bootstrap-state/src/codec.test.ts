@@ -101,6 +101,9 @@ describe("BootstrapState codec", () => {
 
   it("continues to parse a legacy V2 private PostgreSQL identity", () => {
     const base = makeStateV2();
+    if (base.privatePostgres.schemaVersion !== 2) {
+      throw new Error("expected V2 private PostgreSQL identity");
+    }
     const { bootstrapRoleName: _bootstrapRoleName, ...legacyFields } =
       base.privatePostgres;
     const legacyState = {

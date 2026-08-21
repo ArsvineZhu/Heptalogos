@@ -24,10 +24,8 @@ const qualifiedPgBin = pgBin;
 const allowControlAuthority = (): void => undefined;
 
 const { resolvePrivatePostgresToolchain } = await import("./toolchain.js");
-const {
-  PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME,
-  PRIVATE_POSTGRES_QUALIFIED_VERSION,
-} = await import("./contracts.js");
+const { PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME, PRIVATE_POSTGRES_QUALIFIED_VERSION } =
+  await import("./contracts.js");
 const { resolvePrivatePostgresPlacement } = await import("./cluster-layout.js");
 const {
   createPrivatePostgresInitializationProfileRevision,

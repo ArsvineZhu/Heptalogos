@@ -165,6 +165,42 @@ function configureLifecycleMock(
 }
 
 describe("private PostgreSQL lifecycle uncertainty", () => {
+  it("preserves the start log target when restarting", async () => {
+    const fixture = await makeLifecycleFixture(55450);
+    configureLifecycleMock(fixture, { statusExitCodes: [0, 0, 0] });
+
+    try {
+      const ready = await startPrivatePostgresCluster({
+        toolchain: fixture.toolchain,
+        placement: fixture.placement,
+        expectedIdentity: fixture.expectedIdentity,
+        logFilePath: fixture.logFilePath,
+        lifecycle: {
+          startupTimeoutMs: 1_000,
+          shutdownTimeoutMs: 1_000,
+          readinessPollIntervalMs: 10,
+        },
+        assertControlAuthority: () => undefined,
+      });
+      await ready.restart();
+
+      const pgCtlCalls = runPostgresToolMock.mock.calls.filter(
+        ([executable]) => executable === fixture.toolchain.pgCtl,
+      );
+      const startCall = pgCtlCalls.find(([, args]) => args[0] === "start");
+      const restartCall = pgCtlCalls.find(([, args]) => args[0] === "restart");
+      expect(startCall?.[1]).toEqual(
+        expect.arrayContaining(["--log", fixture.logFilePath]),
+      );
+      expect(restartCall?.[1]).toEqual(
+        expect.arrayContaining(["--log", fixture.logFilePath]),
+      );
+    } finally {
+      runPostgresToolMock.mockReset();
+      await rm(fixture.root, { recursive: true, force: true });
+    }
+  });
+
   it("proves and cleans up a start whose pg_ctl wait returns a timeout", async () => {
     const root = await mkdtemp(join(tmpdir(), "heptalogos-pg-lifecycle-unit-"));
     const dataDirectory = join(root, "private-postgres");

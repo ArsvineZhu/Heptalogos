@@ -45,8 +45,10 @@ export interface PrivatePostgresBootstrapStateV1 {
   readonly initializationProfileRevision: PrivatePostgresInitializationProfileRevision;
 }
 
-export interface PrivatePostgresBootstrapStateV2
-  extends Omit<PrivatePostgresBootstrapStateV1, "schemaVersion"> {
+export interface PrivatePostgresBootstrapStateV2 extends Omit<
+  PrivatePostgresBootstrapStateV1,
+  "schemaVersion"
+> {
   readonly schemaVersion: 2;
   readonly bootstrapRoleName: string;
 }
@@ -61,8 +63,7 @@ export interface BootstrapStateBodyV2 {
   readonly lastCommittedOperationRef?: string;
   readonly lastCompletedStageRef?: string;
   readonly privatePostgres:
-    | PrivatePostgresBootstrapStateV1
-    | PrivatePostgresBootstrapStateV2;
+    PrivatePostgresBootstrapStateV1 | PrivatePostgresBootstrapStateV2;
 }
 
 export interface BootstrapStateEnvelopeV2 {

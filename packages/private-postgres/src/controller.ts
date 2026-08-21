@@ -243,8 +243,7 @@ export async function validateExistingCluster(
 ): Promise<PrivatePostgresInitializationResult> {
   const expectedPlacement = options.expectedIdentity.placement;
   if (
-    options.expectedIdentity.bootstrapRoleName !==
-    PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME
+    options.expectedIdentity.bootstrapRoleName !== PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME
   ) {
     throw controllerProblem(
       "private-postgres.cluster.identity_mismatch",
@@ -611,6 +610,8 @@ async function restartProcess(
       "restart",
       "--pgdata",
       options.placement.canonicalDataDirectory,
+      "--log",
+      options.logFilePath,
       "--mode=fast",
       "--wait",
       "--timeout",

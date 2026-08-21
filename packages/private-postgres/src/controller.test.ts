@@ -49,9 +49,9 @@ afterEach(async () => {
   inspectPrivatePostgresClusterMock.mockReset();
   writeCanonicalPrivatePostgresRuntimeProfileMock.mockReset();
   await Promise.all(
-    temporaryDirectories.splice(0).map((directory) =>
-      rm(directory, { recursive: true, force: true }),
-    ),
+    temporaryDirectories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
   );
 });
 
@@ -110,9 +110,7 @@ describe("private PostgreSQL initialization identity", () => {
     );
     expect(initdbCall).toBeDefined();
     const initdbArgs = initdbCall?.[1] as readonly string[];
-    expect(initdbArgs).toContain(
-      `--username=${PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME}`,
-    );
+    expect(initdbArgs).toContain(`--username=${PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME}`);
     expect(result.identity.bootstrapRoleName).toBe(
       PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME,
     );

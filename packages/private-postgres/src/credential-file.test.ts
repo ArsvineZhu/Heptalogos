@@ -57,17 +57,20 @@ describe("withRestrictedPasswordFile", () => {
     ["LF", new TextEncoder().encode("abc\nxyz")],
     ["CR", new TextEncoder().encode("abc\rxyz")],
     ["NUL", new Uint8Array([0x61, 0x00, 0x62])],
-  ])("rejects a password containing %s before creating a pwfile", async (_label, password) => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-temp-"));
+  ])(
+    "rejects a password containing %s before creating a pwfile",
+    async (_label, password) => {
+      const tempRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-temp-"));
 
-    await expect(
-      withRestrictedPasswordFile(tempRoot, password, async () => {
-        throw new Error("callback must not run");
-      }),
-    ).rejects.toMatchObject({
-      problem: { problemCode: "private-postgres.credential_file.invalid_password" },
-    });
-  });
+      await expect(
+        withRestrictedPasswordFile(tempRoot, password, async () => {
+          throw new Error("callback must not run");
+        }),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "private-postgres.credential_file.invalid_password" },
+      });
+    },
+  );
 
   it("accepts a normal UTF-8 single-line password", async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-temp-"));
