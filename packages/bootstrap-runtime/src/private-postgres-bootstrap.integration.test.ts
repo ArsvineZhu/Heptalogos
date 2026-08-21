@@ -72,10 +72,8 @@ interface TestReadyPrivatePostgres {
   readonly port: number;
   readonly clusterSystemIdentifier: string;
   readonly toolchainVersion: "18.6";
-  readonly mechanics: {
-    stop(): Promise<void>;
-    restart(): Promise<void>;
-  };
+  stop(): Promise<void>;
+  restart(): Promise<void>;
 }
 
 type OwnedPreludeWithPrivatePostgres = OwnedBootstrapPrelude & {
@@ -212,6 +210,9 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         port: 55436,
         toolchainVersion: "18.6",
       });
+      expect("mechanics" in ready).toBe(false);
+      expect(typeof ready.stop).toBe("function");
+      expect(typeof ready.restart).toBe("function");
       expect(ready.clusterSystemIdentifier).toMatch(/^[0-9]+$/u);
       expect(contexts).toHaveLength(1);
       expect(contexts[0]).toMatchObject({
@@ -286,7 +287,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         readFile(join(fixture.roots.LOG, "private-postgres.log"), "utf8"),
       ).resolves.not.toContain("M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6");
     } finally {
-      await ready?.mechanics.stop().catch(() => undefined);
+      await ready?.stop().catch(() => undefined);
       await owned.close();
     }
   }, 120_000);
@@ -303,8 +304,11 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         makeOptions(55437, firstContexts),
       );
       const identity = firstReady.clusterSystemIdentifier;
-      await firstReady.mechanics.stop();
+      await firstReady.stop();
       await firstOwned.close();
+      await expect(firstReady.restart()).rejects.toMatchObject({
+        problem: { problemCode: "bootstrap.ownership.not_held" },
+      });
 
       const secondPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
       const secondOwned = await secondPrepared.acquireOwnership({ heartbeatMs: 1_000 });
@@ -325,11 +329,11 @@ describe("private PostgreSQL bootstrap orchestration", () => {
           journalStages(fixture, secondPrepared.bootId),
         ).resolves.not.toContain("bootstrap.postgres.cluster_initialization_started");
       } finally {
-        await secondReady?.mechanics.stop().catch(() => undefined);
+        await secondReady?.stop().catch(() => undefined);
         await secondOwned.close();
       }
     } finally {
-      await firstReady?.mechanics.stop().catch(() => undefined);
+      await firstReady?.stop().catch(() => undefined);
       if (firstOwned.ownership.state !== "RELEASED") {
         await firstOwned.close().catch(() => undefined);
       }
@@ -347,7 +351,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
       firstReady = await callable(firstOwned).preparePrivatePostgres(
         makeOptions(55438, firstContexts),
       );
-      await firstReady.mechanics.stop();
+      await firstReady.stop();
       await firstOwned.close();
 
       const before = await readFile(
@@ -379,7 +383,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         await secondOwned.close();
       }
     } finally {
-      await firstReady?.mechanics.stop().catch(() => undefined);
+      await firstReady?.stop().catch(() => undefined);
       if (firstOwned.ownership.state !== "RELEASED") {
         await firstOwned.close().catch(() => undefined);
       }
@@ -466,9 +470,9 @@ describe("private PostgreSQL bootstrap orchestration", () => {
           makeOptions(undefined, []),
         );
         expect(ready.port).toBe(55441);
-        await ready.mechanics.stop();
+        await ready.stop();
       } finally {
-        await ready?.mechanics.stop().catch(() => undefined);
+        await ready?.stop().catch(() => undefined);
         await recoveryOwned.close();
       }
     } finally {
@@ -514,7 +518,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         );
         expect(ready.port).toBe(55442);
       } finally {
-        await ready?.mechanics.stop().catch(() => undefined);
+        await ready?.stop().catch(() => undefined);
         await recoveryOwned.close();
       }
     } finally {
@@ -577,7 +581,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
       firstReady = await callable(firstOwned).preparePrivatePostgres(
         makeOptions(55444, firstContexts),
       );
-      await firstReady.mechanics.stop();
+      await firstReady.stop();
       await firstOwned.close();
       await new Promise<void>((resolve, reject) => {
         blocker.once("error", reject);
@@ -611,7 +615,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
       }
     } finally {
       await new Promise<void>((resolve) => blocker.close(() => resolve()));
-      await firstReady?.mechanics.stop().catch(() => undefined);
+      await firstReady?.stop().catch(() => undefined);
       if (firstOwned.ownership.state !== "RELEASED") {
         await firstOwned.close().catch(() => undefined);
       }

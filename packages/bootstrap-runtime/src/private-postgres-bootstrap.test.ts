@@ -1,7 +1,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   asContentDigest,
   createInstallationId,
@@ -23,6 +23,7 @@ import {
   type OwnedBootstrapPrelude,
 } from "./bootstrap-prelude.js";
 import {
+  createOwnershipScopedPrivatePostgresLifecycle,
   createPrivatePostgresSessionTracker,
 } from "./private-postgres-bootstrap.js";
 import * as bootstrapRuntime from "./index.js";
@@ -167,6 +168,58 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
         problem: { problemCode: "bootstrap.private_postgres.release_blocked" },
       });
     }
+  });
+
+  it("does not let compromised ownership reach retained lifecycle mechanics", async () => {
+    const session = createPrivatePostgresSessionTracker();
+    session.beginPreparation();
+    session.markReady();
+    let owned = true;
+    const stop = vi.fn(async () => undefined);
+    const restart = vi.fn(async () => undefined);
+    const lifecycle = createOwnershipScopedPrivatePostgresLifecycle(
+      {
+        privatePostgresSession: session,
+        assertOwnership: () => {
+          if (!owned) throw new Error("bootstrap ownership lost");
+        },
+      },
+      { stop, restart } as never,
+    );
+
+    owned = false;
+    await expect(lifecycle.stop()).rejects.toThrow("bootstrap ownership lost");
+    await expect(lifecycle.restart()).rejects.toThrow("bootstrap ownership lost");
+    expect(stop).not.toHaveBeenCalled();
+    expect(restart).not.toHaveBeenCalled();
+    expect(session.state).toBe("READY");
+  });
+
+  it("marks lifecycle uncertainty when ownership is lost after mechanics stop", async () => {
+    const session = createPrivatePostgresSessionTracker();
+    session.beginPreparation();
+    session.markReady();
+    let assertions = 0;
+    const stop = vi.fn(async () => undefined);
+    const restart = vi.fn(async () => undefined);
+    const lifecycle = createOwnershipScopedPrivatePostgresLifecycle(
+      {
+        privatePostgresSession: session,
+        assertOwnership: () => {
+          assertions += 1;
+          if (assertions === 2) throw new Error("bootstrap ownership lost");
+        },
+      },
+      { stop, restart } as never,
+    );
+
+    await expect(lifecycle.stop()).rejects.toThrow("bootstrap ownership lost");
+    expect(stop).toHaveBeenCalledOnce();
+    expect(session.state).toBe("UNCERTAIN");
+    await expect(lifecycle.restart()).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.private_postgres.invalid_transition" },
+    });
+    expect(restart).not.toHaveBeenCalled();
   });
 
   it("does not add preparation to PreparedBootstrapPrelude or export a forgeable function", async () => {

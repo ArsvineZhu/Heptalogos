@@ -49,7 +49,8 @@ export interface ReadyPrivatePostgres {
   readonly port: number;
   readonly clusterSystemIdentifier: string;
   readonly toolchainVersion: "18.6";
-  readonly mechanics: ReadyPrivatePostgresMechanics;
+  stop(): Promise<void>;
+  restart(): Promise<void>;
 }
 
 export type PrivatePostgresSessionState =
@@ -188,6 +189,46 @@ export function createPrivatePostgresSessionTracker(): PrivatePostgresSessionTra
       );
     },
   };
+}
+
+interface OwnershipScopedPrivatePostgresLifecycleContext {
+  readonly privatePostgresSession: PrivatePostgresSessionTracker;
+  readonly assertOwnership: () => void;
+}
+
+export function createOwnershipScopedPrivatePostgresLifecycle(
+  context: OwnershipScopedPrivatePostgresLifecycleContext,
+  mechanics: ReadyPrivatePostgresMechanics,
+): Pick<ReadyPrivatePostgres, "stop" | "restart"> {
+  const stop = async (): Promise<void> => {
+    context.assertOwnership();
+    context.privatePostgresSession.beginStop();
+    try {
+      await mechanics.stop();
+      context.assertOwnership();
+      context.privatePostgresSession.markQuiescent();
+    } catch (error) {
+      if (context.privatePostgresSession.state === "TRANSITIONING") {
+        context.privatePostgresSession.markUncertain();
+      }
+      throw error;
+    }
+  };
+  const restart = async (): Promise<void> => {
+    context.assertOwnership();
+    context.privatePostgresSession.beginRestart();
+    try {
+      await mechanics.restart();
+      context.assertOwnership();
+      context.privatePostgresSession.markReady();
+    } catch (error) {
+      if (context.privatePostgresSession.state === "TRANSITIONING") {
+        context.privatePostgresSession.markUncertain();
+      }
+      throw error;
+    }
+  };
+  return { stop, restart };
 }
 
 async function recordStage(
@@ -487,6 +528,14 @@ export async function preparePrivatePostgresForOwnedPrelude(
     await recordStage(context, STAGE_READY, "SUCCEEDED");
 
     assertOwnership(context);
+    const readyMechanics = mechanics;
+    const lifecycle = createOwnershipScopedPrivatePostgresLifecycle(
+      {
+        privatePostgresSession: context.privatePostgresSession,
+        assertOwnership: () => assertOwnership(context),
+      },
+      readyMechanics,
+    );
     return Object.freeze({
       installationId: context.installationId,
       instanceId: context.instanceId,
@@ -494,7 +543,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
       port: mechanics.port,
       clusterSystemIdentifier: mechanics.identity.clusterSystemIdentifier,
       toolchainVersion: toolchain.version,
-      mechanics,
+      ...lifecycle,
     });
   } catch (error) {
     let cleanupSucceeded = true;
