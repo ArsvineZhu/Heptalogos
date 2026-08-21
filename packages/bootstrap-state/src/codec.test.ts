@@ -92,4 +92,39 @@ describe("BootstrapState codec", () => {
     if (!result.ok)
       expect(result.problem.problemCode).toBe("bootstrap.state.invalid_schema");
   });
+
+  it("rejects generation references that are not lowercase SHA-256 digests", () => {
+    const sealed = sealBootstrapState(makeState());
+    const invalid = {
+      ...sealed,
+      state: { ...sealed.state, activeProductGeneration: "banana" },
+    };
+
+    const result = parseBootstrapState(JSON.stringify(invalid));
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.problem.problemCode).toBe("bootstrap.state.invalid_schema");
+    }
+  });
+
+  it("keeps parser and schema details stable and bounded", () => {
+    const invalidJson = parseBootstrapState('{"state":');
+    const invalidSchema = parseBootstrapState(
+      JSON.stringify({ state: {}, digest: {} }),
+    );
+
+    expect(invalidJson).toMatchObject({
+      ok: false,
+      problem: {
+        detail: "Bootstrap state JSON could not be parsed",
+      },
+    });
+    expect(invalidSchema).toMatchObject({
+      ok: false,
+      problem: {
+        detail: "Bootstrap state does not match the supported schema",
+      },
+    });
+  });
 });

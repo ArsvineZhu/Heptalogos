@@ -1879,6 +1879,41 @@ platform-specific NOT_RUN/BLOCKED items
 recommended next milestone: M2 PathProfile + bootstrap ownership
 ```
 
+### Post-closure corrective record
+
+The first closure record was audited before M2. The corrective scope remained
+limited to verification integrity and runtime contract hardening; no M2
+subsystem or future Foundation topology was introduced.
+
+- The two generic repository Skills that had been added by the documentation
+  organization change were copied to the user-level Codex Skill directory at
+  `/home/arsvine/.codex/skills/` and removed from the repository. The local M1
+  history was rewritten from the documentation commit so those repository Skill
+  paths and the validator exclusion never occur in the current branch history.
+- The Heptalogos validator again inventories every repository Skill directory;
+  the Authority remains the original eight Heptalogos Skills.
+- `repository:lint` now runs `eslint scripts`; the root project has no no-op
+  lint/typecheck/test/build targets. Foundation packages export `dist` output,
+  have real Nx-inferred `build` and `typecheck` targets, and use `tsc --build`
+  with dependency-aware project references.
+- Repository verification scripts consume `@heptalogos/repo-kit` through the
+  actual workspace package dependency rather than reaching through a long
+  source-relative path.
+- Boundary workspace identity now comes from `repo-kit`'s pnpm workspace
+  discovery rather than recursive manifest scanning.
+- Persistent BootstrapState generation references are runtime-validated as
+  lowercase SHA-256 content digests. BootId and ActivityId journal fields are
+  validated as RFC 9562 UUIDv7 values, including before a journal filename is
+  derived. Parser and schema failures expose stable bounded Problem details,
+  not JSON/Ajv diagnostic text.
+
+The corrective verification was rerun after `nx reset` and removal of all
+package `dist`/`tsbuildinfo` output. `pnpm verify` passed; an independent clean
+`pnpm build` ran both Foundation package builds and produced each package's
+`dist/index.js` and `dist/index.d.ts`. Windows-specific subprocess behavior,
+filesystem power-loss durability, and other platform/product claims listed
+above remain `NOT_RUN`.
+
 ---
 
 ## Stop / Escalation Conditions

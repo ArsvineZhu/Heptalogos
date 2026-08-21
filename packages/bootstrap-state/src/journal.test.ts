@@ -107,6 +107,47 @@ describe("BootstrapJournal", () => {
     });
   });
 
+  it("rejects a runtime BootId that is not UUIDv7 before deriving a filename", async () => {
+    const journal = new BootstrapJournal(await makeDirectory());
+
+    await expect(journal.read("banana" as BootId)).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.journal.invalid_boot_id" },
+    });
+  });
+
+  it("rejects persisted generation references that are not content digests", async () => {
+    const directory = await makeDirectory();
+    const journal = new BootstrapJournal(directory);
+    const bootId = createUuidV7Id("BootId");
+    const file = join(directory, "bootstrap-journal", `${bootId}.json`);
+
+    await journal.checkpoint(makeEntry(bootId, "anchor"));
+    const text = await readFile(file, "utf8");
+    const entries = JSON.parse(text) as Array<Record<string, unknown>>;
+    entries[0].attemptedProductGeneration = "banana";
+    await writeFile(file, JSON.stringify(entries));
+
+    await expect(journal.read(bootId)).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.journal.invalid_entry" },
+    });
+  });
+
+  it("keeps parser and schema details stable and bounded", async () => {
+    const directory = await makeDirectory();
+    const journal = new BootstrapJournal(directory);
+    const bootId = createUuidV7Id("BootId");
+    const file = join(directory, "bootstrap-journal", `${bootId}.json`);
+
+    await journal.checkpoint(makeEntry(bootId, "anchor"));
+    await writeFile(file, '[{"bootId":"');
+    await expect(journal.read(bootId)).rejects.toMatchObject({
+      problem: {
+        problemCode: "bootstrap.journal.invalid_json",
+        detail: "Bootstrap journal JSON could not be parsed",
+      },
+    });
+  });
+
   it("does not import or expose BootstrapState authority", async () => {
     const source = await readFile(new URL("./journal.ts", import.meta.url), "utf8");
 

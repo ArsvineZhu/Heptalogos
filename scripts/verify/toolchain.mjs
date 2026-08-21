@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runPnpm, runProcessChecked } from "../../tools/repo-kit/src/process.mjs";
+import { runPnpm, runProcessChecked } from "@heptalogos/repo-kit";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const require = createRequire(import.meta.url);

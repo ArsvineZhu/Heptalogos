@@ -6,9 +6,12 @@ import { Type } from "typebox";
 import {
   canonicalizeJson,
   ProblemError,
+  SHA256_HEX_PATTERN,
   type CanonicalJsonValue,
   type Problem,
+  parseUuidV7Id,
   type UuidV7Id,
+  UUID_V7_PATTERN,
 } from "@heptalogos/foundation-contracts";
 import type { BootstrapRuntimeGenerationId, ProductGenerationId } from "./model.js";
 
@@ -38,10 +41,10 @@ export interface BootstrapJournalCheckpointV1 {
 const checkpointSchema = Type.Object(
   {
     schemaVersion: Type.Literal(1),
-    bootId: Type.String({ minLength: 1 }),
-    bootstrapActivityId: Type.String({ minLength: 1 }),
-    attemptedBootstrapRuntimeGeneration: Type.String({ minLength: 1 }),
-    attemptedProductGeneration: Type.String({ minLength: 1 }),
+    bootId: Type.String({ pattern: UUID_V7_PATTERN }),
+    bootstrapActivityId: Type.String({ pattern: UUID_V7_PATTERN }),
+    attemptedBootstrapRuntimeGeneration: Type.String({ pattern: SHA256_HEX_PATTERN }),
+    attemptedProductGeneration: Type.String({ pattern: SHA256_HEX_PATTERN }),
     stage: Type.String({ minLength: 1 }),
     at: Type.String({ minLength: 1 }),
     outcome: Type.Union([
@@ -74,6 +77,20 @@ function journalProblem(problemCode: string, title: string, detail: string): Pro
   };
 }
 
+function requireBootId(value: unknown): BootId {
+  const bootId = parseUuidV7Id("BootId", value);
+  if (!bootId) {
+    throw new ProblemError(
+      journalProblem(
+        "bootstrap.journal.invalid_boot_id",
+        "Bootstrap journal BootId is invalid",
+        "BootId must be a valid RFC 9562 UUIDv7",
+      ),
+    );
+  }
+  return bootId;
+}
+
 function journalText(entries: readonly BootstrapJournalCheckpointV1[]): string {
   return canonicalizeJson(entries as unknown as CanonicalJsonValue);
 }
@@ -86,21 +103,23 @@ export class BootstrapJournal {
   }
 
   async checkpoint(entry: BootstrapJournalCheckpointV1): Promise<void> {
-    const existing = await this.readEntries(entry.bootId);
+    const bootId = requireBootId(entry.bootId);
+    const existing = await this.readEntries(bootId);
     const entries = [...existing, entry];
     this.assertValidEntries(entries);
     await mkdir(this.journalDirectory, { recursive: true });
-    await writeFileAtomic(this.fileFor(entry.bootId), journalText(entries), {
+    await writeFileAtomic(this.fileFor(bootId), journalText(entries), {
       encoding: "utf8",
     });
   }
 
   async read(bootId: BootId): Promise<readonly BootstrapJournalCheckpointV1[]> {
-    return this.readEntries(bootId);
+    return this.readEntries(requireBootId(bootId));
   }
 
-  private fileFor(bootId: BootId): string {
-    return join(this.journalDirectory, `${bootId}.json`);
+  private fileFor(bootId: unknown): string {
+    const validatedBootId = requireBootId(bootId);
+    return join(this.journalDirectory, `${validatedBootId}.json`);
   }
 
   private async readEntries(
@@ -124,12 +143,12 @@ export class BootstrapJournal {
     let parsed: unknown;
     try {
       parsed = JSON.parse(text);
-    } catch (error) {
+    } catch {
       throw new ProblemError(
         journalProblem(
           "bootstrap.journal.invalid_json",
           "Bootstrap journal is not valid JSON",
-          error instanceof Error ? error.message : "JSON parsing failed",
+          "Bootstrap journal JSON could not be parsed",
         ),
       );
     }
@@ -139,7 +158,7 @@ export class BootstrapJournal {
         journalProblem(
           "bootstrap.journal.invalid_entry",
           "Bootstrap journal contains an invalid entry",
-          ajv.errorsText(validateJournal.errors),
+          "Bootstrap journal checkpoint does not match the supported schema",
         ),
       );
     }
@@ -163,7 +182,7 @@ export class BootstrapJournal {
         journalProblem(
           "bootstrap.journal.invalid_entry",
           "Bootstrap journal checkpoint is invalid",
-          ajv.errorsText(validateJournal.errors),
+          "Bootstrap journal checkpoint does not match the supported schema",
         ),
       );
     }

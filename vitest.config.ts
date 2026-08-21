@@ -1,6 +1,16 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
+const foundationContractsSource = fileURLToPath(
+  new URL("./packages/foundation-contracts/src/index.ts", import.meta.url),
+);
+
 export default defineConfig({
+  resolve: {
+    alias: {
+      "@heptalogos/foundation-contracts": foundationContractsSource,
+    },
+  },
   test: {
     environment: "node",
     passWithNoTests: true,

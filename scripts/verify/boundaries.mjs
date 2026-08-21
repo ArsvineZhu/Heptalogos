@@ -3,9 +3,10 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  discoverWorkspacePackages,
   packageRoutes,
   repositoryToolingPackages,
-} from "../../tools/repo-kit/src/dependency-authority.mjs";
+} from "@heptalogos/repo-kit";
 
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const errors = [];
@@ -46,14 +47,11 @@ function packageName(specifier) {
   return specifier.split("/")[0];
 }
 
-const packageManifestPaths = collect(root, (_path, name) => name === "package.json");
-const workspacePackageNames = new Set();
-for (const manifestPath of packageManifestPaths) {
-  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  if (typeof manifest.name === "string" && manifest.name.length > 0) {
-    workspacePackageNames.add(manifest.name);
-  }
-}
+const workspacePackageNames = new Set(
+  (await discoverWorkspacePackages({ cwd: root }))
+    .map(({ name }) => name)
+    .filter((name) => typeof name === "string" && name.length > 0),
+);
 
 function packageJsonFor(file) {
   let directory = dirname(file);

@@ -4,6 +4,7 @@ import {
   digestCanonicalJson,
   type CanonicalJsonValue,
   type Problem,
+  SHA256_HEX_PATTERN,
 } from "@heptalogos/foundation-contracts";
 import type {
   BootstrapStateBodyV1,
@@ -18,7 +19,7 @@ const digestSchema = Type.Object(
     algorithm: Type.Literal("sha256"),
     canonicalization: Type.Literal("RFC8785-JCS"),
     domain: Type.String({ minLength: 1 }),
-    hex: Type.String({ pattern: "^[0-9a-f]{64}$" }),
+    hex: Type.String({ pattern: SHA256_HEX_PATTERN }),
   },
   { additionalProperties: false },
 );
@@ -27,10 +28,14 @@ const stateSchema = Type.Object(
   {
     schemaVersion: Type.Literal(1),
     revision: Type.Integer({ minimum: 1 }),
-    activeBootstrapRuntimeGeneration: Type.String({ minLength: 1 }),
-    previousBootstrapRuntimeGeneration: Type.Optional(Type.String({ minLength: 1 })),
-    activeProductGeneration: Type.String({ minLength: 1 }),
-    lastKnownGoodProductGeneration: Type.Optional(Type.String({ minLength: 1 })),
+    activeBootstrapRuntimeGeneration: Type.String({ pattern: SHA256_HEX_PATTERN }),
+    previousBootstrapRuntimeGeneration: Type.Optional(
+      Type.String({ pattern: SHA256_HEX_PATTERN }),
+    ),
+    activeProductGeneration: Type.String({ pattern: SHA256_HEX_PATTERN }),
+    lastKnownGoodProductGeneration: Type.Optional(
+      Type.String({ pattern: SHA256_HEX_PATTERN }),
+    ),
     lastCommittedOperationRef: Type.Optional(Type.String()),
     lastCompletedStageRef: Type.Optional(Type.String()),
   },
@@ -84,11 +89,11 @@ export function parseBootstrapState(text: string): BootstrapStateParseResult {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
-  } catch (error) {
+  } catch {
     return problem(
       "bootstrap.state.invalid_json",
       "Bootstrap state is not valid JSON",
-      error instanceof Error ? error.message : "JSON parsing failed",
+      "Bootstrap state JSON could not be parsed",
     );
   }
 
@@ -96,7 +101,7 @@ export function parseBootstrapState(text: string): BootstrapStateParseResult {
     return problem(
       "bootstrap.state.invalid_schema",
       "Bootstrap state does not match schema version 1",
-      ajv.errorsText(validateEnvelope.errors),
+      "Bootstrap state does not match the supported schema",
     );
   }
 

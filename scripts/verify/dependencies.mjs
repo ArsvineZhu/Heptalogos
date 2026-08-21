@@ -4,11 +4,11 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   authority,
+  discoverWorkspacePackages,
   packageRoutes,
   repositoryToolingPackages,
   routes,
-} from "../../tools/repo-kit/src/dependency-authority.mjs";
-import { discoverWorkspacePackages } from "../../tools/repo-kit/src/workspace.mjs";
+} from "@heptalogos/repo-kit";
 
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const workspacePath = join(root, "pnpm-workspace.yaml");

@@ -24,7 +24,11 @@
     "toolchain:check": "node scripts/verify/toolchain.mjs",
     "verify": "pnpm check:agents && pnpm check:corpus && pnpm check:repository && pnpm check:dependencies && pnpm check:boundaries && pnpm toolchain:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm tsc6 && pnpm test && pnpm build"
   },
+  "nx": {
+    "includedScripts": []
+  },
   "devDependencies": {
+    "@heptalogos/repo-kit": "workspace:*",
     "@nx/js": "catalog:",
     "@types/node": "catalog:",
     "@typescript/native": "catalog:",

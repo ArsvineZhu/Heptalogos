@@ -15,12 +15,6 @@
       "options": {
         "command": "vitest run --root packages/bootstrap-state"
       }
-    },
-    "typecheck": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "tsc --noEmit -p packages/bootstrap-state/tsconfig.build.json"
-      }
     }
   }
 }
