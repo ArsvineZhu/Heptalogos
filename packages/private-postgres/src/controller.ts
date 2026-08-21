@@ -385,8 +385,9 @@ async function runPgCtlChecked(
   problemCode: string,
   title: string,
   detail: string,
+  stdio: "pipe" | "ignore" = "pipe",
 ): Promise<void> {
-  const result = await runPostgresTool(toolchain.pgCtl, args, { timeoutMs });
+  const result = await runPostgresTool(toolchain.pgCtl, args, { timeoutMs, stdio });
   if (result.exitCode !== 0) {
     throw controllerProblem(problemCode, title, detail, "unavailable");
   }
@@ -489,6 +490,7 @@ async function startProcess(
     "private-postgres.lifecycle.start_failed",
     "Private PostgreSQL start failed",
     "pg_ctl could not start the validated private PostgreSQL cluster",
+    "ignore",
   );
 }
 
@@ -511,6 +513,7 @@ async function restartProcess(
     "private-postgres.lifecycle.restart_failed",
     "Private PostgreSQL restart failed",
     "pg_ctl could not restart the validated private PostgreSQL cluster",
+    "ignore",
   );
 }
 
@@ -557,75 +560,93 @@ export async function startPrivatePostgresCluster(
     );
   }
 
-  await validateExistingCluster({
-    toolchain: options.toolchain,
-    placement: options.placement,
-    expectedIdentity: options.expectedIdentity,
-    timeoutMs: options.lifecycle.startupTimeoutMs,
-  });
-  await startProcess(options);
-  await waitForPrivatePostgresReadiness(
-    options,
-    options.expectedIdentity.persistedPort,
-  );
-  const started = await validateExistingCluster({
-    toolchain: options.toolchain,
-    placement: options.placement,
-    expectedIdentity: options.expectedIdentity,
-    timeoutMs: options.lifecycle.startupTimeoutMs,
-  });
-  let state: "READY" | "STOPPED" = "READY";
+  let processStarted = false;
+  try {
+    await validateExistingCluster({
+      toolchain: options.toolchain,
+      placement: options.placement,
+      expectedIdentity: options.expectedIdentity,
+      timeoutMs: options.lifecycle.startupTimeoutMs,
+    });
+    await startProcess(options);
+    processStarted = true;
+    await waitForPrivatePostgresReadiness(
+      options,
+      options.expectedIdentity.persistedPort,
+    );
+    const started = await validateExistingCluster({
+      toolchain: options.toolchain,
+      placement: options.placement,
+      expectedIdentity: options.expectedIdentity,
+      timeoutMs: options.lifecycle.startupTimeoutMs,
+    });
+    let state: "READY" | "STOPPED" = "READY";
 
-  return {
-    toolchain: started.toolchain,
-    placement: started.placement,
-    identity: started.identity,
-    port: started.port,
-    async stop(): Promise<void> {
-      if (state === "STOPPED") return;
-      await stopProcess(options);
-      state = "STOPPED";
-    },
-    async restart(): Promise<void> {
-      if (state === "STOPPED") {
-        await startProcess(options);
-      } else {
-        await assertPrivatePostgresProcessRunning(options);
-        await restartProcess(options);
-      }
-      try {
-        await waitForPrivatePostgresReadiness(
-          options,
-          options.expectedIdentity.persistedPort,
-        );
-        const restarted = await validateExistingCluster({
-          toolchain: options.toolchain,
-          placement: options.placement,
-          expectedIdentity: options.expectedIdentity,
-          timeoutMs: options.lifecycle.startupTimeoutMs,
-        });
-        if (
-          restarted.identity.clusterSystemIdentifier !==
-            started.identity.clusterSystemIdentifier ||
-          restarted.port !== started.port
-        ) {
+    return {
+      toolchain: started.toolchain,
+      placement: started.placement,
+      identity: started.identity,
+      port: started.port,
+      async stop(): Promise<void> {
+        if (state === "STOPPED") return;
+        await stopProcess(options);
+        state = "STOPPED";
+      },
+      async restart(): Promise<void> {
+        if (state === "STOPPED") {
+          await startProcess(options);
+        } else {
+          await assertPrivatePostgresProcessRunning(options);
+          await restartProcess(options);
+        }
+        try {
+          await waitForPrivatePostgresReadiness(
+            options,
+            options.expectedIdentity.persistedPort,
+          );
+          const restarted = await validateExistingCluster({
+            toolchain: options.toolchain,
+            placement: options.placement,
+            expectedIdentity: options.expectedIdentity,
+            timeoutMs: options.lifecycle.startupTimeoutMs,
+          });
+          if (
+            restarted.identity.clusterSystemIdentifier !==
+              started.identity.clusterSystemIdentifier ||
+            restarted.port !== started.port
+          ) {
+            throw controllerProblem(
+              "private-postgres.lifecycle.identity_changed",
+              "Private PostgreSQL identity changed during restart",
+              "The restarted private PostgreSQL process did not preserve the validated cluster identity and port",
+              "integrity",
+            );
+          }
+          state = "READY";
+        } catch (error) {
+          if (error instanceof ProblemError) throw error;
           throw controllerProblem(
-            "private-postgres.lifecycle.identity_changed",
-            "Private PostgreSQL identity changed during restart",
-            "The restarted private PostgreSQL process did not preserve the validated cluster identity and port",
-            "integrity",
+            "private-postgres.lifecycle.restart_failed",
+            "Private PostgreSQL restart readiness failed",
+            "The restarted private PostgreSQL cluster did not return to its validated ready state",
+            "unavailable",
           );
         }
-        state = "READY";
-      } catch (error) {
-        if (error instanceof ProblemError) throw error;
-        throw controllerProblem(
-          "private-postgres.lifecycle.restart_failed",
-          "Private PostgreSQL restart readiness failed",
-          "The restarted private PostgreSQL cluster did not return to its validated ready state",
-          "unavailable",
-        );
-      }
-    },
-  };
+      },
+    };
+  } catch (error) {
+    if (!processStarted) throw error;
+    try {
+      options.assertControlAuthority();
+      await stopProcess(options);
+    } catch {
+      throw controllerProblem(
+        "private-postgres.lifecycle.start_cleanup_uncertain",
+        "Private PostgreSQL start cleanup is uncertain",
+        "PostgreSQL started but a later readiness or identity check failed and the process could not be proven stopped",
+        "integrity",
+      );
+    }
+    throw error;
+  }
 }

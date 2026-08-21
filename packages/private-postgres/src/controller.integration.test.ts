@@ -396,6 +396,121 @@ describe("private PostgreSQL first initialization", () => {
       }
     });
 
+    it("stops a process when readiness fails after start", async () => {
+      const cluster = await createLifecycleCluster(55447);
+      const brokenToolchain = {
+        ...cluster.initialized.toolchain,
+        pgIsReady: cluster.initialized.toolchain.pgControldata,
+      };
+
+      try {
+        await expect(
+          startPrivatePostgresCluster({
+            toolchain: brokenToolchain,
+            placement: cluster.initialized.placement,
+            expectedIdentity: cluster.expected,
+            logFilePath: join(cluster.logRoot, "private-postgres.log"),
+            lifecycle: {
+              startupTimeoutMs: 5_000,
+              shutdownTimeoutMs: 30_000,
+              readinessPollIntervalMs: 100,
+            },
+            assertControlAuthority: allowControlAuthority,
+          }),
+        ).rejects.toMatchObject({
+          problem: {
+            problemCode: expect.stringMatching(
+              /^private-postgres\.lifecycle\.(process_exited|readiness_timeout)$/u,
+            ),
+          },
+        });
+        await expect(
+          access(
+            join(
+              cluster.initialized.placement.canonicalDataDirectory,
+              "postmaster.pid",
+            ),
+          ),
+        ).rejects.toMatchObject({ code: "ENOENT" });
+      } finally {
+        await runPostgresTool(
+          cluster.initialized.toolchain.pgCtl,
+          [
+            "stop",
+            "--pgdata",
+            cluster.initialized.placement.canonicalDataDirectory,
+            "--mode=fast",
+            "--wait",
+          ],
+          { timeoutMs: 30_000 },
+        ).catch(() => undefined);
+        await Promise.all(
+          [cluster.dataRoot, cluster.tempRoot, cluster.logRoot].map((root) =>
+            rm(root, { recursive: true, force: true }),
+          ),
+        );
+      }
+    }, 120_000);
+
+    it("reports uncertain cleanup when control is lost after start", async () => {
+      const cluster = await createLifecycleCluster(55448);
+      let assertions = 0;
+      const brokenToolchain = {
+        ...cluster.initialized.toolchain,
+        pgIsReady: cluster.initialized.toolchain.pgControldata,
+      };
+      const assertControlAuthority = () => {
+        assertions += 1;
+        if (assertions >= 3) throw new Error("authority revoked during cleanup");
+      };
+
+      try {
+        await expect(
+          startPrivatePostgresCluster({
+            toolchain: brokenToolchain,
+            placement: cluster.initialized.placement,
+            expectedIdentity: cluster.expected,
+            logFilePath: join(cluster.logRoot, "private-postgres.log"),
+            lifecycle: {
+              startupTimeoutMs: 5_000,
+              shutdownTimeoutMs: 30_000,
+              readinessPollIntervalMs: 100,
+            },
+            assertControlAuthority,
+          }),
+        ).rejects.toMatchObject({
+          problem: {
+            problemCode: "private-postgres.lifecycle.start_cleanup_uncertain",
+          },
+        });
+        await expect(
+          access(
+            join(
+              cluster.initialized.placement.canonicalDataDirectory,
+              "postmaster.pid",
+            ),
+          ),
+        ).resolves.toBeUndefined();
+      } finally {
+        await runPostgresTool(
+          cluster.initialized.toolchain.pgCtl,
+          [
+            "stop",
+            "--pgdata",
+            cluster.initialized.placement.canonicalDataDirectory,
+            "--mode=fast",
+            "--wait",
+          ],
+          { timeoutMs: 30_000 },
+        ).catch(() => undefined);
+        await Promise.all(
+          [cluster.dataRoot, cluster.tempRoot, cluster.logRoot].map((root) =>
+            rm(root, { recursive: true, force: true }),
+          ),
+        );
+      }
+    }, 120_000);
+
     it("requires live control authority before start, stop, and restart", async () => {
       const cluster = await createLifecycleCluster(55446);
       let allowed = true;

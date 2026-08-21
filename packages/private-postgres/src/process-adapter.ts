@@ -12,6 +12,7 @@ export interface PostgresProcessOptions {
   readonly cwd?: string;
   readonly timeoutMs: number;
   readonly env?: Readonly<Record<string, string>>;
+  readonly stdio?: "pipe" | "ignore";
 }
 
 const SANITIZED_POSTGRES_ENV_KEYS = [
@@ -89,13 +90,14 @@ export async function runPostgresTool(
       cwd: options.cwd,
       env: cleanChildEnvironment(options.env),
       shell: false,
+      stdio: options.stdio,
       timeout: options.timeoutMs,
       reject: false,
     });
     return {
       exitCode: result.exitCode ?? -1,
-      stdout: result.stdout,
-      stderr: result.stderr,
+      stdout: result.stdout ?? "",
+      stderr: result.stderr ?? "",
     };
   } catch (error) {
     if (isTimeoutError(error)) {
