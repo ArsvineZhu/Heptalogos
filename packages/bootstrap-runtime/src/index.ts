@@ -17,3 +17,7 @@ export {
   type OwnedBootstrapPrelude,
   type PreparedBootstrapPrelude,
 } from "./bootstrap-prelude.js";
+export type {
+  BootstrapKeyProvider,
+  BootstrapKeyRequestContext,
+} from "./bootstrap-key-provider.js";
