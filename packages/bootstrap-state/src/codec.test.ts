@@ -10,10 +10,7 @@ import {
   parseBootstrapState,
   sealBootstrapState,
 } from "./codec.js";
-import type {
-  BootstrapStateBodyV1,
-  BootstrapStateBodyV2,
-} from "./model.js";
+import type { BootstrapStateBodyV1, BootstrapStateBodyV2 } from "./model.js";
 
 function makeState(): BootstrapStateBodyV1 {
   return {

@@ -1,9 +1,6 @@
 import { lstat, opendir } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve } from "node:path";
-import {
-  ProblemError,
-  type Problem,
-} from "@heptalogos/foundation-contracts";
+import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
 import {
   PRIVATE_POSTGRES_DATA_LAYOUT_VERSION,
   PRIVATE_POSTGRES_RELATIVE_DATA_PATH,

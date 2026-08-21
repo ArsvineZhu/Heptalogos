@@ -158,10 +158,7 @@ async function assertFirstInitializationTarget(
   }
 }
 
-async function writeRuntimeProfile(
-  dataDirectory: string,
-  port: number,
-): Promise<void> {
+async function writeRuntimeProfile(dataDirectory: string, port: number): Promise<void> {
   const configuration = [
     "listen_addresses = '127.0.0.1'",
     "unix_socket_directories = ''",
@@ -183,10 +180,7 @@ async function writeRuntimeProfile(
   }
 }
 
-function requireRuntimeProfileSetting(
-  configuration: string,
-  name: string,
-): string {
+function requireRuntimeProfileSetting(configuration: string, name: string): string {
   const escapedName = name.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
   const match = new RegExp(`^\\s*${escapedName}\\s*=\\s*(.*?)\\s*$`, "mu").exec(
     configuration,
@@ -201,9 +195,7 @@ function requireRuntimeProfileSetting(
   return match[1].replace(/^'(.*)'$/u, "$1");
 }
 
-async function readRuntimeProfile(
-  dataDirectory: string,
-): Promise<{
+async function readRuntimeProfile(dataDirectory: string): Promise<{
   readonly listenAddress: string;
   readonly unixSocketDirectories: string;
   readonly port: number;
@@ -254,10 +246,7 @@ export async function initializePrivatePostgresCluster(
     async (passwordFilePath) =>
       runPostgresTool(
         options.toolchain.initdb,
-        initializationArgs(
-          options.placement.canonicalDataDirectory,
-          passwordFilePath,
-        ),
+        initializationArgs(options.placement.canonicalDataDirectory, passwordFilePath),
         { timeoutMs: options.lifecycle.startupTimeoutMs },
       ),
   );
@@ -271,10 +260,7 @@ export async function initializePrivatePostgresCluster(
     );
   }
 
-  await writeRuntimeProfile(
-    options.placement.canonicalDataDirectory,
-    options.port,
-  );
+  await writeRuntimeProfile(options.placement.canonicalDataDirectory, options.port);
   const inspection = await inspectPrivatePostgresCluster(
     options.toolchain,
     options.placement.canonicalDataDirectory,
@@ -520,9 +506,7 @@ async function restartProcess(
   );
 }
 
-async function stopProcess(
-  options: StartPrivatePostgresClusterOptions,
-): Promise<void> {
+async function stopProcess(options: StartPrivatePostgresClusterOptions): Promise<void> {
   await runPgCtlChecked(
     options.toolchain,
     [
@@ -570,7 +554,10 @@ export async function startPrivatePostgresCluster(
     timeoutMs: options.lifecycle.startupTimeoutMs,
   });
   await startProcess(options);
-  await waitForPrivatePostgresReadiness(options, options.expectedIdentity.persistedPort);
+  await waitForPrivatePostgresReadiness(
+    options,
+    options.expectedIdentity.persistedPort,
+  );
   const started = await validateExistingCluster({
     toolchain: options.toolchain,
     placement: options.placement,
@@ -597,7 +584,10 @@ export async function startPrivatePostgresCluster(
         await restartProcess(options);
       }
       try {
-        await waitForPrivatePostgresReadiness(options, options.expectedIdentity.persistedPort);
+        await waitForPrivatePostgresReadiness(
+          options,
+          options.expectedIdentity.persistedPort,
+        );
         const restarted = await validateExistingCluster({
           toolchain: options.toolchain,
           placement: options.placement,

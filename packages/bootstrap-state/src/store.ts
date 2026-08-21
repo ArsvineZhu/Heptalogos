@@ -8,10 +8,7 @@ import {
 } from "@heptalogos/foundation-contracts";
 import { parseBootstrapState, sealBootstrapState } from "./codec.js";
 import { writeAtomicPublishedFile } from "./atomic-file.js";
-import type {
-  BootstrapStateBody,
-  BootstrapStateEnvelope,
-} from "./model.js";
+import type { BootstrapStateBody, BootstrapStateEnvelope } from "./model.js";
 
 const CURRENT_FILENAME = "bootstrap-state.json";
 const PREVIOUS_FILENAME = "bootstrap-state.previous.json";

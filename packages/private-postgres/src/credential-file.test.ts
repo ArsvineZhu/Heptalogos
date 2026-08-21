@@ -17,9 +17,7 @@ describe("withRestrictedPasswordFile", () => {
       async (passwordFilePath) => {
         callbackPath = passwordFilePath;
         expect(isAbsolute(passwordFilePath)).toBe(true);
-        await expect(readFile(passwordFilePath, "utf8")).resolves.toBe(
-          `${SENTINEL}\n`,
-        );
+        await expect(readFile(passwordFilePath, "utf8")).resolves.toBe(`${SENTINEL}\n`);
         if (process.platform !== "win32") {
           await expect(stat(passwordFilePath)).resolves.toMatchObject({
             mode: expect.any(Number),

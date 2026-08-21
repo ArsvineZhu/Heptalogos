@@ -1,9 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
-import {
-  ProblemError,
-  type Problem,
-} from "@heptalogos/foundation-contracts";
+import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
 import {
   PRIVATE_POSTGRES_ARCHITECTURE_MAJOR,
   type PrivatePostgresToolchain,
@@ -39,9 +36,7 @@ function inspectionProblem(
 
 function field(output: string, label: string): string {
   const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-  const match = new RegExp(`^\\s*${escapedLabel}:\\s*(.*?)\\s*$`, "mu").exec(
-    output,
-  );
+  const match = new RegExp(`^\\s*${escapedLabel}:\\s*(.*?)\\s*$`, "mu").exec(output);
   if (!match || match[1].length === 0) {
     throw inspectionProblem(
       "private-postgres.cluster.control_data_invalid",
@@ -89,9 +84,7 @@ export function parsePgControldata(output: string): ParsedPgControldata {
   });
 }
 
-export async function readPrivatePostgresMajor(
-  dataDirectory: string,
-): Promise<18> {
+export async function readPrivatePostgresMajor(dataDirectory: string): Promise<18> {
   if (!isAbsolute(dataDirectory)) {
     throw inspectionProblem(
       "private-postgres.cluster.pg_version_mismatch",

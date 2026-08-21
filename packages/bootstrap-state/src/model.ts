@@ -26,9 +26,8 @@ export interface BootstrapStateEnvelopeV1 {
   readonly digest: Sha256Digest;
 }
 
-export type PrivatePostgresInitializationProfileRevision = ContentDigest<
-  "PrivatePostgresInitializationProfileRevision"
->;
+export type PrivatePostgresInitializationProfileRevision =
+  ContentDigest<"PrivatePostgresInitializationProfileRevision">;
 
 export interface PrivatePostgresBootstrapStateV1 {
   readonly schemaVersion: 1;
@@ -65,8 +64,7 @@ export interface BootstrapStateEnvelopeV2 {
 
 export type BootstrapStateBody = BootstrapStateBodyV1 | BootstrapStateBodyV2;
 export type BootstrapStateEnvelope =
-  | BootstrapStateEnvelopeV1
-  | BootstrapStateEnvelopeV2;
+  BootstrapStateEnvelopeV1 | BootstrapStateEnvelopeV2;
 
 export type BootstrapStateParseResult =
   | { readonly ok: true; readonly value: BootstrapStateEnvelope }

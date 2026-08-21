@@ -52,10 +52,7 @@ describe("restricted repository imports", () => {
       ),
     ).toBe(false);
     expect(
-      isRestrictedImportAllowed(
-        "execa",
-        "packages/future-product/src/index.ts",
-      ),
+      isRestrictedImportAllowed("execa", "packages/future-product/src/index.ts"),
     ).toBe(false);
   });
 

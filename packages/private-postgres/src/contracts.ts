@@ -9,9 +9,8 @@ export const PRIVATE_POSTGRES_QUALIFIED_VERSION = "18.6" as const;
 export const PRIVATE_POSTGRES_DATA_LAYOUT_VERSION = 1 as const;
 export const PRIVATE_POSTGRES_RELATIVE_DATA_PATH = "private-postgres" as const;
 
-export type PrivatePostgresInitializationProfileRevision = ContentDigest<
-  "PrivatePostgresInitializationProfileRevision"
->;
+export type PrivatePostgresInitializationProfileRevision =
+  ContentDigest<"PrivatePostgresInitializationProfileRevision">;
 
 export interface PrivatePostgresToolchain {
   readonly version: "18.6";

@@ -33,9 +33,7 @@ describe("parsePostgresVersion", () => {
   });
 
   it("rejects a non-qualified PostgreSQL patch version", () => {
-    expect(() =>
-      parsePostgresVersion("postgres (PostgreSQL) 18.4\n"),
-    ).toThrowError();
+    expect(() => parsePostgresVersion("postgres (PostgreSQL) 18.4\n")).toThrowError();
   });
 
   it("rejects a beta version", () => {
@@ -71,19 +69,23 @@ describe("private PostgreSQL executable paths", () => {
   });
 
   it("derives only absolute paths from an absolute bin directory", () => {
-    expect(resolvePrivatePostgresExecutablePaths("/opt/postgres/bin", "linux")).toEqual({
-      postgres: "/opt/postgres/bin/postgres",
-      initdb: "/opt/postgres/bin/initdb",
-      pgCtl: "/opt/postgres/bin/pg_ctl",
-      pgControldata: "/opt/postgres/bin/pg_controldata",
-      pgIsReady: "/opt/postgres/bin/pg_isready",
-    });
+    expect(resolvePrivatePostgresExecutablePaths("/opt/postgres/bin", "linux")).toEqual(
+      {
+        postgres: "/opt/postgres/bin/postgres",
+        initdb: "/opt/postgres/bin/initdb",
+        pgCtl: "/opt/postgres/bin/pg_ctl",
+        pgControldata: "/opt/postgres/bin/pg_controldata",
+        pgIsReady: "/opt/postgres/bin/pg_isready",
+      },
+    );
   });
 
   it("rejects a relative bin directory before filesystem inspection", async () => {
-    await expect(resolvePrivatePostgresToolchain("postgres/bin")).rejects.toMatchObject({
-      problem: { problemCode: "private-postgres.toolchain.invalid_bin_directory" },
-    });
+    await expect(resolvePrivatePostgresToolchain("postgres/bin")).rejects.toMatchObject(
+      {
+        problem: { problemCode: "private-postgres.toolchain.invalid_bin_directory" },
+      },
+    );
   });
 
   it("rejects a missing required tool without searching PATH", async () => {

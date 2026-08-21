@@ -39,9 +39,7 @@ interface TestPreparePrivatePostgresOptions {
 }
 
 type OwnedPreludeWithPrivatePostgres = OwnedBootstrapPrelude & {
-  preparePrivatePostgres(
-    options: TestPreparePrivatePostgresOptions,
-  ): Promise<unknown>;
+  preparePrivatePostgres(options: TestPreparePrivatePostgresOptions): Promise<unknown>;
 };
 
 function makeState(revision: number): BootstrapStateBodyV1 {
@@ -110,9 +108,7 @@ function makeOptions(
   };
 }
 
-function callable(
-  owned: OwnedBootstrapPrelude,
-): OwnedPreludeWithPrivatePostgres {
+function callable(owned: OwnedBootstrapPrelude): OwnedPreludeWithPrivatePostgres {
   return owned as OwnedPreludeWithPrivatePostgres;
 }
 

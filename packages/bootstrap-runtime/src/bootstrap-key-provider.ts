@@ -1,4 +1,8 @@
-import type { BootId, InstallationId, InstanceId } from "@heptalogos/foundation-contracts";
+import type {
+  BootId,
+  InstallationId,
+  InstanceId,
+} from "@heptalogos/foundation-contracts";
 
 export interface BootstrapKeyRequestContext {
   readonly installationId: InstallationId;

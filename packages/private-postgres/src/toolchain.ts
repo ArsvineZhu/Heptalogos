@@ -1,10 +1,7 @@
 import { lstat } from "node:fs/promises";
 import { isAbsolute as isPosixAbsolute, join as posixJoin } from "node:path/posix";
 import { isAbsolute as isWindowsAbsolute, join as windowsJoin } from "node:path/win32";
-import {
-  ProblemError,
-  type Problem,
-} from "@heptalogos/foundation-contracts";
+import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
 import {
   PRIVATE_POSTGRES_QUALIFIED_VERSION,
   type PrivatePostgresToolchain,
@@ -82,7 +79,9 @@ export function resolvePrivatePostgresExecutablePaths(
   }
 
   const [postgres, initdb, pgCtl, pgControldata, pgIsReady] =
-    privatePostgresExecutableNames(platform).map((name) => paths.join(binDirectory, name));
+    privatePostgresExecutableNames(platform).map((name) =>
+      paths.join(binDirectory, name),
+    );
   return { postgres, initdb, pgCtl, pgControldata, pgIsReady };
 }
 
@@ -121,10 +120,9 @@ async function requireRegularTool(path: string, name: string): Promise<void> {
 }
 
 export function parsePostgresVersion(output: string): ParsedPostgresVersion {
-  const match =
-    /^\S+\s+\(PostgreSQL\)\s+(\d+)\.(\d+)(?:\s+\([^()\r\n]*\))?\s*$/u.exec(
-      output,
-    );
+  const match = /^\S+\s+\(PostgreSQL\)\s+(\d+)\.(\d+)(?:\s+\([^()\r\n]*\))?\s*$/u.exec(
+    output,
+  );
   const version = match ? `${match[1]}.${match[2]}` : undefined;
   if (version !== PRIVATE_POSTGRES_QUALIFIED_VERSION) {
     throw toolchainProblem(

@@ -146,18 +146,13 @@ export function sealBootstrapState(
 export function sealBootstrapState(
   state: BootstrapStateBodyV2,
 ): BootstrapStateEnvelopeV2;
-export function sealBootstrapState(
-  state: BootstrapStateBody,
-): BootstrapStateEnvelope;
+export function sealBootstrapState(state: BootstrapStateBody): BootstrapStateEnvelope;
 export function sealBootstrapState(state: BootstrapStateBody): BootstrapStateEnvelope {
   const domain =
     state.schemaVersion === 1
       ? BOOTSTRAP_STATE_DIGEST_DOMAIN
       : BOOTSTRAP_STATE_V2_DIGEST_DOMAIN;
-  const digest = digestCanonicalJson(
-    domain,
-    state as unknown as CanonicalJsonValue,
-  );
+  const digest = digestCanonicalJson(domain, state as unknown as CanonicalJsonValue);
   return { state, digest } as BootstrapStateEnvelope;
 }
 

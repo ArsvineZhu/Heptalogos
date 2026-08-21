@@ -85,14 +85,12 @@ export async function withRestrictedPasswordFile<T>(
     try {
       await unlink(passwordFilePath);
     } catch (error) {
-      if (
-        !(
-          typeof error === "object" &&
-          error !== null &&
-          "code" in error &&
-          error.code === "ENOENT"
-        )
-      ) {
+      if (!(
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        error.code === "ENOENT"
+      )) {
         throw credentialProblem(
           "private-postgres.credential_file.cleanup_failed",
           "Private PostgreSQL password file cleanup failed",

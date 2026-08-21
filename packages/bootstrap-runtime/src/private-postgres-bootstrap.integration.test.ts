@@ -167,9 +167,7 @@ function withFaultHook(
   return { ...options, __testHook: makeFaultHook(phase) };
 }
 
-function callable(
-  owned: OwnedBootstrapPrelude,
-): OwnedPreludeWithPrivatePostgres {
+function callable(owned: OwnedBootstrapPrelude): OwnedPreludeWithPrivatePostgres {
   return owned as OwnedPreludeWithPrivatePostgres;
 }
 
@@ -419,9 +417,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
       });
       try {
         await expect(
-          callable(recoveryOwned).preparePrivatePostgres(
-            makeOptions(undefined, []),
-          ),
+          callable(recoveryOwned).preparePrivatePostgres(makeOptions(undefined, [])),
         ).rejects.toMatchObject({
           problem: { problemCode: "bootstrap.private_postgres.recovery_required" },
         });

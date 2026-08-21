@@ -1,20 +1,8 @@
-import {
-  access,
-  mkdtemp,
-  readFile,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import {
-  afterAll,
-  beforeAll,
-  describe,
-  expect,
-  it,
-} from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   asContentDigest,
   createInstallationId,
@@ -34,9 +22,7 @@ if (!pgBin) {
 }
 const qualifiedPgBin = pgBin;
 
-const {
-  resolvePrivatePostgresToolchain,
-} = await import("./toolchain.js");
+const { resolvePrivatePostgresToolchain } = await import("./toolchain.js");
 const { PRIVATE_POSTGRES_QUALIFIED_VERSION } = await import("./contracts.js");
 const { resolvePrivatePostgresPlacement } = await import("./cluster-layout.js");
 const {
@@ -78,11 +64,14 @@ describe("private PostgreSQL first initialization", () => {
       expect(result.initializationProfileRevision).toBe(
         createPrivatePostgresInitializationProfileRevision(55432),
       );
-      await expect(readFile(join(placement.canonicalDataDirectory, "PG_VERSION"), "utf8")).resolves.toBe(
-        "18\n",
-      );
       await expect(
-        readFile(join(placement.canonicalDataDirectory, "postgresql.auto.conf"), "utf8"),
+        readFile(join(placement.canonicalDataDirectory, "PG_VERSION"), "utf8"),
+      ).resolves.toBe("18\n");
+      await expect(
+        readFile(
+          join(placement.canonicalDataDirectory, "postgresql.auto.conf"),
+          "utf8",
+        ),
       ).resolves.toMatch(
         /listen_addresses\s*=\s*'127\.0\.0\.1'[\s\S]*unix_socket_directories\s*=\s*''/u,
       );
@@ -94,7 +83,9 @@ describe("private PostgreSQL first initialization", () => {
       );
     } finally {
       await Promise.all(
-        [dataRoot, tempRoot, logRoot].map((root) => rm(root, { recursive: true, force: true })),
+        [dataRoot, tempRoot, logRoot].map((root) =>
+          rm(root, { recursive: true, force: true }),
+        ),
       );
     }
   });
@@ -106,7 +97,9 @@ describe("private PostgreSQL first initialization", () => {
     const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
 
     try {
-      await import("node:fs/promises").then(({ mkdir }) => mkdir(placement.canonicalDataDirectory));
+      await import("node:fs/promises").then(({ mkdir }) =>
+        mkdir(placement.canonicalDataDirectory),
+      );
       await writeFile(join(placement.canonicalDataDirectory, "PG_VERSION"), "18\n");
 
       await expect(
@@ -114,7 +107,9 @@ describe("private PostgreSQL first initialization", () => {
           toolchain,
           placement,
           credentialTempRoot: tempRoot,
-          bootstrapPasswordUtf8: new TextEncoder().encode("M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6"),
+          bootstrapPasswordUtf8: new TextEncoder().encode(
+            "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
+          ),
           port: 55432,
           lifecycle: {
             startupTimeoutMs: 60_000,
@@ -125,7 +120,9 @@ describe("private PostgreSQL first initialization", () => {
       ).rejects.toMatchObject({
         problem: { problemCode: "private-postgres.cluster.non_empty_target" },
       });
-      await expect(access(join(placement.canonicalDataDirectory, "PG_VERSION"))).resolves.toBeUndefined();
+      await expect(
+        access(join(placement.canonicalDataDirectory, "PG_VERSION")),
+      ).resolves.toBeUndefined();
     } finally {
       await Promise.all(
         [dataRoot, tempRoot].map((root) => rm(root, { recursive: true, force: true })),
@@ -199,10 +196,7 @@ describe("private PostgreSQL first initialization", () => {
       string,
       (identity: PrivatePostgresExpectedIdentity) => PrivatePostgresExpectedIdentity,
     ][] = [
-      [
-        "major",
-        (identity) => ({ ...identity, postgresMajor: 19 as never }),
-      ],
+      ["major", (identity) => ({ ...identity, postgresMajor: 19 as never })],
       [
         "system identifier",
         (identity) => ({
@@ -260,7 +254,10 @@ describe("private PostgreSQL first initialization", () => {
           problem: { problemCode: "private-postgres.cluster.identity_mismatch" },
         });
         await expect(
-          readFile(join(initialized.placement.canonicalDataDirectory, "PG_VERSION"), "utf8"),
+          readFile(
+            join(initialized.placement.canonicalDataDirectory, "PG_VERSION"),
+            "utf8",
+          ),
         ).resolves.toBe(before);
         await expect(
           access(join(initialized.placement.canonicalDataDirectory, "postmaster.pid")),
@@ -333,7 +330,12 @@ describe("private PostgreSQL first initialization", () => {
 
         await ready.stop();
         await expect(
-          access(join(cluster.initialized.placement.canonicalDataDirectory, "postmaster.pid")),
+          access(
+            join(
+              cluster.initialized.placement.canonicalDataDirectory,
+              "postmaster.pid",
+            ),
+          ),
         ).rejects.toMatchObject({ code: "ENOENT" });
         await ready.restart();
 
@@ -376,7 +378,12 @@ describe("private PostgreSQL first initialization", () => {
           problem: { problemCode: "private-postgres.lifecycle.start_failed" },
         });
         await expect(
-          access(join(cluster.initialized.placement.canonicalDataDirectory, "postmaster.pid")),
+          access(
+            join(
+              cluster.initialized.placement.canonicalDataDirectory,
+              "postmaster.pid",
+            ),
+          ),
         ).rejects.toMatchObject({ code: "ENOENT" });
       } finally {
         await new Promise<void>((resolve) => blocker.close(() => resolve()));

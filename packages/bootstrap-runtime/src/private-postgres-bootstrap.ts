@@ -68,8 +68,7 @@ type PrivatePostgresBootstrapTestPhase =
   | "after-state-commit-before-start"
   | "after-start-before-ready-return";
 
-interface InternalPreparePrivatePostgresOptions
-  extends PreparePrivatePostgresOptions {
+interface InternalPreparePrivatePostgresOptions extends PreparePrivatePostgresOptions {
   // TEST_ONLY_INTERNAL_HOOK: qualification fault injection, intentionally absent from the public option type.
   readonly __testHook?: (
     phase: PrivatePostgresBootstrapTestPhase,
@@ -355,30 +354,27 @@ export async function preparePrivatePostgresForOwnedPrelude(
       }
       const initialPort = options.initialPort;
 
-      await recordStage(
-        context,
-        STAGE_CLUSTER_INITIALIZATION_STARTED,
-        "STARTED",
-      );
-      const initialized = await options.keyProvider.withPrivatePostgresBootstrapPassword(
-        {
-          installationId: context.installationId,
-          instanceId: context.instanceId,
-          bootId: context.bootId,
-          purpose: "private-postgres-bootstrap-superuser",
-        },
-        async (bootstrapPasswordUtf8) => {
-          assertOwnership(context);
-          return initializePrivatePostgresCluster({
-            toolchain,
-            placement,
-            credentialTempRoot: context.paths.resolve("TEMP").canonicalPath,
-            bootstrapPasswordUtf8,
-            port: initialPort,
-            lifecycle: options.lifecycle,
-          });
-        },
-      );
+      await recordStage(context, STAGE_CLUSTER_INITIALIZATION_STARTED, "STARTED");
+      const initialized =
+        await options.keyProvider.withPrivatePostgresBootstrapPassword(
+          {
+            installationId: context.installationId,
+            instanceId: context.instanceId,
+            bootId: context.bootId,
+            purpose: "private-postgres-bootstrap-superuser",
+          },
+          async (bootstrapPasswordUtf8) => {
+            assertOwnership(context);
+            return initializePrivatePostgresCluster({
+              toolchain,
+              placement,
+              credentialTempRoot: context.paths.resolve("TEMP").canonicalPath,
+              bootstrapPasswordUtf8,
+              port: initialPort,
+              lifecycle: options.lifecycle,
+            });
+          },
+        );
       await recordStage(context, STAGE_CLUSTER_INITIALIZED, "SUCCEEDED");
       await invokeTestHook(options, "after-initdb-before-state-commit");
       expectedIdentity = expectedIdentityFromInitialization(

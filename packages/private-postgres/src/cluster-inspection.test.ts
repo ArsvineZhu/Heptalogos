@@ -2,10 +2,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
-import {
-  parsePgControldata,
-  readPrivatePostgresMajor,
-} from "./cluster-inspection.js";
+import { parsePgControldata, readPrivatePostgresMajor } from "./cluster-inspection.js";
 
 const CONTROL_DATA = `Database system identifier:           7423910482159265041
 Database cluster state:               in production
@@ -32,10 +29,15 @@ describe("private PostgreSQL cluster inspection", () => {
   });
 
   it("rejects missing or malformed control-data fields", () => {
-    expect(() => parsePgControldata("Database cluster state: in production\n")).toThrowError();
+    expect(() =>
+      parsePgControldata("Database cluster state: in production\n"),
+    ).toThrowError();
     expect(() =>
       parsePgControldata(
-        CONTROL_DATA.replace("Database system identifier:           7423910482159265041", "Database system identifier:           74x"),
+        CONTROL_DATA.replace(
+          "Database system identifier:           7423910482159265041",
+          "Database system identifier:           74x",
+        ),
       ),
     ).toThrowError();
   });
