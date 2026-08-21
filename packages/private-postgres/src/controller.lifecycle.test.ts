@@ -167,7 +167,7 @@ function configureLifecycleMock(
 describe("private PostgreSQL lifecycle uncertainty", () => {
   it("preserves the start log target when restarting", async () => {
     const fixture = await makeLifecycleFixture(55450);
-    configureLifecycleMock(fixture, { statusExitCodes: [0, 0, 0] });
+    configureLifecycleMock(fixture, { statusExitCodes: [3, 0, 0, 0] });
 
     try {
       const ready = await startPrivatePostgresCluster({
@@ -182,6 +182,7 @@ describe("private PostgreSQL lifecycle uncertainty", () => {
         },
         assertControlAuthority: () => undefined,
       });
+      expect(ready.startupDisposition).toBe("STARTED_BY_THIS_BOOTSTRAP");
       await ready.restart();
 
       const pgCtlCalls = runPostgresToolMock.mock.calls.filter(
@@ -195,6 +196,45 @@ describe("private PostgreSQL lifecycle uncertainty", () => {
       expect(restartCall?.[1]).toEqual(
         expect.arrayContaining(["--log", fixture.logFilePath]),
       );
+    } finally {
+      runPostgresToolMock.mockReset();
+      await rm(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  it("recognizes an already-running cluster without issuing start or allowing control", async () => {
+    const fixture = await makeLifecycleFixture(55456);
+    configureLifecycleMock(fixture, { statusExitCodes: [0, 0] });
+
+    try {
+      const ready = await startPrivatePostgresCluster({
+        toolchain: fixture.toolchain,
+        placement: fixture.placement,
+        expectedIdentity: fixture.expectedIdentity,
+        logFilePath: fixture.logFilePath,
+        lifecycle: {
+          startupTimeoutMs: 1_000,
+          shutdownTimeoutMs: 1_000,
+          readinessPollIntervalMs: 10,
+        },
+        assertControlAuthority: () => undefined,
+      });
+
+      expect(ready.startupDisposition).toBe("ALREADY_RUNNING");
+      const pgCtlCalls = runPostgresToolMock.mock.calls.filter(
+        ([executable]) => executable === fixture.toolchain.pgCtl,
+      );
+      expect(pgCtlCalls.some(([, args]) => args[0] === "start")).toBe(false);
+      await expect(ready.stop()).rejects.toMatchObject({
+        problem: {
+          problemCode: "private-postgres.lifecycle.already_running_control_denied",
+        },
+      });
+      await expect(ready.restart()).rejects.toMatchObject({
+        problem: {
+          problemCode: "private-postgres.lifecycle.already_running_control_denied",
+        },
+      });
     } finally {
       runPostgresToolMock.mockReset();
       await rm(fixture.root, { recursive: true, force: true });
@@ -259,7 +299,7 @@ describe("private PostgreSQL lifecycle uncertainty", () => {
         }
         if (executable === toolchain.pgCtl && args[0] === "status") {
           statusCalls += 1;
-          return { exitCode: statusCalls === 1 ? 0 : 3, stdout: "", stderr: "" };
+          return { exitCode: statusCalls === 2 ? 0 : 3, stdout: "", stderr: "" };
         }
         if (executable === toolchain.pgCtl && args[0] === "stop") {
           return { exitCode: 0, stdout: "", stderr: "" };
@@ -309,7 +349,7 @@ describe("private PostgreSQL lifecycle uncertainty", () => {
         problem: { problemCode: "private-postgres.process.timed_out" },
       });
 
-      expect(statusCalls).toBe(2);
+      expect(statusCalls).toBe(3);
       expect(runPostgresToolMock).toHaveBeenCalledWith(
         toolchain.pgCtl,
         expect.arrayContaining(["stop", "--pgdata", dataDirectory]),
@@ -359,7 +399,7 @@ describe("private PostgreSQL lifecycle uncertainty", () => {
   it("keeps a restart handle usable for bounded stop when the first cleanup status is STOPPED", async () => {
     const fixture = await makeLifecycleFixture(55453);
     const { stopCalls } = configureLifecycleMock(fixture, {
-      statusExitCodes: [0, 0, 3],
+      statusExitCodes: [3, 0, 0, 3],
       restartError: timeoutProblem(
         "The mocked pg_ctl restart may continue in the background",
       ),
@@ -394,7 +434,7 @@ describe("private PostgreSQL lifecycle uncertainty", () => {
   it("clears restart uncertainty only after RUNNING, bounded stop, and STOPPED proof", async () => {
     const fixture = await makeLifecycleFixture(55454);
     const { stopCalls } = configureLifecycleMock(fixture, {
-      statusExitCodes: [0, 0, 0, 3],
+      statusExitCodes: [3, 0, 0, 0, 3],
       restartError: timeoutProblem(
         "The mocked pg_ctl restart may continue in the background",
       ),

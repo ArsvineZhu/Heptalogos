@@ -25,6 +25,7 @@ import {
   type PrivatePostgresExpectedIdentity,
   type PrivatePostgresLifecycleOptions,
   type PrivatePostgresPlacement,
+  type PrivatePostgresStartupDisposition,
   type PrivatePostgresToolchain,
   type ReadyPrivatePostgresMechanics,
   PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME,
@@ -51,12 +52,18 @@ export interface ReadyPrivatePostgres {
   readonly port: number;
   readonly clusterSystemIdentifier: string;
   readonly toolchainVersion: "18.6";
+  readonly startupDisposition: PrivatePostgresStartupDisposition;
   stop(): Promise<void>;
   restart(): Promise<void>;
 }
 
 export type PrivatePostgresSessionState =
-  "QUIESCENT" | "TRANSITIONING" | "READY" | "UNCERTAIN";
+  | "QUIESCENT"
+  | "TRANSITIONING"
+  | "READY"
+  | "UNCERTAIN"
+  | "HANDED_OFF"
+  | "YIELDED_TO_EXISTING_HOST";
 
 export interface PrivatePostgresSessionToken {
   readonly __privatePostgresSessionToken: unique symbol;
@@ -71,6 +78,8 @@ export interface PrivatePostgresSessionTracker {
   markReady(token: PrivatePostgresSessionToken): void;
   markQuiescent(token: PrivatePostgresSessionToken): void;
   markUncertain(token: PrivatePostgresSessionToken): void;
+  markHandedOff(token: PrivatePostgresSessionToken): void;
+  markYieldedToExistingHost(token: PrivatePostgresSessionToken): void;
   assertReleaseAllowed(): void;
 }
 
@@ -168,6 +177,15 @@ function stalePrivatePostgresHandleProblem(): ProblemError {
   );
 }
 
+function alreadyRunningControlDeniedProblem(): ProblemError {
+  return bootstrapProblem(
+    "bootstrap.private_postgres.already_running_control_denied",
+    "Already-running private PostgreSQL control is denied",
+    "This ReadyPrivatePostgres handle observed PostgreSQL already running; stop or restart requires the Host ownership handoff authority",
+    "conflict",
+  );
+}
+
 export function createPrivatePostgresSessionTracker(): PrivatePostgresSessionTracker {
   let state: PrivatePostgresSessionState = "QUIESCENT";
   let currentToken: PrivatePostgresSessionToken | undefined;
@@ -213,8 +231,24 @@ export function createPrivatePostgresSessionTracker(): PrivatePostgresSessionTra
       assertSessionState(state, ["TRANSITIONING", "READY"], "Uncertain");
       state = "UNCERTAIN";
     },
+    markHandedOff(token) {
+      assertCurrent(token);
+      assertSessionState(state, ["READY"], "Forward handoff");
+      state = "HANDED_OFF";
+    },
+    markYieldedToExistingHost(token) {
+      assertCurrent(token);
+      assertSessionState(state, ["READY"], "Yield to existing Host");
+      state = "YIELDED_TO_EXISTING_HOST";
+    },
     assertReleaseAllowed() {
-      if (state === "QUIESCENT") return;
+      if (
+        state === "QUIESCENT" ||
+        state === "HANDED_OFF" ||
+        state === "YIELDED_TO_EXISTING_HOST"
+      ) {
+        return;
+      }
       throw bootstrapProblem(
         "bootstrap.private_postgres.release_blocked",
         "Bootstrap ownership release is blocked",
@@ -237,6 +271,9 @@ export function createOwnershipScopedPrivatePostgresLifecycle(
 ): Pick<ReadyPrivatePostgres, "stop" | "restart"> {
   const stop = async (): Promise<void> => {
     context.privatePostgresSession.assertCurrent(sessionToken);
+    if (mechanics.startupDisposition === "ALREADY_RUNNING") {
+      throw alreadyRunningControlDeniedProblem();
+    }
     context.assertOwnership();
     context.privatePostgresSession.beginStop(sessionToken);
     try {
@@ -252,6 +289,9 @@ export function createOwnershipScopedPrivatePostgresLifecycle(
   };
   const restart = async (): Promise<void> => {
     context.privatePostgresSession.assertCurrent(sessionToken);
+    if (mechanics.startupDisposition === "ALREADY_RUNNING") {
+      throw alreadyRunningControlDeniedProblem();
+    }
     context.assertOwnership();
     context.privatePostgresSession.beginRestart(sessionToken);
     try {
@@ -585,11 +625,12 @@ export async function preparePrivatePostgresForOwnedPrelude(
       port: mechanics.port,
       clusterSystemIdentifier: mechanics.identity.clusterSystemIdentifier,
       toolchainVersion: toolchain.version,
+      startupDisposition: mechanics.startupDisposition,
       ...lifecycle,
     });
   } catch (error) {
     let cleanupSucceeded = true;
-    if (mechanics) {
+    if (mechanics?.startupDisposition === "STARTED_BY_THIS_BOOTSTRAP") {
       if (context.privatePostgresSession.state === "READY") {
         context.privatePostgresSession.beginStop(sessionToken);
       }
@@ -605,6 +646,11 @@ export async function preparePrivatePostgresForOwnedPrelude(
       } else {
         context.privatePostgresSession.markUncertain(sessionToken);
       }
+    } else if (mechanics) {
+      if (context.privatePostgresSession.state === "READY") {
+        context.privatePostgresSession.markUncertain(sessionToken);
+      }
+      cleanupSucceeded = false;
     }
     await recordFailure(context, error);
     throw error;

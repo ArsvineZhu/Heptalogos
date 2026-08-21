@@ -74,6 +74,7 @@ interface TestReadyPrivatePostgres {
   readonly port: number;
   readonly clusterSystemIdentifier: string;
   readonly toolchainVersion: "18.6";
+  readonly startupDisposition: "STARTED_BY_THIS_BOOTSTRAP" | "ALREADY_RUNNING";
   stop(): Promise<void>;
   restart(): Promise<void>;
 }
@@ -217,6 +218,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         instanceId: fixture.instanceId,
         port: 55436,
         toolchainVersion: "18.6",
+        startupDisposition: "STARTED_BY_THIS_BOOTSTRAP",
       });
       expect("mechanics" in ready).toBe(false);
       expect(typeof ready.stop).toBe("function");
