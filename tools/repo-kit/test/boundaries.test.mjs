@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { isRestrictedImportAllowed } from "../../../scripts/verify/boundaries.mjs";
+import {
+  isCrossWorkspaceRelativeImport,
+  isRestrictedImportAllowed,
+} from "../../../scripts/verify/boundaries.mjs";
 
 describe("restricted repository imports", () => {
   it("allows bootstrap-runtime access to bootstrap-state", () => {
@@ -33,5 +36,32 @@ describe("restricted repository imports", () => {
         "packages/bootstrap-runtime/src/bootstrap-prelude.ts",
       ),
     ).toBe(false);
+  });
+
+  it("allows same-workspace relative imports", () => {
+    expect(
+      isCrossWorkspaceRelativeImport({
+        sourcePackageName: "@heptalogos/bootstrap-runtime",
+        targetPackageName: "@heptalogos/bootstrap-runtime",
+      }),
+    ).toBe(false);
+  });
+
+  it("rejects bootstrap-runtime to bootstrap-state relative imports", () => {
+    expect(
+      isCrossWorkspaceRelativeImport({
+        sourcePackageName: "@heptalogos/bootstrap-runtime",
+        targetPackageName: "@heptalogos/bootstrap-state",
+      }),
+    ).toBe(true);
+  });
+
+  it("rejects future product to bootstrap-state relative imports", () => {
+    expect(
+      isCrossWorkspaceRelativeImport({
+        sourcePackageName: "@heptalogos/future-product",
+        targetPackageName: "@heptalogos/bootstrap-state",
+      }),
+    ).toBe(true);
   });
 });

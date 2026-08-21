@@ -48,6 +48,17 @@ export function isRestrictedImportAllowed(specifier, relativePath) {
   );
 }
 
+export function isCrossWorkspaceRelativeImport({
+  sourcePackageName,
+  targetPackageName,
+}) {
+  return (
+    typeof sourcePackageName === "string" &&
+    typeof targetPackageName === "string" &&
+    sourcePackageName !== targetPackageName
+  );
+}
+
 function collect(directory, matcher, files = []) {
   if (!existsSync(directory)) return files;
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -123,6 +134,18 @@ for (const path of sourcePaths) {
       if (resolvedImport !== root && !resolvedImport.startsWith(`${root}${sep}`)) {
         errors.push(
           `${relativePath}: relative import escapes repository: ${specifier}`,
+        );
+        continue;
+      }
+      const targetPackage = packageJsonFor(resolvedImport);
+      if (
+        isCrossWorkspaceRelativeImport({
+          sourcePackageName: projectPackage.name,
+          targetPackageName: targetPackage.name,
+        })
+      ) {
+        errors.push(
+          `${relativePath}: cross-workspace relative import is not allowed: ${specifier}`,
         );
       }
       continue;
