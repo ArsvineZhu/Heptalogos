@@ -96,7 +96,22 @@ Do not create parallel authority paths for CLI, Web, Operator Assistant, extensi
 
 Any process-memory background work must have an owner and cancellable/drainable lifecycle. Any obligation that must survive restart must use a Foundation-owned durable primitive.
 
-## 6. Completion truth
+## 6. Branch and integration workflow
+
+Milestone work follows a branch → Draft PR → squash-merge flow:
+
+```text
+1. branch    dev/<milestone> from master; all work commits land on the branch
+2. draft PR  open a Draft PR early so the verify matrix runs on every push
+3. finish    when the milestone plan is complete and all gates are green:
+             mark the PR ready, squash merge into master, delete the branch
+```
+
+master receives exactly one squash commit per milestone closure; never merge a partial milestone. Direct pushes to master are reserved for repository governance and history repair.
+
+Local `pnpm verify` remains required evidence; CI is its automation projection, not a substitute.
+
+## 7. Completion truth
 
 Verification status is exactly:
 

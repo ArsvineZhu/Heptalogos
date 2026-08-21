@@ -1953,9 +1953,9 @@ Test totals on Windows: foundation-contracts 10, bootstrap-state 27, repo-kit 5
 | Claim | Status | Reason |
 | --- | --- | --- |
 | Real filesystem power-loss durability on Windows/macOS/Linux | NOT_RUN | Requires real crash/power-loss qualification; unit tests must not claim it |
-| True symlink/junction/reparse-point root hardening | NOT_RUN | Belongs to M2 PathProfile/bootstrap ownership; the junction traversal test proves operability, not hardening |
-| POSIX shell argument behavior (`posix_quoting`) | NOT_RUN | Not runnable on this Windows host |
-| POSIX symlink escape / macOS-Linux path behavior | NOT_RUN | Not runnable on this Windows host |
+| True symlink/junction/reparse-point root hardening | NOT_RUN | Belongs to M2 PathProfile/bootstrap ownership; the junction/symlink traversal tests prove operability, not hardening |
+| Pilot-era oclif CLI shell-quoting claim (`posix_quoting`) | NOT_RUN | Historical pilot claim; no oclif CLI exists in this repository. The current-repo equivalent (argv preservation without shell parsing) is PASS on Linux and on ubuntu-latest CI |
+| POSIX symlink escape / macOS-Linux path behavior | NOT_RUN | Narrowed by the first green matrix run: traversal operability is PASS on ubuntu-latest and macos-latest; only escape/root hardening remains, tracked in the M2 row above |
 
 ### POSIX coverage and CI projection addendum (2026-08-21, same day)
 
@@ -1968,8 +1968,8 @@ by itself; both only make the evidence obtainable.
 
 | Coverage | Gate | Status |
 | --- | --- | --- |
-| Store/Journal operation through a POSIX-symlinked storage root with bytes landing in the target directory | `it.runIf(process.platform !== "win32")` | NOT_RUN (no Linux/macOS execution yet) |
-| State authority stays distinct from different-case decoy filenames on case-sensitive filesystems | `it.runIf(process.platform === "linux")` | NOT_RUN (no Linux execution yet) |
+| Store/Journal operation through a POSIX-symlinked storage root with bytes landing in the target directory | `it.runIf(process.platform !== "win32")` | PASS (ubuntu-latest + macos-latest) |
+| State authority stays distinct from different-case decoy filenames on case-sensitive filesystems | `it.runIf(process.platform === "linux")` | PASS (ubuntu-latest) |
 
 On the Windows host these run as explicit skips: 27 passed / 2 skipped.
 
@@ -1995,8 +1995,27 @@ authorities (`.node-version`, `engines`, lockfile). The classic
 action-setup/setup-node pair keeps each version single-sourced from a
 repository file.
 
-First green runs of the matrix will constitute the execution evidence for the
-POSIX items above; until then they remain truthfully `NOT_RUN`.
+#### First green matrix run (2026-08-21)
+
+The deferred POSIX claims were closed by the first matrix execution, triggered
+by Draft PR #1 (`pull_request` event):
+
+| Item | Evidence |
+| --- | --- |
+| Run | `32453808384`, branch `dev/m1-development-spine`, commit `cca53c7` |
+| Result | ubuntu-latest PASS (47s), macos-latest PASS (1m16s), windows-latest PASS (1m47s) |
+| POSIX symlink traversal | executed and passed on ubuntu-latest and macos-latest (`platform-behavior.test.ts`: 6 collected / 2 skipped = exactly the win32-gated pair) |
+| Linux case-sensitive decoy isolation | executed and passed on ubuntu-latest |
+| Windows junction/case-insensitive pair | executed and passed on windows-latest (mirror skip confirmed) |
+| Test totals per platform | foundation-contracts 10, bootstrap-state 27 passed + 2 skipped, repo-kit 5 — identical counts across all three OSes |
+
+Claim status changes recorded by this run:
+
+| Claim | Previous | Now |
+| --- | --- | --- |
+| POSIX-symlinked storage root operability | NOT_RUN | PASS |
+| Case-sensitive filesystem decoy isolation | NOT_RUN | PASS |
+| Cross-platform argv preservation without shell parsing (POSIX host) | PASS (Linux local, pre-rewrite history) | PASS (re-proven on ubuntu-latest CI) |
 
 ---
 
