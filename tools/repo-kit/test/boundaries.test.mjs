@@ -56,6 +56,27 @@ describe("restricted repository imports", () => {
     ).toBe(false);
   });
 
+  it("allows private-postgres only through its package and bootstrap-runtime", () => {
+    expect(
+      isRestrictedImportAllowed(
+        "@heptalogos/private-postgres",
+        "packages/private-postgres/src/controller.ts",
+      ),
+    ).toBe(true);
+    expect(
+      isRestrictedImportAllowed(
+        "@heptalogos/private-postgres",
+        "packages/bootstrap-runtime/src/private-postgres-bootstrap.ts",
+      ),
+    ).toBe(true);
+    expect(
+      isRestrictedImportAllowed(
+        "@heptalogos/private-postgres",
+        "packages/future-product/src/index.ts",
+      ),
+    ).toBe(false);
+  });
+
   it("allows same-workspace relative imports", () => {
     expect(
       isCrossWorkspaceRelativeImport({

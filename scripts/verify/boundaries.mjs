@@ -34,6 +34,10 @@ const restrictedImports = new Map([
     "@heptalogos/bootstrap-state",
     ["packages/bootstrap-runtime/", "packages/bootstrap-state/"],
   ],
+  [
+    "@heptalogos/private-postgres",
+    ["packages/private-postgres/", "packages/bootstrap-runtime/"],
+  ],
   ["proper-lockfile", ["packages/bootstrap-runtime/src/bootstrap-ownership.ts"]],
   ["execa", ["packages/private-postgres/src/process-adapter.ts"]],
 ]);
