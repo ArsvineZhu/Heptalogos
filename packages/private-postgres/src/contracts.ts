@@ -51,6 +51,8 @@ export interface PrivatePostgresLifecycleOptions {
   readonly readinessPollIntervalMs: number;
 }
 
+export type PrivatePostgresControlGuard = () => void;
+
 export interface PrivatePostgresInitializationProfile {
   readonly encoding: "UTF8";
   readonly dataChecksums: true;

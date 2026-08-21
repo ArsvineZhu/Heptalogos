@@ -53,10 +53,7 @@ export interface ReadyPrivatePostgres {
 }
 
 export type PrivatePostgresSessionState =
-  | "QUIESCENT"
-  | "TRANSITIONING"
-  | "READY"
-  | "UNCERTAIN";
+  "QUIESCENT" | "TRANSITIONING" | "READY" | "UNCERTAIN";
 
 export interface PrivatePostgresSessionTracker {
   readonly state: PrivatePostgresSessionState;
@@ -361,6 +358,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
   options: PreparePrivatePostgresOptions,
 ): Promise<ReadyPrivatePostgres> {
   let mechanics: ReadyPrivatePostgresMechanics | undefined;
+  const assertControlAuthority = () => assertOwnership(context);
   context.privatePostgresSession.beginPreparation();
   try {
     assertOwnership(context);
@@ -448,6 +446,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
               bootstrapPasswordUtf8,
               port: initialPort,
               lifecycle: options.lifecycle,
+              assertControlAuthority,
             });
           },
         );
@@ -481,6 +480,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
       expectedIdentity,
       logFilePath,
       lifecycle: options.lifecycle,
+      assertControlAuthority,
     });
     context.privatePostgresSession.markReady();
     await invokeTestHook(options, "after-start-before-ready-return");

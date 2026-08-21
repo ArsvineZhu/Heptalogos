@@ -537,6 +537,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
       ),
       port: 55443,
       lifecycle: LIFECYCLE,
+      assertControlAuthority: () => undefined,
     });
 
     const before = await readFile(

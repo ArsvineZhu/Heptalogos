@@ -16,6 +16,7 @@ import {
   type PrivatePostgresInitializationProfileRevision,
   type PrivatePostgresInitializationResult,
   type PrivatePostgresLifecycleOptions,
+  type PrivatePostgresControlGuard,
   type PrivatePostgresPlacement,
   type PrivatePostgresToolchain,
 } from "./contracts.js";
@@ -37,6 +38,7 @@ export interface InitializePrivatePostgresClusterOptions {
   readonly bootstrapPasswordUtf8: Uint8Array;
   readonly port: number;
   readonly lifecycle: PrivatePostgresLifecycleOptions;
+  readonly assertControlAuthority: PrivatePostgresControlGuard;
 }
 
 export interface ValidateExistingPrivatePostgresClusterOptions {
@@ -52,6 +54,7 @@ export interface StartPrivatePostgresClusterOptions {
   readonly expectedIdentity: PrivatePostgresExpectedIdentity;
   readonly logFilePath: string;
   readonly lifecycle: PrivatePostgresLifecycleOptions;
+  readonly assertControlAuthority: PrivatePostgresControlGuard;
 }
 
 function controllerProblem(
@@ -243,12 +246,14 @@ export async function initializePrivatePostgresCluster(
   const initResult = await withRestrictedPasswordFile(
     options.credentialTempRoot,
     options.bootstrapPasswordUtf8,
-    async (passwordFilePath) =>
-      runPostgresTool(
+    async (passwordFilePath) => {
+      options.assertControlAuthority();
+      return runPostgresTool(
         options.toolchain.initdb,
         initializationArgs(options.placement.canonicalDataDirectory, passwordFilePath),
         { timeoutMs: options.lifecycle.startupTimeoutMs },
-      ),
+      );
+    },
   );
 
   if (initResult.exitCode !== 0) {
@@ -260,6 +265,7 @@ export async function initializePrivatePostgresCluster(
     );
   }
 
+  options.assertControlAuthority();
   await writeRuntimeProfile(options.placement.canonicalDataDirectory, options.port);
   const inspection = await inspectPrivatePostgresCluster(
     options.toolchain,
@@ -466,6 +472,7 @@ async function assertPrivatePostgresProcessRunning(
 async function startProcess(
   options: StartPrivatePostgresClusterOptions,
 ): Promise<void> {
+  options.assertControlAuthority();
   await runPgCtlChecked(
     options.toolchain,
     [
@@ -488,6 +495,7 @@ async function startProcess(
 async function restartProcess(
   options: StartPrivatePostgresClusterOptions,
 ): Promise<void> {
+  options.assertControlAuthority();
   await runPgCtlChecked(
     options.toolchain,
     [
@@ -507,6 +515,7 @@ async function restartProcess(
 }
 
 async function stopProcess(options: StartPrivatePostgresClusterOptions): Promise<void> {
+  options.assertControlAuthority();
   await runPgCtlChecked(
     options.toolchain,
     [
@@ -528,6 +537,7 @@ async function stopProcess(options: StartPrivatePostgresClusterOptions): Promise
 export async function startPrivatePostgresCluster(
   options: StartPrivatePostgresClusterOptions,
 ): Promise<import("./contracts.js").ReadyPrivatePostgresMechanics> {
+  options.assertControlAuthority();
   assertPort(options.expectedIdentity.persistedPort);
   assertLifecycleOptions(options.lifecycle);
   if (!/^\//u.test(options.logFilePath) && process.platform !== "win32") {

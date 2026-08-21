@@ -4,6 +4,7 @@ export {
   PRIVATE_POSTGRES_QUALIFIED_VERSION,
   PRIVATE_POSTGRES_RELATIVE_DATA_PATH,
   type PrivatePostgresClusterIdentity,
+  type PrivatePostgresControlGuard,
   type PrivatePostgresExpectedIdentity,
   type PrivatePostgresInitializationProfileRevision,
   type PrivatePostgresInitializationProfile,

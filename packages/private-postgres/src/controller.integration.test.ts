@@ -21,6 +21,7 @@ if (!pgBin) {
   );
 }
 const qualifiedPgBin = pgBin;
+const allowControlAuthority = (): void => undefined;
 
 const { resolvePrivatePostgresToolchain } = await import("./toolchain.js");
 const { PRIVATE_POSTGRES_QUALIFIED_VERSION } = await import("./contracts.js");
@@ -56,6 +57,7 @@ describe("private PostgreSQL first initialization", () => {
           shutdownTimeoutMs: 30_000,
           readinessPollIntervalMs: 100,
         },
+        assertControlAuthority: allowControlAuthority,
       });
 
       expect(result.identity.postgresMajor).toBe(18);
@@ -90,6 +92,43 @@ describe("private PostgreSQL first initialization", () => {
     }
   });
 
+  it("requires control authority before initdb and leaves the target untouched", async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-data-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-temp-"));
+    const placement = resolvePrivatePostgresPlacement(dataRoot);
+    const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
+    const assertControlAuthority = () => {
+      throw new Error("authority revoked");
+    };
+
+    try {
+      await expect(
+        initializePrivatePostgresCluster({
+          toolchain,
+          placement,
+          credentialTempRoot: tempRoot,
+          bootstrapPasswordUtf8: new TextEncoder().encode(
+            "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
+          ),
+          port: 55445,
+          lifecycle: {
+            startupTimeoutMs: 60_000,
+            shutdownTimeoutMs: 30_000,
+            readinessPollIntervalMs: 100,
+          },
+          assertControlAuthority,
+        }),
+      ).rejects.toThrow("authority revoked");
+      await expect(access(placement.canonicalDataDirectory)).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+    } finally {
+      await Promise.all(
+        [dataRoot, tempRoot].map((root) => rm(root, { recursive: true, force: true })),
+      );
+    }
+  });
+
   it("refuses a non-empty target before initdb and leaves it unchanged", async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-data-"));
     const tempRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-temp-"));
@@ -116,6 +155,7 @@ describe("private PostgreSQL first initialization", () => {
             shutdownTimeoutMs: 30_000,
             readinessPollIntervalMs: 100,
           },
+          assertControlAuthority: allowControlAuthority,
         }),
       ).rejects.toMatchObject({
         problem: { problemCode: "private-postgres.cluster.non_empty_target" },
@@ -154,6 +194,7 @@ describe("private PostgreSQL first initialization", () => {
           shutdownTimeoutMs: 30_000,
           readinessPollIntervalMs: 100,
         },
+        assertControlAuthority: allowControlAuthority,
       });
       expected = {
         installationId: createInstallationId(),
@@ -286,6 +327,7 @@ describe("private PostgreSQL first initialization", () => {
           shutdownTimeoutMs: 30_000,
           readinessPollIntervalMs: 100,
         },
+        assertControlAuthority: allowControlAuthority,
       });
       const expected: PrivatePostgresExpectedIdentity = {
         installationId: createInstallationId(),
@@ -319,6 +361,7 @@ describe("private PostgreSQL first initialization", () => {
             shutdownTimeoutMs: 30_000,
             readinessPollIntervalMs: 100,
           },
+          assertControlAuthority: allowControlAuthority,
         });
         expect(ready.port).toBe(55433);
         expect(ready.identity.clusterSystemIdentifier).toBe(
@@ -353,6 +396,77 @@ describe("private PostgreSQL first initialization", () => {
       }
     });
 
+    it("requires live control authority before start, stop, and restart", async () => {
+      const cluster = await createLifecycleCluster(55446);
+      let allowed = true;
+      let ready: Awaited<ReturnType<typeof startPrivatePostgresCluster>> | undefined;
+      const assertControlAuthority = () => {
+        if (!allowed) throw new Error("authority revoked");
+      };
+
+      try {
+        allowed = false;
+        await expect(
+          startPrivatePostgresCluster({
+            toolchain: cluster.initialized.toolchain,
+            placement: cluster.initialized.placement,
+            expectedIdentity: cluster.expected,
+            logFilePath: join(cluster.logRoot, "private-postgres.log"),
+            lifecycle: {
+              startupTimeoutMs: 60_000,
+              shutdownTimeoutMs: 30_000,
+              readinessPollIntervalMs: 100,
+            },
+            assertControlAuthority,
+          }),
+        ).rejects.toThrow("authority revoked");
+
+        allowed = true;
+        ready = await startPrivatePostgresCluster({
+          toolchain: cluster.initialized.toolchain,
+          placement: cluster.initialized.placement,
+          expectedIdentity: cluster.expected,
+          logFilePath: join(cluster.logRoot, "private-postgres.log"),
+          lifecycle: {
+            startupTimeoutMs: 60_000,
+            shutdownTimeoutMs: 30_000,
+            readinessPollIntervalMs: 100,
+          },
+          assertControlAuthority,
+        });
+
+        allowed = false;
+        await expect(ready.stop()).rejects.toThrow("authority revoked");
+        await expect(
+          access(
+            join(
+              cluster.initialized.placement.canonicalDataDirectory,
+              "postmaster.pid",
+            ),
+          ),
+        ).resolves.toBeUndefined();
+        await expect(ready.restart()).rejects.toThrow("authority revoked");
+      } finally {
+        allowed = true;
+        await runPostgresTool(
+          cluster.initialized.toolchain.pgCtl,
+          [
+            "stop",
+            "--pgdata",
+            cluster.initialized.placement.canonicalDataDirectory,
+            "--mode=fast",
+            "--wait",
+          ],
+          { timeoutMs: 30_000 },
+        ).catch(() => undefined);
+        await Promise.all(
+          [cluster.dataRoot, cluster.tempRoot, cluster.logRoot].map((root) =>
+            rm(root, { recursive: true, force: true }),
+          ),
+        );
+      }
+    });
+
     it("fails closed when an unrelated process occupies the persisted port", async () => {
       const cluster = await createLifecycleCluster(55434);
       const blocker = createServer();
@@ -373,6 +487,7 @@ describe("private PostgreSQL first initialization", () => {
               shutdownTimeoutMs: 30_000,
               readinessPollIntervalMs: 100,
             },
+            assertControlAuthority: allowControlAuthority,
           }),
         ).rejects.toMatchObject({
           problem: { problemCode: "private-postgres.lifecycle.start_failed" },
@@ -409,6 +524,7 @@ describe("private PostgreSQL first initialization", () => {
             shutdownTimeoutMs: 30_000,
             readinessPollIntervalMs: 100,
           },
+          assertControlAuthority: allowControlAuthority,
         });
         const stopped = await runPostgresTool(
           cluster.initialized.toolchain.pgCtl,
