@@ -1,5 +1,5 @@
 import { access, mkdtemp, mkdir, readdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import {
@@ -9,11 +9,12 @@ import {
 
 describe("private PostgreSQL cluster layout", () => {
   it("resolves exactly DATA/private-postgres", () => {
-    expect(resolvePrivatePostgresPlacement("/x/data")).toEqual({
+    const dataRoot = resolve(tmpdir(), "heptalogos-layout-data");
+    expect(resolvePrivatePostgresPlacement(dataRoot)).toEqual({
       rootId: "DATA",
       relativePath: "private-postgres",
       dataLayoutVersion: 1,
-      canonicalDataDirectory: "/x/data/private-postgres",
+      canonicalDataDirectory: join(dataRoot, "private-postgres"),
     });
   });
 

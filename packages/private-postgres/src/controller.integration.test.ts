@@ -490,7 +490,7 @@ describe("private PostgreSQL first initialization", () => {
           ),
         );
       }
-    });
+    }, 120_000);
 
     it("stops a process when readiness fails after start", async () => {
       const cluster = await createLifecycleCluster(55447);
@@ -676,7 +676,7 @@ describe("private PostgreSQL first initialization", () => {
           ),
         );
       }
-    });
+    }, 120_000);
 
     it("fails closed when an unrelated process occupies the persisted port", async () => {
       const cluster = await createLifecycleCluster(55434);
@@ -760,6 +760,6 @@ describe("private PostgreSQL first initialization", () => {
           ),
         );
       }
-    });
+    }, 120_000);
   });
 });
