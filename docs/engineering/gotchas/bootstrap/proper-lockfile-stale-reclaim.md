@@ -15,7 +15,7 @@ Automatic stale takeover is not a qualified pre-PostgreSQL Authority fence. The 
 
 ## Supported M2 rule
 
-The `bootstrap-runtime` adapter passes an effectively non-expiring stale duration, an explicit heartbeat interval, `retries: 0`, and a fixed lock directory. M2 does not expose a stale timeout or automatically reclaim an abandoned lock. An abandoned lock is `bootstrap.ownership.already_held` and requires a later bounded Recovery design.
+The `bootstrap-runtime` adapter passes an effectively non-expiring stale duration, an explicit heartbeat interval, `retries: 0`, and a fixed lock directory. M2 does not expose a stale timeout or automatically reclaim an abandoned lock. An observed lock is reported as `bootstrap.ownership.lock_present`; M2 cannot distinguish an active owner from an abandoned lock, so both require a later bounded Recovery design.
 
 ## Regression evidence
 

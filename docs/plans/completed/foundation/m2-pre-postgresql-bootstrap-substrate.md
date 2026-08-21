@@ -941,7 +941,7 @@ This is an M2 safety invariant. Do not surface `stale` as a configuration option
 Map acquisition conflict to a bounded Problem:
 
 ```text
-problemCode: bootstrap.ownership.already_held
+problemCode: bootstrap.ownership.lock_present
 category: conflict
 retryClass: after-change
 ```
@@ -995,7 +995,7 @@ Create the exact lock directory used by the adapter without an owning process, t
 Then acquire through the M2 adapter and assert it **does not steal the abandoned lock** and instead returns:
 
 ```text
-bootstrap.ownership.already_held
+bootstrap.ownership.lock_present
 ```
 
 Do not use process-kill timing or wait for the production stale duration. The test is deterministic: an ownerless, deliberately old lock directory remains locked/recovery-required under the M2 adapter.
@@ -1289,7 +1289,7 @@ Assert:
 both get distinct BootIds
 both may write their own journal files
 exactly one acquires ownership
-blocked contender receives bootstrap.ownership.already_held
+blocked contender receives bootstrap.ownership.lock_present
 blocked contender does not mutate BootstrapState
 winning owner remains valid
 ```
@@ -1610,3 +1610,14 @@ The next H1 implementation plan should consume M2's `OwnedBootstrapPrelude` and 
 - dependency/framework leakage audit: `PASS`; `proper-lockfile` mechanics are restricted to `bootstrap-ownership.ts`, Ajv/TypeBox remain behind locator/state internals, and the public bootstrap-runtime facade exports only Heptalogos-owned contracts.
 - final cross-platform CI: `NOT_RUN`; independent review: `NOT_RUN`. No final CI was dispatched before review.
 - remaining H1 debt: private PostgreSQL bring-up, dedicated Host lease and HostOwnershipFence handoff, safe abandoned-lock Recovery, and cross-platform/source-less qualification remain for a later plan.
+
+### Independent review correction
+
+The independent review baseline was `4f0d827825fcdcd36f21371abd1e733fae80c11e` and received `FAIL / REQUEST_CHANGES`. The original candidate used `bootstrap.ownership.already_held` and text asserting that another live bootstrap attempt owned the instance. The no-stale-takeover profile cannot distinguish a live owner from an abandoned lock, so the final candidate reports the bounded `bootstrap.ownership.lock_present` state without inventing liveness.
+
+The corrective candidate also binds state mutation to an authentic, instance-scoped ownership capability and rejects cross-workspace relative-import bypasses in the repository verifier. The different-instance concurrency evidence proves per-resolved-`INSTANCE` lock scope; M2 does not define one `InstallationAnchor` selecting multiple simultaneous instance locators.
+
+Corrective focused verification: `PASS`.
+Corrective aggregate verification: `NOT_RUN` at the time of this record update.
+Independent re-review: `NOT_RUN`.
+Final cross-platform CI: `NOT_RUN`.

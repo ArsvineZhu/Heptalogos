@@ -155,7 +155,7 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
 
     expect(ownedResult).toBeDefined();
     expect(blockedResult).toMatchObject({
-      reason: { problem: { problemCode: "bootstrap.ownership.already_held" } },
+      reason: { problem: { problemCode: "bootstrap.ownership.lock_present" } },
     });
     expect(
       await readFile(
@@ -199,7 +199,7 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
     await expect(
       prepared.acquireOwnership({ heartbeatMs: 1000 }),
     ).rejects.toMatchObject({
-      problem: { problemCode: "bootstrap.ownership.already_held" },
+      problem: { problemCode: "bootstrap.ownership.lock_present" },
     });
     await expect(lstat(lockDirectory)).resolves.toMatchObject({
       isDirectory: expect.any(Function),

@@ -72,9 +72,11 @@ describe("bootstrap ownership", () => {
       acquireBootstrapOwnership(instanceRoot, { heartbeatMs: 1000 }),
     ).rejects.toMatchObject({
       problem: {
-        problemCode: "bootstrap.ownership.already_held",
+        problemCode: "bootstrap.ownership.lock_present",
         category: "conflict",
         retryClass: "after-change",
+        detail:
+          "The instance bootstrap lock is present; it may belong to an active bootstrap attempt or require recovery",
       },
     });
 
@@ -118,7 +120,7 @@ describe("bootstrap ownership", () => {
     await expect(
       acquireBootstrapOwnership(instanceRoot, { heartbeatMs: 1000 }),
     ).rejects.toMatchObject({
-      problem: { problemCode: "bootstrap.ownership.already_held" },
+      problem: { problemCode: "bootstrap.ownership.lock_present" },
     });
     await expect(lstat(lockDirectory)).resolves.toMatchObject({
       isDirectory: expect.any(Function),

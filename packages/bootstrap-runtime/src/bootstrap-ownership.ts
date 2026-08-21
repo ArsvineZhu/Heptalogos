@@ -80,13 +80,13 @@ function assertHeartbeat(heartbeatMs: number): void {
   }
 }
 
-function alreadyHeldProblem(): Problem {
+function lockPresentProblem(): Problem {
   return ownershipProblem(
-    "bootstrap.ownership.already_held",
+    "bootstrap.ownership.lock_present",
     "conflict",
     "after-change",
-    "Bootstrap ownership is already held",
-    "Another bootstrap attempt currently owns this instance",
+    "Bootstrap ownership could not be acquired",
+    "The instance bootstrap lock is present; it may belong to an active bootstrap attempt or require recovery",
   );
 }
 
@@ -171,7 +171,7 @@ export async function acquireBootstrapOwnership(
     });
   } catch (error) {
     if (errorCode(error) === "ELOCKED") {
-      throw new ProblemError(alreadyHeldProblem());
+      throw new ProblemError(lockPresentProblem());
     }
     throw new ProblemError(
       ownershipProblem(
