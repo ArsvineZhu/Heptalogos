@@ -701,7 +701,9 @@ describe("private PostgreSQL first initialization", () => {
             assertControlAuthority: allowControlAuthority,
           }),
         ).rejects.toMatchObject({
-          problem: { problemCode: "private-postgres.lifecycle.start_failed" },
+          problem: {
+            problemCode: "private-postgres.lifecycle.start_cleanup_uncertain",
+          },
         });
         await expect(
           access(

@@ -513,7 +513,11 @@ async function stopWithProof(
     throw uncertainty();
   }
 
-  options.assertControlAuthority();
+  try {
+    options.assertControlAuthority();
+  } catch {
+    throw uncertainty();
+  }
   lifecycleState.send({ type: "STOP_COMMAND_ISSUED" });
   try {
     await stopProcess(options);

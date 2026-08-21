@@ -43,6 +43,7 @@ if (!pgBin) {
 const qualifiedPgBin = pgBin;
 
 const directories: string[] = [];
+const LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
 const LIFECYCLE: TestPreparePrivatePostgresOptions["lifecycle"] = {
   startupTimeoutMs: 60_000,
   shutdownTimeoutMs: 30_000,
@@ -651,7 +652,9 @@ describe("private PostgreSQL bootstrap orchestration", () => {
             makeOptions(undefined, secondContexts),
           ),
         ).rejects.toMatchObject({
-          problem: { problemCode: "private-postgres.lifecycle.start_failed" },
+          problem: {
+            problemCode: "private-postgres.lifecycle.start_cleanup_uncertain",
+          },
         });
         expect(secondContexts).toHaveLength(0);
         await expect(
@@ -660,8 +663,24 @@ describe("private PostgreSQL bootstrap orchestration", () => {
             "utf8",
           ),
         ).resolves.toBe(before);
+        await expect(secondOwned.close()).rejects.toMatchObject({
+          problem: { problemCode: "bootstrap.private_postgres.release_blocked" },
+        });
+        expect(secondOwned.ownershipState).toBe("HELD");
       } finally {
-        await secondOwned.close();
+        await rm(join(fixture.roots.INSTANCE, LOCK_DIRECTORY), {
+          recursive: true,
+          force: true,
+        });
+        await new Promise<void>((resolve) => {
+          if (secondOwned.ownershipSignal.aborted) {
+            resolve();
+          } else {
+            secondOwned.ownershipSignal.addEventListener("abort", () => resolve(), {
+              once: true,
+            });
+          }
+        });
       }
     } finally {
       await new Promise<void>((resolve) => blocker.close(() => resolve()));
