@@ -343,6 +343,51 @@ describe("private PostgreSQL bootstrap orchestration", () => {
     }
   }, 120_000);
 
+  it("rejects a stale Ready handle without changing a newer live session", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const firstContexts: BootstrapKeyRequestContext[] = [];
+    let firstReady: TestReadyPrivatePostgres | undefined;
+    let secondReady: TestReadyPrivatePostgres | undefined;
+    const postmasterPath = join(
+      fixture.roots.DATA,
+      "private-postgres",
+      "postmaster.pid",
+    );
+
+    try {
+      firstReady = await callable(owned).preparePrivatePostgres(
+        makeOptions(55460, firstContexts),
+      );
+      await firstReady.stop();
+      await expect(access(postmasterPath)).rejects.toMatchObject({ code: "ENOENT" });
+
+      secondReady = await callable(owned).preparePrivatePostgres(
+        makeOptions(undefined, []),
+      );
+      await expect(access(postmasterPath)).resolves.toBeUndefined();
+
+      await expect(firstReady.stop()).rejects.toMatchObject({
+        problem: { problemCode: "bootstrap.private_postgres.stale_handle" },
+      });
+      await expect(access(postmasterPath)).resolves.toBeUndefined();
+      await expect(owned.close()).rejects.toMatchObject({
+        problem: { problemCode: "bootstrap.private_postgres.release_blocked" },
+      });
+
+      await secondReady.stop();
+      await expect(access(postmasterPath)).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(owned.close()).resolves.toBeUndefined();
+    } finally {
+      await secondReady?.stop().catch(() => undefined);
+      await firstReady?.stop().catch(() => undefined);
+      if (owned.ownershipState !== "RELEASED") {
+        await owned.close().catch(() => undefined);
+      }
+    }
+  }, 120_000);
+
   it("treats initializedByPostgresVersion as provenance across a patch update", async () => {
     const fixture = await makeFixture();
     const firstPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);

@@ -25,21 +25,27 @@ import {
 } from "@heptalogos/bootstrap-state";
 import { prepareBootstrapPrelude } from "./bootstrap-prelude.js";
 import type { BootstrapLocatorV1 } from "./locator.js";
+import type { PrivatePostgresSessionToken } from "./private-postgres-bootstrap.js";
 
 const preparePrivatePostgresForOwnedPreludeMock = vi.hoisted(() =>
   vi.fn(
     async (context: {
       readonly privatePostgresSession: {
         readonly state: string;
-        beginPreparation(): void;
-        markReady(): void;
-        beginStop(): void;
-        markQuiescent(): void;
-        markUncertain(): void;
+        beginPreparation(): PrivatePostgresSessionToken;
+        markReady(token: PrivatePostgresSessionToken): void;
+        beginStop(token: PrivatePostgresSessionToken): void;
+        markQuiescent(token: PrivatePostgresSessionToken): void;
+        markUncertain(token: PrivatePostgresSessionToken): void;
       };
     }) => {
-      context.privatePostgresSession.beginPreparation();
-      context.privatePostgresSession.markReady();
+      const token = context.privatePostgresSession.beginPreparation();
+      context.privatePostgresSession.markReady(token);
+      (
+        context.privatePostgresSession as typeof context.privatePostgresSession & {
+          __testSessionToken?: PrivatePostgresSessionToken;
+        }
+      ).__testSessionToken = token;
       return {};
     },
   ),
@@ -235,8 +241,13 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
 
     const context = preparePrivatePostgresForOwnedPreludeMock.mock.calls.at(-1)?.[0];
     expect(context).toBeDefined();
-    context?.privatePostgresSession.beginStop();
-    context?.privatePostgresSession.markQuiescent();
+    const token = (
+      context?.privatePostgresSession as unknown as {
+        __testSessionToken?: PrivatePostgresSessionToken;
+      }
+    ).__testSessionToken;
+    context?.privatePostgresSession.beginStop(token as PrivatePostgresSessionToken);
+    context?.privatePostgresSession.markQuiescent(token as PrivatePostgresSessionToken);
 
     await expect(owned.close()).resolves.toBeUndefined();
     expect(owned.ownershipState).toBe("RELEASED");
@@ -258,12 +269,24 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
   });
 
   it.each([
-    ["TRANSITIONING", (session: { beginStop(): void }) => session.beginStop()],
+    [
+      "TRANSITIONING",
+      (session: {
+        beginStop(token: PrivatePostgresSessionToken): void;
+        __testSessionToken?: PrivatePostgresSessionToken;
+      }) =>
+        session.beginStop(session.__testSessionToken as PrivatePostgresSessionToken),
+    ],
     [
       "UNCERTAIN",
-      (session: { beginStop(): void; markUncertain(): void }) => {
-        session.beginStop();
-        session.markUncertain();
+      (session: {
+        beginStop(token: PrivatePostgresSessionToken): void;
+        markUncertain(token: PrivatePostgresSessionToken): void;
+        __testSessionToken?: PrivatePostgresSessionToken;
+      }) => {
+        const token = session.__testSessionToken as PrivatePostgresSessionToken;
+        session.beginStop(token);
+        session.markUncertain(token);
       },
     ],
   ] as const)(
@@ -282,9 +305,19 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
       });
       expect(owned.ownershipState).toBe("HELD");
       if (context!.privatePostgresSession.state === "UNCERTAIN") {
-        context!.privatePostgresSession.beginStop();
+        const token = (
+          context!.privatePostgresSession as unknown as {
+            __testSessionToken?: PrivatePostgresSessionToken;
+          }
+        ).__testSessionToken as PrivatePostgresSessionToken;
+        context!.privatePostgresSession.beginStop(token);
       }
-      context!.privatePostgresSession.markQuiescent();
+      const token = (
+        context!.privatePostgresSession as unknown as {
+          __testSessionToken?: PrivatePostgresSessionToken;
+        }
+      ).__testSessionToken as PrivatePostgresSessionToken;
+      context!.privatePostgresSession.markQuiescent(token);
       await owned.close();
     },
   );

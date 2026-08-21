@@ -58,14 +58,19 @@ export interface ReadyPrivatePostgres {
 export type PrivatePostgresSessionState =
   "QUIESCENT" | "TRANSITIONING" | "READY" | "UNCERTAIN";
 
+export interface PrivatePostgresSessionToken {
+  readonly __privatePostgresSessionToken: unique symbol;
+}
+
 export interface PrivatePostgresSessionTracker {
   readonly state: PrivatePostgresSessionState;
-  beginPreparation(): void;
-  beginStop(): void;
-  beginRestart(): void;
-  markReady(): void;
-  markQuiescent(): void;
-  markUncertain(): void;
+  beginPreparation(): PrivatePostgresSessionToken;
+  assertCurrent(token: PrivatePostgresSessionToken): void;
+  beginStop(token: PrivatePostgresSessionToken): void;
+  beginRestart(token: PrivatePostgresSessionToken): void;
+  markReady(token: PrivatePostgresSessionToken): void;
+  markQuiescent(token: PrivatePostgresSessionToken): void;
+  markUncertain(token: PrivatePostgresSessionToken): void;
   assertReleaseAllowed(): void;
 }
 
@@ -154,8 +159,23 @@ function assertSessionState(
   );
 }
 
+function stalePrivatePostgresHandleProblem(): ProblemError {
+  return bootstrapProblem(
+    "bootstrap.private_postgres.stale_handle",
+    "Private PostgreSQL lifecycle handle is stale",
+    "The private PostgreSQL lifecycle handle belongs to an earlier preparation session and cannot control the current session",
+    "conflict",
+  );
+}
+
 export function createPrivatePostgresSessionTracker(): PrivatePostgresSessionTracker {
   let state: PrivatePostgresSessionState = "QUIESCENT";
+  let currentToken: PrivatePostgresSessionToken | undefined;
+
+  const assertCurrent = (token: PrivatePostgresSessionToken): void => {
+    if (token === currentToken) return;
+    throw stalePrivatePostgresHandleProblem();
+  };
 
   return {
     get state() {
@@ -163,25 +183,33 @@ export function createPrivatePostgresSessionTracker(): PrivatePostgresSessionTra
     },
     beginPreparation() {
       assertSessionState(state, ["QUIESCENT"], "Preparation");
+      currentToken = Object.freeze({}) as PrivatePostgresSessionToken;
       state = "TRANSITIONING";
+      return currentToken;
     },
-    beginStop() {
+    assertCurrent,
+    beginStop(token) {
+      assertCurrent(token);
       assertSessionState(state, ["READY", "UNCERTAIN"], "Stop");
       state = "TRANSITIONING";
     },
-    beginRestart() {
+    beginRestart(token) {
+      assertCurrent(token);
       assertSessionState(state, ["QUIESCENT", "READY"], "Restart");
       state = "TRANSITIONING";
     },
-    markReady() {
+    markReady(token) {
+      assertCurrent(token);
       assertSessionState(state, ["TRANSITIONING"], "Ready");
       state = "READY";
     },
-    markQuiescent() {
+    markQuiescent(token) {
+      assertCurrent(token);
       assertSessionState(state, ["TRANSITIONING"], "Quiescent");
       state = "QUIESCENT";
     },
-    markUncertain() {
+    markUncertain(token) {
+      assertCurrent(token);
       assertSessionState(state, ["TRANSITIONING", "READY"], "Uncertain");
       state = "UNCERTAIN";
     },
@@ -205,31 +233,34 @@ interface OwnershipScopedPrivatePostgresLifecycleContext {
 export function createOwnershipScopedPrivatePostgresLifecycle(
   context: OwnershipScopedPrivatePostgresLifecycleContext,
   mechanics: ReadyPrivatePostgresMechanics,
+  sessionToken: PrivatePostgresSessionToken,
 ): Pick<ReadyPrivatePostgres, "stop" | "restart"> {
   const stop = async (): Promise<void> => {
+    context.privatePostgresSession.assertCurrent(sessionToken);
     context.assertOwnership();
-    context.privatePostgresSession.beginStop();
+    context.privatePostgresSession.beginStop(sessionToken);
     try {
       await mechanics.stop();
       context.assertOwnership();
-      context.privatePostgresSession.markQuiescent();
+      context.privatePostgresSession.markQuiescent(sessionToken);
     } catch (error) {
       if (context.privatePostgresSession.state === "TRANSITIONING") {
-        context.privatePostgresSession.markUncertain();
+        context.privatePostgresSession.markUncertain(sessionToken);
       }
       throw error;
     }
   };
   const restart = async (): Promise<void> => {
+    context.privatePostgresSession.assertCurrent(sessionToken);
     context.assertOwnership();
-    context.privatePostgresSession.beginRestart();
+    context.privatePostgresSession.beginRestart(sessionToken);
     try {
       await mechanics.restart();
       context.assertOwnership();
-      context.privatePostgresSession.markReady();
+      context.privatePostgresSession.markReady(sessionToken);
     } catch (error) {
       if (context.privatePostgresSession.state === "TRANSITIONING") {
-        context.privatePostgresSession.markUncertain();
+        context.privatePostgresSession.markUncertain(sessionToken);
       }
       throw error;
     }
@@ -409,8 +440,8 @@ export async function preparePrivatePostgresForOwnedPrelude(
   options: PreparePrivatePostgresOptions,
 ): Promise<ReadyPrivatePostgres> {
   let mechanics: ReadyPrivatePostgresMechanics | undefined;
+  const sessionToken = context.privatePostgresSession.beginPreparation();
   const assertControlAuthority = () => assertOwnership(context);
-  context.privatePostgresSession.beginPreparation();
   try {
     assertOwnership(context);
 
@@ -533,7 +564,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
       lifecycle: options.lifecycle,
       assertControlAuthority,
     });
-    context.privatePostgresSession.markReady();
+    context.privatePostgresSession.markReady(sessionToken);
     await invokeTestHook(options, "after-start-before-ready-return");
     await recordStage(context, STAGE_READY, "SUCCEEDED");
 
@@ -545,6 +576,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
         assertOwnership: () => assertOwnership(context),
       },
       readyMechanics,
+      sessionToken,
     );
     return Object.freeze({
       installationId: context.installationId,
@@ -559,7 +591,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
     let cleanupSucceeded = true;
     if (mechanics) {
       if (context.privatePostgresSession.state === "READY") {
-        context.privatePostgresSession.beginStop();
+        context.privatePostgresSession.beginStop(sessionToken);
       }
       try {
         await mechanics.stop();
@@ -569,9 +601,9 @@ export async function preparePrivatePostgresForOwnedPrelude(
     }
     if (context.privatePostgresSession.state === "TRANSITIONING") {
       if (cleanupSucceeded && !isPrivatePostgresCleanupUncertain(error)) {
-        context.privatePostgresSession.markQuiescent();
+        context.privatePostgresSession.markQuiescent(sessionToken);
       } else {
-        context.privatePostgresSession.markUncertain();
+        context.privatePostgresSession.markUncertain(sessionToken);
       }
     }
     await recordFailure(context, error);

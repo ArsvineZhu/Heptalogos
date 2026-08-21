@@ -197,19 +197,19 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
     const session = createPrivatePostgresSessionTracker();
 
     expect(session.state).toBe("QUIESCENT");
-    session.beginPreparation();
+    const token = session.beginPreparation();
     expect(session.state).toBe("TRANSITIONING");
-    session.markReady();
+    session.markReady(token);
     expect(session.state).toBe("READY");
-    session.beginStop();
+    session.beginStop(token);
     expect(session.state).toBe("TRANSITIONING");
-    session.markQuiescent();
+    session.markQuiescent(token);
     expect(session.state).toBe("QUIESCENT");
-    session.beginRestart();
-    session.markReady();
+    session.beginRestart(token);
+    session.markReady(token);
     expect(session.state).toBe("READY");
-    session.beginStop();
-    session.markUncertain();
+    session.beginStop(token);
+    session.markUncertain(token);
     expect(session.state).toBe("UNCERTAIN");
   });
 
@@ -226,8 +226,8 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
     }
 
     const uncertain = createPrivatePostgresSessionTracker();
-    uncertain.beginPreparation();
-    uncertain.markUncertain();
+    const uncertainToken = uncertain.beginPreparation();
+    uncertain.markUncertain(uncertainToken);
     try {
       uncertain.assertReleaseAllowed();
       throw new Error("expected release to be blocked");
@@ -240,8 +240,8 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
 
   it("does not let compromised ownership reach retained lifecycle mechanics", async () => {
     const session = createPrivatePostgresSessionTracker();
-    session.beginPreparation();
-    session.markReady();
+    const sessionToken = session.beginPreparation();
+    session.markReady(sessionToken);
     let owned = true;
     const stop = vi.fn(async () => undefined);
     const restart = vi.fn(async () => undefined);
@@ -253,6 +253,7 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
         },
       },
       { stop, restart } as never,
+      sessionToken,
     );
 
     owned = false;
@@ -265,8 +266,8 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
 
   it("marks lifecycle uncertainty when ownership is lost after mechanics stop", async () => {
     const session = createPrivatePostgresSessionTracker();
-    session.beginPreparation();
-    session.markReady();
+    const sessionToken = session.beginPreparation();
+    session.markReady(sessionToken);
     let assertions = 0;
     const stop = vi.fn(async () => undefined);
     const restart = vi.fn(async () => undefined);
@@ -279,6 +280,7 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
         },
       },
       { stop, restart } as never,
+      sessionToken,
     );
 
     await expect(lifecycle.stop()).rejects.toThrow("bootstrap ownership lost");
@@ -288,6 +290,74 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
       problem: { problemCode: "bootstrap.private_postgres.invalid_transition" },
     });
     expect(restart).not.toHaveBeenCalled();
+  });
+
+  it("rejects a stale lifecycle handle after a newer session becomes ready", async () => {
+    const session = createPrivatePostgresSessionTracker();
+    const firstToken = session.beginPreparation();
+    session.markReady(firstToken);
+    const firstStop = vi.fn(async () => undefined);
+    const firstRestart = vi.fn(async () => undefined);
+    const firstLifecycle = createOwnershipScopedPrivatePostgresLifecycle(
+      {
+        privatePostgresSession: session,
+        assertOwnership: () => undefined,
+      },
+      { stop: firstStop, restart: firstRestart } as never,
+      firstToken,
+    );
+
+    await firstLifecycle.stop();
+    const secondToken = session.beginPreparation();
+    session.markReady(secondToken);
+    const secondStop = vi.fn(async () => undefined);
+    const secondRestart = vi.fn(async () => undefined);
+    const secondLifecycle = createOwnershipScopedPrivatePostgresLifecycle(
+      {
+        privatePostgresSession: session,
+        assertOwnership: () => undefined,
+      },
+      { stop: secondStop, restart: secondRestart } as never,
+      secondToken,
+    );
+
+    await expect(firstLifecycle.stop()).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.private_postgres.stale_handle" },
+    });
+    await expect(firstLifecycle.restart()).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.private_postgres.stale_handle" },
+    });
+    expect(session.state).toBe("READY");
+    expect(firstStop).toHaveBeenCalledOnce();
+    expect(firstRestart).not.toHaveBeenCalled();
+    expect(secondStop).not.toHaveBeenCalled();
+    expect(secondRestart).not.toHaveBeenCalled();
+    await expect(secondLifecycle.stop()).resolves.toBeUndefined();
+  });
+
+  it("keeps an earlier handle stale when a newer preparation becomes uncertain", async () => {
+    const session = createPrivatePostgresSessionTracker();
+    const firstToken = session.beginPreparation();
+    session.markReady(firstToken);
+    const firstStop = vi.fn(async () => undefined);
+    const firstLifecycle = createOwnershipScopedPrivatePostgresLifecycle(
+      {
+        privatePostgresSession: session,
+        assertOwnership: () => undefined,
+      },
+      { stop: firstStop, restart: vi.fn(async () => undefined) } as never,
+      firstToken,
+    );
+
+    await firstLifecycle.stop();
+    const secondToken = session.beginPreparation();
+    session.markUncertain(secondToken);
+
+    await expect(firstLifecycle.stop()).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.private_postgres.stale_handle" },
+    });
+    expect(session.state).toBe("UNCERTAIN");
+    expect(firstStop).toHaveBeenCalledOnce();
   });
 
   it("does not add preparation to PreparedBootstrapPrelude or export a forgeable function", async () => {
