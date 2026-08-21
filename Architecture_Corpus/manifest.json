@@ -95,8 +95,8 @@
     },
     {
       "path": "16-验证与资格认定体系.md",
-      "size": 14975,
-      "sha256": "a8b1e4a5a23505d66e12fe99fde007ddb86fd1a0559c0e147ce4a45d0983e52d"
+      "size": 15180,
+      "sha256": "5e5d736f1d7f3c26492f589b190896564b3121929d7bab912eff6aeadb861162"
     },
     {
       "path": "17-高级研究子系统接入地图.md",
@@ -155,8 +155,8 @@
     },
     {
       "path": "qualification/DEPENDENCY-QUALIFICATION.md",
-      "size": 7382,
-      "sha256": "00e22540c50ef27c94c4f38863a8ea79e433d9ca70522a9172d8d1fdf95ffe7c"
+      "size": 7625,
+      "sha256": "221146e708777f76325d1ffea0e9ffc4d07bfc965151197c6e8724c6052e3be1"
     },
     {
       "path": "qualification/dependency-status.json",
