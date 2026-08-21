@@ -53,6 +53,7 @@ export interface HostLeaseConnection {
   readonly state: HostLeaseLifecycleState;
   readonly signal: AbortSignal;
   assertActive(): void;
+  fence(reason: string): void;
   query<Row>(
     text: string,
     values?: readonly unknown[],
@@ -221,6 +222,9 @@ export async function acquireHostLeaseConnection(
       },
       assertActive() {
         if (tracker.state !== "ACTIVE") throw notActiveProblem(tracker.state);
+      },
+      fence(reason: string) {
+        fence(reason);
       },
       async query<Row>(text: string, values: readonly unknown[] = []) {
         if (tracker.state !== "ACTIVE") throw notActiveProblem(tracker.state);

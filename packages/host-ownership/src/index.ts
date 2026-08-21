@@ -12,6 +12,10 @@ export {
   type OwnershipSchemaResult,
 } from "./ownership-schema.js";
 export {
+  publishHostOwnershipToken,
+  type PublishHostOwnershipTokenOptions,
+} from "./host-ownership.js";
+export {
   HOST_LEASE_ROLE,
   HOST_LEASE_SCRAM_ITERATIONS,
   HOST_LEASE_SCRAM_SALT_BYTES,
