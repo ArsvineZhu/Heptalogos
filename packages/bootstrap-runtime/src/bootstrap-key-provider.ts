@@ -9,8 +9,7 @@ export interface BootstrapKeyRequestContext {
   readonly instanceId: InstanceId;
   readonly bootId: BootId;
   readonly purpose:
-    | "private-postgres-bootstrap-superuser"
-    | "private-postgres-host-lease-role";
+    "private-postgres-bootstrap-superuser" | "private-postgres-host-lease-role";
 }
 
 export interface BootstrapKeyProvider {

@@ -1,7 +1,11 @@
 export { deriveHostAdvisoryKey, type HostAdvisoryKey } from "./advisory-key.js";
+export { encodePostgresScramSha256Verifier } from "./scram-verifier.js";
 export {
-  encodePostgresScramSha256Verifier,
-} from "./scram-verifier.js";
+  provisionHostOwnershipDatabase,
+  type BootstrapAdminPasswordProvider,
+  type BootstrapAdminProvisioningOptions,
+  type BootstrapAdminProvisioningResult,
+} from "./bootstrap-admin.js";
 export {
   HOST_LEASE_ROLE,
   HOST_LEASE_SCRAM_ITERATIONS,
