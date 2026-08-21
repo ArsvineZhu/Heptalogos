@@ -161,7 +161,7 @@
     {
       "path": "qualification/dependency-status.json",
       "size": 22770,
-      "sha256": "107550397bc249d590999d1946d76fb8903a59dda62735dd58f8483bd3fee523"
+      "sha256": "30429af8e7ef1e69ea5da7d44b65582e6f4907c86206e50698c6798df3c9ad8c"
     },
     {
       "path": "qualification/results/C-CLI-01.md",
@@ -225,8 +225,8 @@
     },
     {
       "path": "qualification/results/Q-PRIVATE-POSTGRES-01.md",
-      "size": 5504,
-      "sha256": "57ccd6457fd1c6709b1c23d3cb9fc4bc58ee1a1fa87f25f495ad7eb0c9cfa4b5"
+      "size": 6365,
+      "sha256": "20290c0078ac2ae66290276a661d738e352c99376fa04878587319ee364d05a9"
     },
     {
       "path": "qualification/results/Q-RUNTIME-01.md",
@@ -245,8 +245,8 @@
     },
     {
       "path": "qualification/results/qualification-status.json",
-      "size": 22600,
-      "sha256": "dadb2ed38afcaab41494508fad3f1bf2f5bf19a0523a0ed18d7580f5ad2d851f"
+      "size": 22776,
+      "sha256": "1f10806e3b3c576e2e20f033086f455c8bd87b50ccd30326ddffae4a74bbe432"
     },
     {
       "path": "qualification/依赖资格矩阵.md",

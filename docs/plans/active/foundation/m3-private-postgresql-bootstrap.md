@@ -2434,6 +2434,42 @@ from all five tools before the real qualification suites. No XState type was
 added to stable contracts, BootstrapState, or bootstrap-runtime; no actor,
 invoke, spawn, persistence, or PostgreSQL effect was assigned to XState.
 
+## Final hardening execution (2026-08-22)
+
+The user-confirmed final hardening plan was executed on the existing
+`dev/m3-private-postgresql-bootstrap` branch without subagents. It remained
+bounded to PR #5 final hardening plus qualification truth refresh: no M3 scope
+expansion, M4 Host lease/fence, ReadyPrivatePostgres boundary change, or XState
+redesign was introduced.
+
+```text
+implementation/evidence parent SHA before this documentation commit: 07dcbdb
+fixed bootstrap role: PASS — initdb uses heptalogos_bootstrap; role is present in cluster identity/profile and BootstrapState nested V2 identity
+BootstrapState compatibility: PASS — legacy nested V1 identity remains parseable; operation rejects a role-less record fail-closed
+password line contract: PASS — empty, LF, CR, and NUL rejected before pwfile creation; normal UTF-8 accepted
+restart log continuity: PASS — restart carries the same --log target as start
+private-postgres targeted hardening tests: PASS — 13/13
+bootstrap-state unit tests: PASS — 48 passed, 3 skipped
+bootstrap-runtime unit tests: PASS — 45 passed, 1 skipped
+Windows private-postgres real integration: PASS — 20/20
+Windows bootstrap-runtime real integration: PASS — 9/9
+dependency-status asOf refresh: PASS — 2026-08-22; dependency decisions unchanged
+permanent gates and pnpm verify: PASS
+independent re-review: NOT_RUN on the new exact candidate SHA
+final cross-platform CI: NOT_RUN
+corrected-head Linux/macOS real PostgreSQL: NOT_RUN
+source-less shipping closure: NOT_RUN
+service-account ACL closure: NOT_RUN
+```
+
+The three implementation commits remain separate for review:
+
+```text
+e7da993  fix: pin private postgres bootstrap identity
+5a8bf1f  fix: validate bootstrap credential pwfile contract
+07dcbdb  fix: preserve postgres restart log target
+```
+
 ---
 
 # 25. Plan Self-Review

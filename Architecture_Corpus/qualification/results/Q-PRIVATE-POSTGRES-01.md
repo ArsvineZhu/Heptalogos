@@ -90,10 +90,33 @@ The corrected-candidate Windows evidence was produced by:
 The test fixtures assert that the sentinel password is absent from generated
 BootstrapState, BootstrapJournal, and PostgreSQL log evidence; the
   credential-file helper removes the ephemeral password file after the bounded
-  callback. Windows temporary-file mode tests do not qualify service-account or
-  installer ACL behavior. The real lifecycle suite also covers a restart
-  readiness failure followed by a bounded stop that proves the process is no
-  longer running; it does not treat stale in-memory STOPPED state as proof.
+callback. Windows temporary-file mode tests do not qualify service-account or
+installer ACL behavior. The real lifecycle suite also covers a restart
+readiness failure followed by a bounded stop that proves the process is no
+longer running; it does not treat stale in-memory STOPPED state as proof.
+
+## Final hardening evidence (2026-08-22)
+
+The following evidence is an addendum for the final hardening candidate; the
+earlier PASS entries above remain historical evidence at their recorded SHA.
+
+```yaml
+candidate_sha: 07dcbdb
+bootstrap_role_identity: PASS
+password_line_contract: PASS
+restart_log_continuity: PASS
+private_postgres_targeted_tests: PASS
+windows_real_pg_revalidation: PASS
+pnpm_verify: PASS
+```
+
+The addendum was produced by the fixed-role `initdb` argv/identity roundtrip
+tests, credential-file contract tests for empty/LF/CR/NUL and normal UTF-8
+passwords, restart argv tests, `private-postgres` real PostgreSQL 18.6
+integration (20/20), and `bootstrap-runtime` real PostgreSQL 18.6 integration
+(9/9). The qualification remains `PARTIAL`: corrected Linux/macOS real
+PostgreSQL, source-less shipping, and service-account ACL closure remain
+`NOT_RUN`.
 
 ## Historical pre-correction Linux evidence
 
