@@ -33,12 +33,13 @@ import {
   readCanonicalHbaProfile,
   writeCanonicalPrivatePostgresRuntimeProfile,
 } from "./runtime-profile.js";
+import {
+  createPrivatePostgresLifecycleTracker,
+  type PrivatePostgresLifecycleTracker,
+} from "./lifecycle-machine.js";
 
 // IMPLEMENTATION_CONSTANT: cap one pg_ctl status probe; lifecycle budgets remain caller-configured.
 const PRIVATE_POSTGRES_STATUS_PROBE_TIMEOUT_MS = 5_000;
-
-type PrivatePostgresProcessState =
-  "STOPPED" | "STARTING" | "READY" | "STOPPING" | "UNCERTAIN";
 
 export interface InitializePrivatePostgresClusterOptions {
   readonly toolchain: PrivatePostgresToolchain;
@@ -460,12 +461,13 @@ async function readPrivatePostgresProcessStatus(
 async function ensurePrivatePostgresStopped(
   options: StartPrivatePostgresClusterOptions,
   statusTimeoutMs = options.lifecycle.shutdownTimeoutMs,
+  onCommandIssued?: () => void,
 ): Promise<void> {
   const before = await readPrivatePostgresProcessStatus(options, statusTimeoutMs);
   if (before === "STOPPED") return;
 
   try {
-    await stopProcess(options);
+    await stopProcess(options, onCommandIssued);
   } catch (error) {
     const afterFailedStop = await readPrivatePostgresProcessStatus(
       options,
@@ -488,10 +490,10 @@ async function ensurePrivatePostgresStopped(
 
 async function startProcess(
   options: StartPrivatePostgresClusterOptions,
-  onCommandIssued?: () => void,
+  lifecycleState: PrivatePostgresLifecycleTracker,
 ): Promise<void> {
   options.assertControlAuthority();
-  onCommandIssued?.();
+  lifecycleState.send({ type: "START_COMMAND_ISSUED" });
   await runPgCtlChecked(
     options.toolchain,
     [
@@ -514,10 +516,10 @@ async function startProcess(
 
 async function restartProcess(
   options: StartPrivatePostgresClusterOptions,
-  onCommandIssued?: () => void,
+  lifecycleState: PrivatePostgresLifecycleTracker,
 ): Promise<void> {
   options.assertControlAuthority();
-  onCommandIssued?.();
+  lifecycleState.send({ type: "RESTART_COMMAND_ISSUED" });
   await runPgCtlChecked(
     options.toolchain,
     [
@@ -537,8 +539,12 @@ async function restartProcess(
   );
 }
 
-async function stopProcess(options: StartPrivatePostgresClusterOptions): Promise<void> {
+async function stopProcess(
+  options: StartPrivatePostgresClusterOptions,
+  onCommandIssued?: () => void,
+): Promise<void> {
   options.assertControlAuthority();
+  onCommandIssued?.();
   await runPgCtlChecked(
     options.toolchain,
     [
@@ -560,6 +566,7 @@ async function stopProcess(options: StartPrivatePostgresClusterOptions): Promise
 export async function startPrivatePostgresCluster(
   options: StartPrivatePostgresClusterOptions,
 ): Promise<import("./contracts.js").ReadyPrivatePostgresMechanics> {
+  const lifecycleState = createPrivatePostgresLifecycleTracker();
   options.assertControlAuthority();
   assertPort(options.expectedIdentity.persistedPort);
   assertLifecycleOptions(options.lifecycle);
@@ -580,7 +587,6 @@ export async function startPrivatePostgresCluster(
     );
   }
 
-  let startCommandIssued = false;
   try {
     await validateExistingCluster({
       toolchain: options.toolchain,
@@ -588,9 +594,8 @@ export async function startPrivatePostgresCluster(
       expectedIdentity: options.expectedIdentity,
       timeoutMs: options.lifecycle.startupTimeoutMs,
     });
-    await startProcess(options, () => {
-      startCommandIssued = true;
-    });
+    await startProcess(options, lifecycleState);
+    lifecycleState.send({ type: "START_COMMAND_SUCCEEDED" });
     await waitForPrivatePostgresReadiness(
       options,
       options.expectedIdentity.persistedPort,
@@ -601,7 +606,7 @@ export async function startPrivatePostgresCluster(
       expectedIdentity: options.expectedIdentity,
       timeoutMs: options.lifecycle.startupTimeoutMs,
     });
-    let state: PrivatePostgresProcessState = "READY";
+    lifecycleState.send({ type: "READY_PROVEN" });
 
     return {
       toolchain: started.toolchain,
@@ -610,37 +615,56 @@ export async function startPrivatePostgresCluster(
       port: started.port,
       async stop(): Promise<void> {
         options.assertControlAuthority();
-        if (state === "STARTING" || state === "STOPPING") {
+        if (
+          lifecycleState.detail === "startCommandPending" ||
+          lifecycleState.detail === "startedPendingReady" ||
+          lifecycleState.detail === "stopping"
+        ) {
           throw controllerProblem(
             "private-postgres.lifecycle.operation_in_progress",
             "Private PostgreSQL lifecycle operation is already in progress",
-            `The private PostgreSQL lifecycle cannot stop while it is ${state}`,
+            `The private PostgreSQL lifecycle cannot stop while it is ${lifecycleState.state}`,
             "conflict",
           );
         }
-        state = "STOPPING";
         try {
           await ensurePrivatePostgresStopped(
             options,
             options.lifecycle.shutdownTimeoutMs,
+            () => lifecycleState.send({ type: "STOP_COMMAND_ISSUED" }),
           );
-          state = "STOPPED";
+          if (lifecycleState.can({ type: "STATUS_STOPPED_PROVEN" })) {
+            lifecycleState.send({ type: "STATUS_STOPPED_PROVEN" });
+          } else if (lifecycleState.can({ type: "UNEXPECTED_PROCESS_EXIT" })) {
+            lifecycleState.send({ type: "UNEXPECTED_PROCESS_EXIT" });
+            lifecycleState.send({ type: "STATUS_STOPPED_PROVEN" });
+          }
         } catch (error) {
-          state = "UNCERTAIN";
+          if (lifecycleState.can({ type: "STOP_OUTCOME_UNCERTAIN" })) {
+            lifecycleState.send({ type: "STOP_OUTCOME_UNCERTAIN" });
+          }
           throw error;
         }
       },
       async restart(): Promise<void> {
         options.assertControlAuthority();
-        if (state === "STARTING" || state === "STOPPING") {
+        if (
+          lifecycleState.detail === "startCommandPending" ||
+          lifecycleState.detail === "startedPendingReady" ||
+          lifecycleState.detail === "stopping"
+        ) {
           throw controllerProblem(
             "private-postgres.lifecycle.operation_in_progress",
             "Private PostgreSQL lifecycle operation is already in progress",
-            `The private PostgreSQL lifecycle cannot restart while it is ${state}`,
+            `The private PostgreSQL lifecycle cannot restart while it is ${lifecycleState.state}`,
             "conflict",
           );
         }
-        if (state === "UNCERTAIN") {
+        if (
+          lifecycleState.detail === "startOutcomeUncertain" ||
+          lifecycleState.detail === "runningObservedUncertain" ||
+          lifecycleState.detail === "processUncertain"
+        ) {
           throw controllerProblem(
             "private-postgres.lifecycle.restart_uncertain",
             "Private PostgreSQL restart is blocked by uncertain process state",
@@ -648,27 +672,24 @@ export async function startPrivatePostgresCluster(
             "integrity",
           );
         }
-        const wasStopped = state === "STOPPED";
+        const wasStopped = lifecycleState.detail === "stopped";
         if (!wasStopped) {
           try {
             await assertPrivatePostgresProcessRunning(options);
           } catch (error) {
-            state = "UNCERTAIN";
+            if (lifecycleState.can({ type: "UNEXPECTED_PROCESS_EXIT" })) {
+              lifecycleState.send({ type: "UNEXPECTED_PROCESS_EXIT" });
+            }
             throw error;
           }
         }
-        state = "STARTING";
-        let restartCommandIssued = false;
         try {
           if (wasStopped) {
-            await startProcess(options, () => {
-              restartCommandIssued = true;
-            });
+            await startProcess(options, lifecycleState);
           } else {
-            await restartProcess(options, () => {
-              restartCommandIssued = true;
-            });
+            await restartProcess(options, lifecycleState);
           }
+          lifecycleState.send({ type: "START_COMMAND_SUCCEEDED" });
           await waitForPrivatePostgresReadiness(
             options,
             options.expectedIdentity.persistedPort,
@@ -691,9 +712,8 @@ export async function startPrivatePostgresCluster(
               "integrity",
             );
           }
-          state = "READY";
+          lifecycleState.send({ type: "READY_PROVEN" });
         } catch (error) {
-          state = restartCommandIssued ? "UNCERTAIN" : wasStopped ? "STOPPED" : "READY";
           if (error instanceof ProblemError) throw error;
           throw controllerProblem(
             "private-postgres.lifecycle.restart_failed",
@@ -705,7 +725,12 @@ export async function startPrivatePostgresCluster(
       },
     };
   } catch (error) {
-    if (!startCommandIssued) throw error;
+    if (lifecycleState.detail === "startCommandPending") {
+      lifecycleState.send({ type: "START_OUTCOME_UNCERTAIN" });
+    } else if (lifecycleState.detail === "startedPendingReady") {
+      lifecycleState.send({ type: "POST_START_PROOF_FAILED" });
+    }
+    if (lifecycleState.detail === "stopped") throw error;
     try {
       await ensurePrivatePostgresStopped(options, options.lifecycle.shutdownTimeoutMs);
     } catch {
