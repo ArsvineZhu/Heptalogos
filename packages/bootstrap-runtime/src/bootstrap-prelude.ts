@@ -25,6 +25,11 @@ import {
   openBootstrapStateAccess,
   type OwnedBootstrapStateStore,
 } from "./bootstrap-state-access.js";
+import {
+  preparePrivatePostgresForOwnedPrelude,
+  type PreparePrivatePostgresOptions,
+  type ReadyPrivatePostgres,
+} from "./private-postgres-bootstrap.js";
 
 export interface PreparedBootstrapPrelude {
   readonly installationId: InstallationId;
@@ -46,6 +51,9 @@ export interface OwnedBootstrapPrelude {
   readonly ownership: BootstrapOwnershipLease;
   readonly state: OwnedBootstrapStateStore;
   readonly authoritativeState: BootstrapStateLoadResult;
+  preparePrivatePostgres(
+    options: PreparePrivatePostgresOptions,
+  ): Promise<ReadyPrivatePostgres>;
   close(): Promise<void>;
 }
 
@@ -282,6 +290,21 @@ export async function prepareBootstrapPrelude(
         ownership,
         state: access.state,
         authoritativeState,
+        preparePrivatePostgres(options: PreparePrivatePostgresOptions) {
+          return preparePrivatePostgresForOwnedPrelude(
+            {
+              installationId,
+              instanceId,
+              bootId,
+              bootstrapActivityId,
+              paths,
+              ownership,
+              state: access.state,
+              journal,
+            },
+            options,
+          );
+        },
         close(): Promise<void> {
           if (closePromise) return closePromise;
           closePromise = (async () => {

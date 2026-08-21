@@ -1,0 +1,219 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  asContentDigest,
+  createInstallationId,
+  createInstanceId,
+  digestCanonicalJson,
+  LIFECYCLE_ROOT_IDS,
+  type LifecycleRootId,
+} from "@heptalogos/foundation-contracts";
+import {
+  BootstrapStateStore,
+  type BootstrapStateBodyV1,
+} from "@heptalogos/bootstrap-state";
+import type {
+  BootstrapKeyProvider,
+  BootstrapKeyRequestContext,
+} from "./bootstrap-key-provider.js";
+import {
+  prepareBootstrapPrelude,
+  type OwnedBootstrapPrelude,
+} from "./bootstrap-prelude.js";
+import * as bootstrapRuntime from "./index.js";
+
+const directories: string[] = [];
+const LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
+
+interface TestPreparePrivatePostgresOptions {
+  readonly toolchainBinDirectory: string;
+  readonly initialPort?: number;
+  readonly lifecycle: {
+    readonly startupTimeoutMs: number;
+    readonly shutdownTimeoutMs: number;
+    readonly readinessPollIntervalMs: number;
+  };
+  readonly keyProvider: BootstrapKeyProvider;
+}
+
+type OwnedPreludeWithPrivatePostgres = OwnedBootstrapPrelude & {
+  preparePrivatePostgres(
+    options: TestPreparePrivatePostgresOptions,
+  ): Promise<unknown>;
+};
+
+function makeState(revision: number): BootstrapStateBodyV1 {
+  return {
+    schemaVersion: 1,
+    revision,
+    activeBootstrapRuntimeGeneration: asContentDigest(
+      "BootstrapRuntimeGenerationId",
+      digestCanonicalJson("test.bootstrap-runtime/v1", { generation: "bootstrap" }),
+    ),
+    activeProductGeneration: asContentDigest(
+      "ProductGenerationId",
+      digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
+    ),
+  };
+}
+
+async function makeFixture(): Promise<{
+  readonly anchorRoot: string;
+  readonly instanceRoot: string;
+}> {
+  const anchorRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-bootstrap-anchor-"));
+  directories.push(anchorRoot);
+  const roots = {} as Record<LifecycleRootId, string>;
+  for (const id of LIFECYCLE_ROOT_IDS) {
+    roots[id] =
+      id === "PROGRAM"
+        ? anchorRoot
+        : await mkdtemp(join(tmpdir(), `heptalogos-pg-bootstrap-${id.toLowerCase()}-`));
+    if (id !== "PROGRAM") directories.push(roots[id]);
+  }
+  const installationId = createInstallationId();
+  const instanceId = createInstanceId();
+  await writeFile(
+    join(anchorRoot, "heptalogos.bootstrap.json"),
+    JSON.stringify({ schemaVersion: 1, installationId, instanceId, roots }),
+  );
+  await new BootstrapStateStore(join(roots.INSTANCE, "bootstrap-state")).commit(
+    makeState(1),
+  );
+  return { anchorRoot, instanceRoot: roots.INSTANCE };
+}
+
+function makeOptions(
+  toolchainBinDirectory: string,
+  calls: { count: number },
+): TestPreparePrivatePostgresOptions {
+  const keyProvider: BootstrapKeyProvider = {
+    async withPrivatePostgresBootstrapPassword<T>(
+      _context: BootstrapKeyRequestContext,
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      calls.count += 1;
+      return use(new TextEncoder().encode("M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6"));
+    },
+  };
+  return {
+    toolchainBinDirectory,
+    initialPort: 55436,
+    lifecycle: {
+      startupTimeoutMs: 1_000,
+      shutdownTimeoutMs: 1_000,
+      readinessPollIntervalMs: 10,
+    },
+    keyProvider,
+  };
+}
+
+function callable(
+  owned: OwnedBootstrapPrelude,
+): OwnedPreludeWithPrivatePostgres {
+  return owned as OwnedPreludeWithPrivatePostgres;
+}
+
+afterEach(async () => {
+  await Promise.all(
+    directories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
+  );
+});
+
+describe("private PostgreSQL bootstrap ownership boundary", () => {
+  it("does not add preparation to PreparedBootstrapPrelude or export a forgeable function", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+
+    expect("preparePrivatePostgres" in prepared).toBe(false);
+    expect("preparePrivatePostgres" in bootstrapRuntime).toBe(false);
+  });
+
+  it("rejects a structurally fake owned object without exposing an orchestration bypass", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const fake = {
+      installationId: prepared.installationId,
+      instanceId: prepared.instanceId,
+      bootId: prepared.bootId,
+      bootstrapActivityId: prepared.bootstrapActivityId,
+      paths: prepared.paths,
+      ownership: prepared,
+      state: prepared,
+      authoritativeState: prepared.preliminaryState,
+      close: async () => undefined,
+    } as unknown as OwnedBootstrapPrelude;
+
+    expect("preparePrivatePostgres" in fake).toBe(false);
+  });
+
+  it("rejects after release before resolving tools or requesting a password", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const calls = { count: 0 };
+
+    await owned.close();
+
+    await expect(
+      callable(owned).preparePrivatePostgres(
+        makeOptions("relative-bin-directory", calls),
+      ),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.ownership.not_held" },
+    });
+    expect(calls.count).toBe(0);
+  });
+
+  it("rejects a compromised ownership lease before cluster mutation", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const calls = { count: 0 };
+
+    await rm(join(fixture.instanceRoot, LOCK_DIRECTORY), {
+      recursive: true,
+      force: true,
+    });
+    await new Promise<void>((resolve) => {
+      if (owned.ownership.signal.aborted) {
+        resolve();
+      } else {
+        owned.ownership.signal.addEventListener("abort", () => resolve(), {
+          once: true,
+        });
+      }
+    });
+
+    await expect(
+      callable(owned).preparePrivatePostgres(
+        makeOptions("relative-bin-directory", calls),
+      ),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.ownership.compromised" },
+    });
+    expect(calls.count).toBe(0);
+    await owned.close();
+  });
+
+  it("allows a same-instance genuine owner to reach the private PostgreSQL boundary", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const emptyBin = await mkdtemp(join(tmpdir(), "heptalogos-pg-empty-bin-"));
+    directories.push(emptyBin);
+    const calls = { count: 0 };
+
+    await expect(
+      callable(owned).preparePrivatePostgres(makeOptions(emptyBin, calls)),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "private-postgres.toolchain.tool_missing" },
+    });
+    expect(calls.count).toBe(0);
+    await owned.close();
+  });
+});

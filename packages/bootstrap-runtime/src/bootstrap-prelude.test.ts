@@ -98,6 +98,7 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
 
     expect(prepared.installationId).toBe(fixture.locator.installationId);
     expect(prepared.instanceId).toBe(fixture.locator.instanceId);
+    expect("preparePrivatePostgres" in prepared).toBe(false);
     expect(prepared.preliminaryState).toMatchObject({
       status: "CURRENT",
       value: { state: { revision: 1 } },
@@ -110,6 +111,7 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
     ]);
 
     const owned = await prepared.acquireOwnership({ heartbeatMs: 1000 });
+    expect("preparePrivatePostgres" in owned).toBe(true);
     expect(owned.authoritativeState).toMatchObject({
       status: "CURRENT",
       value: { state: { revision: 1 } },
