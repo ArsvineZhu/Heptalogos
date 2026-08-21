@@ -5,6 +5,7 @@ import {
   rm,
   writeFile,
 } from "node:fs/promises";
+import { createServer } from "node:net";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -31,6 +32,7 @@ if (!pgBin) {
     "BLOCKED: HEPTALOGOS_TEST_PG_BIN is required for private PostgreSQL integration qualification",
   );
 }
+const qualifiedPgBin = pgBin;
 
 const {
   resolvePrivatePostgresToolchain,
@@ -40,8 +42,10 @@ const { resolvePrivatePostgresPlacement } = await import("./cluster-layout.js");
 const {
   createPrivatePostgresInitializationProfileRevision,
   initializePrivatePostgresCluster,
+  startPrivatePostgresCluster,
   validateExistingCluster,
 } = await import("./controller.js");
+const { runPostgresTool } = await import("./process-adapter.js");
 
 describe("private PostgreSQL first initialization", () => {
   it("initializes an absent target with the deterministic M3 profile", async () => {
@@ -49,7 +53,7 @@ describe("private PostgreSQL first initialization", () => {
     const tempRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-temp-"));
     const logRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-log-"));
     const placement = resolvePrivatePostgresPlacement(dataRoot);
-    const toolchain = await resolvePrivatePostgresToolchain(pgBin);
+    const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
 
     try {
       expect(toolchain.version).toBe(PRIVATE_POSTGRES_QUALIFIED_VERSION);
@@ -79,7 +83,9 @@ describe("private PostgreSQL first initialization", () => {
       );
       await expect(
         readFile(join(placement.canonicalDataDirectory, "postgresql.auto.conf"), "utf8"),
-      ).resolves.toMatch(/listen_addresses\s*=\s*'127\.0\.0\.1'/u);
+      ).resolves.toMatch(
+        /listen_addresses\s*=\s*'127\.0\.0\.1'[\s\S]*unix_socket_directories\s*=\s*''/u,
+      );
       await expect(
         readFile(join(placement.canonicalDataDirectory, "pg_hba.conf"), "utf8"),
       ).resolves.toContain("scram-sha-256");
@@ -97,7 +103,7 @@ describe("private PostgreSQL first initialization", () => {
     const dataRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-data-"));
     const tempRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-temp-"));
     const placement = resolvePrivatePostgresPlacement(dataRoot);
-    const toolchain = await resolvePrivatePostgresToolchain(pgBin);
+    const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
 
     try {
       await import("node:fs/promises").then(({ mkdir }) => mkdir(placement.canonicalDataDirectory));
@@ -137,7 +143,7 @@ describe("private PostgreSQL first initialization", () => {
       dataRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-data-"));
       tempRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-temp-"));
       const placement = resolvePrivatePostgresPlacement(dataRoot);
-      const toolchain = await resolvePrivatePostgresToolchain(pgBin);
+      const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
       initialized = await initializePrivatePostgresCluster({
         toolchain,
         placement,
@@ -261,5 +267,165 @@ describe("private PostgreSQL first initialization", () => {
         ).rejects.toMatchObject({ code: "ENOENT" });
       });
     }
+  });
+
+  describe("private PostgreSQL lifecycle", () => {
+    async function createLifecycleCluster(port: number) {
+      const dataRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-data-"));
+      const tempRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-temp-"));
+      const logRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-log-"));
+      const placement = resolvePrivatePostgresPlacement(dataRoot);
+      const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
+      const initialized = await initializePrivatePostgresCluster({
+        toolchain,
+        placement,
+        credentialTempRoot: tempRoot,
+        bootstrapPasswordUtf8: new TextEncoder().encode(
+          "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
+        ),
+        port,
+        lifecycle: {
+          startupTimeoutMs: 60_000,
+          shutdownTimeoutMs: 30_000,
+          readinessPollIntervalMs: 100,
+        },
+      });
+      const expected: PrivatePostgresExpectedIdentity = {
+        installationId: createInstallationId(),
+        instanceId: createInstanceId(),
+        postgresMajor: 18,
+        placement: {
+          rootId: "DATA",
+          relativePath: "private-postgres",
+          dataLayoutVersion: 1,
+        },
+        persistedPort: port,
+        clusterSystemIdentifier: initialized.identity.clusterSystemIdentifier,
+        initializationProfileRevision: initialized.initializationProfileRevision,
+      };
+      return { dataRoot, tempRoot, logRoot, initialized, expected };
+    }
+
+    it("starts, becomes ready, stops, and restarts the same cluster", async () => {
+      const cluster = await createLifecycleCluster(55433);
+      const logFile = join(cluster.logRoot, "private-postgres.log");
+      let ready: Awaited<ReturnType<typeof startPrivatePostgresCluster>> | undefined;
+
+      try {
+        ready = await startPrivatePostgresCluster({
+          toolchain: cluster.initialized.toolchain,
+          placement: cluster.initialized.placement,
+          expectedIdentity: cluster.expected,
+          logFilePath: logFile,
+          lifecycle: {
+            startupTimeoutMs: 60_000,
+            shutdownTimeoutMs: 30_000,
+            readinessPollIntervalMs: 100,
+          },
+        });
+        expect(ready.port).toBe(55433);
+        expect(ready.identity.clusterSystemIdentifier).toBe(
+          cluster.initialized.identity.clusterSystemIdentifier,
+        );
+        await expect(access(logFile)).resolves.toBeUndefined();
+        expect(logFile.startsWith(cluster.logRoot)).toBe(true);
+        expect(logFile.startsWith(cluster.dataRoot)).toBe(false);
+
+        await ready.stop();
+        await expect(
+          access(join(cluster.initialized.placement.canonicalDataDirectory, "postmaster.pid")),
+        ).rejects.toMatchObject({ code: "ENOENT" });
+        await ready.restart();
+
+        expect(ready.port).toBe(55433);
+        expect(ready.identity.clusterSystemIdentifier).toBe(
+          cluster.initialized.identity.clusterSystemIdentifier,
+        );
+      } finally {
+        await ready?.stop().catch(() => undefined);
+        await Promise.all(
+          [cluster.dataRoot, cluster.tempRoot, cluster.logRoot].map((root) =>
+            rm(root, { recursive: true, force: true }),
+          ),
+        );
+      }
+    });
+
+    it("fails closed when an unrelated process occupies the persisted port", async () => {
+      const cluster = await createLifecycleCluster(55434);
+      const blocker = createServer();
+      await new Promise<void>((resolve, reject) => {
+        blocker.once("error", reject);
+        blocker.listen(55434, "127.0.0.1", () => resolve());
+      });
+
+      try {
+        await expect(
+          startPrivatePostgresCluster({
+            toolchain: cluster.initialized.toolchain,
+            placement: cluster.initialized.placement,
+            expectedIdentity: cluster.expected,
+            logFilePath: join(cluster.logRoot, "private-postgres.log"),
+            lifecycle: {
+              startupTimeoutMs: 10_000,
+              shutdownTimeoutMs: 30_000,
+              readinessPollIntervalMs: 100,
+            },
+          }),
+        ).rejects.toMatchObject({
+          problem: { problemCode: "private-postgres.lifecycle.start_failed" },
+        });
+        await expect(
+          access(join(cluster.initialized.placement.canonicalDataDirectory, "postmaster.pid")),
+        ).rejects.toMatchObject({ code: "ENOENT" });
+      } finally {
+        await new Promise<void>((resolve) => blocker.close(() => resolve()));
+        await Promise.all(
+          [cluster.dataRoot, cluster.tempRoot, cluster.logRoot].map((root) =>
+            rm(root, { recursive: true, force: true }),
+          ),
+        );
+      }
+    });
+
+    it("reports an unexpected server exit instead of silently reinitializing", async () => {
+      const cluster = await createLifecycleCluster(55435);
+      let ready: Awaited<ReturnType<typeof startPrivatePostgresCluster>> | undefined;
+      try {
+        ready = await startPrivatePostgresCluster({
+          toolchain: cluster.initialized.toolchain,
+          placement: cluster.initialized.placement,
+          expectedIdentity: cluster.expected,
+          logFilePath: join(cluster.logRoot, "private-postgres.log"),
+          lifecycle: {
+            startupTimeoutMs: 60_000,
+            shutdownTimeoutMs: 30_000,
+            readinessPollIntervalMs: 100,
+          },
+        });
+        const stopped = await runPostgresTool(
+          cluster.initialized.toolchain.pgCtl,
+          [
+            "stop",
+            "--pgdata",
+            cluster.initialized.placement.canonicalDataDirectory,
+            "--mode=immediate",
+            "--wait",
+          ],
+          { timeoutMs: 30_000 },
+        );
+        expect(stopped.exitCode).toBe(0);
+        await expect(ready.restart()).rejects.toMatchObject({
+          problem: { problemCode: "private-postgres.lifecycle.restart_failed" },
+        });
+      } finally {
+        await ready?.stop().catch(() => undefined);
+        await Promise.all(
+          [cluster.dataRoot, cluster.tempRoot, cluster.logRoot].map((root) =>
+            rm(root, { recursive: true, force: true }),
+          ),
+        );
+      }
+    });
   });
 });

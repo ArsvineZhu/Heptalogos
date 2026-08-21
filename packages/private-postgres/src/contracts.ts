@@ -58,6 +58,7 @@ export interface PrivatePostgresInitializationProfile {
   readonly hostAuthentication: "scram-sha-256";
   readonly localAuthentication: "scram-sha-256";
   readonly listenAddress: "127.0.0.1";
+  readonly unixSocketDirectories: "";
   readonly persistedPort: number;
 }
 

@@ -31,6 +31,8 @@ export {
   createPrivatePostgresInitializationProfileRevision,
   initializePrivatePostgresCluster,
   type InitializePrivatePostgresClusterOptions,
+  startPrivatePostgresCluster,
+  type StartPrivatePostgresClusterOptions,
   type ValidateExistingPrivatePostgresClusterOptions,
   validateExistingCluster,
 } from "./controller.js";
