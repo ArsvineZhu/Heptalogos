@@ -45,6 +45,7 @@ describe("bootstrap ownership", () => {
 
     const lease = await acquireBootstrapOwnership(instanceRoot, { heartbeatMs: 1000 });
     expect(lease.state).toBe("HELD");
+    expect(Object.isFrozen(lease)).toBe(true);
     expect(lease.signal.aborted).toBe(false);
     expect(() => lease.assertHeld()).not.toThrow();
 

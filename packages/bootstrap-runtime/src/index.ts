@@ -11,11 +11,7 @@ export {
   type BootstrapOwnershipOptions,
   type BootstrapOwnershipState,
 } from "./bootstrap-ownership.js";
-export {
-  openBootstrapStateAccess,
-  type BootstrapStateAccess,
-  type OwnedBootstrapStateStore,
-} from "./bootstrap-state-access.js";
+export type { OwnedBootstrapStateStore } from "./bootstrap-state-access.js";
 export {
   prepareBootstrapPrelude,
   type OwnedBootstrapPrelude,

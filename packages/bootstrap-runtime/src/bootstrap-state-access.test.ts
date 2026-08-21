@@ -9,16 +9,19 @@ import {
   createInstanceId,
   createUuidV7Id,
   digestCanonicalJson,
-  ProblemError,
 } from "@heptalogos/foundation-contracts";
-import type { BootstrapStateBodyV1 } from "@heptalogos/bootstrap-state";
 import {
+  BootstrapJournal,
+  BootstrapStateStore,
+  type BootstrapStateBodyV1,
+  type BootstrapJournalCheckpointV2,
+} from "@heptalogos/bootstrap-state";
+import {
+  acquireBootstrapOwnership,
   type BootstrapOwnershipLease,
-  type BootstrapOwnershipState,
 } from "./bootstrap-ownership.js";
 import { openBootstrapStateAccess } from "./bootstrap-state-access.js";
 import type { BootstrapPathProfile, ResolvedLifecycleRoot } from "./roots.js";
-import type { BootstrapJournalCheckpointV2 } from "@heptalogos/bootstrap-state";
 
 const directories: string[] = [];
 
@@ -51,39 +54,6 @@ function makeJournalEntry(
     at: "2026-08-21T09:00:00.000Z",
     outcome: "STARTED",
   };
-}
-
-function makeLease(initialState: BootstrapOwnershipState): {
-  readonly lease: BootstrapOwnershipLease;
-  setState(state: BootstrapOwnershipState): void;
-} {
-  let state = initialState;
-  const controller = new AbortController();
-  const lease: BootstrapOwnershipLease = {
-    get state() {
-      return state;
-    },
-    signal: controller.signal,
-    assertHeld() {
-      if (state === "HELD") return;
-      throw new ProblemError({
-        schemaVersion: 1,
-        problemCode:
-          state === "COMPROMISED"
-            ? "bootstrap.ownership.compromised"
-            : "bootstrap.ownership.not_held",
-        category: "conflict",
-        retryClass: "after-change",
-        title: "Bootstrap ownership is not held",
-        detail: "The fake bootstrap ownership lease is not held",
-      });
-    },
-    async release() {
-      state = "RELEASED";
-      controller.abort();
-    },
-  };
-  return { lease, setState: (nextState) => (state = nextState) };
 }
 
 async function makeProfile(): Promise<{
@@ -126,28 +96,78 @@ afterEach(async () => {
 });
 
 describe("owned bootstrap state access", () => {
-  it("allows read and journal evidence before ownership but guards state commit", async () => {
-    const { profile, instanceRoot } = await makeProfile();
-    const fake = makeLease("RELEASED");
-    const access = openBootstrapStateAccess(profile, fake.lease);
+  it("rejects a structurally forged HELD lease before constructing state access", async () => {
+    const { profile } = await makeProfile();
+    const fakeLease: BootstrapOwnershipLease = {
+      state: "HELD",
+      signal: new AbortController().signal,
+      assertHeld() {},
+      async release() {},
+    };
+    let thrown: unknown;
 
-    await expect(access.state.load()).resolves.toEqual({ status: "EMPTY" });
-    const early = makeJournalEntry(profile.installationId, profile.instanceId);
-    await access.journal.checkpoint(early);
-    await expect(access.journal.read(early.bootId)).resolves.toEqual([early]);
+    try {
+      openBootstrapStateAccess(profile, fakeLease);
+    } catch (error) {
+      thrown = error;
+    }
 
-    await expect(access.state.commit(makeState(1))).rejects.toMatchObject({
-      problem: { problemCode: "bootstrap.ownership.not_held" },
+    expect(thrown).toMatchObject({
+      problem: { problemCode: "bootstrap.ownership.invalid_capability" },
+    });
+  });
+
+  it("rejects an issued lease when used with a different INSTANCE root", async () => {
+    const first = await makeProfile();
+    const second = await makeProfile();
+    const lease = await acquireBootstrapOwnership(
+      {
+        id: "INSTANCE",
+        configuredPath: first.instanceRoot,
+        canonicalPath: first.instanceRoot,
+      },
+      { heartbeatMs: 1000 },
+    );
+    let thrown: unknown;
+
+    try {
+      openBootstrapStateAccess(second.profile, lease);
+    } catch (error) {
+      thrown = error;
+    } finally {
+      await lease.release();
+    }
+
+    expect(thrown).toMatchObject({
+      problem: { problemCode: "bootstrap.ownership.scope_mismatch" },
     });
     expect(
-      await stat(join(instanceRoot, "bootstrap-state")).catch(() => undefined),
+      await stat(join(second.instanceRoot, "bootstrap-state")).catch(() => undefined),
     ).toBe(undefined);
   });
 
-  it("commits while HELD and rejects RELEASED or COMPROMISED before disk mutation", async () => {
+  it("keeps raw state reads and journal evidence available before ownership", async () => {
     const { profile, instanceRoot } = await makeProfile();
-    const fake = makeLease("HELD");
-    const access = openBootstrapStateAccess(profile, fake.lease);
+    const rawState = new BootstrapStateStore(join(instanceRoot, "bootstrap-state"));
+    const journal = new BootstrapJournal(instanceRoot);
+
+    await expect(rawState.load()).resolves.toEqual({ status: "EMPTY" });
+    const early = makeJournalEntry(profile.installationId, profile.instanceId);
+    await journal.checkpoint(early);
+    await expect(journal.read(early.bootId)).resolves.toEqual([early]);
+  });
+
+  it("commits with a genuine issued lease and rejects after release", async () => {
+    const { profile, instanceRoot } = await makeProfile();
+    const lease = await acquireBootstrapOwnership(
+      {
+        id: "INSTANCE",
+        configuredPath: instanceRoot,
+        canonicalPath: instanceRoot,
+      },
+      { heartbeatMs: 1000 },
+    );
+    const access = openBootstrapStateAccess(profile, lease);
 
     await expect(access.state.commit(makeState(1))).resolves.toMatchObject({
       state: { revision: 1 },
@@ -158,7 +178,7 @@ describe("owned bootstrap state access", () => {
       mtimeMs: (await stat(statePath)).mtimeMs,
     };
 
-    fake.setState("RELEASED");
+    await lease.release();
     await expect(access.state.commit(makeState(2))).rejects.toMatchObject({
       problem: { problemCode: "bootstrap.ownership.not_held" },
     });
@@ -167,13 +187,45 @@ describe("owned bootstrap state access", () => {
       mtimeMs: (await stat(statePath)).mtimeMs,
     }).toEqual(beforeRelease);
 
-    fake.setState("COMPROMISED");
+  });
+
+  it("rejects a commit after a genuine lease is compromised", async () => {
+    const { profile, instanceRoot } = await makeProfile();
+    const lease = await acquireBootstrapOwnership(
+      {
+        id: "INSTANCE",
+        configuredPath: instanceRoot,
+        canonicalPath: instanceRoot,
+      },
+      { heartbeatMs: 1000 },
+    );
+    const access = openBootstrapStateAccess(profile, lease);
+    await access.state.commit(makeState(1));
+    const statePath = join(instanceRoot, "bootstrap-state", "bootstrap-state.json");
+    const beforeCompromise = {
+      text: await readFile(statePath, "utf8"),
+      mtimeMs: (await stat(statePath)).mtimeMs,
+    };
+
+    await rm(join(instanceRoot, ".heptalogos-bootstrap.lock"), {
+      recursive: true,
+      force: true,
+    });
+    await new Promise<void>((resolve) => {
+      if (lease.signal.aborted) {
+        resolve();
+      } else {
+        lease.signal.addEventListener("abort", () => resolve(), { once: true });
+      }
+    });
+
     await expect(access.state.commit(makeState(2))).rejects.toMatchObject({
       problem: { problemCode: "bootstrap.ownership.compromised" },
     });
     expect({
       text: await readFile(statePath, "utf8"),
       mtimeMs: (await stat(statePath)).mtimeMs,
-    }).toEqual(beforeRelease);
+    }).toEqual(beforeCompromise);
+    await lease.release();
   });
 });

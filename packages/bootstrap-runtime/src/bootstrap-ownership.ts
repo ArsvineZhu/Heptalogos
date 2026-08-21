@@ -35,6 +35,13 @@ export interface BootstrapOwnershipOptions {
   readonly heartbeatMs: number;
 }
 
+interface IssuedOwnershipRecord {
+  readonly canonicalInstanceRoot: string;
+  readonly assertHeld: () => void;
+}
+
+const issuedOwnership = new WeakMap<BootstrapOwnershipLease, IssuedOwnershipRecord>();
+
 function ownershipProblem(
   problemCode: string,
   category: string,
@@ -103,6 +110,40 @@ function notHeldProblem(): Problem {
   );
 }
 
+function invalidCapabilityProblem(): Problem {
+  return ownershipProblem(
+    "bootstrap.ownership.invalid_capability",
+    "integrity",
+    "manual",
+    "Bootstrap ownership capability is invalid",
+    "The bootstrap ownership capability was not issued by the bootstrap ownership adapter",
+  );
+}
+
+function scopeMismatchProblem(): Problem {
+  return ownershipProblem(
+    "bootstrap.ownership.scope_mismatch",
+    "conflict",
+    "manual",
+    "Bootstrap ownership scope does not match",
+    "The bootstrap ownership capability is bound to a different instance",
+  );
+}
+
+export function assertBootstrapOwnershipFor(
+  lease: BootstrapOwnershipLease,
+  canonicalInstanceRoot: string,
+): void {
+  const issued = issuedOwnership.get(lease);
+  if (!issued) {
+    throw new ProblemError(invalidCapabilityProblem());
+  }
+  if (issued.canonicalInstanceRoot !== canonicalInstanceRoot) {
+    throw new ProblemError(scopeMismatchProblem());
+  }
+  issued.assertHeld();
+}
+
 export async function acquireBootstrapOwnership(
   instanceRoot: ResolvedLifecycleRoot,
   options: BootstrapOwnershipOptions,
@@ -144,6 +185,14 @@ export async function acquireBootstrapOwnership(
   }
 
   let releasePromise: Promise<void> | undefined;
+  const internalAssertHeld = (): void => {
+    if (state === "HELD") return;
+    if (state === "COMPROMISED") {
+      throw new ProblemError(safeCompromisedCause ?? compromisedProblem());
+    }
+    throw new ProblemError(notHeldProblem());
+  };
+
   const lease: BootstrapOwnershipLease = {
     get state() {
       return state;
@@ -151,13 +200,7 @@ export async function acquireBootstrapOwnership(
     get signal() {
       return abortController.signal;
     },
-    assertHeld() {
-      if (state === "HELD") return;
-      if (state === "COMPROMISED") {
-        throw new ProblemError(safeCompromisedCause ?? compromisedProblem());
-      }
-      throw new ProblemError(notHeldProblem());
-    },
+    assertHeld: internalAssertHeld,
     release() {
       if (releasePromise) return releasePromise;
       releasePromise = (async () => {
@@ -180,6 +223,12 @@ export async function acquireBootstrapOwnership(
       return releasePromise;
     },
   };
+
+  issuedOwnership.set(lease, {
+    canonicalInstanceRoot: instanceRoot.canonicalPath,
+    assertHeld: internalAssertHeld,
+  });
+  Object.freeze(lease);
 
   return lease;
 }

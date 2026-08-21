@@ -6,7 +6,10 @@ import {
   type BootstrapStateEnvelopeV1,
   type BootstrapStateLoadResult,
 } from "@heptalogos/bootstrap-state";
-import type { BootstrapOwnershipLease } from "./bootstrap-ownership.js";
+import {
+  assertBootstrapOwnershipFor,
+  type BootstrapOwnershipLease,
+} from "./bootstrap-ownership.js";
 import type { BootstrapPathProfile } from "./roots.js";
 
 export interface OwnedBootstrapStateStore {
@@ -26,6 +29,7 @@ export function openBootstrapStateAccess(
   lease: BootstrapOwnershipLease,
 ): BootstrapStateAccess {
   const instanceRoot = profile.resolve("INSTANCE").canonicalPath;
+  assertBootstrapOwnershipFor(lease, instanceRoot);
   const rawState = new BootstrapStateStore(
     join(instanceRoot, BOOTSTRAP_STATE_DIRECTORY),
   );
@@ -38,7 +42,7 @@ export function openBootstrapStateAccess(
         return rawState.load();
       },
       async commit(candidate: BootstrapStateBodyV1): Promise<BootstrapStateEnvelopeV1> {
-        lease.assertHeld();
+        assertBootstrapOwnershipFor(lease, instanceRoot);
         return rawState.commit(candidate);
       },
     },
