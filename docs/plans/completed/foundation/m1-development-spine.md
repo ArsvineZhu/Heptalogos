@@ -1914,6 +1914,90 @@ package `dist`/`tsbuildinfo` output. `pnpm verify` passed; an independent clean
 filesystem power-loss durability, and other platform/product claims listed
 above remain `NOT_RUN`.
 
+### Windows verification addendum (2026-08-21)
+
+M1 was developed and verified on Ubuntu/Linux; this addendum records the
+deferred Windows verification, executed on a native Windows 11 host. It covers
+only claims that M1 actually built. No M2 subsystem was started.
+
+| Item | Evidence |
+| --- | --- |
+| Host platform | Windows 11 / win32 |
+| Runtime/toolchain | Node `24.19.0`, pnpm `11.22.0`, TypeScript 7 `7.0.2` (matches M1 pins) |
+| Repository state | clean tree at `06061aacace63cdae9495eee1f02928ffab02b54` |
+| `pnpm install --frozen-lockfile` | PASS |
+| Full `pnpm verify` chain | PASS (agents, corpus, repository, dependencies, boundaries, toolchain, format, lint, typecheck, tsc6, test, build) |
+
+#### Claim status changes
+
+| Claim | Previous | Now | Evidence |
+| --- | --- | --- | --- |
+| Windows-specific pnpm shim behavior (`runPnpm()` resolves the `.cmd` shim via PATHEXT without shell construction) | NOT_RUN | PASS | `tools/repo-kit/test/process.test.mjs` executed on win32 |
+| argv preservation without shell parsing (Windows host) | PASS (Linux only) | PASS | same suite rerun on win32 |
+
+#### New Windows/platform coverage added
+
+| Coverage | Scope | Evidence |
+| --- | --- | --- |
+| Environment variable and cwd propagation through `runProcess*` | cross-platform (previously untested) | `tools/repo-kit/test/process.test.mjs` |
+| BootstrapState/Journal commit+load round-trip under a Unicode directory path | cross-platform | `packages/bootstrap-state/src/platform-behavior.test.ts` |
+| Repeated atomic replacement of existing current/previous files across sequential commits r1→r5 (`write-file-atomic` rename-over-existing) | cross-platform | same file |
+| Case-insensitive filename variant resolves to the same state authority | win32-gated (`it.runIf`) | same file |
+| Store/Journal operation through a junctioned storage root with bytes landing in the target directory | win32-gated (`it.runIf`) | same file |
+
+Test totals on Windows: foundation-contracts 10, bootstrap-state 27, repo-kit 5
+— all PASS.
+
+#### Claims that remain NOT_RUN
+
+| Claim | Status | Reason |
+| --- | --- | --- |
+| Real filesystem power-loss durability on Windows/macOS/Linux | NOT_RUN | Requires real crash/power-loss qualification; unit tests must not claim it |
+| True symlink/junction/reparse-point root hardening | NOT_RUN | Belongs to M2 PathProfile/bootstrap ownership; the junction traversal test proves operability, not hardening |
+| POSIX shell argument behavior (`posix_quoting`) | NOT_RUN | Not runnable on this Windows host |
+| POSIX symlink escape / macOS-Linux path behavior | NOT_RUN | Not runnable on this Windows host |
+
+### POSIX coverage and CI projection addendum (2026-08-21, same day)
+
+To make the deferred POSIX claims executable rather than permanently
+host-bound, two follow-up changes were made. Neither flips any claim to `PASS`
+by itself; both only make the evidence obtainable.
+
+**POSIX-gated repository tests added**
+(`packages/bootstrap-state/src/platform-behavior.test.ts`):
+
+| Coverage | Gate | Status |
+| --- | --- | --- |
+| Store/Journal operation through a POSIX-symlinked storage root with bytes landing in the target directory | `it.runIf(process.platform !== "win32")` | NOT_RUN (no Linux/macOS execution yet) |
+| State authority stays distinct from different-case decoy filenames on case-sensitive filesystems | `it.runIf(process.platform === "linux")` | NOT_RUN (no Linux execution yet) |
+
+On the Windows host these run as explicit skips: 27 passed / 2 skipped.
+
+**GitHub Actions verify workflow created**
+(`.github/workflows/verify.yml`): a three-platform matrix
+(ubuntu-latest / macos-latest / windows-latest) running
+`pnpm install --frozen-lockfile` and the full `pnpm verify` chain. Per
+Architecture Corpus §16.2 this workflow is an automation projection of the
+locally runnable gates and is not their sole Authority; every gate remains
+executable in-repo without CI. Action versions were refreshed from upstream
+release feeds at authoring time rather than recalled from memory:
+
+| Action | Pinned major | Verified latest release at authoring |
+| --- | --- | --- |
+| `actions/checkout` | v7 | v7.0.1 (2026-07-20) |
+| `pnpm/action-setup` | v6 | v6.0.10 (2026-08-03); reads the exact pnpm version from `package.json#packageManager` |
+| `actions/setup-node` | v7 | v7.0.0 (2026-07-14); reads Node from `.node-version`, caches the pnpm store |
+
+The successor `pnpm/setup@v2` action was evaluated and deliberately not
+adopted: it provisions Node through `pnpm runtime` and auto-runs installs,
+which would move runtime provisioning away from the repository's exact-pin
+authorities (`.node-version`, `engines`, lockfile). The classic
+action-setup/setup-node pair keeps each version single-sourced from a
+repository file.
+
+First green runs of the matrix will constitute the execution evidence for the
+POSIX items above; until then they remain truthfully `NOT_RUN`.
+
 ---
 
 ## Stop / Escalation Conditions
