@@ -22,7 +22,7 @@ const properLockfile = require("proper-lockfile") as ProperLockfile;
 const BOOTSTRAP_LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
 const NO_AUTOMATIC_STALE_RECLAIM_MS = Number.MAX_SAFE_INTEGER;
 
-export type BootstrapOwnershipState = "HELD" | "COMPROMISED" | "RELEASED";
+export type BootstrapOwnershipState = "HELD" | "RELEASING" | "COMPROMISED" | "RELEASED";
 
 export interface BootstrapOwnershipLease {
   readonly state: BootstrapOwnershipState;
@@ -203,20 +203,25 @@ export async function acquireBootstrapOwnership(
     assertHeld: internalAssertHeld,
     release() {
       if (releasePromise) return releasePromise;
+      if (state === "RELEASED") return Promise.resolve();
+      const releaseLockIsRequired = state === "HELD";
+      state = "RELEASING";
+      abortController.abort();
       releasePromise = (async () => {
-        if (state === "RELEASED") return;
-        if (state === "COMPROMISED") {
+        if (!releaseLockIsRequired) {
           state = "RELEASED";
           return;
         }
         try {
           await releaseLock();
+          if (safeCompromisedCause) {
+            state = "COMPROMISED";
+            throw new ProblemError(safeCompromisedCause);
+          }
           state = "RELEASED";
-          abortController.abort();
         } catch {
-          safeCompromisedCause = compromisedProblem();
+          safeCompromisedCause ??= compromisedProblem();
           state = "COMPROMISED";
-          abortController.abort();
           throw new ProblemError(safeCompromisedCause);
         }
       })();

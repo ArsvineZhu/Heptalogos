@@ -117,6 +117,10 @@ function problemCodeOf(error: unknown): string | undefined {
   return typeof problem.problemCode === "string" ? problem.problemCode : undefined;
 }
 
+function isPrivatePostgresCleanupUncertain(error: unknown): boolean {
+  return problemCodeOf(error) === "private-postgres.lifecycle.start_cleanup_uncertain";
+}
+
 function bootstrapProblem(
   problemCode: string,
   title: string,
@@ -557,7 +561,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
       }
     }
     if (context.privatePostgresSession.state === "TRANSITIONING") {
-      if (cleanupSucceeded) {
+      if (cleanupSucceeded && !isPrivatePostgresCleanupUncertain(error)) {
         context.privatePostgresSession.markQuiescent();
       } else {
         context.privatePostgresSession.markUncertain();

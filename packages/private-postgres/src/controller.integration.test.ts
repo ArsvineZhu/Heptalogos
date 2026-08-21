@@ -761,5 +761,72 @@ describe("private PostgreSQL first initialization", () => {
         );
       }
     }, 120_000);
+
+    it("proves stopped after restart readiness failure instead of trusting STOPPED memory", async () => {
+      const cluster = await createLifecycleCluster(55449);
+      const profilePath = join(
+        cluster.initialized.placement.canonicalDataDirectory,
+        "postgresql.auto.conf",
+      );
+      const originalProfile = await readFile(profilePath, "utf8");
+      let ready: Awaited<ReturnType<typeof startPrivatePostgresCluster>> | undefined;
+
+      try {
+        ready = await startPrivatePostgresCluster({
+          toolchain: cluster.initialized.toolchain,
+          placement: cluster.initialized.placement,
+          expectedIdentity: cluster.expected,
+          logFilePath: join(cluster.logRoot, "private-postgres.log"),
+          lifecycle: {
+            startupTimeoutMs: 5_000,
+            shutdownTimeoutMs: 30_000,
+            readinessPollIntervalMs: 100,
+          },
+          assertControlAuthority: allowControlAuthority,
+        });
+        await ready.stop();
+        await writeFile(profilePath, `${originalProfile}port = 55450\n`);
+
+        await expect(ready.restart()).rejects.toMatchObject({
+          problem: { problemCode: "private-postgres.lifecycle.readiness_timeout" },
+        });
+        await expect(
+          access(
+            join(
+              cluster.initialized.placement.canonicalDataDirectory,
+              "postmaster.pid",
+            ),
+          ),
+        ).resolves.toBeUndefined();
+
+        await ready.stop();
+        await expect(
+          access(
+            join(
+              cluster.initialized.placement.canonicalDataDirectory,
+              "postmaster.pid",
+            ),
+          ),
+        ).rejects.toMatchObject({ code: "ENOENT" });
+      } finally {
+        await writeFile(profilePath, originalProfile).catch(() => undefined);
+        await runPostgresTool(
+          cluster.initialized.toolchain.pgCtl,
+          [
+            "stop",
+            "--pgdata",
+            cluster.initialized.placement.canonicalDataDirectory,
+            "--mode=immediate",
+            "--wait",
+          ],
+          { timeoutMs: 30_000 },
+        ).catch(() => undefined);
+        await Promise.all(
+          [cluster.dataRoot, cluster.tempRoot, cluster.logRoot].map((root) =>
+            rm(root, { recursive: true, force: true }),
+          ),
+        );
+      }
+    }, 120_000);
   });
 });

@@ -277,7 +277,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         access(join(fixture.roots.DATA, "private-postgres", "postmaster.pid")),
       ).resolves.toBeUndefined();
 
-      expect(owned.ownership.state).toBe("HELD");
+      expect(owned.ownershipState).toBe("HELD");
       const contender = await prepareBootstrapPrelude(fixture.anchorRoot);
       await expect(
         contender.acquireOwnership({ heartbeatMs: 1_000 }),
@@ -335,7 +335,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
       }
     } finally {
       await firstReady?.stop().catch(() => undefined);
-      if (firstOwned.ownership.state !== "RELEASED") {
+      if (firstOwned.ownershipState !== "RELEASED") {
         await firstOwned.close().catch(() => undefined);
       }
     }
@@ -384,7 +384,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
       }
     } finally {
       await firstReady?.stop().catch(() => undefined);
-      if (firstOwned.ownership.state !== "RELEASED") {
+      if (firstOwned.ownershipState !== "RELEASED") {
         await firstOwned.close().catch(() => undefined);
       }
     }
@@ -434,7 +434,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
       }
     } finally {
       await firstReady?.stop().catch(() => undefined);
-      if (firstOwned.ownership.state !== "RELEASED") {
+      if (firstOwned.ownershipState !== "RELEASED") {
         await firstOwned.close().catch(() => undefined);
       }
     }
@@ -479,7 +479,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         await recoveryOwned.close();
       }
     } finally {
-      if (owned.ownership.state !== "RELEASED") {
+      if (owned.ownershipState !== "RELEASED") {
         await owned.close().catch(() => undefined);
       }
     }
@@ -526,7 +526,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         await recoveryOwned.close();
       }
     } finally {
-      if (owned.ownership.state !== "RELEASED") {
+      if (owned.ownershipState !== "RELEASED") {
         await owned.close().catch(() => undefined);
       }
     }
@@ -572,7 +572,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         await recoveryOwned.close();
       }
     } finally {
-      if (owned.ownership.state !== "RELEASED") {
+      if (owned.ownershipState !== "RELEASED") {
         await owned.close().catch(() => undefined);
       }
     }
@@ -666,7 +666,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
     } finally {
       await new Promise<void>((resolve) => blocker.close(() => resolve()));
       await firstReady?.stop().catch(() => undefined);
-      if (firstOwned.ownership.state !== "RELEASED") {
+      if (firstOwned.ownershipState !== "RELEASED") {
         await firstOwned.close().catch(() => undefined);
       }
     }

@@ -239,7 +239,8 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
       bootId: prepared.bootId,
       bootstrapActivityId: prepared.bootstrapActivityId,
       paths: prepared.paths,
-      ownership: prepared,
+      ownershipState: "HELD",
+      ownershipSignal: new AbortController().signal,
       state: prepared,
       authoritativeState: prepared.preliminaryState,
       close: async () => undefined,
@@ -266,6 +267,24 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
     expect(calls.count).toBe(0);
   });
 
+  it("rejects a mutation as soon as close begins releasing ownership", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const calls = { count: 0 };
+    const closePromise = owned.close();
+
+    await expect(
+      callable(owned).preparePrivatePostgres(
+        makeOptions("relative-bin-directory", calls),
+      ),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.ownership.not_held" },
+    });
+    expect(calls.count).toBe(0);
+    await closePromise;
+  });
+
   it("rejects a compromised ownership lease before cluster mutation", async () => {
     const fixture = await makeFixture();
     const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
@@ -277,10 +296,10 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
       force: true,
     });
     await new Promise<void>((resolve) => {
-      if (owned.ownership.signal.aborted) {
+      if (owned.ownershipSignal.aborted) {
         resolve();
       } else {
-        owned.ownership.signal.addEventListener("abort", () => resolve(), {
+        owned.ownershipSignal.addEventListener("abort", () => resolve(), {
           once: true,
         });
       }

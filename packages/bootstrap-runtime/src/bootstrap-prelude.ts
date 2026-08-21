@@ -49,7 +49,8 @@ export interface OwnedBootstrapPrelude {
   readonly bootId: BootId;
   readonly bootstrapActivityId: BootstrapActivityId;
   readonly paths: BootstrapPathProfile;
-  readonly ownership: BootstrapOwnershipLease;
+  readonly ownershipState: BootstrapOwnershipLease["state"];
+  readonly ownershipSignal: AbortSignal;
   readonly state: OwnedBootstrapStateStore;
   readonly authoritativeState: BootstrapStateLoadResult;
   preparePrivatePostgres(
@@ -289,7 +290,12 @@ export async function prepareBootstrapPrelude(
         bootId,
         bootstrapActivityId,
         paths,
-        ownership,
+        get ownershipState() {
+          return ownership.state;
+        },
+        get ownershipSignal() {
+          return ownership.signal;
+        },
         state: access.state,
         authoritativeState,
         preparePrivatePostgres(options: PreparePrivatePostgresOptions) {

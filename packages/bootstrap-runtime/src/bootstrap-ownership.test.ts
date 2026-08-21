@@ -64,6 +64,18 @@ describe("bootstrap ownership", () => {
     }
   });
 
+  it("fences ownership assertions synchronously when release begins", async () => {
+    const instanceRoot = await makeInstanceRoot();
+    const lease = await acquireBootstrapOwnership(instanceRoot, { heartbeatMs: 1000 });
+
+    const releasePromise = lease.release();
+
+    expect(lease.state).toBe("RELEASING");
+    expect(() => lease.assertHeld()).toThrow();
+    await expect(releasePromise).resolves.toBeUndefined();
+    expect(lease.state).toBe("RELEASED");
+  });
+
   it("blocks a second in-process owner without a retry policy", async () => {
     const instanceRoot = await makeInstanceRoot();
     const first = await acquireBootstrapOwnership(instanceRoot, { heartbeatMs: 1000 });

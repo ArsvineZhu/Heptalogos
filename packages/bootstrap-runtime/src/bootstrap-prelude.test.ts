@@ -30,6 +30,7 @@ const preparePrivatePostgresForOwnedPreludeMock = vi.hoisted(() =>
   vi.fn(
     async (context: {
       readonly privatePostgresSession: {
+        readonly state: string;
         beginPreparation(): void;
         markReady(): void;
         beginStop(): void;
@@ -230,7 +231,7 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
     await expect(owned.close()).rejects.toMatchObject({
       problem: { problemCode: "bootstrap.private_postgres.release_blocked" },
     });
-    expect(owned.ownership.state).toBe("HELD");
+    expect(owned.ownershipState).toBe("HELD");
 
     const context = preparePrivatePostgresForOwnedPreludeMock.mock.calls.at(-1)?.[0];
     expect(context).toBeDefined();
@@ -238,7 +239,22 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
     context?.privatePostgresSession.markQuiescent();
 
     await expect(owned.close()).resolves.toBeUndefined();
-    expect(owned.ownership.state).toBe("RELEASED");
+    expect(owned.ownershipState).toBe("RELEASED");
+  });
+
+  it("does not expose a raw ownership release capability from an owned prelude", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1000 });
+    const view = owned as unknown as {
+      readonly ownershipState: string;
+      readonly ownershipSignal: AbortSignal;
+    };
+
+    expect("ownership" in owned).toBe(false);
+    expect(view.ownershipState).toBe("HELD");
+    expect(view.ownershipSignal.aborted).toBe(false);
+    await owned.close();
   });
 
   it.each([
@@ -264,8 +280,12 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
       await expect(owned.close()).rejects.toMatchObject({
         problem: { problemCode: "bootstrap.private_postgres.release_blocked" },
       });
-      expect(owned.ownership.state).toBe("HELD");
-      await owned.ownership.release();
+      expect(owned.ownershipState).toBe("HELD");
+      if (context!.privatePostgresSession.state === "UNCERTAIN") {
+        context!.privatePostgresSession.beginStop();
+      }
+      context!.privatePostgresSession.markQuiescent();
+      await owned.close();
     },
   );
 
