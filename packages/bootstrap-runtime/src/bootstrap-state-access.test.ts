@@ -186,7 +186,6 @@ describe("owned bootstrap state access", () => {
       text: await readFile(statePath, "utf8"),
       mtimeMs: (await stat(statePath)).mtimeMs,
     }).toEqual(beforeRelease);
-
   });
 
   it("rejects a commit after a genuine lease is compromised", async () => {
