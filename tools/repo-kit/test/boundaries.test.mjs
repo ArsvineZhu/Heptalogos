@@ -38,6 +38,27 @@ describe("restricted repository imports", () => {
     ).toBe(false);
   });
 
+  it("allows execa only in the private-postgres process adapter", () => {
+    expect(
+      isRestrictedImportAllowed(
+        "execa",
+        "packages/private-postgres/src/process-adapter.ts",
+      ),
+    ).toBe(true);
+    expect(
+      isRestrictedImportAllowed(
+        "execa",
+        "packages/bootstrap-runtime/src/private-postgres-bootstrap.ts",
+      ),
+    ).toBe(false);
+    expect(
+      isRestrictedImportAllowed(
+        "execa",
+        "packages/future-product/src/index.ts",
+      ),
+    ).toBe(false);
+  });
+
   it("allows same-workspace relative imports", () => {
     expect(
       isCrossWorkspaceRelativeImport({
@@ -61,6 +82,15 @@ describe("restricted repository imports", () => {
       isCrossWorkspaceRelativeImport({
         sourcePackageName: "@heptalogos/future-product",
         targetPackageName: "@heptalogos/bootstrap-state",
+      }),
+    ).toBe(true);
+  });
+
+  it("rejects a cross-workspace relative import into private-postgres internals", () => {
+    expect(
+      isCrossWorkspaceRelativeImport({
+        sourcePackageName: "@heptalogos/bootstrap-runtime",
+        targetPackageName: "@heptalogos/private-postgres",
       }),
     ).toBe(true);
   });

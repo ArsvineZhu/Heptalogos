@@ -3,6 +3,7 @@
   "references": [
     { "path": "./packages/foundation-contracts" },
     { "path": "./packages/bootstrap-state" },
+    { "path": "./packages/private-postgres" },
     { "path": "./packages/bootstrap-runtime" }
   ]
 }

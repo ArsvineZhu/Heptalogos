@@ -98,6 +98,9 @@ importers:
       '@heptalogos/foundation-contracts':
         specifier: workspace:*
         version: link:../foundation-contracts
+      '@heptalogos/private-postgres':
+        specifier: workspace:*
+        version: link:../private-postgres
       ajv:
         specifier: 'catalog:'
         version: 8.20.0
@@ -139,6 +142,19 @@ importers:
       uuid:
         specifier: 'catalog:'
         version: 14.0.2
+    devDependencies:
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(yaml@2.9.0))
+
+  packages/private-postgres:
+    dependencies:
+      '@heptalogos/foundation-contracts':
+        specifier: workspace:*
+        version: link:../foundation-contracts
+      execa:
+        specifier: 'catalog:'
+        version: 10.0.1
     devDependencies:
       vitest:
         specifier: 'catalog:'

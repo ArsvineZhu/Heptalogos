@@ -1,5 +1,5 @@
 {
-  "name": "@heptalogos/bootstrap-runtime",
+  "name": "@heptalogos/private-postgres",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,12 +11,8 @@
     }
   },
   "dependencies": {
-    "@heptalogos/bootstrap-state": "workspace:*",
     "@heptalogos/foundation-contracts": "workspace:*",
-    "@heptalogos/private-postgres": "workspace:*",
-    "ajv": "catalog:",
-    "proper-lockfile": "catalog:",
-    "typebox": "catalog:"
+    "execa": "catalog:"
   },
   "devDependencies": {
     "vitest": "catalog:"

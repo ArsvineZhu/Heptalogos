@@ -13,12 +13,6 @@
   "references": [
     {
       "path": "../foundation-contracts"
-    },
-    {
-      "path": "../bootstrap-state"
-    },
-    {
-      "path": "../private-postgres"
     }
   ]
 }
