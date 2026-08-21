@@ -40,6 +40,7 @@ const restrictedImports = new Map([
   ],
   ["proper-lockfile", ["packages/bootstrap-runtime/src/bootstrap-ownership.ts"]],
   ["execa", ["packages/private-postgres/src/process-adapter.ts"]],
+  ["pg", ["packages/host-ownership/"]],
 ]);
 
 export function isRestrictedImportAllowed(specifier, relativePath) {

@@ -275,8 +275,8 @@
     },
     {
       "path": "references/dependency-routing.json",
-      "size": 13479,
-      "sha256": "f509f1bcd6a9172f5459286920e7a2f6ce07902a7708b6f24a72194c9d359d23"
+      "size": 13552,
+      "sha256": "7cff3729e49821dee4b1ca7fcb7d71c3e7debbfa88516a2656aa2fb2ee977010"
     },
     {
       "path": "references/storage-governance.json",

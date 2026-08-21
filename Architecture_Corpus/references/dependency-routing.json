@@ -63,10 +63,11 @@
     {
       "roleId": "persistence.pg-driver",
       "route": "pg",
-      "boundary": "Persistence adapter",
+      "boundary": "HostLeaseConnection / HostOwnership adapter / later Persistence adapter",
       "directive": "USE",
       "packages": [
-        "pg"
+        "pg",
+        "@types/pg"
       ]
     },
     {
