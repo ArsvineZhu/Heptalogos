@@ -2391,6 +2391,49 @@ This follow-up correction remains inside M3 private PostgreSQL lifecycle and
 bootstrap ownership boundaries; no M4 Host lease/fence or normal mutation path
 was introduced.
 
+## Final XState and delayed-start correction execution (2026-08-22)
+
+The final corrective implementation plan was executed on the existing
+`dev/m3-private-postgresql-bootstrap` branch without subagents. The attached
+plan referenced a non-existent `Architecture_Corpus/23-技术与依赖决策账本.md`;
+the dependency ledger update was materialized in the actual authoritative
+`Architecture_Corpus/15-技术与依赖决策账本.md`.
+
+```text
+baseline reviewed HEAD: 56c516e8496e90f848c5706a21d57c553908b531
+prior result: REQUEST_CHANGES
+remaining P1: ambiguous issued start/restart + immediate STOPPED false quiescence
+architecture correction: XState 5.32.5 ADOPTED; fast-check 4.9.0 materialized
+implementation: pure XState process FSM; Authority/session unchanged
+implementation/evidence parent SHA before this documentation commit: b94c61e6fe275aba5e4947c4bd90b38cb5d8658f
+current host: Windows x64 (Microsoft Windows NT 10.0.26200)
+Node: 24.19.0
+pnpm: 11.22.0
+PostgreSQL bin root: C:\Users\Arsvine\AppData\Local\Temp\Heptalogos-PG-18.6\extracted-tar\pgsql\bin
+Windows PostgreSQL 18.6 five-tool proof: PASS
+private-postgres unit/property tests: PASS — 41/41
+private-postgres real integration: PASS — 20/20
+bootstrap-runtime unit tests: PASS — 45 passed, 1 pre-existing skipped
+bootstrap-runtime real integration: PASS — 9/9
+Windows TEMP/TMP spaces and non-ASCII path audit: PASS — both suites
+ambiguous start immediate STOPPED remains UNCERTAIN: PASS
+ambiguous start RUNNING -> bounded stop -> STOPPED: PASS
+bootstrap release blocked for ambiguous start: PASS
+permanent gates and pnpm verify: PASS
+corrected-head Linux: NOT_RUN
+corrected-head macOS: NOT_RUN
+independent re-review: NOT_RUN
+final cross-platform CI: NOT_RUN
+source-less shipping closure: NOT_RUN
+service-account ACL closure: NOT_RUN
+```
+
+The initial current-shell `HEPTALOGOS_TEST_PG_BIN` value was `UNSET`; the
+explicit Windows 18.6 runtime recorded above was then located and re-proven
+from all five tools before the real qualification suites. No XState type was
+added to stable contracts, BootstrapState, or bootstrap-runtime; no actor,
+invoke, spawn, persistence, or PostgreSQL effect was assigned to XState.
+
 ---
 
 # 25. Plan Self-Review

@@ -16,7 +16,7 @@ platform: Windows x64
 os_version: "Microsoft Windows NT 10.0.26200.0"
 runtime: "Node 24.19.0 / pnpm 11.22.0"
 postgres_provenance: "EDB PostgreSQL 18.6 Windows x86-64 binary archive, completely extracted into a temporary qualification root; not a source-less shipping artifact"
-candidate_sha: b0f01aaa00acd505754acaaed31cf4e05e6892bd
+candidate_sha: b94c61e6fe275aba5e4947c4bd90b38cb5d8658f
 exact_version_outputs:
   postgres: "postgres (PostgreSQL) 18.6"
   initdb: "initdb (PostgreSQL) 18.6"
@@ -54,10 +54,16 @@ duplicate_runtime_setting_rejected: PASS
 hba_tamper_rejected: PASS
 initialized_by_version_is_provenance: PASS
 windows_unicode_space_path_audit: PASS
+local_state_machine_mechanics_xstate: PASS
+xstate_types_not_exposed_in_stable_contracts: PASS
+lifecycle_property_invariants_fast_check: PASS
 ownership_release_capability_not_exposed: PASS
 ownership_release_start_fenced: PASS
-start_timeout_background_outcome_proven: PASS
+ambiguous_start_cleanup_policy_proven: PASS
+ambiguous_start_stopped_observation_not_quiescent: PASS
+ambiguous_start_running_then_stop_proven: PASS
 restart_uncertain_stop_proven: PASS
+bootstrap_release_blocked_for_ambiguous_start: PASS
 windows_real_pg: PASS
 linux_real_pg: NOT_RUN
 macos_real_pg: NOT_RUN
@@ -65,12 +71,15 @@ source_less_shipping_closure: NOT_RUN
 service_account_acl_closure: NOT_RUN
 ```
 
-The Windows evidence was produced by:
+The corrected-candidate Windows evidence was produced by:
 
+- `pnpm nx run private-postgres:test` — 41/41 unit/property tests PASS.
 - `pnpm nx run private-postgres:test:integration` — 20/20 PASS.
 - `pnpm exec vitest run --root packages/bootstrap-runtime src/private-postgres-bootstrap.integration.test.ts --testTimeout=120000` — 9/9 PASS.
-- `pnpm exec vitest run --root packages/private-postgres src/controller.lifecycle.test.ts` — PASS; the timed-out `pg_ctl` start path performs status/stop/status proof before returning the original error.
-- `pnpm test` — 30 private-postgres unit tests and 44 bootstrap-runtime unit tests passed, with one pre-existing skipped test.
+- `pnpm exec vitest run --root packages/private-postgres src/lifecycle-machine.test.ts` — 8/8 deterministic and fast-check tests PASS.
+- `pnpm exec vitest run --root packages/private-postgres src/controller.lifecycle.test.ts` — 4/4 PASS, including immediate-STOPPED non-quiescence and both restart cleanup branches.
+- `pnpm exec vitest run --root packages/bootstrap-runtime src/private-postgres-bootstrap.test.ts` — 11/11 PASS, including ownership release blocking for ambiguous cleanup.
+- `pnpm test` — aggregate unit tests PASS: private-postgres 41, bootstrap-runtime 45 with one pre-existing skip, bootstrap-state 46 with three skips, foundation-contracts 13, and repo-kit 14.
 - The same two suites with Node `TEMP`/`TMP` rooted under a normal Windows
   drive path containing spaces and non-ASCII characters — PASS.
 - `postgres -D <data> -C <setting>` effective-setting inspection, including
