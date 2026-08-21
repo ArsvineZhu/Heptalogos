@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** ACTIVE
+**Status:** COMPLETED
 
 **Goal:** Establish the first executable H1 bootstrap closure segment: a Heptalogos installation can resolve its persistent installation/instance identity and independent lifecycle roots, create a per-boot early-observability chain, acquire exactly one pre-PostgreSQL bootstrap owner, and guard BootstrapState mutation under that ownership without yet starting PostgreSQL.
 
@@ -1593,3 +1593,20 @@ The next H1 implementation plan should consume M2's `OwnedBootstrapPrelude` and 
 - M2 stale-reclaim policy: automatic stale takeover is intentionally disabled; abandoned locks remain recovery-required.
 - inherited baseline: `pnpm install --frozen-lockfile` and `pnpm verify` passed under Node `24.19.0` / pnpm `11.22.0`.
 - environment note: the default shell Node `26.5.0` was rejected by the repository engine constraint; all M2 commands use the installed Node `24.19.0` runtime.
+- final implementation HEAD before the closure-record commit: `21cd52ecf774014615bedd25442fdbd68699107c`.
+- focused M2 suite: `PASS` after `pnpm nx reset`; foundation-contracts 13 tests, bootstrap-state 37 tests + 2 existing platform skips, bootstrap-runtime 25 tests + 1 Windows-platform skip.
+- Task 1 gates: `PASS` — `pnpm check:dependencies`, `pnpm check:boundaries`, `pnpm typecheck`, `pnpm tsc6`, `pnpm build`.
+- Task 2 gates: `PASS` — focused identity/lifecycle-root/journal tests, `pnpm check:boundaries`, `pnpm format:check`, `pnpm typecheck`, `pnpm tsc6`.
+- Task 3 gates: `PASS` — strict locator suite, `pnpm check:boundaries`, `pnpm format:check`, `pnpm typecheck`, `pnpm tsc6`.
+- Task 4 gates: `PASS` on the current POSIX host — root suite, `pnpm check:boundaries`, `pnpm format:check`, `pnpm typecheck`, `pnpm tsc6`; Windows junction case is `NOT_RUN` locally.
+- Task 5 gates: `PASS` — real cross-process ownership, compromised-lock, abandoned-lock, `pnpm check:dependencies`, `pnpm check:boundaries`, `pnpm format:check`, `pnpm typecheck`, `pnpm tsc6`.
+- Task 6 gates: `PASS` — state-access and restricted-import regression suites, `pnpm check:repository`, `pnpm check:boundaries`, `pnpm format:check`, `pnpm typecheck`, `pnpm tsc6`.
+- Task 7 gates: `PASS` — bootstrap-runtime suite, `pnpm test`, `pnpm typecheck`, `pnpm tsc6`, `pnpm build`.
+- permanent repository gates: `PASS` — `pnpm check:agents`, `pnpm check:corpus`, `pnpm check:repository`, `pnpm check:dependencies`, `pnpm check:boundaries`, `pnpm toolchain:check`, `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm tsc6`, `pnpm test`, `pnpm build`.
+- canonical aggregate: `PASS` — `pnpm verify` on the final implementation candidate.
+- M2 acceptance claims: strict locator, UUIDv7 identity semantics, independent roots, POSIX terminal-link rejection, same-instance cross-process exclusivity, different-instance concurrency, no stale takeover, ownership-guarded state mutation, authoritative post-lock reload, and per-BootId blocked-contender journals are `PASS` on the current host.
+- platform/release claims: Windows junction behavior is `NOT_RUN`; full parent-component/reparse-point TOCTOU resistance, abandoned-lock Recovery, private PostgreSQL, Host lease/fence, and source-less/service packaging are `NOT_RUN`.
+- behavior-affecting literal classification: stale takeover disabled is an M2 safety invariant; `heartbeatMs` is an explicit adapter input; lock directory, locator filename, state directory, and journal stages are stable implementation/contract constants.
+- dependency/framework leakage audit: `PASS`; `proper-lockfile` mechanics are restricted to `bootstrap-ownership.ts`, Ajv/TypeBox remain behind locator/state internals, and the public bootstrap-runtime facade exports only Heptalogos-owned contracts.
+- final cross-platform CI: `NOT_RUN`; independent review: `NOT_RUN`. No final CI was dispatched before review.
+- remaining H1 debt: private PostgreSQL bring-up, dedicated Host lease and HostOwnershipFence handoff, safe abandoned-lock Recovery, and cross-platform/source-less qualification remain for a later plan.

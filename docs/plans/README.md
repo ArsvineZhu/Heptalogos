@@ -22,3 +22,4 @@ No active plans are currently recorded.
 - [Repository Genesis](completed/repository/repository-genesis.md) — `COMPLETED`
 - [Foundation M1 Development Spine](completed/foundation/m1-development-spine.md) — `COMPLETED`
 - [Foundation M1 Final Corrective and Closure](completed/foundation/m1-final-corrective-and-closure.md) — `COMPLETED`
+- [Foundation M2 Pre-PostgreSQL Bootstrap Substrate](completed/foundation/m2-pre-postgresql-bootstrap-substrate.md) — `COMPLETED`
