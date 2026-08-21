@@ -4,12 +4,14 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   asContentDigest,
+  createInstallationId,
+  createInstanceId,
   createUuidV7Id,
   digestCanonicalJson,
 } from "@heptalogos/foundation-contracts";
 import { parseBootstrapState } from "./codec.js";
 import { BootstrapJournal } from "./journal.js";
-import type { BootstrapJournalCheckpointV1, BootId } from "./journal.js";
+import type { BootstrapJournalCheckpointV2, BootId } from "./journal.js";
 import { BootstrapStateStore } from "./store.js";
 import type { BootstrapStateBodyV1 } from "./model.js";
 
@@ -36,11 +38,13 @@ function makeState(revision: number): BootstrapStateBodyV1 {
   };
 }
 
-function makeEntry(bootId: BootId, stage: string): BootstrapJournalCheckpointV1 {
+function makeEntry(bootId: BootId, stage: string): BootstrapJournalCheckpointV2 {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     bootId,
     bootstrapActivityId: createUuidV7Id("ActivityId"),
+    installationId: createInstallationId(),
+    instanceId: createInstanceId(),
     attemptedBootstrapRuntimeGeneration: asContentDigest(
       "BootstrapRuntimeGenerationId",
       digestCanonicalJson("test.bootstrap-runtime/v1", { generation: "bootstrap" }),

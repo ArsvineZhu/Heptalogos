@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "./packages/foundation-contracts" },
-    { "path": "./packages/bootstrap-state" }
+    { "path": "./packages/bootstrap-state" },
+    { "path": "./packages/bootstrap-runtime" }
   ]
 }

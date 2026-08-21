@@ -29,6 +29,36 @@ const builtins = new Set([
     .map((name) => `node:${name}`),
 ]);
 
+const restrictedImports = new Map([
+  [
+    "@heptalogos/bootstrap-state",
+    ["packages/bootstrap-runtime/", "packages/bootstrap-state/"],
+  ],
+  ["proper-lockfile", ["packages/bootstrap-runtime/src/bootstrap-ownership.ts"]],
+]);
+
+export function isRestrictedImportAllowed(specifier, relativePath) {
+  const allowedPaths = restrictedImports.get(specifier);
+  if (!allowedPaths) return true;
+  const normalizedPath = relativePath.replaceAll("\\", "/");
+  return allowedPaths.some((allowedPath) =>
+    allowedPath.endsWith("/")
+      ? normalizedPath.startsWith(allowedPath)
+      : normalizedPath === allowedPath,
+  );
+}
+
+export function isCrossWorkspaceRelativeImport({
+  sourcePackageName,
+  targetPackageName,
+}) {
+  return (
+    typeof sourcePackageName === "string" &&
+    typeof targetPackageName === "string" &&
+    sourcePackageName !== targetPackageName
+  );
+}
+
 function collect(directory, matcher, files = []) {
   if (!existsSync(directory)) return files;
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -94,7 +124,8 @@ for (const path of sourcePaths) {
   const source = readFileSync(path, "utf8");
   const projectPackage = packageJsonFor(path);
   const declared = declaredDependencies(projectPackage);
-  const importPattern = /(?:from\s+|import\s*\(\s*|import\s+)(["'])([^"']+)\1/g;
+  const importPattern =
+    /(?:from\s+|import\s*\(\s*|import\s+|require\s*\(\s*)(["'])([^"']+)\1/g;
 
   for (const match of source.matchAll(importPattern)) {
     const specifier = match[2];
@@ -103,6 +134,18 @@ for (const path of sourcePaths) {
       if (resolvedImport !== root && !resolvedImport.startsWith(`${root}${sep}`)) {
         errors.push(
           `${relativePath}: relative import escapes repository: ${specifier}`,
+        );
+        continue;
+      }
+      const targetPackage = packageJsonFor(resolvedImport);
+      if (
+        isCrossWorkspaceRelativeImport({
+          sourcePackageName: projectPackage.name,
+          targetPackageName: targetPackage.name,
+        })
+      ) {
+        errors.push(
+          `${relativePath}: cross-workspace relative import is not allowed: ${specifier}`,
         );
       }
       continue;
@@ -115,6 +158,12 @@ for (const path of sourcePaths) {
     }
 
     const dependency = packageName(specifier);
+    if (!isRestrictedImportAllowed(dependency, relativePath)) {
+      errors.push(
+        `${relativePath}: restricted import is not allowed here: ${specifier}`,
+      );
+      continue;
+    }
     const isWorkspaceDependency = workspacePackageNames.has(dependency);
     if (!declared.has(dependency)) {
       errors.push(

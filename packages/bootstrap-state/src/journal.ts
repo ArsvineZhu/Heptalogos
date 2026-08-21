@@ -4,18 +4,22 @@ import { Ajv2020 } from "ajv/dist/2020.js";
 import { Type } from "typebox";
 import {
   canonicalizeJson,
+  type BootId,
+  type InstallationId,
+  type InstanceId,
   ProblemError,
   SHA256_HEX_PATTERN,
   type CanonicalJsonValue,
   type Problem,
-  parseUuidV7Id,
+  parseBootId,
+  parseInstallationId,
+  parseInstanceId,
   type UuidV7Id,
   UUID_V7_PATTERN,
 } from "@heptalogos/foundation-contracts";
 import type { BootstrapRuntimeGenerationId, ProductGenerationId } from "./model.js";
 import { writeAtomicPublishedFile } from "./atomic-file.js";
 
-export type BootId = UuidV7Id<"BootId">;
 export type BootstrapActivityId = UuidV7Id<"ActivityId">;
 export type BootstrapStageOutcome = "STARTED" | "SUCCEEDED" | "FAILED";
 
@@ -31,7 +35,24 @@ export interface BootstrapJournalCheckpointV1 {
   readonly problemCode?: string;
 }
 
-const checkpointSchema = Type.Object(
+export interface BootstrapJournalCheckpointV2 {
+  readonly schemaVersion: 2;
+  readonly bootId: BootId;
+  readonly bootstrapActivityId: BootstrapActivityId;
+  readonly installationId: InstallationId;
+  readonly instanceId: InstanceId;
+  readonly attemptedBootstrapRuntimeGeneration?: BootstrapRuntimeGenerationId;
+  readonly attemptedProductGeneration?: ProductGenerationId;
+  readonly stage: string;
+  readonly at: string;
+  readonly outcome: BootstrapStageOutcome;
+  readonly problemCode?: string;
+}
+
+export type BootstrapJournalCheckpoint =
+  BootstrapJournalCheckpointV1 | BootstrapJournalCheckpointV2;
+
+const checkpointSchemaV1 = Type.Object(
   {
     schemaVersion: Type.Literal(1),
     bootId: Type.String({ pattern: UUID_V7_PATTERN }),
@@ -49,6 +70,31 @@ const checkpointSchema = Type.Object(
   },
   { additionalProperties: false },
 );
+const checkpointSchemaV2 = Type.Object(
+  {
+    schemaVersion: Type.Literal(2),
+    bootId: Type.String({ pattern: UUID_V7_PATTERN }),
+    bootstrapActivityId: Type.String({ pattern: UUID_V7_PATTERN }),
+    installationId: Type.String({ pattern: UUID_V7_PATTERN }),
+    instanceId: Type.String({ pattern: UUID_V7_PATTERN }),
+    attemptedBootstrapRuntimeGeneration: Type.Optional(
+      Type.String({ pattern: SHA256_HEX_PATTERN }),
+    ),
+    attemptedProductGeneration: Type.Optional(
+      Type.String({ pattern: SHA256_HEX_PATTERN }),
+    ),
+    stage: Type.String({ minLength: 1 }),
+    at: Type.String({ minLength: 1 }),
+    outcome: Type.Union([
+      Type.Literal("STARTED"),
+      Type.Literal("SUCCEEDED"),
+      Type.Literal("FAILED"),
+    ]),
+    problemCode: Type.Optional(Type.String({ minLength: 1 })),
+  },
+  { additionalProperties: false },
+);
+const checkpointSchema = Type.Union([checkpointSchemaV1, checkpointSchemaV2]);
 const journalSchema = Type.Array(checkpointSchema);
 const ajv = new Ajv2020({
   allErrors: true,
@@ -78,7 +124,7 @@ function journalProblem(problemCode: string, title: string, detail: string): Pro
 }
 
 function requireBootId(value: unknown): BootId {
-  const bootId = parseUuidV7Id("BootId", value);
+  const bootId = parseBootId(value);
   if (!bootId) {
     throw new ProblemError(
       journalProblem(
@@ -91,7 +137,7 @@ function requireBootId(value: unknown): BootId {
   return bootId;
 }
 
-function journalText(entries: readonly BootstrapJournalCheckpointV1[]): string {
+function journalText(entries: readonly BootstrapJournalCheckpoint[]): string {
   return canonicalizeJson(entries as unknown as CanonicalJsonValue);
 }
 
@@ -103,8 +149,9 @@ export class BootstrapJournal {
     this.journalDirectory = join(directory, "bootstrap-journal");
   }
 
-  async checkpoint(entry: BootstrapJournalCheckpointV1): Promise<void> {
+  async checkpoint(entry: BootstrapJournalCheckpointV2): Promise<void> {
     const bootId = requireBootId(entry.bootId);
+    this.assertValidV2Identities(entry);
 
     await this.serializeCheckpoint(bootId, async () => {
       const existing = await this.readEntries(bootId);
@@ -115,7 +162,7 @@ export class BootstrapJournal {
     });
   }
 
-  async read(bootId: BootId): Promise<readonly BootstrapJournalCheckpointV1[]> {
+  async read(bootId: BootId): Promise<readonly BootstrapJournalCheckpoint[]> {
     return this.readEntries(requireBootId(bootId));
   }
 
@@ -149,7 +196,7 @@ export class BootstrapJournal {
 
   private async readEntries(
     bootId: BootId,
-  ): Promise<readonly BootstrapJournalCheckpointV1[]> {
+  ): Promise<readonly BootstrapJournalCheckpoint[]> {
     let text: string;
     try {
       text = await readFile(this.fileFor(bootId), "utf8");
@@ -188,7 +235,7 @@ export class BootstrapJournal {
       );
     }
 
-    const entries = parsed as BootstrapJournalCheckpointV1[];
+    const entries = parsed as BootstrapJournalCheckpoint[];
     if (entries.some((entry) => !isCanonicalInstant(entry.at))) {
       throw new ProblemError(
         journalProblem(
@@ -207,10 +254,13 @@ export class BootstrapJournal {
         ),
       );
     }
+    for (const entry of entries) {
+      if (entry.schemaVersion === 2) this.assertValidV2Identities(entry);
+    }
     return entries;
   }
 
-  private assertValidEntries(entries: readonly BootstrapJournalCheckpointV1[]): void {
+  private assertValidEntries(entries: readonly BootstrapJournalCheckpoint[]): void {
     if (
       !validateJournal(entries) ||
       entries.some((entry) => !isCanonicalInstant(entry.at))
@@ -224,4 +274,27 @@ export class BootstrapJournal {
       );
     }
   }
+
+  private assertValidV2Identities(entry: BootstrapJournalCheckpointV2): void {
+    if (!parseInstallationId(entry.installationId)) {
+      throw new ProblemError(
+        journalProblem(
+          "bootstrap.journal.invalid_entry",
+          "Bootstrap journal contains an invalid entry",
+          "Bootstrap journal checkpoint does not match the supported schema",
+        ),
+      );
+    }
+    if (!parseInstanceId(entry.instanceId)) {
+      throw new ProblemError(
+        journalProblem(
+          "bootstrap.journal.invalid_entry",
+          "Bootstrap journal contains an invalid entry",
+          "Bootstrap journal checkpoint does not match the supported schema",
+        ),
+      );
+    }
+  }
 }
+
+export type { BootId } from "@heptalogos/foundation-contracts";

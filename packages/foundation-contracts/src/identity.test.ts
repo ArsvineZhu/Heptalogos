@@ -3,8 +3,14 @@ import { describe, expect, it } from "vitest";
 import { digestCanonicalJson } from "./digest.js";
 import {
   asContentDigest,
+  createBootId,
+  createInstallationId,
+  createInstanceId,
   createUuidV7Id,
   parseContentDigest,
+  parseBootId,
+  parseInstallationId,
+  parseInstanceId,
   parseUuidV7Id,
 } from "./identity.js";
 
@@ -38,5 +44,25 @@ describe("identity primitives", () => {
     expect(parseContentDigest("ProductGenerationId", digest.hex)).toBe(digest.hex);
     expect(parseContentDigest("ProductGenerationId", "A".repeat(64))).toBeUndefined();
     expect(parseContentDigest("ProductGenerationId", "banana")).toBeUndefined();
+  });
+
+  it("keeps installation, instance, and boot identities distinct while using UUIDv7", () => {
+    const installationId = createInstallationId();
+    const instanceId = createInstanceId();
+    const bootId = createBootId();
+
+    expect(parseInstallationId(installationId)).toBe(installationId);
+    expect(parseInstanceId(instanceId)).toBe(instanceId);
+    expect(parseBootId(bootId)).toBe(bootId);
+    expect(new Set([installationId, instanceId, bootId]).size).toBe(3);
+    expect(uuidVersion(installationId)).toBe(7);
+    expect(uuidVersion(instanceId)).toBe(7);
+    expect(uuidVersion(bootId)).toBe(7);
+  });
+
+  it("rejects malformed or non-v7 typed identity values", () => {
+    expect(parseInstallationId("banana")).toBeUndefined();
+    expect(parseInstanceId("00000000-0000-4000-8000-000000000000")).toBeUndefined();
+    expect(parseBootId(null)).toBeUndefined();
   });
 });
