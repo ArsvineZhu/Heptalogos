@@ -987,7 +987,7 @@ pnpm verify
 
 Expected: all `PASS`.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.json eslint.config.mjs packages tools scripts docs/plans/completed/repository/repository-genesis.md
@@ -1129,7 +1129,7 @@ pnpm check:boundaries
 
 Expected: all `PASS`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/foundation-contracts pnpm-workspace.yaml pnpm-lock.yaml
@@ -1264,7 +1264,7 @@ pnpm lint
 
 Expected: all `PASS`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/foundation-contracts pnpm-workspace.yaml pnpm-lock.yaml
@@ -1408,7 +1408,7 @@ pnpm check:boundaries
 
 Expected: all `PASS`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/bootstrap-state pnpm-workspace.yaml pnpm-lock.yaml
@@ -1539,7 +1539,7 @@ pnpm verify
 
 Expected: all `PASS`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/bootstrap-state pnpm-workspace.yaml pnpm-lock.yaml
@@ -2018,6 +2018,43 @@ Claim status changes recorded by this run:
 | Cross-platform argv preservation without shell parsing (POSIX host) | PASS (Linux local, pre-rewrite history) | PASS (re-proven on ubuntu-latest CI) |
 
 ---
+
+## Foundation M1 final corrective addendum (2026-08-21)
+
+The original M1 implementation used `write-file-atomic` directly. That
+provided the temp-write, file-fsync, and atomic-rename mechanics, but it was
+insufficient for the S15 containing-directory publication contract. The final
+corrective added a narrow Heptalogos adapter rather than treating the gap as
+merely untested.
+
+Durability evidence is intentionally separated:
+
+```text
+write-file-atomic temp-write/file-fsync/rename mechanics
+    PASS by implementation/tests
+
+Heptalogos containing-directory fsync after rename on supported POSIX path
+    PASS by adapter implementation and executed POSIX test
+
+real filesystem power-loss durability
+    NOT_RUN
+
+Windows containing-directory/power-loss durability equivalence
+    NOT_RUN
+```
+
+The adapter returns `PLATFORM_UNVERIFIED` on Windows and does not claim
+equivalent containing-directory durability. The adapter test proves the code
+path and supported POSIX directory sync behavior; it does not prove physical
+power-loss survival.
+
+The automatic PR/push matrix was used during M1 investigation to obtain
+cross-platform evidence. It is no longer the repository's normal development
+trigger policy. The permanent workflow is manual-only `workflow_dispatch`;
+ordinary development uses local gates. Final pre-merge CI is manually
+dispatched only after independent review and must target the exact reviewed
+SHA. Earlier automatic run IDs and PASS results remain historical execution
+evidence only.
 
 ## Stop / Escalation Conditions
 
