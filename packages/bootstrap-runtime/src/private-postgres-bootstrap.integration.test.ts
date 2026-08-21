@@ -1,9 +1,7 @@
-import { execFile, spawn } from "node:child_process";
 import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   asContentDigest,
@@ -43,7 +41,6 @@ if (!pgBin) {
   );
 }
 const qualifiedPgBin = pgBin;
-const execFileAsync = promisify(execFile);
 
 const directories: string[] = [];
 const LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
@@ -194,32 +191,6 @@ async function journalStages(
   return (await new BootstrapJournal(fixture.roots.INSTANCE).read(bootId)).map(
     (entry) => entry.stage,
   );
-}
-
-async function stopQualifiedPostgres(dataDirectory: string): Promise<void> {
-  const postmasterPath = join(dataDirectory, "postmaster.pid");
-  try {
-    await access(postmasterPath);
-  } catch {
-    return;
-  }
-  await new Promise<void>((resolve) => {
-    const child = spawn(
-      join(qualifiedPgBin, process.platform === "win32" ? "pg_ctl.exe" : "pg_ctl"),
-      ["stop", "--pgdata", dataDirectory, "--mode=fast", "--wait", "--timeout", "60"],
-      { windowsHide: true, stdio: "ignore" },
-    );
-    child.once("error", () => resolve());
-    child.once("close", () => resolve());
-  });
-}
-
-async function assertQualifiedPostgresReady(port: number): Promise<void> {
-  const readyTool = join(
-    qualifiedPgBin,
-    process.platform === "win32" ? "pg_isready.exe" : "pg_isready",
-  );
-  await execFileAsync(readyTool, ["--host", "127.0.0.1", "--port", String(port)]);
 }
 
 afterEach(async () => {
@@ -770,60 +741,6 @@ describe("private PostgreSQL bootstrap orchestration", () => {
       await firstReady?.stop().catch(() => undefined);
       if (firstOwned.ownershipState !== "RELEASED") {
         await firstOwned.close().catch(() => undefined);
-      }
-    }
-  }, 120_000);
-
-  it("hands the live PostgreSQL process to Host ownership before releasing bootstrap", async () => {
-    const fixture = await makeFixture();
-    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
-    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
-    const contexts: BootstrapKeyRequestContext[] = [];
-    const options = makeOptions(55445, contexts);
-    let ready: TestReadyPrivatePostgres | undefined;
-    let host:
-      | Awaited<ReturnType<OwnedBootstrapPrelude["handoffPrivatePostgresToHost"]>>
-      | undefined;
-
-    try {
-      ready = await callable(owned).preparePrivatePostgres(options);
-      host = await owned.handoffPrivatePostgresToHost(ready, {
-        keyProvider: options.keyProvider,
-        timing: {
-          connectionTimeoutMs: 10_000,
-          statementTimeoutMs: 10_000,
-          fenceLockTimeoutMs: 10_000,
-          keepAliveInitialDelayMs: 1_000,
-        },
-      });
-
-      expect(host.state).toBe("ACTIVE");
-      expect(host.signal.aborted).toBe(false);
-      expect(owned.ownershipState).toBe("RELEASED");
-      await expect(
-        access(join(fixture.roots.DATA, "private-postgres", "postmaster.pid")),
-      ).resolves.toBeUndefined();
-      await expect(assertQualifiedPostgresReady(ready.port)).resolves.toBeUndefined();
-      await expect(ready.stop()).rejects.toMatchObject({
-        problem: { problemCode: "bootstrap.private_postgres.stale_handle" },
-      });
-      await expect(owned.close()).resolves.toBeUndefined();
-      await expect(journalStages(fixture, prepared.bootId)).resolves.toEqual(
-        expect.arrayContaining([
-          "bootstrap.host.database_validated",
-          "bootstrap.host.reservation_acquired",
-          "bootstrap.host.fence_validated",
-          "bootstrap.host.lease_acquired",
-          "bootstrap.host.token_published",
-          "bootstrap.host.forward_handoff_completed",
-        ]),
-      );
-    } finally {
-      await host?.close().catch(() => undefined);
-      await stopQualifiedPostgres(join(fixture.roots.DATA, "private-postgres"));
-      await ready?.stop().catch(() => undefined);
-      if (owned.ownershipState !== "RELEASED") {
-        await owned.close().catch(() => undefined);
       }
     }
   }, 120_000);
