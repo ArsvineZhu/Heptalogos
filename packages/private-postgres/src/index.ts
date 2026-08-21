@@ -37,3 +37,11 @@ export {
   type ValidateExistingPrivatePostgresClusterOptions,
   validateExistingCluster,
 } from "./controller.js";
+export {
+  createCanonicalHbaProfile,
+  createCanonicalRuntimeProfile,
+  inspectEffectivePrivatePostgresProfile,
+  readCanonicalHbaProfile,
+  writeCanonicalPrivatePostgresRuntimeProfile,
+  type EffectivePrivatePostgresProfile,
+} from "./runtime-profile.js";

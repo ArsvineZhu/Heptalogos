@@ -74,12 +74,14 @@ describe("private PostgreSQL first initialization", () => {
           join(placement.canonicalDataDirectory, "postgresql.auto.conf"),
           "utf8",
         ),
-      ).resolves.toMatch(
-        /listen_addresses\s*=\s*'127\.0\.0\.1'[\s\S]*unix_socket_directories\s*=\s*''/u,
+      ).resolves.toBe(
+        "listen_addresses = '127.0.0.1'\nunix_socket_directories = ''\nport = 55432\npassword_encryption = 'scram-sha-256'\n",
       );
       await expect(
         readFile(join(placement.canonicalDataDirectory, "pg_hba.conf"), "utf8"),
-      ).resolves.toContain("scram-sha-256");
+      ).resolves.toBe(
+        "# Heptalogos private PostgreSQL HBA profile v1\nhost all all 127.0.0.1/32 scram-sha-256\n",
+      );
       expect(JSON.stringify(result)).not.toContain(
         "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
       );
@@ -232,6 +234,100 @@ describe("private PostgreSQL first initialization", () => {
         access(join(initialized.placement.canonicalDataDirectory, "postmaster.pid")),
       ).rejects.toMatchObject({ code: "ENOENT" });
     });
+
+    it("rejects a later duplicate unsafe listen address using effective PostgreSQL semantics", async () => {
+      const profilePath = join(
+        initialized.placement.canonicalDataDirectory,
+        "postgresql.auto.conf",
+      );
+      const original = await readFile(profilePath, "utf8");
+      try {
+        await writeFile(profilePath, `${original}listen_addresses = '*'\n`);
+        await expect(
+          validateExistingCluster({
+            toolchain: initialized.toolchain,
+            placement: initialized.placement,
+            expectedIdentity: expected,
+            timeoutMs: 60_000,
+          }),
+        ).rejects.toMatchObject({
+          problem: { problemCode: "private-postgres.cluster.identity_mismatch" },
+        });
+      } finally {
+        await writeFile(profilePath, original);
+      }
+    }, 120_000);
+
+    it("rejects a later duplicate persisted port using effective PostgreSQL semantics", async () => {
+      const profilePath = join(
+        initialized.placement.canonicalDataDirectory,
+        "postgresql.auto.conf",
+      );
+      const original = await readFile(profilePath, "utf8");
+      try {
+        await writeFile(profilePath, `${original}port = 55453\n`);
+        await expect(
+          validateExistingCluster({
+            toolchain: initialized.toolchain,
+            placement: initialized.placement,
+            expectedIdentity: expected,
+            timeoutMs: 60_000,
+          }),
+        ).rejects.toMatchObject({
+          problem: { problemCode: "private-postgres.cluster.identity_mismatch" },
+        });
+      } finally {
+        await writeFile(profilePath, original);
+      }
+    }, 120_000);
+
+    it("rejects an effective data directory redirection", async () => {
+      const redirectedRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-redirect-"));
+      const profilePath = join(
+        initialized.placement.canonicalDataDirectory,
+        "postgresql.conf",
+      );
+      const original = await readFile(profilePath, "utf8");
+      try {
+        await writeFile(
+          profilePath,
+          `${original}data_directory = '${redirectedRoot}'\n`,
+        );
+        await expect(
+          validateExistingCluster({
+            toolchain: initialized.toolchain,
+            placement: initialized.placement,
+            expectedIdentity: expected,
+            timeoutMs: 60_000,
+          }),
+        ).rejects.toMatchObject({
+          problem: { problemCode: "private-postgres.cluster.identity_mismatch" },
+        });
+      } finally {
+        await writeFile(profilePath, original);
+        await rm(redirectedRoot, { recursive: true, force: true });
+      }
+    }, 120_000);
+
+    it("rejects HBA trust tampering", async () => {
+      const hbaPath = join(initialized.placement.canonicalDataDirectory, "pg_hba.conf");
+      const original = await readFile(hbaPath, "utf8");
+      try {
+        await writeFile(hbaPath, "host all all 127.0.0.1/32 trust\n");
+        await expect(
+          validateExistingCluster({
+            toolchain: initialized.toolchain,
+            placement: initialized.placement,
+            expectedIdentity: expected,
+            timeoutMs: 60_000,
+          }),
+        ).rejects.toMatchObject({
+          problem: { problemCode: "private-postgres.cluster.identity_mismatch" },
+        });
+      } finally {
+        await writeFile(hbaPath, original);
+      }
+    }, 120_000);
 
     const mismatches: readonly [
       string,

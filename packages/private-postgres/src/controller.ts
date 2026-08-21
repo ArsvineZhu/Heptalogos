@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { realpath } from "node:fs/promises";
 import { join } from "node:path";
 import { performance } from "node:perf_hooks";
 import {
@@ -27,6 +27,12 @@ import {
 } from "./cluster-layout.js";
 import { inspectPrivatePostgresCluster } from "./cluster-inspection.js";
 import { runPostgresTool } from "./process-adapter.js";
+import {
+  createCanonicalHbaProfile,
+  inspectEffectivePrivatePostgresProfile,
+  readCanonicalHbaProfile,
+  writeCanonicalPrivatePostgresRuntimeProfile,
+} from "./runtime-profile.js";
 
 // IMPLEMENTATION_CONSTANT: cap one pg_ctl status probe; lifecycle budgets remain caller-configured.
 const PRIVATE_POSTGRES_STATUS_PROBE_TIMEOUT_MS = 5_000;
@@ -110,7 +116,6 @@ export function createPrivatePostgresInitializationProfile(
     encoding: "UTF8",
     dataChecksums: true,
     hostAuthentication: "scram-sha-256",
-    localAuthentication: "scram-sha-256",
     listenAddress: "127.0.0.1",
     unixSocketDirectories: "",
     persistedPort: port,
@@ -161,80 +166,6 @@ async function assertFirstInitializationTarget(
   }
 }
 
-async function writeRuntimeProfile(dataDirectory: string, port: number): Promise<void> {
-  const configuration = [
-    "listen_addresses = '127.0.0.1'",
-    "unix_socket_directories = ''",
-    `port = ${port}`,
-    "password_encryption = 'scram-sha-256'",
-    "",
-  ].join("\n");
-  try {
-    await writeFile(join(dataDirectory, "postgresql.auto.conf"), configuration, {
-      mode: 0o600,
-    });
-  } catch {
-    throw controllerProblem(
-      "private-postgres.cluster.profile_write_failed",
-      "Private PostgreSQL runtime profile could not be written",
-      "The owned PostgreSQL runtime profile could not be materialized in the initialized cluster",
-      "unavailable",
-    );
-  }
-}
-
-function requireRuntimeProfileSetting(configuration: string, name: string): string {
-  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-  const match = new RegExp(`^\\s*${escapedName}\\s*=\\s*(.*?)\\s*$`, "mu").exec(
-    configuration,
-  );
-  if (!match || match[1].length === 0) {
-    throw controllerProblem(
-      "private-postgres.cluster.identity_mismatch",
-      "Private PostgreSQL runtime profile is not authoritative",
-      "The existing cluster runtime profile does not expose the required deterministic settings",
-    );
-  }
-  return match[1].replace(/^'(.*)'$/u, "$1");
-}
-
-async function readRuntimeProfile(dataDirectory: string): Promise<{
-  readonly listenAddress: string;
-  readonly unixSocketDirectories: string;
-  readonly port: number;
-  readonly passwordEncryption: string;
-}> {
-  let configuration: string;
-  try {
-    configuration = await readFile(join(dataDirectory, "postgresql.auto.conf"), "utf8");
-  } catch {
-    throw controllerProblem(
-      "private-postgres.cluster.identity_mismatch",
-      "Private PostgreSQL runtime profile is missing",
-      "The existing cluster does not contain the Heptalogos-owned runtime profile",
-    );
-  }
-  const listenAddress = requireRuntimeProfileSetting(configuration, "listen_addresses");
-  const unixSocketDirectories = requireRuntimeProfileSetting(
-    configuration,
-    "unix_socket_directories",
-  );
-  const portText = requireRuntimeProfileSetting(configuration, "port");
-  const passwordEncryption = requireRuntimeProfileSetting(
-    configuration,
-    "password_encryption",
-  );
-  const port = Number(portText);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw controllerProblem(
-      "private-postgres.cluster.identity_mismatch",
-      "Private PostgreSQL runtime port is invalid",
-      "The existing cluster runtime profile contains an invalid port",
-    );
-  }
-  return { listenAddress, unixSocketDirectories, port, passwordEncryption };
-}
-
 export async function initializePrivatePostgresCluster(
   options: InitializePrivatePostgresClusterOptions,
 ): Promise<PrivatePostgresInitializationResult> {
@@ -266,7 +197,10 @@ export async function initializePrivatePostgresCluster(
   }
 
   options.assertControlAuthority();
-  await writeRuntimeProfile(options.placement.canonicalDataDirectory, options.port);
+  await writeCanonicalPrivatePostgresRuntimeProfile(
+    options.placement.canonicalDataDirectory,
+    options.port,
+  );
   const inspection = await inspectPrivatePostgresCluster(
     options.toolchain,
     options.placement.canonicalDataDirectory,
@@ -330,19 +264,56 @@ export async function validateExistingCluster(
     );
   }
 
-  const runtimeProfile = await readRuntimeProfile(
+  const runtimeProfile = await inspectEffectivePrivatePostgresProfile(
+    options.toolchain,
     options.placement.canonicalDataDirectory,
+    options.timeoutMs,
   );
+  let canonicalDataDirectory: string;
+  let canonicalHbaPath: string;
+  let effectiveDataDirectory: string;
+  let effectiveHbaPath: string;
+  try {
+    canonicalDataDirectory = await realpath(options.placement.canonicalDataDirectory);
+    canonicalHbaPath = await realpath(
+      join(options.placement.canonicalDataDirectory, "pg_hba.conf"),
+    );
+    effectiveDataDirectory = await realpath(runtimeProfile.dataDirectory);
+    effectiveHbaPath = await realpath(runtimeProfile.hbaFile);
+  } catch {
+    throw controllerProblem(
+      "private-postgres.cluster.identity_mismatch",
+      "Private PostgreSQL effective profile path is not authoritative",
+      "The effective PostgreSQL data directory or HBA path could not be canonicalized",
+    );
+  }
+  const pathsEqual = (left: string, right: string): boolean =>
+    process.platform === "win32"
+      ? left.toLowerCase() === right.toLowerCase()
+      : left === right;
+  let hbaProfile: string;
+  try {
+    hbaProfile = await readCanonicalHbaProfile(canonicalHbaPath);
+  } catch {
+    throw controllerProblem(
+      "private-postgres.cluster.identity_mismatch",
+      "Private PostgreSQL HBA profile is not authoritative",
+      "The authoritative private PostgreSQL HBA profile could not be read",
+    );
+  }
   if (
     runtimeProfile.listenAddress !== "127.0.0.1" ||
     runtimeProfile.unixSocketDirectories !== "" ||
     runtimeProfile.passwordEncryption !== "scram-sha-256" ||
-    runtimeProfile.port !== options.expectedIdentity.persistedPort
+    runtimeProfile.port !== options.expectedIdentity.persistedPort ||
+    !pathsEqual(effectiveDataDirectory, canonicalDataDirectory) ||
+    !pathsEqual(effectiveHbaPath, canonicalHbaPath) ||
+    hbaProfile !== createCanonicalHbaProfile()
   ) {
     throw controllerProblem(
       "private-postgres.cluster.identity_mismatch",
-      "Private PostgreSQL runtime profile does not match BootstrapState",
-      "The existing cluster loopback, port, or password-encryption profile does not match the authoritative identity",
+      "Private PostgreSQL effective runtime profile does not match BootstrapState",
+      "The effective PostgreSQL loopback, socket, port, encryption, data-directory, or HBA profile does not match the authoritative identity",
     );
   }
 
