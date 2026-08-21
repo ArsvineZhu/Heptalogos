@@ -3,6 +3,7 @@ export { digestCanonicalJson, type Sha256Digest } from "./digest.js";
 export {
   asContentDigest,
   createBootId,
+  createHostOwnershipToken,
   createInstallationId,
   createInstanceId,
   createUuidV7Id,
@@ -10,6 +11,7 @@ export {
   isUuidV7,
   parseContentDigest,
   parseBootId,
+  parseHostOwnershipToken,
   parseInstallationId,
   parseInstanceId,
   parseUuidV7Id,
@@ -20,6 +22,7 @@ export {
   type ContentDigest,
   type InstallationId,
   type InstanceId,
+  type HostOwnershipToken,
   type UuidV7Id,
 } from "./identity.js";
 export { LIFECYCLE_ROOT_IDS, type LifecycleRootId } from "./lifecycle-root.js";

@@ -4,11 +4,13 @@ import { digestCanonicalJson } from "./digest.js";
 import {
   asContentDigest,
   createBootId,
+  createHostOwnershipToken,
   createInstallationId,
   createInstanceId,
   createUuidV7Id,
   parseContentDigest,
   parseBootId,
+  parseHostOwnershipToken,
   parseInstallationId,
   parseInstanceId,
   parseUuidV7Id,
@@ -38,6 +40,15 @@ describe("identity primitives", () => {
     expect(parseUuidV7Id("BootId", "banana")).toBeUndefined();
   });
 
+  it("parses HostOwnershipToken at a runtime boundary", () => {
+    const token = createHostOwnershipToken();
+
+    expect(parseHostOwnershipToken(token)).toBe(token);
+    expect(parseHostOwnershipToken("00000000-0000-4000-8000-000000000000")).toBe(
+      undefined,
+    );
+  });
+
   it("parses only lowercase SHA-256 content digest values", () => {
     const digest = digestCanonicalJson("product-generation/v1", { manifest: "x" });
 
@@ -58,6 +69,16 @@ describe("identity primitives", () => {
     expect(uuidVersion(installationId)).toBe(7);
     expect(uuidVersion(instanceId)).toBe(7);
     expect(uuidVersion(bootId)).toBe(7);
+  });
+
+  it("creates a fresh UUIDv7 HostOwnershipToken for every acquisition", () => {
+    const first = createHostOwnershipToken();
+    const second = createHostOwnershipToken();
+
+    expect(first).not.toBe(second);
+    expect(validateUuid(first)).toBe(true);
+    expect(uuidVersion(first)).toBe(7);
+    expect(uuidVersion(second)).toBe(7);
   });
 
   it("rejects malformed or non-v7 typed identity values", () => {
