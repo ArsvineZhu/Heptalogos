@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 4,
+  "principle": "Configure First, Expose Intentionally",
+  "invariants": [
+    "configuration existence is independent from user visibility",
+    "configuration existence is independent from user editability",
+    "behavior-affecting literals must be classified",
+    "internal/hidden configuration must still be typed and governed",
+    "saved revision is not active configuration",
+    "defaults require an explicit authority/source",
+    "mutable configuration requires a real runtime consumer",
+    "configuration, secrets, derived state, product invariants, and implementation constants are distinct",
+    "configuration semantics are independent from physical backing",
+    "a configuration namespace has exactly one write authority at a time",
+    "managed configuration has a human-readable versioned non-authority projection/export",
+    "declarative files may be authoritative configuration sources",
+    "extension owner-native configuration is allowed and may optionally project typed fields into Management"
+  ],
+  "classifications": [
+    "PRODUCT_INVARIANT",
+    "INSTALLATION_CONFIG",
+    "SUBJECT_CONFIG",
+    "RESOURCE_CONFIG",
+    "SECRET",
+    "DERIVED_STATE",
+    "IMPLEMENTATION_CONSTANT"
+  ],
+  "visibility": [
+    "NORMAL",
+    "ADVANCED",
+    "EXPERT",
+    "INTERNAL",
+    "HIDDEN"
+  ],
+  "manageability": [
+    "EDITABLE",
+    "READ_ONLY",
+    "SYSTEM_MANAGED",
+    "PRODUCT_LOCKED"
+  ],
+  "activation": [
+    "LIVE",
+    "RELOAD_COMPONENT",
+    "RESTART_COMPONENT",
+    "RESTART_SUBJECT",
+    "RESTART_HOST",
+    "MAINTENANCE",
+    "NEXT_BOOT",
+    "IMMUTABLE_AFTER_INIT"
+  ],
+  "managementProjection": {
+    "authority": "canonical configuration schema and activation semantics",
+    "referenceClient": "CLI",
+    "rule": "all administratively meaningful configuration must be inspectable/manageable through the Management Contract according to manageability; GUI rendering is not a Foundation requirement"
+  },
+  "sourceKinds": [
+    "BOOTSTRAP_FILE",
+    "MANAGED_REVISION",
+    "DECLARATIVE_FILE",
+    "OWNER_NATIVE",
+    "DERIVED_READ_ONLY"
+  ],
+  "managedProjection": {
+    "requiredForCoreManagedNamespaces": true,
+    "authority": false,
+    "requirements": [
+      "human-readable",
+      "lossless",
+      "versioned",
+      "revision/digest-marked",
+      "SecretRef-only"
+    ]
+  },
+  "revisionSemantics": {
+    "ConfigurationRevision": "source-independent semantic revision/reference",
+    "declarativeFile": "current file is write authority; validated source digests get immutable historical materialization/ref",
+    "ownerNative": "owner source version/digest with optional typed projection",
+    "managedRevision": "managed value/revision authority"
+  },
+  "codecBoundary": {
+    "contract": "ConfigurationCodec",
+    "foundationBuiltIns": {
+      "toml": "js-toml 2.x",
+      "json": "Node JSON primitives + SchemaRuntime validation"
+    },
+    "otherFormats": "owner-native or explicit codec contribution; not a Foundation mandatory dependency",
+    "authorityRule": "codec interprets the authoritative file; codec output/history does not become a second write authority"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "heptalogos-clean-room",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": "24.19.0"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "nx run repository-genesis:lint",
+    "typecheck": "nx run repository-genesis:typecheck",
+    "tsc6": "nx run repository-genesis:tsc6",
+    "test": "nx run repository-genesis:test",
+    "build": "nx run repository-genesis:build",
+    "start": "nx run repository-genesis:start",
+    "nx:check": "nx --version",
+    "check:agents": "node .agents/heptalogos/validate-skill-resources.mjs",
+    "check:corpus": "node scripts/check-corpus-integrity.mjs",
+    "check:repository": "node scripts/check-repository.mjs",
+    "check:genesis": "node scripts/check-clean-room.mjs",
+    "check:dependencies": "node scripts/check-dependency-routes.mjs",
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "toolchain:check": "node scripts/check-toolchain.mjs",
+    "verify": "pnpm check:agents && pnpm check:corpus && pnpm check:repository && pnpm check:dependencies && pnpm check:boundaries && pnpm toolchain:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm tsc6 && pnpm test && pnpm build && pnpm start",
+    "verify:genesis": "pnpm verify && pnpm check:genesis"
+  },
+  "devDependencies": {
+    "@nx/js": "catalog:",
+    "@types/node": "catalog:",
+    "@typescript/native": "catalog:",
+    "eslint": "catalog:",
+    "nx": "catalog:",
+    "prettier": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "vitest": "catalog:"
+  }
+}

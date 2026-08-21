@@ -1,0 +1,401 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T09:23:29.538Z",
+  "authority": "../dependency-status.json",
+  "statusSemantics": {
+    "evidenceStatus": [
+      "PASS",
+      "FAIL",
+      "NOT_RUN"
+    ],
+    "qualificationState": [
+      "OPEN",
+      "PARTIAL",
+      "CLOSED"
+    ],
+    "closureRule": "CLOSED requires every required property to be PASS and no required boundary to be NOT_RUN.",
+    "preImplementationDecisionState": [
+      "CLOSED",
+      "REOPENED"
+    ]
+  },
+  "runMetadata": "run-metadata/latest.json",
+  "records": [
+    {
+      "qualificationId": "C-TOOLCHAIN-01",
+      "testedProperty": "TS7 canonical compiler, consumer declarations, NodeNext ESM, Node24 types, skipLibCheck=false, and isolated TS6 tooling lane",
+      "evidenceStatus": "PASS",
+      "qualificationState": "CLOSED",
+      "evidence": {
+        "ts7_canonical_compiler": "PASS",
+        "ts7_representative_dependency_consumer_compile": "PASS",
+        "esnext_nodenext_esm_compile": "PASS",
+        "node24_types_alignment": "PASS",
+        "skip_lib_check_false_gate": "PASS",
+        "ts6_api_lane_isolation": "PASS",
+        "hey_api_generator_ts6_compatibility_lane": "PASS",
+        "hey_api_generator_ts7_published_declarations": "NOT_RUN",
+        "typescript_eslint_ts6_api_constraint": "PASS",
+        "nx_ts7_ts6_side_by_side_model": "PASS"
+      },
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "evidenceSource": {
+        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
+      },
+      "notRunReasons": {
+        "hey_api_generator_ts7_published_declarations": "Hey API generator is deliberately isolated to the TS6 compiler-API compatibility lane; generated ManagementClient output is covered by C-MGMT-01."
+      }
+    },
+    {
+      "qualificationId": "Q-RUNTIME-01",
+      "testedProperty": "Cordis lifecycle cleanup, disposer behavior, scope/generation isolation, and thin RuntimeSubstrate adapter fit",
+      "evidenceStatus": "PASS",
+      "qualificationState": "OPEN",
+      "evidence": {
+        "P1_dependency_lifecycle": "PASS",
+        "P2_partial_activation_failure": "PASS",
+        "P3_disposer_failure": "PASS",
+        "P4_scope_generation_isolation": "PASS",
+        "L2_adapter_fit": "PASS"
+      },
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "evidenceSource": {
+        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
+      },
+      "notRunReasons": {
+        "product_runtime_start_stop": "Pilot remains synthetic L1/L2; no complete RuntimeSubstrate or product runtime is implemented."
+      },
+      "preImplementationDecisionState": "CLOSED",
+      "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification unless explicitly promoted by a future blocker."
+    },
+    {
+      "qualificationId": "Q-ASYNC-01",
+      "testedProperty": "Static dispatcher semantics plus real DBOS/PostgreSQL queue, generation pinning, revision attempts, restart, and terminal retry effect fencing",
+      "evidenceStatus": "PASS",
+      "qualificationState": "OPEN",
+      "evidence": {
+        "semantic_dispatcher_fixture": "PASS",
+        "generation_pin_revision_fence": "PASS",
+        "terminal_replay_fixture": "PASS",
+        "dbos_queue_boundary": "PASS",
+        "dbos_branch_machine_capture": "PASS",
+        "revision_creates_new_attempt": "PASS",
+        "postgres_restart_read": "PASS",
+        "missing_retained_generation_blocks": "PASS",
+        "terminal_retry_single_effect": "PASS",
+        "crash_after_terminal_commit": "NOT_RUN"
+      },
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "evidenceSource": {
+        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
+      },
+      "notRunReasons": {
+        "crash_after_terminal_commit": "No process-level crash was injected after the canonical terminal commit; only a real DBOS retry attempt was exercised."
+      },
+      "preImplementationDecisionState": "CLOSED",
+      "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification unless explicitly promoted by a future blocker."
+    },
+    {
+      "qualificationId": "Q-SECRET-01",
+      "testedProperty": "Synthetic encrypted rotation/rebind/reload/wrong-credential/no-plaintext properties",
+      "evidenceStatus": "PASS",
+      "qualificationState": "OPEN",
+      "evidence": {
+        "synthetic_rotate_rebind": "PASS",
+        "encrypted_restart_reload": "PASS",
+        "wrong_credential_rejection": "PASS",
+        "no_plaintext_fallback": "PASS",
+        "desktop_service_backend": "NOT_RUN",
+        "headless_cross_platform_backend": "NOT_RUN"
+      },
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "evidenceSource": {
+        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
+      },
+      "notRunReasons": {
+        "desktop_service_backend": "No OS keyring/service backend was selected or connected by the Pilot.",
+        "headless_cross_platform_backend": "macOS/Linux/headless platform qualification was not runnable on this Windows host."
+      },
+      "preImplementationDecisionState": "CLOSED",
+      "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification unless explicitly promoted by a future blocker."
+    },
+    {
+      "qualificationId": "Q-MSG-01",
+      "testedProperty": "Milky/OneBot canonical mapping and adopted direct thin adapter route properties",
+      "evidenceStatus": "PASS",
+      "qualificationState": "OPEN",
+      "evidence": {
+        "milky_text_reply_media": "PASS",
+        "onebot_mapping": "PASS",
+        "satori_mapping": "PASS",
+        "rich_mixed_segments": "PASS",
+        "edit_delete": "PASS",
+        "unknown_segment_retention": "PASS",
+        "nullability_id_time": "PASS",
+        "direct_thin_adapter_l1": "PASS",
+        "live_protocol": "NOT_RUN",
+        "satori_outside_current_route_l2": "NOT_RUN"
+      },
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "evidenceSource": {
+        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
+      },
+      "notRunReasons": {
+        "live_protocol": "No real OneBot/Milky session is allowed in this Pilot.",
+        "satori_outside_current_route_l2": "Satori runtime/package reuse is outside the current Foundation route; no L2 reuse proof is required for the adopted direct-adapter route."
+      },
+      "preImplementationDecisionState": "CLOSED",
+      "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification unless explicitly promoted by a future blocker."
+    },
+    {
+      "qualificationId": "Q-POLICY-01",
+      "testedProperty": "Cedar fail-closed behavior and current binding/upstream L0 comparison",
+      "evidenceStatus": "PASS",
+      "qualificationState": "OPEN",
+      "evidence": {
+        "permit": "PASS",
+        "forbid_precedence": "PASS",
+        "unknown_action": "PASS",
+        "invalid_policy": "PASS",
+        "malformed_binding": "PASS",
+        "cedar_authorization_l0": "PASS",
+        "raw_wasm_comparison": "NOT_RUN",
+        "source_less_closure": "NOT_RUN"
+      },
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "evidenceSource": {
+        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
+      },
+      "notRunReasons": {
+        "raw_wasm_comparison": "Raw cedar-wasm was not added as a competing provider; source-less/native closure requires a separate L2/L3 qualification.",
+        "source_less_closure": "Source-less/native closure is L3 product evidence."
+      },
+      "preImplementationDecisionState": "CLOSED",
+      "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification unless explicitly promoted by a future blocker."
+    },
+    {
+      "qualificationId": "Q-BOOT-01",
+      "testedProperty": "Normal concurrency, stale lock recovery, interrupted state/atomic writes, previous revision recovery, and Unicode path",
+      "evidenceStatus": "PASS",
+      "qualificationState": "OPEN",
+      "evidence": {
+        "native_single_winner": "PASS",
+        "proper_lockfile_single_winner": "PASS",
+        "normal_atomic_write_parseability": "PASS",
+        "kill_owner_stale_reclaim": "PASS",
+        "previous_revision_after_corrupt_current": "PASS",
+        "unicode_path": "PASS",
+        "kill_during_state_write": "PASS",
+        "kill_during_atomic_replace": "PASS",
+        "power_loss_cross_platform": "NOT_RUN"
+      },
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "evidenceSource": {
+        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
+      },
+      "notRunReasons": {
+        "power_loss_cross_platform": "Power-loss hardware and macOS/Linux crash qualification are outside the current host."
+      },
+      "preImplementationDecisionState": "CLOSED",
+      "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification unless explicitly promoted by a future blocker."
+    },
+    {
+      "qualificationId": "C-SCHEMA-01",
+      "testedProperty": "JCS vectors, number/Unicode/non-I-JSON boundaries, Ajv non-mutation, unknown diagnostics, and Fastify validator",
+      "evidenceStatus": "PASS",
+      "qualificationState": "CLOSED",
+      "evidence": {
+        "jcs_basic_vector": "PASS",
+        "number_edges": "PASS",
+        "unicode_ordering": "PASS",
+        "non_i_json_rejection": "PASS",
+        "ajv_non_mutating": "PASS",
+        "unknown_field_diagnostic": "PASS",
+        "fastify_custom_compiler": "PASS",
+        "formal_route_version_review": "PASS"
+      },
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "evidenceSource": {
+        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
+      }
+    },
+    {
+      "qualificationId": "C-MGMT-01",
+      "testedProperty": "Generated ManagementClient read/mutation/Problem/operation/union/AbortSignal surfaces and dynamic action envelope",
+      "evidenceStatus": "PASS",
+      "qualificationState": "PARTIAL",
+      "evidence": {
+        "get_read_model": "PASS",
+        "post_planned_mutation": "PASS",
+        "rfc9457_problem": "PASS",
+        "long_operation": "PASS",
+        "discriminated_union": "PASS",
+        "typed_error": "PASS",
+        "abort_signal_request_hooks": "PASS",
+        "deterministic_generation": "PASS",
+        "dynamic_action_envelope": "PASS",
+        "hey_api_generator_ts7_published_declarations": "NOT_RUN"
+      },
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "evidenceSource": {
+        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
+      },
+      "notRunReasons": {
+        "hey_api_generator_ts7_published_declarations": "Hey API generator remains in TS6 API compatibility lane; generated output is exercised through the TS6 tool lane and the C-MGMT runtime fixture."
+      }
+    },
+    {
+      "qualificationId": "C-CLI-01",
+      "testedProperty": "oclif static read, planned mutation, dynamic action, watch, approval, completion, redacted stdin/file JSON, Problem exit, and Windows shell arguments",
+      "evidenceStatus": "PASS",
+      "qualificationState": "PARTIAL",
+      "evidence": {
+        "status_json_stdout": "PASS",
+        "stderr_exit_projection": "PASS",
+        "typed_mutation_plan": "PASS",
+        "stdin_secret_redaction": "PASS",
+        "file_complex_json": "PASS",
+        "problem_exit_mapping": "PASS",
+        "dynamic_action": "PASS",
+        "long_operation_watch": "PASS",
+        "approval": "PASS",
+        "completion": "PASS",
+        "powershell_quoting": "PASS",
+        "cmd_quoting": "PASS",
+        "posix_quoting": "NOT_RUN"
+      },
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "evidenceSource": {
+        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
+      },
+      "notRunReasons": {
+        "posix_quoting": "No POSIX shell was runnable on the recorded Windows host."
+      }
+    },
+    {
+      "qualificationId": "C-NET-01",
+      "testedProperty": "Manual redirect authorization, streaming byte/decompression limits, AbortSignal/slow response, and connection reset",
+      "evidenceStatus": "PASS",
+      "qualificationState": "PARTIAL",
+      "evidence": {
+        "manual_redirect_block": "PASS",
+        "redirect_target_reauthorization": "PASS",
+        "bounded_streaming_body_limit": "PASS",
+        "abort_timeout": "PASS",
+        "slow_response": "PASS",
+        "compressed_limit": "PASS",
+        "connection_reset": "PASS",
+        "proxy_custom_ca": "NOT_RUN",
+        "provider_sdk_transport": "NOT_RUN"
+      },
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "evidenceSource": {
+        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
+      },
+      "notRunReasons": {
+        "proxy_custom_ca": "No current product provider/proxy boundary is in Pilot scope.",
+        "provider_sdk_transport": "No provider SDK transport was selected for this synthetic L1 probe."
+      }
+    },
+    {
+      "qualificationId": "C-STORAGE-FS-01",
+      "testedProperty": "Scoped traversal, absolute/junction escape, case collision, bounded depth/filter, atomic replacement, and watcher close",
+      "evidenceStatus": "PASS",
+      "qualificationState": "PARTIAL",
+      "evidence": {
+        "dotdot_escape": "PASS",
+        "absolute_escape": "PASS",
+        "symlink_junction_escape": "PASS",
+        "case_normalization_collision": "PASS",
+        "depth_filter": "PASS",
+        "concurrent_atomic_replace": "PASS",
+        "watch_change_and_close": "PASS",
+        "posix_symlink_escape": "NOT_RUN",
+        "macos_linux_path_behavior": "NOT_RUN"
+      },
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "evidenceSource": {
+        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
+      },
+      "notRunReasons": {
+        "posix_symlink_escape": "The current Windows run exercises junction/reparse behavior instead.",
+        "macos_linux_path_behavior": "No macOS/Linux host was available."
+      }
+    },
+    {
+      "qualificationId": "C-SESSION-01",
+      "testedProperty": "Synthetic opaque server-side session issue/expiry/revoke/authEpoch/recentAuth/reload/concurrency/redaction",
+      "evidenceStatus": "PASS",
+      "qualificationState": "PARTIAL",
+      "evidence": {
+        "issue_expiry_revoke": "PASS",
+        "auth_epoch": "PASS",
+        "recent_auth": "PASS",
+        "serialize_reload_restart": "PASS",
+        "parallel_resolve_revoke": "PASS",
+        "redaction": "PASS",
+        "PostgreSQL_canonical_state": "NOT_RUN",
+        "cookie_http_security_projection": "NOT_RUN"
+      },
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "evidenceSource": {
+        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
+      },
+      "notRunReasons": {
+        "PostgreSQL_canonical_state": "This Pilot retains a synthetic contract and does not implement the canonical PostgreSQL session service.",
+        "cookie_http_security_projection": "HTTP cookie/security projection is outside this L1 contract probe."
+      }
+    },
+    {
+      "qualificationId": "C-CONFIG-TOML-01",
+      "testedProperty": "js-toml round-trip, depth/invalid/undefined errors, local datetime, Unicode and newline preservation",
+      "evidenceStatus": "PASS",
+      "qualificationState": "CLOSED",
+      "evidence": {
+        "round_trip": "PASS",
+        "depth_error": "PASS",
+        "local_datetime": "PASS",
+        "undefined_failure": "PASS",
+        "unicode_newline": "PASS",
+        "invalid_toml": "PASS"
+      },
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "NOT_REQUIRED",
+      "evidenceSource": {
+        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
+      }
+    }
+  ],
+  "architectureReviewRequired": [],
+  "remaining": {
+    "preImplementationSelection": [],
+    "implementationConformance": [
+      "C-MGMT-01",
+      "C-CLI-01",
+      "C-NET-01",
+      "C-STORAGE-FS-01",
+      "C-SESSION-01"
+    ],
+    "productQualificationDeferred": [
+      "Q-RUNTIME-01",
+      "Q-ASYNC-01",
+      "Q-SECRET-01",
+      "Q-MSG-01",
+      "Q-POLICY-01",
+      "Q-BOOT-01"
+    ]
+  }
+}

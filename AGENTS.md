@@ -1,0 +1,107 @@
+# AGENTS.md
+
+Repository-wide operating constraints for Codex and other coding agents working on Heptalogos.
+Keep this file small. Detailed architecture knowledge lives in `Architecture_Corpus/`; task procedures live in `.agents/skills/`.
+
+## 1. Authority and repository layout
+
+Expected root layout:
+
+```text
+repo/
+├─ Architecture_Corpus/    # normative current-state architecture
+├─ .agents/                # agent skills and routing metadata
+├─ AGENTS.md               # always-on operating constraints
+└─ <implementation-plan>   # when present, kept at repository root
+```
+
+Authority order for implementation work:
+
+1. `Architecture_Corpus/00-项目宪法与工程宪法.md`
+2. applicable Architecture Corpus specs / machine-readable authorities
+3. approved implementation plan at repository root
+4. current code as implementation reality
+
+The implementation plan sequences work; it does not override the Architecture Corpus. Existing code, folders, package boundaries, tests, or historical behavior are not architecture authority.
+Before implementation, read the approved root implementation plan named by the task or handoff. If multiple plan-like root files exist and no plan is designated, do not guess by filename or recency; surface the ambiguity.
+
+If code, plan, and Corpus disagree, surface the conflict. Do not silently preserve or locally invent a new architecture.
+
+The corpus-local `Architecture_Corpus/AGENTS.md` projection was intentionally removed because it duplicated this root policy. Do not infer or restore it; root `AGENTS.md` plus the applicable Heptalogos skills are the normal operating path.
+
+## 2. Non-negotiable invariants
+
+```text
+Subject != Model | Agent Loop | Conversation | Host | Operator Assistant
+State > Prompt
+Proposal != Authority
+Subject Authority != System Authority
+Desired State != Actual State
+Workflow State != Product State
+WorkQueue Priority != Attention
+Signal != Durable Fact
+Telemetry != Evidence
+Derived Index != Canonical Truth
+External Request Sent != External Effect Known
+Presentation != Authority
+```
+
+A persistent Subject must survive changes in model, provider, prompt, runtime, transport, and component generation.
+
+## 3. Foundation scope
+
+Foundation is `foundation-complete, feature-minimal`.
+
+Do not pull advanced cognition into Foundation unless the approved task explicitly scopes it. Persona, Memory, Relationship, Attention, advanced Observation, Living State, Appraisal, Epistemic State, Commitments, proactive behavior, Reflection, Diary, Dream, long-term goals, and identity fusion enter through contracts and may legitimately be `UNAVAILABLE`.
+
+Heptalogos owns product semantics and authority. Mature standards, OS facilities, libraries, and frameworks should own generic mechanics when they reduce total maintenance burden. An adopted dependency route is an implementation directive, not a suggestion.
+
+Behavior-affecting literals must be classified before hardcoding. Framework/runtime implementation objects must not leak through stable architecture, domain, or public Extension contracts.
+
+## 4. Skill routing
+
+For non-trivial work, read every applicable Heptalogos skill **before implementation**. Multiple skills may apply.
+
+| Work touches | Required skill |
+|---|---|
+| architecture boundaries, cross-domain design, unclear ownership, Corpus conflicts | `heptalogos-architecture` |
+| boot, recovery, runtime reconciliation, durable execution, WorkQueue, persistence transaction, EffectFence, shutdown | `heptalogos-runtime-durability` |
+| configuration, secrets, storage workspaces, DataOwner, backup/restore, portability, purge | `heptalogos-config-data` |
+| Extension packages, generations, MicroSystems, Contributions, Service/Capability providers, trust/execution domains | `heptalogos-extensions` |
+| Subject, messaging, Subject Chat, Reactor, context/prompt, AI runtime, model/tool capability, MCP | `heptalogos-interaction` |
+| System Authority, Policy, Approval, SystemAction, Management API, CLI/Web management, Operator Assistant | `heptalogos-management` |
+| dependencies, versions, toolchain, package manager/catalog, build/lint/typecheck mechanics | `heptalogos-dependencies` |
+| verification strategy, qualification, crash/recovery evidence, live protocol/platform/release claims | `heptalogos-verification` |
+
+If ownership remains unclear after reading the most likely skill, use `heptalogos-architecture` rather than guessing.
+
+## 5. Implementation discipline
+
+Before a consequential change:
+
+- identify state and authority owners;
+- confirm the change is inside Foundation scope;
+- separate product semantics from generic mechanics;
+- consult adopted dependency routing before implementing generic infrastructure;
+- classify behavior-affecting literals;
+- define failure, restart, recovery, pressure, and external-effect uncertainty where relevant;
+- preserve explicit contract versions across durable/cross-generation boundaries;
+- define required Evidence / Execution Lineage and the verification level needed for the claim.
+
+Do not create parallel authority paths for CLI, Web, Operator Assistant, extensions, or background workers. Do not use arbitrary shell/SQL/filesystem mutation as a shortcut around owning services.
+
+Any process-memory background work must have an owner and cancellable/drainable lifecycle. Any obligation that must survive restart must use a Foundation-owned durable primitive.
+
+## 6. Completion truth
+
+Verification status is exactly:
+
+```text
+PASS | FAIL | NOT_RUN | BLOCKED
+```
+
+Never report `PASS` for a gate that was not actually run. Mocks do not prove live protocol compatibility; one OS does not prove another; a development tree does not prove a source-less artifact.
+
+Required gates must be runnable locally and reproducibly. GitHub Actions is not a required verification substrate.
+
+Before claiming completion, ensure the applicable skill's completion checks and the claim-matched verification have been satisfied.

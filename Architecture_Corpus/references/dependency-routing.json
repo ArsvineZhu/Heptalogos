@@ -1,0 +1,467 @@
+{
+  "schemaVersion": 4,
+  "asOf": "2026-08-20",
+  "authority": "Current implementation routing for Foundation generic mechanics. All Foundation provider selections in scope are frozen; deferred L3 roles are intentionally absent from mandatory routes.",
+  "rule": "ADOPTED is an implementation directive. Use the selected route behind the designated Heptalogos boundary. Residual product qualification does not authorize an unapproved parallel implementation.",
+  "repositoryMaterialization": {
+    "packageVersionAuthority": "pnpm-workspace.yaml Catalog exact direct-version pins selected from current registry/upstream evidence",
+    "catalogMode": "strict",
+    "packageReferences": "workspace package.json uses catalog: references; pnpm-lock.yaml owns exact resolved closure",
+    "packageIdentity": "routes[].packages is the exact npm package identity authority for each adopted route; an empty array means the route is not an npm package dependency",
+    "repositoryToolingPackages": [
+      "prettier"
+    ],
+    "boundaryEnforcement": [
+      "Nx module boundaries",
+      "ESLint import restrictions",
+      "dependency-route governance gate"
+    ],
+    "newDependencyRule": "classify the role before adding a dependency; current Foundation roles may not silently acquire a second provider. The baseline contains no PRIMARY_CANDIDATE/UNRESOLVED role.",
+    "foundationBuiltInCodecs": {
+      "toml": "js-toml 2.x",
+      "json": "Node JSON primitives + SchemaRuntime validation"
+    }
+  },
+  "routes": [
+    {
+      "roleId": "runtime.node",
+      "route": "Node.js 24 LTS line; exact shipping patch pinned",
+      "boundary": "Product Runtime",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "tooling.build",
+      "route": [
+        "pnpm 11 stable line",
+        "Nx 23.x line",
+        "TypeScript 7.0.x primary compiler",
+        "@typescript/typescript6 6.0.x compiler-API compatibility lane only",
+        "ESLint 10.x + typescript-eslint 8.x",
+        "@types/node 24.x aligned with shipping Node major",
+        "ESM-first + ESNext + NodeNext"
+      ],
+      "boundary": "Repository/toolchain; TypeScript 7 owns canonical build/typecheck; TS6 only serves compiler-API-dependent tooling",
+      "directive": "USE",
+      "packages": [
+        "@nx/js",
+        "@types/node",
+        "@typescript/native",
+        "eslint",
+        "nx",
+        "typescript",
+        "typescript-eslint"
+      ]
+    },
+    {
+      "roleId": "persistence.postgres",
+      "route": "PostgreSQL 18 line",
+      "boundary": "PrivatePostgresController/PersistenceService",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "persistence.pg-driver",
+      "route": "pg",
+      "boundary": "Persistence adapter",
+      "directive": "USE",
+      "packages": [
+        "pg"
+      ]
+    },
+    {
+      "roleId": "persistence.kysely",
+      "route": "Kysely",
+      "boundary": "Repository/migration adapters",
+      "directive": "USE",
+      "packages": [
+        "kysely"
+      ]
+    },
+    {
+      "roleId": "durable.execution",
+      "route": "DBOS 4.x line",
+      "boundary": "DurableExecutionService",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "workqueue.mechanics",
+      "route": "DBOS Queue",
+      "boundary": "static dispatchWorkItem(WorkItemId, dispatchRevision) adapter",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "signal.postgres-notify",
+      "route": "PostgreSQL LISTEN/NOTIFY",
+      "boundary": "SignalService",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "runtime.inprocess",
+      "route": "cordis active 4.x package line",
+      "boundary": "RuntimeSubstrate",
+      "directive": "USE",
+      "packages": [
+        "cordis"
+      ]
+    },
+    {
+      "roleId": "schema.typebox-ajv",
+      "route": [
+        "typebox package 1.x",
+        "Ajv 8"
+      ],
+      "boundary": "SchemaRuntime",
+      "directive": "USE",
+      "packages": [
+        "typebox",
+        "ajv"
+      ]
+    },
+    {
+      "roleId": "contract.canonical-json",
+      "route": [
+        "canonicalize 4.x",
+        "node:crypto SHA-256"
+      ],
+      "boundary": "CanonicalJson",
+      "directive": "USE",
+      "packages": [
+        "canonicalize"
+      ]
+    },
+    {
+      "roleId": "identifier.uuid-v7",
+      "route": "uuid maintained ESM line",
+      "boundary": "Identity primitive",
+      "directive": "USE",
+      "packages": [
+        "uuid"
+      ]
+    },
+    {
+      "roleId": "http.problem-details",
+      "route": "RFC 9457 Problem Details semantics + Heptalogos canonical Problem adapter",
+      "boundary": "HTTP/error projection",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "http.fastify",
+      "route": "Fastify 5.x",
+      "boundary": "Management HTTP adapter",
+      "directive": "USE",
+      "packages": [
+        "fastify"
+      ]
+    },
+    {
+      "roleId": "http.cookie",
+      "route": "@fastify/cookie Fastify-5-compatible line",
+      "boundary": "Management HTTP cookie adapter",
+      "directive": "USE",
+      "packages": [
+        "@fastify/cookie"
+      ]
+    },
+    {
+      "roleId": "http.security-headers",
+      "route": "@fastify/helmet Fastify-5-compatible line",
+      "boundary": "Management HTTP security-header adapter",
+      "directive": "USE",
+      "packages": [
+        "@fastify/helmet"
+      ]
+    },
+    {
+      "roleId": "http.rate-limit",
+      "route": "@fastify/rate-limit Fastify-5-compatible line",
+      "boundary": "Management HTTP admission adapter",
+      "directive": "USE",
+      "packages": [
+        "@fastify/rate-limit"
+      ]
+    },
+    {
+      "roleId": "http.csrf",
+      "route": "@fastify/csrf-protection Fastify-5-compatible line",
+      "boundary": "Management HTTP CSRF adapter",
+      "directive": "USE",
+      "packages": [
+        "@fastify/csrf-protection"
+      ]
+    },
+    {
+      "roleId": "http.sse",
+      "route": "@fastify/sse Fastify-5-compatible line",
+      "boundary": "Management HTTP SSE adapter",
+      "directive": "USE",
+      "packages": [
+        "@fastify/sse"
+      ]
+    },
+    {
+      "roleId": "network.transport",
+      "route": "Node/Undici",
+      "boundary": "NetworkAccess",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "management.client-generator",
+      "route": "Hey API",
+      "boundary": "build-time ManagementClient generation",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "cli.framework",
+      "route": "oclif",
+      "boundary": "CLI projection",
+      "directive": "USE",
+      "packages": [
+        "oclif"
+      ]
+    },
+    {
+      "roleId": "auth.password-hash",
+      "route": "Node node:crypto Argon2id (Node >=24.7)",
+      "boundary": "Credential adapter",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "auth.session",
+      "route": "opaque token + PostgreSQL server-side session state",
+      "boundary": "SessionService",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "ai.sdk",
+      "route": "AI SDK 7 line",
+      "boundary": "AIRuntime",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "mcp.client",
+      "route": "official MCP TypeScript v2 SDK",
+      "boundary": "MCP adapter",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "policy.model",
+      "route": "Cedar",
+      "boundary": "PolicyService contract/model",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "policy.binding",
+      "route": "@cedar-policy/cedar-wasm",
+      "boundary": "PolicyService adapter",
+      "directive": "USE",
+      "packages": [
+        "@cedar-policy/cedar-wasm"
+      ]
+    },
+    {
+      "roleId": "package.acquire",
+      "route": "pacote",
+      "boundary": "Package acquisition",
+      "directive": "USE",
+      "packages": [
+        "pacote"
+      ]
+    },
+    {
+      "roleId": "process.execa",
+      "route": "Execa",
+      "boundary": "Process adapter",
+      "directive": "USE",
+      "packages": [
+        "execa"
+      ]
+    },
+    {
+      "roleId": "media.file-type",
+      "route": "file-type",
+      "boundary": "Content/media adapter",
+      "directive": "USE",
+      "packages": [
+        "file-type"
+      ]
+    },
+    {
+      "roleId": "media.sharp",
+      "route": "sharp",
+      "boundary": "Image adapter",
+      "directive": "USE",
+      "packages": [
+        "sharp"
+      ]
+    },
+    {
+      "roleId": "media.ffmpeg",
+      "route": "vendored FFmpeg",
+      "boundary": "AV adapter",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "update.tuf",
+      "route": "TUF model + tuf-js",
+      "boundary": "Update trust adapter",
+      "directive": "USE",
+      "packages": [
+        "tuf-js"
+      ]
+    },
+    {
+      "roleId": "telemetry.logging",
+      "route": "Pino",
+      "boundary": "Observability adapter",
+      "directive": "USE",
+      "packages": [
+        "pino"
+      ]
+    },
+    {
+      "roleId": "telemetry.otel",
+      "route": "OpenTelemetry",
+      "boundary": "Observability adapter",
+      "directive": "USE",
+      "packages": [
+        "@opentelemetry/api"
+      ]
+    },
+    {
+      "roleId": "telemetry.openinference",
+      "route": "OpenInference conventions",
+      "boundary": "AI telemetry projection",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "lineage.async-context",
+      "route": "Node AsyncLocalStorage + OpenTelemetry Context API",
+      "boundary": "ExecutionContext propagation",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "storage.path-primitives",
+      "route": "Node node:path + node:fs/promises",
+      "boundary": "StorageWorkspaceService",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "storage.atomic-file",
+      "route": "write-file-atomic 8.x",
+      "boundary": "AtomicFileStore/BootstrapState/config file adapter",
+      "directive": "USE",
+      "packages": [
+        "write-file-atomic"
+      ]
+    },
+    {
+      "roleId": "storage.file-watch",
+      "route": "Chokidar 5.x",
+      "boundary": "bounded WorkspaceWatch adapter",
+      "directive": "USE",
+      "packages": [
+        "chokidar"
+      ]
+    },
+    {
+      "roleId": "configuration.toml-codec",
+      "route": "js-toml 2.x",
+      "boundary": "Foundation-owned TOML codec",
+      "directive": "USE",
+      "packages": [
+        "js-toml"
+      ]
+    },
+    {
+      "roleId": "testing.foundation",
+      "route": [
+        "Vitest",
+        "fast-check",
+        "Playwright",
+        "Testcontainers"
+      ],
+      "boundary": "Verification tooling",
+      "directive": "USE",
+      "packages": [
+        "vitest",
+        "fast-check"
+      ]
+    },
+    {
+      "roleId": "release.evidence",
+      "route": [
+        "Syft",
+        "OSV-Scanner"
+      ],
+      "boundary": "Release evidence",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "messaging.interop",
+      "route": "direct thin OneBot/Milky anti-corruption adapters using adopted NetworkAccess/schema/runtime mechanics; no mandatory Satori runtime",
+      "boundary": "Messaging Driver adapters",
+      "directive": "USE",
+      "packages": []
+    },
+    {
+      "roleId": "secret.backend",
+      "route": [
+        "OS credential/keyring facilities behind SecretBackend",
+        "@napi-rs/keyring preferred where the deployment profile supports it",
+        "platform-specific service/headless provider or provisioning path; no plaintext fallback"
+      ],
+      "boundary": "SecretBackend provider composition",
+      "directive": "USE",
+      "packages": [
+        "@napi-rs/keyring"
+      ]
+    },
+    {
+      "roleId": "bootstrap.lock",
+      "route": "proper-lockfile 4.x",
+      "boundary": "Bootstrap ownership adapter; pre-PostgreSQL window only",
+      "directive": "USE",
+      "packages": [
+        "proper-lockfile"
+      ]
+    },
+    {
+      "roleId": "runtime.graph",
+      "route": "@dagrejs/graphlib 4.x",
+      "boundary": "Runtime graph mechanics adapter",
+      "directive": "USE",
+      "packages": [
+        "@dagrejs/graphlib"
+      ]
+    }
+  ],
+  "toolchainPolicy": {
+    "authority": "25-TypeScript与仓库工具链.md",
+    "primaryCompiler": "TypeScript 7.0.x",
+    "compilerApiCompatibility": "@typescript/typescript6 6.0.x only for tools that require the TypeScript programmatic API",
+    "moduleModel": "ESM-first / NodeNext",
+    "target": "ESNext",
+    "runtimeApiLibBaseline": "ES2025 with Node 24 ambient types unless a package has a stricter explicit contract",
+    "nodeTypes": "@types/node major must match shipping Node major",
+    "authoritativeTypecheck": "skipLibCheck=false",
+    "versionSelection": "refresh current registry/upstream evidence at Catalog freeze/upgrade; do not infer exact versions from model memory or stale documents",
+    "maturityPolicy": "prerelease/0.x labels are evidence rather than automatic rejection; select latest capable line using maintenance, test, churn, blast-radius, pin and rollback evidence"
+  }
+}

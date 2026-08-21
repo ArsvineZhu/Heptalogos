@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+test-results/
+.nx/
+.vite/
+.cache/
+.pnpm-store/
+pnpm-lock.yaml
+Architecture_Corpus/
+.agents/
+AGENTS.md
+REPOSITORY_GENESIS_PLAN.md

@@ -1,0 +1,29 @@
+packages:
+  - .
+
+catalogMode: strict
+strictPeerDependencies: true
+engineStrict: true
+minimumReleaseAge: 1440
+
+overrides:
+  "@types/node": 24.13.3
+
+catalog:
+  "@nx/js": 23.1.1
+  "@types/node": 24.13.3
+  "@typescript/native": "npm:typescript@7.0.2"
+  eslint: 10.8.1
+  nx: 23.1.1
+  prettier: 3.9.6
+  typescript: "npm:@typescript/typescript6@6.0.2"
+  typescript-eslint: 8.67.0
+  vitest: 4.1.11
+
+allowBuilds:
+  esbuild: true
+  nx: true
+
+minimumReleaseAgeExclude:
+  - "@rolldown/binding-darwin-x64@1.2.5"
+  - "@rolldown/binding-linux-arm64-gnu@1.2.5"

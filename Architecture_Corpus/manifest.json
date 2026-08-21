@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 2,
+  "corpus": "Heptalogos Architecture Corpus CN",
+  "designDate": "2026-08-20",
+  "nature": "self-contained current-state architecture authority; Foundation provider selection is closed; residual platform/native/source-less risk is tracked through ImplementationQualification",
+  "dependencyBaseline": {
+    "preImplementationSelection": "CLOSED",
+    "primaryCandidateCount": 0,
+    "unresolvedCount": 0,
+    "adoptedCount": 48,
+    "deferredCount": 2,
+    "rejectedForRoleCount": 7
+  },
+  "contentFileCount": 71,
+  "files": [
+    {
+      "path": "00-项目宪法与工程宪法.md",
+      "size": 21615,
+      "sha256": "a26fae9d11765b8fb3aa057d1682128e9a589db0c63e1b564ad7b62ca58810a1"
+    },
+    {
+      "path": "01-产品目标与差异化.md",
+      "size": 4395,
+      "sha256": "07f6807292f9a968e6b8d84758bcaa9e6931de025aac1a799e1faade1fd50fa9"
+    },
+    {
+      "path": "02-架构原则与反NIH约束.md",
+      "size": 9969,
+      "sha256": "7bb3aed30f2024f4555a3e3c8cf0531c8908973e692abcdc1ae0b63a1d6f1de3"
+    },
+    {
+      "path": "03-核心概念与Authority.md",
+      "size": 3818,
+      "sha256": "d44d5d06b1e8509406abb8734f30038620550acf1e933fc13a66164238bf266f"
+    },
+    {
+      "path": "04-总体系统架构.md",
+      "size": 6270,
+      "sha256": "18b1bfd821829e36dd7bfd5385b681396bce53308beb8d6aec8a4da090cf4ff1"
+    },
+    {
+      "path": "05-整机执行模型.md",
+      "size": 8409,
+      "sha256": "180f9b6d03f8682487f651b29ef6ff181e1c4dd2841a095b3bc98b2fcd368330"
+    },
+    {
+      "path": "06-MicroSystem与Extension架构.md",
+      "size": 11033,
+      "sha256": "67d4990fe367d41ab45a0aa71d66e67059670b7011968131cbe61364001627db"
+    },
+    {
+      "path": "07-Foundation系统服务目录.md",
+      "size": 11895,
+      "sha256": "f9b07965adec6b4e6603b767abba785448be6d66f8437348fc89bd90c31496fb"
+    },
+    {
+      "path": "08-Subject与认知系统.md",
+      "size": 5940,
+      "sha256": "298eb12e8edafa85d01cf880a34b3ff25eecb7d92525860fd6d9ed45e6ebdb44"
+    },
+    {
+      "path": "09-Messaging与Subject-Chat.md",
+      "size": 4523,
+      "sha256": "278e958cdb536d24371a7317697238bdfe5287c82b60b6f4cf04dc4ad86b7ec7"
+    },
+    {
+      "path": "10-AI-Runtime-Capability-MCP.md",
+      "size": 6443,
+      "sha256": "ea9d3694fb20b994dc6c43d73d1a6db191e084364140a46535f946fad39ba04e"
+    },
+    {
+      "path": "11-System-Authority与Operator-Assistant.md",
+      "size": 7356,
+      "sha256": "8385b8c8c93726771a42ea15816fea6d75ee3693af108cfeb5e4ef8b59347a47"
+    },
+    {
+      "path": "12-数据-证据-内容与持久化.md",
+      "size": 11816,
+      "sha256": "7dd15812c2a7397179e77517eb53d854e34bd43034fdbc577f1322965bed7cbf"
+    },
+    {
+      "path": "13-备份-Subject可移植性-更新与恢复.md",
+      "size": 10313,
+      "sha256": "dfaf6c11814868e4952a2138d03f6417765612fea1d1c96e4e27ab436d999bcc"
+    },
+    {
+      "path": "14-跨平台产品运行与分发.md",
+      "size": 6820,
+      "sha256": "c6eab2798381e0756a21beaec13f1d6ab1a926485e8926168265b345c10f64c2"
+    },
+    {
+      "path": "15-技术与依赖决策账本.md",
+      "size": 16688,
+      "sha256": "86595f08d5329ff1464d76b496bf076dee0c851ad7e349e473d62d993c6dc8b2"
+    },
+    {
+      "path": "16-验证与资格认定体系.md",
+      "size": 14975,
+      "sha256": "a8b1e4a5a23505d66e12fe99fde007ddb86fd1a0559c0e147ce4a45d0983e52d"
+    },
+    {
+      "path": "17-高级研究子系统接入地图.md",
+      "size": 4108,
+      "sha256": "db4f7b15706a4c2260d13db1e52d6dfe671d7fa023af56df80401c9807789496"
+    },
+    {
+      "path": "18-接口-CLI-Web与Presentation.md",
+      "size": 13038,
+      "sha256": "1ec6508b7ffe05f21677bc9b88c2c4db301277e57148bb16728a58e995b31f99"
+    },
+    {
+      "path": "19-术语表.md",
+      "size": 12614,
+      "sha256": "6cdad4dda81f04711b280f05a461108e4b6ecaca5801757ca3e763c4e70a8bfb"
+    },
+    {
+      "path": "20-架构审查清单.md",
+      "size": 15840,
+      "sha256": "6bf4bba56f995e825a86fbea6a739b82ee277c26a394900bd0d7dc1f476fc583"
+    },
+    {
+      "path": "21-配置治理与Configuration-Surface.md",
+      "size": 15035,
+      "sha256": "b187a6b37233e9cb1fff3d05b740c1a74fec49a648925669abb68e4493449d1b"
+    },
+    {
+      "path": "22-Execution-Lineage与可观测执行.md",
+      "size": 4593,
+      "sha256": "af3eafbcaa9ec1cb49945a7d184954fb85eb8b2fc85ce120224254a439bbf59b"
+    },
+    {
+      "path": "23-存储拓扑-生命周期根与DataOwner.md",
+      "size": 14685,
+      "sha256": "323026ddffd6c059a573ad0277c3d019fac344a4758c84c62857bf849ab537da"
+    },
+    {
+      "path": "24-依赖使用与实现路由.md",
+      "size": 15353,
+      "sha256": "cd8c8706b9a9bd0661640d05026ec18d269612a2a6c0e3c4ccf828b4adf8dd93"
+    },
+    {
+      "path": "25-TypeScript与仓库工具链.md",
+      "size": 9409,
+      "sha256": "649a228f452831a735a5c94243eccd4bcd3ab9cc9b733b247aa61b7bc649c22c"
+    },
+    {
+      "path": "INDEX.md",
+      "size": 7691,
+      "sha256": "d2773cd21bb04389b968a7e180a25a5b0dcea5339b2a9cada9efe0398780456e"
+    },
+    {
+      "path": "README.md",
+      "size": 12344,
+      "sha256": "bc8d3540891dbce787d306d7a78b05a0dd9f65dae05db6720a51040ebb6dd703"
+    },
+    {
+      "path": "qualification/DEPENDENCY-QUALIFICATION.md",
+      "size": 7382,
+      "sha256": "00e22540c50ef27c94c4f38863a8ea79e433d9ca70522a9172d8d1fdf95ffe7c"
+    },
+    {
+      "path": "qualification/dependency-status.json",
+      "size": 22015,
+      "sha256": "0ddd1085c9e8fd835dc64b5f38a4cf28add270f0852aa3a52daca96f546a531e"
+    },
+    {
+      "path": "qualification/results/C-CLI-01.md",
+      "size": 1110,
+      "sha256": "83b95fccbec408beeb10b4ee0899421cff26605170ec6f8e64e334c862b596f2"
+    },
+    {
+      "path": "qualification/results/C-CONFIG-TOML-01.md",
+      "size": 811,
+      "sha256": "aaf4a335918962c1d4bb32065667ba895f8674e8d199abc6dd2fcb7751f3ddf7"
+    },
+    {
+      "path": "qualification/results/C-MGMT-01.md",
+      "size": 1166,
+      "sha256": "ca2e2347568c8ed75b310dbd1357ccd1375150ac9a0da2863614564f431580ac"
+    },
+    {
+      "path": "qualification/results/C-NET-01.md",
+      "size": 1108,
+      "sha256": "9959eeb5e1f688fd05f1a458679e1f5bc34d98b899d0f738bd0a453d1c79a2d6"
+    },
+    {
+      "path": "qualification/results/C-SCHEMA-01.md",
+      "size": 901,
+      "sha256": "bd899551af3cbaa86e687f5bcacf1b95a0a5571adf6c0e160f02b4319384d9d4"
+    },
+    {
+      "path": "qualification/results/C-SESSION-01.md",
+      "size": 1138,
+      "sha256": "0504f76db69ff23d0d8429807540f896588efe114ff7e0f095be530d0c3cce75"
+    },
+    {
+      "path": "qualification/results/C-STORAGE-FS-01.md",
+      "size": 1116,
+      "sha256": "8b32d0a4c0e5db185ace44c97348cbbe6d205b0281e5a654ad139779e20879b1"
+    },
+    {
+      "path": "qualification/results/C-TOOLCHAIN-01.md",
+      "size": 1289,
+      "sha256": "ed5853e5033e8fdf809f1736db8d8110f00128ad2690945e52f07982239c6053"
+    },
+    {
+      "path": "qualification/results/Q-ASYNC-01.md",
+      "size": 1358,
+      "sha256": "03c25571fae0c6f028991408f64e3b6edb644679cbe4501a8dc08c9b141af087"
+    },
+    {
+      "path": "qualification/results/Q-BOOT-01.md",
+      "size": 1262,
+      "sha256": "facbc2b08c86c5fd2f3c170d8a403d0086004687cda6ae58f32033e8cefbeca0"
+    },
+    {
+      "path": "qualification/results/Q-MSG-01.md",
+      "size": 1508,
+      "sha256": "0fe0f7ba1c3f3261e9ab5908e078392fcf3451fc794c491c132210850e36efc2"
+    },
+    {
+      "path": "qualification/results/Q-POLICY-01.md",
+      "size": 1263,
+      "sha256": "78ddb44d296b4b0ee8dfbe928431dd930f8098183f2690bcdd6d26caa829a6f9"
+    },
+    {
+      "path": "qualification/results/Q-RUNTIME-01.md",
+      "size": 1185,
+      "sha256": "872e29b2efd89df2aeeb96b26c3c0c0f0ce89eb225e8729834ca94102b37fea3"
+    },
+    {
+      "path": "qualification/results/Q-SECRET-01.md",
+      "size": 1375,
+      "sha256": "614e082e7325d4f10113e5325a49b4551cff183b0eaa1189a4d35121951a872c"
+    },
+    {
+      "path": "qualification/results/README.md",
+      "size": 2014,
+      "sha256": "4399455ec94f06b44b1867b83c2ec1cfdd997f34faaca3b68583a6a6cea513ac"
+    },
+    {
+      "path": "qualification/results/qualification-status.json",
+      "size": 17285,
+      "sha256": "13793638a78b0e8eda6444874814e1abc4d65938cd5658b80d1849b4241a4921"
+    },
+    {
+      "path": "qualification/依赖资格矩阵.md",
+      "size": 4191,
+      "sha256": "3725b139b36a269e345ba6397787433fdff373f8b8e67d590ce3b956961b75ec"
+    },
+    {
+      "path": "qualification/验证结果模板.md",
+      "size": 3513,
+      "sha256": "8747daf987bdf2e8db78af2bd10b24de424790f474e5ca851dc6357c3bf10adc"
+    },
+    {
+      "path": "references/Foundation依赖证据基线-2026-08-20.md",
+      "size": 10740,
+      "sha256": "4d19c818f89a92e7222e7b652a4d201bf5bff3f386c804e73ca54c392a165045"
+    },
+    {
+      "path": "references/configuration-governance.json",
+      "size": 3147,
+      "sha256": "dc82027e6977e6c95edd32298e2631f61f7a1fb84c4eb864c73f006110c440c4"
+    },
+    {
+      "path": "references/constitution.json",
+      "size": 3656,
+      "sha256": "60cd1fd4d749570ec85938ade2276740bcbd9a815492709a5e38a67a13bf1167"
+    },
+    {
+      "path": "references/dependency-routing.json",
+      "size": 13144,
+      "sha256": "e73ad56a62cb4de46a67335d3c4256a1bcde910f509aef198f4a2a9509b1ce1b"
+    },
+    {
+      "path": "references/storage-governance.json",
+      "size": 1712,
+      "sha256": "cd6fb12f83e0d5d4cb7e70b91ad16211ed8789a5750d4a5a790dd42368c0d850"
+    },
+    {
+      "path": "references/延期与实现期资格.md",
+      "size": 2441,
+      "sha256": "30b98afbf8b8e6e94c1a6032c3c5c7216201d5e82b5987ea968d2c33fcef45d6"
+    },
+    {
+      "path": "specs/S01-启动-恢复-运行时监督.md",
+      "size": 20478,
+      "sha256": "14c84886cb27306171175a5d91f14a2f9c8c05d536408f2384efed5336fcb3f1"
+    },
+    {
+      "path": "specs/S02-异步-WorkQueue-Durable-Time.md",
+      "size": 13350,
+      "sha256": "13d33c927117882d0010411e639ce20156faea0813f108a9b56a5f7139732ca3"
+    },
+    {
+      "path": "specs/S03-持久化-事务-EffectFence.md",
+      "size": 5878,
+      "sha256": "d451384dd40d07367ec8442476af2b801aee1e45e1442136b089bb7293122a28"
+    },
+    {
+      "path": "specs/S04-配置-Secret-管理Surface.md",
+      "size": 14800,
+      "sha256": "1ee6c6291cff060c6467b9509b119c21f73e10da2c20b58ac4d4232508441b2a"
+    },
+    {
+      "path": "specs/S05-Policy-Approval-Management-Operator.md",
+      "size": 5715,
+      "sha256": "b204c22866dbfa9620f3a295fb58f43086dcbf3835113e6d8c2d446c337de4fc"
+    },
+    {
+      "path": "specs/S06-Extension-Package-Trust-ExecutionDomain.md",
+      "size": 14421,
+      "sha256": "fa1843346a1a126c546da26648fc0045e0c567960cc9fcf1f324a4bedcd2650b"
+    },
+    {
+      "path": "specs/S07-Messaging-SubjectChat-Drivers.md",
+      "size": 3116,
+      "sha256": "b9ddd68dde544a9f57b15feed019661730d9f9d2ab62bc82e8a10dbc95640e87"
+    },
+    {
+      "path": "specs/S08-AI-Capability-MCP.md",
+      "size": 4485,
+      "sha256": "e1b480c3d18cd205ecd1f075677aebd0595697e829e87d5084e2cafddad7e05a"
+    },
+    {
+      "path": "specs/S09-Reactor-Context-Prompt与高级认知接入.md",
+      "size": 4117,
+      "sha256": "53e7c07ae65a3d81af027c6938bda8213e98adc590ca5a1fcffc99296ac213ff"
+    },
+    {
+      "path": "specs/S10-Evidence-Replay-Observability-Content.md",
+      "size": 4662,
+      "sha256": "21099cd01898ba02462ae851c48e95e8387c395a27c2285c919922c8b36f9ad2"
+    },
+    {
+      "path": "specs/S11-备份-更新-分发-平台.md",
+      "size": 12353,
+      "sha256": "55e56d30a544ac049a584d3a43774fb99991ff22b4e877c07b86caede35f62fb"
+    },
+    {
+      "path": "specs/S12-验证-Research-Evaluation.md",
+      "size": 2794,
+      "sha256": "91ad7a2b6f60f098812a17c18fa6969b977ea2159ac162a5319215aa477102df"
+    },
+    {
+      "path": "specs/S13-Foundation-Service-Capability-Readiness-Catalog.md",
+      "size": 5721,
+      "sha256": "bde9ae304ca7a4ef0fb875861cd24dd9d2bd68dc480ba5840d2ae36ce6aed25e"
+    },
+    {
+      "path": "specs/S14-Canonical-End-to-End-Flows.md",
+      "size": 12532,
+      "sha256": "e299ca2f9a4fb6f5f0458ce1a94b1fbddc4605153bbc117af541e74e9691d0db"
+    },
+    {
+      "path": "specs/S15-Foundation横切合同.md",
+      "size": 26247,
+      "sha256": "06bb89051fe603a0d7b0d0599cbac1250cbc07b9fbe0cbaaf0df6897f241d50c"
+    },
+    {
+      "path": "specs/S16-Execution-Lineage-Observability.md",
+      "size": 19929,
+      "sha256": "9b772bfdd01978785c0d5180e44af5169fde47719c3a1a669f1f9c0607fa9e24"
+    },
+    {
+      "path": "specs/S17-Storage-Workspace-DataLifecycle.md",
+      "size": 13818,
+      "sha256": "9d359c3820489a4c580a37fa234e1fe40aedeafc448d43bb0bb0c90d305ad712"
+    }
+  ]
+}

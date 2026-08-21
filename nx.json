@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "plugins": [
+    {
+      "plugin": "@nx/js/typescript",
+      "options": {
+        "build": {
+          "targetName": "build",
+          "configName": "tsconfig.build.json"
+        },
+        "typecheck": {
+          "targetName": "typecheck"
+        }
+      }
+    }
+  ],
+  "targetDefaults": {
+    "build": {
+      "cache": true
+    },
+    "lint": {
+      "cache": true
+    },
+    "test": {
+      "cache": true
+    },
+    "typecheck": {
+      "cache": true
+    }
+  }
+}

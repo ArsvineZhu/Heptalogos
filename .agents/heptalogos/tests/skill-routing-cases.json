@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "architecture-cross-boundary",
+      "prompt": "Move capability provider selection out of RuntimeReconciler and change which subsystem owns the binding policy.",
+      "expectedSkills": ["heptalogos-architecture"]
+    },
+    {
+      "id": "architecture-conflict",
+      "prompt": "The implementation plan says Subject Chat can mutate system configuration directly, but the architecture docs appear to separate authorities. Implement the plan.",
+      "expectedSkills": ["heptalogos-architecture", "heptalogos-management", "heptalogos-interaction"]
+    },
+    {
+      "id": "runtime-host-fence",
+      "prompt": "Implement HostOwnershipToken fencing for canonical PostgreSQL mutations and define behavior after advisory lease loss.",
+      "expectedSkills": ["heptalogos-runtime-durability"]
+    },
+    {
+      "id": "runtime-workitem",
+      "prompt": "Change WorkItem retry and dispatchRevision semantics after a process crash.",
+      "expectedSkills": ["heptalogos-runtime-durability", "heptalogos-verification"]
+    },
+    {
+      "id": "config-new-timeout",
+      "prompt": "Add a reconnect timeout and make it configurable per Subject.",
+      "expectedSkills": ["heptalogos-config-data"]
+    },
+    {
+      "id": "data-restore",
+      "prompt": "Implement cross-installation restore for Subject-owned data and administrator credentials.",
+      "expectedSkills": ["heptalogos-config-data", "heptalogos-runtime-durability", "heptalogos-verification"]
+    },
+    {
+      "id": "extension-generation",
+      "prompt": "Implement safe Extension generation upgrade while old service invocations and durable work still exist.",
+      "expectedSkills": ["heptalogos-extensions", "heptalogos-runtime-durability"]
+    },
+    {
+      "id": "extension-sandbox",
+      "prompt": "Allow an untrusted third-party extension to execute and restrict its filesystem/network access.",
+      "expectedSkills": ["heptalogos-extensions", "heptalogos-dependencies", "heptalogos-verification"]
+    },
+    {
+      "id": "interaction-messaging",
+      "prompt": "Add Milky inbound message handling through the Subject Chat/messaging pipeline.",
+      "expectedSkills": ["heptalogos-interaction"]
+    },
+    {
+      "id": "interaction-context",
+      "prompt": "Change Reactor context assembly and introduce a new prompt slot for Subject state.",
+      "expectedSkills": ["heptalogos-interaction"]
+    },
+    {
+      "id": "interaction-memory-scope",
+      "prompt": "While building Foundation messaging, add a vector-memory algorithm because the new context hook needs remembered facts.",
+      "expectedSkills": ["heptalogos-interaction", "heptalogos-architecture"]
+    },
+    {
+      "id": "management-action",
+      "prompt": "Add system.extension.disable to the Management API, CLI, and Operator Assistant.",
+      "expectedSkills": ["heptalogos-management", "heptalogos-extensions"]
+    },
+    {
+      "id": "management-approval",
+      "prompt": "Let Operator Assistant approve and execute a changed destructive plan using an approval from the previous plan.",
+      "expectedSkills": ["heptalogos-management"]
+    },
+    {
+      "id": "dependency-adopted",
+      "prompt": "Implement a custom DAG traversal helper for runtime startup instead of using the selected graph library.",
+      "expectedSkills": ["heptalogos-dependencies", "heptalogos-runtime-durability"]
+    },
+    {
+      "id": "dependency-new-role",
+      "prompt": "We need a new generic archive-delta mechanic that is not represented in dependency-routing.json. Pick a library and add it.",
+      "expectedSkills": ["heptalogos-dependencies"]
+    },
+    {
+      "id": "toolchain",
+      "prompt": "Downgrade TypeScript target to ES2022 because one compiler-API tool does not support the current compiler.",
+      "expectedSkills": ["heptalogos-dependencies"]
+    },
+    {
+      "id": "verification-live-protocol",
+      "prompt": "Claim Milky protocol support based only on a mocked HTTP server test.",
+      "expectedSkills": ["heptalogos-verification", "heptalogos-interaction"]
+    },
+    {
+      "id": "verification-platform",
+      "prompt": "Mark Windows, macOS, and Linux packaging PASS after testing only on Ubuntu.",
+      "expectedSkills": ["heptalogos-verification"]
+    },
+    {
+      "id": "verification-source-less",
+      "prompt": "Design the final source-less product artifact qualification and SBOM gate.",
+      "expectedSkills": ["heptalogos-verification", "heptalogos-dependencies"]
+    }
+  ]
+}

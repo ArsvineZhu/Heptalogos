@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "../.nx/typecheck",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["**/*.ts"]
+}

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 2,
+  "principles": [
+    "lifecycle roots are independent",
+    "physical co-location does not imply lifecycle ownership",
+    "storage ownership is governed; storage engine is owner-selected",
+    "configuration semantics do not imply configuration storage",
+    "backup covers data owners, not a directory or database",
+    "foundation provides storage mechanics, not a universal data model"
+  ],
+  "lifecycleRoots": [
+    "PROGRAM",
+    "INSTANCE",
+    "CONFIGURATION",
+    "DATA",
+    "SECRET",
+    "BLOB",
+    "BACKUP",
+    "LOG",
+    "CACHE",
+    "TEMP",
+    "RUN",
+    "PACKAGE_STAGING"
+  ],
+  "configurationSourceKinds": [
+    "BOOTSTRAP_FILE",
+    "MANAGED_REVISION",
+    "DECLARATIVE_FILE",
+    "OWNER_NATIVE",
+    "DERIVED_READ_ONLY"
+  ],
+  "storageSdkLevels": [
+    "MANAGED",
+    "SCOPED_NATIVE",
+    "EXTERNAL_DATA_OWNER"
+  ],
+  "backupStrategies": [
+    "TRANSACTIONAL_SNAPSHOT",
+    "NATIVE_ONLINE_SNAPSHOT",
+    "QUIESCE_AND_COPY",
+    "EXPORT_STREAM",
+    "IMMUTABLE_CLOSURE",
+    "REBUILDABLE",
+    "EXTERNAL_REFERENCE"
+  ],
+  "placement": {
+    "default": "lifecycle root via PathProfile",
+    "perOwnerStoreOverride": true,
+    "crossVolume": true,
+    "externalBackend": true,
+    "manualMoveIsAuthority": false
+  },
+  "foundationFileMechanics": {
+    "pathAndFiles": "node:path + node:fs/promises behind StorageWorkspaceService",
+    "atomicReplace": "write-file-atomic 8.x behind AtomicFileStore/config adapters",
+    "watch": "Chokidar 5.x behind bounded WorkspaceWatch adapter",
+    "tomlCodec": "js-toml 2.x behind ConfigurationCodec",
+    "rule": "these are Foundation mechanics; owner-native stores remain free to choose their own internal engines/codecs"
+  }
+}
