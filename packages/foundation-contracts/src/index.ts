@@ -2,17 +2,27 @@ export { canonicalizeJson, type CanonicalJsonValue } from "./canonical-json.js";
 export { digestCanonicalJson, type Sha256Digest } from "./digest.js";
 export {
   asContentDigest,
+  createBootId,
+  createInstallationId,
+  createInstanceId,
   createUuidV7Id,
   isSha256Hex,
   isUuidV7,
   parseContentDigest,
+  parseBootId,
+  parseInstallationId,
+  parseInstanceId,
   parseUuidV7Id,
   SHA256_HEX_PATTERN,
   UUID_V7_PATTERN,
   type Branded,
+  type BootId,
   type ContentDigest,
+  type InstallationId,
+  type InstanceId,
   type UuidV7Id,
 } from "./identity.js";
+export { LIFECYCLE_ROOT_IDS, type LifecycleRootId } from "./lifecycle-root.js";
 export {
   ProblemError,
   type FieldError,

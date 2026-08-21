@@ -1,14 +1,21 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   asContentDigest,
+  createBootId,
+  createInstallationId,
+  createInstanceId,
   createUuidV7Id,
   digestCanonicalJson,
 } from "@heptalogos/foundation-contracts";
 import { BootstrapJournal } from "./journal.js";
-import type { BootstrapJournalCheckpointV1, BootId } from "./journal.js";
+import type {
+  BootstrapJournalCheckpointV1,
+  BootstrapJournalCheckpointV2,
+  BootId,
+} from "./journal.js";
 
 const directories: string[] = [];
 
@@ -19,6 +26,31 @@ async function makeDirectory(): Promise<string> {
 }
 
 function makeEntry(
+  bootId: BootId,
+  stage: string,
+  outcome: BootstrapJournalCheckpointV2["outcome"] = "STARTED",
+): BootstrapJournalCheckpointV2 {
+  return {
+    schemaVersion: 2,
+    bootId,
+    bootstrapActivityId: createUuidV7Id("ActivityId"),
+    installationId: createInstallationId(),
+    instanceId: createInstanceId(),
+    attemptedBootstrapRuntimeGeneration: asContentDigest(
+      "BootstrapRuntimeGenerationId",
+      digestCanonicalJson("test.bootstrap-runtime/v1", { generation: "bootstrap" }),
+    ),
+    attemptedProductGeneration: asContentDigest(
+      "ProductGenerationId",
+      digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
+    ),
+    stage,
+    at: "2026-08-21T00:00:00.000Z",
+    outcome,
+  };
+}
+
+function makeV1Entry(
   bootId: BootId,
   stage: string,
   outcome: BootstrapJournalCheckpointV1["outcome"] = "STARTED",
@@ -197,5 +229,67 @@ describe("BootstrapJournal", () => {
     expect(source).not.toContain('from "./store.js"');
     expect(source).not.toMatch(/\.commit\s*\(/u);
     expect(source).not.toMatch(/\bactivate\s*\(/u);
+  });
+
+  it("writes and reads an early V2 checkpoint before generation selection", async () => {
+    const directory = await makeDirectory();
+    const journal = new BootstrapJournal(directory);
+    const entry: BootstrapJournalCheckpointV2 = {
+      schemaVersion: 2,
+      bootId: createBootId(),
+      bootstrapActivityId: createUuidV7Id("ActivityId"),
+      installationId: createInstallationId(),
+      instanceId: createInstanceId(),
+      stage: "bootstrap.locator.resolved",
+      at: "2026-08-21T09:00:00.000Z",
+      outcome: "SUCCEEDED",
+    };
+
+    await journal.checkpoint(entry);
+
+    await expect(journal.read(entry.bootId)).resolves.toEqual([entry]);
+  });
+
+  it("continues to read a valid V1 journal entry", async () => {
+    const directory = await makeDirectory();
+    const journal = new BootstrapJournal(directory);
+    const entry = makeV1Entry(createBootId(), "bootstrap.legacy");
+    await mkdir(join(directory, "bootstrap-journal"), { recursive: true });
+    await writeFile(
+      join(directory, "bootstrap-journal", `${entry.bootId}.json`),
+      JSON.stringify([entry]),
+    );
+
+    await expect(journal.read(entry.bootId)).resolves.toEqual([entry]);
+  });
+
+  it("rejects a V2 checkpoint whose bootId does not match its filename", async () => {
+    const directory = await makeDirectory();
+    const journal = new BootstrapJournal(directory);
+    const fileBootId = createBootId();
+    const entry: BootstrapJournalCheckpointV2 = {
+      schemaVersion: 2,
+      bootId: createBootId(),
+      bootstrapActivityId: createUuidV7Id("ActivityId"),
+      installationId: createInstallationId(),
+      instanceId: createInstanceId(),
+      stage: "bootstrap.locator.resolved",
+      at: "2026-08-21T09:00:00.000Z",
+      outcome: "SUCCEEDED",
+    };
+
+    await journal.checkpoint(entry);
+    const entryText = await readFile(
+      join(directory, "bootstrap-journal", `${entry.bootId}.json`),
+      "utf8",
+    );
+    await writeFile(
+      join(directory, "bootstrap-journal", `${fileBootId}.json`),
+      entryText,
+    );
+
+    await expect(journal.read(fileBootId)).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.journal.boot_id_mismatch" },
+    });
   });
 });
