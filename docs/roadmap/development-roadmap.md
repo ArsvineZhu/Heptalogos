@@ -128,12 +128,12 @@ It does not prove private PostgreSQL, runtime supervision, durable work, system 
 
 > Can a Heptalogos installation reliably identify itself, locate its independent lifecycle roots, obtain exclusive bootstrap ownership, start/validate its private PostgreSQL, and hand ownership to exactly one normal Host without an authority gap?
 
-### Current progress (2026-08-21)
+### Current progress (2026-08-22)
 
 - M2 pre-PostgreSQL bootstrap substrate is closed and merged.
-- M3 is the active implementation plan for exact private PostgreSQL bootstrap, cluster identity, lifecycle, and the `ReadyPrivatePostgres` seam.
-- M3 implementation evidence is now present on the Draft PR branch through Task 10: Linux PostgreSQL 18.6 initialization/lifecycle/orchestration and fail-closed recovery scenarios pass; the candidate remains in review and is not an H1 closure.
-- PostgreSQL Host lease/fencing, forward/reverse handoff, and bounded abandoned-lock Recovery remain later H1 work.
+- M3 implementation is merged in squash commit `4b12c14693752d9796f8aa287666e6537321006d`; its corrected-final-head independent re-review, final cross-platform CI, corrected Linux/macOS real PostgreSQL, source-less shipping, and service-account ACL evidence remain `NOT_RUN`, so `Q-PRIVATE-POSTGRES-01 = PARTIAL`.
+- M4 is now the sole active Foundation implementation plan for the dedicated PostgreSQL Host lease, `HostOwnershipFence`, fresh `HostOwnershipToken`, and bootstrap → Host forward handoff.
+- PostgreSQL reverse handoff and bounded abandoned-lock Recovery remain M5 work; H1 remains OPEN.
 - M2 automatic `proper-lockfile` stale takeover remains intentionally disabled; an abandoned pre-PostgreSQL lock is recovery-required until that later Recovery design is qualified.
 
 ### Capability closure
