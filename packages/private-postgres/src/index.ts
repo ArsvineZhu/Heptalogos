@@ -12,3 +12,15 @@ export {
   type ReadyPrivatePostgresMechanics,
 } from "./contracts.js";
 export { resolvePrivatePostgresToolchain } from "./toolchain.js";
+export {
+  classifyClusterDirectory,
+  resolvePrivatePostgresPlacement,
+  type ClusterDirectoryState,
+} from "./cluster-layout.js";
+export {
+  inspectPrivatePostgresCluster,
+  parsePgControldata,
+  readPrivatePostgresMajor,
+  type ParsedPgControldata,
+  type PrivatePostgresClusterInspection,
+} from "./cluster-inspection.js";
