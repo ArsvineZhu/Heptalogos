@@ -20,6 +20,9 @@
     },
     {
       "path": "../private-postgres/tsconfig.build.json"
+    },
+    {
+      "path": "../host-ownership/tsconfig.build.json"
     }
   ]
 }

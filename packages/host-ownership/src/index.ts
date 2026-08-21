@@ -1,7 +1,10 @@
 export { deriveHostAdvisoryKey, type HostAdvisoryKey } from "./advisory-key.js";
 export { encodePostgresScramSha256Verifier } from "./scram-verifier.js";
 export {
+  acquireBootstrapHostReservation,
   provisionHostOwnershipDatabase,
+  type BootstrapHostReservation,
+  type BootstrapHostReservationOptions,
   type BootstrapAdminPasswordProvider,
   type BootstrapAdminProvisioningOptions,
   type BootstrapAdminProvisioningResult,
@@ -15,6 +18,7 @@ export {
   publishHostOwnershipToken,
   type PublishHostOwnershipTokenOptions,
 } from "./host-ownership.js";
+export { acquireHostLeaseConnection } from "./host-lease-connection.js";
 export {
   HOST_LEASE_ROLE,
   HOST_LEASE_SCRAM_ITERATIONS,

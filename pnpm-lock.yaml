@@ -110,6 +110,9 @@ importers:
       '@heptalogos/foundation-contracts':
         specifier: workspace:*
         version: link:../foundation-contracts
+      '@heptalogos/host-ownership':
+        specifier: workspace:*
+        version: link:../host-ownership
       '@heptalogos/private-postgres':
         specifier: workspace:*
         version: link:../private-postgres

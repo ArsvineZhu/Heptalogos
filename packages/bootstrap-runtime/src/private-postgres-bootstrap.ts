@@ -57,6 +57,11 @@ export interface ReadyPrivatePostgres {
   restart(): Promise<void>;
 }
 
+const readySessionTokens = new WeakMap<
+  ReadyPrivatePostgres,
+  PrivatePostgresSessionToken
+>();
+
 export type PrivatePostgresSessionState =
   | "QUIESCENT"
   | "TRANSITIONING"
@@ -186,6 +191,25 @@ function alreadyRunningControlDeniedProblem(): ProblemError {
   );
 }
 
+function invalidReadyHandleProblem(): ProblemError {
+  return bootstrapProblem(
+    "bootstrap.private_postgres.invalid_handle",
+    "Private PostgreSQL Ready handle is invalid",
+    "The ReadyPrivatePostgres value was not issued by the current bootstrap prelude",
+    "integrity",
+  );
+}
+
+export function assertReadyPrivatePostgresSession(
+  ready: ReadyPrivatePostgres,
+  session: PrivatePostgresSessionTracker,
+): PrivatePostgresSessionToken {
+  const token = readySessionTokens.get(ready);
+  if (token === undefined) throw invalidReadyHandleProblem();
+  session.assertCurrent(token);
+  return token;
+}
+
 export function createPrivatePostgresSessionTracker(): PrivatePostgresSessionTracker {
   let state: PrivatePostgresSessionState = "QUIESCENT";
   let currentToken: PrivatePostgresSessionToken | undefined;
@@ -235,11 +259,13 @@ export function createPrivatePostgresSessionTracker(): PrivatePostgresSessionTra
       assertCurrent(token);
       assertSessionState(state, ["READY"], "Forward handoff");
       state = "HANDED_OFF";
+      currentToken = undefined;
     },
     markYieldedToExistingHost(token) {
       assertCurrent(token);
       assertSessionState(state, ["READY"], "Yield to existing Host");
       state = "YIELDED_TO_EXISTING_HOST";
+      currentToken = undefined;
     },
     assertReleaseAllowed() {
       if (
@@ -618,7 +644,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
       readyMechanics,
       sessionToken,
     );
-    return Object.freeze({
+    const ready = Object.freeze({
       installationId: context.installationId,
       instanceId: context.instanceId,
       bootId: context.bootId,
@@ -628,6 +654,8 @@ export async function preparePrivatePostgresForOwnedPrelude(
       startupDisposition: mechanics.startupDisposition,
       ...lifecycle,
     });
+    readySessionTokens.set(ready, sessionToken);
+    return ready;
   } catch (error) {
     let cleanupSucceeded = true;
     if (mechanics?.startupDisposition === "STARTED_BY_THIS_BOOTSTRAP") {

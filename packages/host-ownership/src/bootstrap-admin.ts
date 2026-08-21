@@ -8,6 +8,7 @@ import {
   HOST_OWNERSHIP_CANONICAL_DATABASE,
   HOST_OWNERSHIP_OWNER_ROLE,
 } from "./contracts.js";
+import type { HostAdvisoryKey } from "./advisory-key.js";
 import { encodePostgresScramSha256Verifier } from "./scram-verifier.js";
 
 export interface BootstrapAdminQueryResult<Row> {
@@ -57,6 +58,17 @@ export interface BootstrapAdminSessionOptions {
   readonly database: string;
   readonly passwordProvider: BootstrapAdminPasswordProvider;
   readonly clientFactory?: unknown;
+}
+
+export interface BootstrapHostReservationOptions {
+  readonly port: number;
+  readonly advisoryKey: HostAdvisoryKey;
+  readonly passwordProvider: BootstrapAdminPasswordProvider;
+  readonly clientFactory?: unknown;
+}
+
+export interface BootstrapHostReservation {
+  release(): Promise<void>;
 }
 
 interface RoleRow {
@@ -149,6 +161,13 @@ function decodeUtf8(bytes: Uint8Array): string {
       "The bootstrap PostgreSQL credential could not be decoded as UTF-8",
     );
   }
+}
+
+function asBoolean(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") return value;
+  if (value === "t" || value === "true") return true;
+  if (value === "f" || value === "false") return false;
+  return undefined;
 }
 
 function roleIsExact(
@@ -263,6 +282,69 @@ export async function withBootstrapAdminClient<T>(
       return await use(admin);
     } finally {
       await admin.end();
+    }
+  });
+}
+
+export async function acquireBootstrapHostReservation(
+  options: BootstrapHostReservationOptions,
+): Promise<BootstrapHostReservation | undefined> {
+  const factory =
+    (options.clientFactory as BootstrapAdminClientFactory | undefined) ??
+    defaultClientFactory;
+  return options.passwordProvider.withBootstrapPassword(async (passwordUtf8) => {
+    const client = await factory.connect({
+      host: "127.0.0.1",
+      port: options.port,
+      database: HOST_OWNERSHIP_CANONICAL_DATABASE,
+      user: "heptalogos_bootstrap",
+      password: decodeUtf8(passwordUtf8),
+    });
+    try {
+      const result = await client.query<{ readonly acquired: unknown }>(
+        "SELECT pg_try_advisory_lock($1::integer, $2::integer) AS acquired",
+        [options.advisoryKey.key1, options.advisoryKey.key2],
+      );
+      const acquired = asBoolean(result.rows[0]?.acquired);
+      if (acquired === undefined) {
+        throw provisioningProblem(
+          "host-ownership.reservation.invalid_result",
+          "Bootstrap Host reservation result is invalid",
+          "PostgreSQL did not return a boolean advisory reservation result",
+        );
+      }
+      if (!acquired) {
+        await client.end();
+        return undefined;
+      }
+
+      let releasePromise: Promise<void> | undefined;
+      return {
+        release() {
+          if (releasePromise !== undefined) return releasePromise;
+          releasePromise = (async () => {
+            try {
+              const releasedResult = await client.query<{ readonly released: unknown }>(
+                "SELECT pg_advisory_unlock($1::integer, $2::integer) AS released",
+                [options.advisoryKey.key1, options.advisoryKey.key2],
+              );
+              if (asBoolean(releasedResult.rows[0]?.released) !== true) {
+                throw provisioningProblem(
+                  "host-ownership.reservation.release_failed",
+                  "Bootstrap Host reservation release failed",
+                  "PostgreSQL did not confirm release of the bootstrap advisory reservation",
+                );
+              }
+            } finally {
+              await client.end();
+            }
+          })();
+          return releasePromise;
+        },
+      };
+    } catch (error) {
+      await client.end().catch(() => undefined);
+      throw error;
     }
   });
 }

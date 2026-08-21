@@ -18,6 +18,7 @@ import { loadBootstrapLocator, type BootstrapLocatorV1 } from "./locator.js";
 import { resolveBootstrapPathProfile, type BootstrapPathProfile } from "./roots.js";
 import {
   acquireBootstrapOwnership,
+  assertBootstrapOwnershipFor,
   type BootstrapOwnershipLease,
   type BootstrapOwnershipOptions,
 } from "./bootstrap-ownership.js";
@@ -27,10 +28,16 @@ import {
 } from "./bootstrap-state-access.js";
 import {
   createPrivatePostgresSessionTracker,
+  assertReadyPrivatePostgresSession,
   preparePrivatePostgresForOwnedPrelude,
   type PreparePrivatePostgresOptions,
   type ReadyPrivatePostgres,
 } from "./private-postgres-bootstrap.js";
+import {
+  handoffPrivatePostgresToHostForOwnedPrelude,
+  type HostOwnershipHandoffOptions,
+} from "./host-ownership-handoff.js";
+import type { HostOwnershipContext } from "@heptalogos/host-ownership";
 
 export interface PreparedBootstrapPrelude {
   readonly installationId: InstallationId;
@@ -56,6 +63,10 @@ export interface OwnedBootstrapPrelude {
   preparePrivatePostgres(
     options: PreparePrivatePostgresOptions,
   ): Promise<ReadyPrivatePostgres>;
+  handoffPrivatePostgresToHost(
+    ready: ReadyPrivatePostgres,
+    options: HostOwnershipHandoffOptions,
+  ): Promise<HostOwnershipContext>;
   close(): Promise<void>;
 }
 
@@ -314,8 +325,36 @@ export async function prepareBootstrapPrelude(
             options,
           );
         },
+        handoffPrivatePostgresToHost(
+          ready: ReadyPrivatePostgres,
+          options: HostOwnershipHandoffOptions,
+        ) {
+          return handoffPrivatePostgresToHostForOwnedPrelude(
+            {
+              installationId,
+              instanceId,
+              bootId,
+              bootstrapActivityId,
+              paths,
+              ownership,
+              assertOwnership: () =>
+                assertBootstrapOwnershipFor(
+                  ownership,
+                  paths.resolve("INSTANCE").canonicalPath,
+                ),
+              state: access.state,
+              journal,
+              privatePostgresSession,
+              assertReady: (candidate) =>
+                assertReadyPrivatePostgresSession(candidate, privatePostgresSession),
+            },
+            ready,
+            options,
+          );
+        },
         close(): Promise<void> {
           if (closePromise) return closePromise;
+          if (ownership.state === "RELEASED") return Promise.resolve();
           try {
             privatePostgresSession.assertReleaseAllowed();
           } catch (error) {

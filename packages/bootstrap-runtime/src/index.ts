@@ -21,6 +21,7 @@ export type {
   PreparePrivatePostgresOptions,
   ReadyPrivatePostgres,
 } from "./private-postgres-bootstrap.js";
+export type { HostOwnershipHandoffOptions } from "./host-ownership-handoff.js";
 export type {
   BootstrapKeyProvider,
   BootstrapKeyRequestContext,
