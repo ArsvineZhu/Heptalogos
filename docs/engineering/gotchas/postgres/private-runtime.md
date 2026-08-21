@@ -21,6 +21,18 @@ does not create or depend on an ambient system PostgreSQL socket directory. Do
 not “fix” this qualification failure by creating a global service directory or
 by switching to system/service discovery.
 
+## Windows `pg_ctl` pipe inheritance
+
+On the EDB PostgreSQL 18.6 Windows runtime, a `pg_ctl start` or `restart`
+invocation can leave the server descendant holding inherited stdout/stderr
+handles when the caller captures those streams. The process-control promise can
+then remain open while the server is running, even though the server is ready.
+
+Use ignored stdio for detached start/restart control and retain bounded output
+capture for commands whose diagnostics are needed, such as stop and status
+probes. This is a process-adapter concern; readiness still comes from the
+explicit loopback `pg_isready` check.
+
 ## Related version-probe detail
 
 Distro PostgreSQL tools may report an exact version with one parenthesized
@@ -30,9 +42,11 @@ on exact version `18.6`.
 
 ## Evidence and scope
 
-The behavior was reproduced with the extracted Ubuntu 18.6 qualification
-runtime and is covered by
+The Unix-socket behavior was reproduced with the extracted Ubuntu 18.6
+qualification runtime. The Windows `pg_ctl` behavior was reproduced with the
+explicit EDB 18.6 Windows x64 runtime. Both are covered by
 `packages/private-postgres/src/controller.integration.test.ts` and
 `packages/bootstrap-runtime/src/private-postgres-bootstrap.integration.test.ts`.
-This does not qualify Windows/macOS behavior, source-less shipping, or service
-account/installer ACLs; those remain separate qualification properties.
+This does not qualify corrected-candidate Linux/macOS parity, source-less
+shipping, or service-account/installer ACLs; those remain separate
+qualification properties.

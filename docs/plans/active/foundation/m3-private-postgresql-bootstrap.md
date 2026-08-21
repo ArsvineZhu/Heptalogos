@@ -1999,7 +1999,11 @@ Required:
 working tree = clean
 ```
 
-Copy the full 40-character SHA into the M3 Execution Record and PR body. Do not reconstruct it from a short SHA.
+Repository execution record stores the implementation/evidence parent SHA and verification facts available before the final documentation commit.
+
+After the final documentation commit, capture `git rev-parse HEAD` mechanically and record the final exact candidate SHA in the PR body and independent-review/CI metadata, which do not change the commit.
+
+No post-verification repository commit is made solely to write the final SHA back into the repository.
 
 - [ ] **Step 9: Update Draft PR body with truthful state.**
 
@@ -2252,6 +2256,81 @@ roadmap assumptions confirmed/invalidated
 ```
 
 Never replace missing evidence with prose such as “should work”, “covered by similar test”, or “CI expected to pass”.
+
+## Independent Review Correction (2026-08-22)
+
+The preceding Task 0–10 execution block is historical pre-correction evidence
+for candidate `46e66c776f17b43ae06c0cef8229c4cd4666919c`; it does not qualify the
+corrected candidate below.
+
+```text
+Independent review baseline:
+  SHA 9109e7a0ad4634aad11929034c35529bb95a291e
+  result REQUEST_CHANGES
+
+Corrective findings:
+  lifecycle Authority gap
+  false effective-profile proof
+  patch-version provenance semantics
+  exact-candidate evidence discipline
+
+Current correction host:
+  Windows
+
+Corrective local qualification:
+  exact evidence only
+
+Independent re-review:
+  NOT_RUN
+
+Final cross-platform CI:
+  NOT_RUN
+```
+
+Corrective evidence parent and implementation SHA before the documentation
+commit:
+
+```text
+3771b0f8dd1c47bb350b864cb7d3f11257971a5e
+```
+
+Windows evidence:
+
+```text
+platform: Windows x64
+os_version: Microsoft Windows NT 10.0.26200.0
+runtime: Node 24.19.0 / pnpm 11.22.0
+postgres_provenance: EDB PostgreSQL 18.6 Windows x86-64 binary archive; complete tar extraction
+postgres --version: postgres (PostgreSQL) 18.6
+initdb --version: initdb (PostgreSQL) 18.6
+pg_ctl --version: pg_ctl (PostgreSQL) 18.6
+pg_controldata --version: pg_controldata (PostgreSQL) 18.6
+pg_isready --version: pg_isready (PostgreSQL) 18.6
+private-postgres real integration: PASS — 19/19
+bootstrap-runtime real integration: PASS — 9/9
+Windows spaces/non-ASCII TEMP/TMP path audit: PASS
+postgres -C effective data_directory/hba_file path probe: PASS — absolute paths observed
+permanent gates: PASS
+pnpm verify: PASS
+windows_real_pg: PASS
+corrected_linux_real_pg: NOT_RUN
+corrected_macos_real_pg: NOT_RUN
+service_account_acl_closure: NOT_RUN
+source_less_shipping_closure: NOT_RUN
+```
+
+The Windows real-PG evidence includes bootstrap release blocking while the
+private PostgreSQL session is READY/uncertain, stale Ready rejection after
+release, live ownership guards for process control, fail-safe start cleanup,
+PostgreSQL `-C` effective-profile validation, duplicate-setting rejection,
+canonical HBA/tamper rejection, and patch-version provenance semantics. The
+prior Linux PASS remains historical evidence at its recorded SHA only.
+
+New reusable Windows GOTCHA: when `pg_ctl start` or `restart` inherits captured
+stdout/stderr pipes on Windows, the server descendant can keep those handles
+open and prevent the parent process-control promise from completing while the
+server remains running. Detached start/restart therefore use ignored stdio;
+diagnostic capture remains available for bounded commands.
 
 ---
 

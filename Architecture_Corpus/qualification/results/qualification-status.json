@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-21T13:37:49.000Z",
+  "recordedAt": "2026-08-21T16:34:52.000Z",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": [
@@ -397,8 +397,17 @@
         "crash_after_state_commit_before_start_recovers": "PASS",
         "crash_after_start_before_ready_recovers": "PASS",
         "ready_while_bootstrap_ownership_held": "PASS",
-        "linux_real_pg": "PASS",
-        "windows_real_pg": "NOT_RUN",
+        "bootstrap_release_blocked_while_pg_ready": "PASS",
+        "stale_ready_handle_rejected_after_release": "PASS",
+        "compromised_ownership_blocks_lifecycle": "PASS",
+        "start_failure_cleanup_proven_or_uncertain": "PASS",
+        "effective_runtime_profile_verified_by_postgres": "PASS",
+        "duplicate_runtime_setting_rejected": "PASS",
+        "hba_tamper_rejected": "PASS",
+        "initialized_by_version_is_provenance": "PASS",
+        "windows_unicode_space_path_audit": "PASS",
+        "windows_real_pg": "PASS",
+        "linux_real_pg": "NOT_RUN",
         "macos_real_pg": "NOT_RUN",
         "source_less_shipping_closure": "NOT_RUN",
         "service_account_acl_closure": "NOT_RUN"
@@ -406,23 +415,36 @@
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
       "evidenceSource": {
-        "platform": "Linux PRTS 7.0.0-30-generic x86_64",
+        "platform": "Windows x64",
+        "osVersion": "Microsoft Windows NT 10.0.26200.0",
         "runtime": "Node 24.19.0 / pnpm 11.22.0",
-        "postgresProvenance": "Ubuntu package artifacts postgresql-18, postgresql-client-18, and libpq5 version 18.6-0ubuntu0.26.04.1 extracted into a temporary qualification root; not a source-less shipping artifact",
-        "postgresBinDirectory": "/tmp/tmp.lVC5dLOdfp/root/usr/lib/postgresql/18/bin",
+        "postgresProvenance": "EDB PostgreSQL 18.6 Windows x86-64 binary archive, completely extracted into a temporary qualification root; not a source-less shipping artifact",
+        "postgresBinDirectory": "C:\\Users\\Arsvine\\AppData\\Local\\Temp\\Heptalogos-PG-18.6\\extracted-tar\\pgsql\\bin",
         "exactVersionOutputs": {
-          "postgres": "18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)",
-          "initdb": "18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)",
-          "pg_ctl": "18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)",
-          "pg_controldata": "18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)",
-          "pg_isready": "18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)"
+          "postgres": "postgres (PostgreSQL) 18.6",
+          "initdb": "initdb (PostgreSQL) 18.6",
+          "pg_ctl": "pg_ctl (PostgreSQL) 18.6",
+          "pg_controldata": "pg_controldata (PostgreSQL) 18.6",
+          "pg_isready": "pg_isready (PostgreSQL) 18.6"
         },
-        "candidateSha": "46e66c776f17b43ae06c0cef8229c4cd4666919c",
+        "candidateSha": "3771b0f8dd1c47bb350b864cb7d3f11257971a5e",
+        "historicalPreCorrectionLinux": {
+          "platform": "Linux PRTS 7.0.0-30-generic x86_64",
+          "candidateSha": "46e66c776f17b43ae06c0cef8229c4cd4666919c",
+          "linuxRealPg": "PASS"
+        },
         "testCommands": [
           "pnpm nx run private-postgres:test:integration",
           "pnpm exec vitest run --root packages/bootstrap-runtime src/private-postgres-bootstrap.integration.test.ts --testTimeout=120000",
+          "Windows TEMP/TMP path audit with spaces and non-ASCII characters",
+          "postgres -D <data> -C <setting> effective-profile probe",
+          "pnpm check:agents",
+          "pnpm check:corpus",
+          "pnpm check:repository",
           "pnpm check:dependencies",
           "pnpm check:boundaries",
+          "pnpm toolchain:check",
+          "pnpm format:check",
           "pnpm typecheck",
           "pnpm tsc6",
           "pnpm lint",
@@ -431,8 +453,8 @@
         ]
       },
       "notRunReasons": {
-        "windows_real_pg": "No Windows PostgreSQL 18.6 runtime was available in the current host session; final cross-platform CI remains NOT_RUN.",
-        "macos_real_pg": "No macOS PostgreSQL 18.6 runtime was available in the current host session; final cross-platform CI remains NOT_RUN.",
+        "linux_real_pg": "The corrected candidate was not run on Linux; the prior PASS is historical pre-correction evidence from 46e66c776f17b43ae06c0cef8229c4cd4666919c.",
+        "macos_real_pg": "No corrected-candidate macOS PostgreSQL 18.6 runtime was available; final cross-platform CI remains NOT_RUN.",
         "source_less_shipping_closure": "The qualification runtime was an extracted Ubuntu package set, not a source-less Heptalogos shipping artifact with ReleaseManifest/SBOM closure.",
         "service_account_acl_closure": "M3 temporary-directory credential tests do not qualify installer/service-account ACL behavior on Windows, macOS, or Linux."
       }
