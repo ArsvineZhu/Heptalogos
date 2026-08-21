@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** ACTIVE
+**Status:** COMPLETED
 
 **Goal:** Close Foundation M1 without expanding into M2 by correcting the remaining BootstrapState publication-durability gap, hardening BootstrapJournal, replacing per-push/PR CI with controlled manual CI, and establishing an enforceable Branch → Draft PR → Ready → Independent Review → Manual Final CI → Squash Merge closure flow.
 
@@ -153,13 +153,13 @@ Do not “reuse” a review or CI run from an older SHA.
 
 # Preflight: Freeze the Corrective Baseline
 
-- [ ] **Step 1: Read Authority before editing**
+- [x] **Step 1: Read Authority before editing**
 
 Read every file in the **Authority / Required Reading** list above.
 
 Do not infer current behavior from this plan when repository state disagrees; inspect the current branch.
 
-- [ ] **Step 2: Confirm branch and working tree**
+- [x] **Step 2: Confirm branch and working tree**
 
 ```bash
 git branch --show-current
@@ -184,7 +184,7 @@ git diff --stat 7a42ac4faba3456e1ad7849a5d1aafcab8971a09..HEAD
 
 If those additional changes are unrelated to this corrective or already-reviewed M1 work, stop with `BLOCKED` instead of silently absorbing unrelated scope.
 
-- [ ] **Step 3: Materialize this plan**
+- [x] **Step 3: Materialize this plan**
 
 Save this file verbatim at:
 
@@ -194,7 +194,7 @@ docs/plans/active/foundation/m1-final-corrective-and-closure.md
 
 Update `docs/plans/README.md` so it lists this plan as `ACTIVE`.
 
-- [ ] **Step 4: Reproduce the existing baseline locally**
+- [x] **Step 4: Reproduce the existing baseline locally**
 
 ```bash
 pnpm install --frozen-lockfile
@@ -205,7 +205,7 @@ Expected: `PASS`.
 
 A baseline failure that predates corrective edits must be understood before mixing new changes into it.
 
-- [ ] **Step 5: Commit only the plan materialization**
+- [x] **Step 5: Commit only the plan materialization**
 
 ```bash
 git add -- docs/plans/active/foundation/m1-final-corrective-and-closure.md docs/plans/README.md
@@ -352,7 +352,7 @@ if (!existsSync(verifyWorkflowPath)) {
 
 This gate intentionally enforces **manual-only** CI for this repository. If future policy changes, change the Authority and this gate together.
 
-- [ ] **Step 1: Make the repository gate fail against the current workflow**
+- [x] **Step 1: Make the repository gate fail against the current workflow**
 
 Add the `verify.yml` assertions above to `scripts/verify/repository.mjs`.
 
@@ -366,7 +366,7 @@ Expected: `FAIL`, because the existing workflow contains `push:` and `pull_reque
 
 Do not modify the workflow before observing this RED result.
 
-- [ ] **Step 2: Replace `verify.yml` with the manual workflow**
+- [x] **Step 2: Replace `verify.yml` with the manual workflow**
 
 Apply the exact workflow structure above.
 
@@ -380,7 +380,7 @@ Expected: `PASS`.
 
 Do **not** manually dispatch the workflow here. This task is configuration validation, not a reason to spend a cross-platform CI run.
 
-- [ ] **Step 3: Rewrite the branch/integration policy in `AGENTS.md`**
+- [x] **Step 3: Rewrite the branch/integration policy in `AGENTS.md`**
 
 Replace the current workflow text that says a Draft PR opens so the matrix runs on every push.
 
@@ -412,7 +412,7 @@ Local pnpm verify remains mandatory; CI is auxiliary cross-platform evidence.
 
 Do not put the long operational procedure into `AGENTS.md`; that belongs in the playbook created next.
 
-- [ ] **Step 4: Add the persistent PR closure playbook**
+- [x] **Step 4: Add the persistent PR closure playbook**
 
 Create:
 
@@ -467,7 +467,7 @@ Do not prescribe CI for ordinary commits.
 
 Update `docs/engineering/PLAYBOOK.md` with one index row pointing to this file.
 
-- [ ] **Step 5: Synchronize Agent manifest after the final `AGENTS.md` edit**
+- [x] **Step 5: Synchronize Agent manifest after the final `AGENTS.md` edit**
 
 First run:
 
@@ -507,7 +507,7 @@ pnpm format:check
 
 Expected: all `PASS`.
 
-- [ ] **Step 6: Commit CI/workflow governance**
+- [x] **Step 6: Commit CI/workflow governance**
 
 ```bash
 git add -- \
@@ -610,7 +610,7 @@ If directory open/sync fails on a platform where this path is attempted, the ope
 
 On Windows, return `PLATFORM_UNVERIFIED`; do not pretend Node has proven equivalent containing-directory durability. Existing atomic-replacement behavior remains usable, while real Windows power-loss durability stays an L3 `NOT_RUN` claim.
 
-- [ ] **Step 1: Write adapter tests before implementation**
+- [x] **Step 1: Write adapter tests before implementation**
 
 Create `packages/bootstrap-state/src/atomic-file.test.ts`.
 
@@ -689,7 +689,7 @@ it("keeps store and journal behind the crash-safe adapter", async () => {
 
 Import `readFile` once; do not duplicate it.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```bash
 pnpm exec vitest run --root packages/bootstrap-state src/atomic-file.test.ts
@@ -697,13 +697,13 @@ pnpm exec vitest run --root packages/bootstrap-state src/atomic-file.test.ts
 
 Expected: `FAIL` because `./atomic-file.js` does not exist.
 
-- [ ] **Step 3: Implement `atomic-file.ts` exactly at the narrow boundary**
+- [x] **Step 3: Implement `atomic-file.ts` exactly at the narrow boundary**
 
 Use the implementation above.
 
 Do not add retry loops, lock files, `PathProfile`, directory-handle security hardening, or platform abstraction in this task.
 
-- [ ] **Step 4: Route `BootstrapStateStore` through the adapter**
+- [x] **Step 4: Route `BootstrapStateStore` through the adapter**
 
 In `packages/bootstrap-state/src/store.ts`:
 
@@ -733,7 +733,7 @@ Replace the current-state write the same way.
 
 Do not change revision/recovery semantics.
 
-- [ ] **Step 5: Route `BootstrapJournal` through the adapter**
+- [x] **Step 5: Route `BootstrapJournal` through the adapter**
 
 In `packages/bootstrap-state/src/journal.ts`:
 
@@ -751,7 +751,7 @@ Replace the per-BootId snapshot write with:
 await writeCrashSafeFile(this.fileFor(bootId), journalText(entries));
 ```
 
-- [ ] **Step 6: Run GREEN and package gates**
+- [x] **Step 6: Run GREEN and package gates**
 
 ```bash
 pnpm exec vitest run --root packages/bootstrap-state src/atomic-file.test.ts
@@ -767,7 +767,7 @@ On POSIX, the adapter test must report `DIRECTORY_SYNCED`.
 
 On Windows, the Windows-specific test must report `PLATFORM_UNVERIFIED`; this is deliberate and must not be rewritten to fake a PASS claim.
 
-- [ ] **Step 7: Commit publication durability mechanics**
+- [x] **Step 7: Commit publication durability mechanics**
 
 ```bash
 git add -- packages/bootstrap-state
@@ -886,7 +886,7 @@ async checkpoint(entry: BootstrapJournalCheckpointV1): Promise<void> {
 
 Different BootIds remain independent because the map key is the validated UUIDv7 string.
 
-- [ ] **Step 1: Add failing invalid-Instant tests**
+- [x] **Step 1: Add failing invalid-Instant tests**
 
 Add to `journal.test.ts`:
 
@@ -924,7 +924,7 @@ it("rejects an impossible canonical-looking Instant", async () => {
 });
 ```
 
-- [ ] **Step 2: Add a failing concurrent checkpoint regression**
+- [x] **Step 2: Add a failing concurrent checkpoint regression**
 
 Add:
 
@@ -947,7 +947,7 @@ it("does not lose concurrent checkpoints for one BootId", async () => {
 
 This test need not require a deterministic ordering between independently-started concurrent callers. It requires only that every acknowledged checkpoint survives.
 
-- [ ] **Step 3: Run RED**
+- [x] **Step 3: Run RED**
 
 ```bash
 pnpm exec vitest run --root packages/bootstrap-state src/journal.test.ts
@@ -957,7 +957,7 @@ Expected:
 - invalid Instant tests `FAIL` against current code;
 - the concurrency regression should expose the lost-update risk. If timing happens not to reproduce on one run, the implementation change is still required because the read-modify-write critical section is structurally unsynchronized; do not delete the regression.
 
-- [ ] **Step 4: Implement canonical Instant validation**
+- [x] **Step 4: Implement canonical Instant validation**
 
 Add `CANONICAL_INSTANT_PATTERN` and `isCanonicalInstant()`.
 
@@ -969,7 +969,7 @@ pass the same structural + semantic validation.
 
 Do not mutate/normalize invalid caller input.
 
-- [ ] **Step 5: Implement per-BootId serialization**
+- [x] **Step 5: Implement per-BootId serialization**
 
 Add `checkpointTails` and `serializeCheckpoint()` exactly at the journal class boundary.
 
@@ -977,7 +977,7 @@ Do not introduce a generic lock package.
 
 Do not claim inter-process exclusion.
 
-- [ ] **Step 6: Run package verification**
+- [x] **Step 6: Run package verification**
 
 ```bash
 pnpm exec nx run bootstrap-state:test
@@ -988,7 +988,7 @@ pnpm lint
 
 Expected: all `PASS`.
 
-- [ ] **Step 7: Commit Journal hardening**
+- [x] **Step 7: Commit Journal hardening**
 
 ```bash
 git add -- packages/bootstrap-state/src/journal.ts packages/bootstrap-state/src/journal.test.ts
@@ -1004,7 +1004,7 @@ git commit -m "fix: harden BootstrapJournal boundaries"
 
 **Goal:** Make the completed M1 execution record match repository reality without rewriting history.
 
-- [ ] **Step 1: Find stale unchecked commit steps**
+- [x] **Step 1: Find stale unchecked commit steps**
 
 Run:
 
@@ -1033,7 +1033,7 @@ rg -n '\- \[ \] \*\*Step .*Commit' docs/plans/completed/foundation/m1-developmen
 
 returns no stale completed commit step.
 
-- [ ] **Step 2: Correct durability evidence wording**
+- [x] **Step 2: Correct durability evidence wording**
 
 The M1 record must distinguish:
 
@@ -1070,7 +1070,7 @@ containing-directory publication contract; this corrective added the missing
 adapter semantics rather than treating the gap as merely untested.
 ```
 
-- [ ] **Step 3: Correct CI policy history without deleting useful evidence**
+- [x] **Step 3: Correct CI policy history without deleting useful evidence**
 
 Keep the earlier automatic three-platform runs as **historical execution evidence**.
 
@@ -1086,7 +1086,7 @@ dispatched only after independent review and must target the exact reviewed SHA.
 
 Do not rewrite old run IDs or previously observed PASS results.
 
-- [ ] **Step 4: Re-run documentation formatting**
+- [x] **Step 4: Re-run documentation formatting**
 
 ```bash
 pnpm format:check
@@ -1101,7 +1101,7 @@ pnpm format:check
 
 Expected: `PASS`.
 
-- [ ] **Step 5: Commit evidence repair**
+- [x] **Step 5: Commit evidence repair**
 
 ```bash
 git add -- docs/plans/completed/foundation/m1-development-spine.md
@@ -1123,7 +1123,7 @@ allow_squash_merge = true
 allow_auto_merge = false
 ```
 
-- [ ] **Step 1: Read current settings**
+- [x] **Step 1: Read current settings**
 
 ```bash
 gh api repos/ArsvineZhu/Heptalogos \
@@ -1135,7 +1135,7 @@ gh api repos/ArsvineZhu/Heptalogos \
   }'
 ```
 
-- [ ] **Step 2: Disable rebase merge and preserve squash-only policy**
+- [x] **Step 2: Disable rebase merge and preserve squash-only policy**
 
 If authenticated permissions allow repository settings mutation:
 
@@ -1149,7 +1149,7 @@ gh api --method PATCH repos/ArsvineZhu/Heptalogos \
 
 If the Agent does not have permission, report this step as `BLOCKED` and give the user the exact setting values above. Do not weaken the repository policy in code to compensate.
 
-- [ ] **Step 3: Verify settings**
+- [x] **Step 3: Verify settings**
 
 Repeat Step 1.
 
@@ -1164,7 +1164,7 @@ Expected:
 }
 ```
 
-- [ ] **Step 4: Do not enable native required-CI checks**
+- [x] **Step 4: Do not enable native required-CI checks**
 
 This project intentionally keeps local gates authoritative and CI manually triggered. Do not create a GitHub required-status rule that makes an automatically-triggered Actions check necessary for every commit.
 
@@ -1176,7 +1176,7 @@ The merge authorization procedure is governed by `AGENTS.md` + the milestone PR 
 
 **Goal:** Produce the exact commit that will be handed to independent review. No repository file may change after this step unless the review cycle is restarted.
 
-- [ ] **Step 1: Reset Nx and remove generated build state**
+- [x] **Step 1: Reset Nx and remove generated build state**
 
 ```bash
 pnpm exec nx reset
@@ -1212,7 +1212,7 @@ walk('.');
 "
 ```
 
-- [ ] **Step 2: Reinstall from the frozen lockfile**
+- [x] **Step 2: Reinstall from the frozen lockfile**
 
 ```bash
 pnpm install --frozen-lockfile
@@ -1220,7 +1220,7 @@ pnpm install --frozen-lockfile
 
 Expected: `PASS`.
 
-- [ ] **Step 3: Run every permanent local gate**
+- [x] **Step 3: Run every permanent local gate**
 
 ```bash
 pnpm check:agents
@@ -1243,7 +1243,7 @@ Every command must actually execute.
 
 Expected: all `PASS`.
 
-- [ ] **Step 4: Inspect real Nx targets**
+- [x] **Step 4: Inspect real Nx targets**
 
 ```bash
 pnpm exec nx show project foundation-contracts
@@ -1259,7 +1259,7 @@ bootstrap-state: real inferred build + typecheck
 repository: real lint target for scripts; no noop lint/typecheck/test/build
 ```
 
-- [ ] **Step 5: Check built output exists**
+- [x] **Step 5: Check built output exists**
 
 ```bash
 node --input-type=module -e "
@@ -1283,7 +1283,7 @@ for(const p of required){
 
 Expected: four `PASS` lines.
 
-- [ ] **Step 6: Run focused corrective evidence**
+- [x] **Step 6: Run focused corrective evidence**
 
 ```bash
 pnpm exec vitest run --root packages/bootstrap-state src/atomic-file.test.ts
@@ -1295,7 +1295,7 @@ Expected: `PASS`.
 
 Do not dispatch GitHub Actions here merely because local verification passed.
 
-- [ ] **Step 7: Verify workflow is manual-only**
+- [x] **Step 7: Verify workflow is manual-only**
 
 ```bash
 pnpm check:repository
@@ -1317,7 +1317,7 @@ rg -n 'workflow_dispatch:|target_sha:|reason:' .github/workflows/verify.yml
 
 Expected: all required manual workflow fields found.
 
-- [ ] **Step 8: Verify the working tree**
+- [x] **Step 8: Verify the working tree**
 
 ```bash
 git status --short
@@ -1327,7 +1327,7 @@ Expected: only intended plan-record changes, if any.
 
 No generated `dist`, test output, or cache file may be staged.
 
-- [ ] **Step 9: Finalize this corrective plan's repository record**
+- [x] **Step 9: Finalize this corrective plan's repository record**
 
 Before creating the review candidate commit:
 - check off all implementation steps actually completed;
@@ -1357,7 +1357,7 @@ PR merge authorization remains an external closure gate recorded by PR/review/CI
 
 This avoids adding a documentation commit after review/final CI and thereby invalidating the exact-SHA gate.
 
-- [ ] **Step 10: Commit the final review candidate**
+- [x] **Step 10: Commit the final review candidate**
 
 ```bash
 git add -- \
@@ -1369,7 +1369,7 @@ git commit -m "docs: close Foundation M1 corrective implementation"
 
 If other intended source/docs changes remain unstaged, inspect them individually and stage only known corrective paths. Never use `git add -A` or `git add .`.
 
-- [ ] **Step 11: Re-run the final local gate after the closure commit**
+- [x] **Step 11: Re-run the final local gate after the closure commit**
 
 Because Step 10 changed HEAD:
 
@@ -1398,6 +1398,36 @@ REVIEW_CANDIDATE_SHA
 ```
 
 No repository changes are allowed after this point without restarting the review cycle.
+
+---
+
+## Corrective execution record
+
+`COMPLETED` means the corrective implementation and local verification are
+complete. Independent review, final cross-platform CI, and squash merge remain
+external closure gates and are intentionally not recorded as PASS here.
+
+| Item | Evidence |
+| --- | --- |
+| Start HEAD | `7a42ac4faba3456e1ad7849a5d1aafcab8971a09` |
+| Corrective HEAD before this plan's closure commit | `b18ef98` (`docs: bound POSIX durability evidence`) |
+| Runtime | Node `24.19.0`, pnpm `11.22.0`, Windows `win32 x64` |
+| Baseline install and verify | `pnpm install --frozen-lockfile` PASS; `pnpm verify` PASS |
+| Manual workflow/repository gate | `pnpm check:repository` PASS; no automatic trigger lines; `target_sha` and `reason` present; all Actions pinned to full SHAs |
+| Agent manifest and formatting | `check:agents` PASS; `pnpm format:check` PASS |
+| Publication adapter evidence | atomic-file tests: 3 PASS / 1 POSIX-gated skip; Windows branch returns `PLATFORM_UNVERIFIED` without overclaiming |
+| Journal evidence | journal tests: 11 PASS; same-BootId concurrent checkpoints retained; invalid/non-canonical Instants rejected |
+| Fresh-like permanent gates | every listed `check:*`, toolchain, format, lint, typecheck, tsc6, test, build, and verify command PASS after Nx/dist reset |
+| Real Nx targets | foundation-contracts and bootstrap-state have inferred build/typecheck; repository exposes only the real scripts lint target |
+| Built output | four required package `dist/index.js` / `dist/index.d.ts` paths PASS |
+| Merge settings | `allow_merge_commit=false`, `allow_rebase_merge=false`, `allow_squash_merge=true`, `allow_auto_merge=false` |
+| POSIX containing-directory sync runtime evidence | `NOT_RUN` on current win32 executor; POSIX-gated test requires a POSIX runner |
+| Windows containing-directory/power-loss equivalence | `NOT_RUN`; adapter deliberately reports `PLATFORM_UNVERIFIED` |
+| Real filesystem power-loss qualification | `NOT_RUN` |
+| Independent review | `NOT_RUN` — required external gate |
+| Manual final CI (Ubuntu/macOS/Windows) | `NOT_RUN` — must follow independent review on exact SHA |
+| Squash merge and branch deletion | `NOT_RUN` |
+| M2 PathProfile/bootstrap ownership | `NOT_RUN`; no M2 subsystem started |
 
 ---
 
@@ -1711,33 +1741,33 @@ Do not upgrade real power-loss qualification from `NOT_RUN`.
 
 M1 is eligible for squash merge only when all of the following are true:
 
-- [ ] `.github/workflows/verify.yml` has `workflow_dispatch` only; no push/PR/schedule/merge-group/repository-dispatch/workflow-call trigger.
-- [ ] Actions are pinned to full immutable commit SHAs.
-- [ ] `permissions: contents: read` is explicit.
-- [ ] workflow requires `target_sha` and verifies the checked-out SHA exactly.
-- [ ] `scripts/verify/repository.mjs` mechanically rejects automatic CI triggers and mutable Action refs.
-- [ ] `AGENTS.md` states ordinary pushes do not trigger CI and defines the review → manual-final-CI merge gate.
-- [ ] PR closure playbook exists and is indexed.
-- [ ] rebase merge is disabled; merge commits remain disabled; squash merge remains enabled.
-- [ ] direct push to `master` is no longer a routine governance path.
-- [ ] `BootstrapStateStore` and `BootstrapJournal` do not directly call `write-file-atomic`; both use the crash-safe adapter.
-- [ ] POSIX adapter performs containing-directory `sync()` after atomic rename.
-- [ ] Windows adapter does not overclaim containing-directory durability.
-- [ ] real power-loss qualification remains `NOT_RUN`.
-- [ ] BootstrapJournal rejects non-canonical/invalid persisted Instant values.
-- [ ] concurrent same-BootId checkpoints do not lose acknowledged entries.
-- [ ] no claim of multi-process journal exclusion is introduced.
-- [ ] stale unchecked commit steps in the completed M1 record are repaired using actual Git history.
-- [ ] automatic CI runs remain documented as historical evidence, not current trigger policy.
-- [ ] fresh-like local `pnpm verify` passes from cleared build/Nx output.
-- [ ] real package `dist/index.js` and `dist/index.d.ts` are produced.
+- [x] `.github/workflows/verify.yml` has `workflow_dispatch` only; no push/PR/schedule/merge-group/repository-dispatch/workflow-call trigger.
+- [x] Actions are pinned to full immutable commit SHAs.
+- [x] `permissions: contents: read` is explicit.
+- [x] workflow requires `target_sha` and verifies the checked-out SHA exactly.
+- [x] `scripts/verify/repository.mjs` mechanically rejects automatic CI triggers and mutable Action refs.
+- [x] `AGENTS.md` states ordinary pushes do not trigger CI and defines the review → manual-final-CI merge gate.
+- [x] PR closure playbook exists and is indexed.
+- [x] rebase merge is disabled; merge commits remain disabled; squash merge remains enabled.
+- [x] direct push to `master` is no longer a routine governance path.
+- [x] `BootstrapStateStore` and `BootstrapJournal` do not directly call `write-file-atomic`; both use the crash-safe adapter.
+- [x] POSIX adapter performs containing-directory `sync()` after atomic rename.
+- [x] Windows adapter does not overclaim containing-directory durability.
+- [x] real power-loss qualification remains `NOT_RUN`.
+- [x] BootstrapJournal rejects non-canonical/invalid persisted Instant values.
+- [x] concurrent same-BootId checkpoints do not lose acknowledged entries.
+- [x] no claim of multi-process journal exclusion is introduced.
+- [x] stale unchecked commit steps in the completed M1 record are repaired using actual Git history.
+- [x] automatic CI runs remain documented as historical evidence, not current trigger policy.
+- [x] fresh-like local `pnpm verify` passes from cleared build/Nx output.
+- [x] real package `dist/index.js` and `dist/index.d.ts` are produced.
 - [ ] PR is marked Ready only after local implementation completion.
 - [ ] an independent reviewer passes the exact merge-candidate SHA.
 - [ ] final CI is manually dispatched only after that review.
 - [ ] final CI passes on Ubuntu, macOS, and Windows for the exact reviewed SHA.
 - [ ] no commit exists after the passing review/final CI.
 - [ ] PR is squash-merged and branch deleted.
-- [ ] no M2 subsystem was started.
+- [x] no M2 subsystem was started.
 
 ---
 

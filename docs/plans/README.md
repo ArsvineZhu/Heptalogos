@@ -15,9 +15,10 @@ surface the ambiguity rather than guessing.
 
 ## Active
 
-- [Foundation M1 Final Corrective and Closure](active/foundation/m1-final-corrective-and-closure.md) — `ACTIVE`
+No active plans are currently recorded.
 
 ## Completed
 
 - [Repository Genesis](completed/repository/repository-genesis.md) — `COMPLETED`
 - [Foundation M1 Development Spine](completed/foundation/m1-development-spine.md) — `COMPLETED`
+- [Foundation M1 Final Corrective and Closure](completed/foundation/m1-final-corrective-and-closure.md) — `COMPLETED`
