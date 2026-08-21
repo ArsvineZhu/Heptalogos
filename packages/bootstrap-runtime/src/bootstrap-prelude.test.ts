@@ -174,7 +174,7 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
     await ownedResult?.value.close();
   });
 
-  it("allows simultaneous ownership for different instances sharing one PROGRAM root", async () => {
+  it("allows concurrent owners for different resolved instance roots", async () => {
     const anchor = await makeDirectory("heptalogos-prelude-shared-program-");
     const first = await makeFixture(anchor);
     const firstPrepared = await prepareBootstrapPrelude(first.anchorRoot);
@@ -185,6 +185,7 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
       secondPrepared.acquireOwnership({ heartbeatMs: 1000 }),
     ]);
 
+    expect(first.instanceRoot).not.toBe(second.instanceRoot);
     expect(firstOwned.instanceId).not.toBe(secondOwned.instanceId);
     await Promise.all([firstOwned.close(), secondOwned.close()]);
   });
