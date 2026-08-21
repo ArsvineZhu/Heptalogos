@@ -98,7 +98,9 @@ describe("private PostgreSQL executable paths", () => {
 
   it("rejects a required tool that is not a regular file", async () => {
     const binDirectory = await mkdtemp(join(tmpdir(), "heptalogos-pg-bin-"));
-    await mkdir(join(binDirectory, privatePostgresExecutableNames(process.platform)[0]));
+    await mkdir(
+      join(binDirectory, privatePostgresExecutableNames(process.platform)[0]),
+    );
 
     await expect(resolvePrivatePostgresToolchain(binDirectory)).rejects.toMatchObject({
       problem: { problemCode: "private-postgres.toolchain.tool_not_file" },
