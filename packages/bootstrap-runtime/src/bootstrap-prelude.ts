@@ -25,6 +25,12 @@ import {
   openBootstrapStateAccess,
   type OwnedBootstrapStateStore,
 } from "./bootstrap-state-access.js";
+import {
+  createPrivatePostgresSessionTracker,
+  preparePrivatePostgresForOwnedPrelude,
+  type PreparePrivatePostgresOptions,
+  type ReadyPrivatePostgres,
+} from "./private-postgres-bootstrap.js";
 
 export interface PreparedBootstrapPrelude {
   readonly installationId: InstallationId;
@@ -43,9 +49,13 @@ export interface OwnedBootstrapPrelude {
   readonly bootId: BootId;
   readonly bootstrapActivityId: BootstrapActivityId;
   readonly paths: BootstrapPathProfile;
-  readonly ownership: BootstrapOwnershipLease;
+  readonly ownershipState: BootstrapOwnershipLease["state"];
+  readonly ownershipSignal: AbortSignal;
   readonly state: OwnedBootstrapStateStore;
   readonly authoritativeState: BootstrapStateLoadResult;
+  preparePrivatePostgres(
+    options: PreparePrivatePostgresOptions,
+  ): Promise<ReadyPrivatePostgres>;
   close(): Promise<void>;
 }
 
@@ -251,6 +261,7 @@ export async function prepareBootstrapPrelude(
       );
       const access = openBootstrapStateAccess(paths, ownership);
       const authoritativeState = await access.state.load();
+      const privatePostgresSession = createPrivatePostgresSessionTracker();
       await record(
         journal,
         installationId,
@@ -279,12 +290,38 @@ export async function prepareBootstrapPrelude(
         bootId,
         bootstrapActivityId,
         paths,
-        ownership,
+        get ownershipState() {
+          return ownership.state;
+        },
+        get ownershipSignal() {
+          return ownership.signal;
+        },
         state: access.state,
         authoritativeState,
+        preparePrivatePostgres(options: PreparePrivatePostgresOptions) {
+          return preparePrivatePostgresForOwnedPrelude(
+            {
+              installationId,
+              instanceId,
+              bootId,
+              bootstrapActivityId,
+              paths,
+              ownership,
+              state: access.state,
+              journal,
+              privatePostgresSession,
+            },
+            options,
+          );
+        },
         close(): Promise<void> {
           if (closePromise) return closePromise;
-          closePromise = (async () => {
+          try {
+            privatePostgresSession.assertReleaseAllowed();
+          } catch (error) {
+            return Promise.reject(error);
+          }
+          const current = (async () => {
             await ownership.release();
             await record(
               journal,
@@ -297,7 +334,11 @@ export async function prepareBootstrapPrelude(
               "SUCCEEDED",
             );
           })();
-          return closePromise;
+          closePromise = current;
+          void current.catch(() => {
+            if (closePromise === current) closePromise = undefined;
+          });
+          return current;
         },
       };
     } catch (error) {

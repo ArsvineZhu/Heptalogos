@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { asContentDigest, digestCanonicalJson } from "@heptalogos/foundation-contracts";
+import {
+  asContentDigest,
+  createInstallationId,
+  createInstanceId,
+  digestCanonicalJson,
+} from "@heptalogos/foundation-contracts";
 import {
   BOOTSTRAP_STATE_DIGEST_DOMAIN,
   parseBootstrapState,
   sealBootstrapState,
 } from "./codec.js";
-import type { BootstrapStateBodyV1 } from "./model.js";
+import type { BootstrapStateBodyV1, BootstrapStateBodyV2 } from "./model.js";
 
 function makeState(): BootstrapStateBodyV1 {
   return {
@@ -22,6 +27,42 @@ function makeState(): BootstrapStateBodyV1 {
   };
 }
 
+function makeStateV2(): BootstrapStateBodyV2 {
+  return {
+    schemaVersion: 2,
+    revision: 1,
+    activeBootstrapRuntimeGeneration: asContentDigest(
+      "BootstrapRuntimeGenerationId",
+      digestCanonicalJson("test.bootstrap-runtime/v1", { generation: "bootstrap" }),
+    ),
+    activeProductGeneration: asContentDigest(
+      "ProductGenerationId",
+      digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
+    ),
+    privatePostgres: {
+      schemaVersion: 2,
+      postgresMajor: 18,
+      initializedByPostgresVersion: "18.6",
+      installationId: createInstallationId(),
+      instanceId: createInstanceId(),
+      bootstrapRoleName: "heptalogos_bootstrap",
+      dataPlacement: {
+        rootId: "DATA",
+        relativePath: "private-postgres",
+        dataLayoutVersion: 1,
+      },
+      persistedPort: 55432,
+      clusterSystemIdentifier: "12345678901234567890",
+      initializationProfileRevision: asContentDigest(
+        "PrivatePostgresInitializationProfileRevision",
+        digestCanonicalJson("test.private-postgres-profile/v1", {
+          profile: "m3",
+        }),
+      ),
+    },
+  };
+}
+
 describe("BootstrapState codec", () => {
   it("seals and parses a valid state", () => {
     const sealed = sealBootstrapState(makeState());
@@ -29,6 +70,147 @@ describe("BootstrapState codec", () => {
 
     expect(result).toEqual({ ok: true, value: sealed });
     expect(sealed.digest.domain).toBe(BOOTSTRAP_STATE_DIGEST_DOMAIN);
+  });
+
+  it("seals and parses a valid V2 state", () => {
+    const sealed = sealBootstrapState(makeStateV2());
+    const result = parseBootstrapState(JSON.stringify(sealed));
+
+    expect(result).toEqual({ ok: true, value: sealed });
+    expect(sealed.state.schemaVersion).toBe(2);
+    expect(sealed.digest.domain).toBe("heptalogos.bootstrap-state/v2");
+  });
+
+  it("roundtrips the V2 private PostgreSQL bootstrap role identity", () => {
+    const base = makeStateV2();
+    const state = {
+      ...base,
+      privatePostgres: {
+        ...base.privatePostgres,
+        schemaVersion: 2,
+        bootstrapRoleName: "heptalogos_bootstrap",
+      },
+    } as unknown as BootstrapStateBodyV2;
+    const sealed = sealBootstrapState(state);
+
+    expect(parseBootstrapState(JSON.stringify(sealed))).toEqual({
+      ok: true,
+      value: sealed,
+    });
+  });
+
+  it("continues to parse a legacy V2 private PostgreSQL identity", () => {
+    const base = makeStateV2();
+    if (base.privatePostgres.schemaVersion !== 2) {
+      throw new Error("expected V2 private PostgreSQL identity");
+    }
+    const { bootstrapRoleName: _bootstrapRoleName, ...legacyFields } =
+      base.privatePostgres;
+    const legacyState = {
+      ...base,
+      privatePostgres: {
+        ...legacyFields,
+        schemaVersion: 1,
+      },
+    } as unknown as BootstrapStateBodyV2;
+    const sealed = sealBootstrapState(legacyState);
+
+    expect(parseBootstrapState(JSON.stringify(sealed))).toEqual({
+      ok: true,
+      value: sealed,
+    });
+  });
+
+  it("rejects unknown fields in a V2 state", () => {
+    const sealed = sealBootstrapState(makeStateV2());
+    const result = parseBootstrapState(
+      JSON.stringify({
+        ...sealed,
+        state: { ...sealed.state, unexpected: true },
+      }),
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      problem: { problemCode: "bootstrap.state.invalid_schema" },
+    });
+  });
+
+  it("rejects invalid V2 identity, port, and cluster identifier fields", () => {
+    const sealed = sealBootstrapState(makeStateV2());
+    const cases = [
+      {
+        state: {
+          ...sealed.state,
+          privatePostgres: {
+            ...sealed.state.privatePostgres,
+            installationId: "not-a-uuid",
+          },
+        },
+      },
+      {
+        state: {
+          ...sealed.state,
+          privatePostgres: {
+            ...sealed.state.privatePostgres,
+            persistedPort: 65536,
+          },
+        },
+      },
+      {
+        state: {
+          ...sealed.state,
+          privatePostgres: {
+            ...sealed.state.privatePostgres,
+            clusterSystemIdentifier: "12x",
+          },
+        },
+      },
+    ];
+
+    for (const value of cases) {
+      expect(parseBootstrapState(JSON.stringify(value))).toMatchObject({
+        ok: false,
+        problem: { problemCode: "bootstrap.state.invalid_schema" },
+      });
+    }
+  });
+
+  it("uses domain-separated V1 and V2 digest domains", () => {
+    expect(sealBootstrapState(makeState()).digest.domain).toBe(
+      "heptalogos.bootstrap-state/v1",
+    );
+    expect(sealBootstrapState(makeStateV2()).digest.domain).toBe(
+      "heptalogos.bootstrap-state/v2",
+    );
+  });
+
+  it("rejects an unsupported future schema before attempting V2 validation", () => {
+    const sealed = sealBootstrapState(makeStateV2());
+    const future = {
+      ...sealed,
+      state: { ...sealed.state, schemaVersion: 3 },
+    };
+
+    expect(parseBootstrapState(JSON.stringify(future))).toMatchObject({
+      ok: false,
+      problem: { problemCode: "bootstrap.state.unsupported_schema" },
+    });
+  });
+
+  it("rejects a V2 digest mismatch with the V2 domain", () => {
+    const sealed = sealBootstrapState(makeStateV2());
+    const result = parseBootstrapState(
+      JSON.stringify({
+        ...sealed,
+        digest: { ...sealed.digest, hex: "0".repeat(64) },
+      }),
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      problem: { problemCode: "bootstrap.state.digest_mismatch" },
+    });
   });
 
   it("rejects a state digest mismatch", () => {

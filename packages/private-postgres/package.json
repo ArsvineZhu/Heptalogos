@@ -1,0 +1,22 @@
+{
+  "name": "@heptalogos/private-postgres",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@heptalogos/foundation-contracts": "workspace:*",
+    "execa": "catalog:",
+    "xstate": "catalog:"
+  },
+  "devDependencies": {
+    "fast-check": "catalog:",
+    "vitest": "catalog:"
+  }
+}

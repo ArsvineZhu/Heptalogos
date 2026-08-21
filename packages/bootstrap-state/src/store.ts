@@ -8,17 +8,17 @@ import {
 } from "@heptalogos/foundation-contracts";
 import { parseBootstrapState, sealBootstrapState } from "./codec.js";
 import { writeAtomicPublishedFile } from "./atomic-file.js";
-import type { BootstrapStateBodyV1, BootstrapStateEnvelopeV1 } from "./model.js";
+import type { BootstrapStateBody, BootstrapStateEnvelope } from "./model.js";
 
 const CURRENT_FILENAME = "bootstrap-state.json";
 const PREVIOUS_FILENAME = "bootstrap-state.previous.json";
 
 export type BootstrapStateLoadResult =
   | { readonly status: "EMPTY" }
-  | { readonly status: "CURRENT"; readonly value: BootstrapStateEnvelopeV1 }
+  | { readonly status: "CURRENT"; readonly value: BootstrapStateEnvelope }
   | {
       readonly status: "RECOVERED_PREVIOUS";
-      readonly value: BootstrapStateEnvelopeV1;
+      readonly value: BootstrapStateEnvelope;
       readonly problem: Problem;
     }
   | { readonly status: "CORRUPT"; readonly problem: Problem };
@@ -26,7 +26,7 @@ export type BootstrapStateLoadResult =
 type Candidate =
   | { readonly kind: "MISSING" }
   | { readonly kind: "INVALID"; readonly problem: Problem }
-  | { readonly kind: "VALID"; readonly value: BootstrapStateEnvelopeV1 };
+  | { readonly kind: "VALID"; readonly value: BootstrapStateEnvelope };
 
 function storeProblem(problemCode: string, title: string, detail: string): Problem {
   return {
@@ -39,7 +39,7 @@ function storeProblem(problemCode: string, title: string, detail: string): Probl
   };
 }
 
-function stateText(value: BootstrapStateEnvelopeV1): string {
+function stateText(value: BootstrapStateEnvelope): string {
   return canonicalizeJson(value as unknown as CanonicalJsonValue);
 }
 
@@ -93,7 +93,7 @@ export class BootstrapStateStore {
     };
   }
 
-  async commit(candidate: BootstrapStateBodyV1): Promise<BootstrapStateEnvelopeV1> {
+  async commit(candidate: BootstrapStateBody): Promise<BootstrapStateEnvelope> {
     const sealed = sealBootstrapState(candidate);
     const validated = parseBootstrapState(JSON.stringify(sealed));
     if (!validated.ok) throw new ProblemError(validated.problem);
@@ -101,6 +101,19 @@ export class BootstrapStateStore {
     const current = await this.load();
     if (current.status === "CORRUPT") {
       throw new ProblemError(current.problem);
+    }
+    if (
+      current.status !== "EMPTY" &&
+      current.value.state.schemaVersion === 2 &&
+      candidate.schemaVersion === 1
+    ) {
+      throw new ProblemError(
+        storeProblem(
+          "bootstrap.state.schema_downgrade",
+          "BootstrapState schema downgrade is not allowed",
+          "A BootstrapState V2 revision cannot be replaced by a V1 revision",
+        ),
+      );
     }
     const expectedRevision =
       current.status === "EMPTY" ? 1 : current.value.state.revision + 1;

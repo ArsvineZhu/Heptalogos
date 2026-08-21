@@ -17,3 +17,11 @@ export {
   type OwnedBootstrapPrelude,
   type PreparedBootstrapPrelude,
 } from "./bootstrap-prelude.js";
+export type {
+  PreparePrivatePostgresOptions,
+  ReadyPrivatePostgres,
+} from "./private-postgres-bootstrap.js";
+export type {
+  BootstrapKeyProvider,
+  BootstrapKeyRequestContext,
+} from "./bootstrap-key-provider.js";

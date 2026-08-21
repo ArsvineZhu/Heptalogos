@@ -17,6 +17,9 @@
     },
     {
       "path": "../bootstrap-state/tsconfig.build.json"
+    },
+    {
+      "path": "../private-postgres/tsconfig.build.json"
     }
   ]
 }

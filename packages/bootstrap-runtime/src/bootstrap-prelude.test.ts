@@ -9,7 +9,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   asContentDigest,
   createInstallationId,
@@ -25,6 +25,41 @@ import {
 } from "@heptalogos/bootstrap-state";
 import { prepareBootstrapPrelude } from "./bootstrap-prelude.js";
 import type { BootstrapLocatorV1 } from "./locator.js";
+import type { PrivatePostgresSessionToken } from "./private-postgres-bootstrap.js";
+
+const preparePrivatePostgresForOwnedPreludeMock = vi.hoisted(() =>
+  vi.fn(
+    async (context: {
+      readonly privatePostgresSession: {
+        readonly state: string;
+        beginPreparation(): PrivatePostgresSessionToken;
+        markReady(token: PrivatePostgresSessionToken): void;
+        beginStop(token: PrivatePostgresSessionToken): void;
+        markQuiescent(token: PrivatePostgresSessionToken): void;
+        markUncertain(token: PrivatePostgresSessionToken): void;
+      };
+    }) => {
+      const token = context.privatePostgresSession.beginPreparation();
+      context.privatePostgresSession.markReady(token);
+      (
+        context.privatePostgresSession as typeof context.privatePostgresSession & {
+          __testSessionToken?: PrivatePostgresSessionToken;
+        }
+      ).__testSessionToken = token;
+      return {};
+    },
+  ),
+);
+
+vi.mock("./private-postgres-bootstrap.js", async () => {
+  const actual = await vi.importActual<
+    typeof import("./private-postgres-bootstrap.js")
+  >("./private-postgres-bootstrap.js");
+  return {
+    ...actual,
+    preparePrivatePostgresForOwnedPrelude: preparePrivatePostgresForOwnedPreludeMock,
+  };
+});
 
 const directories: string[] = [];
 const LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
@@ -98,6 +133,7 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
 
     expect(prepared.installationId).toBe(fixture.locator.installationId);
     expect(prepared.instanceId).toBe(fixture.locator.instanceId);
+    expect("preparePrivatePostgres" in prepared).toBe(false);
     expect(prepared.preliminaryState).toMatchObject({
       status: "CURRENT",
       value: { state: { revision: 1 } },
@@ -110,6 +146,7 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
     ]);
 
     const owned = await prepared.acquireOwnership({ heartbeatMs: 1000 });
+    expect("preparePrivatePostgres" in owned).toBe(true);
     expect(owned.authoritativeState).toMatchObject({
       status: "CURRENT",
       value: { state: { revision: 1 } },
@@ -189,6 +226,101 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
     expect(firstOwned.instanceId).not.toBe(secondOwned.instanceId);
     await Promise.all([firstOwned.close(), secondOwned.close()]);
   });
+
+  it("blocks close while private PostgreSQL is ready and retries after a clean stop", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1000 });
+
+    await owned.preparePrivatePostgres({} as never);
+
+    await expect(owned.close()).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.private_postgres.release_blocked" },
+    });
+    expect(owned.ownershipState).toBe("HELD");
+
+    const context = preparePrivatePostgresForOwnedPreludeMock.mock.calls.at(-1)?.[0];
+    expect(context).toBeDefined();
+    const token = (
+      context?.privatePostgresSession as unknown as {
+        __testSessionToken?: PrivatePostgresSessionToken;
+      }
+    ).__testSessionToken;
+    context?.privatePostgresSession.beginStop(token as PrivatePostgresSessionToken);
+    context?.privatePostgresSession.markQuiescent(token as PrivatePostgresSessionToken);
+
+    await expect(owned.close()).resolves.toBeUndefined();
+    expect(owned.ownershipState).toBe("RELEASED");
+  });
+
+  it("does not expose a raw ownership release capability from an owned prelude", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1000 });
+    const view = owned as unknown as {
+      readonly ownershipState: string;
+      readonly ownershipSignal: AbortSignal;
+    };
+
+    expect("ownership" in owned).toBe(false);
+    expect(view.ownershipState).toBe("HELD");
+    expect(view.ownershipSignal.aborted).toBe(false);
+    await owned.close();
+  });
+
+  it.each([
+    [
+      "TRANSITIONING",
+      (session: {
+        beginStop(token: PrivatePostgresSessionToken): void;
+        __testSessionToken?: PrivatePostgresSessionToken;
+      }) =>
+        session.beginStop(session.__testSessionToken as PrivatePostgresSessionToken),
+    ],
+    [
+      "UNCERTAIN",
+      (session: {
+        beginStop(token: PrivatePostgresSessionToken): void;
+        markUncertain(token: PrivatePostgresSessionToken): void;
+        __testSessionToken?: PrivatePostgresSessionToken;
+      }) => {
+        const token = session.__testSessionToken as PrivatePostgresSessionToken;
+        session.beginStop(token);
+        session.markUncertain(token);
+      },
+    ],
+  ] as const)(
+    "blocks close while private PostgreSQL is %s",
+    async (_state, arrange) => {
+      const fixture = await makeFixture();
+      const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+      const owned = await prepared.acquireOwnership({ heartbeatMs: 1000 });
+
+      await owned.preparePrivatePostgres({} as never);
+      const context = preparePrivatePostgresForOwnedPreludeMock.mock.calls.at(-1)?.[0];
+      expect(context).toBeDefined();
+      arrange(context!.privatePostgresSession);
+      await expect(owned.close()).rejects.toMatchObject({
+        problem: { problemCode: "bootstrap.private_postgres.release_blocked" },
+      });
+      expect(owned.ownershipState).toBe("HELD");
+      if (context!.privatePostgresSession.state === "UNCERTAIN") {
+        const token = (
+          context!.privatePostgresSession as unknown as {
+            __testSessionToken?: PrivatePostgresSessionToken;
+          }
+        ).__testSessionToken as PrivatePostgresSessionToken;
+        context!.privatePostgresSession.beginStop(token);
+      }
+      const token = (
+        context!.privatePostgresSession as unknown as {
+          __testSessionToken?: PrivatePostgresSessionToken;
+        }
+      ).__testSessionToken as PrivatePostgresSessionToken;
+      context!.privatePostgresSession.markQuiescent(token);
+      await owned.close();
+    },
+  );
 
   it("does not reclaim an abandoned lock at prelude level", async () => {
     const fixture = await makeFixture();

@@ -2,8 +2,8 @@ import { join } from "node:path";
 import {
   BootstrapJournal,
   BootstrapStateStore,
-  type BootstrapStateBodyV1,
-  type BootstrapStateEnvelopeV1,
+  type BootstrapStateBody,
+  type BootstrapStateEnvelope,
   type BootstrapStateLoadResult,
 } from "@heptalogos/bootstrap-state";
 import {
@@ -14,7 +14,7 @@ import type { BootstrapPathProfile } from "./roots.js";
 
 export interface OwnedBootstrapStateStore {
   load(): Promise<BootstrapStateLoadResult>;
-  commit(candidate: BootstrapStateBodyV1): Promise<BootstrapStateEnvelopeV1>;
+  commit(candidate: BootstrapStateBody): Promise<BootstrapStateEnvelope>;
 }
 
 export interface BootstrapStateAccess {
@@ -41,7 +41,7 @@ export function openBootstrapStateAccess(
       load(): Promise<BootstrapStateLoadResult> {
         return rawState.load();
       },
-      async commit(candidate: BootstrapStateBodyV1): Promise<BootstrapStateEnvelopeV1> {
+      async commit(candidate: BootstrapStateBody): Promise<BootstrapStateEnvelope> {
         assertBootstrapOwnershipFor(lease, instanceRoot);
         return rawState.commit(candidate);
       },

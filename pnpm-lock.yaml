@@ -24,6 +24,9 @@ catalogs:
     execa:
       specifier: 10.0.1
       version: 10.0.1
+    fast-check:
+      specifier: 4.9.0
+      version: 4.9.0
     nx:
       specifier: 23.1.1
       version: 23.1.1
@@ -51,6 +54,9 @@ catalogs:
     write-file-atomic:
       specifier: 8.0.0
       version: 8.0.0
+    xstate:
+      specifier: 5.32.5
+      version: 5.32.5
 
 overrides:
   '@types/node': 24.13.3
@@ -98,6 +104,9 @@ importers:
       '@heptalogos/foundation-contracts':
         specifier: workspace:*
         version: link:../foundation-contracts
+      '@heptalogos/private-postgres':
+        specifier: workspace:*
+        version: link:../private-postgres
       ajv:
         specifier: 'catalog:'
         version: 8.20.0
@@ -140,6 +149,25 @@ importers:
         specifier: 'catalog:'
         version: 14.0.2
     devDependencies:
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(yaml@2.9.0))
+
+  packages/private-postgres:
+    dependencies:
+      '@heptalogos/foundation-contracts':
+        specifier: workspace:*
+        version: link:../foundation-contracts
+      execa:
+        specifier: 'catalog:'
+        version: 10.0.1
+      xstate:
+        specifier: 'catalog:'
+        version: 5.32.5
+    devDependencies:
+      fast-check:
+        specifier: 'catalog:'
+        version: 4.9.0
       vitest:
         specifier: 'catalog:'
         version: 4.1.11(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(yaml@2.9.0))
@@ -1565,6 +1593,10 @@ packages:
     resolution: {integrity: sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==}
     engines: {node: '>=12.0.0'}
 
+  fast-check@4.9.0:
+    resolution: {integrity: sha512-7ms6T7SybUev/PQITciI0yLM2pOSFy5zpG8Ty7tQofcVaQUvrMXp6CBwqF6fThLCLOrfBtuHAtwq6Yu4XPCllg==}
+    engines: {node: '>=12.17.0'}
+
   fast-deep-equal@3.1.3:
     resolution: {integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==}
 
@@ -2076,6 +2108,9 @@ packages:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
 
+  pure-rand@8.4.2:
+    resolution: {integrity: sha512-vvuOGgcuPJAirlHvuQw1TrOiw7ptaIXXmIbNuiNOY6lNGJJH49PQ1Kj4nd783nPdQhQdicgOjVI2yI/9BD6/Ng==}
+
   readable-stream@3.6.2:
     resolution: {integrity: sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==}
     engines: {node: '>= 6'}
@@ -2439,6 +2474,9 @@ packages:
   write-file-atomic@8.0.0:
     resolution: {integrity: sha512-dYwyZredl67GyLLIHJnRM3h2PcOmN5SkcgC7eM5DPDEOEl6dLFqVrMg3F1Ea32usj4VSVZtd2H4MtKTNOf6nPg==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
+
+  xstate@5.32.5:
+    resolution: {integrity: sha512-ULazi1oe6wGrXl0Frb6otSlkm5HLifbbVTkMk5kkSKqz4TkxJaVpnl6jOJwKeid3ORPxYyZQgNLUSYX9q65SIA==}
 
   y18n@5.0.8:
     resolution: {integrity: sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==}
@@ -4035,6 +4073,10 @@ snapshots:
 
   expect-type@1.4.0: {}
 
+  fast-check@4.9.0:
+    dependencies:
+      pure-rand: 8.4.2
+
   fast-deep-equal@3.1.3: {}
 
   fast-json-stable-stringify@2.1.0: {}
@@ -4572,6 +4614,8 @@ snapshots:
 
   punycode@2.3.1: {}
 
+  pure-rand@8.4.2: {}
+
   readable-stream@3.6.2:
     dependencies:
       inherits: 2.0.4
@@ -4878,6 +4922,8 @@ snapshots:
   write-file-atomic@8.0.0:
     dependencies:
       signal-exit: 4.1.0
+
+  xstate@5.32.5: {}
 
   y18n@5.0.8: {}
 

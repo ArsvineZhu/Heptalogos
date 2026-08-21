@@ -13,6 +13,7 @@
   "dependencies": {
     "@heptalogos/bootstrap-state": "workspace:*",
     "@heptalogos/foundation-contracts": "workspace:*",
+    "@heptalogos/private-postgres": "workspace:*",
     "ajv": "catalog:",
     "proper-lockfile": "catalog:",
     "typebox": "catalog:"

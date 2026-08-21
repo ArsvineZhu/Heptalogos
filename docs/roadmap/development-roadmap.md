@@ -2,7 +2,7 @@
 
 **Status:** LIVING ROADMAP / planning guidance<br>
 **Date:** 2026-08-21<br>
-**Repository baseline:** `master@6b819c93a8ba8832605440cb84ee583ddb03bd51` (Foundation M1 merged)<br>
+**Repository baseline:** `master@fdc2af95e4c90b6ca0093ab96fd72a808e05ed57` (Foundation M2 merged)<br>
 **Architecture baseline:** `Architecture_Corpus` design state 2026-08-20
 
 > This document is a roadmap, not an Architecture Corpus authority and not an Implementation Plan. It guides future plan decomposition, sequencing, risk retirement, and acceptance. If it conflicts with the Architecture Corpus, the Corpus wins. If implementation evidence invalidates roadmap assumptions without invalidating architecture semantics, update the roadmap rather than silently changing the Corpus.
@@ -11,9 +11,9 @@
 
 ## 1. Purpose
 
-M1 established a trustworthy engineering and contract spine: repository/toolchain governance, cross-platform process mechanics, canonical serialization/digest/identity/Problem primitives, BootstrapState, recoverable BootstrapStateStore, per-BootId BootstrapJournal, and controlled review/CI closure.
+M1 established a trustworthy engineering and contract spine: repository/toolchain governance, cross-platform process mechanics, canonical serialization/digest/identity/Problem primitives, BootstrapState, recoverable BootstrapStateStore, per-BootId BootstrapJournal, and controlled review/CI closure. M2 then closed the pre-PostgreSQL bootstrap substrate: strict installation/instance locator and independent roots, per-boot early journaling, no-stale-takeover bootstrap ownership, and ownership-guarded BootstrapState mutation.
 
-M1 did **not** establish the complete executable Foundation. The next era of development should therefore change the progress metric from “packages/interfaces/tests added” to “system invariants proven by executable scenarios.”
+M1 and M2 did **not** establish the complete executable Foundation. The next era of development should therefore change the progress metric from “packages/interfaces/tests added” to “system invariants proven by executable scenarios.”
 
 The roadmap has four jobs:
 
@@ -127,6 +127,14 @@ It does not prove private PostgreSQL, runtime supervision, durable work, system 
 ### Question answered
 
 > Can a Heptalogos installation reliably identify itself, locate its independent lifecycle roots, obtain exclusive bootstrap ownership, start/validate its private PostgreSQL, and hand ownership to exactly one normal Host without an authority gap?
+
+### Current progress (2026-08-21)
+
+- M2 pre-PostgreSQL bootstrap substrate is closed and merged.
+- M3 is the active implementation plan for exact private PostgreSQL bootstrap, cluster identity, lifecycle, and the `ReadyPrivatePostgres` seam.
+- M3 implementation evidence is now present on the Draft PR branch through Task 10: Linux PostgreSQL 18.6 initialization/lifecycle/orchestration and fail-closed recovery scenarios pass; the candidate remains in review and is not an H1 closure.
+- PostgreSQL Host lease/fencing, forward/reverse handoff, and bounded abandoned-lock Recovery remain later H1 work.
+- M2 automatic `proper-lockfile` stale takeover remains intentionally disabled; an abandoned pre-PostgreSQL lock is recovery-required until that later Recovery design is qualified.
 
 ### Capability closure
 
@@ -614,7 +622,7 @@ Do not wait for one giant final test campaign. Maintain a rolling matrix where e
 
 This snapshot informs risk timing only. Exact versions must be refreshed when a future Implementation Plan freezes its Catalog/artifact closure.
 
-- PostgreSQL 18 remains the current stable major; 18.4 is the current minor, while PostgreSQL 19 is still beta. Staying on the adopted 18 line is consistent with current upstream support reality.
+- PostgreSQL 18 remains the current stable major; the M3 qualification snapshot is PostgreSQL 18.6, released 2026-08-13. PostgreSQL 18.5 was not released because of a regression in the release sequence. Staying on the adopted 18 line is consistent with current upstream support reality; exact patch evidence is refreshed by each implementation plan.
 - DBOS TypeScript 4.x remains actively maintained. Recent 4.24/4.25 changes include queue/recovery/version behavior and formal deprecation of its internal admin server. This reinforces both exact-version qualification and Heptalogos-owned Management Authority.
 - Cordis current 4.x package line is still `4.0.0-rc.*`; recent open reports concern async lifecycle/disposal/continuation behavior. This does not automatically reopen the adopted role, but it makes early RuntimeSubstrate conformance a priority.
 - AI SDK 7 is now a broad agent platform with approvals/durable agent workflow capabilities. For Heptalogos, these higher-level abstractions are a framework-leakage hazard unless deliberately excluded from Authority roles.

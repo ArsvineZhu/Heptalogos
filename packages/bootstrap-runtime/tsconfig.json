@@ -16,6 +16,9 @@
     },
     {
       "path": "../bootstrap-state"
+    },
+    {
+      "path": "../private-postgres"
     }
   ]
 }
