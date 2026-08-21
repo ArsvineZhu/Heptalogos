@@ -1617,7 +1617,8 @@ The independent review baseline was `4f0d827825fcdcd36f21371abd1e733fae80c11e` a
 
 The corrective candidate also binds state mutation to an authentic, instance-scoped ownership capability and rejects cross-workspace relative-import bypasses in the repository verifier. The different-instance concurrency evidence proves per-resolved-`INSTANCE` lock scope; M2 does not define one `InstallationAnchor` selecting multiple simultaneous instance locators.
 
+Corrective implementation candidate before this closure-record commit: `e4dfa6810834a893fe94bc5ebe5519c0ac47231c`.
 Corrective focused verification: `PASS`.
-Corrective aggregate verification: `NOT_RUN` at the time of this record update.
+Corrective aggregate verification: `PASS` — `pnpm verify`.
 Independent re-review: `NOT_RUN`.
 Final cross-platform CI: `NOT_RUN`.
