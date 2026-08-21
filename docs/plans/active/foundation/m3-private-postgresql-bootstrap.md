@@ -2470,6 +2470,30 @@ e7da993  fix: pin private postgres bootstrap identity
 07dcbdb  fix: preserve postgres restart log target
 ```
 
+## Stale-handle correction execution (2026-08-22)
+
+The new P1 Authority finding was reproduced before implementation: an earlier
+Ready handle could call its already-stopped mechanics after a newer preparation
+became READY, then mark the shared session QUIESCENT while the newer PostgreSQL
+session was still running. The correction is process-local only.
+
+```text
+implementation candidate SHA: 7c93a3fa3fd9d50d75546d1b45ea28615fea2ae5
+session fence: PASS — each preparation gets a unique opaque token; stale stop/restart fails before shared state or mechanics
+new preparation followed by failure: PASS — previous handles remain permanently stale
+focused stale-handle unit/prelude tests: PASS — 21/21
+Windows bootstrap-runtime real integration: PASS — 10/10, including same-owner ready1 -> stop -> ready2 -> stale ready1.stop -> ready2 stop -> release
+Windows private-postgres real integration revalidation: PASS — 20/20
+bootstrap role/password/restart regressions: PASS — retained from exact parent behavior and covered by pnpm verify
+recordedAt refresh: PASS — qualification-status.json set to 2026-08-21T19:29:16.991Z
+manual Codex review request after this fix: NOT_RUN — intentionally not requested
+independent re-review on the new exact candidate: NOT_RUN
+final cross-platform CI: NOT_RUN
+corrected-head Linux/macOS real PostgreSQL: NOT_RUN
+source-less shipping closure: NOT_RUN
+service-account ACL closure: NOT_RUN
+```
+
 ---
 
 # 25. Plan Self-Review

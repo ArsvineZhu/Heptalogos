@@ -101,12 +101,14 @@ The following evidence is an addendum for the final hardening candidate; the
 earlier PASS entries above remain historical evidence at their recorded SHA.
 
 ```yaml
-candidate_sha: 07dcbdb
+candidate_sha: 7c93a3fa3fd9d50d75546d1b45ea28615fea2ae5
 bootstrap_role_identity: PASS
 password_line_contract: PASS
 restart_log_continuity: PASS
+stale_ready_handle_isolation: PASS
 private_postgres_targeted_tests: PASS
 windows_real_pg_revalidation: PASS
+bootstrap_runtime_stale_handle_regression: PASS
 pnpm_verify: PASS
 ```
 
@@ -114,7 +116,8 @@ The addendum was produced by the fixed-role `initdb` argv/identity roundtrip
 tests, credential-file contract tests for empty/LF/CR/NUL and normal UTF-8
 passwords, restart argv tests, `private-postgres` real PostgreSQL 18.6
 integration (20/20), and `bootstrap-runtime` real PostgreSQL 18.6 integration
-(9/9). The qualification remains `PARTIAL`: corrected Linux/macOS real
+(10/10), including the stale Ready handle regression; the private-postgres
+real integration was revalidated at 20/20. The qualification remains `PARTIAL`: corrected Linux/macOS real
 PostgreSQL, source-less shipping, and service-account ACL closure remain
 `NOT_RUN`.
 
