@@ -1387,4 +1387,16 @@ M3 service-account ACL closure: NOT_RUN
 H1: OPEN
 baseline pnpm verify: PASS
 M4 branch: dev/m4-host-ownership-fence
+M4 implementation candidate SHA: 0e30c77a7af13edcac067430a92fdfafff24e508
+Task 1–9 implementation: PASS
+Task 10 Windows PostgreSQL 18.6 host ownership and forward handoff integration: PASS
+Task 11 partial initialization and late handoff recovery matrix: PASS
+Task 12 boundary enforcement: PASS
+Task 12 focused unit suites: PASS
+Task 12 Windows PostgreSQL integration suites: PASS
+Task 12 permanent repository gates including pnpm verify: PASS
+M4 independent review: NOT_RUN
+M4 final cross-platform CI: NOT_RUN
+M4 merge: NOT_RUN
+M5 reverse handoff / bounded Recovery: OPEN
 ```

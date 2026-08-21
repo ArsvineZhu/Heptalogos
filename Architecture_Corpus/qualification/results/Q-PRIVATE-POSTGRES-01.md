@@ -121,6 +121,47 @@ real integration was revalidated at 20/20. The qualification remains `PARTIAL`: 
 PostgreSQL, source-less shipping, and service-account ACL closure remain
 `NOT_RUN`.
 
+## Foundation M4 host ownership evidence (2026-08-22)
+
+This addendum records the M4 implementation candidate separately from the
+historical M3 hardening candidates. It does not close H1, M5 reverse handoff,
+or cross-platform/source-less/service-account qualification.
+
+```yaml
+candidate_sha: 0e30c77a7af13edcac067430a92fdfafff24e508
+host_ownership_identity: PASS
+least_privilege_host_role: PASS
+canonical_fence_schema: PASS
+dedicated_advisory_lease: PASS
+fresh_token_for_update: PASS
+lease_loss_fenced_no_reconnect: PASS
+old_transaction_serialization: PASS
+stale_token_rejected: PASS
+credential_mismatch_fail_closed: PASS
+partial_provisioning_retry: PASS
+bootstrap_to_host_forward_handoff: PASS
+bootstrap_release_after_token_commit: PASS
+host_role_privilege_confinement: PASS
+credential_plaintext_absent: PASS
+host_ownership_boundaries: PASS
+windows_host_ownership_real_pg: PASS
+windows_bootstrap_host_handoff_real_pg: PASS
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+linux_host_ownership_real_pg: NOT_RUN
+macos_host_ownership_real_pg: NOT_RUN
+source_less_shipping_closure: NOT_RUN
+service_account_acl_closure: NOT_RUN
+```
+
+The M4 evidence was produced by the focused unit suites, PostgreSQL 18.6
+Windows integration suites (`private-postgres` 20/20, `host-ownership` 5/5,
+and `bootstrap-runtime` 11/11), the partial-provisioning and late-handoff
+fault matrix, and the permanent repository gates including `pnpm verify`.
+The real database fixture used the explicit extracted Windows PostgreSQL 18.6
+bin root recorded above. Final cross-platform CI remains intentionally
+`NOT_RUN` pending independent review of this exact candidate SHA.
+
 ## Historical pre-correction Linux evidence
 
 The prior Linux real-PostgreSQL run remains historical evidence only:

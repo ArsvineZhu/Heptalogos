@@ -133,6 +133,7 @@ It does not prove private PostgreSQL, runtime supervision, durable work, system 
 - M2 pre-PostgreSQL bootstrap substrate is closed and merged.
 - M3 implementation is merged in squash commit `4b12c14693752d9796f8aa287666e6537321006d`; its corrected-final-head independent re-review, final cross-platform CI, corrected Linux/macOS real PostgreSQL, source-less shipping, and service-account ACL evidence remain `NOT_RUN`, so `Q-PRIVATE-POSTGRES-01 = PARTIAL`.
 - M4 is now the sole active Foundation implementation plan for the dedicated PostgreSQL Host lease, `HostOwnershipFence`, fresh `HostOwnershipToken`, and bootstrap → Host forward handoff.
+- M4 implementation and Windows PostgreSQL 18.6 evidence are locally complete at the recorded candidate SHA; independent review and final cross-platform CI remain `NOT_RUN`.
 - PostgreSQL reverse handoff and bounded abandoned-lock Recovery remain M5 work; H1 remains OPEN.
 - M2 automatic `proper-lockfile` stale takeover remains intentionally disabled; an abandoned pre-PostgreSQL lock is recovery-required until that later Recovery design is qualified.
 
