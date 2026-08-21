@@ -1,7 +1,29 @@
-import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { describe, expect, it } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  describe,
+  expect,
+  it,
+} from "vitest";
+import {
+  asContentDigest,
+  createInstallationId,
+  createInstanceId,
+  digestCanonicalJson,
+} from "@heptalogos/foundation-contracts";
+import type {
+  PrivatePostgresExpectedIdentity,
+  PrivatePostgresInitializationResult,
+} from "./contracts.js";
 
 const pgBin = process.env.HEPTALOGOS_TEST_PG_BIN;
 if (!pgBin) {
@@ -18,6 +40,7 @@ const { resolvePrivatePostgresPlacement } = await import("./cluster-layout.js");
 const {
   createPrivatePostgresInitializationProfileRevision,
   initializePrivatePostgresCluster,
+  validateExistingCluster,
 } = await import("./controller.js");
 
 describe("private PostgreSQL first initialization", () => {
@@ -101,6 +124,142 @@ describe("private PostgreSQL first initialization", () => {
       await Promise.all(
         [dataRoot, tempRoot].map((root) => rm(root, { recursive: true, force: true })),
       );
+    }
+  });
+
+  describe("authoritative existing cluster validation", () => {
+    let dataRoot: string;
+    let tempRoot: string;
+    let initialized: PrivatePostgresInitializationResult;
+    let expected: PrivatePostgresExpectedIdentity;
+
+    beforeAll(async () => {
+      dataRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-data-"));
+      tempRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-temp-"));
+      const placement = resolvePrivatePostgresPlacement(dataRoot);
+      const toolchain = await resolvePrivatePostgresToolchain(pgBin);
+      initialized = await initializePrivatePostgresCluster({
+        toolchain,
+        placement,
+        credentialTempRoot: tempRoot,
+        bootstrapPasswordUtf8: new TextEncoder().encode(
+          "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
+        ),
+        port: 55432,
+        lifecycle: {
+          startupTimeoutMs: 60_000,
+          shutdownTimeoutMs: 30_000,
+          readinessPollIntervalMs: 100,
+        },
+      });
+      expected = {
+        installationId: createInstallationId(),
+        instanceId: createInstanceId(),
+        postgresMajor: initialized.identity.postgresMajor,
+        placement: {
+          rootId: "DATA",
+          relativePath: "private-postgres",
+          dataLayoutVersion: 1,
+        },
+        persistedPort: initialized.port,
+        clusterSystemIdentifier: initialized.identity.clusterSystemIdentifier,
+        initializationProfileRevision: initialized.initializationProfileRevision,
+      };
+    });
+
+    afterAll(async () => {
+      await Promise.all(
+        [dataRoot, tempRoot].map((root) => rm(root, { recursive: true, force: true })),
+      );
+    });
+
+    it("validates the existing cluster without starting it", async () => {
+      const validated = await validateExistingCluster({
+        toolchain: initialized.toolchain,
+        placement: initialized.placement,
+        expectedIdentity: expected,
+        timeoutMs: 60_000,
+      });
+
+      expect(validated.identity.clusterSystemIdentifier).toBe(
+        expected.clusterSystemIdentifier,
+      );
+      await expect(
+        access(join(initialized.placement.canonicalDataDirectory, "postmaster.pid")),
+      ).rejects.toMatchObject({ code: "ENOENT" });
+    });
+
+    const mismatches: readonly [
+      string,
+      (identity: PrivatePostgresExpectedIdentity) => PrivatePostgresExpectedIdentity,
+    ][] = [
+      [
+        "major",
+        (identity) => ({ ...identity, postgresMajor: 19 as never }),
+      ],
+      [
+        "system identifier",
+        (identity) => ({
+          ...identity,
+          clusterSystemIdentifier: "9999999999999999999",
+        }),
+      ],
+      [
+        "placement",
+        (identity) => ({
+          ...identity,
+          placement: {
+            ...identity.placement,
+            relativePath: "other-cluster" as never,
+          },
+        }),
+      ],
+      [
+        "persisted port",
+        (identity) => ({
+          ...identity,
+          persistedPort: 55433,
+          initializationProfileRevision:
+            createPrivatePostgresInitializationProfileRevision(55433),
+        }),
+      ],
+      [
+        "initialization profile",
+        (identity) => ({
+          ...identity,
+          initializationProfileRevision: asContentDigest(
+            "PrivatePostgresInitializationProfileRevision",
+            digestCanonicalJson("test.private-postgres-profile/mismatch", {
+              profile: "mismatch",
+            }),
+          ),
+        }),
+      ],
+    ];
+
+    for (const [label, makeMismatch] of mismatches) {
+      it(`rejects an existing cluster with a ${label} mismatch before start`, async () => {
+        const before = await readFile(
+          join(initialized.placement.canonicalDataDirectory, "PG_VERSION"),
+          "utf8",
+        );
+        await expect(
+          validateExistingCluster({
+            toolchain: initialized.toolchain,
+            placement: initialized.placement,
+            expectedIdentity: makeMismatch(expected),
+            timeoutMs: 60_000,
+          }),
+        ).rejects.toMatchObject({
+          problem: { problemCode: "private-postgres.cluster.identity_mismatch" },
+        });
+        await expect(
+          readFile(join(initialized.placement.canonicalDataDirectory, "PG_VERSION"), "utf8"),
+        ).resolves.toBe(before);
+        await expect(
+          access(join(initialized.placement.canonicalDataDirectory, "postmaster.pid")),
+        ).rejects.toMatchObject({ code: "ENOENT" });
+      });
     }
   });
 });

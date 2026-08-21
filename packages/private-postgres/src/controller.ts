@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   asContentDigest,
@@ -8,7 +8,9 @@ import {
   type Problem,
 } from "@heptalogos/foundation-contracts";
 import {
-  PRIVATE_POSTGRES_QUALIFIED_VERSION,
+  PRIVATE_POSTGRES_DATA_LAYOUT_VERSION,
+  PRIVATE_POSTGRES_RELATIVE_DATA_PATH,
+  type PrivatePostgresExpectedIdentity,
   type PrivatePostgresInitializationProfile,
   type PrivatePostgresInitializationProfileRevision,
   type PrivatePostgresInitializationResult,
@@ -31,6 +33,13 @@ export interface InitializePrivatePostgresClusterOptions {
   readonly bootstrapPasswordUtf8: Uint8Array;
   readonly port: number;
   readonly lifecycle: PrivatePostgresLifecycleOptions;
+}
+
+export interface ValidateExistingPrivatePostgresClusterOptions {
+  readonly toolchain: PrivatePostgresToolchain;
+  readonly placement: PrivatePostgresPlacement;
+  readonly expectedIdentity: PrivatePostgresExpectedIdentity;
+  readonly timeoutMs: number;
 }
 
 function controllerProblem(
@@ -142,6 +151,54 @@ async function writeRuntimeProfile(
   }
 }
 
+function requireRuntimeProfileSetting(
+  configuration: string,
+  name: string,
+): string {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+  const match = new RegExp(`^\\s*${escapedName}\\s*=\\s*(.*?)\\s*$`, "mu").exec(
+    configuration,
+  );
+  if (!match || match[1].length === 0) {
+    throw controllerProblem(
+      "private-postgres.cluster.identity_mismatch",
+      "Private PostgreSQL runtime profile is not authoritative",
+      "The existing cluster runtime profile does not expose the required deterministic settings",
+    );
+  }
+  return match[1].replace(/^'(.*)'$/u, "$1");
+}
+
+async function readRuntimeProfile(
+  dataDirectory: string,
+): Promise<{ readonly listenAddress: string; readonly port: number; readonly passwordEncryption: string }> {
+  let configuration: string;
+  try {
+    configuration = await readFile(join(dataDirectory, "postgresql.auto.conf"), "utf8");
+  } catch {
+    throw controllerProblem(
+      "private-postgres.cluster.identity_mismatch",
+      "Private PostgreSQL runtime profile is missing",
+      "The existing cluster does not contain the Heptalogos-owned runtime profile",
+    );
+  }
+  const listenAddress = requireRuntimeProfileSetting(configuration, "listen_addresses");
+  const portText = requireRuntimeProfileSetting(configuration, "port");
+  const passwordEncryption = requireRuntimeProfileSetting(
+    configuration,
+    "password_encryption",
+  );
+  const port = Number(portText);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw controllerProblem(
+      "private-postgres.cluster.identity_mismatch",
+      "Private PostgreSQL runtime port is invalid",
+      "The existing cluster runtime profile contains an invalid port",
+    );
+  }
+  return { listenAddress, port, passwordEncryption };
+}
+
 export async function initializePrivatePostgresCluster(
   options: InitializePrivatePostgresClusterOptions,
 ): Promise<PrivatePostgresInitializationResult> {
@@ -200,6 +257,83 @@ export async function initializePrivatePostgresCluster(
     },
     port: options.port,
     initializationProfileRevision,
+    dataPageChecksumVersion: inspection.dataPageChecksumVersion,
+    databaseClusterState: inspection.databaseClusterState,
+    catalogVersionNumber: inspection.catalogVersionNumber,
+  });
+}
+
+export async function validateExistingCluster(
+  options: ValidateExistingPrivatePostgresClusterOptions,
+): Promise<PrivatePostgresInitializationResult> {
+  const expectedPlacement = options.expectedIdentity.placement;
+  if (
+    expectedPlacement.rootId !== "DATA" ||
+    expectedPlacement.relativePath !== PRIVATE_POSTGRES_RELATIVE_DATA_PATH ||
+    expectedPlacement.dataLayoutVersion !== PRIVATE_POSTGRES_DATA_LAYOUT_VERSION
+  ) {
+    throw controllerProblem(
+      "private-postgres.cluster.identity_mismatch",
+      "Private PostgreSQL placement does not match BootstrapState",
+      "The existing cluster placement is not the authoritative DATA/private-postgres layout",
+    );
+  }
+
+  const inspection = await inspectPrivatePostgresCluster(
+    options.toolchain,
+    options.placement.canonicalDataDirectory,
+    { timeoutMs: options.timeoutMs },
+  );
+  if (
+    inspection.postgresMajor !== options.expectedIdentity.postgresMajor ||
+    inspection.clusterSystemIdentifier !==
+      options.expectedIdentity.clusterSystemIdentifier ||
+    inspection.dataPageChecksumVersion !== 1
+  ) {
+    throw controllerProblem(
+      "private-postgres.cluster.identity_mismatch",
+      "Private PostgreSQL cluster identity does not match BootstrapState",
+      "The existing cluster major, system identifier, or checksum profile does not match the authoritative identity",
+    );
+  }
+
+  const runtimeProfile = await readRuntimeProfile(
+    options.placement.canonicalDataDirectory,
+  );
+  if (
+    runtimeProfile.listenAddress !== "127.0.0.1" ||
+    runtimeProfile.passwordEncryption !== "scram-sha-256" ||
+    runtimeProfile.port !== options.expectedIdentity.persistedPort
+  ) {
+    throw controllerProblem(
+      "private-postgres.cluster.identity_mismatch",
+      "Private PostgreSQL runtime profile does not match BootstrapState",
+      "The existing cluster loopback, port, or password-encryption profile does not match the authoritative identity",
+    );
+  }
+
+  const actualProfileRevision = createPrivatePostgresInitializationProfileRevision(
+    runtimeProfile.port,
+  );
+  if (
+    actualProfileRevision !== options.expectedIdentity.initializationProfileRevision
+  ) {
+    throw controllerProblem(
+      "private-postgres.cluster.identity_mismatch",
+      "Private PostgreSQL initialization profile does not match BootstrapState",
+      "The existing cluster initialization profile revision does not match the authoritative identity",
+    );
+  }
+
+  return Object.freeze({
+    toolchain: options.toolchain,
+    placement: options.placement,
+    identity: {
+      clusterSystemIdentifier: inspection.clusterSystemIdentifier,
+      postgresMajor: inspection.postgresMajor,
+    },
+    port: runtimeProfile.port,
+    initializationProfileRevision: actualProfileRevision,
     dataPageChecksumVersion: inspection.dataPageChecksumVersion,
     databaseClusterState: inspection.databaseClusterState,
     catalogVersionNumber: inspection.catalogVersionNumber,

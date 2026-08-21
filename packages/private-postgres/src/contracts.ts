@@ -39,6 +39,7 @@ export interface PrivatePostgresClusterIdentity {
 export interface PrivatePostgresExpectedIdentity {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
+  readonly postgresMajor: 18;
   readonly placement: Omit<PrivatePostgresPlacement, "canonicalDataDirectory">;
   readonly persistedPort: number;
   readonly clusterSystemIdentifier: string;
