@@ -458,34 +458,100 @@ async function readPrivatePostgresProcessStatus(
   );
 }
 
-async function ensurePrivatePostgresStopped(
+function startCleanupUncertainProblem(): ProblemError {
+  return controllerProblem(
+    "private-postgres.lifecycle.start_cleanup_uncertain",
+    "Private PostgreSQL start cleanup is uncertain",
+    "An issued PostgreSQL start or restart may still complete in the background and its process state could not be proven safely quiescent",
+    "integrity",
+  );
+}
+
+function stopUncertainProblem(): ProblemError {
+  return controllerProblem(
+    "private-postgres.lifecycle.stop_uncertain",
+    "Private PostgreSQL stop is uncertain",
+    "The private PostgreSQL process could not be proven stopped through the bounded stop path",
+    "integrity",
+  );
+}
+
+async function stopWithProof(
   options: StartPrivatePostgresClusterOptions,
-  statusTimeoutMs = options.lifecycle.shutdownTimeoutMs,
-  onCommandIssued?: () => void,
+  lifecycleState: PrivatePostgresLifecycleTracker,
+  uncertainty: () => ProblemError,
 ): Promise<void> {
-  const before = await readPrivatePostgresProcessStatus(options, statusTimeoutMs);
-  if (before === "STOPPED") return;
+  if (lifecycleState.detail === "stopped") return;
 
+  let before: PrivatePostgresProcessStatus;
   try {
-    await stopProcess(options, onCommandIssued);
-  } catch (error) {
-    const afterFailedStop = await readPrivatePostgresProcessStatus(
+    before = await readPrivatePostgresProcessStatus(
       options,
-      statusTimeoutMs,
+      options.lifecycle.shutdownTimeoutMs,
     );
-    if (afterFailedStop === "STOPPED") return;
-    throw error;
+  } catch {
+    throw uncertainty();
   }
 
-  const afterStop = await readPrivatePostgresProcessStatus(options, statusTimeoutMs);
-  if (afterStop !== "STOPPED") {
-    throw controllerProblem(
-      "private-postgres.lifecycle.stop_uncertain",
-      "Private PostgreSQL stop is uncertain",
-      "pg_ctl returned without proving that the private PostgreSQL process stopped",
-      "integrity",
-    );
+  if (before === "STOPPED") {
+    if (lifecycleState.can({ type: "STATUS_STOPPED_PROVEN" })) {
+      lifecycleState.send({ type: "STATUS_STOPPED_PROVEN" });
+      return;
+    }
+    if (lifecycleState.can({ type: "UNEXPECTED_PROCESS_EXIT" })) {
+      lifecycleState.send({ type: "UNEXPECTED_PROCESS_EXIT" });
+      lifecycleState.send({ type: "STATUS_STOPPED_PROVEN" });
+      return;
+    }
+    throw uncertainty();
   }
+
+  if (lifecycleState.can({ type: "STATUS_RUNNING_PROVEN" })) {
+    lifecycleState.send({ type: "STATUS_RUNNING_PROVEN" });
+  }
+  if (!lifecycleState.can({ type: "STOP_COMMAND_ISSUED" })) {
+    throw uncertainty();
+  }
+
+  options.assertControlAuthority();
+  lifecycleState.send({ type: "STOP_COMMAND_ISSUED" });
+  try {
+    await stopProcess(options);
+  } catch {
+    // A failed pg_ctl stop may still have stopped the process. The status probe
+    // below is the only authority for whether cleanup completed.
+  }
+
+  let after: PrivatePostgresProcessStatus;
+  try {
+    after = await readPrivatePostgresProcessStatus(
+      options,
+      options.lifecycle.shutdownTimeoutMs,
+    );
+  } catch {
+    if (lifecycleState.can({ type: "STOP_OUTCOME_UNCERTAIN" })) {
+      lifecycleState.send({ type: "STOP_OUTCOME_UNCERTAIN" });
+    }
+    throw uncertainty();
+  }
+  if (after !== "STOPPED") {
+    if (lifecycleState.can({ type: "STOP_OUTCOME_UNCERTAIN" })) {
+      lifecycleState.send({ type: "STOP_OUTCOME_UNCERTAIN" });
+    }
+    throw uncertainty();
+  }
+  if (lifecycleState.can({ type: "STATUS_STOPPED_PROVEN" })) {
+    lifecycleState.send({ type: "STATUS_STOPPED_PROVEN" });
+    return;
+  }
+  throw uncertainty();
+}
+
+async function resolveAmbiguousStartForCleanup(
+  options: StartPrivatePostgresClusterOptions,
+  lifecycleState: PrivatePostgresLifecycleTracker,
+): Promise<void> {
+  await stopWithProof(options, lifecycleState, startCleanupUncertainProblem);
 }
 
 async function startProcess(
@@ -539,12 +605,8 @@ async function restartProcess(
   );
 }
 
-async function stopProcess(
-  options: StartPrivatePostgresClusterOptions,
-  onCommandIssued?: () => void,
-): Promise<void> {
+async function stopProcess(options: StartPrivatePostgresClusterOptions): Promise<void> {
   options.assertControlAuthority();
-  onCommandIssued?.();
   await runPgCtlChecked(
     options.toolchain,
     [
@@ -627,24 +689,7 @@ export async function startPrivatePostgresCluster(
             "conflict",
           );
         }
-        try {
-          await ensurePrivatePostgresStopped(
-            options,
-            options.lifecycle.shutdownTimeoutMs,
-            () => lifecycleState.send({ type: "STOP_COMMAND_ISSUED" }),
-          );
-          if (lifecycleState.can({ type: "STATUS_STOPPED_PROVEN" })) {
-            lifecycleState.send({ type: "STATUS_STOPPED_PROVEN" });
-          } else if (lifecycleState.can({ type: "UNEXPECTED_PROCESS_EXIT" })) {
-            lifecycleState.send({ type: "UNEXPECTED_PROCESS_EXIT" });
-            lifecycleState.send({ type: "STATUS_STOPPED_PROVEN" });
-          }
-        } catch (error) {
-          if (lifecycleState.can({ type: "STOP_OUTCOME_UNCERTAIN" })) {
-            lifecycleState.send({ type: "STOP_OUTCOME_UNCERTAIN" });
-          }
-          throw error;
-        }
+        await stopWithProof(options, lifecycleState, stopUncertainProblem);
       },
       async restart(): Promise<void> {
         options.assertControlAuthority();
@@ -714,6 +759,12 @@ export async function startPrivatePostgresCluster(
           }
           lifecycleState.send({ type: "READY_PROVEN" });
         } catch (error) {
+          const detail: string = lifecycleState.detail;
+          if (detail === "startCommandPending") {
+            lifecycleState.send({ type: "START_OUTCOME_UNCERTAIN" });
+          } else if (detail === "startedPendingReady") {
+            lifecycleState.send({ type: "POST_START_PROOF_FAILED" });
+          }
           if (error instanceof ProblemError) throw error;
           throw controllerProblem(
             "private-postgres.lifecycle.restart_failed",
@@ -727,19 +778,12 @@ export async function startPrivatePostgresCluster(
   } catch (error) {
     if (lifecycleState.detail === "startCommandPending") {
       lifecycleState.send({ type: "START_OUTCOME_UNCERTAIN" });
+      await resolveAmbiguousStartForCleanup(options, lifecycleState);
+      throw error;
     } else if (lifecycleState.detail === "startedPendingReady") {
       lifecycleState.send({ type: "POST_START_PROOF_FAILED" });
-    }
-    if (lifecycleState.detail === "stopped") throw error;
-    try {
-      await ensurePrivatePostgresStopped(options, options.lifecycle.shutdownTimeoutMs);
-    } catch {
-      throw controllerProblem(
-        "private-postgres.lifecycle.start_cleanup_uncertain",
-        "Private PostgreSQL start cleanup is uncertain",
-        "PostgreSQL started but a later readiness or identity check failed and the process could not be proven stopped",
-        "integrity",
-      );
+      await stopWithProof(options, lifecycleState, startCleanupUncertainProblem);
+      throw error;
     }
     throw error;
   }

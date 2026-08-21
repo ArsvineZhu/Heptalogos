@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -13,6 +13,7 @@ import {
 import {
   BootstrapStateStore,
   type BootstrapStateBodyV1,
+  type BootstrapStateBodyV2,
 } from "@heptalogos/bootstrap-state";
 import type {
   BootstrapKeyProvider,
@@ -30,6 +31,71 @@ import * as bootstrapRuntime from "./index.js";
 
 const directories: string[] = [];
 const LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
+const { AMBIGUOUS_START_TEST_BIN } = vi.hoisted(() => ({
+  AMBIGUOUS_START_TEST_BIN: "ambiguous-start-test-bin",
+}));
+
+vi.mock("@heptalogos/private-postgres", async () => {
+  const actual = await vi.importActual<typeof import("@heptalogos/private-postgres")>(
+    "@heptalogos/private-postgres",
+  );
+  return {
+    ...actual,
+    resolvePrivatePostgresToolchain: async (binDirectory: string) => {
+      if (binDirectory === AMBIGUOUS_START_TEST_BIN) {
+        return {
+          version: "18.6",
+          major: 18,
+          binDirectory,
+          postgres: `${binDirectory}/postgres.exe`,
+          initdb: `${binDirectory}/initdb.exe`,
+          pgCtl: `${binDirectory}/pg_ctl.exe`,
+          pgControldata: `${binDirectory}/pg_controldata.exe`,
+          pgIsReady: `${binDirectory}/pg_isready.exe`,
+        } as const;
+      }
+      return actual.resolvePrivatePostgresToolchain(binDirectory);
+    },
+    validateExistingCluster: async (
+      options: Parameters<typeof actual.validateExistingCluster>[0],
+    ) => {
+      if (options.toolchain.binDirectory === AMBIGUOUS_START_TEST_BIN) {
+        return {
+          toolchain: options.toolchain,
+          placement: options.placement,
+          identity: {
+            clusterSystemIdentifier: options.expectedIdentity.clusterSystemIdentifier,
+            postgresMajor: 18,
+          },
+          port: options.expectedIdentity.persistedPort,
+          initializationProfileRevision:
+            options.expectedIdentity.initializationProfileRevision,
+          dataPageChecksumVersion: 1,
+          databaseClusterState: "shut down",
+          catalogVersionNumber: "202507181",
+        };
+      }
+      return actual.validateExistingCluster(options);
+    },
+    startPrivatePostgresCluster: async (
+      options: Parameters<typeof actual.startPrivatePostgresCluster>[0],
+    ) => {
+      if (options.toolchain.binDirectory === AMBIGUOUS_START_TEST_BIN) {
+        throw {
+          problem: {
+            schemaVersion: 1,
+            problemCode: "private-postgres.lifecycle.start_cleanup_uncertain",
+            category: "integrity",
+            retryClass: "manual",
+            title: "Private PostgreSQL start cleanup is uncertain",
+            detail: "The mocked issued start remains uncertain",
+          },
+        };
+      }
+      return actual.startPrivatePostgresCluster(options);
+    },
+  };
+});
 
 interface TestPreparePrivatePostgresOptions {
   readonly toolchainBinDirectory: string;
@@ -64,6 +130,7 @@ function makeState(revision: number): BootstrapStateBodyV1 {
 async function makeFixture(): Promise<{
   readonly anchorRoot: string;
   readonly instanceRoot: string;
+  readonly dataRoot: string;
 }> {
   const anchorRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-bootstrap-anchor-"));
   directories.push(anchorRoot);
@@ -84,7 +151,7 @@ async function makeFixture(): Promise<{
   await new BootstrapStateStore(join(roots.INSTANCE, "bootstrap-state")).commit(
     makeState(1),
   );
-  return { anchorRoot, instanceRoot: roots.INSTANCE };
+  return { anchorRoot, instanceRoot: roots.INSTANCE, dataRoot: roots.DATA };
 }
 
 function makeOptions(
@@ -331,5 +398,76 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
     });
     expect(calls.count).toBe(0);
     await owned.close();
+  });
+
+  it("keeps bootstrap ownership held when ambiguous start cleanup is uncertain", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const dataDirectory = join(fixture.dataRoot, "private-postgres");
+    await mkdir(dataDirectory, { recursive: true });
+    await writeFile(join(dataDirectory, "PG_VERSION"), "18\n");
+
+    const initializationProfileRevision = asContentDigest(
+      "PrivatePostgresInitializationProfileRevision",
+      digestCanonicalJson("test.private-postgres.profile/v1", {
+        port: 55455,
+      }),
+    );
+    const current = makeState(1);
+    const stateV2: BootstrapStateBodyV2 = {
+      ...current,
+      schemaVersion: 2,
+      revision: 2,
+      privatePostgres: {
+        schemaVersion: 1,
+        postgresMajor: 18,
+        initializedByPostgresVersion: "18.6",
+        installationId: owned.installationId,
+        instanceId: owned.instanceId,
+        dataPlacement: {
+          rootId: "DATA",
+          relativePath: "private-postgres",
+          dataLayoutVersion: 1,
+        },
+        persistedPort: 55455,
+        clusterSystemIdentifier: "123456789",
+        initializationProfileRevision,
+      },
+    };
+    await owned.state.commit(stateV2);
+
+    const calls = { count: 0 };
+    try {
+      await expect(
+        callable(owned).preparePrivatePostgres({
+          ...makeOptions(AMBIGUOUS_START_TEST_BIN, calls),
+          initialPort: undefined,
+        }),
+      ).rejects.toMatchObject({
+        problem: {
+          problemCode: "private-postgres.lifecycle.start_cleanup_uncertain",
+        },
+      });
+      expect(owned.ownershipState).toBe("HELD");
+      await expect(owned.close()).rejects.toMatchObject({
+        problem: { problemCode: "bootstrap.private_postgres.release_blocked" },
+      });
+      expect(owned.ownershipState).toBe("HELD");
+    } finally {
+      await rm(join(fixture.instanceRoot, LOCK_DIRECTORY), {
+        recursive: true,
+        force: true,
+      });
+      await new Promise<void>((resolve) => {
+        if (owned.ownershipSignal.aborted) {
+          resolve();
+        } else {
+          owned.ownershipSignal.addEventListener("abort", () => resolve(), {
+            once: true,
+          });
+        }
+      });
+    }
   });
 });
