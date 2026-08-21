@@ -28,7 +28,7 @@ interface FenceRow {
 }
 
 const FENCE_FOR_UPDATE = `
-SELECT instance_id, ownership_revision, host_ownership_token, boot_id
+SELECT singleton, instance_id, ownership_revision, host_ownership_token, boot_id
 FROM "${HOST_OWNERSHIP_SCHEMA}"."${HOST_OWNERSHIP_FENCE_TABLE}"
 WHERE singleton = true
 FOR UPDATE

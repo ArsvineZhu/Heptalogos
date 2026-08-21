@@ -225,7 +225,7 @@ function assertExactConstraints(rows: readonly ConstraintRow[]): void {
   const expected = new Set([
     "p:primary key (singleton)",
     "c:check (singleton)",
-    "c:check ((ownership_revision >= 0))",
+    "c:check (ownership_revision >= 0)",
   ]);
   if (
     rows.length !== expected.size ||
@@ -338,6 +338,7 @@ async function ensureFenceTable(client: BootstrapAdminClient): Promise<boolean> 
   }
   const existing = rows.rows[0];
   const tableCreated = existing === undefined;
+  const tableRef = `${quoteIdentifier(HOST_OWNERSHIP_SCHEMA)}.${quoteIdentifier(HOST_OWNERSHIP_FENCE_TABLE)}`;
   if (existing !== undefined) {
     if (
       existing.owner_name !== HOST_OWNERSHIP_OWNER_ROLE ||
@@ -356,7 +357,7 @@ async function ensureFenceTable(client: BootstrapAdminClient): Promise<boolean> 
     const constraints = await client.query<ConstraintRow>(CONSTRAINT_QUERY, [
       `${HOST_OWNERSHIP_SCHEMA}.${HOST_OWNERSHIP_FENCE_TABLE}`,
     ]);
-    assertExactConstraints(constraints.rows);
+    assertExactConstraints(constraints.rows.filter((row) => row.contype !== "n"));
     const acl = await client.query<AclRow>(TABLE_ACL_QUERY, [
       HOST_OWNERSHIP_SCHEMA,
       HOST_OWNERSHIP_FENCE_TABLE,
@@ -382,8 +383,10 @@ CREATE TABLE ${quoteIdentifier(HOST_OWNERSHIP_SCHEMA)}.${quoteIdentifier(HOST_OW
   CONSTRAINT host_ownership_fence_singleton_check CHECK (singleton),
   CONSTRAINT host_ownership_fence_revision_check CHECK (ownership_revision >= 0)
 )`);
+    await client.query(
+      `ALTER TABLE ${tableRef} OWNER TO ${quoteIdentifier(HOST_OWNERSHIP_OWNER_ROLE)}`,
+    );
   }
-  const tableRef = `${quoteIdentifier(HOST_OWNERSHIP_SCHEMA)}.${quoteIdentifier(HOST_OWNERSHIP_FENCE_TABLE)}`;
   await client.query(`REVOKE ALL ON TABLE ${tableRef} FROM PUBLIC`);
   await client.query(
     `GRANT SELECT, UPDATE ON TABLE ${tableRef} TO ${quoteIdentifier(HOST_LEASE_ROLE)}`,

@@ -111,6 +111,7 @@ describe("HostOwnershipFence token publication", () => {
     expect(sql).toContain("BEGIN");
     expect(sql).toContain("lock_timeout");
     expect(sql).toContain("statement_timeout");
+    expect(sql).toContain("SELECT singleton, instance_id");
     expect(sql).toContain("FOR UPDATE");
     expect(sql).toContain("UPDATE");
     expect(sql).toContain("COMMIT");

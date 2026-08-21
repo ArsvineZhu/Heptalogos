@@ -59,7 +59,7 @@ const exactConstraints = [
   {
     conname: "host_ownership_fence_revision_check",
     contype: "c",
-    definition: "CHECK ((ownership_revision >= 0))",
+    definition: "CHECK (ownership_revision >= 0)",
   },
   {
     conname: "host_ownership_fence_singleton_check",
@@ -143,6 +143,7 @@ class FakeSchemaClient implements BootstrapAdminClient {
     if (
       normalized.startsWith("CREATE SCHEMA") ||
       normalized.startsWith("CREATE TABLE") ||
+      normalized.startsWith("ALTER TABLE") ||
       normalized.startsWith("REVOKE") ||
       normalized.startsWith("GRANT")
     ) {
@@ -230,6 +231,9 @@ describe("HostOwnershipFence schema", () => {
     const sql = fixture.client.calls.map((call) => call.text).join("\n");
     expect(sql).toContain(`CREATE SCHEMA \"${HOST_OWNERSHIP_SCHEMA}\"`);
     expect(sql).toContain("CREATE TABLE");
+    expect(sql).toContain(
+      `ALTER TABLE \"${HOST_OWNERSHIP_SCHEMA}\".\"host_ownership_fence\" OWNER TO \"${HOST_OWNERSHIP_OWNER_ROLE}\"`,
+    );
     expect(sql).toContain("REVOKE ALL ON DATABASE");
     expect(sql).toContain("REVOKE ALL ON SCHEMA");
     expect(sql).toContain(
