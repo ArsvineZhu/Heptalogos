@@ -31,9 +31,7 @@ describe("writeCrashSafeFile", () => {
       directories.push(directory);
       const file = join(directory, "state.json");
 
-      await expect(writeCrashSafeFile(file, "{}")).resolves.toBe(
-        "DIRECTORY_SYNCED",
-      );
+      await expect(writeCrashSafeFile(file, "{}")).resolves.toBe("DIRECTORY_SYNCED");
     },
   );
 
@@ -44,9 +42,7 @@ describe("writeCrashSafeFile", () => {
       directories.push(directory);
       const file = join(directory, "state.json");
 
-      await expect(writeCrashSafeFile(file, "{}")).resolves.toBe(
-        "PLATFORM_UNVERIFIED",
-      );
+      await expect(writeCrashSafeFile(file, "{}")).resolves.toBe("PLATFORM_UNVERIFIED");
     },
   );
 

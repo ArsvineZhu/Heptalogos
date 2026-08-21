@@ -10,9 +10,7 @@ const writeFileAtomic = require("write-file-atomic") as (
   options?: { readonly encoding?: BufferEncoding },
 ) => Promise<void>;
 
-export type PublicationDurability =
-  | "DIRECTORY_SYNCED"
-  | "PLATFORM_UNVERIFIED";
+export type PublicationDurability = "DIRECTORY_SYNCED" | "PLATFORM_UNVERIFIED";
 
 export async function writeCrashSafeFile(
   filename: string,
