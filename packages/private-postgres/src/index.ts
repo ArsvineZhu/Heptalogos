@@ -11,3 +11,4 @@ export {
   type PrivatePostgresToolchain,
   type ReadyPrivatePostgresMechanics,
 } from "./contracts.js";
+export { resolvePrivatePostgresToolchain } from "./toolchain.js";
