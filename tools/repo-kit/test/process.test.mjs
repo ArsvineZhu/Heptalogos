@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { mkdtemp, realpath, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { runNode, runPnpm, runProcessChecked } from "../src/process.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -36,5 +39,35 @@ describe("repository process runner", () => {
     );
     expect(result.exitCode).toBe(7);
     expect(result.failed).toBe(true);
+  });
+
+  it("passes environment variables to the child process", async () => {
+    const result = await runNode(
+      "-e",
+      [
+        "process.stdout.write(JSON.stringify({ probe: process.env.HEPTALOGOS_PROBE ?? null, inheritsPath: Boolean(process.env.PATH) }))",
+      ],
+      { cwd: repoRoot, env: { HEPTALOGOS_PROBE: "windows-env-probe" } },
+    );
+    expect(JSON.parse(result.stdout)).toEqual({
+      probe: "windows-env-probe",
+      inheritsPath: true,
+    });
+  });
+
+  it("runs the child in the requested working directory", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "heptalogos-repo-kit-cwd-"));
+    try {
+      const result = await runNode("-e", ["process.stdout.write(process.cwd())"], {
+        cwd: directory,
+      });
+      const [childCwd, expected] = await Promise.all([
+        realpath(result.stdout),
+        realpath(directory),
+      ]);
+      expect(childCwd).toBe(expected);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 });
