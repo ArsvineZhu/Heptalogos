@@ -2332,6 +2332,65 @@ open and prevent the parent process-control promise from completing while the
 server remains running. Detached start/restart therefore use ignored stdio;
 diagnostic capture remains available for bounded commands.
 
+## Follow-up Independent Review Correction (2026-08-22)
+
+The exact candidate reviewed after the first corrective documentation commit
+was `7cf02b0812fdcd3d443c8c0a93e642a2b0a809e3`. The follow-up review result was
+`REQUEST_CHANGES` with two P1 lifecycle blockers:
+
+```text
+follow-up review baseline:
+  SHA 7cf02b0812fdcd3d443c8c0a93e642a2b0a809e3
+  result REQUEST_CHANGES
+
+follow-up findings:
+  OwnedBootstrapPrelude exposed a direct ownership release capability
+  ownership release had no synchronous RELEASING fence
+  pg_ctl start timeout/nonzero could be treated as not-started
+  STOPPED in-memory state could hide a running process after restart failure
+
+current correction host:
+  Windows
+
+corrective local qualification:
+  exact evidence only
+
+independent re-review:
+  NOT_RUN
+
+final cross-platform CI:
+  NOT_RUN
+```
+
+The corrected implementation/evidence parent SHA before the next documentation
+commit is:
+
+```text
+b0f01aaa00acd505754acaaed31cf4e05e6892bd
+```
+
+The follow-up local evidence is:
+
+```text
+Windows exact PostgreSQL 18.6 five-tool proof: PASS
+private-postgres real integration: PASS — 20/20
+bootstrap-runtime real integration: PASS — 9/9
+spaces/non-ASCII TEMP/TMP path audit: PASS
+ownership release capability absent from OwnedBootstrapPrelude: PASS
+ownership release-start fence / RELEASING state: PASS
+pg_ctl timeout uncertainty status/stop/status proof: PASS — focused lifecycle unit
+STOPPED restart-readiness failure bounded-stop proof: PASS — real Windows integration
+pnpm verify: PASS
+corrected-head Linux: NOT_RUN
+corrected-head macOS: NOT_RUN
+service-account ACL closure: NOT_RUN
+source-less shipping closure: NOT_RUN
+```
+
+This follow-up correction remains inside M3 private PostgreSQL lifecycle and
+bootstrap ownership boundaries; no M4 Host lease/fence or normal mutation path
+was introduced.
+
 ---
 
 # 25. Plan Self-Review

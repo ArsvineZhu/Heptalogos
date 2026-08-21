@@ -16,7 +16,7 @@ platform: Windows x64
 os_version: "Microsoft Windows NT 10.0.26200.0"
 runtime: "Node 24.19.0 / pnpm 11.22.0"
 postgres_provenance: "EDB PostgreSQL 18.6 Windows x86-64 binary archive, completely extracted into a temporary qualification root; not a source-less shipping artifact"
-candidate_sha: 3771b0f8dd1c47bb350b864cb7d3f11257971a5e
+candidate_sha: b0f01aaa00acd505754acaaed31cf4e05e6892bd
 exact_version_outputs:
   postgres: "postgres (PostgreSQL) 18.6"
   initdb: "initdb (PostgreSQL) 18.6"
@@ -54,6 +54,10 @@ duplicate_runtime_setting_rejected: PASS
 hba_tamper_rejected: PASS
 initialized_by_version_is_provenance: PASS
 windows_unicode_space_path_audit: PASS
+ownership_release_capability_not_exposed: PASS
+ownership_release_start_fenced: PASS
+start_timeout_background_outcome_proven: PASS
+restart_uncertain_stop_proven: PASS
 windows_real_pg: PASS
 linux_real_pg: NOT_RUN
 macos_real_pg: NOT_RUN
@@ -63,8 +67,10 @@ service_account_acl_closure: NOT_RUN
 
 The Windows evidence was produced by:
 
-- `pnpm nx run private-postgres:test:integration` — 19/19 PASS.
+- `pnpm nx run private-postgres:test:integration` — 20/20 PASS.
 - `pnpm exec vitest run --root packages/bootstrap-runtime src/private-postgres-bootstrap.integration.test.ts --testTimeout=120000` — 9/9 PASS.
+- `pnpm exec vitest run --root packages/private-postgres src/controller.lifecycle.test.ts` — PASS; the timed-out `pg_ctl` start path performs status/stop/status proof before returning the original error.
+- `pnpm test` — 30 private-postgres unit tests and 44 bootstrap-runtime unit tests passed, with one pre-existing skipped test.
 - The same two suites with Node `TEMP`/`TMP` rooted under a normal Windows
   drive path containing spaces and non-ASCII characters — PASS.
 - `postgres -D <data> -C <setting>` effective-setting inspection, including
@@ -74,9 +80,11 @@ The Windows evidence was produced by:
 
 The test fixtures assert that the sentinel password is absent from generated
 BootstrapState, BootstrapJournal, and PostgreSQL log evidence; the
-credential-file helper removes the ephemeral password file after the bounded
-callback. Windows temporary-file mode tests do not qualify service-account or
-installer ACL behavior.
+  credential-file helper removes the ephemeral password file after the bounded
+  callback. Windows temporary-file mode tests do not qualify service-account or
+  installer ACL behavior. The real lifecycle suite also covers a restart
+  readiness failure followed by a bounded stop that proves the process is no
+  longer running; it does not treat stale in-memory STOPPED state as proof.
 
 ## Historical pre-correction Linux evidence
 
