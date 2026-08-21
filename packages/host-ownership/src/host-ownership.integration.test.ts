@@ -338,6 +338,14 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
         secondClient.query("CREATE SCHEMA m4_forbidden_schema"),
       ).rejects.toThrow();
       await expect(
+        secondClient.query("CREATE TABLE public.m4_forbidden_table (value integer)"),
+      ).rejects.toThrow();
+      await expect(
+        secondClient.query(
+          "ALTER TABLE heptalogos.host_ownership_fence ADD COLUMN m4_forbidden integer",
+        ),
+      ).rejects.toThrow();
+      await expect(
         secondClient.query(
           "INSERT INTO heptalogos.host_ownership_fence VALUES (false, $1, 0, NULL, NULL)",
           [fixture.instanceId],

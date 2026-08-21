@@ -216,4 +216,79 @@ describe("bootstrap to Host ownership real PostgreSQL 18.6 qualification", () =>
       }
     }
   }, 120_000);
+
+  it("yields an already-running PostgreSQL process without disturbing Host A", async () => {
+    const fixture = await makeFixture();
+    const firstPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const firstOwned = await firstPrepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const keyProvider = makeKeyProvider();
+    const options = {
+      toolchainBinDirectory: qualifiedPgBin,
+      initialPort: 55446,
+      lifecycle: LIFECYCLE,
+      keyProvider,
+    };
+    let firstReady: ReadyPrivatePostgres | undefined;
+    let hostA: HostOwnershipContext | undefined;
+
+    try {
+      firstReady = await firstOwned.preparePrivatePostgres(options);
+      hostA = await firstOwned.handoffPrivatePostgresToHost(firstReady, {
+        keyProvider,
+        timing: {
+          connectionTimeoutMs: 10_000,
+          statementTimeoutMs: 10_000,
+          fenceLockTimeoutMs: 10_000,
+          keepAliveInitialDelayMs: 1_000,
+        },
+      });
+
+      const secondPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+      const secondOwned = await secondPrepared.acquireOwnership({ heartbeatMs: 1_000 });
+      let secondReady: ReadyPrivatePostgres | undefined;
+      try {
+        secondReady = await secondOwned.preparePrivatePostgres({
+          toolchainBinDirectory: qualifiedPgBin,
+          lifecycle: LIFECYCLE,
+          keyProvider,
+        });
+        expect(secondReady.startupDisposition).toBe("ALREADY_RUNNING");
+        expect(secondReady.port).toBe(firstReady.port);
+
+        await expect(
+          secondOwned.handoffPrivatePostgresToHost(secondReady, {
+            keyProvider,
+            timing: {
+              connectionTimeoutMs: 10_000,
+              statementTimeoutMs: 10_000,
+              fenceLockTimeoutMs: 10_000,
+              keepAliveInitialDelayMs: 1_000,
+            },
+          }),
+        ).rejects.toMatchObject({
+          problem: { problemCode: "bootstrap.host.existing_owner_detected" },
+        });
+        expect(secondOwned.ownershipState).toBe("RELEASED");
+        const activeHost = hostA;
+        if (activeHost === undefined) throw new Error("Host A was not established");
+        expect(activeHost.state).toBe("ACTIVE");
+        expect(() => activeHost.assertActive()).not.toThrow();
+        await expect(
+          access(join(fixture.roots.DATA, "private-postgres", "postmaster.pid")),
+        ).resolves.toBeUndefined();
+      } finally {
+        await secondReady?.stop().catch(() => undefined);
+        if (secondOwned.ownershipState !== "RELEASED") {
+          await secondOwned.close().catch(() => undefined);
+        }
+      }
+    } finally {
+      await hostA?.close().catch(() => undefined);
+      await firstReady?.stop().catch(() => undefined);
+      await stopQualifiedPostgres(join(fixture.roots.DATA, "private-postgres"));
+      if (firstOwned.ownershipState !== "RELEASED") {
+        await firstOwned.close().catch(() => undefined);
+      }
+    }
+  }, 120_000);
 });
