@@ -1,4 +1,3 @@
-import { createRequire } from "node:module";
 import { mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Ajv2020 } from "ajv/dist/2020.js";
@@ -14,13 +13,7 @@ import {
   UUID_V7_PATTERN,
 } from "@heptalogos/foundation-contracts";
 import type { BootstrapRuntimeGenerationId, ProductGenerationId } from "./model.js";
-
-const require = createRequire(import.meta.url);
-const writeFileAtomic = require("write-file-atomic") as (
-  filename: string,
-  data: string,
-  options?: { readonly encoding?: BufferEncoding },
-) => Promise<void>;
+import { writeCrashSafeFile } from "./atomic-file.js";
 
 export type BootId = UuidV7Id<"BootId">;
 export type BootstrapActivityId = UuidV7Id<"ActivityId">;
@@ -108,9 +101,7 @@ export class BootstrapJournal {
     const entries = [...existing, entry];
     this.assertValidEntries(entries);
     await mkdir(this.journalDirectory, { recursive: true });
-    await writeFileAtomic(this.fileFor(bootId), journalText(entries), {
-      encoding: "utf8",
-    });
+    await writeCrashSafeFile(this.fileFor(bootId), journalText(entries));
   }
 
   async read(bootId: BootId): Promise<readonly BootstrapJournalCheckpointV1[]> {
