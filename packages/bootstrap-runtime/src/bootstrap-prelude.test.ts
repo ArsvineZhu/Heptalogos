@@ -9,7 +9,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   asContentDigest,
   createInstallationId,
@@ -25,6 +25,30 @@ import {
 } from "@heptalogos/bootstrap-state";
 import { prepareBootstrapPrelude } from "./bootstrap-prelude.js";
 import type { BootstrapLocatorV1 } from "./locator.js";
+
+const preparePrivatePostgresForOwnedPreludeMock = vi.hoisted(() =>
+  vi.fn(async (context: { readonly privatePostgresSession: {
+    beginPreparation(): void;
+    markReady(): void;
+    beginStop(): void;
+    markQuiescent(): void;
+    markUncertain(): void;
+  } }) => {
+    context.privatePostgresSession.beginPreparation();
+    context.privatePostgresSession.markReady();
+    return {};
+  }),
+);
+
+vi.mock("./private-postgres-bootstrap.js", async () => {
+  const actual = await vi.importActual<typeof import("./private-postgres-bootstrap.js")>(
+    "./private-postgres-bootstrap.js",
+  );
+  return {
+    ...actual,
+    preparePrivatePostgresForOwnedPrelude: preparePrivatePostgresForOwnedPreludeMock,
+  };
+});
 
 const directories: string[] = [];
 const LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
@@ -190,6 +214,49 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
     expect(first.instanceRoot).not.toBe(second.instanceRoot);
     expect(firstOwned.instanceId).not.toBe(secondOwned.instanceId);
     await Promise.all([firstOwned.close(), secondOwned.close()]);
+  });
+
+  it("blocks close while private PostgreSQL is ready and retries after a clean stop", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1000 });
+
+    await owned.preparePrivatePostgres({} as never);
+
+    await expect(owned.close()).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.private_postgres.release_blocked" },
+    });
+    expect(owned.ownership.state).toBe("HELD");
+
+    const context = preparePrivatePostgresForOwnedPreludeMock.mock.calls.at(-1)?.[0];
+    expect(context).toBeDefined();
+    context?.privatePostgresSession.beginStop();
+    context?.privatePostgresSession.markQuiescent();
+
+    await expect(owned.close()).resolves.toBeUndefined();
+    expect(owned.ownership.state).toBe("RELEASED");
+  });
+
+  it.each([
+    ["TRANSITIONING", (session: { beginStop(): void }) => session.beginStop()],
+    ["UNCERTAIN", (session: { beginStop(): void; markUncertain(): void }) => {
+      session.beginStop();
+      session.markUncertain();
+    }],
+  ] as const)("blocks close while private PostgreSQL is %s", async (_state, arrange) => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1000 });
+
+    await owned.preparePrivatePostgres({} as never);
+    const context = preparePrivatePostgresForOwnedPreludeMock.mock.calls.at(-1)?.[0];
+    expect(context).toBeDefined();
+    arrange(context!.privatePostgresSession);
+    await expect(owned.close()).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.private_postgres.release_blocked" },
+    });
+    expect(owned.ownership.state).toBe("HELD");
+    await owned.ownership.release();
   });
 
   it("does not reclaim an abandoned lock at prelude level", async () => {

@@ -52,6 +52,23 @@ export interface ReadyPrivatePostgres {
   readonly mechanics: ReadyPrivatePostgresMechanics;
 }
 
+export type PrivatePostgresSessionState =
+  | "QUIESCENT"
+  | "TRANSITIONING"
+  | "READY"
+  | "UNCERTAIN";
+
+export interface PrivatePostgresSessionTracker {
+  readonly state: PrivatePostgresSessionState;
+  beginPreparation(): void;
+  beginStop(): void;
+  beginRestart(): void;
+  markReady(): void;
+  markQuiescent(): void;
+  markUncertain(): void;
+  assertReleaseAllowed(): void;
+}
+
 interface OwnedPrivatePostgresContext {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
@@ -61,6 +78,7 @@ interface OwnedPrivatePostgresContext {
   readonly ownership: BootstrapOwnershipLease;
   readonly state: OwnedBootstrapStateStore;
   readonly journal: BootstrapJournal;
+  readonly privatePostgresSession: PrivatePostgresSessionTracker;
 }
 
 type PrivatePostgresBootstrapTestPhase =
@@ -116,6 +134,63 @@ function bootstrapProblem(
     title,
     detail,
   });
+}
+
+function assertSessionState(
+  state: PrivatePostgresSessionState,
+  allowed: readonly PrivatePostgresSessionState[],
+  action: string,
+): void {
+  if (allowed.includes(state)) return;
+  throw bootstrapProblem(
+    "bootstrap.private_postgres.invalid_transition",
+    "Private PostgreSQL lifecycle transition is invalid",
+    `${action} is not allowed while the private PostgreSQL session is ${state}`,
+    "conflict",
+  );
+}
+
+export function createPrivatePostgresSessionTracker(): PrivatePostgresSessionTracker {
+  let state: PrivatePostgresSessionState = "QUIESCENT";
+
+  return {
+    get state() {
+      return state;
+    },
+    beginPreparation() {
+      assertSessionState(state, ["QUIESCENT"], "Preparation");
+      state = "TRANSITIONING";
+    },
+    beginStop() {
+      assertSessionState(state, ["READY", "UNCERTAIN"], "Stop");
+      state = "TRANSITIONING";
+    },
+    beginRestart() {
+      assertSessionState(state, ["QUIESCENT", "READY"], "Restart");
+      state = "TRANSITIONING";
+    },
+    markReady() {
+      assertSessionState(state, ["TRANSITIONING"], "Ready");
+      state = "READY";
+    },
+    markQuiescent() {
+      assertSessionState(state, ["TRANSITIONING"], "Quiescent");
+      state = "QUIESCENT";
+    },
+    markUncertain() {
+      assertSessionState(state, ["TRANSITIONING", "READY"], "Uncertain");
+      state = "UNCERTAIN";
+    },
+    assertReleaseAllowed() {
+      if (state === "QUIESCENT") return;
+      throw bootstrapProblem(
+        "bootstrap.private_postgres.release_blocked",
+        "Bootstrap ownership release is blocked",
+        `Bootstrap ownership cannot be released while the private PostgreSQL session is ${state}`,
+        "conflict",
+      );
+    },
+  };
 }
 
 async function recordStage(
@@ -286,6 +361,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
   options: PreparePrivatePostgresOptions,
 ): Promise<ReadyPrivatePostgres> {
   let mechanics: ReadyPrivatePostgresMechanics | undefined;
+  context.privatePostgresSession.beginPreparation();
   try {
     assertOwnership(context);
 
@@ -406,6 +482,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
       logFilePath,
       lifecycle: options.lifecycle,
     });
+    context.privatePostgresSession.markReady();
     await invokeTestHook(options, "after-start-before-ready-return");
     await recordStage(context, STAGE_READY, "SUCCEEDED");
 
@@ -420,7 +497,24 @@ export async function preparePrivatePostgresForOwnedPrelude(
       mechanics,
     });
   } catch (error) {
-    await mechanics?.stop().catch(() => undefined);
+    let cleanupSucceeded = true;
+    if (mechanics) {
+      if (context.privatePostgresSession.state === "READY") {
+        context.privatePostgresSession.beginStop();
+      }
+      try {
+        await mechanics.stop();
+      } catch {
+        cleanupSucceeded = false;
+      }
+    }
+    if (context.privatePostgresSession.state === "TRANSITIONING") {
+      if (cleanupSucceeded) {
+        context.privatePostgresSession.markQuiescent();
+      } else {
+        context.privatePostgresSession.markUncertain();
+      }
+    }
     await recordFailure(context, error);
     throw error;
   }

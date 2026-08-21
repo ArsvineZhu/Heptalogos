@@ -22,6 +22,9 @@ import {
   prepareBootstrapPrelude,
   type OwnedBootstrapPrelude,
 } from "./bootstrap-prelude.js";
+import {
+  createPrivatePostgresSessionTracker,
+} from "./private-postgres-bootstrap.js";
 import * as bootstrapRuntime from "./index.js";
 
 const directories: string[] = [];
@@ -121,6 +124,51 @@ afterEach(async () => {
 });
 
 describe("private PostgreSQL bootstrap ownership boundary", () => {
+  it("tracks the deterministic private PostgreSQL session state machine", () => {
+    const session = createPrivatePostgresSessionTracker();
+
+    expect(session.state).toBe("QUIESCENT");
+    session.beginPreparation();
+    expect(session.state).toBe("TRANSITIONING");
+    session.markReady();
+    expect(session.state).toBe("READY");
+    session.beginStop();
+    expect(session.state).toBe("TRANSITIONING");
+    session.markQuiescent();
+    expect(session.state).toBe("QUIESCENT");
+    session.beginRestart();
+    session.markReady();
+    expect(session.state).toBe("READY");
+    session.beginStop();
+    session.markUncertain();
+    expect(session.state).toBe("UNCERTAIN");
+  });
+
+  it("rejects release while the private PostgreSQL session is active or uncertain", () => {
+    const transitioning = createPrivatePostgresSessionTracker();
+    transitioning.beginPreparation();
+    try {
+      transitioning.assertReleaseAllowed();
+      throw new Error("expected release to be blocked");
+    } catch (error) {
+      expect(error).toMatchObject({
+        problem: { problemCode: "bootstrap.private_postgres.release_blocked" },
+      });
+    }
+
+    const uncertain = createPrivatePostgresSessionTracker();
+    uncertain.beginPreparation();
+    uncertain.markUncertain();
+    try {
+      uncertain.assertReleaseAllowed();
+      throw new Error("expected release to be blocked");
+    } catch (error) {
+      expect(error).toMatchObject({
+        problem: { problemCode: "bootstrap.private_postgres.release_blocked" },
+      });
+    }
+  });
+
   it("does not add preparation to PreparedBootstrapPrelude or export a forgeable function", async () => {
     const fixture = await makeFixture();
     const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);

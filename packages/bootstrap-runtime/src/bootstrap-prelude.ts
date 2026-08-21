@@ -26,6 +26,7 @@ import {
   type OwnedBootstrapStateStore,
 } from "./bootstrap-state-access.js";
 import {
+  createPrivatePostgresSessionTracker,
   preparePrivatePostgresForOwnedPrelude,
   type PreparePrivatePostgresOptions,
   type ReadyPrivatePostgres,
@@ -259,6 +260,7 @@ export async function prepareBootstrapPrelude(
       );
       const access = openBootstrapStateAccess(paths, ownership);
       const authoritativeState = await access.state.load();
+      const privatePostgresSession = createPrivatePostgresSessionTracker();
       await record(
         journal,
         installationId,
@@ -301,13 +303,19 @@ export async function prepareBootstrapPrelude(
               ownership,
               state: access.state,
               journal,
+              privatePostgresSession,
             },
             options,
           );
         },
         close(): Promise<void> {
           if (closePromise) return closePromise;
-          closePromise = (async () => {
+          try {
+            privatePostgresSession.assertReleaseAllowed();
+          } catch (error) {
+            return Promise.reject(error);
+          }
+          const current = (async () => {
             await ownership.release();
             await record(
               journal,
@@ -320,7 +328,11 @@ export async function prepareBootstrapPrelude(
               "SUCCEEDED",
             );
           })();
-          return closePromise;
+          closePromise = current;
+          void current.catch(() => {
+            if (closePromise === current) closePromise = undefined;
+          });
+          return current;
         },
       };
     } catch (error) {
