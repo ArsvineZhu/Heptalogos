@@ -132,6 +132,49 @@ describe("BootstrapJournal", () => {
     });
   });
 
+  it("rejects a persisted at value that is not a canonical Instant", async () => {
+    const journal = new BootstrapJournal(await makeDirectory());
+    const bootId = createUuidV7Id("BootId");
+
+    await expect(
+      journal.checkpoint({
+        ...makeEntry(bootId, "anchor"),
+        at: "banana",
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.journal.invalid_entry" },
+    });
+  });
+
+  it("rejects an impossible canonical-looking Instant", async () => {
+    const journal = new BootstrapJournal(await makeDirectory());
+    const bootId = createUuidV7Id("BootId");
+
+    await expect(
+      journal.checkpoint({
+        ...makeEntry(bootId, "anchor"),
+        at: "2026-02-30T00:00:00.000Z",
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.journal.invalid_entry" },
+    });
+  });
+
+  it("does not lose concurrent checkpoints for one BootId", async () => {
+    const journal = new BootstrapJournal(await makeDirectory());
+    const bootId = createUuidV7Id("BootId");
+    const stages = Array.from({ length: 20 }, (_, index) => `stage-${index}`);
+
+    await Promise.all(
+      stages.map((stage) => journal.checkpoint(makeEntry(bootId, stage))),
+    );
+
+    const entries = await journal.read(bootId);
+
+    expect(entries).toHaveLength(stages.length);
+    expect(new Set(entries.map((entry) => entry.stage))).toEqual(new Set(stages));
+  });
+
   it("keeps parser and schema details stable and bounded", async () => {
     const directory = await makeDirectory();
     const journal = new BootstrapJournal(directory);

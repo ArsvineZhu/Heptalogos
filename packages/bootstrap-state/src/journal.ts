@@ -58,6 +58,13 @@ const ajv = new Ajv2020({
   strict: true,
 });
 const validateJournal = ajv.compile(journalSchema);
+const CANONICAL_INSTANT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
+
+function isCanonicalInstant(value: string): boolean {
+  if (!CANONICAL_INSTANT_PATTERN.test(value)) return false;
+  const time = Date.parse(value);
+  return Number.isFinite(time) && new Date(time).toISOString() === value;
+}
 
 function journalProblem(problemCode: string, title: string, detail: string): Problem {
   return {
@@ -90,6 +97,7 @@ function journalText(entries: readonly BootstrapJournalCheckpointV1[]): string {
 
 export class BootstrapJournal {
   private readonly journalDirectory: string;
+  private readonly checkpointTails = new Map<string, Promise<void>>();
 
   constructor(private readonly directory: string) {
     this.journalDirectory = join(directory, "bootstrap-journal");
@@ -97,11 +105,14 @@ export class BootstrapJournal {
 
   async checkpoint(entry: BootstrapJournalCheckpointV1): Promise<void> {
     const bootId = requireBootId(entry.bootId);
-    const existing = await this.readEntries(bootId);
-    const entries = [...existing, entry];
-    this.assertValidEntries(entries);
-    await mkdir(this.journalDirectory, { recursive: true });
-    await writeCrashSafeFile(this.fileFor(bootId), journalText(entries));
+
+    await this.serializeCheckpoint(bootId, async () => {
+      const existing = await this.readEntries(bootId);
+      const entries = [...existing, entry];
+      this.assertValidEntries(entries);
+      await mkdir(this.journalDirectory, { recursive: true });
+      await writeCrashSafeFile(this.fileFor(bootId), journalText(entries));
+    });
   }
 
   async read(bootId: BootId): Promise<readonly BootstrapJournalCheckpointV1[]> {
@@ -111,6 +122,29 @@ export class BootstrapJournal {
   private fileFor(bootId: unknown): string {
     const validatedBootId = requireBootId(bootId);
     return join(this.journalDirectory, `${validatedBootId}.json`);
+  }
+
+  private async serializeCheckpoint(
+    bootId: BootId,
+    operation: () => Promise<void>,
+  ): Promise<void> {
+    const previous = this.checkpointTails.get(bootId) ?? Promise.resolve();
+
+    const current = previous.then(operation, operation);
+    const barrier = current.then(
+      () => undefined,
+      () => undefined,
+    );
+
+    this.checkpointTails.set(bootId, barrier);
+
+    try {
+      await current;
+    } finally {
+      if (this.checkpointTails.get(bootId) === barrier) {
+        this.checkpointTails.delete(bootId);
+      }
+    }
   }
 
   private async readEntries(
@@ -155,6 +189,15 @@ export class BootstrapJournal {
     }
 
     const entries = parsed as BootstrapJournalCheckpointV1[];
+    if (entries.some((entry) => !isCanonicalInstant(entry.at))) {
+      throw new ProblemError(
+        journalProblem(
+          "bootstrap.journal.invalid_entry",
+          "Bootstrap journal contains an invalid entry",
+          "Bootstrap journal checkpoint does not match the supported schema",
+        ),
+      );
+    }
     if (entries.some((entry) => entry.bootId !== bootId)) {
       throw new ProblemError(
         journalProblem(
@@ -168,7 +211,10 @@ export class BootstrapJournal {
   }
 
   private assertValidEntries(entries: readonly BootstrapJournalCheckpointV1[]): void {
-    if (!validateJournal(entries)) {
+    if (
+      !validateJournal(entries) ||
+      entries.some((entry) => !isCanonicalInstant(entry.at))
+    ) {
       throw new ProblemError(
         journalProblem(
           "bootstrap.journal.invalid_entry",
