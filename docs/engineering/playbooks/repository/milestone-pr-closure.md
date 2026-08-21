@@ -41,7 +41,7 @@ For final pre-merge verification after independent review PASS:
 ```bash
 SHA="$(git rev-parse HEAD)"
 gh workflow run verify.yml \
-  --ref dev/m1-development-spine \
+  --ref master \
   -f target_sha="$SHA" \
   -f reason=final-pre-merge
 ```
@@ -50,7 +50,7 @@ For a bounded cross-platform regression during Draft:
 
 ```bash
 gh workflow run verify.yml \
-  --ref dev/m1-development-spine \
+  --ref master \
   -f target_sha="<FULL_SHA>" \
   -f reason=cross-platform-regression
 ```

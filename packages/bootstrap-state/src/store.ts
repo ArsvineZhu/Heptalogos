@@ -7,7 +7,7 @@ import {
   type Problem,
 } from "@heptalogos/foundation-contracts";
 import { parseBootstrapState, sealBootstrapState } from "./codec.js";
-import { writeCrashSafeFile } from "./atomic-file.js";
+import { writeAtomicPublishedFile } from "./atomic-file.js";
 import type { BootstrapStateBodyV1, BootstrapStateEnvelopeV1 } from "./model.js";
 
 const CURRENT_FILENAME = "bootstrap-state.json";
@@ -116,9 +116,9 @@ export class BootstrapStateStore {
 
     await mkdir(this.directory, { recursive: true });
     if (current.status !== "EMPTY") {
-      await writeCrashSafeFile(this.previousPath, stateText(current.value));
+      await writeAtomicPublishedFile(this.previousPath, stateText(current.value));
     }
-    await writeCrashSafeFile(this.currentPath, stateText(validated.value));
+    await writeAtomicPublishedFile(this.currentPath, stateText(validated.value));
 
     const committed = await this.readCandidate(this.currentPath);
     if (committed.kind !== "VALID") {

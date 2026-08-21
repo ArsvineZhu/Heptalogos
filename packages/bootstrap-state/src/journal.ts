@@ -13,7 +13,7 @@ import {
   UUID_V7_PATTERN,
 } from "@heptalogos/foundation-contracts";
 import type { BootstrapRuntimeGenerationId, ProductGenerationId } from "./model.js";
-import { writeCrashSafeFile } from "./atomic-file.js";
+import { writeAtomicPublishedFile } from "./atomic-file.js";
 
 export type BootId = UuidV7Id<"BootId">;
 export type BootstrapActivityId = UuidV7Id<"ActivityId">;
@@ -111,7 +111,7 @@ export class BootstrapJournal {
       const entries = [...existing, entry];
       this.assertValidEntries(entries);
       await mkdir(this.journalDirectory, { recursive: true });
-      await writeCrashSafeFile(this.fileFor(bootId), journalText(entries));
+      await writeAtomicPublishedFile(this.fileFor(bootId), journalText(entries));
     });
   }
 

@@ -114,7 +114,9 @@ PR Ready is not merge authorization. The implementing Agent's self-review is ins
 
 master changes go through PRs; a direct push requires explicit one-off user authorization. The detailed operating procedure is in `docs/engineering/playbooks/repository/milestone-pr-closure.md`.
 
-Local `pnpm verify` remains mandatory; CI is auxiliary cross-platform evidence, not a substitute.
+All implementation verification gates must remain locally runnable and reproducible. GitHub Actions is not the sole verification substrate.
+
+Milestone closure additionally requires the manual cross-platform CI projection defined in §6.
 
 ## 7. Completion truth
 

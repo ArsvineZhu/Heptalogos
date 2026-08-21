@@ -449,7 +449,7 @@ Include the manual dispatch examples:
 ```bash
 SHA="$(git rev-parse HEAD)"
 gh workflow run verify.yml \
-  --ref dev/m1-development-spine \
+  --ref master \
   -f target_sha="$SHA" \
   -f reason=final-pre-merge
 ```
@@ -458,7 +458,7 @@ For a bounded cross-platform regression during Draft:
 
 ```bash
 gh workflow run verify.yml \
-  --ref dev/m1-development-spine \
+  --ref master \
   -f target_sha="<FULL_SHA>" \
   -f reason=cross-platform-regression
 ```
@@ -536,14 +536,10 @@ git commit -m "chore: make milestone CI manual and review-gated"
 **Interface produced:**
 
 ```ts
-export type PublicationDurability =
-  | "DIRECTORY_SYNCED"
-  | "PLATFORM_UNVERIFIED";
-
-export async function writeCrashSafeFile(
+export async function writeAtomicPublishedFile(
   filename: string,
   data: string,
-): Promise<PublicationDurability>;
+): Promise<void>;
 ```
 
 This helper stays internal to `bootstrap-state`; do not export it from the package public `index.ts` in M1.
@@ -565,30 +561,22 @@ const writeFileAtomic = require("write-file-atomic") as (
   options?: { readonly encoding?: BufferEncoding },
 ) => Promise<void>;
 
-export type PublicationDurability =
-  | "DIRECTORY_SYNCED"
-  | "PLATFORM_UNVERIFIED";
-
-export async function writeCrashSafeFile(
+export async function writeAtomicPublishedFile(
   filename: string,
   data: string,
-): Promise<PublicationDurability> {
+): Promise<void> {
   const target = resolve(filename);
 
   await writeFileAtomic(target, data, { encoding: "utf8" });
 
-  if (process.platform === "win32") {
-    return "PLATFORM_UNVERIFIED";
+  if (process.platform !== "win32") {
+    const directory = await open(dirname(target), "r");
+    try {
+      await directory.sync();
+    } finally {
+      await directory.close();
+    }
   }
-
-  const directory = await open(dirname(target), "r");
-  try {
-    await directory.sync();
-  } finally {
-    await directory.close();
-  }
-
-  return "DIRECTORY_SYNCED";
 }
 ```
 
@@ -608,7 +596,10 @@ Heptalogos adapter:
 
 If directory open/sync fails on a platform where this path is attempted, the operation rejects. Do not swallow the error or claim durability.
 
-On Windows, return `PLATFORM_UNVERIFIED`; do not pretend Node has proven equivalent containing-directory durability. Existing atomic-replacement behavior remains usable, while real Windows power-loss durability stays an L3 `NOT_RUN` claim.
+On Windows, the normal atomic replacement operation resolves successfully;
+containing-directory sync is not attempted. This runtime API does not expose
+qualification state. Windows sudden-power-loss durability remains an L3
+`NOT_RUN` claim.
 
 - [x] **Step 1: Write adapter tests before implementation**
 
@@ -621,7 +612,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { writeCrashSafeFile } from "./atomic-file.js";
+import { writeAtomicPublishedFile } from "./atomic-file.js";
 
 const directories: string[] = [];
 
@@ -633,39 +624,32 @@ afterEach(async () => {
   );
 });
 
-describe("writeCrashSafeFile", () => {
+describe("writeAtomicPublishedFile", () => {
   it("atomically publishes the requested bytes", async () => {
     const directory = await mkdtemp(join(tmpdir(), "heptalogos-atomic-file-"));
     directories.push(directory);
     const file = join(directory, "state.json");
 
-    await writeCrashSafeFile(file, "{\"revision\":1}");
+    await writeAtomicPublishedFile(file, "{\"revision\":1}");
     await expect(readFile(file, "utf8")).resolves.toBe("{\"revision\":1}");
   });
 
+  it("does not expose platform qualification state", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "heptalogos-atomic-file-"));
+    directories.push(directory);
+    const file = join(directory, "state.json");
+
+    await expect(writeAtomicPublishedFile(file, "{}")).resolves.toBeUndefined();
+  });
+
   it.runIf(process.platform !== "win32")(
-    "reports containing-directory sync on supported POSIX hosts",
+    "publishes through the containing-directory sync path on POSIX hosts",
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "heptalogos-atomic-file-"));
       directories.push(directory);
       const file = join(directory, "state.json");
 
-      await expect(writeCrashSafeFile(file, "{}")).resolves.toBe(
-        "DIRECTORY_SYNCED",
-      );
-    },
-  );
-
-  it.runIf(process.platform === "win32")(
-    "does not overclaim containing-directory durability on Windows",
-    async () => {
-      const directory = await mkdtemp(join(tmpdir(), "heptalogos-atomic-file-"));
-      directories.push(directory);
-      const file = join(directory, "state.json");
-
-      await expect(writeCrashSafeFile(file, "{}")).resolves.toBe(
-        "PLATFORM_UNVERIFIED",
-      );
+      await expect(writeAtomicPublishedFile(file, "{}")).resolves.toBeUndefined();
     },
   );
 });
@@ -712,7 +696,7 @@ Remove the local `createRequire` / `write-file-atomic` binding.
 Add:
 
 ```ts
-import { writeCrashSafeFile } from "./atomic-file.js";
+import { writeAtomicPublishedFile } from "./atomic-file.js";
 ```
 
 Replace:
@@ -726,7 +710,7 @@ await writeFileAtomic(this.previousPath, stateText(current.value), {
 with:
 
 ```ts
-await writeCrashSafeFile(this.previousPath, stateText(current.value));
+await writeAtomicPublishedFile(this.previousPath, stateText(current.value));
 ```
 
 Replace the current-state write the same way.
@@ -742,13 +726,13 @@ Remove its local `createRequire` / `write-file-atomic` binding.
 Add:
 
 ```ts
-import { writeCrashSafeFile } from "./atomic-file.js";
+import { writeAtomicPublishedFile } from "./atomic-file.js";
 ```
 
 Replace the per-BootId snapshot write with:
 
 ```ts
-await writeCrashSafeFile(this.fileFor(bootId), journalText(entries));
+await writeAtomicPublishedFile(this.fileFor(bootId), journalText(entries));
 ```
 
 - [x] **Step 6: Run GREEN and package gates**
@@ -763,9 +747,12 @@ pnpm check:boundaries
 
 Expected: all `PASS`.
 
-On POSIX, the adapter test must report `DIRECTORY_SYNCED`.
+On POSIX, the adapter executes the containing-directory sync path; the
+POSIX-gated test supplies this evidence in final cross-platform CI.
 
-On Windows, the Windows-specific test must report `PLATFORM_UNVERIFIED`; this is deliberate and must not be rewritten to fake a PASS claim.
+On Windows, normal atomic publication resolves successfully. The runtime API
+does not return a qualification marker; sudden-power-loss durability remains
+`NOT_RUN`.
 
 - [x] **Step 7: Commit publication durability mechanics**
 
@@ -879,7 +866,7 @@ async checkpoint(entry: BootstrapJournalCheckpointV1): Promise<void> {
     const entries = [...existing, entry];
     this.assertValidEntries(entries);
     await mkdir(this.journalDirectory, { recursive: true });
-    await writeCrashSafeFile(this.fileFor(bootId), journalText(entries));
+    await writeAtomicPublishedFile(this.fileFor(bootId), journalText(entries));
   });
 }
 ```
@@ -1051,12 +1038,16 @@ write-file-atomic temp-write/file-fsync/rename mechanics
     PASS by implementation/tests
 
 Heptalogos containing-directory fsync after rename on supported POSIX path
-    PASS by adapter implementation and executed POSIX test
+    NOT_RUN on the current win32 executor; the POSIX-gated test is reserved
+    for final cross-platform CI
 
 real filesystem power-loss durability
     NOT_RUN
 
-Windows containing-directory/power-loss durability equivalence
+Windows normal atomic publication
+    PASS by win32 tests; containing-directory sync is N/A
+
+real Windows sudden-power-loss durability
     NOT_RUN
 ```
 
@@ -1412,17 +1403,18 @@ external closure gates and are intentionally not recorded as PASS here.
 | Start HEAD | `7a42ac4faba3456e1ad7849a5d1aafcab8971a09` |
 | Corrective HEAD before this plan's closure commit | `b18ef98` (`docs: bound POSIX durability evidence`) |
 | Runtime | Node `24.19.0`, pnpm `11.22.0`, Windows `win32 x64` |
+| Manual workflow bootstrap | PR #2 squash-merged to `master` as `e74f5331a069b5a33427e1f6396e74f40ed1a92f`; only `.github/workflows/verify.yml` |
 | Baseline install and verify | `pnpm install --frozen-lockfile` PASS; `pnpm verify` PASS |
 | Manual workflow/repository gate | `pnpm check:repository` PASS; no automatic trigger lines; `target_sha` and `reason` present; all Actions pinned to full SHAs |
 | Agent manifest and formatting | `check:agents` PASS; `pnpm format:check` PASS |
-| Publication adapter evidence | atomic-file tests: 3 PASS / 1 POSIX-gated skip; Windows branch returns `PLATFORM_UNVERIFIED` without overclaiming |
+| Publication adapter evidence | atomic-file tests: 3 PASS / 1 POSIX-gated skip on win32; Windows normal atomic publication resolves without qualification state |
 | Journal evidence | journal tests: 11 PASS; same-BootId concurrent checkpoints retained; invalid/non-canonical Instants rejected |
 | Fresh-like permanent gates | every listed `check:*`, toolchain, format, lint, typecheck, tsc6, test, build, and verify command PASS after Nx/dist reset |
 | Real Nx targets | foundation-contracts and bootstrap-state have inferred build/typecheck; repository exposes only the real scripts lint target |
 | Built output | four required package `dist/index.js` / `dist/index.d.ts` paths PASS |
 | Merge settings | `allow_merge_commit=false`, `allow_rebase_merge=false`, `allow_squash_merge=true`, `allow_auto_merge=false` |
 | POSIX containing-directory sync runtime evidence | `NOT_RUN` on current win32 executor; POSIX-gated test requires a POSIX runner |
-| Windows containing-directory/power-loss equivalence | `NOT_RUN`; adapter deliberately reports `PLATFORM_UNVERIFIED` |
+| Windows normal atomic publication | `PASS` by win32 test; containing-directory sync is `N/A` and sudden-power-loss durability is `NOT_RUN` |
 | Real filesystem power-loss qualification | `NOT_RUN` |
 | Independent review | `NOT_RUN` — required external gate |
 | Manual final CI (Ubuntu/macOS/Windows) | `NOT_RUN` — must follow independent review on exact SHA |
@@ -1592,7 +1584,7 @@ If not, stop. Review is stale.
 
 ```bash
 gh workflow run verify.yml \
-  --ref dev/m1-development-spine \
+  --ref master \
   -f target_sha="$REVIEWED_SHA" \
   -f reason=final-pre-merge
 ```

@@ -2034,20 +2034,23 @@ write-file-atomic temp-write/file-fsync/rename mechanics
     PASS by implementation/tests
 
 Heptalogos containing-directory fsync after rename on supported POSIX path
-    NOT_RUN on the current win32 executor; adapter implementation is present
-    and the POSIX-gated test requires a POSIX runner
+    NOT_RUN on the current win32 executor; the POSIX-gated test is reserved
+    for final cross-platform CI
 
 real filesystem power-loss durability
     NOT_RUN
 
-Windows containing-directory/power-loss durability equivalence
+Windows normal atomic publication
+    PASS by win32 tests; containing-directory sync is N/A
+
+real Windows sudden-power-loss durability
     NOT_RUN
 ```
 
-The adapter returns `PLATFORM_UNVERIFIED` on Windows and does not claim
-equivalent containing-directory durability. The adapter test proves the code
-path and supported POSIX directory sync behavior; it does not prove physical
-power-loss survival.
+The runtime adapter is `writeAtomicPublishedFile(...): Promise<void>` and does
+not expose qualification state. On Windows it performs the normal atomic
+replacement operation and resolves successfully; the runtime does not claim
+containing-directory sync or physical power-loss survival there.
 
 The automatic PR/push matrix was used during M1 investigation to obtain
 cross-platform evidence. It is no longer the repository's normal development

@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { writeCrashSafeFile } from "./atomic-file.js";
+import { writeAtomicPublishedFile } from "./atomic-file.js";
 
 const directories: string[] = [];
 
@@ -14,35 +14,32 @@ afterEach(async () => {
   );
 });
 
-describe("writeCrashSafeFile", () => {
+describe("writeAtomicPublishedFile", () => {
   it("atomically publishes the requested bytes", async () => {
     const directory = await mkdtemp(join(tmpdir(), "heptalogos-atomic-file-"));
     directories.push(directory);
     const file = join(directory, "state.json");
 
-    await writeCrashSafeFile(file, '{"revision":1}');
+    await writeAtomicPublishedFile(file, '{"revision":1}');
     await expect(readFile(file, "utf8")).resolves.toBe('{"revision":1}');
   });
 
+  it("does not expose platform qualification state", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "heptalogos-atomic-file-"));
+    directories.push(directory);
+    const file = join(directory, "state.json");
+
+    await expect(writeAtomicPublishedFile(file, "{}")).resolves.toBeUndefined();
+  });
+
   it.runIf(process.platform !== "win32")(
-    "reports containing-directory sync on supported POSIX hosts",
+    "publishes through the containing-directory sync path on POSIX hosts",
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "heptalogos-atomic-file-"));
       directories.push(directory);
       const file = join(directory, "state.json");
 
-      await expect(writeCrashSafeFile(file, "{}")).resolves.toBe("DIRECTORY_SYNCED");
-    },
-  );
-
-  it.runIf(process.platform === "win32")(
-    "does not overclaim containing-directory durability on Windows",
-    async () => {
-      const directory = await mkdtemp(join(tmpdir(), "heptalogos-atomic-file-"));
-      directories.push(directory);
-      const file = join(directory, "state.json");
-
-      await expect(writeCrashSafeFile(file, "{}")).resolves.toBe("PLATFORM_UNVERIFIED");
+      await expect(writeAtomicPublishedFile(file, "{}")).resolves.toBeUndefined();
     },
   );
 

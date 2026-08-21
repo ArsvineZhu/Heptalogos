@@ -10,26 +10,20 @@ const writeFileAtomic = require("write-file-atomic") as (
   options?: { readonly encoding?: BufferEncoding },
 ) => Promise<void>;
 
-export type PublicationDurability = "DIRECTORY_SYNCED" | "PLATFORM_UNVERIFIED";
-
-export async function writeCrashSafeFile(
+export async function writeAtomicPublishedFile(
   filename: string,
   data: string,
-): Promise<PublicationDurability> {
+): Promise<void> {
   const target = resolve(filename);
 
   await writeFileAtomic(target, data, { encoding: "utf8" });
 
-  if (process.platform === "win32") {
-    return "PLATFORM_UNVERIFIED";
+  if (process.platform !== "win32") {
+    const directory = await open(dirname(target), "r");
+    try {
+      await directory.sync();
+    } finally {
+      await directory.close();
+    }
   }
-
-  const directory = await open(dirname(target), "r");
-  try {
-    await directory.sync();
-  } finally {
-    await directory.close();
-  }
-
-  return "DIRECTORY_SYNCED";
 }
