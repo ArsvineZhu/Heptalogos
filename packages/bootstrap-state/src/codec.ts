@@ -48,13 +48,36 @@ const stateSchemaV1 = Type.Object(
   { additionalProperties: false },
 );
 
-const privatePostgresStateSchema = Type.Object(
+const privatePostgresStateSchemaV1 = Type.Object(
   {
     schemaVersion: Type.Literal(1),
     postgresMajor: Type.Literal(18),
     initializedByPostgresVersion: Type.String({ minLength: 1 }),
     installationId: Type.String({ pattern: UUID_V7_PATTERN }),
     instanceId: Type.String({ pattern: UUID_V7_PATTERN }),
+    dataPlacement: Type.Object(
+      {
+        rootId: Type.Literal("DATA"),
+        relativePath: Type.Literal("private-postgres"),
+        dataLayoutVersion: Type.Literal(1),
+      },
+      { additionalProperties: false },
+    ),
+    persistedPort: Type.Integer({ minimum: 1, maximum: 65535 }),
+    clusterSystemIdentifier: Type.String({ pattern: "^[0-9]+$" }),
+    initializationProfileRevision: Type.String({ pattern: SHA256_HEX_PATTERN }),
+  },
+  { additionalProperties: false },
+);
+
+const privatePostgresStateSchemaV2 = Type.Object(
+  {
+    schemaVersion: Type.Literal(2),
+    postgresMajor: Type.Literal(18),
+    initializedByPostgresVersion: Type.String({ minLength: 1 }),
+    installationId: Type.String({ pattern: UUID_V7_PATTERN }),
+    instanceId: Type.String({ pattern: UUID_V7_PATTERN }),
+    bootstrapRoleName: Type.String({ minLength: 1 }),
     dataPlacement: Type.Object(
       {
         rootId: Type.Literal("DATA"),
@@ -84,7 +107,10 @@ const stateSchemaV2 = Type.Object(
     ),
     lastCommittedOperationRef: Type.Optional(Type.String()),
     lastCompletedStageRef: Type.Optional(Type.String()),
-    privatePostgres: privatePostgresStateSchema,
+    privatePostgres: Type.Union([
+      privatePostgresStateSchemaV1,
+      privatePostgresStateSchemaV2,
+    ]),
   },
   { additionalProperties: false },
 );

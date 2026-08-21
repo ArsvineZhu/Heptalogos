@@ -14,6 +14,7 @@ export type {
   BootstrapStateEnvelopeV2,
   BootstrapStateParseResult,
   PrivatePostgresBootstrapStateV1,
+  PrivatePostgresBootstrapStateV2,
   PrivatePostgresInitializationProfileRevision,
   ProductGenerationId,
 } from "./model.js";

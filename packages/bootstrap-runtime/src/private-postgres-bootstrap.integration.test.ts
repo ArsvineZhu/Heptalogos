@@ -232,11 +232,12 @@ describe("private PostgreSQL bootstrap orchestration", () => {
             schemaVersion: 2,
             revision: 2,
             privatePostgres: {
-              schemaVersion: 1,
+              schemaVersion: 2,
               postgresMajor: 18,
               initializedByPostgresVersion: "18.6",
               installationId: fixture.installationId,
               instanceId: fixture.instanceId,
+              bootstrapRoleName: "heptalogos_bootstrap",
               dataPlacement: {
                 rootId: "DATA",
                 relativePath: "private-postgres",

@@ -54,11 +54,12 @@ function makeStateV2(revision: number): BootstrapStateBodyV2 {
       digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
     ),
     privatePostgres: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       postgresMajor: 18,
       initializedByPostgresVersion: "18.6",
       installationId: createInstallationId(),
       instanceId: createInstanceId(),
+      bootstrapRoleName: "heptalogos_bootstrap",
       dataPlacement: {
         rootId: "DATA",
         relativePath: "private-postgres",

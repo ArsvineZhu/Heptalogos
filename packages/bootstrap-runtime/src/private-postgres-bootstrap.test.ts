@@ -64,6 +64,7 @@ vi.mock("@heptalogos/private-postgres", async () => {
           toolchain: options.toolchain,
           placement: options.placement,
           identity: {
+            bootstrapRoleName: options.expectedIdentity.bootstrapRoleName,
             clusterSystemIdentifier: options.expectedIdentity.clusterSystemIdentifier,
             postgresMajor: 18,
           },
@@ -420,11 +421,12 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
       schemaVersion: 2,
       revision: 2,
       privatePostgres: {
-        schemaVersion: 1,
+        schemaVersion: 2,
         postgresMajor: 18,
         initializedByPostgresVersion: "18.6",
         installationId: owned.installationId,
         instanceId: owned.instanceId,
+        bootstrapRoleName: "heptalogos_bootstrap",
         dataPlacement: {
           rootId: "DATA",
           relativePath: "private-postgres",

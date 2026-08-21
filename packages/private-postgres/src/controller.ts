@@ -9,6 +9,7 @@ import {
   type Problem,
 } from "@heptalogos/foundation-contracts";
 import {
+  PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME,
   PRIVATE_POSTGRES_DATA_LAYOUT_VERSION,
   PRIVATE_POSTGRES_RELATIVE_DATA_PATH,
   type PrivatePostgresExpectedIdentity,
@@ -117,6 +118,7 @@ export function createPrivatePostgresInitializationProfile(
 ): PrivatePostgresInitializationProfile {
   assertPort(port);
   return Object.freeze({
+    bootstrapRoleName: PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME,
     encoding: "UTF8",
     dataChecksums: true,
     hostAuthentication: "scram-sha-256",
@@ -133,7 +135,7 @@ export function createPrivatePostgresInitializationProfileRevision(
   return asContentDigest(
     "PrivatePostgresInitializationProfileRevision",
     digestCanonicalJson(
-      "heptalogos.private-postgres.initialization-profile/v1",
+      "heptalogos.private-postgres.initialization-profile/v2",
       profile as unknown as CanonicalJsonValue,
     ),
   );
@@ -150,6 +152,7 @@ function initializationArgs(
     "--data-checksums",
     "--auth-host=scram-sha-256",
     "--auth-local=scram-sha-256",
+    `--username=${PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME}`,
     `--pwfile=${passwordFilePath}`,
   ];
 }
@@ -223,6 +226,7 @@ export async function initializePrivatePostgresCluster(
     toolchain: options.toolchain,
     placement: options.placement,
     identity: {
+      bootstrapRoleName: PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME,
       clusterSystemIdentifier: inspection.clusterSystemIdentifier,
       postgresMajor: inspection.postgresMajor,
     },
@@ -238,6 +242,16 @@ export async function validateExistingCluster(
   options: ValidateExistingPrivatePostgresClusterOptions,
 ): Promise<PrivatePostgresInitializationResult> {
   const expectedPlacement = options.expectedIdentity.placement;
+  if (
+    options.expectedIdentity.bootstrapRoleName !==
+    PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME
+  ) {
+    throw controllerProblem(
+      "private-postgres.cluster.identity_mismatch",
+      "Private PostgreSQL bootstrap role does not match BootstrapState",
+      "The persisted private PostgreSQL bootstrap role does not match the fixed cluster bootstrap identity",
+    );
+  }
   if (
     expectedPlacement.rootId !== "DATA" ||
     expectedPlacement.relativePath !== PRIVATE_POSTGRES_RELATIVE_DATA_PATH ||
@@ -338,6 +352,7 @@ export async function validateExistingCluster(
     toolchain: options.toolchain,
     placement: options.placement,
     identity: {
+      bootstrapRoleName: options.expectedIdentity.bootstrapRoleName,
       clusterSystemIdentifier: inspection.clusterSystemIdentifier,
       postgresMajor: inspection.postgresMajor,
     },

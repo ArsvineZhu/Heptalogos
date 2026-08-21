@@ -40,11 +40,12 @@ function makeStateV2(): BootstrapStateBodyV2 {
       digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
     ),
     privatePostgres: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       postgresMajor: 18,
       initializedByPostgresVersion: "18.6",
       installationId: createInstallationId(),
       instanceId: createInstanceId(),
+      bootstrapRoleName: "heptalogos_bootstrap",
       dataPlacement: {
         rootId: "DATA",
         relativePath: "private-postgres",
@@ -78,6 +79,43 @@ describe("BootstrapState codec", () => {
     expect(result).toEqual({ ok: true, value: sealed });
     expect(sealed.state.schemaVersion).toBe(2);
     expect(sealed.digest.domain).toBe("heptalogos.bootstrap-state/v2");
+  });
+
+  it("roundtrips the V2 private PostgreSQL bootstrap role identity", () => {
+    const base = makeStateV2();
+    const state = {
+      ...base,
+      privatePostgres: {
+        ...base.privatePostgres,
+        schemaVersion: 2,
+        bootstrapRoleName: "heptalogos_bootstrap",
+      },
+    } as unknown as BootstrapStateBodyV2;
+    const sealed = sealBootstrapState(state);
+
+    expect(parseBootstrapState(JSON.stringify(sealed))).toEqual({
+      ok: true,
+      value: sealed,
+    });
+  });
+
+  it("continues to parse a legacy V2 private PostgreSQL identity", () => {
+    const base = makeStateV2();
+    const { bootstrapRoleName: _bootstrapRoleName, ...legacyFields } =
+      base.privatePostgres;
+    const legacyState = {
+      ...base,
+      privatePostgres: {
+        ...legacyFields,
+        schemaVersion: 1,
+      },
+    } as unknown as BootstrapStateBodyV2;
+    const sealed = sealBootstrapState(legacyState);
+
+    expect(parseBootstrapState(JSON.stringify(sealed))).toEqual({
+      ok: true,
+      value: sealed,
+    });
   });
 
   it("rejects unknown fields in a V2 state", () => {

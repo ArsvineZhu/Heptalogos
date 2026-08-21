@@ -7,6 +7,7 @@ import {
   createInstanceId,
   ProblemError,
 } from "@heptalogos/foundation-contracts";
+import { PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME } from "./contracts.js";
 import type {
   PrivatePostgresExpectedIdentity,
   PrivatePostgresToolchain,
@@ -61,6 +62,7 @@ async function makeLifecycleFixture(port: number): Promise<{
     installationId: createInstallationId(),
     instanceId: createInstanceId(),
     postgresMajor: 18,
+    bootstrapRoleName: PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME,
     placement: {
       rootId: placement.rootId,
       relativePath: placement.relativePath,
@@ -188,6 +190,7 @@ describe("private PostgreSQL lifecycle uncertainty", () => {
       installationId: createInstallationId(),
       instanceId: createInstanceId(),
       postgresMajor: 18,
+      bootstrapRoleName: PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME,
       placement: {
         rootId: placement.rootId,
         relativePath: placement.relativePath,

@@ -6,6 +6,7 @@ import {
   type BootstrapStateBodyV2,
   type BootstrapStateLoadResult,
   type BootstrapStageOutcome,
+  type PrivatePostgresBootstrapStateV2,
 } from "@heptalogos/bootstrap-state";
 import {
   ProblemError,
@@ -26,6 +27,7 @@ import {
   type PrivatePostgresPlacement,
   type PrivatePostgresToolchain,
   type ReadyPrivatePostgresMechanics,
+  PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME,
 } from "@heptalogos/private-postgres";
 import type { BootstrapKeyProvider } from "./bootstrap-key-provider.js";
 import {
@@ -300,8 +302,10 @@ function assertPrivatePostgresPlacement(
   installationId: InstallationId,
   instanceId: InstanceId,
   toolchain: PrivatePostgresToolchain,
-): void {
+): asserts privatePostgres is PrivatePostgresBootstrapStateV2 {
   if (
+    privatePostgres.schemaVersion !== 2 ||
+    privatePostgres.bootstrapRoleName !== PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME ||
     privatePostgres.installationId !== installationId ||
     privatePostgres.instanceId !== instanceId ||
     privatePostgres.dataPlacement.rootId !== placement.rootId ||
@@ -343,6 +347,7 @@ function expectedIdentityFromState(
     },
     persistedPort: privatePostgres.persistedPort,
     clusterSystemIdentifier: privatePostgres.clusterSystemIdentifier,
+    bootstrapRoleName: privatePostgres.bootstrapRoleName,
     initializationProfileRevision: privatePostgres.initializationProfileRevision,
   };
 }
@@ -356,6 +361,7 @@ function expectedIdentityFromInitialization(
     installationId: context.installationId,
     instanceId: context.instanceId,
     postgresMajor: initialized.identity.postgresMajor,
+    bootstrapRoleName: initialized.identity.bootstrapRoleName,
     placement: {
       rootId: placement.rootId,
       relativePath: placement.relativePath,
@@ -377,11 +383,12 @@ function nextStateV2(
     schemaVersion: 2,
     revision: current.revision + 1,
     privatePostgres: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       postgresMajor: expected.postgresMajor,
       initializedByPostgresVersion: toolchain.version,
       installationId: expected.installationId,
       instanceId: expected.instanceId,
+      bootstrapRoleName: expected.bootstrapRoleName,
       dataPlacement: expected.placement,
       persistedPort: expected.persistedPort,
       clusterSystemIdentifier: expected.clusterSystemIdentifier,

@@ -8,6 +8,7 @@ export const PRIVATE_POSTGRES_ARCHITECTURE_MAJOR = 18 as const;
 export const PRIVATE_POSTGRES_QUALIFIED_VERSION = "18.6" as const;
 export const PRIVATE_POSTGRES_DATA_LAYOUT_VERSION = 1 as const;
 export const PRIVATE_POSTGRES_RELATIVE_DATA_PATH = "private-postgres" as const;
+export const PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME = "heptalogos_bootstrap" as const;
 
 export type PrivatePostgresInitializationProfileRevision =
   ContentDigest<"PrivatePostgresInitializationProfileRevision">;
@@ -31,6 +32,7 @@ export interface PrivatePostgresPlacement {
 }
 
 export interface PrivatePostgresClusterIdentity {
+  readonly bootstrapRoleName: string;
   readonly clusterSystemIdentifier: string;
   readonly postgresMajor: 18;
 }
@@ -39,6 +41,7 @@ export interface PrivatePostgresExpectedIdentity {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
   readonly postgresMajor: 18;
+  readonly bootstrapRoleName: string;
   readonly placement: Omit<PrivatePostgresPlacement, "canonicalDataDirectory">;
   readonly persistedPort: number;
   readonly clusterSystemIdentifier: string;
@@ -54,6 +57,7 @@ export interface PrivatePostgresLifecycleOptions {
 export type PrivatePostgresControlGuard = () => void;
 
 export interface PrivatePostgresInitializationProfile {
+  readonly bootstrapRoleName: string;
   readonly encoding: "UTF8";
   readonly dataChecksums: true;
   readonly hostAuthentication: "scram-sha-256";
