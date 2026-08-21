@@ -2034,7 +2034,8 @@ write-file-atomic temp-write/file-fsync/rename mechanics
     PASS by implementation/tests
 
 Heptalogos containing-directory fsync after rename on supported POSIX path
-    PASS by adapter implementation and executed POSIX test
+    NOT_RUN on the current win32 executor; adapter implementation is present
+    and the POSIX-gated test requires a POSIX runner
 
 real filesystem power-loss durability
     NOT_RUN
