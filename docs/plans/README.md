@@ -15,7 +15,7 @@ surface the ambiguity rather than guessing.
 
 ## Active
 
-No active plans are currently recorded.
+- [Foundation M1 Final Corrective and Closure](active/foundation/m1-final-corrective-and-closure.md) — `ACTIVE`
 
 ## Completed
 
