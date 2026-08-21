@@ -15,7 +15,7 @@ surface the ambiguity rather than guessing.
 
 ## Active
 
-No active plans are currently recorded.
+- [Foundation M3 Private PostgreSQL Bootstrap & Identity](active/foundation/m3-private-postgresql-bootstrap.md) — `ACTIVE`
 
 ## Completed
 
