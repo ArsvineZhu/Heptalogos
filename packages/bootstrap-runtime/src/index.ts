@@ -16,3 +16,8 @@ export {
   type BootstrapStateAccess,
   type OwnedBootstrapStateStore,
 } from "./bootstrap-state-access.js";
+export {
+  prepareBootstrapPrelude,
+  type OwnedBootstrapPrelude,
+  type PreparedBootstrapPrelude,
+} from "./bootstrap-prelude.js";
