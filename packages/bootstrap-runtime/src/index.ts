@@ -5,3 +5,9 @@ export {
   type BootstrapPathProfile,
   type ResolvedLifecycleRoot,
 } from "./roots.js";
+export {
+  acquireBootstrapOwnership,
+  type BootstrapOwnershipLease,
+  type BootstrapOwnershipOptions,
+  type BootstrapOwnershipState,
+} from "./bootstrap-ownership.js";
