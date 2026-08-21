@@ -303,13 +303,12 @@ function assertPrivatePostgresPlacement(
     privatePostgres.dataPlacement.rootId !== placement.rootId ||
     privatePostgres.dataPlacement.relativePath !== placement.relativePath ||
     privatePostgres.dataPlacement.dataLayoutVersion !== placement.dataLayoutVersion ||
-    privatePostgres.postgresMajor !== toolchain.major ||
-    privatePostgres.initializedByPostgresVersion !== toolchain.version
+    privatePostgres.postgresMajor !== toolchain.major
   ) {
     throw bootstrapProblem(
       "bootstrap.private_postgres.identity_mismatch",
       "BootstrapState private PostgreSQL identity does not match the current installation",
-      "The persisted private PostgreSQL installation, placement, major, or qualified version does not match the current bootstrap context",
+      "The persisted private PostgreSQL installation, placement, or architecture major does not match the current bootstrap context",
     );
   }
 }

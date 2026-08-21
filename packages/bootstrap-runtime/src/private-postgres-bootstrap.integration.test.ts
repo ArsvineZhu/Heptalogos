@@ -17,6 +17,7 @@ import {
 import {
   BootstrapJournal,
   BootstrapStateStore,
+  type BootstrapStateBodyV2,
   type BootstrapStateBodyV1,
 } from "@heptalogos/bootstrap-state";
 import type {
@@ -328,6 +329,55 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         await expect(
           journalStages(fixture, secondPrepared.bootId),
         ).resolves.not.toContain("bootstrap.postgres.cluster_initialization_started");
+      } finally {
+        await secondReady?.stop().catch(() => undefined);
+        await secondOwned.close();
+      }
+    } finally {
+      await firstReady?.stop().catch(() => undefined);
+      if (firstOwned.ownership.state !== "RELEASED") {
+        await firstOwned.close().catch(() => undefined);
+      }
+    }
+  }, 120_000);
+
+  it("treats initializedByPostgresVersion as provenance across a patch update", async () => {
+    const fixture = await makeFixture();
+    const firstPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const firstOwned = await firstPrepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const contexts: BootstrapKeyRequestContext[] = [];
+    let firstReady: TestReadyPrivatePostgres | undefined;
+    let secondReady: TestReadyPrivatePostgres | undefined;
+
+    try {
+      firstReady = await callable(firstOwned).preparePrivatePostgres(
+        makeOptions(55455, contexts),
+      );
+      const identity = firstReady.clusterSystemIdentifier;
+      await firstReady.stop();
+      const loaded = await loadState(fixture);
+      if (loaded.status !== "CURRENT" || loaded.value.state.schemaVersion !== 2) {
+        throw new Error("expected authoritative BootstrapState V2");
+      }
+      const current: BootstrapStateBodyV2 = loaded.value.state;
+      await firstOwned.state.commit({
+        ...current,
+        revision: current.revision + 1,
+        privatePostgres: {
+          ...current.privatePostgres,
+          initializedByPostgresVersion: "18.4",
+        },
+      });
+      await firstOwned.close();
+
+      const secondPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+      const secondOwned = await secondPrepared.acquireOwnership({ heartbeatMs: 1_000 });
+      try {
+        secondReady = await callable(secondOwned).preparePrivatePostgres(
+          makeOptions(undefined, []),
+        );
+        expect(secondReady.clusterSystemIdentifier).toBe(identity);
+        expect(secondReady.port).toBe(55455);
       } finally {
         await secondReady?.stop().catch(() => undefined);
         await secondOwned.close();
