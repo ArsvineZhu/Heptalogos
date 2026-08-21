@@ -69,3 +69,32 @@ export function encodePostgresScramSha256Verifier(
 
   return `SCRAM-SHA-256$${options.iterations}:${base64(options.salt)}$${base64(storedKey)}:${base64(serverKey)}`;
 }
+
+export function matchesPostgresScramSha256Verifier(
+  passwordAscii: Uint8Array,
+  verifier: string | null | undefined,
+): boolean {
+  if (typeof verifier !== "string") return false;
+  const match = /^SCRAM-SHA-256\$(\d+):([^$]+)\$([^:]+):([^:]+)$/u.exec(verifier);
+  if (match === null) return false;
+
+  const iterations = Number(match[1]);
+  const salt = Buffer.from(match[2], "base64");
+  if (
+    !Number.isSafeInteger(iterations) ||
+    salt.byteLength !== HOST_LEASE_SCRAM_SALT_BYTES
+  ) {
+    return false;
+  }
+
+  let expected: string;
+  try {
+    expected = encodePostgresScramSha256Verifier(passwordAscii, {
+      iterations,
+      salt,
+    });
+  } catch {
+    return false;
+  }
+  return expected === verifier;
+}

@@ -3,7 +3,10 @@ import {
   HOST_LEASE_SCRAM_ITERATIONS,
   HOST_LEASE_SCRAM_SALT_BYTES,
 } from "./contracts.js";
-import { encodePostgresScramSha256Verifier } from "./scram-verifier.js";
+import {
+  encodePostgresScramSha256Verifier,
+  matchesPostgresScramSha256Verifier,
+} from "./scram-verifier.js";
 
 const password = new TextEncoder().encode("A".repeat(32));
 const salt = new TextEncoder().encode("salt-for-test-16");
@@ -40,6 +43,24 @@ describe("PostgreSQL SCRAM-SHA-256 verifier", () => {
 
     expect(changedPassword).not.toBe(baseline);
     expect(changedSalt).not.toBe(baseline);
+  });
+
+  it("matches an existing verifier without rewriting the stored credential", () => {
+    const verifier = encodePostgresScramSha256Verifier(password, {
+      iterations: HOST_LEASE_SCRAM_ITERATIONS,
+      salt,
+    });
+
+    expect(matchesPostgresScramSha256Verifier(password, verifier)).toBe(true);
+    expect(
+      matchesPostgresScramSha256Verifier(
+        new TextEncoder().encode("B".repeat(32)),
+        verifier,
+      ),
+    ).toBe(false);
+    expect(matchesPostgresScramSha256Verifier(password, "SCRAM-SHA-256$4096:bad")).toBe(
+      false,
+    );
   });
 
   it("rejects credentials and verifier inputs outside the bounded contract", () => {

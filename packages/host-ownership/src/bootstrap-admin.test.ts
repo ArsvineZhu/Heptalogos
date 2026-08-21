@@ -10,6 +10,14 @@ import {
   type BootstrapAdminProvisioningOptions,
   provisionHostOwnershipDatabase,
 } from "./bootstrap-admin.js";
+import { encodePostgresScramSha256Verifier } from "./scram-verifier.js";
+
+const HOST_PASSWORD = new TextEncoder().encode("H".repeat(32));
+const HOST_SALT = new TextEncoder().encode("salt-for-test-16");
+const EXACT_HOST_VERIFIER = encodePostgresScramSha256Verifier(HOST_PASSWORD, {
+  iterations: 4096,
+  salt: HOST_SALT,
+});
 
 interface RoleRow {
   readonly rolname: string;
@@ -21,6 +29,7 @@ interface RoleRow {
   readonly rolbypassrls: boolean;
   readonly rolconnlimit: number;
   readonly rolinherit: boolean;
+  readonly rolpassword: string | null;
 }
 
 interface DatabaseRow {
@@ -34,6 +43,13 @@ interface FakeState {
   readonly databases: Map<string, DatabaseRow>;
 }
 
+type ProvisionFault =
+  | "after-owner-role-create"
+  | "before-host-role-create"
+  | "after-host-role-create"
+  | "before-database-create"
+  | "after-database-create";
+
 function exactRole(name: string, login: boolean, connectionLimit: number): RoleRow {
   return {
     rolname: name,
@@ -45,6 +61,7 @@ function exactRole(name: string, login: boolean, connectionLimit: number): RoleR
     rolbypassrls: false,
     rolconnlimit: connectionLimit,
     rolinherit: false,
+    rolpassword: login ? EXACT_HOST_VERIFIER : null,
   };
 }
 
@@ -62,7 +79,14 @@ class FakeClient implements BootstrapAdminClient {
     readonly values: readonly unknown[];
   }> = [];
 
-  constructor(private readonly state: FakeState) {}
+  constructor(
+    private readonly state: FakeState,
+    private fault: ProvisionFault | undefined,
+  ) {}
+
+  clearFault(): void {
+    this.fault = undefined;
+  }
 
   async query<Row>(
     text: string,
@@ -70,7 +94,10 @@ class FakeClient implements BootstrapAdminClient {
   ): Promise<{ readonly rows: readonly Row[] }> {
     this.calls.push({ text, values });
     const normalized = text.replace(/\s+/gu, " ").trim();
-    if (normalized.includes("FROM pg_catalog.pg_roles")) {
+    if (
+      normalized.includes("FROM pg_catalog.pg_roles") ||
+      normalized.includes("FROM pg_catalog.pg_authid")
+    ) {
       const role = this.state.roles.get(String(values[0]));
       return { rows: role === undefined ? [] : [role as Row] };
     }
@@ -83,12 +110,31 @@ class FakeClient implements BootstrapAdminClient {
     }
     if (normalized.startsWith("CREATE ROLE")) {
       const host = normalized.includes(`\"${HOST_LEASE_ROLE}\"`);
+      if (host && this.fault === "before-host-role-create") {
+        this.fault = undefined;
+        throw new Error("injected before host role create");
+      }
       const name = host ? HOST_LEASE_ROLE : HOST_OWNERSHIP_OWNER_ROLE;
       this.state.roles.set(name, exactRole(name, host, host ? 1 : -1));
+      if (
+        (!host && this.fault === "after-owner-role-create") ||
+        (host && this.fault === "after-host-role-create")
+      ) {
+        this.fault = undefined;
+        throw new Error(`injected after ${host ? "host" : "owner"} role create`);
+      }
       return { rows: [] };
     }
     if (normalized.startsWith("CREATE DATABASE")) {
+      if (this.fault === "before-database-create") {
+        this.fault = undefined;
+        throw new Error("injected before database create");
+      }
       this.state.databases.set(HOST_OWNERSHIP_CANONICAL_DATABASE, exactDatabase());
+      if (this.fault === "after-database-create") {
+        this.fault = undefined;
+        throw new Error("injected after database create");
+      }
       return { rows: [] };
     }
     throw new Error(`unexpected query: ${text}`);
@@ -102,7 +148,7 @@ function makeFixture(state: FakeState): {
   readonly factory: BootstrapAdminClientFactory;
   readonly options: BootstrapAdminProvisioningOptions;
 } {
-  const client = new FakeClient(state);
+  const client = new FakeClient(state, undefined);
   const connections = { count: 0 };
   const factory: BootstrapAdminClientFactory = {
     async connect() {
@@ -127,6 +173,38 @@ function makeFixture(state: FakeState): {
     },
   };
   return { client, factory, options };
+}
+
+function makeFaultFixture(
+  state: FakeState,
+  fault: ProvisionFault,
+): {
+  readonly client: FakeClient;
+  readonly options: BootstrapAdminProvisioningOptions;
+} {
+  const client = new FakeClient(state, fault);
+  const factory: BootstrapAdminClientFactory = {
+    async connect() {
+      return client;
+    },
+  };
+  const options: BootstrapAdminProvisioningOptions = {
+    port: 55436,
+    clientFactory: factory,
+    passwordProvider: {
+      async withBootstrapPassword<T>(
+        use: (passwordUtf8: Uint8Array) => Promise<T>,
+      ): Promise<T> {
+        return use(new TextEncoder().encode("B".repeat(32)));
+      },
+      async withHostLeasePassword<T>(
+        use: (passwordUtf8: Uint8Array) => Promise<T>,
+      ): Promise<T> {
+        return use(HOST_PASSWORD);
+      },
+    },
+  };
+  return { client, options };
 }
 
 describe("bootstrap host ownership database provisioning", () => {
@@ -207,5 +285,65 @@ describe("bootstrap host ownership database provisioning", () => {
     ).rejects.toMatchObject({
       problem: { problemCode: "host-ownership.bootstrap_admin.incompatible_database" },
     });
+  });
+
+  it("fails closed on an existing host credential mismatch without resetting it", async () => {
+    const fixture = makeFixture({
+      roles: new Map([
+        [HOST_OWNERSHIP_OWNER_ROLE, exactRole(HOST_OWNERSHIP_OWNER_ROLE, false, -1)],
+        [
+          HOST_LEASE_ROLE,
+          {
+            ...exactRole(HOST_LEASE_ROLE, true, 1),
+            rolpassword: encodePostgresScramSha256Verifier(
+              new TextEncoder().encode("W".repeat(32)),
+              { iterations: 4096, salt: HOST_SALT },
+            ),
+          },
+        ],
+      ]),
+      databases: new Map(),
+    });
+
+    await expect(provisionHostOwnershipDatabase(fixture.options)).rejects.toMatchObject(
+      {
+        problem: { problemCode: "host-ownership.bootstrap_admin.credential_mismatch" },
+      },
+    );
+    const sql = fixture.client.calls.map((call) => call.text).join("\n");
+    expect(sql).not.toContain("ALTER ROLE");
+    expect(sql).not.toContain("PASSWORD");
+  });
+
+  it.each([
+    "after-owner-role-create",
+    "before-host-role-create",
+    "after-host-role-create",
+    "before-database-create",
+    "after-database-create",
+  ] as const)("resumes after partial provisioning fault: %s", async (fault) => {
+    const state: FakeState = { roles: new Map(), databases: new Map() };
+    const fixture = makeFaultFixture(state, fault);
+
+    await expect(provisionHostOwnershipDatabase(fixture.options)).rejects.toThrow(
+      "injected",
+    );
+    fixture.client.clearFault();
+    await expect(
+      provisionHostOwnershipDatabase(fixture.options),
+    ).resolves.toMatchObject({
+      ownerRoleCreated: expect.any(Boolean),
+      hostLeaseRoleCreated: expect.any(Boolean),
+      databaseCreated: expect.any(Boolean),
+    });
+    expect(state.roles.get(HOST_OWNERSHIP_OWNER_ROLE)).toMatchObject(
+      exactRole(HOST_OWNERSHIP_OWNER_ROLE, false, -1),
+    );
+    expect(state.roles.get(HOST_LEASE_ROLE)).toMatchObject(
+      exactRole(HOST_LEASE_ROLE, true, 1),
+    );
+    expect(state.databases.get(HOST_OWNERSHIP_CANONICAL_DATABASE)).toEqual(
+      exactDatabase(),
+    );
   });
 });

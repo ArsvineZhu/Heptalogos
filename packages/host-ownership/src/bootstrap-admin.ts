@@ -9,7 +9,10 @@ import {
   HOST_OWNERSHIP_OWNER_ROLE,
 } from "./contracts.js";
 import type { HostAdvisoryKey } from "./advisory-key.js";
-import { encodePostgresScramSha256Verifier } from "./scram-verifier.js";
+import {
+  encodePostgresScramSha256Verifier,
+  matchesPostgresScramSha256Verifier,
+} from "./scram-verifier.js";
 
 export interface BootstrapAdminQueryResult<Row> {
   readonly rows: readonly Row[];
@@ -81,6 +84,7 @@ interface RoleRow {
   readonly rolbypassrls: boolean;
   readonly rolconnlimit: number;
   readonly rolinherit: boolean;
+  readonly rolpassword: string | null;
 }
 
 interface DatabaseRow {
@@ -91,8 +95,8 @@ interface DatabaseRow {
 
 const ROLE_QUERY = `
 SELECT rolname, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole,
-       rolreplication, rolbypassrls, rolconnlimit, rolinherit
-FROM pg_catalog.pg_roles
+       rolreplication, rolbypassrls, rolconnlimit, rolinherit, rolpassword
+FROM pg_catalog.pg_authid
 WHERE rolname = $1
 `;
 
@@ -140,6 +144,14 @@ function incompatibleDatabaseProblem(): ProblemError {
     "host-ownership.bootstrap_admin.incompatible_database",
     "Host ownership database is incompatible",
     `Existing PostgreSQL database ${HOST_OWNERSHIP_CANONICAL_DATABASE} does not satisfy the fixed ownership contract`,
+  );
+}
+
+function credentialMismatchProblem(roleName: string): ProblemError {
+  return provisioningProblem(
+    "host-ownership.bootstrap_admin.credential_mismatch",
+    "Host ownership credential does not match",
+    `Existing PostgreSQL role ${roleName} has a different credential; automatic password reset is forbidden`,
   );
 }
 
@@ -193,6 +205,7 @@ async function ensureRole(
   expectedLogin: boolean,
   expectedConnectionLimit: number,
   verifier: string | undefined,
+  passwordUtf8: Uint8Array | undefined,
 ): Promise<boolean> {
   const roles = await client.query<RoleRow>(ROLE_QUERY, [roleName]);
   if (roles.rows.length > 1) throw incompatibleRoleProblem(roleName);
@@ -204,6 +217,13 @@ async function ensureRole(
       memberships.rows.length !== 0
     ) {
       throw incompatibleRoleProblem(roleName);
+    }
+    if (
+      expectedLogin &&
+      (passwordUtf8 === undefined ||
+        !matchesPostgresScramSha256Verifier(passwordUtf8, existing.rolpassword))
+    ) {
+      throw credentialMismatchProblem(roleName);
     }
     return false;
   }
@@ -366,6 +386,7 @@ export async function provisionHostOwnershipDatabase(
         false,
         -1,
         undefined,
+        undefined,
       );
       return options.passwordProvider.withHostLeasePassword(
         async (hostLeasePasswordUtf8) => {
@@ -379,6 +400,7 @@ export async function provisionHostOwnershipDatabase(
             true,
             1,
             verifier,
+            hostLeasePasswordUtf8,
           );
           const databaseCreated = await ensureDatabase(admin);
           return { ownerRoleCreated, hostLeaseRoleCreated, databaseCreated };

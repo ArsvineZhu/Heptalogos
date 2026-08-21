@@ -14,10 +14,10 @@ import {
 import { ensureHostOwnershipSchema } from "./ownership-schema.js";
 
 interface SchemaState {
-  readonly schemaExists: boolean;
-  readonly tableExists: boolean;
-  readonly schemaOwner?: string;
-  readonly tableOwner?: string;
+  schemaExists: boolean;
+  tableExists: boolean;
+  schemaOwner?: string;
+  tableOwner?: string;
   readonly columns?: readonly {
     readonly column_name: string;
     readonly data_type: string;
@@ -46,6 +46,12 @@ interface SchemaState {
     readonly privilege_type: string;
   }>;
 }
+
+type SchemaFault =
+  | "before-schema-create"
+  | "after-schema-create"
+  | "before-fence-insert"
+  | "after-fence-initialized";
 
 const exactColumns = [
   { column_name: "singleton", data_type: "boolean", not_null: true },
@@ -79,7 +85,14 @@ class FakeSchemaClient implements BootstrapAdminClient {
     readonly values: readonly unknown[];
   }> = [];
 
-  constructor(private readonly state: SchemaState) {}
+  constructor(
+    private readonly state: SchemaState,
+    private fault: SchemaFault | undefined = undefined,
+  ) {}
+
+  clearFault(): void {
+    this.fault = undefined;
+  }
 
   async query<Row>(
     text: string,
@@ -147,9 +160,29 @@ class FakeSchemaClient implements BootstrapAdminClient {
       normalized.startsWith("REVOKE") ||
       normalized.startsWith("GRANT")
     ) {
+      if (normalized.startsWith("CREATE SCHEMA")) {
+        if (this.fault === "before-schema-create") {
+          this.fault = undefined;
+          throw new Error("injected before schema create");
+        }
+        this.state.schemaExists = true;
+        this.state.schemaOwner = HOST_OWNERSHIP_OWNER_ROLE;
+        if (this.fault === "after-schema-create") {
+          this.fault = undefined;
+          throw new Error("injected after schema create");
+        }
+      }
+      if (normalized.startsWith("CREATE TABLE")) {
+        this.state.tableExists = true;
+        this.state.tableOwner = HOST_OWNERSHIP_OWNER_ROLE;
+      }
       return { rows: [] };
     }
     if (normalized.startsWith("INSERT INTO")) {
+      if (this.fault === "before-fence-insert") {
+        this.fault = undefined;
+        throw new Error("injected before fence singleton insert");
+      }
       this.state.fenceRows.push({
         singleton: true,
         instance_id: values[0],
@@ -157,6 +190,10 @@ class FakeSchemaClient implements BootstrapAdminClient {
         host_ownership_token: null,
         boot_id: null,
       });
+      if (this.fault === "after-fence-initialized") {
+        this.fault = undefined;
+        throw new Error("injected after fence initialized");
+      }
       return { rows: [] };
     }
     throw new Error(`unexpected query: ${text}`);
@@ -168,11 +205,12 @@ class FakeSchemaClient implements BootstrapAdminClient {
 function makeOptions(
   instanceId: string,
   state: SchemaState,
+  fault?: SchemaFault,
 ): {
   readonly client: FakeSchemaClient;
   readonly options: Parameters<typeof ensureHostOwnershipSchema>[0];
 } {
-  const client = new FakeSchemaClient(state);
+  const client = new FakeSchemaClient(state, fault);
   const factory: BootstrapAdminClientFactory = {
     async connect() {
       return client;
@@ -351,6 +389,48 @@ describe("HostOwnershipFence schema", () => {
     });
     await expect(ensureHostOwnershipSchema(wrongColumn.options)).rejects.toMatchObject({
       problem: { problemCode: "host-ownership.schema.incompatible" },
+    });
+  });
+
+  it.each([
+    "before-schema-create",
+    "after-schema-create",
+    "before-fence-insert",
+    "after-fence-initialized",
+  ] as const)("resumes after partial schema fault: %s", async (fault) => {
+    const state: SchemaState = {
+      schemaExists: false,
+      tableExists: false,
+      fenceRows: [],
+      databaseAcl: [
+        { grantee: "PUBLIC", privilege_type: "CONNECT" },
+        { grantee: "PUBLIC", privilege_type: "TEMPORARY" },
+      ],
+      publicSchemaAcl: [
+        { grantee: "PUBLIC", privilege_type: "CREATE" },
+        { grantee: "PUBLIC", privilege_type: "USAGE" },
+      ],
+      schemaAcl: [],
+      tableAcl: [],
+    };
+    const fixture = makeOptions("0197cfe0-0000-7000-8000-000000000001", state, fault);
+
+    await expect(ensureHostOwnershipSchema(fixture.options)).rejects.toThrow(
+      "injected",
+    );
+    fixture.client.clearFault();
+    await expect(ensureHostOwnershipSchema(fixture.options)).resolves.toMatchObject({
+      schemaCreated: expect.any(Boolean),
+      tableCreated: expect.any(Boolean),
+      fenceRowInitialized: expect.any(Boolean),
+    });
+    expect(state.schemaExists).toBe(true);
+    expect(state.tableExists).toBe(true);
+    expect(state.fenceRows).toHaveLength(1);
+    expect(state.fenceRows[0]).toMatchObject({
+      singleton: true,
+      instance_id: "0197cfe0-0000-7000-8000-000000000001",
+      ownership_revision: "0",
     });
   });
 });

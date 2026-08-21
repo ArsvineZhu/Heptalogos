@@ -62,7 +62,12 @@ function makeContext(
     }),
   };
   const stages: string[] = [];
-  const stopSpy = vi.fn(async (): Promise<void> => undefined);
+  const stopSpy = vi.fn(async (): Promise<void> => {
+    if (session.state === "READY") {
+      session.beginStop(sessionToken);
+      session.markQuiescent(sessionToken);
+    }
+  });
   const restartSpy = vi.fn(async (): Promise<void> => undefined);
   const ready = {
     installationId,
@@ -245,5 +250,104 @@ describe("bootstrap to Host ownership handoff", () => {
       problem: { problemCode: "bootstrap.private_postgres.invalid_handle" },
     });
     expect(hostOwnershipMocks.provision).not.toHaveBeenCalled();
+  });
+
+  it("keeps partial and late handoff failures fail-closed and retryable", async () => {
+    const reservationFailure = makeContext("STARTED_BY_THIS_BOOTSTRAP");
+    const { releaseReservation } = installSuccessMocks();
+    releaseReservation.mockRejectedValueOnce(new Error("before reservation release"));
+
+    await expect(
+      handoffPrivatePostgresToHostForOwnedPrelude(
+        reservationFailure.context,
+        reservationFailure.ready,
+        makeOptions(),
+      ),
+    ).rejects.toThrow("before reservation release");
+    expect(reservationFailure.session.state).toBe("READY");
+    expect(reservationFailure.ownership.state).toBe("HELD");
+
+    await expect(
+      handoffPrivatePostgresToHostForOwnedPrelude(
+        reservationFailure.context,
+        reservationFailure.ready,
+        makeOptions(),
+      ),
+    ).resolves.toMatchObject({ state: "ACTIVE" });
+    expect(reservationFailure.session.state).toBe("HANDED_OFF");
+    expect(reservationFailure.ownership.state).toBe("RELEASED");
+
+    const leaseFailure = makeContext("STARTED_BY_THIS_BOOTSTRAP");
+    installSuccessMocks();
+    hostOwnershipMocks.publish.mockRejectedValueOnce(new Error("before token update"));
+    await expect(
+      handoffPrivatePostgresToHostForOwnedPrelude(
+        leaseFailure.context,
+        leaseFailure.ready,
+        makeOptions(),
+      ),
+    ).rejects.toThrow("before token update");
+    expect(leaseFailure.session.state).toBe("QUIESCENT");
+    expect(leaseFailure.ready.stopSpy).toHaveBeenCalledOnce();
+    expect(leaseFailure.ownership.state).toBe("HELD");
+
+    const tokenCommitFailure = makeContext("STARTED_BY_THIS_BOOTSTRAP");
+    installSuccessMocks();
+    let publicationCount = 0;
+    let firstToken: string | undefined;
+    let secondToken: string | undefined;
+    (
+      hostOwnershipMocks.publish as unknown as {
+        mockImplementation(
+          implementation: (options: { readonly token: string }) => Promise<void>,
+        ): void;
+      }
+    ).mockImplementation(async (options: { readonly token: string }) => {
+      publicationCount += 1;
+      if (publicationCount === 1) {
+        firstToken = options.token;
+        throw new Error("after token commit");
+      }
+      secondToken = options.token;
+    });
+    await expect(
+      handoffPrivatePostgresToHostForOwnedPrelude(
+        tokenCommitFailure.context,
+        tokenCommitFailure.ready,
+        makeOptions(),
+      ),
+    ).rejects.toThrow("after token commit");
+    expect(tokenCommitFailure.session.state).toBe("QUIESCENT");
+
+    const retryAfterTokenCommit = makeContext("STARTED_BY_THIS_BOOTSTRAP");
+    await expect(
+      handoffPrivatePostgresToHostForOwnedPrelude(
+        retryAfterTokenCommit.context,
+        retryAfterTokenCommit.ready,
+        makeOptions(),
+      ),
+    ).resolves.toMatchObject({ state: "ACTIVE" });
+    expect(firstToken).toBeDefined();
+    expect(secondToken).toBeDefined();
+    expect(secondToken).not.toBe(firstToken);
+
+    const releaseFailure = makeContext("STARTED_BY_THIS_BOOTSTRAP");
+    installSuccessMocks();
+    releaseFailure.ownership.release.mockRejectedValueOnce(
+      new Error("before bootstrap lock release"),
+    );
+    await expect(
+      handoffPrivatePostgresToHostForOwnedPrelude(
+        releaseFailure.context,
+        releaseFailure.ready,
+        makeOptions(),
+      ),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.host.handoff_release_uncertain" },
+    });
+    expect(releaseFailure.session.state).toBe("HANDED_OFF");
+    expect(releaseFailure.ownership.state).toBe("HELD");
+    await (releaseFailure.ownership.release as unknown as () => Promise<void>)();
+    expect(releaseFailure.ownership.state).toBe("RELEASED");
   });
 });
