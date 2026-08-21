@@ -464,7 +464,7 @@
         },
         "candidateSha": "b94c61e6fe275aba5e4947c4bd90b38cb5d8658f",
         "finalHardeningCandidateSha": "7c93a3fa3fd9d50d75546d1b45ea28615fea2ae5",
-        "m4HostOwnershipCandidateSha": "0e30c77a7af13edcac067430a92fdfafff24e508",
+        "m4HostOwnershipCandidateSha": "6b4d8e9460560c0298d7edf6550562a4750195d4",
         "historicalPreCorrectionLinux": {
           "platform": "Linux PRTS 7.0.0-30-generic x86_64",
           "candidateSha": "46e66c776f17b43ae06c0cef8229c4cd4666919c",

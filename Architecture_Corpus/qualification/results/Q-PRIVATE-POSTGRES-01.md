@@ -128,7 +128,7 @@ historical M3 hardening candidates. It does not close H1, M5 reverse handoff,
 or cross-platform/source-less/service-account qualification.
 
 ```yaml
-candidate_sha: 0e30c77a7af13edcac067430a92fdfafff24e508
+candidate_sha: 6b4d8e9460560c0298d7edf6550562a4750195d4
 host_ownership_identity: PASS
 least_privilege_host_role: PASS
 canonical_fence_schema: PASS
@@ -156,7 +156,7 @@ service_account_acl_closure: NOT_RUN
 
 The M4 evidence was produced by the focused unit suites, PostgreSQL 18.6
 Windows integration suites (`private-postgres` 20/20, `host-ownership` 5/5,
-and `bootstrap-runtime` 11/11), the partial-provisioning and late-handoff
+and `bootstrap-runtime` 12/12), the partial-provisioning and late-handoff
 fault matrix, and the permanent repository gates including `pnpm verify`.
 The real database fixture used the explicit extracted Windows PostgreSQL 18.6
 bin root recorded above. Final cross-platform CI remains intentionally
