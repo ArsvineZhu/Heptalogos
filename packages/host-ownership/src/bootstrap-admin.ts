@@ -52,6 +52,13 @@ export interface BootstrapAdminProvisioningResult {
   readonly databaseCreated: boolean;
 }
 
+export interface BootstrapAdminSessionOptions {
+  readonly port: number;
+  readonly database: string;
+  readonly passwordProvider: BootstrapAdminPasswordProvider;
+  readonly clientFactory?: unknown;
+}
+
 interface RoleRow {
   readonly rolname: string;
   readonly rolcanlogin: boolean;
@@ -237,9 +244,10 @@ const defaultClientFactory: BootstrapAdminClientFactory = {
   },
 };
 
-export async function provisionHostOwnershipDatabase(
-  options: BootstrapAdminProvisioningOptions,
-): Promise<BootstrapAdminProvisioningResult> {
+export async function withBootstrapAdminClient<T>(
+  options: BootstrapAdminSessionOptions,
+  use: (client: BootstrapAdminClient) => Promise<T>,
+): Promise<T> {
   const factory =
     (options.clientFactory as BootstrapAdminClientFactory | undefined) ??
     defaultClientFactory;
@@ -247,11 +255,29 @@ export async function provisionHostOwnershipDatabase(
     const admin = await factory.connect({
       host: "127.0.0.1",
       port: options.port,
-      database: "postgres",
+      database: options.database,
       user: "heptalogos_bootstrap",
       password: decodeUtf8(passwordUtf8),
     });
     try {
+      return await use(admin);
+    } finally {
+      await admin.end();
+    }
+  });
+}
+
+export async function provisionHostOwnershipDatabase(
+  options: BootstrapAdminProvisioningOptions,
+): Promise<BootstrapAdminProvisioningResult> {
+  return withBootstrapAdminClient(
+    {
+      port: options.port,
+      database: "postgres",
+      passwordProvider: options.passwordProvider,
+      clientFactory: options.clientFactory,
+    },
+    async (admin) => {
       const ownerRoleCreated = await ensureRole(
         admin,
         HOST_OWNERSHIP_OWNER_ROLE,
@@ -259,7 +285,7 @@ export async function provisionHostOwnershipDatabase(
         -1,
         undefined,
       );
-      return await options.passwordProvider.withHostLeasePassword(
+      return options.passwordProvider.withHostLeasePassword(
         async (hostLeasePasswordUtf8) => {
           const verifier = encodePostgresScramSha256Verifier(hostLeasePasswordUtf8, {
             iterations: HOST_LEASE_SCRAM_ITERATIONS,
@@ -276,8 +302,6 @@ export async function provisionHostOwnershipDatabase(
           return { ownerRoleCreated, hostLeaseRoleCreated, databaseCreated };
         },
       );
-    } finally {
-      await admin.end();
-    }
-  });
+    },
+  );
 }

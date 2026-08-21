@@ -7,6 +7,11 @@ export {
   type BootstrapAdminProvisioningResult,
 } from "./bootstrap-admin.js";
 export {
+  ensureHostOwnershipSchema,
+  type OwnershipSchemaOptions,
+  type OwnershipSchemaResult,
+} from "./ownership-schema.js";
+export {
   HOST_LEASE_ROLE,
   HOST_LEASE_SCRAM_ITERATIONS,
   HOST_LEASE_SCRAM_SALT_BYTES,
