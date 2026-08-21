@@ -17,5 +17,7 @@ export type {
   BootId,
   BootstrapActivityId,
   BootstrapJournalCheckpointV1,
+  BootstrapJournalCheckpointV2,
+  BootstrapJournalCheckpoint,
   BootstrapStageOutcome,
 } from "./journal.js";
