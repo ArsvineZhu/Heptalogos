@@ -31,6 +31,14 @@ describe("BootstrapKeyProvider", () => {
           providerBuffer = undefined;
         }
       },
+      async withPrivatePostgresHostLeasePassword(_context, use) {
+        const hostPassword = new TextEncoder().encode("H".repeat(32));
+        try {
+          return await use(hostPassword);
+        } finally {
+          hostPassword.fill(0);
+        }
+      },
     };
 
     await provider.withPrivatePostgresBootstrapPassword(context, async (password) => {
@@ -46,5 +54,38 @@ describe("BootstrapKeyProvider", () => {
       "\0".repeat(callbackPassword?.length ?? 0),
     );
     expect("getPassword" in provider).toBe(false);
+  });
+
+  it("keeps the host lease credential as a distinct callback purpose", async () => {
+    const context: BootstrapKeyRequestContext = {
+      installationId: createInstallationId(),
+      instanceId: createInstanceId(),
+      bootId: createBootId(),
+      purpose: "private-postgres-host-lease-role",
+    };
+    const provider: BootstrapKeyProvider = {
+      async withPrivatePostgresBootstrapPassword(_context, use) {
+        return use(new Uint8Array());
+      },
+      async withPrivatePostgresHostLeasePassword(_context, use) {
+        const password = new TextEncoder().encode("H".repeat(32));
+        try {
+          return await use(password);
+        } finally {
+          password.fill(0);
+        }
+      },
+    };
+    let observedPurpose: BootstrapKeyRequestContext["purpose"] | undefined;
+    let observedLength = 0;
+
+    await provider.withPrivatePostgresHostLeasePassword(context, async (password) => {
+      observedPurpose = context.purpose;
+      observedLength = password.byteLength;
+      return undefined;
+    });
+
+    expect(observedPurpose).toBe("private-postgres-host-lease-role");
+    expect(observedLength).toBe(32);
   });
 });

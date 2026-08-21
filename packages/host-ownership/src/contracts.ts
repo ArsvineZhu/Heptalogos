@@ -13,6 +13,11 @@ export const HOST_OWNERSHIP_FENCE_TABLE = "host_ownership_fence" as const;
 export const HOST_LEASE_SCRAM_ITERATIONS = 4096 as const;
 export const HOST_LEASE_SCRAM_SALT_BYTES = 16 as const;
 
+export interface PostgresScramVerifierOptions {
+  readonly iterations: number;
+  readonly salt: Uint8Array;
+}
+
 export type HostOwnershipState = "ACTIVE" | "FENCED" | "CLOSING" | "CLOSED";
 
 export interface HostOwnershipContext {

@@ -1,5 +1,8 @@
 export { deriveHostAdvisoryKey, type HostAdvisoryKey } from "./advisory-key.js";
 export {
+  encodePostgresScramSha256Verifier,
+} from "./scram-verifier.js";
+export {
   HOST_LEASE_ROLE,
   HOST_LEASE_SCRAM_ITERATIONS,
   HOST_LEASE_SCRAM_SALT_BYTES,
@@ -11,4 +14,5 @@ export {
   type HostOwnershipContext,
   type HostOwnershipState,
   type HostOwnershipTimingOptions,
+  type PostgresScramVerifierOptions,
 } from "./contracts.js";

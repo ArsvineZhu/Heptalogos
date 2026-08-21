@@ -141,6 +141,12 @@ function makeOptions(
       contexts.push(context);
       return use(new TextEncoder().encode("M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6"));
     },
+    async withPrivatePostgresHostLeasePassword<T>(
+      _context: BootstrapKeyRequestContext,
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      return use(new TextEncoder().encode("H".repeat(32)));
+    },
   };
   return {
     toolchainBinDirectory: qualifiedPgBin,
