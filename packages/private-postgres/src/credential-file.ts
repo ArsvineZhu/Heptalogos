@@ -54,11 +54,39 @@ async function resolveValidatedTempRoot(tempRoot: string): Promise<string> {
   }
 }
 
+function assertValidBootstrapPassword(passwordUtf8: Uint8Array): void {
+  if (
+    passwordUtf8.byteLength === 0 ||
+    Array.from(passwordUtf8).some(
+      (byte) => byte === 0x00 || byte === 0x0a || byte === 0x0d,
+    )
+  ) {
+    throw credentialProblem(
+      "private-postgres.credential_file.invalid_password",
+      "Private PostgreSQL bootstrap password is invalid",
+      "The bootstrap password must be non-empty UTF-8 single-line data without NUL, LF, or CR bytes",
+      "validation",
+    );
+  }
+
+  try {
+    new TextDecoder("utf-8", { fatal: true }).decode(passwordUtf8);
+  } catch {
+    throw credentialProblem(
+      "private-postgres.credential_file.invalid_password",
+      "Private PostgreSQL bootstrap password is invalid",
+      "The bootstrap password must be valid UTF-8 single-line data",
+      "validation",
+    );
+  }
+}
+
 export async function withRestrictedPasswordFile<T>(
   tempRoot: string,
   passwordUtf8: Uint8Array,
   use: (passwordFilePath: string) => Promise<T>,
 ): Promise<T> {
+  assertValidBootstrapPassword(passwordUtf8);
   const canonicalTempRoot = await resolveValidatedTempRoot(tempRoot);
   const passwordFilePath = join(
     canonicalTempRoot,
