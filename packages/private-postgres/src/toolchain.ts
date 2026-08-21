@@ -121,7 +121,10 @@ async function requireRegularTool(path: string, name: string): Promise<void> {
 }
 
 export function parsePostgresVersion(output: string): ParsedPostgresVersion {
-  const match = /^\S+\s+\(PostgreSQL\)\s+(\d+)\.(\d+)\s*$/u.exec(output);
+  const match =
+    /^\S+\s+\(PostgreSQL\)\s+(\d+)\.(\d+)(?:\s+\([^()\r\n]*\))?\s*$/u.exec(
+      output,
+    );
   const version = match ? `${match[1]}.${match[2]}` : undefined;
   if (version !== PRIVATE_POSTGRES_QUALIFIED_VERSION) {
     throw toolchainProblem(

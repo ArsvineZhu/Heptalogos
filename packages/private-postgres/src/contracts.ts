@@ -51,6 +51,26 @@ export interface PrivatePostgresLifecycleOptions {
   readonly readinessPollIntervalMs: number;
 }
 
+export interface PrivatePostgresInitializationProfile {
+  readonly encoding: "UTF8";
+  readonly dataChecksums: true;
+  readonly hostAuthentication: "scram-sha-256";
+  readonly localAuthentication: "scram-sha-256";
+  readonly listenAddress: "127.0.0.1";
+  readonly persistedPort: number;
+}
+
+export interface PrivatePostgresInitializationResult {
+  readonly toolchain: PrivatePostgresToolchain;
+  readonly placement: PrivatePostgresPlacement;
+  readonly identity: PrivatePostgresClusterIdentity;
+  readonly port: number;
+  readonly initializationProfileRevision: PrivatePostgresInitializationProfileRevision;
+  readonly dataPageChecksumVersion: number;
+  readonly databaseClusterState: string;
+  readonly catalogVersionNumber: string;
+}
+
 export interface ReadyPrivatePostgresMechanics {
   readonly toolchain: PrivatePostgresToolchain;
   readonly placement: PrivatePostgresPlacement;

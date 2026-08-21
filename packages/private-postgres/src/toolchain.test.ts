@@ -24,6 +24,14 @@ describe("parsePostgresVersion", () => {
     });
   });
 
+  it("accepts an exact qualified version with a distribution build suffix", () => {
+    expect(
+      parsePostgresVersion(
+        "postgres (PostgreSQL) 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)\n",
+      ),
+    ).toEqual({ major: 18, version: "18.6" });
+  });
+
   it("rejects a non-qualified PostgreSQL patch version", () => {
     expect(() =>
       parsePostgresVersion("postgres (PostgreSQL) 18.4\n"),

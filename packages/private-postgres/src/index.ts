@@ -6,6 +6,8 @@ export {
   type PrivatePostgresClusterIdentity,
   type PrivatePostgresExpectedIdentity,
   type PrivatePostgresInitializationProfileRevision,
+  type PrivatePostgresInitializationProfile,
+  type PrivatePostgresInitializationResult,
   type PrivatePostgresLifecycleOptions,
   type PrivatePostgresPlacement,
   type PrivatePostgresToolchain,
@@ -24,3 +26,9 @@ export {
   type ParsedPgControldata,
   type PrivatePostgresClusterInspection,
 } from "./cluster-inspection.js";
+export {
+  createPrivatePostgresInitializationProfile,
+  createPrivatePostgresInitializationProfileRevision,
+  initializePrivatePostgresCluster,
+  type InitializePrivatePostgresClusterOptions,
+} from "./controller.js";
