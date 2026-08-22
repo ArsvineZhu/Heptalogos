@@ -132,9 +132,10 @@ It does not prove private PostgreSQL, runtime supervision, durable work, system 
 
 - M2 pre-PostgreSQL bootstrap substrate is closed and merged.
 - M3 implementation is merged in squash commit `4b12c14693752d9796f8aa287666e6537321006d`; its corrected-final-head independent re-review, final cross-platform CI, corrected Linux/macOS real PostgreSQL, source-less shipping, and service-account ACL evidence remain `NOT_RUN`, so `Q-PRIVATE-POSTGRES-01 = PARTIAL`.
-- M4 is now the sole active Foundation implementation plan for the dedicated PostgreSQL Host lease, `HostOwnershipFence`, fresh `HostOwnershipToken`, and bootstrap → Host forward handoff.
-- M4 implementation and Windows PostgreSQL 18.6 evidence are locally complete at the recorded candidate SHA; independent review and final cross-platform CI remain `NOT_RUN`.
-- PostgreSQL reverse handoff and bounded abandoned-lock Recovery remain M5 work; H1 remains OPEN.
+- M4 is implemented and squash-merged at `83e0b603d039036326eca9983af381387a9bfdb3`; its exact-SHA independent review and final cross-platform CI are `PASS`, while corrected-candidate Linux/macOS real PostgreSQL, source-less shipping, and service-account ACL evidence remain `NOT_RUN`, so `Q-PRIVATE-POSTGRES-01 = PARTIAL`.
+- M5A is now the active Foundation implementation plan for intentional reverse Host → bootstrap handoff and the bounded PostgreSQL maintenance window; M5B remains the separate abandoned-lock/bootstrap Recovery milestone.
+- M5A implementation candidate `7ca699d16aeaf863dab091253ac42a11b744a0bf` has deterministic unit/build/boundary evidence plus Linux PostgreSQL 18.6 qualification for the MaintenanceJournal, bootstrap-admin revocation, quiesced managed Host, existing-cluster maintenance controller, stop/exit, restart/reacquire, lock contention, keep-PG-running shutdown, lease loss, identity/profile proof, and fault policy. Corrected-candidate Windows/macOS real PostgreSQL, independent review, and final cross-platform CI remain `NOT_RUN`.
+- PostgreSQL reverse handoff and bounded abandoned-lock Recovery remain required for H1 closure; H1 remains OPEN.
 - M2 automatic `proper-lockfile` stale takeover remains intentionally disabled; an abandoned pre-PostgreSQL lock is recovery-required until that later Recovery design is qualified.
 
 ### Capability closure

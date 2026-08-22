@@ -40,6 +40,11 @@ export {
   validateExistingCluster,
 } from "./controller.js";
 export {
+  openPrivatePostgresMaintenanceController,
+  type OpenPrivatePostgresMaintenanceControllerOptions,
+  type PrivatePostgresMaintenanceController,
+} from "./maintenance-controller.js";
+export {
   createCanonicalHbaProfile,
   createCanonicalRuntimeProfile,
   inspectEffectivePrivatePostgresProfile,

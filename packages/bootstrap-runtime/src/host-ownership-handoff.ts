@@ -25,17 +25,30 @@ import type { BootstrapOwnershipLease } from "./bootstrap-ownership.js";
 import type { BootstrapKeyProvider } from "./bootstrap-key-provider.js";
 import {
   assertReadyPrivatePostgresSession,
+  getPrivatePostgresMaintenanceDescriptor,
   type PrivatePostgresSessionToken,
   type PrivatePostgresSessionTracker,
   type ReadyPrivatePostgres,
 } from "./private-postgres-bootstrap.js";
 import type { OwnedBootstrapStateStore } from "./bootstrap-state-access.js";
 import type { BootstrapPathProfile } from "./roots.js";
+import {
+  createManagedHostContext,
+  markManagedHostTerminal,
+  type BootstrapManagedHostContext,
+} from "./managed-host.js";
+import {
+  createHostMaintenanceOperations,
+  createRestartPrivatePostgresEnteredWindowExecutor,
+  createStopPrivatePostgresEnteredWindowExecutor,
+  type HostMaintenanceOperationProvenance,
+} from "./host-maintenance.js";
 
 export interface HostOwnershipHandoffOptions {
   readonly keyProvider: BootstrapKeyProvider;
   readonly timing: HostOwnershipTimingOptions;
   readonly clientFactory?: unknown;
+  readonly bootstrapHeartbeatMs?: number;
 }
 
 export interface OwnedBootstrapPreludeHandoffContext {
@@ -376,4 +389,60 @@ export async function handoffPrivatePostgresToHostForOwnedPrelude(
     }
     throw error;
   }
+}
+
+export async function handoffPrivatePostgresToManagedHostForOwnedPrelude(
+  context: OwnedBootstrapPreludeHandoffContext,
+  ready: ReadyPrivatePostgres,
+  options: HostOwnershipHandoffOptions,
+): Promise<BootstrapManagedHostContext> {
+  const privatePostgres = getPrivatePostgresMaintenanceDescriptor(ready);
+  const raw = await handoffPrivatePostgresToHostForOwnedPrelude(
+    context,
+    ready,
+    options,
+  );
+  const createManagedHost = (
+    host: HostOwnershipContext,
+  ): BootstrapManagedHostContext => {
+    let managed: BootstrapManagedHostContext;
+    let oldHostRetirementPromise: Promise<void> | undefined;
+    const beginOldHostRetirement = (): Promise<void> => {
+      if (oldHostRetirementPromise !== undefined) {
+        return oldHostRetirementPromise;
+      }
+      markManagedHostTerminal(managed);
+      try {
+        oldHostRetirementPromise = host.close();
+      } catch (error) {
+        oldHostRetirementPromise = Promise.reject(error);
+      }
+      return oldHostRetirementPromise;
+    };
+    const provenance: HostMaintenanceOperationProvenance = {
+      host,
+      bootstrap: context,
+      handoff: options,
+      privatePostgres,
+      beginOldHostRetirement,
+      createHostToken: createHostOwnershipToken,
+      createHostContext: (connection, token) =>
+        createContext(context, connection, token),
+      createManagedHost,
+    };
+    managed = createManagedHostContext(
+      host,
+      createHostMaintenanceOperations({
+        ...provenance,
+        executeEnteredWindow: async (window) => {
+          if (window.request.kind === "STOP_PRIVATE_POSTGRES") {
+            return createStopPrivatePostgresEnteredWindowExecutor(provenance)(window);
+          }
+          return createRestartPrivatePostgresEnteredWindowExecutor(provenance)(window);
+        },
+      }),
+    );
+    return managed;
+  };
+  return createManagedHost(raw);
 }

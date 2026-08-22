@@ -13,6 +13,10 @@ export {
 } from "./bootstrap-ownership.js";
 export type { OwnedBootstrapStateStore } from "./bootstrap-state-access.js";
 export {
+  openMaintenanceStateAccess,
+  type OwnedMaintenanceStateAccess,
+} from "./maintenance-state-access.js";
+export {
   prepareBootstrapPrelude,
   type OwnedBootstrapPrelude,
   type PreparedBootstrapPrelude,
@@ -26,3 +30,12 @@ export type {
   BootstrapKeyProvider,
   BootstrapKeyRequestContext,
 } from "./bootstrap-key-provider.js";
+export type {
+  BootstrapManagedHostContext,
+  HostMaintenanceQuiescence,
+  HostQuiescenceLease,
+  PreparedPrivatePostgresMaintenance,
+  PreparedMaintenanceState,
+  PrivatePostgresMaintenanceRequest,
+  PrivatePostgresMaintenanceResult,
+} from "./managed-host.js";

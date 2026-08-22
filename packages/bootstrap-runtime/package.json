@@ -17,9 +17,12 @@
     "@heptalogos/private-postgres": "workspace:*",
     "ajv": "catalog:",
     "proper-lockfile": "catalog:",
-    "typebox": "catalog:"
+    "typebox": "catalog:",
+    "xstate": "catalog:"
   },
   "devDependencies": {
+    "@types/pg": "catalog:",
+    "pg": "catalog:",
     "vitest": "catalog:"
   }
 }

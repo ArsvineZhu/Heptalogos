@@ -21,6 +21,11 @@ export interface PublishHostOwnershipTokenOptions {
   readonly mutationAuthority: BootstrapMutationAuthority;
 }
 
+export interface HostOwnershipPublicationResult {
+  readonly previousRevision: string;
+  readonly publishedRevision: string;
+}
+
 async function authorizedConnectionQuery<Row = never>(
   connection: HostLeaseConnection,
   authority: BootstrapMutationAuthority,
@@ -102,15 +107,24 @@ function publicationFailedProblem(): ProblemError {
   );
 }
 
-function isRevision(value: string | number): boolean {
-  return /^\d+$/u.test(String(value));
+function revisionText(value: string | number): string {
+  if (typeof value === "string" && /^(0|[1-9][0-9]*)$/u.test(value)) {
+    return value;
+  }
+  if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) {
+    return String(value);
+  }
+  throw invalidFenceProblem();
 }
 
-function assertFenceRow(row: FenceRow, instanceId: InstanceId): void {
+function nextRevision(previousRevision: string): string {
+  return (BigInt(previousRevision) + 1n).toString();
+}
+
+function assertFenceRow(row: FenceRow, instanceId: InstanceId): string {
   if (
     row.singleton !== true ||
     row.instance_id !== instanceId ||
-    !isRevision(row.ownership_revision) ||
     (row.host_ownership_token !== null &&
       parseHostOwnershipToken(row.host_ownership_token) === undefined) ||
     (row.boot_id !== null && parseBootId(row.boot_id) === undefined)
@@ -118,6 +132,7 @@ function assertFenceRow(row: FenceRow, instanceId: InstanceId): void {
     if (row.instance_id !== instanceId) throw instanceMismatchProblem();
     throw invalidFenceProblem();
   }
+  return revisionText(row.ownership_revision);
 }
 
 function assertPublishedRow(
@@ -138,7 +153,7 @@ function assertPublishedRow(
 
 export async function publishHostOwnershipToken(
   options: PublishHostOwnershipTokenOptions,
-): Promise<void> {
+): Promise<HostOwnershipPublicationResult> {
   const { connection } = options;
   connection.assertActive();
   let transactionOpen = false;
@@ -163,7 +178,7 @@ export async function publishHostOwnershipToken(
       FENCE_FOR_UPDATE,
     );
     if (locked.rows.length !== 1) throw invalidFenceProblem();
-    assertFenceRow(locked.rows[0], options.instanceId);
+    const previousRevision = assertFenceRow(locked.rows[0], options.instanceId);
     await authorizedConnectionQuery(
       connection,
       options.mutationAuthority,
@@ -189,6 +204,11 @@ WHERE singleton = true`,
       options.token,
       options.bootId,
     );
+    const publishedRevision = nextRevision(previousRevision);
+    if (revisionText(verified.rows[0].ownership_revision) !== publishedRevision) {
+      throw publicationUnverifiedProblem();
+    }
+    return { previousRevision, publishedRevision };
   } catch (error) {
     if (transactionOpen && connection.state === "ACTIVE") {
       await connection.query("ROLLBACK").catch(() => undefined);

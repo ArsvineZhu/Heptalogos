@@ -57,9 +57,21 @@ export interface ReadyPrivatePostgres {
   restart(): Promise<void>;
 }
 
+export interface PrivatePostgresMaintenanceDescriptor {
+  readonly toolchain: PrivatePostgresToolchain;
+  readonly placement: PrivatePostgresPlacement;
+  readonly expectedIdentity: PrivatePostgresExpectedIdentity;
+  readonly logFilePath: string;
+  readonly lifecycle: PrivatePostgresLifecycleOptions;
+}
+
 const readySessionTokens = new WeakMap<
   ReadyPrivatePostgres,
   PrivatePostgresSessionToken
+>();
+const readyMaintenanceDescriptors = new WeakMap<
+  ReadyPrivatePostgres,
+  PrivatePostgresMaintenanceDescriptor
 >();
 
 export type PrivatePostgresSessionState =
@@ -208,6 +220,14 @@ export function assertReadyPrivatePostgresSession(
   if (token === undefined) throw invalidReadyHandleProblem();
   session.assertCurrent(token);
   return token;
+}
+
+export function getPrivatePostgresMaintenanceDescriptor(
+  ready: ReadyPrivatePostgres,
+): PrivatePostgresMaintenanceDescriptor {
+  const descriptor = readyMaintenanceDescriptors.get(ready);
+  if (descriptor === undefined) throw invalidReadyHandleProblem();
+  return descriptor;
 }
 
 export function createPrivatePostgresSessionTracker(): PrivatePostgresSessionTracker {
@@ -655,6 +675,16 @@ export async function preparePrivatePostgresForOwnedPrelude(
       ...lifecycle,
     });
     readySessionTokens.set(ready, sessionToken);
+    readyMaintenanceDescriptors.set(
+      ready,
+      Object.freeze({
+        toolchain,
+        placement,
+        expectedIdentity,
+        logFilePath,
+        lifecycle: options.lifecycle,
+      }),
+    );
     return ready;
   } catch (error) {
     let cleanupSucceeded = true;

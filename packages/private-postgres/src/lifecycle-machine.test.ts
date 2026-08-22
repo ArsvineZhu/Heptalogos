@@ -12,6 +12,7 @@ const ALL_EVENTS = [
   { type: "START_COMMAND_SUCCEEDED" },
   { type: "START_OUTCOME_UNCERTAIN" },
   { type: "READY_PROVEN" },
+  { type: "READY_OBSERVED" },
   { type: "POST_START_PROOF_FAILED" },
   { type: "STATUS_RUNNING_PROVEN" },
   { type: "STATUS_STOPPED_PROVEN" },
@@ -76,6 +77,13 @@ function rejectNoise(
 }
 
 describe("private PostgreSQL lifecycle transition mechanics", () => {
+  it("accepts a fully validated already-running observation as READY", () => {
+    const tracker = createPrivatePostgresLifecycleTracker();
+
+    tracker.send({ type: "READY_OBSERVED" });
+    expectTracker(tracker, "READY", "ready");
+  });
+
   it("allows a stopped cluster to become ready only after command success and readiness proof", () => {
     const tracker = createPrivatePostgresLifecycleTracker();
 

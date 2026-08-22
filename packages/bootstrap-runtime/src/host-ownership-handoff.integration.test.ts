@@ -24,7 +24,6 @@ import {
 import {
   inspectHostOwnershipCanonicalSnapshot,
   type BootstrapAdminPasswordProvider,
-  type HostOwnershipContext,
 } from "@heptalogos/host-ownership";
 import type {
   BootstrapKeyProvider,
@@ -32,6 +31,16 @@ import type {
 } from "./bootstrap-key-provider.js";
 import { prepareBootstrapPrelude } from "./bootstrap-prelude.js";
 import type { ReadyPrivatePostgres } from "./private-postgres-bootstrap.js";
+import type {
+  BootstrapManagedHostContext,
+  HostMaintenanceQuiescence,
+} from "./managed-host.js";
+
+const KEEP_PRIVATE_POSTGRES_QUIESCENCE: HostMaintenanceQuiescence = {
+  async quiesce() {
+    return { async resumeAfterAbort() {} };
+  },
+};
 
 const qualifiedPgBin: string =
   process.env.HEPTALOGOS_TEST_PG_BIN ??
@@ -220,7 +229,7 @@ describe("bootstrap to Host ownership real PostgreSQL 18.6 qualification", () =>
       keyProvider,
     };
     let ready: ReadyPrivatePostgres | undefined;
-    let host: HostOwnershipContext | undefined;
+    let host: BootstrapManagedHostContext | undefined;
 
     try {
       ready = await owned.preparePrivatePostgres(options);
@@ -255,7 +264,9 @@ describe("bootstrap to Host ownership real PostgreSQL 18.6 qualification", () =>
         ]),
       );
     } finally {
-      await host?.close().catch(() => undefined);
+      await host
+        ?.shutdownKeepingPrivatePostgres(KEEP_PRIVATE_POSTGRES_QUIESCENCE)
+        .catch(() => undefined);
       await ready?.stop().catch(() => undefined);
       await stopQualifiedPostgres(join(fixture.roots.DATA, "private-postgres"));
       if (owned.ownershipState !== "RELEASED") {
@@ -276,7 +287,7 @@ describe("bootstrap to Host ownership real PostgreSQL 18.6 qualification", () =>
       keyProvider,
     };
     let firstReady: ReadyPrivatePostgres | undefined;
-    let hostA: HostOwnershipContext | undefined;
+    let hostA: BootstrapManagedHostContext | undefined;
 
     try {
       firstReady = await firstOwned.preparePrivatePostgres(options);
@@ -334,7 +345,9 @@ describe("bootstrap to Host ownership real PostgreSQL 18.6 qualification", () =>
         }
       }
     } finally {
-      await hostA?.close().catch(() => undefined);
+      await hostA
+        ?.shutdownKeepingPrivatePostgres(KEEP_PRIVATE_POSTGRES_QUIESCENCE)
+        .catch(() => undefined);
       await firstReady?.stop().catch(() => undefined);
       await stopQualifiedPostgres(join(fixture.roots.DATA, "private-postgres"));
       if (firstOwned.ownershipState !== "RELEASED") {
