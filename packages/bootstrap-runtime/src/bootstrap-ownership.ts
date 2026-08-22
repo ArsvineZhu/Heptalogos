@@ -228,6 +228,9 @@ async function acquireBootstrapOwnershipWithStalePolicy(
   }
 
   try {
+    for (const releasing of await witnessStore.listReleasing()) {
+      await witnessStore.removeReleasing(releasing.witness.lockGenerationId);
+    }
     const ownerWitness: BootstrapOwnerWitnessBodyV1 = {
       ...attemptWitness,
       phase: "OWNER",
@@ -235,8 +238,19 @@ async function acquireBootstrapOwnershipWithStalePolicy(
     await witnessStore.publishOwner(ownerWitness);
     await witnessStore.removeAttempt(lockGenerationId);
   } catch (error) {
+    const releasingWitness: BootstrapOwnerWitnessBodyV1 & {
+      readonly phase: "RELEASING";
+    } = {
+      ...attemptWitness,
+      phase: "RELEASING",
+    };
+    await witnessStore.publishReleasing(releasingWitness).catch(() => undefined);
+    await witnessStore
+      .removeCurrentOwnerWhileHeld(lockGenerationId)
+      .catch(() => undefined);
     await releaseLock().catch(() => undefined);
-    await witnessStore.removeOwnerIfGeneration(lockGenerationId).catch(() => false);
+    await witnessStore.removeReleasing(lockGenerationId).catch(() => undefined);
+    await witnessStore.removeAttempt(lockGenerationId).catch(() => undefined);
     throw error;
   }
 
@@ -268,21 +282,28 @@ async function acquireBootstrapOwnershipWithStalePolicy(
           state = "RELEASED";
           return;
         }
+        const releasingWitness: BootstrapOwnerWitnessBodyV1 & {
+          readonly phase: "RELEASING";
+        } = {
+          ...attemptWitness,
+          phase: "RELEASING",
+        };
+        let providerLockReleased = false;
         try {
+          await witnessStore.publishReleasing(releasingWitness);
+          await witnessStore.removeCurrentOwnerWhileHeld(lockGenerationId);
           await releaseLock();
-          const ownerRemoved =
-            await witnessStore.removeOwnerIfGeneration(lockGenerationId);
-          if (!ownerRemoved) {
-            safeCompromisedCause ??= compromisedProblem();
-            state = "COMPROMISED";
-            throw new ProblemError(safeCompromisedCause);
-          }
+          providerLockReleased = true;
+          await witnessStore.removeReleasing(lockGenerationId);
           if (safeCompromisedCause) {
             state = "COMPROMISED";
             throw new ProblemError(safeCompromisedCause);
           }
           state = "RELEASED";
         } catch {
+          if (!providerLockReleased) {
+            await releaseLock().catch(() => undefined);
+          }
           safeCompromisedCause ??= compromisedProblem();
           state = "COMPROMISED";
           throw new ProblemError(safeCompromisedCause);

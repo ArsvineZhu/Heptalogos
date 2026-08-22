@@ -3,7 +3,7 @@ import { lstat, mkdtemp, mkdir, readFile, rm, utimes } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { BootstrapOwnerWitnessStore } from "@heptalogos/bootstrap-state";
 import { createBootId } from "@heptalogos/foundation-contracts";
 import {
@@ -202,6 +202,53 @@ describe("bootstrap ownership", () => {
     });
 
     await first.release();
+  });
+
+  it("preserves B when A's generation-scoped cleanup resumes after B acquires", async () => {
+    const instanceRoot = await makeInstanceRoot();
+    const first = await acquireBootstrapOwnership(instanceRoot, ownershipOptions());
+    const store = new BootstrapOwnerWitnessStore(instanceRoot.canonicalPath);
+    const firstOwner = await store.readOwner();
+    if (firstOwner === undefined) throw new Error("missing first owner witness");
+    const firstGeneration = firstOwner.witness.lockGenerationId;
+
+    let releaseCleanupStarted!: () => void;
+    const cleanupStarted = new Promise<void>((resolve) => {
+      releaseCleanupStarted = resolve;
+    });
+    let resumeReleaseCleanup!: () => void;
+    const resumeCleanup = new Promise<void>((resolve) => {
+      resumeReleaseCleanup = resolve;
+    });
+    let firstCleanupBlocked = false;
+    const originalRemoveReleasing =
+      BootstrapOwnerWitnessStore.prototype.removeReleasing;
+    const cleanupSpy = vi
+      .spyOn(BootstrapOwnerWitnessStore.prototype, "removeReleasing")
+      .mockImplementation(async function (generationId) {
+        if (generationId === firstGeneration && !firstCleanupBlocked) {
+          firstCleanupBlocked = true;
+          releaseCleanupStarted();
+          await resumeCleanup;
+        }
+        await originalRemoveReleasing.call(this, generationId);
+      });
+
+    const firstRelease = first.release();
+    await cleanupStarted;
+
+    const second = await acquireBootstrapOwnership(instanceRoot, ownershipOptions());
+    const secondOwner = await store.readOwner();
+    expect(secondOwner?.witness.lockGenerationId).not.toBe(firstGeneration);
+
+    resumeReleaseCleanup();
+    await expect(firstRelease).resolves.toBeUndefined();
+    cleanupSpy.mockRestore();
+    await expect(store.readOwner()).resolves.toMatchObject({
+      witness: secondOwner?.witness,
+    });
+
+    await second.release();
   });
 
   it("proves cross-process exclusive ownership with the selected lock settings", async () => {

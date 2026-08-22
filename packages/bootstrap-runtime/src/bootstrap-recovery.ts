@@ -64,6 +64,8 @@ export interface BootstrapRecoveryInspection {
   readonly ownerProcessStatus?: BootstrapProcessIdentityStatus;
   readonly attempts: readonly BootstrapOwnerWitnessEnvelopeV1[];
   readonly attemptProcessStatuses: readonly BootstrapProcessIdentityStatus[];
+  readonly releasing: readonly BootstrapOwnerWitnessEnvelopeV1[];
+  readonly releasingProcessStatuses: readonly BootstrapProcessIdentityStatus[];
   readonly bootstrapState: BootstrapStateLoadResult;
   readonly operationId?: MaintenanceOperationId;
   readonly maintenance?: MaintenanceJournalLoadResult;
@@ -274,7 +276,9 @@ async function observeMaintenance(
 function classify(
   lock: LockObservation,
   ownerProcessStatus: BootstrapProcessIdentityStatus | undefined,
+  hasOwnerWitness: boolean,
   attemptProcessStatuses: readonly BootstrapProcessIdentityStatus[],
+  releasingProcessStatuses: readonly BootstrapProcessIdentityStatus[],
   maintenance: MaintenanceObservation,
 ): BootstrapRecoveryDisposition {
   if (lock.problem !== undefined || maintenance.problem !== undefined) {
@@ -284,6 +288,7 @@ function classify(
   const statuses = [
     ...(ownerProcessStatus === undefined ? [] : [ownerProcessStatus]),
     ...attemptProcessStatuses,
+    ...(lock.present && !hasOwnerWitness ? releasingProcessStatuses : []),
   ];
   if (statuses.includes("SAME_PROCESS")) return "ACTIVE_BOOTSTRAP_OWNER";
   if (statuses.includes("UNKNOWN")) return "BLOCKED";
@@ -330,10 +335,12 @@ export async function inspectBootstrapRecovery(
     const witnessStore = new BootstrapOwnerWitnessStore(instanceRoot);
     let owner: BootstrapOwnerWitnessEnvelopeV1 | undefined;
     let attempts: readonly BootstrapOwnerWitnessEnvelopeV1[] = [];
+    let releasing: readonly BootstrapOwnerWitnessEnvelopeV1[] = [];
     let witnessProblem: Problem | undefined;
     try {
       owner = await witnessStore.readOwner();
       attempts = await witnessStore.listAttempts();
+      releasing = await witnessStore.listReleasing();
     } catch (error) {
       witnessProblem = problem(
         "bootstrap.recovery.witness_inspection_failed",
@@ -355,6 +362,14 @@ export async function inspectBootstrapRecovery(
         inspectBootstrapProcessIdentity({
           pid: attempt.witness.pid,
           startedAtMs: attempt.witness.processStartedAtMs,
+        }),
+      ),
+    );
+    const releasingProcessStatuses = await Promise.all(
+      releasing.map((witness) =>
+        inspectBootstrapProcessIdentity({
+          pid: witness.witness.pid,
+          startedAtMs: witness.witness.processStartedAtMs,
         }),
       ),
     );
@@ -382,7 +397,9 @@ export async function inspectBootstrapRecovery(
     const disposition = classify(
       effectiveProblem === undefined ? lock : { ...lock, problem: effectiveProblem },
       ownerProcessStatus,
+      owner !== undefined,
       attemptProcessStatuses,
+      releasingProcessStatuses,
       maintenance,
     );
 
@@ -410,6 +427,8 @@ export async function inspectBootstrapRecovery(
       ...(owner === undefined ? {} : { owner, ownerProcessStatus }),
       attempts,
       attemptProcessStatuses,
+      releasing,
+      releasingProcessStatuses,
       bootstrapState,
       ...(maintenance.operationId === undefined
         ? {}

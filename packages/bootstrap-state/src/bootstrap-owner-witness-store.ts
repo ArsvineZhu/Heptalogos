@@ -15,6 +15,7 @@ import { writeAtomicPublishedFile } from "./atomic-file.js";
 
 const OWNER_FILENAME = ".heptalogos-bootstrap-owner.json";
 const ATTEMPT_DIRECTORY = ".heptalogos-bootstrap-attempts";
+const RELEASING_DIRECTORY = ".heptalogos-bootstrap-releasing";
 
 function storeProblem(
   problemCode: string,
@@ -62,10 +63,12 @@ function requireValidEnvelope(
 export class BootstrapOwnerWitnessStore {
   private readonly ownerPath: string;
   private readonly attemptsPath: string;
+  private readonly releasingPath: string;
 
   constructor(private readonly instanceRoot: string) {
     this.ownerPath = join(instanceRoot, OWNER_FILENAME);
     this.attemptsPath = join(instanceRoot, ATTEMPT_DIRECTORY);
+    this.releasingPath = join(instanceRoot, RELEASING_DIRECTORY);
   }
 
   async readOwner(): Promise<BootstrapOwnerWitnessEnvelopeV1 | undefined> {
@@ -129,22 +132,75 @@ export class BootstrapOwnerWitnessStore {
     return witnesses;
   }
 
-  async removeAttempt(lockGenerationId: BootstrapLockGenerationId): Promise<void> {
-    await rm(this.attemptPath(lockGenerationId), { force: true });
+  async publishReleasing(
+    witness: BootstrapOwnerWitnessBodyV1 & { readonly phase: "RELEASING" },
+  ): Promise<BootstrapOwnerWitnessEnvelopeV1> {
+    requirePhase(witness, "RELEASING");
+    await mkdir(this.releasingPath, { recursive: true });
+    const path = this.releasingPathFor(witness.lockGenerationId);
+    const sealed = sealBootstrapOwnerWitness(witness);
+    const validated = requireValidEnvelope(JSON.stringify(sealed), path);
+    await writeAtomicPublishedFile(path, canonicalBootstrapOwnerWitnessText(validated));
+    const reloaded = await readFile(path, "utf8");
+    const exact = requireValidEnvelope(reloaded, path);
+    if (
+      exact.witness.lockGenerationId !== witness.lockGenerationId ||
+      exact.digest.hex !== validated.digest.hex
+    ) {
+      throw storeProblem(
+        "bootstrap.owner_witness.releasing_publication_unverified",
+        "Bootstrap releasing witness publication is unverified",
+        "The releasing witness did not reload with the exact published generation and digest",
+      );
+    }
+    return exact;
   }
 
-  async removeOwnerIfGeneration(
+  async listReleasing(): Promise<readonly BootstrapOwnerWitnessEnvelopeV1[]> {
+    let entries;
+    try {
+      entries = await readdir(this.releasingPath, { withFileTypes: true });
+    } catch (error) {
+      if (isCode(error, "ENOENT")) return [];
+      throw error;
+    }
+
+    const witnesses = await Promise.all(
+      entries
+        .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+        .map(async (entry) => {
+          const path = this.releasingPathFromName(entry.name);
+          const value = requireValidEnvelope(await readFile(path, "utf8"), path);
+          requirePhase(value.witness, "RELEASING");
+          return value;
+        }),
+    );
+    return witnesses;
+  }
+
+  async removeReleasing(lockGenerationId: BootstrapLockGenerationId): Promise<void> {
+    await rm(this.releasingPathFor(lockGenerationId), { force: true });
+  }
+
+  async removeCurrentOwnerWhileHeld(
     lockGenerationId: BootstrapLockGenerationId,
-  ): Promise<boolean> {
+  ): Promise<void> {
     const current = await this.readOwner();
     if (
       current === undefined ||
       current.witness.lockGenerationId !== lockGenerationId
     ) {
-      return false;
+      throw storeProblem(
+        "bootstrap.owner_witness.owner_generation_mismatch",
+        "Bootstrap owner witness generation changed",
+        "The current owner witness did not match the generation being removed while the provider lock was held",
+      );
     }
     await rm(this.ownerPath, { force: true });
-    return true;
+  }
+
+  async removeAttempt(lockGenerationId: BootstrapLockGenerationId): Promise<void> {
+    await rm(this.attemptPath(lockGenerationId), { force: true });
   }
 
   private async readOptional(
@@ -166,6 +222,14 @@ export class BootstrapOwnerWitnessStore {
 
   private attemptPathFromName(name: string): string {
     return join(this.attemptsPath, name);
+  }
+
+  private releasingPathFor(lockGenerationId: BootstrapLockGenerationId): string {
+    return join(this.releasingPath, `${lockGenerationId}.json`);
+  }
+
+  private releasingPathFromName(name: string): string {
+    return join(this.releasingPath, name);
   }
 }
 

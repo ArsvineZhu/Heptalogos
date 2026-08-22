@@ -28,15 +28,18 @@ function makeBody(
 }
 
 describe("bootstrap owner witness codec", () => {
-  it.each(["ATTEMPT", "OWNER"] as const)("round-trips %s witnesses", (phase) => {
-    const body = makeBody({ phase });
-    const sealed = sealBootstrapOwnerWitness(body);
+  it.each(["ATTEMPT", "OWNER", "RELEASING"] as const)(
+    "round-trips %s witnesses",
+    (phase) => {
+      const body = makeBody({ phase });
+      const sealed = sealBootstrapOwnerWitness(body);
 
-    expect(parseBootstrapOwnerWitness(JSON.stringify(sealed))).toEqual({
-      ok: true,
-      value: sealed,
-    });
-  });
+      expect(parseBootstrapOwnerWitness(JSON.stringify(sealed))).toEqual({
+        ok: true,
+        value: sealed,
+      });
+    },
+  );
 
   it("rejects a future schema", () => {
     const text = JSON.stringify({ witness: { schemaVersion: 2 } });

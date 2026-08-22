@@ -115,6 +115,77 @@ describe("bounded bootstrap recovery inspection", () => {
     expect(inspection.attemptProcessStatuses).toContain("PROCESS_DEAD");
   });
 
+  it("uses dead RELEASING evidence to explain a stale lock", async () => {
+    const fixture = await makeFixture();
+    await makeLock(fixture.instanceRoot, 31_000);
+    await new BootstrapOwnerWitnessStore(fixture.instanceRoot).publishReleasing({
+      schemaVersion: 1,
+      phase: "RELEASING",
+      lockGenerationId: createBootstrapLockGenerationId(),
+      bootId: createBootId(),
+      pid: 999_999,
+      processStartedAtMs: 0,
+      heartbeatMs: 1_000,
+      createdAt: new Date().toISOString(),
+    });
+
+    const inspection = await expectDisposition(
+      fixture.anchorRoot,
+      "ABANDONED_OWNER_ELIGIBLE",
+    );
+    expect(inspection.releasing).toHaveLength(1);
+    expect(inspection.releasingProcessStatuses).toContain("PROCESS_DEAD");
+  });
+
+  it("does not treat an orphan RELEASING witness as recovery ownership without a lock", async () => {
+    const fixture = await makeFixture();
+    await new BootstrapOwnerWitnessStore(fixture.instanceRoot).publishReleasing({
+      schemaVersion: 1,
+      phase: "RELEASING",
+      lockGenerationId: createBootstrapLockGenerationId(),
+      bootId: createBootId(),
+      pid: 999_999,
+      processStartedAtMs: 0,
+      heartbeatMs: 1_000,
+      createdAt: new Date().toISOString(),
+    });
+
+    const inspection = await expectDisposition(
+      fixture.anchorRoot,
+      "NO_RECOVERY_REQUIRED",
+    );
+    expect(inspection.releasing).toHaveLength(1);
+  });
+
+  it("does not let historical RELEASING evidence override a current owner witness", async () => {
+    const fixture = await makeFixture();
+    await makeLock(fixture.instanceRoot, 31_000);
+    const identity = currentBootstrapProcessIdentity();
+    const store = new BootstrapOwnerWitnessStore(fixture.instanceRoot);
+    await store.publishOwner({
+      schemaVersion: 1,
+      phase: "OWNER",
+      lockGenerationId: createBootstrapLockGenerationId(),
+      bootId: createBootId(),
+      pid: 999_999,
+      processStartedAtMs: 0,
+      heartbeatMs: 1_000,
+      createdAt: new Date().toISOString(),
+    });
+    await store.publishReleasing({
+      schemaVersion: 1,
+      phase: "RELEASING",
+      lockGenerationId: createBootstrapLockGenerationId(),
+      bootId: createBootId(),
+      pid: identity.pid,
+      processStartedAtMs: identity.startedAtMs,
+      heartbeatMs: 1_000,
+      createdAt: new Date().toISOString(),
+    });
+
+    await expectDisposition(fixture.anchorRoot, "ABANDONED_OWNER_ELIGIBLE");
+  });
+
   it("reports ACTIVE_BOOTSTRAP_OWNER for a live owner witness", async () => {
     const fixture = await makeFixture();
     await makeLock(fixture.instanceRoot, 31_000);

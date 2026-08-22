@@ -34,7 +34,11 @@ const digestSchema = Type.Object(
 const witnessSchema = Type.Object(
   {
     schemaVersion: Type.Literal(1),
-    phase: Type.Union([Type.Literal("ATTEMPT"), Type.Literal("OWNER")]),
+    phase: Type.Union([
+      Type.Literal("ATTEMPT"),
+      Type.Literal("OWNER"),
+      Type.Literal("RELEASING"),
+    ]),
     lockGenerationId: Type.String({ pattern: UUID_V7_PATTERN }),
     bootId: Type.String({ pattern: UUID_V7_PATTERN }),
     pid: Type.Integer({ minimum: 1 }),

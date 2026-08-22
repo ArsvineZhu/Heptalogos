@@ -14,7 +14,7 @@ export function createBootstrapLockGenerationId(): BootstrapLockGenerationId {
 
 export interface BootstrapOwnerWitnessBodyV1 {
   readonly schemaVersion: 1;
-  readonly phase: "ATTEMPT" | "OWNER";
+  readonly phase: "ATTEMPT" | "OWNER" | "RELEASING";
   readonly lockGenerationId: BootstrapLockGenerationId;
   readonly bootId: BootId;
   readonly pid: number;

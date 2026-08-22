@@ -93,9 +93,11 @@ describe("bootstrap owner witness store", () => {
     await store.publishOwner(first);
     await store.publishOwner(second);
 
-    await expect(store.removeOwnerIfGeneration(first.lockGenerationId)).resolves.toBe(
-      false,
-    );
+    await expect(
+      store.removeCurrentOwnerWhileHeld(first.lockGenerationId),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.owner_witness.owner_generation_mismatch" },
+    });
     await expect(store.readOwner()).resolves.toMatchObject({
       witness: second,
     });
@@ -107,9 +109,28 @@ describe("bootstrap owner witness store", () => {
     const body = makeBody("OWNER");
     await store.publishOwner(body);
 
-    await expect(store.removeOwnerIfGeneration(body.lockGenerationId)).resolves.toBe(
-      true,
-    );
+    await expect(
+      store.removeCurrentOwnerWhileHeld(body.lockGenerationId),
+    ).resolves.toBeUndefined();
     await expect(store.readOwner()).resolves.toBeUndefined();
+  });
+
+  it("keeps generation-scoped releasing cleanup away from a newer owner", async () => {
+    const root = await makeRoot();
+    const store = new BootstrapOwnerWitnessStore(root);
+    const first = makeBody("OWNER");
+    const second = makeBody("OWNER");
+
+    await store.publishOwner(first);
+    await store.publishReleasing({ ...first, phase: "RELEASING" });
+    await store.removeCurrentOwnerWhileHeld(first.lockGenerationId);
+    await store.publishOwner(second);
+
+    await store.removeReleasing(first.lockGenerationId);
+
+    await expect(store.readOwner()).resolves.toMatchObject({
+      witness: second,
+    });
+    await expect(store.listReleasing()).resolves.toEqual([]);
   });
 });
