@@ -439,6 +439,7 @@ export function createRestartPrivatePostgresEnteredWindowExecutor(
         target: {
           ...window.journal.target,
           hostOwnershipToken: token,
+          hostBootId: provenance.bootstrap.bootId,
           hostOwnershipRevision: publication.publishedRevision,
         },
       });

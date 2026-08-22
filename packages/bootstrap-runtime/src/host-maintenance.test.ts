@@ -927,6 +927,7 @@ describe("reverse-handoff maintenance preparation and entry", () => {
     expect(journal.target).toMatchObject({
       privatePostgres: "RUNNING_SAME_IDENTITY",
       hostOwnershipToken: nextRaw.token,
+      hostBootId: fixture.context.bootId,
       hostOwnershipRevision: "9",
     });
     expect(connectionState).toBe("ACTIVE");
