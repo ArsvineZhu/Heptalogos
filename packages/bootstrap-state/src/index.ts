@@ -29,3 +29,23 @@ export type {
   BootstrapJournalCheckpoint,
   BootstrapStageOutcome,
 } from "./journal.js";
+export {
+  MAINTENANCE_JOURNAL_DIGEST_DOMAIN,
+  canonicalMaintenanceJournalText,
+  createMaintenanceOperationId,
+  parseMaintenanceJournal,
+  sealMaintenanceJournal,
+} from "./maintenance-codec.js";
+export type {
+  MaintenanceJournalBodyV1,
+  MaintenanceJournalEnvelopeV1,
+  MaintenanceJournalParseResult,
+  MaintenanceOperationId,
+  MaintenanceActivityId,
+  MaintenanceOperationType,
+  MaintenanceStage,
+  MaintenanceTerminalOutcome,
+  PrivatePostgresInitializationProfileRevision as MaintenancePrivatePostgresInitializationProfileRevision,
+} from "./maintenance-model.js";
+export { MaintenanceJournalStore } from "./maintenance-store.js";
+export type { MaintenanceJournalLoadResult } from "./maintenance-model.js";
