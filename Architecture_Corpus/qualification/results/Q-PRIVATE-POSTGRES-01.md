@@ -162,11 +162,10 @@ The historical real database fixture used the explicit extracted Windows Postgre
 bin root recorded above. Final cross-platform CI for that historical candidate remained intentionally
 `NOT_RUN` pending independent review of this exact candidate SHA.
 
-## Foundation M4 corrective hardening evidence (2026-08-22)
+## Historical Foundation M4 corrective hardening evidence (2026-08-22)
 
-This is the current corrective candidate. It supersedes the historical M4
-addendum above for current qualification truth while preserving that addendum
-as historical evidence.
+This was the pre-privilege-closure corrective candidate. It remains historical
+evidence; the following privilege-closure addendum is the current candidate.
 
 ```yaml
 candidate_sha: be1d728bdad5327e7e85764270802c97f97023ee
@@ -188,13 +187,48 @@ independent_review: NOT_RUN
 final_cross_platform_ci: NOT_RUN
 ```
 
-The corrective candidate passed `pnpm verify`, the Host ownership unit suite
+That corrective candidate passed `pnpm verify`, the Host ownership unit suite
 (54/54), the bootstrap-runtime unit suite (59 passed, 1 skipped), and the
 private-postgres unit suite (49/49). With the explicit PostgreSQL 18.6
 toolchain resolved from the Windows qualification bin root, corrected-candidate
 real integration passed: private-postgres 20/20, Host ownership 6/6, and
-bootstrap-runtime 12/12. Corrected Linux/macOS real PostgreSQL, independent
-review, and final cross-platform CI remain `NOT_RUN`.
+bootstrap-runtime 12/12. Its closed-world evidence covered the then-tested
+ACL and role-membership edges; grant-option and column-specific ACL closure
+was not yet evidenced at that SHA. Corrected Linux/macOS real PostgreSQL,
+independent review, and final cross-platform CI remain `NOT_RUN`.
+
+## Foundation M4 privilege-closure correction evidence (2026-08-22)
+
+This is the current M4 implementation candidate. It supersedes the preceding
+corrective candidate for current qualification truth while preserving both
+earlier addenda as historical evidence.
+
+```yaml
+candidate_sha: 49370ac764675640699a30c589a7f8e2e1903125
+acl_grant_option_closed_world: PASS
+column_acl_closed_world: PASS
+host_role_privilege_confinement: PASS
+production_build_graph_isolated: PASS
+focused_host_ownership_unit: PASS
+focused_bootstrap_runtime_unit: PASS
+focused_private_postgres_unit: PASS
+windows_private_postgres_real_pg: PASS
+windows_host_ownership_real_pg: PASS
+windows_bootstrap_host_handoff_real_pg: PASS
+permanent_repository_verify: PASS
+linux_host_ownership_real_pg: NOT_RUN
+macos_host_ownership_real_pg: NOT_RUN
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+```
+
+At this exact candidate SHA, the focused unit suites passed: Host ownership
+59/59, bootstrap-runtime 59 passed with 1 skipped, and private-postgres
+49/49. With the explicit PostgreSQL 18.6 Windows toolchain, real integration
+passed: private-postgres 20/20, Host ownership 7/7 including grant-option and
+column-specific ACL adversarial cases, and bootstrap-runtime 12/12. `pnpm
+verify` also passed. Corrected Linux/macOS real PostgreSQL, independent review,
+and final cross-platform CI remain `NOT_RUN`.
 
 ## Historical pre-correction Linux evidence
 
