@@ -1,6 +1,7 @@
 import {
   createHostOwnershipToken,
   ProblemError,
+  type HostOwnershipToken,
 } from "@heptalogos/foundation-contracts";
 import {
   acquireBootstrapHostReservation,
@@ -63,6 +64,12 @@ export interface OwnedBootstrapPreludeHandoffContext {
   readonly journal: BootstrapJournal;
   readonly privatePostgresSession: PrivatePostgresSessionTracker;
   readonly assertReady: (ready: ReadyPrivatePostgres) => PrivatePostgresSessionToken;
+}
+
+// M4 owns fresh Host token materialization. Recovery reuses this seam so it
+// cannot create a parallel token-authority path.
+export function createFreshHostOwnershipToken(): HostOwnershipToken {
+  return createHostOwnershipToken();
 }
 
 const STAGE_DATABASE_VALIDATED = "bootstrap.host.database_validated";

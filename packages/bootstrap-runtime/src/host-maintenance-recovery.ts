@@ -11,7 +11,6 @@ import {
 } from "@heptalogos/bootstrap-state";
 import {
   createBootId,
-  createHostOwnershipToken,
   createUuidV7Id,
   parseBootId,
   parseHostOwnershipToken,
@@ -63,6 +62,7 @@ import type {
   HostOwnershipHandoffOptions,
   OwnedBootstrapPreludeHandoffContext,
 } from "./host-ownership-handoff.js";
+import { createFreshHostOwnershipToken } from "./host-ownership-handoff.js";
 import { loadBootstrapLocator } from "./locator.js";
 import { resolveBootstrapPathProfile, type BootstrapPathProfile } from "./roots.js";
 
@@ -376,7 +376,7 @@ function createRecoveredManagedHost(
       handoff,
       privatePostgres,
       beginOldHostRetirement,
-      createHostToken: createHostOwnershipToken,
+      createHostToken: createFreshHostOwnershipToken,
       createHostContext: (connection, token) =>
         createHostContext(
           bootstrap.installationId,
@@ -831,7 +831,7 @@ export async function recoverInterruptedHostMaintenance(
     if (!hasReached(progress, "HOST_LEASE_ACQUIRED")) {
       await advance("HOST_LEASE_ACQUIRED");
     }
-    const createToken = options.createHostToken ?? createHostOwnershipToken;
+    const createToken = options.createHostToken ?? createFreshHostOwnershipToken;
     const freshToken = createToken();
     if (
       parseHostOwnershipToken(freshToken) !== freshToken ||
