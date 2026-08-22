@@ -14,6 +14,15 @@ type ChildMessage = {
   readonly releaseError?: string;
 };
 
+function isEpipe(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "EPIPE"
+  );
+}
+
 const FIXTURE = fileURLToPath(
   new URL("../test/fixtures/stale-reclaim-race.mjs", import.meta.url),
 );
@@ -79,13 +88,25 @@ class ChildController {
     });
   }
 
-  send(message: object): void {
+  async send(message: object): Promise<void> {
     if (!this.process.connected) return;
-    try {
-      this.process.send?.(message);
-    } catch {
-      // The contender may have reported ELOCKED and exited before cleanup.
-    }
+    await new Promise<void>((resolve, reject) => {
+      try {
+        this.process.send?.(message, (error) => {
+          if (error !== null && error !== undefined && !isEpipe(error)) {
+            reject(error);
+            return;
+          }
+          resolve();
+        });
+      } catch (error) {
+        if (isEpipe(error)) {
+          resolve();
+          return;
+        }
+        reject(error);
+      }
+    });
   }
 
   async #waitForExit(timeoutMs: number): Promise<void> {
@@ -98,7 +119,7 @@ class ChildController {
 
   async stop(): Promise<void> {
     if (this.process.exitCode !== null || this.process.signalCode !== null) return;
-    this.send({ type: "release" });
+    await this.send({ type: "release" });
     await this.#waitForExit(250);
     if (this.process.exitCode === null && this.process.signalCode === null) {
       this.process.kill("SIGKILL");
@@ -145,7 +166,7 @@ async function runDelayedReclaimerRace(provider: ProviderName) {
   expect(await winner.waitFor("reclaimed")).toMatchObject({ type: "reclaimed" });
   expect((await stat(lockfilePath)).mtimeMs).toBeGreaterThan(Date.now() - STALE_MS);
 
-  delayed.send({ type: "resume-stale-stat" });
+  await delayed.send({ type: "resume-stale-stat" });
   const delayedResult = await delayed.waitFor("acquired", "error");
 
   return { delayed, winner, delayedResult, lockfilePath };
