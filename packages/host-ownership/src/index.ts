@@ -2,10 +2,13 @@ export { deriveHostAdvisoryKey, type HostAdvisoryKey } from "./advisory-key.js";
 export { encodePostgresScramSha256Verifier } from "./scram-verifier.js";
 export {
   acquireBootstrapHostReservation,
+  inspectHostAdvisoryLease,
   inspectCanonicalHostDatabase,
   inspectHostOwnershipCanonicalSnapshot,
   provisionHostOwnershipDatabase,
   type BootstrapHostReservation,
+  type HostAdvisoryLeaseInspection,
+  type HostAdvisoryLeaseInspectionOptions,
   type BootstrapAdminInspectionOptions,
   type CanonicalHostDatabaseInspection,
   type HostOwnershipCanonicalSnapshot,

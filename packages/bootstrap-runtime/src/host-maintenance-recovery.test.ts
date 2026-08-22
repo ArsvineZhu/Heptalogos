@@ -32,6 +32,7 @@ const mocks = vi.hoisted(() => ({
   acquireRecoveryLease: vi.fn(),
   openMaintenanceStateAccess: vi.fn(),
   openMaintenanceController: vi.fn(),
+  inspectAdvisory: vi.fn(),
   inspectSnapshot: vi.fn(),
   acquireHostLeaseConnection: vi.fn(),
   revoke: vi.fn(),
@@ -70,6 +71,7 @@ vi.mock("@heptalogos/host-ownership", async () => {
   return {
     ...actual,
     acquireHostLeaseConnection: mocks.acquireHostLeaseConnection,
+    inspectHostAdvisoryLease: mocks.inspectAdvisory,
     inspectHostOwnershipCanonicalSnapshot: mocks.inspectSnapshot,
     publishHostOwnershipToken: mocks.publish,
     revokeHostOwnershipTokenForBootstrap: mocks.revoke,
@@ -405,6 +407,7 @@ function options(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.inspectAdvisory.mockResolvedValue({ live: false, backendPids: [] });
 });
 
 afterEach(async () => {
@@ -449,6 +452,7 @@ describe("fixed M5B host-maintenance recovery", () => {
         detail: "live Host",
       }),
     );
+    mocks.inspectAdvisory.mockResolvedValue({ live: true, backendPids: [1234] });
 
     await expect(
       recoverInterruptedHostMaintenance(options(fixture)),

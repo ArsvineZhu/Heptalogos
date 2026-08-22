@@ -24,6 +24,7 @@ import {
   acquireHostLeaseConnection,
   deriveHostAdvisoryKey,
   HOST_OWNERSHIP_CANONICAL_DATABASE,
+  inspectHostAdvisoryLease,
   inspectHostOwnershipCanonicalSnapshot,
   publishHostOwnershipToken,
   revokeHostOwnershipTokenForBootstrap,
@@ -192,7 +193,6 @@ function requireBootstrapState(
 function requireJournalScope(
   body: MaintenanceJournalBodyV1,
   operationId: MaintenanceOperationId,
-  state: BootstrapStateEnvelopeV2,
   descriptor: PrivatePostgresMaintenanceDescriptor,
   installationId: BootstrapStateEnvelopeV2["state"]["privatePostgres"]["installationId"],
   instanceId: BootstrapStateEnvelopeV2["state"]["privatePostgres"]["instanceId"],
@@ -204,7 +204,6 @@ function requireJournalScope(
     body.source.postgresClusterSystemIdentifier !==
       descriptor.expectedIdentity.clusterSystemIdentifier ||
     body.source.persistedPort !== descriptor.expectedIdentity.persistedPort ||
-    body.verifiedPrerequisites.bootstrapStateDigest.hex !== state.digest.hex ||
     body.verifiedPrerequisites.privatePostgresInitializationProfileRevision !==
       descriptor.expectedIdentity.initializationProfileRevision
   ) {
@@ -471,6 +470,23 @@ async function acquireNoLiveHostLease(
   provider: ReturnType<typeof passwordProvider>,
   lease: BootstrapOwnershipLease,
 ): Promise<HostLeaseConnection> {
+  const advisoryKey = deriveHostAdvisoryKey(
+    options.privatePostgres.expectedIdentity.instanceId,
+  );
+  const initialAdvisory = await inspectHostAdvisoryLease({
+    port: options.privatePostgres.expectedIdentity.persistedPort,
+    advisoryKey,
+    passwordProvider: provider,
+    clientFactory: options.clientFactory,
+  });
+  if (initialAdvisory.live) {
+    throw recoveryProblem(
+      "bootstrap.recovery.live_host_owner",
+      "A live Host advisory owner blocks recovery",
+      "Recovery will not stop PostgreSQL or mutate the HostOwnershipFence while another Host lease is active",
+      "conflict",
+    );
+  }
   try {
     return await acquireHostLeaseConnection({
       target: {
@@ -478,16 +494,24 @@ async function acquireNoLiveHostLease(
         port: options.privatePostgres.expectedIdentity.persistedPort,
         database: HOST_OWNERSHIP_CANONICAL_DATABASE,
       },
-      advisoryKey: deriveHostAdvisoryKey(
-        options.privatePostgres.expectedIdentity.instanceId,
-      ),
+      advisoryKey,
       timing: options.timing,
       passwordProvider: provider,
       mutationAuthority: { assertCurrent: () => lease.assertHeld() },
       clientFactory: options.clientFactory,
     });
   } catch (error) {
-    if (problemCodeOf(error) === "host-ownership.lease.busy") {
+    if (
+      problemCodeOf(error) === "host-ownership.lease.busy" ||
+      problemCodeOf(error) === "host-ownership.lease.connection_failed"
+    ) {
+      const afterFailure = await inspectHostAdvisoryLease({
+        port: options.privatePostgres.expectedIdentity.persistedPort,
+        advisoryKey,
+        passwordProvider: provider,
+        clientFactory: options.clientFactory,
+      });
+      if (!afterFailure.live) throw error;
       throw recoveryProblem(
         "bootstrap.recovery.live_host_owner",
         "A live Host advisory owner blocks recovery",
@@ -651,7 +675,6 @@ export async function recoverInterruptedHostMaintenance(
     requireJournalScope(
       body,
       initialInspection.operationId,
-      state,
       options.privatePostgres,
       locator.installationId,
       locator.instanceId,
