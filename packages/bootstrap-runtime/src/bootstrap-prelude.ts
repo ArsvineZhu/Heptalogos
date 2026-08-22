@@ -283,6 +283,39 @@ async function materializeOwnedBootstrapPrelude(
   }
 }
 
+export interface RecoveredBootstrapPreludeIdentity {
+  readonly bootId: BootId;
+  readonly bootstrapActivityId: BootstrapActivityId;
+}
+
+export async function adoptRecoveredBootstrapOwnershipForPrelude(
+  anchorRoot: string,
+  ownership: BootstrapOwnershipLease,
+  identity: RecoveredBootstrapPreludeIdentity,
+): Promise<OwnedBootstrapPrelude> {
+  try {
+    const locator = await loadBootstrapLocator(anchorRoot);
+    const paths = await resolveBootstrapPathProfile(locator);
+    const instanceRoot = paths.resolve("INSTANCE").canonicalPath;
+    assertBootstrapOwnershipFor(ownership, instanceRoot);
+    const journal = new BootstrapJournal(instanceRoot);
+    return await materializeOwnedBootstrapPrelude(
+      {
+        installationId: locator.installationId,
+        instanceId: locator.instanceId,
+        bootId: identity.bootId,
+        bootstrapActivityId: identity.bootstrapActivityId,
+        paths,
+        journal,
+      },
+      ownership,
+    );
+  } catch (error) {
+    if (ownership.state !== "RELEASED") await ownership.release();
+    throw error;
+  }
+}
+
 export async function prepareBootstrapPrelude(
   anchorRoot: string,
 ): Promise<PreparedBootstrapPrelude> {
