@@ -2114,7 +2114,7 @@ git commit -m "test: harden m5a maintenance authority failures"
 
 ## Task 11 — Real PostgreSQL 18.6 M5A qualification
 
-**Status: BLOCKED / NOT_RUN.** The M5A integration suite and target are present, but this host has no `HEPTALOGOS_TEST_PG_BIN`; the integration command was run and all three suites stopped at their explicit qualification guard without executing tests.
+**Status: COMPLETE for Linux qualification; Windows/macOS remain NOT_RUN.** The explicit PostgreSQL 18.6 bin root was supplied from an extracted Ubuntu 26.04 package qualification root. The three real-PG targets passed: private-postgres 20/20, host-ownership 8/8, and bootstrap-runtime 17/17.
 
 **Files:**
 
@@ -2272,7 +2272,7 @@ git commit -m "test: qualify m5a postgres reverse handoff"
 
 ## Task 12 — Boundary enforcement, evidence, roadmap truth, and review gate
 
-**Status: IN PROGRESS.** Boundary/dependency/repository/corpus checks pass on the implementation candidate; qualification and roadmap addenda are being recorded. Independent review, final cross-platform CI, and merge remain outstanding.
+**Status: COMPLETE for local and Linux qualification evidence.** Boundary/dependency/repository/corpus checks, full local verification, and Linux PostgreSQL 18.6 qualification are recorded. Independent review, final cross-platform CI, Windows/macOS qualification, and merge remain outstanding.
 
 **Files:**
 
@@ -2651,8 +2651,8 @@ Recorded execution for the current branch:
 ```text
 M5A baseline master SHA: c4b54b7dbe888c62b81d28203553c953d5a749c3
 M5A branch: dev/m5a-reverse-handoff-maintenance-window
-implementation candidate: 3735e343f7684fa79fcd57f01305b7d1285e411b
-PostgreSQL qualification version: 18.6 (toolchain root not supplied on this host)
+implementation candidate: 7ca699d16aeaf863dab091253ac42a11b744a0bf
+PostgreSQL qualification version: 18.6 (Ubuntu 26.04 extracted package bin root)
 Primary development OS: Linux x86_64
 
 Task 0 baseline pnpm verify: PASS (Node 24.19.0; Node 26 engine mismatch is not the canonical toolchain)
@@ -2666,11 +2666,11 @@ Task 7 stop path: PASS
 Task 8 restart/reacquire path: PASS (unit/mocked evidence)
 Task 9 keep-PG-running shutdown: PASS (unit evidence)
 Task 10 fault matrix: PASS (deterministic unit seams)
-Task 11 real PG integration: BLOCKED / NOT_RUN (`HEPTALOGOS_TEST_PG_BIN` absent)
-Task 12 permanent gates: PASS locally; independent review/final CI NOT_RUN
+Task 11 real PG integration: PASS on Linux (private-postgres 20/20, host-ownership 8/8, bootstrap-runtime 17/17)
+Task 12 permanent gates: PASS locally; Windows/macOS qualification and independent review/final CI NOT_RUN
 
 Windows real PG: NOT_RUN
-Linux real PG: NOT_RUN
+Linux real PG: PASS
 macOS real PG: NOT_RUN
 source-less shipping closure: NOT_RUN
 service-account ACL closure: NOT_RUN

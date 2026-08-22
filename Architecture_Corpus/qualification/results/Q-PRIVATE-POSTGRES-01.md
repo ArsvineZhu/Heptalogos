@@ -263,7 +263,7 @@ upgrade the historical M4 evidence, close H1, or claim process-death,
 abandoned-lock, source-less, service-account, or cross-platform qualification.
 
 ```yaml
-candidate_sha: 3735e343f7684fa79fcd57f01305b7d1285e411b
+candidate_sha: 7ca699d16aeaf863dab091253ac42a11b744a0bf
 maintenance_journal_v1_codec_digest_atomic_store: PASS
 ownership_scoped_operation_pointer: PASS
 managed_host_quiescence_boundary: PASS
@@ -278,8 +278,16 @@ same_cluster_restart_reacquire_unit_path: PASS
 fresh_host_token_and_revision_unit_path: PASS
 quiesced_keep_postgres_shutdown_unit_path: PASS
 deterministic_authority_fault_matrix: PASS
-m5a_real_postgres_reverse_handoff: NOT_RUN
-m5a_real_postgres_reason: "HEPTALOGOS_TEST_PG_BIN was not set; the explicit integration guard blocked all three bootstrap-runtime qualification suites before test execution"
+m5a_real_postgres_reverse_handoff: PASS
+m5a_linux_real_pg: PASS
+m5a_windows_real_pg: NOT_RUN
+m5a_macos_real_pg: NOT_RUN
+m5a_postgres_provenance: "Ubuntu 26.04 security archive postgresql-18 and postgresql-client-18 18.6-0ubuntu0.26.04.1 packages, extracted into a temporary qualification root; libpq5 18.6 extracted for runtime linkage"
+m5a_postgres_bin: "/tmp/heptalogos-pg18-qual-04OOIw/extracted/usr/lib/postgresql/18/bin"
+m5a_exact_version_outputs: "postgres/initdb/pg_ctl/pg_controldata/pg_isready all reported PostgreSQL 18.6"
+m5a_private_postgres_integration: "20/20 PASS"
+m5a_host_ownership_integration: "8/8 PASS"
+m5a_bootstrap_runtime_integration: "17/17 PASS"
 m5a_independent_review: NOT_RUN
 m5a_final_cross_platform_ci: NOT_RUN
 m5a_squash_merge: NOT_RUN
@@ -288,15 +296,18 @@ h1: OPEN
 ```
 
 The candidate's focused unit evidence was collected with Node 24.19.0: bootstrap-runtime
-81 passed and 1 skipped, private-postgres 58 passed, and host-ownership 70 passed.
-Typecheck, package builds, lint, repository/dependency/corpus/boundary checks, and
-format checks were run locally. The real PostgreSQL target was invoked and is
-`BLOCKED`/`NOT_RUN` until an explicit qualified PostgreSQL 18.6 bin root is supplied.
+83 passed and 1 skipped, private-postgres 58 passed, and host-ownership 70 passed.
+Real PostgreSQL 18.6 integration passed on Linux: private-postgres 20/20,
+host-ownership 8/8, and bootstrap-runtime 17/17. Typecheck, package builds, lint,
+repository/dependency/corpus/boundary checks, format checks, and `pnpm verify` were
+also run locally. Windows/macOS real-PG qualification, independent review, and final
+cross-platform CI remain `NOT_RUN`.
 
 ## Qualification remaining
 
 This is implementation/product evidence, not a new dependency-selection
-authority. Corrected-candidate Linux and macOS real PostgreSQL, source-less
-shipping and ReleaseManifest/SBOM closure, and installer/service-account ACL
-behavior remain `NOT_RUN`. The historical extracted Ubuntu package runtime does
-not qualify the corrected Linux claim.
+authority. Corrected-candidate M4 Linux/macOS evidence, M5A Windows/macOS real
+PostgreSQL, source-less shipping and ReleaseManifest/SBOM closure, and
+installer/service-account ACL behavior remain `NOT_RUN`. The historical
+extracted Ubuntu package runtime does not qualify the corrected M4 Linux claim;
+the M5A Linux PASS above is limited to the recorded M5A candidate and scenarios.

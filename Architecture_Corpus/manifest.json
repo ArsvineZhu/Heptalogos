@@ -225,8 +225,8 @@
     },
     {
       "path": "qualification/results/Q-PRIVATE-POSTGRES-01.md",
-      "size": 13586,
-      "sha256": "1e1f9ae1af34e2a59fee3ac9fe6e92634337b161313c43f37baa576743ca0e5d"
+      "size": 14265,
+      "sha256": "676464e24b8018b05deadcbbbdd3dffbbe3f566f7a124baa07119c3038ad51b1"
     },
     {
       "path": "qualification/results/Q-RUNTIME-01.md",
@@ -245,8 +245,8 @@
     },
     {
       "path": "qualification/results/qualification-status.json",
-      "size": 26920,
-      "sha256": "4138efb19c0f4364b797edd4a9a6258816c0e34dfac0ba609f411c3bc24554b5"
+      "size": 28044,
+      "sha256": "bbcf393ae88eaf6d9c727247be6d13a3488b8f300a73a87f833555cddfdc8c63"
     },
     {
       "path": "qualification/依赖资格矩阵.md",
