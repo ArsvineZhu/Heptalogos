@@ -567,3 +567,23 @@ postmaster PID, and `pg_postmaster_start_time`. The current candidate's
 independent review is `NOT_RUN`; Windows/macOS real PostgreSQL, source-less
 recovery, service-account ACL, hardware power-loss, final CI, and merge remain
 open, and H1 remains OPEN.
+
+## Foundation M5B third corrective qualification (2026-08-23)
+
+The review at exact HEAD `445a77db3041644faccd85c00c826e8d26af3ea8` returned
+`REQUEST_CHANGES`. The new behavior candidate is
+`ce8ecbd2f54b6da39542845b1c23fbb959672c0a`; qualification-only PG-6A coverage
+is in `a41dad0226310889f61515ba16ce910c1dbb0e53`.
+
+The corrected candidate makes `INSPECT` genuinely read-only, with a 13/13
+snapshot regression, and the real PostgreSQL 18.6 PG-6A scenario now uses the
+literal legacy M5A late-stage target without `target.hostBootId`. It verifies
+legacy B, fresh C, unchanged PostgreSQL identity, and explicit `hostBootId` in
+the next durable revision. Unit counts are current: bootstrap-recovery 13/13,
+host-maintenance-recovery 23/23, and recovery-command 7/7; full
+bootstrap-runtime unit output is 155 passed/1 skipped.
+
+All previously recorded Linux K1-K5, PG-1/PG-2, PG matrix, private-postgres,
+Host ownership, bootstrap-runtime integration, and `pnpm verify` evidence was
+rerun for this candidate. Independent review is `NOT_RUN`; final CI and merge
+remain unauthorized, and H1 remains OPEN.

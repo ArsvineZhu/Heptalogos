@@ -254,3 +254,54 @@ The rejected review outcomes remain historical metadata:
 the current candidate's machine-readable independent-review status of
 `NOT_RUN`. Windows/macOS real PostgreSQL, source-less recovery, service-account
 ACL, hardware power-loss, final CI, merge, and H1 closure remain outstanding.
+
+## Foundation M5B third corrective qualification (2026-08-23)
+
+The `445a77db3041644faccd85c00c826e8d26af3ea8` review returned
+`REQUEST_CHANGES`; its findings are historical. The new behavior candidate is
+`ce8ecbd2f54b6da39542845b1c23fbb959672c0a`, followed only by the
+qualification-only commit `a41dad0226310889f61515ba16ce910c1dbb0e53`.
+
+```yaml
+behavior_candidate_sha: ce8ecbd2f54b6da39542845b1c23fbb959672c0a
+qualification_candidate_sha: a41dad0226310889f61515ba16ce910c1dbb0e53
+runtime: "Node 24.19.0 / pnpm 11.22.0"
+postgres_version: PostgreSQL 18.6
+m5b_read_only_recovery_inspection: PASS (13/13; instance-root snapshot unchanged)
+m5b_legacy_m5a_journal_v1_compatibility: PASS (live PG-6A legacy target)
+m5b_same_lease_prehost_bootstrap_continuation: PASS
+m5b_real_process_k1_k3: PASS (3/3)
+m5b_real_process_k4_actual_maintenance_recovery: PASS (1/1)
+m5b_real_process_k5_recovery_restartability: PASS (1/1)
+m5b_pg1_pre_postgres_bootstrap_recovery: PASS (1/1)
+m5b_pg2_ready_before_handoff_recovery: PASS (1/1)
+m5b_pg6a_legacy_m5a_live_shape: PASS (1/1; no target.hostBootId)
+m5b_linux_real_postgres_full_matrix: PASS (11/11; PG-1..PG-9 plus PG-5B/PG-6A/PG-6B)
+m5b_private_postgres_integration: PASS (20/20)
+m5b_host_ownership_integration: PASS (8/8)
+m5b_bootstrap_runtime_integration: PASS (29/29)
+m5b_bootstrap_runtime_unit: PASS (155 passed, 1 skipped)
+m5b_bootstrap_state_unit: PASS (113 passed, 2 skipped)
+m5b_pnpm_verify: PASS
+m5b_windows_real_postgres: NOT_RUN
+m5b_macos_real_postgres: NOT_RUN
+m5b_source_less_recovery: NOT_RUN
+m5b_service_account_acl: NOT_RUN
+m5b_hardware_power_loss: NOT_RUN
+m5b_independent_review: NOT_RUN
+m5b_final_cross_platform_ci: NOT_RUN
+m5b_squash_merge: NOT_RUN
+m5b: ACTIVE
+h1: OPEN
+```
+
+`INSPECT` now only reads locator, lock metadata, witnesses, process identity,
+BootstrapState, and MaintenanceJournal; the before/after snapshot proves it
+does not create or alter instance-root files. PG-6A uses the literal merged-M5A
+late-stage target with token and revision but no `target.hostBootId`, while the
+live fence uses the operation `body.bootId`; recovery produces fresh C and the
+next durable revision contains an explicit `hostBootId`.
+
+The new candidate awaits independent exact-HEAD review. Final CI, merge, the
+remaining cross-platform/source-less/ACL/power-loss qualifications, and H1
+closure remain open.

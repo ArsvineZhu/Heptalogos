@@ -187,3 +187,43 @@ The current candidate's review status is `NOT_RUN`; the prior
 `9e450f836466d32fb1f3d9027618fac236798eb9` remain historical. Windows/macOS
 real PostgreSQL, source-less recovery, service-account ACL, hardware power-loss,
 final CI, squash merge, and H1 closure remain open.
+
+## PR8 third corrective qualification candidate (2026-08-23)
+
+```yaml
+behaviorCandidateSha: ce8ecbd2f54b6da39542845b1c23fbb959672c0a
+qualificationCandidateSha: a41dad0226310889f61515ba16ce910c1dbb0e53
+reviewedRejectedHead: 445a77db3041644faccd85c00c826e8d26af3ea8
+reviewedRejectedOutcome: REQUEST_CHANGES
+node: 24.19.0
+pnpm: 11.22.0
+postgres: 18.6
+readOnlyRecoveryInspection: PASS (13/13 snapshot regression)
+legacyM5aJournalV1LivePg6a: PASS (1/1; no target.hostBootId)
+recoveryInspectionUnit: PASS (13/13)
+recoveryExecutorUnit: PASS (23/23)
+recoveryCommandUnit: PASS (7/7)
+bootstrapRuntimeUnit: PASS (155 passed, 1 skipped)
+bootstrapStateUnit: PASS (113 passed, 2 skipped)
+recoveryProcessK1K3: PASS (3/3)
+recoveryProcessK4ActualMaintenance: PASS (1/1)
+recoveryProcessK5RecoveryRestartability: PASS (1/1)
+pg1PrePostgresBootstrapRecovery: PASS (1/1)
+pg2ReadyBeforeHandoffRecovery: PASS (1/1)
+linuxPostgresFullMatrixPg1Pg9: PASS (11/11 including 5B/6A/6B split cases)
+privatePostgresIntegration: PASS (20/20)
+hostOwnershipIntegration: PASS (8/8)
+bootstrapRuntimeIntegration: PASS (29/29)
+repositoryVerify: PASS
+independentReview: NOT_RUN
+finalCrossPlatformCi: NOT_RUN
+squashMerge: NOT_RUN
+M5B: ACTIVE
+H1: OPEN
+```
+
+The new behavior candidate removes recovery-inspection journal checkpoints;
+RECOVER remains the mutation path. The live PG-6A qualification now exercises
+the merged-M5A V1 late-stage shape and verifies canonical explicit BootId on the
+new revision. The exact candidate awaits independent review; final CI, merge,
+and H1 closure remain gated.
