@@ -466,8 +466,10 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
     const fixture = await createCluster();
     const lease = await prepareHostLease(fixture);
     const admin = await bootstrapClient(fixture, "postgres");
+    let ownershipAdmin: Client | undefined;
     const intruder = "m4_intruder";
     try {
+      ownershipAdmin = await bootstrapClient(fixture, "heptalogos");
       const published = await publish(fixture, lease);
       const before = await lease.query<{
         readonly ownership_revision: string;
@@ -476,7 +478,7 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
         "SELECT ownership_revision, host_ownership_token FROM heptalogos.host_ownership_fence WHERE singleton = true",
       );
       await admin.query(`CREATE ROLE "${intruder}" NOLOGIN`);
-      await admin.query(
+      await ownershipAdmin.query(
         `GRANT UPDATE ON TABLE heptalogos.host_ownership_fence TO "${intruder}"`,
       );
       await expect(
@@ -498,7 +500,7 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
       expect(afterAclAttack.rows[0]).toEqual(before.rows[0]);
       expect(afterAclAttack.rows[0]?.host_ownership_token).toBe(published.token);
 
-      await admin.query(
+      await ownershipAdmin.query(
         `REVOKE UPDATE ON TABLE heptalogos.host_ownership_fence FROM "${intruder}"`,
       );
       for (const protectedRole of [HOST_OWNERSHIP_OWNER_ROLE, HOST_LEASE_ROLE]) {
@@ -518,6 +520,7 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
       }
     } finally {
       await admin.query(`DROP ROLE IF EXISTS "${intruder}"`).catch(() => undefined);
+      await ownershipAdmin?.end().catch(() => undefined);
       await admin.end().catch(() => undefined);
       await lease.close().catch(() => undefined);
     }
