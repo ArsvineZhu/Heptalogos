@@ -16,6 +16,7 @@ import type {
   MaintenanceJournalBodyV1,
   MaintenanceJournalEnvelopeV1,
   MaintenanceJournalLoadResult,
+  MaintenanceJournalRecoveryHead,
   MaintenanceOperationId,
 } from "./maintenance-model.js";
 import { writeAtomicPublishedFile } from "./atomic-file.js";
@@ -75,6 +76,17 @@ export class MaintenanceJournalStore {
     return this.withOperationLock(id, () => {
       this.assertAuthority?.();
       return this.loadUnlocked(id);
+    });
+  }
+
+  async loadRecoveryHead(
+    operation: MaintenanceOperationId,
+  ): Promise<MaintenanceJournalRecoveryHead> {
+    this.assertAuthority?.();
+    const id = operationId(operation);
+    return this.withOperationLock(id, () => {
+      this.assertAuthority?.();
+      return this.loadRecoveryHeadUnlocked(id);
     });
   }
 
@@ -237,6 +249,72 @@ export class MaintenanceJournalStore {
         "No valid MaintenanceJournal revision is available",
         "Current and previous MaintenanceJournal files are missing or invalid",
       ),
+    };
+  }
+
+  private async loadRecoveryHeadUnlocked(
+    id: MaintenanceOperationId,
+  ): Promise<MaintenanceJournalRecoveryHead> {
+    this.assertAuthority?.();
+    const directory = pathFor(this.instanceRoot, id);
+    const current = await this.readCandidate(join(directory, CURRENT_FILENAME));
+    const previous = await this.readCandidate(join(directory, PREVIOUS_FILENAME));
+
+    if (current.kind !== "VALID") {
+      throw new ProblemError(
+        current.kind === "INVALID"
+          ? current.problem
+          : storeProblem(
+              "maintenance.journal.recovery_head_current_missing",
+              "Current MaintenanceJournal revision is missing",
+              "A validated recovery head requires a current MaintenanceJournal revision",
+            ),
+      );
+    }
+    if (current.value.state.operationId !== id) {
+      throw new ProblemError(
+        storeProblem(
+          "maintenance.journal.operation_id_mismatch",
+          "Maintenance journal operation identity does not match its path",
+          "The current MaintenanceJournal body does not match the operation directory",
+        ),
+      );
+    }
+
+    const expectedPreviousRevision = current.value.state.revision - 1;
+    const coherentPrevious =
+      previous.kind === "VALID" &&
+      previous.value.state.operationId === id &&
+      previous.value.state.revision === expectedPreviousRevision
+        ? previous.value
+        : undefined;
+
+    if (current.value.state.lastCompletedStage === "RECOVERY_REQUIRED") {
+      if (previous.kind === "INVALID") {
+        throw new ProblemError(previous.problem);
+      }
+      if (coherentPrevious === undefined) {
+        throw new ProblemError(
+          storeProblem(
+            previous.kind === "MISSING"
+              ? "maintenance.journal.recovery_head_previous_missing"
+              : "maintenance.journal.recovery_head_previous_incoherent",
+            "Previous MaintenanceJournal revision is not a validated recovery head",
+            "RECOVERY_REQUIRED requires the immediately previous valid revision for progress recovery",
+          ),
+        );
+      }
+      return {
+        current: current.value,
+        previous: coherentPrevious,
+        effectiveProgressStage: coherentPrevious.state.lastCompletedStage,
+      };
+    }
+
+    return {
+      current: current.value,
+      ...(coherentPrevious === undefined ? {} : { previous: coherentPrevious }),
+      effectiveProgressStage: current.value.state.lastCompletedStage,
     };
   }
 

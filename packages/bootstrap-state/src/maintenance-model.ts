@@ -72,6 +72,12 @@ export interface MaintenanceJournalEnvelopeV1 {
   readonly digest: Sha256Digest;
 }
 
+export interface MaintenanceJournalRecoveryHead {
+  readonly current: MaintenanceJournalEnvelopeV1;
+  readonly previous?: MaintenanceJournalEnvelopeV1;
+  readonly effectiveProgressStage: MaintenanceStage;
+}
+
 export type MaintenanceJournalParseResult =
   | { readonly ok: true; readonly value: MaintenanceJournalEnvelopeV1 }
   | { readonly ok: false; readonly problem: Problem };
