@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn, type ChildProcess } from "node:child_process";
 import {
   access,
   mkdtemp,
@@ -11,9 +11,12 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { once } from "node:events";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { Client } from "pg";
 import {
+  BootstrapJournal,
   BootstrapOwnerWitnessStore,
   BootstrapStateStore,
   MaintenanceJournalStore,
@@ -31,19 +34,24 @@ import {
   createUuidV7Id,
   digestCanonicalJson,
   LIFECYCLE_ROOT_IDS,
+  parseBootId,
   type LifecycleRootId,
   type HostOwnershipToken,
 } from "@heptalogos/foundation-contracts";
 import {
   acquireHostLeaseConnection,
   deriveHostAdvisoryKey,
+  HOST_LEASE_ROLE,
   HOST_OWNERSHIP_CANONICAL_DATABASE,
+  inspectHostAdvisoryLease,
   inspectHostOwnershipCanonicalSnapshot,
   publishHostOwnershipToken,
   type BootstrapAdminPasswordProvider,
   type HostOwnershipTimingOptions,
 } from "@heptalogos/host-ownership";
 import {
+  classifyClusterDirectory,
+  resolvePrivatePostgresPlacement,
   resolvePrivatePostgresToolchain,
   type PrivatePostgresToolchain,
 } from "@heptalogos/private-postgres";
@@ -51,6 +59,7 @@ import type {
   BootstrapKeyProvider,
   BootstrapKeyRequestContext,
 } from "./bootstrap-key-provider.js";
+import { executeBootstrapRecoveryCommand } from "./bootstrap-recovery-command.js";
 import { recoverInterruptedHostMaintenance } from "./host-maintenance-recovery.js";
 import { acquireBootstrapOwnership } from "./bootstrap-ownership.js";
 import { openMaintenanceStateAccess } from "./maintenance-state-access.js";
@@ -72,6 +81,10 @@ const qualifiedPgBin =
     );
   })();
 const execFileAsync = promisify(execFile);
+const BOOTSTRAP_PROCESS_FIXTURE = new URL(
+  "../test/fixtures/recovery-bootstrap-process.mjs",
+  import.meta.url,
+);
 const directories: string[] = [];
 const postgresDataDirectories: string[] = [];
 const LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
@@ -86,6 +99,75 @@ const HOST_TIMING: HostOwnershipTimingOptions = {
   fenceLockTimeoutMs: 10_000,
   keepAliveInitialDelayMs: 1_000,
 };
+
+type BootstrapProcessMessage = {
+  readonly type: string;
+  readonly bootId?: string;
+  readonly pid?: number;
+  readonly processStartedAtMs?: number;
+  readonly clusterSystemIdentifier?: string;
+  readonly port?: number;
+  readonly startupDisposition?: string;
+  readonly problemCode?: string;
+  readonly message?: string;
+};
+
+class BootstrapProcessController {
+  readonly process: ChildProcess;
+  #messages: BootstrapProcessMessage[] = [];
+  #waiters: Array<{
+    readonly types: ReadonlySet<string>;
+    readonly resolve: (message: BootstrapProcessMessage) => void;
+    readonly reject: (error: Error) => void;
+    readonly timer: NodeJS.Timeout;
+  }> = [];
+
+  constructor(
+    anchorRoot: string,
+    role: "before-postgres" | "ready-before-handoff",
+    pgBin: string,
+    port: number,
+  ) {
+    this.process = spawn(
+      process.execPath,
+      [fileURLToPath(BOOTSTRAP_PROCESS_FIXTURE), anchorRoot, role, pgBin, String(port)],
+      { stdio: ["ignore", "ignore", "ignore", "ipc"], env: process.env },
+    );
+    this.process.on("message", (message: BootstrapProcessMessage) => {
+      const index = this.#waiters.findIndex((waiter) => waiter.types.has(message.type));
+      if (index < 0) {
+        this.#messages.push(message);
+        return;
+      }
+      const [waiter] = this.#waiters.splice(index, 1);
+      clearTimeout(waiter.timer);
+      waiter.resolve(message);
+    });
+  }
+
+  waitFor(...types: string[]): Promise<BootstrapProcessMessage> {
+    const index = this.#messages.findIndex((message) => types.includes(message.type));
+    if (index >= 0) return Promise.resolve(this.#messages.splice(index, 1)[0]);
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        const waiterIndex = this.#waiters.findIndex((waiter) => waiter.timer === timer);
+        if (waiterIndex >= 0) this.#waiters.splice(waiterIndex, 1);
+        reject(new Error(`Timed out waiting for ${types.join(" or ")}`));
+      }, 120_000);
+      this.#waiters.push({ types: new Set(types), resolve, reject, timer });
+    });
+  }
+
+  async kill(): Promise<void> {
+    if (this.process.exitCode === null && this.process.signalCode === null) {
+      this.process.kill("SIGKILL");
+    }
+    await Promise.race([
+      once(this.process, "exit").then(() => undefined),
+      new Promise<void>((resolve) => setTimeout(resolve, 5_000)),
+    ]);
+  }
+}
 
 interface Fixture {
   readonly anchorRoot: string;
@@ -206,6 +288,103 @@ function passwordProvider(
       );
     },
   };
+}
+
+async function markBootstrapLockStaleForProcessRecovery(
+  fixture: Fixture,
+): Promise<void> {
+  const lockPath = join(fixture.roots.INSTANCE, LOCK_DIRECTORY);
+  await mkdir(lockPath, { recursive: true });
+  const staleAt = new Date(Date.now() - 31_000);
+  await utimes(lockPath, staleAt, staleAt);
+}
+
+async function assertBootstrapProcessOwnerWitness(
+  fixture: Fixture,
+  child: BootstrapProcessController,
+  message: BootstrapProcessMessage,
+): Promise<void> {
+  if (
+    message.bootId === undefined ||
+    message.pid === undefined ||
+    message.processStartedAtMs === undefined
+  ) {
+    throw new Error("bootstrap process boundary message omitted owner identity");
+  }
+  expect(message.pid).toBe(child.process.pid);
+  const owner = await new BootstrapOwnerWitnessStore(
+    fixture.roots.INSTANCE,
+  ).readOwner();
+  if (owner === undefined) throw new Error("bootstrap owner witness is missing");
+  expect(owner.witness.phase).toBe("OWNER");
+  expect(owner.witness.pid).toBe(message.pid);
+  expect(owner.witness.processStartedAtMs).toBe(message.processStartedAtMs);
+  expect(owner.witness.bootId).toBe(message.bootId);
+}
+
+function requireBootstrapProcessBootId(
+  message: BootstrapProcessMessage,
+): ReturnType<typeof createBootId> {
+  if (message.bootId === undefined) {
+    throw new Error("bootstrap process boundary omitted BootId");
+  }
+  const bootId = parseBootId(message.bootId);
+  if (bootId === undefined)
+    throw new Error("bootstrap process boundary BootId is invalid");
+  return bootId;
+}
+
+async function inspectPreHostOwnershipState(
+  fixture: Fixture,
+  port: number,
+  bootId: ReturnType<typeof createBootId>,
+  keyProvider: BootstrapKeyProvider,
+): Promise<{
+  readonly hostDatabaseExists: boolean;
+  readonly hostLeasePids: readonly number[];
+}> {
+  const key = deriveHostAdvisoryKey(fixture.instanceId);
+  return passwordProvider(
+    keyProvider,
+    fixture.installationId,
+    fixture.instanceId,
+    bootId,
+  ).withBootstrapPassword(async (passwordUtf8) => {
+    const client = new Client({
+      host: "127.0.0.1",
+      port,
+      database: "postgres",
+      user: "heptalogos_bootstrap",
+      password: new TextDecoder().decode(passwordUtf8),
+      connectionTimeoutMillis: 10_000,
+    });
+    await client.connect();
+    try {
+      const database = await client.query<{ readonly datname: string }>(
+        "SELECT datname FROM pg_catalog.pg_database WHERE datname = $1",
+        [HOST_OWNERSHIP_CANONICAL_DATABASE],
+      );
+      const locks = await client.query<{ readonly pid: number }>(
+        `
+SELECT activity.pid
+FROM pg_locks AS locks
+JOIN pg_stat_activity AS activity ON activity.pid = locks.pid
+WHERE locks.locktype = 'advisory'
+  AND activity.usename = $1
+  AND activity.datname = $2
+  AND locks.classid::text = $3
+  AND locks.objid::text = $4
+`,
+        [HOST_LEASE_ROLE, HOST_OWNERSHIP_CANONICAL_DATABASE, key.key1, key.key2],
+      );
+      return {
+        hostDatabaseExists: database.rows.length > 0,
+        hostLeasePids: locks.rows.map((row) => row.pid),
+      };
+    } finally {
+      await client.end();
+    }
+  });
 }
 
 async function makeInterruptedOperation(
@@ -360,6 +539,7 @@ async function postmasterStartTime(
   port: number,
   keyProvider: BootstrapKeyProvider,
   bootId: ReturnType<typeof createBootId>,
+  database = "heptalogos",
 ): Promise<string> {
   let client: Client | undefined;
   await keyProvider.withPrivatePostgresBootstrapPassword(
@@ -373,7 +553,7 @@ async function postmasterStartTime(
       client = new Client({
         host: "127.0.0.1",
         port,
-        database: "heptalogos",
+        database,
         user: "heptalogos_bootstrap",
         password: new TextDecoder().decode(passwordUtf8),
         connectionTimeoutMillis: 10_000,
@@ -491,7 +671,7 @@ afterEach(async () => {
 });
 
 describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
-  it("PG-2 recovers after PostgreSQL READY interruption with same cluster identity and fresh Host", async () => {
+  it("additional maintenance recovery restarts after PostgreSQL READY interruption", async () => {
     const fixture = await makeFixture(55530);
     const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
     const interrupted = await makeInterruptedOperation(
@@ -531,49 +711,259 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
     await stopPostgres(toolchain, descriptor.placement.canonicalDataDirectory);
   }, 180_000);
 
-  it("PG-1 starts the same stopped cluster when the bootstrap owner dies before PostgreSQL start", async () => {
-    const fixture = await makeFixture(55533);
-    const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
-    const interrupted = await makeInterruptedOperation(
-      fixture,
-      55533,
-      "PRIVATE_POSTGRES_RESTART",
+  it("PG-1 recovers a killed pre-PostgreSQL bootstrap through bounded RECOVER", async () => {
+    const port = 55533;
+    const fixture = await makeFixture(port);
+    const postgresDataDirectory = join(fixture.roots.DATA, "private-postgres");
+    postgresDataDirectories.push(postgresDataDirectory);
+    const child = new BootstrapProcessController(
+      fixture.anchorRoot,
+      "before-postgres",
+      qualifiedPgBin,
+      port,
     );
-    const descriptor = getPrivatePostgresMaintenanceDescriptor(interrupted.ready);
-    const cluster = await clusterSystemIdentifier(
-      toolchain,
-      descriptor.placement.canonicalDataDirectory,
-    );
-    await interrupted.host.shutdownKeepingPrivatePostgres({
-      async quiesce() {
-        return { async resumeAfterAbort() {} };
-      },
+    const boundary = await child.waitFor("bootstrap-prelude-owned", "error");
+    if (boundary.type === "error") {
+      throw new Error(
+        boundary.message ?? boundary.problemCode ?? "bootstrap child failed",
+      );
+    }
+    await assertBootstrapProcessOwnerWitness(fixture, child, boundary);
+    const bootstrapBootId = requireBootstrapProcessBootId(boundary);
+    const stateBefore = await new BootstrapStateStore(
+      join(fixture.roots.INSTANCE, "bootstrap-state"),
+    ).load();
+    expect(stateBefore).toMatchObject({
+      status: "CURRENT",
+      value: { state: { schemaVersion: 1, revision: 1 } },
     });
-    await stopPostgres(toolchain, descriptor.placement.canonicalDataDirectory);
-    await leaveAbandonedLock(fixture, interrupted.host.bootId);
-
-    const result = await recoverInterruptedHostMaintenance({
-      anchorRoot: fixture.anchorRoot,
-      principal: await proveLocalInstallationOwner(fixture.anchorRoot),
-      expectedOperationId: interrupted.operationId,
-      keyProvider: makeKeyProvider(),
-      timing: HOST_TIMING,
-      privatePostgres: descriptor,
-    });
-    expect(result.kind).toBe("RESTARTED");
-    if (result.kind !== "RESTARTED")
-      throw new Error("PG-1 recovery did not return Host");
-    expect(result.host.token).not.toBe(interrupted.host.token);
-    await assertReady(toolchain, 55533);
+    if (stateBefore.status !== "CURRENT")
+      throw new Error("BootstrapState is not current");
+    expect(stateBefore.value.state.schemaVersion).toBe(1);
+    const placement = resolvePrivatePostgresPlacement(fixture.roots.DATA);
     await expect(
-      clusterSystemIdentifier(toolchain, descriptor.placement.canonicalDataDirectory),
-    ).resolves.toBe(cluster);
-    await result.host.shutdownKeepingPrivatePostgres({
+      classifyClusterDirectory(placement.canonicalDataDirectory),
+    ).resolves.toMatchObject({ kind: expect.stringMatching(/^(ABSENT|EMPTY)$/u) });
+    await child.kill();
+    await markBootstrapLockStaleForProcessRecovery(fixture);
+
+    const keyProvider = makeKeyProvider();
+    const recovered = await executeBootstrapRecoveryCommand(
+      fixture.anchorRoot,
+      { kind: "RECOVER" },
+      {
+        kind: "BOOTSTRAP_CONTINUATION",
+        continuation: {
+          principal: await proveLocalInstallationOwner(fixture.anchorRoot),
+          preparePrivatePostgres: {
+            toolchainBinDirectory: qualifiedPgBin,
+            initialPort: port,
+            lifecycle: LIFECYCLE,
+            keyProvider,
+          },
+          handoff: { keyProvider, timing: HOST_TIMING },
+        },
+      },
+    );
+    expect(recovered.kind).toBe("RECOVERED");
+    if (
+      recovered.kind !== "RECOVERED" ||
+      recovered.recoveryKind !== "BOOTSTRAP_CONTINUATION"
+    ) {
+      throw new Error("PG-1 did not use bootstrap-continuation routing");
+    }
+    const host = recovered.host;
+    expect(() => host.assertActive()).not.toThrow();
+    expect(host.bootId).not.toBe(bootstrapBootId);
+
+    const stateAfter = await new BootstrapStateStore(
+      join(fixture.roots.INSTANCE, "bootstrap-state"),
+    ).load();
+    expect(stateAfter).toMatchObject({
+      status: "CURRENT",
+      value: { state: { schemaVersion: 2, revision: 2 } },
+    });
+    if (stateAfter.status !== "CURRENT" || stateAfter.value.state.schemaVersion !== 2) {
+      throw new Error("PG-1 did not persist BootstrapState V2");
+    }
+    await assertReady(await resolvePrivatePostgresToolchain(qualifiedPgBin), port);
+    const preHost = await inspectPreHostOwnershipState(
+      fixture,
+      port,
+      host.bootId,
+      keyProvider,
+    );
+    expect(preHost.hostDatabaseExists).toBe(true);
+    await expect(
+      inspectHostAdvisoryLease({
+        port,
+        advisoryKey: deriveHostAdvisoryKey(fixture.instanceId),
+        passwordProvider: passwordProvider(
+          keyProvider,
+          fixture.installationId,
+          fixture.instanceId,
+          host.bootId,
+        ),
+      }),
+    ).resolves.toMatchObject({ live: true });
+    const snapshot = await inspectHostOwnershipCanonicalSnapshot({
+      port,
+      passwordProvider: passwordProvider(
+        keyProvider,
+        fixture.installationId,
+        fixture.instanceId,
+        host.bootId,
+      ),
+    });
+    expect(snapshot.fence[0]).toMatchObject({
+      host_ownership_token: host.token,
+      boot_id: host.bootId,
+    });
+    const journal = await new BootstrapJournal(fixture.roots.INSTANCE).read(
+      host.bootId,
+    );
+    expect(journal.map((entry) => entry.stage)).toContain("bootstrap.prelude.owned");
+    await expect(
+      access(join(fixture.roots.INSTANCE, LOCK_DIRECTORY)),
+    ).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(
+      new BootstrapOwnerWitnessStore(fixture.roots.INSTANCE).readOwner(),
+    ).resolves.toBeUndefined();
+    await host.shutdownKeepingPrivatePostgres({
       async quiesce() {
         return { async resumeAfterAbort() {} };
       },
     });
-  }, 180_000);
+  }, 240_000);
+
+  it("PG-2 recovers after READY before Host handoff without restarting PostgreSQL", async () => {
+    const port = 55541;
+    const fixture = await makeFixture(port);
+    const postgresDataDirectory = join(fixture.roots.DATA, "private-postgres");
+    postgresDataDirectories.push(postgresDataDirectory);
+    const child = new BootstrapProcessController(
+      fixture.anchorRoot,
+      "ready-before-handoff",
+      qualifiedPgBin,
+      port,
+    );
+    const boundary = await child.waitFor("postgres-ready-before-handoff", "error");
+    if (boundary.type === "error") {
+      throw new Error(
+        boundary.message ?? boundary.problemCode ?? "bootstrap child failed",
+      );
+    }
+    await assertBootstrapProcessOwnerWitness(fixture, child, boundary);
+    const bootstrapBootId = requireBootstrapProcessBootId(boundary);
+    if (boundary.port === undefined || boundary.clusterSystemIdentifier === undefined) {
+      throw new Error("PG-2 child omitted PostgreSQL identity");
+    }
+    expect(boundary.port).toBe(port);
+    expect(boundary.startupDisposition).toBe("STARTED_BY_THIS_BOOTSTRAP");
+    const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
+    const placement = resolvePrivatePostgresPlacement(fixture.roots.DATA);
+    const stateBefore = await new BootstrapStateStore(
+      join(fixture.roots.INSTANCE, "bootstrap-state"),
+    ).load();
+    expect(stateBefore).toMatchObject({
+      status: "CURRENT",
+      value: {
+        state: {
+          schemaVersion: 2,
+          revision: 2,
+          privatePostgres: {
+            clusterSystemIdentifier: boundary.clusterSystemIdentifier,
+            persistedPort: port,
+          },
+        },
+      },
+    });
+    await assertReady(toolchain, port);
+    const oldPid = await postmasterPid(placement.canonicalDataDirectory);
+    const oldStart = await postmasterStartTime(
+      fixture,
+      port,
+      makeKeyProvider(),
+      bootstrapBootId,
+      "postgres",
+    );
+    const preHost = await inspectPreHostOwnershipState(
+      fixture,
+      port,
+      bootstrapBootId,
+      makeKeyProvider(),
+    );
+    expect(preHost.hostDatabaseExists).toBe(false);
+    expect(preHost.hostLeasePids).toEqual([]);
+    await child.kill();
+    await markBootstrapLockStaleForProcessRecovery(fixture);
+
+    const keyProvider = makeKeyProvider();
+    const recovered = await executeBootstrapRecoveryCommand(
+      fixture.anchorRoot,
+      { kind: "RECOVER" },
+      {
+        kind: "BOOTSTRAP_CONTINUATION",
+        continuation: {
+          principal: await proveLocalInstallationOwner(fixture.anchorRoot),
+          preparePrivatePostgres: {
+            toolchainBinDirectory: qualifiedPgBin,
+            initialPort: port,
+            lifecycle: LIFECYCLE,
+            keyProvider,
+          },
+          handoff: { keyProvider, timing: HOST_TIMING },
+        },
+      },
+    );
+    expect(recovered.kind).toBe("RECOVERED");
+    if (
+      recovered.kind !== "RECOVERED" ||
+      recovered.recoveryKind !== "BOOTSTRAP_CONTINUATION"
+    ) {
+      throw new Error("PG-2 did not use bootstrap-continuation routing");
+    }
+    const host = recovered.host;
+    expect(() => host.assertActive()).not.toThrow();
+    expect(host.bootId).not.toBe(bootstrapBootId);
+    expect(await postmasterPid(placement.canonicalDataDirectory)).toBe(oldPid);
+    await expect(
+      postmasterStartTime(fixture, port, keyProvider, host.bootId),
+    ).resolves.toBe(oldStart);
+    await expect(
+      clusterSystemIdentifier(toolchain, placement.canonicalDataDirectory),
+    ).resolves.toBe(boundary.clusterSystemIdentifier);
+    const snapshot = await inspectHostOwnershipCanonicalSnapshot({
+      port,
+      passwordProvider: passwordProvider(
+        keyProvider,
+        fixture.installationId,
+        fixture.instanceId,
+        host.bootId,
+      ),
+    });
+    expect(snapshot.fence[0]).toMatchObject({
+      host_ownership_token: host.token,
+      boot_id: host.bootId,
+    });
+    await expect(
+      inspectHostAdvisoryLease({
+        port,
+        advisoryKey: deriveHostAdvisoryKey(fixture.instanceId),
+        passwordProvider: passwordProvider(
+          keyProvider,
+          fixture.installationId,
+          fixture.instanceId,
+          host.bootId,
+        ),
+      }),
+    ).resolves.toMatchObject({ live: true });
+    await host.shutdownKeepingPrivatePostgres({
+      async quiesce() {
+        return { async resumeAfterAbort() {} };
+      },
+    });
+  }, 240_000);
 
   it("PG-3 performs one stop/start recovery before durable POSTGRES_STOPPED", async () => {
     const fixture = await makeFixture(55534);
