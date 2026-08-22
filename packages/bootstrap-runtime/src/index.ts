@@ -28,6 +28,13 @@ export {
   recoverInterruptedHostMaintenance,
   type HostMaintenanceRecoveryOptions,
 } from "./host-maintenance-recovery.js";
+export {
+  executeBootstrapRecoveryCommand,
+  parseBootstrapRecoveryCommand,
+  type BootstrapRecoveryCommand,
+  type BootstrapRecoveryCommandContext,
+  type BootstrapRecoveryCommandResult,
+} from "./bootstrap-recovery-command.js";
 export type { OwnedBootstrapStateStore } from "./bootstrap-state-access.js";
 export {
   openMaintenanceStateAccess,
