@@ -600,8 +600,8 @@ m5b_final_ci_ubuntu: PASS
 m5b_final_ci_macos: PASS
 m5b_final_ci_windows: PASS
 m5b_squash_merge_sha: f16071cbff3e30cd4f839716130270770e99075a
-m5b: MERGED
-h1: OPEN
+m5b: CLOSED
+h1: CLOSED
 ```
 
 The final manual workflow verified the exact reviewed SHA on all three
