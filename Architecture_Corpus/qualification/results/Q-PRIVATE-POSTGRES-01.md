@@ -121,7 +121,7 @@ real integration was revalidated at 20/20. The qualification remains `PARTIAL`: 
 PostgreSQL, source-less shipping, and service-account ACL closure remain
 `NOT_RUN`.
 
-## Foundation M4 host ownership evidence (2026-08-22)
+## Historical pre-correction Foundation M4 host ownership evidence (2026-08-22)
 
 This addendum records the M4 implementation candidate separately from the
 historical M3 hardening candidates. It does not close H1, M5 reverse handoff,
@@ -154,13 +154,47 @@ source_less_shipping_closure: NOT_RUN
 service_account_acl_closure: NOT_RUN
 ```
 
-The M4 evidence was produced by the focused unit suites, PostgreSQL 18.6
+The historical M4 evidence was produced by the focused unit suites, PostgreSQL 18.6
 Windows integration suites (`private-postgres` 20/20, `host-ownership` 5/5,
 and `bootstrap-runtime` 12/12), the partial-provisioning and late-handoff
 fault matrix, and the permanent repository gates including `pnpm verify`.
-The real database fixture used the explicit extracted Windows PostgreSQL 18.6
-bin root recorded above. Final cross-platform CI remains intentionally
+The historical real database fixture used the explicit extracted Windows PostgreSQL 18.6
+bin root recorded above. Final cross-platform CI for that historical candidate remained intentionally
 `NOT_RUN` pending independent review of this exact candidate SHA.
+
+## Foundation M4 corrective hardening evidence (2026-08-22)
+
+This is the current corrective candidate. It supersedes the historical M4
+addendum above for current qualification truth while preserving that addendum
+as historical evidence.
+
+```yaml
+candidate_sha: c7f82e379ff28d836fe54d7cfbd266adfc15cacd
+bootstrap_authority_continuity: PASS
+existing_host_reservation_before_mutation: PASS
+closed_world_postgres_authority_unit: PASS
+protected_role_membership_confinement_unit: PASS
+portable_postgres_toolchain_resolution: PASS
+host_lease_tcp_keepalive_timing: PASS
+bootstrap_release_failure_fenced: PASS
+focused_host_ownership_unit: PASS
+focused_bootstrap_runtime_unit: PASS
+permanent_repository_verify: PASS
+windows_host_ownership_real_pg: NOT_RUN
+windows_bootstrap_host_handoff_real_pg: NOT_RUN
+linux_host_ownership_real_pg: NOT_RUN
+macos_host_ownership_real_pg: NOT_RUN
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+```
+
+The corrective candidate passed `pnpm verify`, the Host ownership unit suite
+(54/54), the bootstrap-runtime unit suite (59 passed, 1 skipped), and the
+private-postgres unit suite (49/49). The current shell has no qualified
+PostgreSQL 18.6 toolchain (`HEPTALOGOS_TEST_PG_BIN` is unset); therefore all
+corrected-candidate real PostgreSQL gates remain `NOT_RUN`. The prior Windows
+and Linux PostgreSQL results must not be read as evidence for this corrected
+candidate SHA.
 
 ## Historical pre-correction Linux evidence
 
