@@ -57,9 +57,15 @@ interface ConstraintRow {
 }
 
 interface AclRow {
+  readonly grantor: string;
   readonly grantee: string;
   readonly privilege_type: string;
+  readonly is_grantable: boolean;
   readonly owner_name?: string;
+}
+
+interface ColumnAclRow extends AclRow {
+  readonly column_name: string;
 }
 
 interface FenceRow {
@@ -78,8 +84,10 @@ WHERE n.nspname = $1
 
 const DATABASE_ACL_QUERY = `
 SELECT pg_get_userbyid(databases.datdba) AS owner_name,
+       pg_get_userbyid(acl.grantor) AS grantor,
        CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(acl.grantee) END AS grantee,
-       acl.privilege_type
+       acl.privilege_type,
+       acl.is_grantable
 FROM pg_catalog.pg_database AS databases
 CROSS JOIN LATERAL aclexplode(
   COALESCE(databases.datacl, acldefault('d', databases.datdba))
@@ -89,8 +97,10 @@ WHERE databases.datname = $1
 
 const SCHEMA_ACL_QUERY = `
 SELECT pg_get_userbyid(namespaces.nspowner) AS owner_name,
+       pg_get_userbyid(acl.grantor) AS grantor,
        CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(acl.grantee) END AS grantee,
-       acl.privilege_type
+       acl.privilege_type,
+       acl.is_grantable
 FROM pg_catalog.pg_namespace AS namespaces
 CROSS JOIN LATERAL aclexplode(
   COALESCE(namespaces.nspacl, acldefault('n', namespaces.nspowner))
@@ -117,6 +127,23 @@ WHERE n.nspname = $1 AND c.relname = $2
 ORDER BY a.attnum
 `;
 
+const COLUMN_ACL_QUERY = `
+SELECT a.attname AS column_name,
+       pg_get_userbyid(acl.grantor) AS grantor,
+       CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(acl.grantee) END AS grantee,
+       acl.privilege_type,
+       acl.is_grantable
+FROM pg_catalog.pg_attribute AS a
+JOIN pg_catalog.pg_class AS c ON c.oid = a.attrelid
+JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+CROSS JOIN LATERAL aclexplode(
+  a.attacl
+) AS acl
+WHERE n.nspname = $1 AND c.relname = $2
+  AND a.attnum > 0 AND NOT a.attisdropped AND a.attacl IS NOT NULL
+ORDER BY a.attnum, acl.grantee, acl.privilege_type
+`;
+
 const CONSTRAINT_QUERY = `
 SELECT conname, contype, pg_get_constraintdef(oid, true) AS definition
 FROM pg_catalog.pg_constraint
@@ -126,8 +153,10 @@ ORDER BY conname
 
 const TABLE_ACL_QUERY = `
 SELECT pg_get_userbyid(tables.relowner) AS owner_name,
+       pg_get_userbyid(acl.grantor) AS grantor,
        CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(acl.grantee) END AS grantee,
-       acl.privilege_type
+       acl.privilege_type,
+       acl.is_grantable
 FROM pg_catalog.pg_class AS tables
 JOIN pg_catalog.pg_namespace AS namespaces ON namespaces.oid = tables.relnamespace
 CROSS JOIN LATERAL aclexplode(
@@ -189,7 +218,11 @@ function explicitAcl(rows: readonly AclRow[]): readonly AclRow[] {
 }
 
 function aclKeys(rows: readonly AclRow[]): Set<string> {
-  return new Set(rows.map((row) => `${row.grantee}:${row.privilege_type}`));
+  return new Set(
+    rows.map(
+      (row) => `${row.grantee}:${row.privilege_type}:${String(row.is_grantable)}`,
+    ),
+  );
 }
 
 function assertAclSubset(
@@ -251,6 +284,14 @@ function assertExactColumns(rows: readonly ColumnRow[]): void {
   }
 }
 
+function assertNoColumnAcl(rows: readonly ColumnAclRow[]): void {
+  if (rows.length !== 0) {
+    throw incompatibleSchemaProblem(
+      "HostOwnershipFence has explicit column privileges outside the closed-world contract",
+    );
+  }
+}
+
 function normalizeDefinition(definition: string): string {
   return definition.replace(/\s+/gu, " ").trim().toLowerCase();
 }
@@ -299,7 +340,11 @@ async function ensureDatabasePrivileges(
   ]);
   assertAclSubset(
     rows.rows,
-    new Set(["PUBLIC:CONNECT", "PUBLIC:TEMPORARY", `${HOST_LEASE_ROLE}:CONNECT`]),
+    new Set([
+      "PUBLIC:CONNECT:false",
+      "PUBLIC:TEMPORARY:false",
+      `${HOST_LEASE_ROLE}:CONNECT:false`,
+    ]),
     "Unexpected explicit database privilege exists on the canonical database",
   );
   await authorizedMutation(
@@ -317,7 +362,7 @@ async function ensureDatabasePrivileges(
   ]);
   assertAclExact(
     verified.rows,
-    new Set([`${HOST_LEASE_ROLE}:CONNECT`]),
+    new Set([`${HOST_LEASE_ROLE}:CONNECT:false`]),
     "Canonical database privileges do not match the closed-world contract",
   );
 }
@@ -329,11 +374,13 @@ async function ensurePublicSchemaPrivileges(
   const rows = await client.query<AclRow>(SCHEMA_ACL_QUERY, ["public"]);
   assertAclSubset(
     rows.rows,
-    new Set(["PUBLIC:USAGE", "PUBLIC:CREATE"]),
+    new Set(["PUBLIC:USAGE:false", "PUBLIC:CREATE:false"]),
     "Unexpected explicit privilege exists on the public schema",
   );
   const preserved = new Set(
-    [...aclKeys(explicitAcl(rows.rows))].filter((edge) => edge !== "PUBLIC:CREATE"),
+    [...aclKeys(explicitAcl(rows.rows))].filter(
+      (edge) => edge !== "PUBLIC:CREATE:false",
+    ),
   );
   await authorizedMutation(
     client,
@@ -376,7 +423,11 @@ async function ensureProductSchema(
     const acl = await client.query<AclRow>(SCHEMA_ACL_QUERY, [HOST_OWNERSHIP_SCHEMA]);
     assertAclSubset(
       acl.rows,
-      new Set(["PUBLIC:USAGE", "PUBLIC:CREATE", `${HOST_LEASE_ROLE}:USAGE`]),
+      new Set([
+        "PUBLIC:USAGE:false",
+        "PUBLIC:CREATE:false",
+        `${HOST_LEASE_ROLE}:USAGE:false`,
+      ]),
       "Unexpected explicit privilege exists on the Heptalogos schema",
     );
   }
@@ -395,7 +446,7 @@ async function ensureProductSchema(
   ]);
   assertAclExact(
     verified.rows,
-    new Set([`${HOST_LEASE_ROLE}:USAGE`]),
+    new Set([`${HOST_LEASE_ROLE}:USAGE:false`]),
     "Heptalogos schema privileges do not match the closed-world contract",
   );
   return schemaCreated;
@@ -430,6 +481,11 @@ async function ensureFenceTable(
       HOST_OWNERSHIP_FENCE_TABLE,
     ]);
     assertExactColumns(columns.rows);
+    const columnAcl = await client.query<ColumnAclRow>(COLUMN_ACL_QUERY, [
+      HOST_OWNERSHIP_SCHEMA,
+      HOST_OWNERSHIP_FENCE_TABLE,
+    ]);
+    assertNoColumnAcl(columnAcl.rows);
     const constraints = await client.query<ConstraintRow>(CONSTRAINT_QUERY, [
       `${HOST_OWNERSHIP_SCHEMA}.${HOST_OWNERSHIP_FENCE_TABLE}`,
     ]);
@@ -441,15 +497,15 @@ async function ensureFenceTable(
     assertAclSubset(
       acl.rows,
       new Set([
-        "PUBLIC:SELECT",
-        "PUBLIC:INSERT",
-        "PUBLIC:UPDATE",
-        "PUBLIC:DELETE",
-        "PUBLIC:TRUNCATE",
-        "PUBLIC:REFERENCES",
-        "PUBLIC:TRIGGER",
-        `${HOST_LEASE_ROLE}:SELECT`,
-        `${HOST_LEASE_ROLE}:UPDATE`,
+        "PUBLIC:SELECT:false",
+        "PUBLIC:INSERT:false",
+        "PUBLIC:UPDATE:false",
+        "PUBLIC:DELETE:false",
+        "PUBLIC:TRUNCATE:false",
+        "PUBLIC:REFERENCES:false",
+        "PUBLIC:TRIGGER:false",
+        `${HOST_LEASE_ROLE}:SELECT:false`,
+        `${HOST_LEASE_ROLE}:UPDATE:false`,
       ]),
       "Unexpected explicit privilege exists on HostOwnershipFence",
     );
@@ -491,7 +547,7 @@ CREATE TABLE ${quoteIdentifier(HOST_OWNERSHIP_SCHEMA)}.${quoteIdentifier(HOST_OW
   ]);
   assertAclExact(
     verified.rows,
-    new Set([`${HOST_LEASE_ROLE}:SELECT`, `${HOST_LEASE_ROLE}:UPDATE`]),
+    new Set([`${HOST_LEASE_ROLE}:SELECT:false`, `${HOST_LEASE_ROLE}:UPDATE:false`]),
     "HostOwnershipFence privileges do not match the closed-world contract",
   );
   return tableCreated;

@@ -525,4 +525,74 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
       await lease.close().catch(() => undefined);
     }
   }, 120_000);
+
+  it("rejects grant options and column-specific ACL edges", async () => {
+    const fixture = await createCluster();
+    const lease = await prepareHostLease(fixture);
+    const admin = await bootstrapClient(fixture, "postgres");
+    const ownershipAdmin = await bootstrapClient(fixture, "heptalogos");
+    const intruder = "m4_intruder";
+    try {
+      await publish(fixture, lease);
+      await admin.query(`CREATE ROLE "${intruder}" NOLOGIN`);
+
+      await ownershipAdmin.query(
+        `GRANT UPDATE ON TABLE heptalogos.host_ownership_fence TO "${HOST_LEASE_ROLE}" WITH GRANT OPTION`,
+      );
+      await expect(
+        ensureHostOwnershipSchema({
+          port: fixture.port,
+          instanceId: fixture.instanceId,
+          passwordProvider: fixture.provider,
+          mutationAuthority,
+        }),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "host-ownership.schema.incompatible" },
+      });
+
+      await ownershipAdmin.query(
+        `REVOKE ALL ON TABLE heptalogos.host_ownership_fence FROM "${HOST_LEASE_ROLE}"`,
+      );
+      await ownershipAdmin.query(
+        `GRANT INSERT (instance_id) ON TABLE heptalogos.host_ownership_fence TO "${HOST_LEASE_ROLE}"`,
+      );
+      await expect(
+        ensureHostOwnershipSchema({
+          port: fixture.port,
+          instanceId: fixture.instanceId,
+          passwordProvider: fixture.provider,
+          mutationAuthority,
+        }),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "host-ownership.schema.incompatible" },
+      });
+
+      await ownershipAdmin.query(
+        `REVOKE ALL (instance_id) ON TABLE heptalogos.host_ownership_fence FROM "${HOST_LEASE_ROLE}"`,
+      );
+      await ownershipAdmin.query(
+        `GRANT UPDATE (host_ownership_token) ON TABLE heptalogos.host_ownership_fence TO "${intruder}"`,
+      );
+      await expect(
+        ensureHostOwnershipSchema({
+          port: fixture.port,
+          instanceId: fixture.instanceId,
+          passwordProvider: fixture.provider,
+          mutationAuthority,
+        }),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "host-ownership.schema.incompatible" },
+      });
+    } finally {
+      await ownershipAdmin
+        .query(
+          `REVOKE ALL (host_ownership_token) ON TABLE heptalogos.host_ownership_fence FROM "${intruder}"`,
+        )
+        .catch(() => undefined);
+      await admin.query(`DROP ROLE IF EXISTS "${intruder}"`).catch(() => undefined);
+      await ownershipAdmin.end().catch(() => undefined);
+      await admin.end().catch(() => undefined);
+      await lease.close().catch(() => undefined);
+    }
+  }, 120_000);
 });

@@ -11,12 +11,14 @@
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"],
+  "nx": {
+    "sync": {
+      "ignoredDependencies": ["private-postgres"]
+    }
+  },
   "references": [
     {
       "path": "../foundation-contracts/tsconfig.build.json"
-    },
-    {
-      "path": "../private-postgres/tsconfig.build.json"
     }
   ]
 }

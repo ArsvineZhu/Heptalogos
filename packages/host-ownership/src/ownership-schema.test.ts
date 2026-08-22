@@ -31,22 +31,60 @@ interface SchemaState {
     readonly definition: string;
   }[];
   readonly fenceRows: Array<Record<string, unknown>>;
-  databaseAcl: Array<{
-    readonly grantee: string;
-    readonly privilege_type: string;
-  }>;
-  publicSchemaAcl: Array<{
-    readonly grantee: string;
-    readonly privilege_type: string;
-  }>;
-  schemaAcl: Array<{
-    readonly grantee: string;
-    readonly privilege_type: string;
-  }>;
-  tableAcl: Array<{
-    readonly grantee: string;
-    readonly privilege_type: string;
-  }>;
+  databaseAcl: AclFixtureRow[];
+  publicSchemaAcl: AclFixtureRow[];
+  schemaAcl: AclFixtureRow[];
+  tableAcl: AclFixtureRow[];
+  readonly columnAcl?: AclFixtureRow[];
+}
+
+interface AclFixtureRow {
+  readonly column_name?: string;
+  readonly grantor?: string;
+  readonly grantee: string;
+  readonly privilege_type: string;
+  readonly is_grantable?: boolean;
+}
+
+/*
+ * The pre-hardening fixture format intentionally defaults fields added by the
+ * PostgreSQL ACL projection. Existing fixtures represent ordinary non-grantable
+ * edges; adversarial tests set is_grantable explicitly.
+ */
+function normalizeAclRows(rows: readonly AclFixtureRow[]): AclFixtureRow[] {
+  return rows.map((row) => ({
+    ...row,
+    grantor: row.grantor ?? HOST_OWNERSHIP_OWNER_ROLE,
+    is_grantable: row.is_grantable ?? false,
+  }));
+}
+
+/*
+ * Keep the fake aligned with the production query split so the column ACL
+ * regression can fail before the production validator starts reading attacl.
+ */
+function existingSchemaState(overrides: Partial<SchemaState> = {}): SchemaState {
+  return {
+    schemaExists: true,
+    tableExists: true,
+    fenceRows: [
+      {
+        singleton: true,
+        instance_id: "0197cfe0-0000-7000-8000-000000000001",
+        ownership_revision: "0",
+        host_ownership_token: null,
+        boot_id: null,
+      },
+    ],
+    databaseAcl: [{ grantee: HOST_LEASE_ROLE, privilege_type: "CONNECT" }],
+    publicSchemaAcl: [],
+    schemaAcl: [{ grantee: HOST_LEASE_ROLE, privilege_type: "USAGE" }],
+    tableAcl: [
+      { grantee: HOST_LEASE_ROLE, privilege_type: "SELECT" },
+      { grantee: HOST_LEASE_ROLE, privilege_type: "UPDATE" },
+    ],
+    ...overrides,
+  };
 }
 
 type SchemaFault =
@@ -103,7 +141,7 @@ class FakeSchemaClient implements BootstrapAdminClient {
     this.calls.push({ text, values });
     const normalized = text.replace(/\s+/gu, " ").trim();
     if (normalized.includes("FROM pg_catalog.pg_database")) {
-      return { rows: this.state.databaseAcl as Row[] };
+      return { rows: normalizeAclRows(this.state.databaseAcl) as Row[] };
     }
     if (
       normalized.includes("FROM pg_catalog.pg_namespace") &&
@@ -111,8 +149,8 @@ class FakeSchemaClient implements BootstrapAdminClient {
     ) {
       return {
         rows: (String(values[0]) === "public"
-          ? this.state.publicSchemaAcl
-          : this.state.schemaAcl) as Row[],
+          ? normalizeAclRows(this.state.publicSchemaAcl)
+          : normalizeAclRows(this.state.schemaAcl)) as Row[],
       };
     }
     if (normalized.includes("FROM pg_catalog.pg_namespace")) {
@@ -131,7 +169,7 @@ class FakeSchemaClient implements BootstrapAdminClient {
       normalized.includes("FROM pg_catalog.pg_class") &&
       normalized.includes("aclexplode")
     ) {
-      return { rows: this.state.tableAcl as Row[] };
+      return { rows: normalizeAclRows(this.state.tableAcl) as Row[] };
     }
     if (normalized.includes("FROM pg_catalog.pg_class")) {
       return {
@@ -147,6 +185,11 @@ class FakeSchemaClient implements BootstrapAdminClient {
       };
     }
     if (normalized.includes("FROM pg_catalog.pg_attribute")) {
+      if (normalized.includes("aclexplode")) {
+        return {
+          rows: normalizeAclRows(this.state.columnAcl ?? []) as Row[],
+        };
+      }
       return { rows: (this.state.columns ?? exactColumns) as Row[] };
     }
     if (normalized.includes("FROM pg_catalog.pg_constraint")) {
@@ -528,6 +571,88 @@ describe("HostOwnershipFence schema", () => {
         problem: { problemCode: "host-ownership.schema.incompatible" },
       });
     }
+  });
+
+  it.each([
+    {
+      scope: "database",
+      change: {
+        databaseAcl: [
+          {
+            grantee: HOST_LEASE_ROLE,
+            privilege_type: "CONNECT",
+            is_grantable: true,
+          },
+        ],
+      },
+    },
+    {
+      scope: "schema",
+      change: {
+        schemaAcl: [
+          {
+            grantee: HOST_LEASE_ROLE,
+            privilege_type: "USAGE",
+            is_grantable: true,
+          },
+        ],
+      },
+    },
+    {
+      scope: "table",
+      change: {
+        tableAcl: [
+          {
+            grantee: HOST_LEASE_ROLE,
+            privilege_type: "SELECT",
+            is_grantable: true,
+          },
+          { grantee: HOST_LEASE_ROLE, privilege_type: "UPDATE" },
+        ],
+      },
+    },
+  ])(
+    "fails closed when a $scope privilege has WITH GRANT OPTION",
+    async ({ change }) => {
+      const fixture = makeOptions(
+        "0197cfe0-0000-7000-8000-000000000001",
+        existingSchemaState(change),
+      );
+      await expect(ensureHostOwnershipSchema(fixture.options)).rejects.toMatchObject({
+        problem: { problemCode: "host-ownership.schema.incompatible" },
+      });
+    },
+  );
+
+  it.each([
+    {
+      description: "host lease role receives an unauthorized INSERT column grant",
+      columnAcl: [
+        {
+          column_name: "instance_id",
+          grantee: HOST_LEASE_ROLE,
+          privilege_type: "INSERT",
+        },
+      ],
+    },
+    {
+      description: "an intruder receives a column UPDATE grant",
+      columnAcl: [
+        {
+          column_name: "host_ownership_token",
+          grantee: "m4_intruder",
+          privilege_type: "UPDATE",
+        },
+      ],
+    },
+  ])("fails closed when $description exists", async ({ columnAcl }) => {
+    const fixture = makeOptions(
+      "0197cfe0-0000-7000-8000-000000000001",
+      existingSchemaState({ columnAcl }),
+    );
+    await expect(ensureHostOwnershipSchema(fixture.options)).rejects.toMatchObject({
+      problem: { problemCode: "host-ownership.schema.incompatible" },
+    });
   });
 
   it.each([1, 2] as const)(
