@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: execute task-by-task with TDD. Use a fresh review boundary between tasks that change Authority semantics. Do not widen this milestone into M5B abandoned-lock Recovery, H2A Persistence, or H2B Runtime Kernel work. Every behavior-bearing completion claim must be tied to actually executed evidence.
 
-**Status:** ACTIVE — the corrected M5A behavior candidate is recorded; independent review and final cross-platform CI remain pending.
+**Status:** ACTIVE — the PONR close-rejection correction candidate is recorded; re-review and final cross-platform CI remain pending.
 
 ## Corrective pass — independent review corrections (2026-08-22)
 
@@ -25,6 +25,30 @@ merge = NOT_AUTHORIZED
 This corrective pass preserves the fixed M5A Authority semantics, PONR, and
 two-phase `BOOTSTRAP_RELEASE_ARMED` finalization. It does not widen scope into
 M5B recovery, force-unlock, or a generic Recovery framework.
+
+## Corrective pass 2 — PONR old-Host close rejection observation (2026-08-22)
+
+```text
+Independent review @ 001ef97f070ecf3a6993c6e129a26de1925862e7 = REQUEST_CHANGES
+
+New blocker: the verified-revocation PONR path started old Host close without
+an immediate rejection observer, allowing a fast close Promise rejection to
+become an unhandled rejection while HOST_TOKEN_REVOKED journaling was delayed.
+
+Correction status = COMPLETE locally through regression and qualification gates
+corrected behavior candidate = f9f105c47a8559d386fabd761d026441a8dd2764
+PONR close rejection observer = PASS
+RECOVERY_REQUIRED-before-close-completion ordering = PASS
+re-review = NOT_RUN
+final CI = NOT_AUTHORIZED
+merge = NOT_AUTHORIZED
+```
+
+This second corrective pass keeps the old managed Host terminal at retirement,
+installs an operation-local rejection observer synchronously when retirement
+starts, persists `RECOVERY_REQUIRED` while bootstrap ownership remains held,
+and only then awaits the observed close result. It does not change PONR,
+Scenario F, or the M5A/M5B boundary.
 
 **Goal:** Starting from a live, M4-established normal Host that owns the dedicated PostgreSQL advisory lease and current `HostOwnershipToken`, establish the reverse `Host → bootstrap` Authority handoff, enter a bounded PostgreSQL maintenance window without an ownership gap, support controlled private-PostgreSQL stop or same-cluster restart, and reacquire a fresh Host lease/token before normal Host operation can resume.
 
@@ -2731,6 +2755,39 @@ Corrected candidate real PostgreSQL 18.6 evidence on Linux:
 private-postgres 20/20, host-ownership 8/8, bootstrap-runtime 17/17.
 
 M5A independent review: NOT_RUN
+M5A final cross-platform CI: NOT_RUN
+Windows real PostgreSQL: NOT_RUN
+macOS real PostgreSQL: NOT_RUN
+M5B: OPEN
+H1: OPEN
+```
+
+Corrective pass 2 execution record (2026-08-22):
+
+```text
+reviewed HEAD with REQUEST_CHANGES: 001ef97f070ecf3a6993c6e129a26de1925862e7
+new blocker: PONR old-Host close Promise rejection was not observed immediately
+corrected behavior candidate: f9f105c47a8559d386fabd761d026441a8dd2764
+
+PONR close rejection observer regression: PASS
+close-failure regression: immediate old Host close rejection + delayed HOST_TOKEN_REVOKED journal
+close failure follows normal maintenance error path: PASS
+old managed Host terminal after close rejection: PASS
+RECOVERY_REQUIRED persisted while bootstrap ownership is HELD: PASS
+no unhandledRejection escaped: PASS
+
+Task 4 corrected candidate unit/package gates: PASS
+Task 4 corrected candidate real PostgreSQL gates: PASS
+Task 4 corrected candidate pnpm verify: PASS
+
+Corrected candidate unit evidence: bootstrap-state 82 passed/2 skipped;
+private-postgres 58 passed; host-ownership 70 passed; bootstrap-runtime
+86 passed/1 skipped.
+Corrected candidate real PostgreSQL 18.6 evidence on Linux:
+private-postgres 20/20, host-ownership 8/8, bootstrap-runtime 17/17.
+
+M5A review of prior HEAD: REQUEST_CHANGES
+M5A re-review of corrected candidate: NOT_RUN
 M5A final cross-platform CI: NOT_RUN
 Windows real PostgreSQL: NOT_RUN
 macOS real PostgreSQL: NOT_RUN

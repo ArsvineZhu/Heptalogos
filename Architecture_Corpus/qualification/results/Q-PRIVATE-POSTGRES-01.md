@@ -361,11 +361,61 @@ competing bootstrap acquisition was rejected. The direct `pg` client and its
 types are test-only bootstrap-runtime development dependencies, with an explicit
 boundary exception limited to the live integration test.
 
+## Foundation M5A PONR close-rejection correction evidence (2026-08-22)
+
+This addendum records the second independent review result and the subsequent
+behavior correction. The review target remained exact at
+`001ef97f070ecf3a6993c6e129a26de1925862e7`; the review returned `REQUEST_CHANGES`
+for one new PONR failure-path blocker. The corrected candidate below is a new
+behavior SHA and supersedes `9fd68d4656921c344a0ef637d31e91f127d53eaf` for
+current M5A evidence.
+
+```yaml
+reviewed_head_sha: 001ef97f070ecf3a6993c6e129a26de1925862e7
+review_outcome: REQUEST_CHANGES
+new_blocker: "PONR old-Host close Promise rejection was not observed immediately"
+previous_corrected_behavior_candidate_sha: 9fd68d4656921c344a0ef637d31e91f127d53eaf
+corrected_behavior_candidate_sha: f9f105c47a8559d386fabd761d026441a8dd2764
+ponr_close_rejection_observer: PASS
+recovery_required_persisted_before_close_completion: PASS
+close_failure_normal_maintenance_error_path: PASS
+old_managed_host_terminal_on_close_failure: PASS
+no_unhandled_rejection: PASS
+close_failure_regression_delayed_host_token_journal: PASS
+m5a_linux_real_pg: PASS
+m5a_windows_real_pg: NOT_RUN
+m5a_macos_real_pg: NOT_RUN
+m5a_bootstrap_state_unit: "82 passed, 2 skipped"
+m5a_private_postgres_unit: "58 passed"
+m5a_host_ownership_unit: "70 passed"
+m5a_bootstrap_runtime_unit: "86 passed, 1 skipped"
+m5a_private_postgres_integration: "20/20 PASS"
+m5a_host_ownership_integration: "8/8 PASS"
+m5a_bootstrap_runtime_integration: "17/17 PASS"
+m5a_pnpm_verify: PASS
+m5a_prior_review: "REQUEST_CHANGES @ 001ef97f070ecf3a6993c6e129a26de1925862e7"
+m5a_re_review: NOT_RUN
+m5a_final_cross_platform_ci: NOT_RUN
+m5a_squash_merge: NOT_RUN
+m5b: OPEN
+h1: OPEN
+```
+
+The regression starts retirement with an immediately rejected `host.close()`
+Promise while deliberately delaying `HOST_TOKEN_REVOKED` journal advancement.
+The candidate observes the rejection synchronously, keeps the managed Host
+terminal, persists `RECOVERY_REQUIRED` while bootstrap ownership remains held,
+and returns the close failure through the normal maintenance error path without
+an `unhandledRejection` event. No PONR, Scenario F, PostgreSQL lifecycle, or
+M5B scope was changed.
+
 ## Qualification remaining
 
 This is implementation/product evidence, not a new dependency-selection
 authority. Corrected-candidate M4 Linux/macOS evidence, M5A Windows/macOS real
 PostgreSQL, source-less shipping and ReleaseManifest/SBOM closure, and
-installer/service-account ACL behavior remain `NOT_RUN`. The historical
-extracted Ubuntu package runtime does not qualify the corrected M4 Linux claim;
-the M5A Linux PASS above is limited to the recorded M5A candidate and scenarios.
+installer/service-account ACL behavior remain `NOT_RUN`. The latest M5A review
+returned `REQUEST_CHANGES`; re-review of the corrected candidate and final
+cross-platform CI remain `NOT_RUN`. The historical extracted Ubuntu package
+runtime does not qualify the corrected M4 Linux claim; the M5A Linux PASS above
+is limited to the recorded corrected candidate and scenarios.
