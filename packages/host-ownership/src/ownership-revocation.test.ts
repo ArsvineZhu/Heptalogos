@@ -253,9 +253,7 @@ describe("HostOwnershipToken bootstrap-admin revocation", () => {
       },
     };
 
-    await expect(
-      revokeHostOwnershipTokenForBootstrap(options),
-    ).rejects.toMatchObject({
+    await expect(revokeHostOwnershipTokenForBootstrap(options)).rejects.toMatchObject({
       problem: { problemCode: "host-ownership.revocation.known_not_committed" },
     });
     expect(fixtureValue.client.queries).toHaveLength(0);

@@ -594,10 +594,7 @@ function createPreparedMaintenance(
         provenance.host.assertActive();
         const snapshot = await inspectHostOwnershipCanonicalSnapshot({
           port: body.source.persistedPort,
-          passwordProvider: passwordProvider(
-            provenance.bootstrap,
-            provenance.handoff,
-          ),
+          passwordProvider: passwordProvider(provenance.bootstrap, provenance.handoff),
           clientFactory: provenance.handoff.clientFactory,
         });
         const currentRevision = assertCurrentFence(snapshot, provenance.host);
