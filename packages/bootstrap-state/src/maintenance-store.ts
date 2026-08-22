@@ -64,16 +64,24 @@ function stateText(value: MaintenanceJournalEnvelopeV1): string {
 export class MaintenanceJournalStore {
   private readonly operationTails = new Map<string, Promise<void>>();
 
-  constructor(private readonly instanceRoot: string) {}
+  constructor(
+    private readonly instanceRoot: string,
+    private readonly assertAuthority?: () => void,
+  ) {}
 
   async load(operation: MaintenanceOperationId): Promise<MaintenanceJournalLoadResult> {
+    this.assertAuthority?.();
     const id = operationId(operation);
-    return this.withOperationLock(id, () => this.loadUnlocked(id));
+    return this.withOperationLock(id, () => {
+      this.assertAuthority?.();
+      return this.loadUnlocked(id);
+    });
   }
 
   async create(body: MaintenanceJournalBodyV1): Promise<MaintenanceJournalEnvelopeV1> {
     const id = operationId(body.operationId);
     return this.withOperationLock(id, async () => {
+      this.assertAuthority?.();
       const existing = await this.loadUnlocked(id);
       if (existing.status !== "EMPTY") {
         throw new ProblemError(
@@ -100,6 +108,7 @@ export class MaintenanceJournalStore {
   async advance(body: MaintenanceJournalBodyV1): Promise<MaintenanceJournalEnvelopeV1> {
     const id = operationId(body.operationId);
     return this.withOperationLock(id, async () => {
+      this.assertAuthority?.();
       const current = await this.loadUnlocked(id);
       if (current.status === "EMPTY") {
         throw new ProblemError(
@@ -137,18 +146,22 @@ export class MaintenanceJournalStore {
     if (!parsed.ok) throw new ProblemError(parsed.problem);
 
     const directory = pathFor(this.instanceRoot, id);
+    this.assertAuthority?.();
     await mkdir(directory, { recursive: true });
     if (previous !== undefined) {
+      this.assertAuthority?.();
       await writeAtomicPublishedFile(
         join(directory, PREVIOUS_FILENAME),
         canonicalMaintenanceJournalText(previous),
       );
     }
+    this.assertAuthority?.();
     await writeAtomicPublishedFile(
       join(directory, CURRENT_FILENAME),
       canonicalMaintenanceJournalText(parsed.value),
     );
 
+    this.assertAuthority?.();
     const committed = await this.readCandidate(join(directory, CURRENT_FILENAME));
     if (
       committed.kind !== "VALID" ||
@@ -169,6 +182,7 @@ export class MaintenanceJournalStore {
   private async loadUnlocked(
     id: MaintenanceOperationId,
   ): Promise<MaintenanceJournalLoadResult> {
+    this.assertAuthority?.();
     const directory = pathFor(this.instanceRoot, id);
     const current = await this.readCandidate(join(directory, CURRENT_FILENAME));
     const previous = await this.readCandidate(join(directory, PREVIOUS_FILENAME));

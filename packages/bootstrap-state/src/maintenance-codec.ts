@@ -209,6 +209,13 @@ export function createMaintenanceOperationId(): MaintenanceOperationId {
   return createUuidV7Id("MaintenanceOperationId");
 }
 
+export function maintenanceOperationRef(operationId: MaintenanceOperationId): string {
+  if (parseUuidV7Id("MaintenanceOperationId", operationId) === undefined) {
+    throw new TypeError("MaintenanceOperationId must be a valid UUIDv7");
+  }
+  return `maintenance-journal/v1/${operationId}`;
+}
+
 export function sealMaintenanceJournal(
   state: MaintenanceJournalBodyV1,
 ): MaintenanceJournalEnvelopeV1 {

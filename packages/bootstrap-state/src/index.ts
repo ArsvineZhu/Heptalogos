@@ -33,6 +33,7 @@ export {
   MAINTENANCE_JOURNAL_DIGEST_DOMAIN,
   canonicalMaintenanceJournalText,
   createMaintenanceOperationId,
+  maintenanceOperationRef,
   parseMaintenanceJournal,
   sealMaintenanceJournal,
 } from "./maintenance-codec.js";
