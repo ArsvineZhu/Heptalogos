@@ -455,7 +455,17 @@
         "linux_real_pg": "NOT_RUN",
         "macos_real_pg": "NOT_RUN",
         "source_less_shipping_closure": "NOT_RUN",
-        "service_account_acl_closure": "NOT_RUN"
+        "service_account_acl_closure": "NOT_RUN",
+        "m5a_maintenance_journal": "PASS",
+        "m5a_bootstrap_admin_revocation": "PASS",
+        "m5a_managed_host_quiescence": "PASS",
+        "m5a_existing_cluster_maintenance_controller": "PASS",
+        "m5a_stop_exit_unit_path": "PASS",
+        "m5a_restart_reacquire_unit_path": "PASS",
+        "m5a_deterministic_fault_matrix": "PASS",
+        "m5a_real_postgres_reverse_handoff": "NOT_RUN",
+        "m5a_independent_review": "NOT_RUN",
+        "m5a_final_cross_platform_ci": "NOT_RUN"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
@@ -482,6 +492,9 @@
         "m4FinalCiLinux": "PASS",
         "m4FinalCiMacos": "PASS",
         "m4SquashMergeSha": "83e0b603d039036326eca9983af381387a9bfdb3",
+        "m5aCandidateSha": "3735e343f7684fa79fcd57f01305b7d1285e411b",
+        "m5aRealPostgresIntegration": "BLOCKED: HEPTALOGOS_TEST_PG_BIN absent",
+        "m5aRuntime": "Node 24.19.0 / pnpm 11.22.0",
         "historicalPreCorrectionLinux": {
           "platform": "Linux PRTS 7.0.0-30-generic x86_64",
           "candidateSha": "46e66c776f17b43ae06c0cef8229c4cd4666919c",
@@ -502,6 +515,7 @@
           "pnpm nx run private-postgres:test:integration",
           "pnpm nx run host-ownership:test:integration",
           "pnpm nx run bootstrap-runtime:test:integration",
+          "pnpm nx run bootstrap-runtime:test:integration (M5A target; BLOCKED without HEPTALOGOS_TEST_PG_BIN)",
           "pnpm check:boundaries",
           "Windows TEMP/TMP path audit with spaces and non-ASCII characters",
           "postgres -D <data> -C <setting> effective-profile probe",
@@ -525,7 +539,10 @@
         "source_less_shipping_closure": "The qualification runtime was an extracted Ubuntu package set, not a source-less Heptalogos shipping artifact with ReleaseManifest/SBOM closure.",
         "service_account_acl_closure": "M3 temporary-directory credential tests do not qualify installer/service-account ACL behavior on Windows, macOS, or Linux.",
         "m4_linux_host_ownership_real_pg": "No corrected-candidate Linux M4 PostgreSQL runtime was executed.",
-        "m4_macos_host_ownership_real_pg": "No corrected-candidate macOS M4 PostgreSQL runtime was executed."
+        "m4_macos_host_ownership_real_pg": "No corrected-candidate macOS M4 PostgreSQL runtime was executed.",
+        "m5a_real_postgres_reverse_handoff": "The M5A integration target stopped at its explicit qualification guard because HEPTALOGOS_TEST_PG_BIN was not set; no real PostgreSQL test ran.",
+        "m5a_independent_review": "No independent review was requested or completed for the current branch.",
+        "m5a_final_cross_platform_ci": "Final cross-platform CI is only authorized after independent review and is not run for this candidate."
       }
     }
   ],

@@ -988,6 +988,8 @@ solely for M5A.
 
 ## Task 0 — Reconcile post-M4 baseline and open M5A
 
+**Status: COMPLETE.** Baseline `master` is `c4b54b7dbe888c62b81d28203553c953d5a749c3`; the implementation branch is `dev/m5a-reverse-handoff-maintenance-window`. The canonical Node 24 baseline `pnpm verify` passed before implementation.
+
 **Files:**
 
 - Move after actual M4 merge: `docs/plans/active/foundation/m4-host-ownership-fence-forward-handoff.md` → `docs/plans/completed/foundation/m4-host-ownership-fence-forward-handoff.md`
@@ -1067,6 +1069,8 @@ git commit -m "docs: open Foundation M5A maintenance handoff"
 ---
 
 ## Task 1 — Add versioned crash-safe MaintenanceJournal
+
+**Status: COMPLETE.** MaintenanceJournal V1 codec, JCS digest, atomic current/previous store, recovery semantics, and focused tests are implemented in `bootstrap-state`.
 
 **Files:**
 
@@ -1200,6 +1204,8 @@ git commit -m "feat: add crash safe maintenance journal"
 
 ## Task 2 — Bind MaintenanceJournal to authentic bootstrap ownership
 
+**Status: COMPLETE.** Fresh maintenance ownership and authority-scoped BootstrapState operation-pointer commits are implemented and tested.
+
 **Files:**
 
 - Create: `packages/bootstrap-runtime/src/maintenance-state-access.ts`
@@ -1292,6 +1298,8 @@ git commit -m "feat: bind maintenance journal to bootstrap authority"
 ---
 
 ## Task 3 — Add managed Host capability and quiescence contract
+
+**Status: COMPLETE.** The managed Host capability, authenticity boundary, local maintenance tracker, and quiescence seam are implemented; raw `close()` is not exposed on the managed contract.
 
 **Files:**
 
@@ -1409,6 +1417,8 @@ git commit -m "feat: add managed host maintenance capability"
 ---
 
 ## Task 4 — Implement fixed HostOwnershipToken revocation via bootstrap admin
+
+**Status: COMPLETE.** Fixed bootstrap-admin revocation transaction, exact fence verification, BigInt-safe revision handling, and uncertainty classification are implemented and tested.
 
 **Files:**
 
@@ -1548,6 +1558,8 @@ git commit -m "feat: revoke host ownership under bootstrap authority"
 
 ## Task 5 — Add existing-cluster private-PG maintenance control
 
+**Status: COMPLETE.** The maintenance-only existing-cluster controller and shared private-postgres process mechanics are implemented; normal lifecycle and maintenance paths use the same bounded process/readiness primitives.
+
 **Files:**
 
 - Create: `packages/private-postgres/src/lifecycle-operations.ts`
@@ -1652,6 +1664,8 @@ git commit -m "feat: add private postgres maintenance control"
 ---
 
 ## Task 6 — Prepare and enter the reverse-handoff maintenance window
+
+**Status: COMPLETE.** Preparation, quiescence-before-revocation, point-of-no-return handling, safe abort proof, recovery-required handling, and old Host terminalization are implemented and tested.
 
 **Files:**
 
@@ -1780,6 +1794,8 @@ git commit -m "feat: enter bootstrap owned maintenance window"
 
 ## Task 7 — Implement stop-private-PostgreSQL-and-exit
 
+**Status: COMPLETE.** Stop proof, `POSTGRES_STOPPED`, `BOOTSTRAP_RELEASE_ARMED`, bootstrap release, non-authoritative completion checkpoint, and `{ kind: "STOPPED" }` are implemented and tested.
+
 **Files:**
 
 - Modify: `packages/bootstrap-runtime/src/host-maintenance.ts`
@@ -1842,6 +1858,8 @@ git commit -m "feat: stop private postgres through reverse handoff"
 ---
 
 ## Task 8 — Implement same-cluster restart and fresh Host reacquisition
+
+**Status: COMPLETE.** Explicit stop→start, same-cluster/profile validation, fresh Host lease/token publication, release ordering, candidate cleanup, and `{ kind: "RESTARTED" }` are implemented and tested.
 
 **Files:**
 
@@ -1953,6 +1971,8 @@ git commit -m "feat: reacquire host after postgres maintenance"
 
 ## Task 9 — Fence raw lease release behind quiesced managed shutdown
 
+**Status: COMPLETE.** Managed shutdown now proves quiescence before raw lease close and leaves PostgreSQL lifecycle untouched; failure ordering tests are present.
+
 **Files:**
 
 - Modify: `packages/bootstrap-runtime/src/managed-host.ts`
@@ -2003,6 +2023,8 @@ git commit -m "fix: require quiescence before host lease shutdown"
 ---
 
 ## Task 10 — Fault-injection matrix for Authority continuity
+
+**Status: COMPLETE for deterministic unit seams.** Revocation, maintenance-controller, safe-abort, stop uncertainty, publication failure, and release-order failure seams are covered by deterministic tests. Live PostgreSQL concurrency/failure evidence remains Task 11.
 
 **Files:**
 
@@ -2091,6 +2113,8 @@ git commit -m "test: harden m5a maintenance authority failures"
 ---
 
 ## Task 11 — Real PostgreSQL 18.6 M5A qualification
+
+**Status: BLOCKED / NOT_RUN.** The M5A integration suite and target are present, but this host has no `HEPTALOGOS_TEST_PG_BIN`; the integration command was run and all three suites stopped at their explicit qualification guard without executing tests.
 
 **Files:**
 
@@ -2247,6 +2271,8 @@ git commit -m "test: qualify m5a postgres reverse handoff"
 ---
 
 ## Task 12 — Boundary enforcement, evidence, roadmap truth, and review gate
+
+**Status: IN PROGRESS.** Boundary/dependency/repository/corpus checks pass on the implementation candidate; qualification and roadmap addenda are being recorded. Independent review, final cross-platform CI, and merge remain outstanding.
 
 **Files:**
 
@@ -2618,6 +2644,43 @@ M5A squash merge:
 
 M5B:
 H1:
+```
+
+Recorded execution for the current branch:
+
+```text
+M5A baseline master SHA: c4b54b7dbe888c62b81d28203553c953d5a749c3
+M5A branch: dev/m5a-reverse-handoff-maintenance-window
+implementation candidate: 3735e343f7684fa79fcd57f01305b7d1285e411b
+PostgreSQL qualification version: 18.6 (toolchain root not supplied on this host)
+Primary development OS: Linux x86_64
+
+Task 0 baseline pnpm verify: PASS (Node 24.19.0; Node 26 engine mismatch is not the canonical toolchain)
+Task 1 MaintenanceJournal: PASS
+Task 2 ownership-scoped journal pointer: PASS
+Task 3 managed Host/quiescence: PASS
+Task 4 token revocation: PASS
+Task 5 maintenance controller: PASS
+Task 6 reverse-handoff entry: PASS
+Task 7 stop path: PASS
+Task 8 restart/reacquire path: PASS (unit/mocked evidence)
+Task 9 keep-PG-running shutdown: PASS (unit evidence)
+Task 10 fault matrix: PASS (deterministic unit seams)
+Task 11 real PG integration: BLOCKED / NOT_RUN (`HEPTALOGOS_TEST_PG_BIN` absent)
+Task 12 permanent gates: PASS locally; independent review/final CI NOT_RUN
+
+Windows real PG: NOT_RUN
+Linux real PG: NOT_RUN
+macOS real PG: NOT_RUN
+source-less shipping closure: NOT_RUN
+service-account ACL closure: NOT_RUN
+
+M5A independent review: NOT_RUN
+M5A final cross-platform CI: NOT_RUN
+M5A squash merge: NOT_RUN
+
+M5B: OPEN
+H1: OPEN
 ```
 
 Expected planning-time values:

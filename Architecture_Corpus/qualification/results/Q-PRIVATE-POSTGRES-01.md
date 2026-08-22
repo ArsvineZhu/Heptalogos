@@ -256,6 +256,43 @@ linux_real_pg: PASS
 It was produced before the corrective behavior changes and must not be read as
 qualification of the corrected candidate SHA.
 
+## Foundation M5A reverse-handoff evidence (2026-08-22)
+
+This addendum records the M5A implementation candidate separately. It does not
+upgrade the historical M4 evidence, close H1, or claim process-death,
+abandoned-lock, source-less, service-account, or cross-platform qualification.
+
+```yaml
+candidate_sha: 3735e343f7684fa79fcd57f01305b7d1285e411b
+maintenance_journal_v1_codec_digest_atomic_store: PASS
+ownership_scoped_operation_pointer: PASS
+managed_host_quiescence_boundary: PASS
+bootstrap_admin_token_revocation: PASS
+revocation_exact_fence_verification: PASS
+maintenance_only_existing_cluster_controller: PASS
+shared_postgres_process_mechanics: PASS
+safe_pre_ponr_abort_proof: PASS
+post_ponr_recovery_required_policy: PASS
+stop_and_exit_unit_path: PASS
+same_cluster_restart_reacquire_unit_path: PASS
+fresh_host_token_and_revision_unit_path: PASS
+quiesced_keep_postgres_shutdown_unit_path: PASS
+deterministic_authority_fault_matrix: PASS
+m5a_real_postgres_reverse_handoff: NOT_RUN
+m5a_real_postgres_reason: "HEPTALOGOS_TEST_PG_BIN was not set; the explicit integration guard blocked all three bootstrap-runtime qualification suites before test execution"
+m5a_independent_review: NOT_RUN
+m5a_final_cross_platform_ci: NOT_RUN
+m5a_squash_merge: NOT_RUN
+m5b: OPEN
+h1: OPEN
+```
+
+The candidate's focused unit evidence was collected with Node 24.19.0: bootstrap-runtime
+81 passed and 1 skipped, private-postgres 58 passed, and host-ownership 70 passed.
+Typecheck, package builds, lint, repository/dependency/corpus/boundary checks, and
+format checks were run locally. The real PostgreSQL target was invoked and is
+`BLOCKED`/`NOT_RUN` until an explicit qualified PostgreSQL 18.6 bin root is supplied.
+
 ## Qualification remaining
 
 This is implementation/product evidence, not a new dependency-selection
