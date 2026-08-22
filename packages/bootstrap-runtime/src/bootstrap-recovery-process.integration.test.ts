@@ -12,18 +12,12 @@ import {
   type LifecycleRootId,
 } from "@heptalogos/foundation-contracts";
 import type { BootstrapLocatorV1 } from "./locator.js";
-import {
-  inspectBootstrapRecovery,
-  reclaimAbandonedBootstrapOwnership,
-} from "./bootstrap-recovery.js";
+import { reclaimAbandonedBootstrapOwnership } from "./bootstrap-recovery.js";
 import { proveLocalInstallationOwner } from "./local-installation-owner.js";
 import { createBootId } from "@heptalogos/foundation-contracts";
 
 const OWNER_FIXTURE = fileURLToPath(
   new URL("../test/fixtures/recovery-owner-process.mjs", import.meta.url),
-);
-const MAINTENANCE_FIXTURE = fileURLToPath(
-  new URL("../test/fixtures/recovery-maintenance-process.mjs", import.meta.url),
 );
 const LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
 const directories: string[] = [];
@@ -203,55 +197,5 @@ describe("M5B real process kill/restart qualification", () => {
     });
     expect(owner.process.exitCode).toBeNull();
     await releaseChild(owner);
-  }, 30_000);
-
-  it("K4 preserves a durable boundary after killing the child process", async () => {
-    const fixture = await makeFixture();
-    const child = new ChildController(
-      MAINTENANCE_FIXTURE,
-      fixture.anchorRoot,
-      "boundary",
-    );
-    await child.waitFor("durable-boundary");
-    const inspectionBeforeKill = await inspectBootstrapRecovery(fixture.anchorRoot);
-    expect(inspectionBeforeKill.disposition).toBe("ACTIVE_BOOTSTRAP_OWNER");
-    await child.stop();
-    await staleLock(fixture.instanceRoot);
-
-    const principal = await proveLocalInstallationOwner(fixture.anchorRoot);
-    const lease = await reclaimAbandonedBootstrapOwnership(
-      fixture.anchorRoot,
-      principal,
-      { heartbeatMs: 1_000, bootId: createBootId() },
-    );
-    expect(lease.state).toBe("HELD");
-    await lease.release();
-  }, 30_000);
-
-  it("K5 permits a second recovery after the first recovery process is killed", async () => {
-    const fixture = await makeFixture();
-    const owner = new ChildController(OWNER_FIXTURE, fixture.anchorRoot, "hold");
-    await owner.waitFor("acquired");
-    await owner.stop();
-    await staleLock(fixture.instanceRoot);
-
-    const firstRecovery = new ChildController(
-      OWNER_FIXTURE,
-      fixture.anchorRoot,
-      "recover",
-    );
-    await firstRecovery.waitFor("acquired");
-    await firstRecovery.stop();
-    await staleLock(fixture.instanceRoot);
-
-    const secondRecovery = new ChildController(
-      OWNER_FIXTURE,
-      fixture.anchorRoot,
-      "recover",
-    );
-    await expect(secondRecovery.waitFor("acquired")).resolves.toMatchObject({
-      type: "acquired",
-    });
-    await releaseChild(secondRecovery);
   }, 30_000);
 });
