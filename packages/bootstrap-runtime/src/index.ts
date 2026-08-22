@@ -11,6 +11,11 @@ export {
   type BootstrapOwnershipOptions,
   type BootstrapOwnershipState,
 } from "./bootstrap-ownership.js";
+export {
+  assertLocalInstallationOwnerFor,
+  proveLocalInstallationOwner,
+  type LocalInstallationOwnerRecoveryPrincipal,
+} from "./local-installation-owner.js";
 export type { OwnedBootstrapStateStore } from "./bootstrap-state-access.js";
 export {
   openMaintenanceStateAccess,
