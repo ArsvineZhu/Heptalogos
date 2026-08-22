@@ -225,7 +225,10 @@ describe("bootstrap ownership", () => {
       BootstrapOwnerWitnessStore.prototype.removeReleasing;
     const cleanupSpy = vi
       .spyOn(BootstrapOwnerWitnessStore.prototype, "removeReleasing")
-      .mockImplementation(async function (generationId) {
+      .mockImplementation(async function (
+        this: BootstrapOwnerWitnessStore,
+        generationId,
+      ) {
         if (generationId === firstGeneration && !firstCleanupBlocked) {
           firstCleanupBlocked = true;
           releaseCleanupStarted();

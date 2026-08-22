@@ -32,6 +32,7 @@ import {
   digestCanonicalJson,
   LIFECYCLE_ROOT_IDS,
   type LifecycleRootId,
+  type HostOwnershipToken,
 } from "@heptalogos/foundation-contracts";
 import {
   acquireHostLeaseConnection,
@@ -40,7 +41,6 @@ import {
   inspectHostOwnershipCanonicalSnapshot,
   publishHostOwnershipToken,
   type BootstrapAdminPasswordProvider,
-  type HostOwnershipToken,
   type HostOwnershipTimingOptions,
 } from "@heptalogos/host-ownership";
 import {

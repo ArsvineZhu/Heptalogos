@@ -52,6 +52,7 @@ const restrictedImports = new Map([
     [
       "packages/host-ownership/",
       "packages/bootstrap-runtime/src/host-maintenance.integration.test.ts",
+      "packages/bootstrap-runtime/src/bootstrap-recovery.integration.test.ts",
     ],
   ],
 ]);
@@ -237,7 +238,7 @@ for (const path of sourcePaths) {
       continue;
     }
     const isWorkspaceDependency = workspacePackageNames.has(dependency);
-    if (!declared.has(dependency)) {
+    if (!declared.has(dependency) && dependency !== projectPackage.name) {
       errors.push(
         `${relativePath}: undeclared ${isWorkspaceDependency ? "workspace" : "external"} import: ${specifier}`,
       );

@@ -601,7 +601,8 @@ describe("fixed M5B host-maintenance recovery", () => {
 
     expect(result.kind).toBe("RESTARTED");
     expect(mocks.publish).not.toHaveBeenCalled();
-    expect(result.host?.token).toBe(candidate);
+    if (result.kind !== "RESTARTED") throw new Error("recovery result was not a Host");
+    expect(result.host.token).toBe(candidate);
   });
 
   it("recovers an exact candidate committed before HOST_TOKEN_PUBLISHED journaling", async () => {
