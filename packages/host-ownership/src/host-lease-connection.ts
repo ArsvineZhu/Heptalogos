@@ -1,6 +1,7 @@
 import { Client } from "pg";
 import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
 import type { HostAdvisoryKey } from "./advisory-key.js";
+import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
 import { HOST_LEASE_ROLE, type HostOwnershipConnectionTarget } from "./contracts.js";
 import {
   createHostLeaseLifecycleTracker,
@@ -26,6 +27,8 @@ interface HostLeaseClientOptions {
   readonly password: string;
   readonly connectionTimeoutMs: number;
   readonly statementTimeoutMs: number;
+  readonly keepAlive: boolean;
+  readonly keepAliveInitialDelayMillis: number;
 }
 
 export interface HostLeaseClientFactory {
@@ -46,6 +49,7 @@ export interface HostLeaseConnectionOptions {
     readonly keepAliveInitialDelayMs: number;
   };
   readonly passwordProvider: HostLeasePasswordProvider;
+  readonly mutationAuthority: BootstrapMutationAuthority;
   readonly clientFactory?: unknown;
 }
 
@@ -138,6 +142,22 @@ function decodeUtf8(bytes: Uint8Array): string {
   }
 }
 
+const MAX_KEEP_ALIVE_INITIAL_DELAY_MS = 24 * 60 * 60 * 1000;
+
+function assertTiming(timing: HostLeaseConnectionOptions["timing"]): void {
+  if (
+    !Number.isInteger(timing.keepAliveInitialDelayMs) ||
+    timing.keepAliveInitialDelayMs < 0 ||
+    timing.keepAliveInitialDelayMs > MAX_KEEP_ALIVE_INITIAL_DELAY_MS
+  ) {
+    throw leaseProblem(
+      "host-ownership.lease.invalid_timing",
+      "Host lease timing is invalid",
+      "keepAliveInitialDelayMs must be an integer between 0 and 24 hours",
+    );
+  }
+}
+
 function defaultClientFactory(): HostLeaseClientFactory {
   return {
     create(options) {
@@ -149,6 +169,8 @@ function defaultClientFactory(): HostLeaseClientFactory {
         password: options.password,
         connectionTimeoutMillis: options.connectionTimeoutMs,
         statement_timeout: options.statementTimeoutMs,
+        keepAlive: options.keepAlive,
+        keepAliveInitialDelayMillis: options.keepAliveInitialDelayMillis,
       });
       return {
         async connect() {
@@ -181,6 +203,7 @@ function asBoolean(value: unknown): boolean | undefined {
 export async function acquireHostLeaseConnection(
   options: HostLeaseConnectionOptions,
 ): Promise<HostLeaseConnection> {
+  assertTiming(options.timing);
   const factory =
     (options.clientFactory as HostLeaseClientFactory | undefined) ??
     defaultClientFactory();
@@ -196,6 +219,8 @@ export async function acquireHostLeaseConnection(
       password: decodeUtf8(passwordUtf8),
       connectionTimeoutMs: options.timing.connectionTimeoutMs,
       statementTimeoutMs: options.timing.statementTimeoutMs,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: options.timing.keepAliveInitialDelayMs,
     });
     let closePromise: Promise<void> | undefined;
 
@@ -267,10 +292,12 @@ export async function acquireHostLeaseConnection(
     try {
       await client.connect();
       if (tracker.state !== "ACQUIRING") throw fencedProblem("connection event");
+      options.mutationAuthority.assertCurrent();
       const lockResult = await client.query<{ readonly acquired: unknown }>(
         "SELECT pg_try_advisory_lock($1::integer, $2::integer) AS acquired",
         [options.advisoryKey.key1, options.advisoryKey.key2],
       );
+      options.mutationAuthority.assertCurrent();
       if (tracker.state !== "ACQUIRING") throw fencedProblem("lease query completion");
       const acquired = asBoolean(lockResult.rows[0]?.acquired);
       if (acquired === undefined) throw invalidLockResultProblem();
@@ -279,7 +306,9 @@ export async function acquireHostLeaseConnection(
         await client.end();
         throw busyProblem();
       }
+      options.mutationAuthority.assertCurrent();
       tracker.send({ type: "LEASE_ACQUIRED" });
+      options.mutationAuthority.assertCurrent();
       return connection;
     } catch (error) {
       if (tracker.state === "ACQUIRING") fence("acquisition failure");

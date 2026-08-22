@@ -11,6 +11,7 @@ import {
 const instanceId = parseInstanceId("0197cfe0-0000-7000-8000-000000000001");
 if (instanceId === undefined) throw new Error("invalid test InstanceId");
 const testInstanceId = instanceId;
+const mutationAuthority = { assertCurrent(): void {} };
 
 class FakeClient implements HostLeaseClient {
   readonly queries: Array<{
@@ -60,23 +61,42 @@ class FakeClient implements HostLeaseClient {
   }
 }
 
-function makeFixture(): {
+function makeFixture(
+  mutationAuthority: HostLeaseConnectionOptions["mutationAuthority"] = {
+    assertCurrent(): void {},
+  },
+): {
   readonly client: FakeClient;
   readonly factory: HostLeaseClientFactory;
   readonly options: HostLeaseConnectionOptions;
+  readonly createdOptions: {
+    readonly keepAlive?: boolean;
+    readonly keepAliveInitialDelayMillis?: number;
+    readonly connectionTimeoutMs?: number;
+    readonly statementTimeoutMs?: number;
+  };
 } {
   const client = new FakeClient();
+  const createdOptions: {
+    readonly keepAlive?: boolean;
+    readonly keepAliveInitialDelayMillis?: number;
+    readonly connectionTimeoutMs?: number;
+    readonly statementTimeoutMs?: number;
+  } = {};
   const factory: HostLeaseClientFactory = {
-    create() {
+    create(options) {
+      Object.assign(createdOptions, options);
       return client;
     },
   };
   return {
     client,
     factory,
+    createdOptions,
     options: {
       target: { host: "127.0.0.1", port: 55436, database: "heptalogos" },
       advisoryKey: deriveHostAdvisoryKey(testInstanceId),
+      mutationAuthority,
       timing: {
         connectionTimeoutMs: 1_000,
         statementTimeoutMs: 1_000,
@@ -102,6 +122,12 @@ describe("HostLeaseConnection", () => {
 
     expect(connection.state).toBe("ACTIVE");
     expect(fixture.client.connected).toBe(true);
+    expect(fixture.createdOptions).toMatchObject({
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 1_000,
+      connectionTimeoutMs: 1_000,
+      statementTimeoutMs: 1_000,
+    });
     expect(fixture.client.queries[0]).toMatchObject({
       text: expect.stringContaining("pg_try_advisory_lock"),
       values: [418239335, -2100844247],
@@ -161,4 +187,38 @@ describe("HostLeaseConnection", () => {
     expect(connection.state).toBe("FENCED");
     expect(connection.signal.aborted).toBe(true);
   });
+
+  it.each([-1, 1.5, 24 * 60 * 60 * 1000 + 1, Number.NaN])(
+    "rejects invalid keepalive timing: %s",
+    async (keepAliveInitialDelayMs) => {
+      const fixture = makeFixture();
+      await expect(
+        acquireHostLeaseConnection({
+          ...fixture.options,
+          timing: { ...fixture.options.timing, keepAliveInitialDelayMs },
+        }),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "host-ownership.lease.invalid_timing" },
+      });
+      expect(fixture.client.connected).toBe(false);
+    },
+  );
+
+  it.each([1, 2] as const)(
+    "does not return a Host lease when bootstrap authority is lost at boundary %s",
+    async (assertionNumber) => {
+      let calls = 0;
+      const authority = {
+        assertCurrent(): void {
+          calls += 1;
+          if (calls === assertionNumber) throw new Error("lease authority lost");
+        },
+      };
+      const fixture = makeFixture(authority);
+      await expect(acquireHostLeaseConnection(fixture.options)).rejects.toMatchObject({
+        problem: { problemCode: "host-ownership.lease.connection_failed" },
+      });
+      expect(fixture.client.endCalls).toBe(1);
+    },
+  );
 });
