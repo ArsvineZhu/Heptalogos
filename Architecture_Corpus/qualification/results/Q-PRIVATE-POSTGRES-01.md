@@ -587,3 +587,24 @@ All previously recorded Linux K1-K5, PG-1/PG-2, PG matrix, private-postgres,
 Host ownership, bootstrap-runtime integration, and `pnpm verify` evidence was
 rerun for this candidate. Independent review is `NOT_RUN`; final CI and merge
 remain unauthorized, and H1 remains OPEN.
+
+## Foundation M5B post-merge reconciliation (2026-08-23)
+
+```yaml
+m5b_behavior_candidate_sha: ce8ecbd2f54b6da39542845b1c23fbb959672c0a
+m5b_qualification_candidate_sha: a41dad0226310889f61515ba16ce910c1dbb0e53
+m5b_exact_reviewed_head_sha: 9ca373084252e61c31c3df7c02ad355c31e75c49
+m5b_independent_review: PASS
+m5b_final_ci_run: 32592990382
+m5b_final_ci_ubuntu: PASS
+m5b_final_ci_macos: PASS
+m5b_final_ci_windows: PASS
+m5b_squash_merge_sha: f16071cbff3e30cd4f839716130270770e99075a
+m5b: MERGED
+h1: OPEN
+```
+
+The final manual workflow verified the exact reviewed SHA on all three
+platforms. This is repository verification, not real PostgreSQL qualification
+on Windows or macOS. Source-less recovery, service-account ACL, and hardware
+power-loss remain `NOT_RUN`.

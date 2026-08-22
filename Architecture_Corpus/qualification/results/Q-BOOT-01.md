@@ -305,3 +305,26 @@ next durable revision contains an explicit `hostBootId`.
 The new candidate awaits independent exact-HEAD review. Final CI, merge, the
 remaining cross-platform/source-less/ACL/power-loss qualifications, and H1
 closure remain open.
+
+## Foundation M5B post-merge reconciliation (2026-08-23)
+
+```yaml
+m5b_behavior_candidate_sha: ce8ecbd2f54b6da39542845b1c23fbb959672c0a
+m5b_qualification_candidate_sha: a41dad0226310889f61515ba16ce910c1dbb0e53
+m5b_exact_reviewed_head_sha: 9ca373084252e61c31c3df7c02ad355c31e75c49
+m5b_independent_review: PASS
+m5b_final_ci_run: 32592990382
+m5b_final_ci_ubuntu: PASS
+m5b_final_ci_macos: PASS
+m5b_final_ci_windows: PASS
+m5b_squash_merge_sha: f16071cbff3e30cd4f839716130270770e99075a
+m5b: MERGED
+h1: OPEN
+```
+
+The final manual workflow checked out and verified the exact reviewed source
+SHA on Ubuntu, macOS, and Windows. The earlier macOS EPIPE was an asynchronous
+child-IPC cleanup race in the test helper and was corrected before this
+successful run. Windows/macOS real PostgreSQL, source-less recovery,
+service-account ACL, and hardware power-loss remain `NOT_RUN`; repository CI
+does not upgrade those product/platform claims.

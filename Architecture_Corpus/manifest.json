@@ -149,11 +149,6 @@
       "sha256": "d2773cd21bb04389b968a7e180a25a5b0dcea5339b2a9cada9efe0398780456e"
     },
     {
-      "path": "README.md",
-      "size": 12344,
-      "sha256": "bc8d3540891dbce787d306d7a78b05a0dd9f65dae05db6720a51040ebb6dd703"
-    },
-    {
       "path": "qualification/DEPENDENCY-QUALIFICATION.md",
       "size": 8447,
       "sha256": "8a8ef016b85f6c309fee2842073cebc2e43f1727821d16e8e46afb4c030f62a3"
@@ -210,8 +205,8 @@
     },
     {
       "path": "qualification/results/Q-BOOT-01.md",
-      "size": 13115,
-      "sha256": "1d093e7fe6f788e630e692f2c7751fc121528a76ef93a09e1cc454223c8a47f9"
+      "size": 14043,
+      "sha256": "40765f3954c2aefe62ffbbab8e18d032107ebdcb87650893128e933379774a6a"
     },
     {
       "path": "qualification/results/Q-MSG-01.md",
@@ -225,8 +220,8 @@
     },
     {
       "path": "qualification/results/Q-PRIVATE-POSTGRES-01.md",
-      "size": 26760,
-      "sha256": "57649a97204ca7f8b81112b011ad05d46ffec8fa642e0a12d822c22b4d02de63"
+      "size": 27521,
+      "sha256": "60ebb32f5f2b959bc47533bc44bfebe480da3f293890ab03ebff796ee4b7b0d4"
     },
     {
       "path": "qualification/results/Q-RUNTIME-01.md",
@@ -239,14 +234,14 @@
       "sha256": "614e082e7325d4f10113e5325a49b4551cff183b0eaa1189a4d35121951a872c"
     },
     {
+      "path": "qualification/results/qualification-status.json",
+      "size": 40845,
+      "sha256": "a6c5c03e6b1463651729cef4e632fc103a4562855db0ebeed162cac31e3cc075"
+    },
+    {
       "path": "qualification/results/README.md",
       "size": 2119,
       "sha256": "dcb886c7e681ab8298776737e89e01109b8adccdc95f6ff931d47a8260663f8d"
-    },
-    {
-      "path": "qualification/results/qualification-status.json",
-      "size": 40741,
-      "sha256": "da110007dcc925cb8b0bf9e16c053c05cc0fcae7e17c0f733b4e13c70bb14d14"
     },
     {
       "path": "qualification/依赖资格矩阵.md",
@@ -259,9 +254,9 @@
       "sha256": "8747daf987bdf2e8db78af2bd10b24de424790f474e5ca851dc6357c3bf10adc"
     },
     {
-      "path": "references/Foundation依赖证据基线-2026-08-20.md",
-      "size": 11023,
-      "sha256": "a728b238225299b447667fada42b0e111eb0f3385988b0b306f85c12f2deacc4"
+      "path": "README.md",
+      "size": 12344,
+      "sha256": "bc8d3540891dbce787d306d7a78b05a0dd9f65dae05db6720a51040ebb6dd703"
     },
     {
       "path": "references/configuration-governance.json",
@@ -277,6 +272,11 @@
       "path": "references/dependency-routing.json",
       "size": 13877,
       "sha256": "5442daf8438f709d19d493e705b7a424308733912227da1df098a35f5fd354ed"
+    },
+    {
+      "path": "references/Foundation依赖证据基线-2026-08-20.md",
+      "size": 11023,
+      "sha256": "a728b238225299b447667fada42b0e111eb0f3385988b0b306f85c12f2deacc4"
     },
     {
       "path": "references/storage-governance.json",
