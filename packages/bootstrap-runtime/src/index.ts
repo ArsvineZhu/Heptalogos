@@ -20,7 +20,9 @@ export {
 export {
   acquireBootstrapRecoveryLease,
   reclaimAbandonedBootstrapOwnership,
+  recoverAbandonedBootstrapToHost,
   inspectBootstrapRecovery,
+  type AbandonedBootstrapContinuationOptions,
   type BootstrapRecoveryDisposition,
   type BootstrapRecoveryInspection,
 } from "./bootstrap-recovery.js";

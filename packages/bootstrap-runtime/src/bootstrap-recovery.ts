@@ -38,10 +38,18 @@ import {
 } from "./local-installation-owner.js";
 import { loadBootstrapLocator } from "./locator.js";
 import { resolveBootstrapPathProfile } from "./roots.js";
+import {
+  adoptRecoveredBootstrapOwnershipForPrelude,
+  type OwnedBootstrapPrelude,
+} from "./bootstrap-prelude.js";
+import type { HostOwnershipHandoffOptions } from "./host-ownership-handoff.js";
+import type { PreparePrivatePostgresOptions } from "./private-postgres-bootstrap.js";
+import type { BootstrapManagedHostContext } from "./managed-host.js";
 
 const BOOTSTRAP_LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
 const BOOTSTRAP_STATE_DIRECTORY = "bootstrap-state";
 const MAINTENANCE_OPERATION_REF_PREFIX = "maintenance-journal/v1/";
+const DEFAULT_BOOTSTRAP_HEARTBEAT_MS = 1_000;
 
 export type BootstrapRecoveryDisposition =
   | "NO_RECOVERY_REQUIRED"
@@ -69,6 +77,7 @@ export interface BootstrapRecoveryInspection {
   readonly bootstrapState: BootstrapStateLoadResult;
   readonly operationId?: MaintenanceOperationId;
   readonly maintenance?: MaintenanceJournalLoadResult;
+  readonly maintenanceIncomplete: boolean;
   readonly problem?: Problem;
 }
 
@@ -430,6 +439,7 @@ export async function inspectBootstrapRecovery(
       releasing,
       releasingProcessStatuses,
       bootstrapState,
+      maintenanceIncomplete: maintenance.incomplete,
       ...(maintenance.operationId === undefined
         ? {}
         : { operationId: maintenance.operationId }),
@@ -509,6 +519,60 @@ export async function acquireBootstrapRecoveryLease(
     return lease;
   } catch (error) {
     await lease.release().catch(() => undefined);
+    throw error;
+  }
+}
+
+export interface AbandonedBootstrapContinuationOptions {
+  readonly anchorRoot: string;
+  readonly principal: LocalInstallationOwnerRecoveryPrincipal;
+  readonly bootstrapHeartbeatMs?: number;
+  readonly preparePrivatePostgres: PreparePrivatePostgresOptions;
+  readonly handoff: HostOwnershipHandoffOptions;
+}
+
+export async function recoverAbandonedBootstrapToHost(
+  options: AbandonedBootstrapContinuationOptions,
+): Promise<BootstrapManagedHostContext> {
+  const inspection = await inspectBootstrapRecovery(options.anchorRoot);
+  if (
+    inspection.disposition !== "ABANDONED_OWNER_ELIGIBLE" ||
+    inspection.maintenanceIncomplete
+  ) {
+    throw recoveryConflict(
+      "bootstrap.recovery.bootstrap_continuation_not_eligible",
+      "Abandoned bootstrap continuation is not eligible",
+      `Bootstrap continuation requires ABANDONED_OWNER_ELIGIBLE without incomplete maintenance; observed ${inspection.disposition} (maintenanceIncomplete=${inspection.maintenanceIncomplete})`,
+    );
+  }
+
+  const recoveryBootId = createBootId();
+  const recoveryActivityId = createUuidV7Id("ActivityId");
+  const ownership = await acquireBootstrapRecoveryLease(
+    options.anchorRoot,
+    options.principal,
+    {
+      heartbeatMs: options.bootstrapHeartbeatMs ?? DEFAULT_BOOTSTRAP_HEARTBEAT_MS,
+      bootId: recoveryBootId,
+    },
+    ["ABANDONED_OWNER_ELIGIBLE"],
+  );
+
+  let owned: OwnedBootstrapPrelude | undefined;
+  try {
+    owned = await adoptRecoveredBootstrapOwnershipForPrelude(
+      options.anchorRoot,
+      ownership,
+      { bootId: recoveryBootId, bootstrapActivityId: recoveryActivityId },
+    );
+    const ready = await owned.preparePrivatePostgres(options.preparePrivatePostgres);
+    return await owned.handoffPrivatePostgresToHost(ready, options.handoff);
+  } catch (error) {
+    if (owned !== undefined) {
+      await owned.close().catch(() => undefined);
+    } else {
+      await ownership.release().catch(() => undefined);
+    }
     throw error;
   }
 }

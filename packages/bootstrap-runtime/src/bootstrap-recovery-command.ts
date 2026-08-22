@@ -6,6 +6,8 @@ import {
 } from "@heptalogos/foundation-contracts";
 import {
   inspectBootstrapRecovery,
+  recoverAbandonedBootstrapToHost,
+  type AbandonedBootstrapContinuationOptions,
   type BootstrapRecoveryInspection,
 } from "./bootstrap-recovery.js";
 import {
@@ -28,16 +30,28 @@ export type BootstrapRecoveryCommandResult =
     }
   | {
       readonly kind: "RECOVERED";
+      readonly recoveryKind: "BOOTSTRAP_CONTINUATION";
+      readonly host: import("./managed-host.js").BootstrapManagedHostContext;
+    }
+  | {
+      readonly kind: "RECOVERED";
+      readonly recoveryKind: "MAINTENANCE";
       readonly operationId: MaintenanceOperationId;
       readonly result: PrivatePostgresMaintenanceResult;
     };
 
-export interface BootstrapRecoveryCommandContext {
-  readonly recovery: Omit<
-    HostMaintenanceRecoveryOptions,
-    "anchorRoot" | "expectedOperationId"
-  >;
-}
+export type BootstrapRecoveryCommandContext =
+  | {
+      readonly kind: "BOOTSTRAP_CONTINUATION";
+      readonly continuation: Omit<AbandonedBootstrapContinuationOptions, "anchorRoot">;
+    }
+  | {
+      readonly kind: "MAINTENANCE";
+      readonly recovery: Omit<
+        HostMaintenanceRecoveryOptions,
+        "anchorRoot" | "expectedOperationId"
+      >;
+    };
 
 function commandProblem(
   problemCode: string,
@@ -117,23 +131,63 @@ export async function executeBootstrapRecoveryCommand(
       "INSPECT is read-only; RECOVER requires the fixed local recovery execution context",
     );
   }
-  if (inspection.operationId === undefined) {
+  if (inspection.maintenanceIncomplete) {
+    if (context.kind !== "MAINTENANCE") {
+      throw commandProblem(
+        "bootstrap.recovery.context_state_mismatch",
+        "Recovery context does not match incomplete maintenance",
+        "An incomplete MaintenanceJournal requires the fixed maintenance recovery context",
+        "conflict",
+      );
+    }
+    if (inspection.operationId === undefined) {
+      throw commandProblem(
+        "bootstrap.recovery.operation_required",
+        "A committed MaintenanceJournal operation is required",
+        "RECOVER cannot select an incomplete operation without a committed operation pointer",
+        "conflict",
+      );
+    }
+    const result = await recoverInterruptedHostMaintenance({
+      ...context.recovery,
+      anchorRoot,
+      expectedOperationId: normalized.expectedOperationId,
+    });
+    return {
+      kind: "RECOVERED",
+      recoveryKind: "MAINTENANCE",
+      operationId: inspection.operationId,
+      result,
+    };
+  }
+
+  if (context.kind !== "BOOTSTRAP_CONTINUATION") {
     throw commandProblem(
-      "bootstrap.recovery.operation_required",
-      "A committed MaintenanceJournal operation is required",
-      "RECOVER cannot select an operation when BootstrapState has no committed operation pointer",
+      "bootstrap.recovery.context_state_mismatch",
+      "Recovery context does not match abandoned bootstrap",
+      "An abandoned bootstrap without incomplete maintenance requires the fixed bootstrap continuation context",
       "conflict",
     );
   }
-
-  const result = await recoverInterruptedHostMaintenance({
-    ...context.recovery,
+  if (normalized.expectedOperationId !== undefined) {
+    throw commandProblem(
+      "bootstrap.recovery.operation_conflict",
+      "An operation identity was supplied for bootstrap continuation",
+      "RECOVER bootstrap continuation cannot be combined with an expected MaintenanceJournal operation",
+      "conflict",
+    );
+  }
+  if (inspection.disposition !== "ABANDONED_OWNER_ELIGIBLE") {
+    throw commandProblem(
+      "bootstrap.recovery.not_eligible",
+      "Bootstrap continuation is not eligible",
+      `RECOVER observed ${inspection.disposition} without incomplete maintenance`,
+      "conflict",
+    );
+  }
+  const host = await recoverAbandonedBootstrapToHost({
+    ...context.continuation,
     anchorRoot,
-    expectedOperationId: normalized.expectedOperationId,
   });
-  return {
-    kind: "RECOVERED",
-    operationId: inspection.operationId,
-    result,
-  };
+  return { kind: "RECOVERED", recoveryKind: "BOOTSTRAP_CONTINUATION", host };
 }

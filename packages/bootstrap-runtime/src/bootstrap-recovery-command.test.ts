@@ -5,13 +5,18 @@ import type { BootstrapRecoveryInspection } from "./bootstrap-recovery.js";
 const mocks = vi.hoisted(() => ({
   inspect: vi.fn(),
   recover: vi.fn(),
+  continue: vi.fn(),
 }));
 
 vi.mock("./bootstrap-recovery.js", async () => {
   const actual = await vi.importActual<typeof import("./bootstrap-recovery.js")>(
     "./bootstrap-recovery.js",
   );
-  return { ...actual, inspectBootstrapRecovery: mocks.inspect };
+  return {
+    ...actual,
+    inspectBootstrapRecovery: mocks.inspect,
+    recoverAbandonedBootstrapToHost: mocks.continue,
+  };
 });
 
 vi.mock("./host-maintenance-recovery.js", async () => {
@@ -28,6 +33,7 @@ const operationId = createUuidV7Id("MaintenanceOperationId");
 const inspection = {
   disposition: "INCOMPLETE_MAINTENANCE",
   operationId,
+  maintenanceIncomplete: true,
 } as BootstrapRecoveryInspection;
 
 beforeEach(() => {
@@ -52,6 +58,7 @@ describe("bounded bootstrap recovery commands", () => {
           expectedOperationId: createUuidV7Id("MaintenanceOperationId"),
         },
         {
+          kind: "MAINTENANCE",
           recovery: {} as never,
         },
       ),
@@ -63,7 +70,7 @@ describe("bounded bootstrap recovery commands", () => {
 
   it("dispatches only the fixed RECOVER operation with its expected identity", async () => {
     mocks.recover.mockResolvedValue({ kind: "STOPPED" });
-    const context = { recovery: { principal: {} } } as never;
+    const context = { kind: "MAINTENANCE", recovery: { principal: {} } } as never;
 
     await expect(
       executeBootstrapRecoveryCommand(
@@ -81,6 +88,75 @@ describe("bounded bootstrap recovery commands", () => {
       anchorRoot: "/installation",
       expectedOperationId: operationId,
     });
+  });
+
+  it("dispatches abandoned bootstrap continuation when no maintenance is incomplete", async () => {
+    const abandoned = {
+      ...inspection,
+      disposition: "ABANDONED_OWNER_ELIGIBLE",
+      operationId: undefined,
+      maintenanceIncomplete: false,
+    } as BootstrapRecoveryInspection;
+    const host = { token: "host" };
+    mocks.inspect.mockResolvedValue(abandoned);
+    mocks.continue.mockResolvedValue(host);
+
+    await expect(
+      executeBootstrapRecoveryCommand("/installation", { kind: "RECOVER" }, {
+        kind: "BOOTSTRAP_CONTINUATION",
+        continuation: { principal: {} },
+      } as never),
+    ).resolves.toEqual({
+      kind: "RECOVERED",
+      recoveryKind: "BOOTSTRAP_CONTINUATION",
+      host,
+    });
+    expect(mocks.continue).toHaveBeenCalledWith({
+      anchorRoot: "/installation",
+      principal: {},
+    });
+    expect(mocks.recover).not.toHaveBeenCalled();
+  });
+
+  it("blocks a maintenance context for abandoned bootstrap without mutation", async () => {
+    mocks.inspect.mockResolvedValue({
+      ...inspection,
+      disposition: "ABANDONED_OWNER_ELIGIBLE",
+      operationId: undefined,
+      maintenanceIncomplete: false,
+    });
+
+    await expect(
+      executeBootstrapRecoveryCommand("/installation", { kind: "RECOVER" }, {
+        kind: "MAINTENANCE",
+        recovery: {},
+      } as never),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.recovery.context_state_mismatch" },
+    });
+    expect(mocks.recover).not.toHaveBeenCalled();
+    expect(mocks.continue).not.toHaveBeenCalled();
+  });
+
+  it("blocks a bootstrap context for incomplete maintenance without mutation", async () => {
+    mocks.inspect.mockResolvedValue({
+      ...inspection,
+      disposition: "INCOMPLETE_MAINTENANCE",
+      operationId,
+      maintenanceIncomplete: true,
+    });
+
+    await expect(
+      executeBootstrapRecoveryCommand(
+        "/installation",
+        { kind: "RECOVER", expectedOperationId: operationId },
+        { kind: "BOOTSTRAP_CONTINUATION", continuation: { principal: {} } } as never,
+      ),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.recovery.context_state_mismatch" },
+    });
+    expect(mocks.recover).not.toHaveBeenCalled();
+    expect(mocks.continue).not.toHaveBeenCalled();
   });
 
   it("rejects unsupported force, shell, SQL, and destructive verbs", () => {

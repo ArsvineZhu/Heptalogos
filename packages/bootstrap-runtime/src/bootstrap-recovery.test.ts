@@ -3,14 +3,23 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  asContentDigest,
   createInstallationId,
   createInstanceId,
   createBootId,
+  createHostOwnershipToken,
+  createUuidV7Id,
+  digestCanonicalJson,
 } from "@heptalogos/foundation-contracts";
 import {
   BootstrapJournal,
   BootstrapOwnerWitnessStore,
+  BootstrapStateStore,
   createBootstrapLockGenerationId,
+  MaintenanceJournalStore,
+  maintenanceOperationRef,
+  type BootstrapStateBodyV1,
+  type MaintenanceJournalBodyV1,
 } from "@heptalogos/bootstrap-state";
 import { currentBootstrapProcessIdentity } from "./bootstrap-process-identity.js";
 import type { BootstrapLocatorV1 } from "./locator.js";
@@ -65,6 +74,59 @@ async function makeLock(instanceRoot: string, ageMs: number): Promise<string> {
   return lock;
 }
 
+async function writeMaintenancePointer(
+  fixture: Awaited<ReturnType<typeof makeFixture>>,
+  terminalOutcome?: "SUCCEEDED" | "FAILED",
+): Promise<void> {
+  const operationId = createUuidV7Id("MaintenanceOperationId");
+  const state: BootstrapStateBodyV1 = {
+    schemaVersion: 1,
+    revision: 1,
+    activeBootstrapRuntimeGeneration: asContentDigest(
+      "BootstrapRuntimeGenerationId",
+      digestCanonicalJson("test.bootstrap-runtime/v1", { generation: "bootstrap" }),
+    ),
+    activeProductGeneration: asContentDigest(
+      "ProductGenerationId",
+      digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
+    ),
+    lastCommittedOperationRef: maintenanceOperationRef(operationId),
+  };
+  const body: MaintenanceJournalBodyV1 = {
+    schemaVersion: 1,
+    revision: 1,
+    operationId,
+    activityId: createUuidV7Id("ActivityId"),
+    installationId: fixture.locator.installationId,
+    instanceId: fixture.locator.instanceId,
+    bootId: createBootId(),
+    operationType: "PRIVATE_POSTGRES_STOP",
+    source: {
+      hostOwnershipToken: createHostOwnershipToken(),
+      hostOwnershipRevision: "7",
+      postgresClusterSystemIdentifier: "123",
+      persistedPort: 55432,
+    },
+    target: { privatePostgres: "STOPPED" },
+    verifiedPrerequisites: {
+      bootstrapStateDigest: digestCanonicalJson("test.bootstrap-state/v1", {
+        state: true,
+      }),
+      privatePostgresInitializationProfileRevision: asContentDigest(
+        "PrivatePostgresInitializationProfileRevision",
+        digestCanonicalJson("test.private-postgres-profile/v1", { profile: true }),
+      ),
+    },
+    lastCompletedStage: "POSTGRES_STOPPED",
+    updatedAt: "2026-08-22T08:30:00.000Z",
+    ...(terminalOutcome === undefined ? {} : { terminalOutcome }),
+  };
+  await new BootstrapStateStore(join(fixture.instanceRoot, "bootstrap-state")).commit(
+    state,
+  );
+  await new MaintenanceJournalStore(fixture.instanceRoot).create(body);
+}
+
 async function expectDisposition(
   anchorRoot: string,
   disposition: BootstrapRecoveryDisposition,
@@ -90,7 +152,11 @@ describe("bounded bootstrap recovery inspection", () => {
   it("reports NO_RECOVERY_REQUIRED when no lock or incomplete operation exists", async () => {
     const fixture = await makeFixture();
 
-    await expectDisposition(fixture.anchorRoot, "NO_RECOVERY_REQUIRED");
+    const inspection = await expectDisposition(
+      fixture.anchorRoot,
+      "NO_RECOVERY_REQUIRED",
+    );
+    expect(inspection.maintenanceIncomplete).toBe(false);
   });
 
   it("reports ABANDONED_OWNER_ELIGIBLE only for stale lock plus dead evidence", async () => {
@@ -113,6 +179,63 @@ describe("bounded bootstrap recovery inspection", () => {
       "ABANDONED_OWNER_ELIGIBLE",
     );
     expect(inspection.attemptProcessStatuses).toContain("PROCESS_DEAD");
+    expect(inspection.maintenanceIncomplete).toBe(false);
+  });
+
+  it("reports abandoned ownership with an incomplete maintenance pointer", async () => {
+    const fixture = await makeFixture();
+    await writeMaintenancePointer(fixture);
+    await makeLock(fixture.instanceRoot, 31_000);
+    await new BootstrapOwnerWitnessStore(fixture.instanceRoot).createAttempt({
+      schemaVersion: 1,
+      phase: "ATTEMPT",
+      lockGenerationId: createBootstrapLockGenerationId(),
+      bootId: createBootId(),
+      pid: 999_999,
+      processStartedAtMs: 0,
+      heartbeatMs: 1_000,
+      createdAt: new Date().toISOString(),
+    });
+
+    const inspection = await expectDisposition(
+      fixture.anchorRoot,
+      "ABANDONED_OWNER_ELIGIBLE",
+    );
+    expect(inspection.maintenanceIncomplete).toBe(true);
+    expect(inspection.operationId).toBeDefined();
+  });
+
+  it("reports a completed historical operation as not maintenance-incomplete", async () => {
+    const fixture = await makeFixture();
+    await writeMaintenancePointer(fixture, "SUCCEEDED");
+    await makeLock(fixture.instanceRoot, 31_000);
+    await new BootstrapOwnerWitnessStore(fixture.instanceRoot).createAttempt({
+      schemaVersion: 1,
+      phase: "ATTEMPT",
+      lockGenerationId: createBootstrapLockGenerationId(),
+      bootId: createBootId(),
+      pid: 999_999,
+      processStartedAtMs: 0,
+      heartbeatMs: 1_000,
+      createdAt: new Date().toISOString(),
+    });
+
+    const inspection = await expectDisposition(
+      fixture.anchorRoot,
+      "ABANDONED_OWNER_ELIGIBLE",
+    );
+    expect(inspection.maintenanceIncomplete).toBe(false);
+  });
+
+  it("reports INCOMPLETE_MAINTENANCE without a bootstrap lock", async () => {
+    const fixture = await makeFixture();
+    await writeMaintenancePointer(fixture);
+
+    const inspection = await expectDisposition(
+      fixture.anchorRoot,
+      "INCOMPLETE_MAINTENANCE",
+    );
+    expect(inspection.maintenanceIncomplete).toBe(true);
   });
 
   it("uses dead RELEASING evidence to explain a stale lock", async () => {
