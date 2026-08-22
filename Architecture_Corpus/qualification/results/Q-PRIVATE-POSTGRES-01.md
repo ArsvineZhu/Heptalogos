@@ -444,3 +444,40 @@ The final CI projection verified the exact reviewed source SHA on all three
 operating systems; it is not real PostgreSQL qualification. M5B remains
 responsible for bounded abandoned-owner recovery, real process kill/restart,
 and the remaining H1 semantic closure evidence.
+
+## Foundation M5B recovery qualification (2026-08-22)
+
+M5B behavior candidate `c4c1be43f412c868a84a776461b479d3b677ea18` passed the
+Linux real PostgreSQL and real-process qualification gates without changing
+the M5A boundary:
+
+```yaml
+m5b_read_only_recovery_inspection: PASS
+m5b_recovery_head_previous_validation: PASS
+m5b_restart_stop_recovery_unit: PASS
+m5b_live_advisory_owner_block: PASS
+m5b_unknown_fence_token_block: PASS
+m5b_corrupt_journal_block: PASS
+m5b_real_postgres_recovery_linux: PASS
+m5b_real_process_k1_k5: PASS
+m5b_private_postgres_integration: PASS (20/20)
+m5b_host_ownership_integration: PASS (8/8)
+m5b_bootstrap_runtime_integration: PASS (20/20)
+m5b_windows_real_postgres: NOT_RUN
+m5b_macos_real_postgres: NOT_RUN
+m5b_source_less_recovery: NOT_RUN
+m5b_service_account_acl: NOT_RUN
+m5b_hardware_power_loss: NOT_RUN
+m5b_independent_review: NOT_RUN
+m5b_final_cross_platform_ci: NOT_RUN
+m5b_squash_merge: NOT_RUN
+m5b: ACTIVE
+h1: OPEN
+```
+
+The Linux PostgreSQL provenance was the Ubuntu 26.04 security archive
+`postgresql-18`/`postgresql-client-18` 18.6 package set, extracted to a
+temporary qualification root with `libpq5` extracted for runtime linkage.
+All five required binaries reported PostgreSQL 18.6. The process gate used
+real Node child termination, stale-lock adjudication, and two recovery
+contenders; it was not a simulated crash.

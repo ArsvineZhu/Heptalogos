@@ -61,3 +61,33 @@ definitely missing PID, a start-time mismatch beyond 5 seconds is
 are `UNKNOWN`.
 
 若未来真实 implementation 暴露 reproducible hard blocker，才允许按 `../DEPENDENCY-QUALIFICATION.md` 的 reopening rule 重开 RoleDecision。
+
+## Foundation M5B bounded recovery qualification (2026-08-22)
+
+```yaml
+m5b_behavior_candidate_sha: c4c1be43f412c868a84a776461b479d3b677ea18
+m5b_read_only_recovery_inspection: PASS
+m5b_same_lock_reclaim: PASS
+m5b_local_installation_owner_binding: PASS
+m5b_live_owner_no_steal: PASS
+m5b_unknown_process_blocks: PASS
+m5b_pid_reuse_fail_closed: PASS
+m5b_double_reclaimer_exclusion: PASS
+m5b_real_process_k1_k5: PASS
+m5b_linux_real_postgres_recovery: PASS
+m5b_windows_real_postgres_recovery: NOT_RUN
+m5b_macos_real_postgres_recovery: NOT_RUN
+m5b_source_less_recovery: NOT_RUN
+m5b_service_account_acl: NOT_RUN
+m5b_hardware_power_loss: NOT_RUN
+m5b_independent_review: NOT_RUN
+m5b_final_cross_platform_ci: NOT_RUN
+m5b_squash_merge: NOT_RUN
+m5b: ACTIVE
+h1: OPEN
+```
+
+Evidence was produced with Node 24.19.0, pnpm 11.22.0, the
+`@bybrave/proper-lockfile2` route, `pidusage@4.0.1`, and an extracted Ubuntu
+26.04 PostgreSQL 18.6 toolchain. The recovery process qualification used real
+child termination and IPC; it did not use a mock process death.
