@@ -153,3 +153,37 @@ H1: OPEN
 The repository retains the behavior SHA separately from both rejected review
 HEADs. The next behavior-bearing commits must close RC-6 through RC-9 before a
 new exact review target is created; no final CI or merge is authorized.
+
+## PR8 second corrective qualification candidate (2026-08-23)
+
+```yaml
+behaviorCandidateSha: 55c58ed83d5e7b7ce964b659e6250b6f6580634d
+node: 24.19.0
+pnpm: 11.22.0
+postgres: 18.6
+legacyM5aJournalV1Compatibility: PASS
+sameLeasePrehostBootstrapContinuation: PASS
+bootstrapRuntimeUnit: PASS (155 passed, 1 skipped)
+bootstrapStateUnit: PASS (113 passed, 2 skipped)
+recoveryProcessK1K3: PASS (3/3)
+recoveryProcessK4ActualMaintenance: PASS (1/1)
+recoveryProcessK5RecoveryRestartability: PASS (1/1)
+pg1PrePostgresBootstrapRecovery: PASS (1/1)
+pg2ReadyBeforeHandoffRecovery: PASS (1/1)
+linuxPostgresFullMatrixPg1Pg9: PASS (11/11 including 5B/6A/6B split cases)
+privatePostgresIntegration: PASS (20/20)
+hostOwnershipIntegration: PASS (8/8)
+bootstrapRuntimeIntegration: PASS (29/29)
+repositoryVerify: PASS
+independentReview: NOT_RUN
+finalCrossPlatformCi: NOT_RUN
+squashMerge: NOT_RUN
+M5B: ACTIVE
+H1: OPEN
+```
+
+The current candidate's review status is `NOT_RUN`; the prior
+`REQUEST_CHANGES` outcomes at `5e8f1aa475730aef982622d05cd488767ac0c08a` and
+`9e450f836466d32fb1f3d9027618fac236798eb9` remain historical. Windows/macOS
+real PostgreSQL, source-less recovery, service-account ACL, hardware power-loss,
+final CI, squash merge, and H1 closure remain open.

@@ -195,3 +195,62 @@ recovery, so the full matrix PASS and those two claims are withdrawn pending
 the second corrective runs. Windows/macOS real PostgreSQL, source-less
 recovery, service-account ACL, hardware power-loss, final CI, and merge remain
 `NOT_RUN` or unauthorized.
+
+## Foundation M5B second corrective qualification (2026-08-23)
+
+The second corrective behavior candidate is
+`55c58ed83d5e7b7ce964b659e6250b6f6580634d`. Production behavior was completed
+before this candidate was frozen; the final qualification tests and the
+dedicated process fixture are included in the candidate. The current candidate
+has not yet received independent review.
+
+```yaml
+behavior_candidate_sha: 55c58ed83d5e7b7ce964b659e6250b6f6580634d
+runtime: "Node 24.19.0 / pnpm 11.22.0"
+postgres_version: PostgreSQL 18.6
+m5b_legacy_m5a_journal_v1_compatibility: PASS
+m5b_same_lease_prehost_bootstrap_continuation: PASS
+m5b_read_only_recovery_inspection: PASS
+m5b_same_lock_reclaim: PASS
+m5b_local_installation_owner_binding: PASS
+m5b_live_owner_no_steal: PASS
+m5b_unknown_process_blocks: PASS
+m5b_pid_reuse_fail_closed: PASS
+m5b_double_reclaimer_exclusion: PASS
+m5b_real_process_k1_k3: PASS (3/3)
+m5b_real_process_k4_actual_maintenance_recovery: PASS (1/1)
+m5b_real_process_k5_recovery_restartability: PASS (1/1)
+m5b_pg1_pre_postgres_bootstrap_recovery: PASS (1/1)
+m5b_pg2_ready_before_handoff_recovery: PASS (1/1)
+m5b_linux_real_postgres_full_matrix: PASS (11/11; PG-1..PG-9 plus PG-5B/PG-6A/PG-6B)
+m5b_private_postgres_integration: PASS (20/20)
+m5b_host_ownership_integration: PASS (8/8)
+m5b_bootstrap_runtime_integration: PASS (29/29)
+m5b_pnpm_verify: PASS
+m5b_windows_real_postgres: NOT_RUN
+m5b_macos_real_postgres: NOT_RUN
+m5b_source_less_recovery: NOT_RUN
+m5b_service_account_acl: NOT_RUN
+m5b_hardware_power_loss: NOT_RUN
+m5b_independent_review: NOT_RUN
+m5b_final_cross_platform_ci: NOT_RUN
+m5b_squash_merge: NOT_RUN
+m5b: ACTIVE
+h1: OPEN
+```
+
+The exact real-process and real-PostgreSQL runs used the extracted Ubuntu 26.04
+PostgreSQL 18.6 toolchain; `postgres`, `initdb`, `pg_ctl`, `pg_controldata`, and
+`pg_isready` each reported 18.6. K4/K5 used child durable-stage IPC followed by
+an independent on-disk journal read before SIGKILL. PG-1 used a dedicated child
+that died before private PostgreSQL preparation; PG-2 used a dedicated child
+that died after PostgreSQL READY and before Host handoff. PG-2 preserved the
+cluster identifier, postmaster PID, and `pg_postmaster_start_time`; both
+scenarios executed through bounded `RECOVER` bootstrap-continuation routing.
+
+The rejected review outcomes remain historical metadata:
+`REQUEST_CHANGES @ 5e8f1aa475730aef982622d05cd488767ac0c08a` and the earlier
+`REQUEST_CHANGES @ 9e450f836466d32fb1f3d9027618fac236798eb9`. They do not change
+the current candidate's machine-readable independent-review status of
+`NOT_RUN`. Windows/macOS real PostgreSQL, source-less recovery, service-account
+ACL, hardware power-loss, final CI, merge, and H1 closure remain outstanding.

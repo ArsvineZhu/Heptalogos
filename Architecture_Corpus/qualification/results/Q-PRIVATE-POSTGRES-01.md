@@ -549,3 +549,21 @@ The M5A reverse-handoff and underlying private-PostgreSQL/Host ownership
 evidence that is independent of the rejected K4/K5/PG-1/PG-2 claims remains
 historical PASS evidence. The second corrective candidate must establish new
 claim-matched runs before those withdrawn M5B rows can return to `PASS`.
+
+## Foundation M5B second corrective qualification (2026-08-23)
+
+The second corrective behavior candidate
+`55c58ed83d5e7b7ce964b659e6250b6f6580634d` now has claim-matched Linux
+PostgreSQL 18.6 evidence. K1-K3 passed 3/3, deterministic K4/K5 passed 1/1
+each, the dedicated pre-Host PG-1/PG-2 scenarios passed 1/1 each, and the
+complete PG-1..PG-9 plus PG-5B/PG-6A/PG-6B matrix passed 11/11. The full
+bootstrap-runtime integration target passed 29/29; private-postgres and
+host-ownership real integration passed 20/20 and 8/8. `pnpm verify` passed.
+
+PG-1 used a child killed before private PostgreSQL preparation and recovered
+through bounded bootstrap-continuation `RECOVER`; PG-2 used a child killed
+after PostgreSQL READY and before Host handoff and preserved cluster identity,
+postmaster PID, and `pg_postmaster_start_time`. The current candidate's
+independent review is `NOT_RUN`; Windows/macOS real PostgreSQL, source-less
+recovery, service-account ACL, hardware power-loss, final CI, and merge remain
+open, and H1 remains OPEN.
