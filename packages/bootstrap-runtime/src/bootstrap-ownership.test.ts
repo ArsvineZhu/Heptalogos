@@ -4,11 +4,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
+import { BootstrapOwnerWitnessStore } from "@heptalogos/bootstrap-state";
+import { createBootId } from "@heptalogos/foundation-contracts";
 import { acquireBootstrapOwnership } from "./bootstrap-ownership.js";
 import type { ResolvedLifecycleRoot } from "./roots.js";
 
 const directories: string[] = [];
 const LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
+
+function ownershipOptions(heartbeatMs = 1_000) {
+  return { heartbeatMs, bootId: createBootId() };
+}
 
 async function makeInstanceRoot(): Promise<ResolvedLifecycleRoot> {
   const root = await mkdtemp(join(tmpdir(), "heptalogos-bootstrap-owner-"));
@@ -38,12 +44,12 @@ describe("bootstrap ownership", () => {
     const instanceRoot = await makeInstanceRoot();
 
     await expect(
-      acquireBootstrapOwnership(instanceRoot, { heartbeatMs: 999 }),
+      acquireBootstrapOwnership(instanceRoot, ownershipOptions(999)),
     ).rejects.toMatchObject({
       problem: { problemCode: "bootstrap.ownership.invalid_heartbeat" },
     });
 
-    const lease = await acquireBootstrapOwnership(instanceRoot, { heartbeatMs: 1000 });
+    const lease = await acquireBootstrapOwnership(instanceRoot, ownershipOptions());
     expect(lease.state).toBe("HELD");
     expect(Object.isFrozen(lease)).toBe(true);
     expect(lease.signal.aborted).toBe(false);
@@ -66,7 +72,7 @@ describe("bootstrap ownership", () => {
 
   it("fences ownership assertions synchronously when release begins", async () => {
     const instanceRoot = await makeInstanceRoot();
-    const lease = await acquireBootstrapOwnership(instanceRoot, { heartbeatMs: 1000 });
+    const lease = await acquireBootstrapOwnership(instanceRoot, ownershipOptions());
 
     const releasePromise = lease.release();
 
@@ -78,10 +84,10 @@ describe("bootstrap ownership", () => {
 
   it("blocks a second in-process owner without a retry policy", async () => {
     const instanceRoot = await makeInstanceRoot();
-    const first = await acquireBootstrapOwnership(instanceRoot, { heartbeatMs: 1000 });
+    const first = await acquireBootstrapOwnership(instanceRoot, ownershipOptions());
 
     await expect(
-      acquireBootstrapOwnership(instanceRoot, { heartbeatMs: 1000 }),
+      acquireBootstrapOwnership(instanceRoot, ownershipOptions()),
     ).rejects.toMatchObject({
       problem: {
         problemCode: "bootstrap.ownership.lock_present",
@@ -97,7 +103,7 @@ describe("bootstrap ownership", () => {
 
   it("fails safe when the held lock is compromised", async () => {
     const instanceRoot = await makeInstanceRoot();
-    const lease = await acquireBootstrapOwnership(instanceRoot, { heartbeatMs: 1000 });
+    const lease = await acquireBootstrapOwnership(instanceRoot, ownershipOptions());
 
     await rm(join(instanceRoot.canonicalPath, LOCK_DIRECTORY), {
       recursive: true,
@@ -130,13 +136,54 @@ describe("bootstrap ownership", () => {
     await utimes(lockDirectory, new Date(0), new Date(0));
 
     await expect(
-      acquireBootstrapOwnership(instanceRoot, { heartbeatMs: 1000 }),
+      acquireBootstrapOwnership(instanceRoot, ownershipOptions()),
     ).rejects.toMatchObject({
       problem: { problemCode: "bootstrap.ownership.lock_present" },
     });
     await expect(lstat(lockDirectory)).resolves.toMatchObject({
       isDirectory: expect.any(Function),
     });
+  });
+
+  it("returns a lease only after publishing its matching owner witness", async () => {
+    const instanceRoot = await makeInstanceRoot();
+    const bootId = createBootId();
+    const store = new BootstrapOwnerWitnessStore(instanceRoot.canonicalPath);
+    const lease = await acquireBootstrapOwnership(instanceRoot, {
+      heartbeatMs: 1_000,
+      bootId,
+    });
+
+    await expect(store.readOwner()).resolves.toMatchObject({
+      witness: {
+        phase: "OWNER",
+        bootId,
+        pid: process.pid,
+        heartbeatMs: 1_000,
+      },
+    });
+    await expect(store.listAttempts()).resolves.toHaveLength(0);
+
+    await lease.release();
+    await expect(store.readOwner()).resolves.toBeUndefined();
+  });
+
+  it("removes a failed contender's attempt witness without touching the owner", async () => {
+    const instanceRoot = await makeInstanceRoot();
+    const first = await acquireBootstrapOwnership(instanceRoot, ownershipOptions());
+    const store = new BootstrapOwnerWitnessStore(instanceRoot.canonicalPath);
+
+    await expect(
+      acquireBootstrapOwnership(instanceRoot, ownershipOptions()),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.ownership.lock_present" },
+    });
+    await expect(store.listAttempts()).resolves.toHaveLength(0);
+    await expect(store.readOwner()).resolves.toMatchObject({
+      witness: { phase: "OWNER" },
+    });
+
+    await first.release();
   });
 
   it("proves cross-process exclusive ownership with the selected lock settings", async () => {

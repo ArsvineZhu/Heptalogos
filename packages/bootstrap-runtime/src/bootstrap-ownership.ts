@@ -1,7 +1,17 @@
 import { createRequire } from "node:module";
 import { join } from "node:path";
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  ProblemError,
+  type BootId,
+  type Problem,
+} from "@heptalogos/foundation-contracts";
+import {
+  BootstrapOwnerWitnessStore,
+  createBootstrapLockGenerationId,
+  type BootstrapOwnerWitnessBodyV1,
+} from "@heptalogos/bootstrap-state";
 import type { ResolvedLifecycleRoot } from "./roots.js";
+import { currentBootstrapProcessIdentity } from "./bootstrap-process-identity.js";
 
 type ProperLockOptions = {
   readonly stale: number;
@@ -34,6 +44,7 @@ export interface BootstrapOwnershipLease {
 
 export interface BootstrapOwnershipOptions {
   readonly heartbeatMs: number;
+  readonly bootId: BootId;
 }
 
 interface IssuedOwnershipRecord {
@@ -151,6 +162,22 @@ export async function acquireBootstrapOwnership(
 ): Promise<BootstrapOwnershipLease> {
   assertHeartbeat(options.heartbeatMs);
 
+  const witnessStore = new BootstrapOwnerWitnessStore(instanceRoot.canonicalPath);
+  const lockGenerationId = createBootstrapLockGenerationId();
+  const processIdentity = currentBootstrapProcessIdentity();
+  const createdAt = new Date().toISOString();
+  const attemptWitness: BootstrapOwnerWitnessBodyV1 = {
+    schemaVersion: 1,
+    phase: "ATTEMPT",
+    lockGenerationId,
+    bootId: options.bootId,
+    pid: processIdentity.pid,
+    processStartedAtMs: processIdentity.startedAtMs,
+    heartbeatMs: options.heartbeatMs,
+    createdAt,
+  };
+  await witnessStore.createAttempt(attemptWitness);
+
   let state: BootstrapOwnershipState = "HELD";
   let safeCompromisedCause: Problem | undefined;
   const abortController = new AbortController();
@@ -171,6 +198,19 @@ export async function acquireBootstrapOwnership(
       },
     });
   } catch (error) {
+    try {
+      await witnessStore.removeAttempt(lockGenerationId);
+    } catch {
+      throw new ProblemError(
+        ownershipProblem(
+          "bootstrap.ownership.witness_cleanup_failed",
+          "integrity",
+          "manual",
+          "Bootstrap ownership witness cleanup failed",
+          "The failed bootstrap ownership attempt could not remove its own ATTEMPT witness",
+        ),
+      );
+    }
     if (errorCode(error) === "ELOCKED") {
       throw new ProblemError(lockPresentProblem());
     }
@@ -183,6 +223,19 @@ export async function acquireBootstrapOwnership(
         "The bootstrap ownership lock could not be acquired",
       ),
     );
+  }
+
+  try {
+    const ownerWitness: BootstrapOwnerWitnessBodyV1 = {
+      ...attemptWitness,
+      phase: "OWNER",
+    };
+    await witnessStore.publishOwner(ownerWitness);
+    await witnessStore.removeAttempt(lockGenerationId);
+  } catch (error) {
+    await releaseLock().catch(() => undefined);
+    await witnessStore.removeOwnerIfGeneration(lockGenerationId).catch(() => false);
+    throw error;
   }
 
   let releasePromise: Promise<void> | undefined;
@@ -215,6 +268,13 @@ export async function acquireBootstrapOwnership(
         }
         try {
           await releaseLock();
+          const ownerRemoved =
+            await witnessStore.removeOwnerIfGeneration(lockGenerationId);
+          if (!ownerRemoved) {
+            safeCompromisedCause ??= compromisedProblem();
+            state = "COMPROMISED";
+            throw new ProblemError(safeCompromisedCause);
+          }
           if (safeCompromisedCause) {
             state = "COMPROMISED";
             throw new ProblemError(safeCompromisedCause);

@@ -163,7 +163,7 @@ describe("owned bootstrap state access", () => {
         configuredPath: first.instanceRoot,
         canonicalPath: first.instanceRoot,
       },
-      { heartbeatMs: 1000 },
+      { heartbeatMs: 1000, bootId: createBootId() },
     );
     let thrown: unknown;
 
@@ -202,7 +202,7 @@ describe("owned bootstrap state access", () => {
         configuredPath: instanceRoot,
         canonicalPath: instanceRoot,
       },
-      { heartbeatMs: 1000 },
+      { heartbeatMs: 1000, bootId: createBootId() },
     );
     const access = openBootstrapStateAccess(profile, lease);
 
@@ -236,7 +236,7 @@ describe("owned bootstrap state access", () => {
         configuredPath: instanceRoot,
         canonicalPath: instanceRoot,
       },
-      { heartbeatMs: 1000 },
+      { heartbeatMs: 1000, bootId: createBootId() },
     );
     const access = openBootstrapStateAccess(profile, lease);
     await access.state.commit(makeStateV2(1));

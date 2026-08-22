@@ -47,7 +47,9 @@ export interface PreparedBootstrapPrelude {
   readonly paths: BootstrapPathProfile;
   readonly journal: BootstrapJournal;
   readonly preliminaryState: BootstrapStateLoadResult;
-  acquireOwnership(options: BootstrapOwnershipOptions): Promise<OwnedBootstrapPrelude>;
+  acquireOwnership(
+    options: Omit<BootstrapOwnershipOptions, "bootId">,
+  ): Promise<OwnedBootstrapPrelude>;
 }
 
 export interface OwnedBootstrapPrelude {
@@ -227,7 +229,7 @@ export async function prepareBootstrapPrelude(
 
   let acquisition: Promise<OwnedBootstrapPrelude> | undefined;
   const acquireOwnershipForPrelude = (
-    options: BootstrapOwnershipOptions,
+    options: Omit<BootstrapOwnershipOptions, "bootId">,
   ): Promise<OwnedBootstrapPrelude> => {
     if (acquisition) return acquisition;
     const current = acquireOwnedPrelude(options);
@@ -239,11 +241,14 @@ export async function prepareBootstrapPrelude(
   };
 
   async function acquireOwnedPrelude(
-    options: BootstrapOwnershipOptions,
+    options: Omit<BootstrapOwnershipOptions, "bootId">,
   ): Promise<OwnedBootstrapPrelude> {
     let ownership: BootstrapOwnershipLease;
     try {
-      ownership = await acquireBootstrapOwnership(paths.resolve("INSTANCE"), options);
+      ownership = await acquireBootstrapOwnership(paths.resolve("INSTANCE"), {
+        ...options,
+        bootId,
+      });
     } catch (error) {
       await record(
         journal,
