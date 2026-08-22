@@ -240,25 +240,31 @@ function passwordProvider(
   };
 }
 
-async function waitForJournalStage(
+async function waitForChildDurableStage(
+  child: RealProcessController,
   instanceRoot: string,
   operationId: MaintenanceJournalBodyV1["operationId"],
   stage: MaintenanceJournalBodyV1["lastCompletedStage"],
 ): Promise<MaintenanceJournalBodyV1> {
-  const journal = new MaintenanceJournalStore(instanceRoot);
-  const deadline = Date.now() + 120_000;
-  while (Date.now() < deadline) {
-    const loaded = await journal.load(operationId);
-    if (
-      loaded.status === "CURRENT" &&
-      loaded.value.state.lastCompletedStage === stage
-    ) {
-      return loaded.value.state;
-    }
-    if (loaded.status === "CORRUPT") throw new Error(loaded.problem.detail);
-    await new Promise((resolve) => setTimeout(resolve, 20));
+  const signal = await child.waitFor("durable-stage", "error");
+  if (signal.type === "error") {
+    throw new Error(signal.message ?? signal.problemCode ?? "process child failed");
   }
-  throw new Error(`Timed out waiting for MaintenanceJournal ${stage}`);
+  expect(signal.operationId).toBe(operationId);
+  expect(signal.stage).toBe(stage);
+
+  const journal = new MaintenanceJournalStore(instanceRoot);
+  const loaded = await journal.load(operationId);
+  if (loaded.status !== "CURRENT") {
+    throw new Error(
+      loaded.status === "CORRUPT"
+        ? loaded.problem.detail
+        : `MaintenanceJournal was ${loaded.status} at child barrier`,
+    );
+  }
+  expect(loaded.value.state.operationId).toBe(operationId);
+  expect(loaded.value.state.lastCompletedStage).toBe(stage);
+  return loaded.value.state;
 }
 
 async function markBootstrapLockStale(instanceRoot: string): Promise<void> {
@@ -389,7 +395,8 @@ describe("M5B real maintenance/recovery process qualification", () => {
       );
     }
     if (prepared.operationId === undefined) throw new Error("missing operation id");
-    const stopped = await waitForJournalStage(
+    const stopped = await waitForChildDurableStage(
+      child,
       fixture.roots.INSTANCE,
       prepared.operationId as MaintenanceJournalBodyV1["operationId"],
       "POSTGRES_STOPPED",
@@ -447,7 +454,8 @@ describe("M5B real maintenance/recovery process qualification", () => {
       );
     }
     if (prepared.operationId === undefined) throw new Error("missing operation id");
-    await waitForJournalStage(
+    await waitForChildDurableStage(
+      maintenance,
       fixture.roots.INSTANCE,
       prepared.operationId as MaintenanceJournalBodyV1["operationId"],
       "POSTGRES_STOPPED",
@@ -469,7 +477,8 @@ describe("M5B real maintenance/recovery process qualification", () => {
           "recovery child failed",
       );
     }
-    const armed = await waitForJournalStage(
+    const armed = await waitForChildDurableStage(
+      firstRecovery,
       fixture.roots.INSTANCE,
       prepared.operationId as MaintenanceJournalBodyV1["operationId"],
       "HOST_TOKEN_PUBLICATION_ARMED",
@@ -487,13 +496,15 @@ describe("M5B real maintenance/recovery process qualification", () => {
     await expect(secondRecovery.waitFor("completed")).resolves.toMatchObject({
       kind: "RESTARTED",
     });
-    const final = await waitForJournalStage(
-      fixture.roots.INSTANCE,
+    const final = await new MaintenanceJournalStore(fixture.roots.INSTANCE).load(
       prepared.operationId as MaintenanceJournalBodyV1["operationId"],
-      "BOOTSTRAP_RELEASE_ARMED",
     );
-    expect(final.target.hostOwnershipToken).toBe(armed.target.hostOwnershipToken);
-    expect(final.target.hostBootId).toBe(armed.target.hostBootId);
+    if (final.status !== "CURRENT") throw new Error("final MaintenanceJournal missing");
+    expect(final.value.state.lastCompletedStage).toBe("BOOTSTRAP_RELEASE_ARMED");
+    expect(final.value.state.target.hostOwnershipToken).toBe(
+      armed.target.hostOwnershipToken,
+    );
+    expect(final.value.state.target.hostBootId).toBe(armed.target.hostBootId);
     secondRecovery.send({ type: "release" });
     await secondRecovery.waitFor("released");
   }, 300_000);

@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { createRequire } from "node:module";
+import { parseRecoveryMaintenanceProcessArgs } from "./recovery-maintenance-process-args.mjs";
 
 const require = createRequire(import.meta.url);
 const {
@@ -19,13 +20,8 @@ const {
   resolvePrivatePostgresToolchain,
 } = require("@heptalogos/private-postgres");
 
-const [, , anchorRoot, role, pgBin, portText, operationIdText, targetStage] =
-  process.argv;
-if (!anchorRoot || !role) {
-  throw new Error(
-    "usage: recovery-maintenance-process.mjs <anchor> <role> [pg-bin] [port] [operation-id] [target-stage]",
-  );
-}
+const { anchorRoot, role, pgBin, portText, operationIdText, targetStage } =
+  parseRecoveryMaintenanceProcessArgs(process.argv.slice(2));
 
 const LIFECYCLE = {
   startupTimeoutMs: 60_000,
