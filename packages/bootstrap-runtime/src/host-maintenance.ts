@@ -100,6 +100,15 @@ function maintenanceProblem(
   });
 }
 
+function safeAbortResumeFailureProblem(error: unknown): ProblemError {
+  return maintenanceProblem(
+    "bootstrap.maintenance.abort_resume_failed",
+    "The old Host could not be safely resumed",
+    `The pre-point-of-no-return abort could not complete its quiescence resume proof${problemCodeOf(error) === undefined ? "" : ` (${problemCodeOf(error)})`}`,
+    "integrity",
+  );
+}
+
 function problemCodeOf(error: unknown): string | undefined {
   if (typeof error !== "object" || error === null || !("problem" in error)) {
     return undefined;
@@ -614,6 +623,7 @@ function createPreparedMaintenance(
       await lease.release();
     } catch (abortError) {
       await markRecoveryRequired(abortError);
+      throw safeAbortResumeFailureProblem(abortError);
     }
     void error;
   };

@@ -22,6 +22,7 @@ import {
   HOST_OWNERSHIP_OWNER_ROLE,
   provisionHostOwnershipDatabase,
   publishHostOwnershipToken,
+  revokeHostOwnershipTokenForBootstrap,
   type BootstrapAdminPasswordProvider,
   type HostOwnershipTimingOptions,
 } from "./index.js";
@@ -417,6 +418,49 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
       await transaction.end().catch(() => undefined);
       await leaseB?.close().catch(() => undefined);
       await leaseA.close().catch(() => undefined);
+    }
+  }, 120_000);
+
+  it("blocks bootstrap-admin revocation behind an entered FOR SHARE transaction", async () => {
+    const fixture = await createCluster();
+    const lease = await prepareHostLease(fixture);
+    const transaction = await bootstrapClient(fixture, "heptalogos");
+    try {
+      const published = await publish(fixture, lease);
+      await transaction.query("BEGIN");
+      const shared = await transaction.query<{
+        readonly host_ownership_token: string;
+      }>(
+        "SELECT host_ownership_token FROM heptalogos.host_ownership_fence WHERE singleton = true FOR SHARE",
+      );
+      expect(shared.rows[0]?.host_ownership_token).toBe(published.token);
+
+      const revocation = revokeHostOwnershipTokenForBootstrap({
+        port: fixture.port,
+        instanceId: fixture.instanceId,
+        bootId: published.bootId,
+        token: published.token,
+        lockTimeoutMs: TIMING.fenceLockTimeoutMs,
+        statementTimeoutMs: TIMING.statementTimeoutMs,
+        passwordProvider: fixture.provider,
+        mutationAuthority,
+      });
+      let completedBeforeCommit = false;
+      void revocation.then(() => {
+        completedBeforeCommit = true;
+      });
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(completedBeforeCommit).toBe(false);
+
+      await transaction.query("COMMIT");
+      await expect(revocation).resolves.toMatchObject({
+        previousRevision: "1",
+        revokedRevision: "2",
+      });
+    } finally {
+      await transaction.query("ROLLBACK").catch(() => undefined);
+      await transaction.end().catch(() => undefined);
+      await lease.close().catch(() => undefined);
     }
   }, 120_000);
 

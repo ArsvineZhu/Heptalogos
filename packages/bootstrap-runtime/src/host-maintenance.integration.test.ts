@@ -23,7 +23,9 @@ import {
   type BootstrapAdminPasswordProvider,
 } from "@heptalogos/host-ownership";
 import {
+  resolvePrivatePostgresPlacement,
   resolvePrivatePostgresToolchain,
+  validateExistingCluster,
   type PrivatePostgresToolchain,
 } from "@heptalogos/private-postgres";
 import type {
@@ -32,9 +34,10 @@ import type {
 } from "./bootstrap-key-provider.js";
 import { prepareBootstrapPrelude } from "./bootstrap-prelude.js";
 import type { ReadyPrivatePostgres } from "./private-postgres-bootstrap.js";
-import type {
-  BootstrapManagedHostContext,
-  HostMaintenanceQuiescence,
+import {
+  rawHostForManagedContext,
+  type BootstrapManagedHostContext,
+  type HostMaintenanceQuiescence,
 } from "./managed-host.js";
 
 const qualifiedPgBin: string =
@@ -260,6 +263,46 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
       expect(activeHostB.token).not.toBe(activeHostA.token);
       await expect(assertReady(toolchain, ready.port)).resolves.toBeUndefined();
 
+      const persisted = await new BootstrapStateStore(
+        join(fixture.roots.INSTANCE, "bootstrap-state"),
+      ).load();
+      expect(persisted.status).toBe("CURRENT");
+      if (
+        persisted.status !== "CURRENT" ||
+        persisted.value.state.schemaVersion !== 2 ||
+        persisted.value.state.privatePostgres.schemaVersion !== 2
+      ) {
+        throw new Error("private PostgreSQL V2 state was not persisted");
+      }
+      expect(persisted.value.state.lastCommittedOperationRef).toBe(
+        `maintenance-journal/v1/${preparedMaintenance.operationId}`,
+      );
+      const persistedPostgres = persisted.value.state.privatePostgres;
+      expect(persistedPostgres.clusterSystemIdentifier).toBe(
+        ready.clusterSystemIdentifier,
+      );
+      expect(persistedPostgres.persistedPort).toBe(ready.port);
+      const validated = await validateExistingCluster({
+        toolchain,
+        placement: resolvePrivatePostgresPlacement(fixture.roots.DATA),
+        expectedIdentity: {
+          installationId: persistedPostgres.installationId,
+          instanceId: persistedPostgres.instanceId,
+          postgresMajor: persistedPostgres.postgresMajor,
+          bootstrapRoleName: persistedPostgres.bootstrapRoleName,
+          placement: persistedPostgres.dataPlacement,
+          persistedPort: persistedPostgres.persistedPort,
+          clusterSystemIdentifier: persistedPostgres.clusterSystemIdentifier,
+          initializationProfileRevision:
+            persistedPostgres.initializationProfileRevision,
+        },
+        timeoutMs: LIFECYCLE.startupTimeoutMs,
+      });
+      expect(validated.identity.clusterSystemIdentifier).toBe(
+        ready.clusterSystemIdentifier,
+      );
+      expect(validated.port).toBe(ready.port);
+
       const after = await hostOwnershipSnapshot(activeHostB, keyProvider, ready.port);
       expect(after.fence).toHaveLength(1);
       expect(after.fence[0]).toMatchObject({
@@ -284,12 +327,218 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
       });
       expect(owned.ownershipState).toBe("RELEASED");
     } finally {
-      await hostB
-        ?.shutdownKeepingPrivatePostgres(maintenanceQuiescence())
-        .catch(() => undefined);
-      await hostA
-        ?.shutdownKeepingPrivatePostgres(maintenanceQuiescence())
-        .catch(() => undefined);
+      if (hostB?.state === "ACTIVE") {
+        await hostB
+          .shutdownKeepingPrivatePostgres(maintenanceQuiescence())
+          .catch(() => undefined);
+      }
+      if (hostA?.state === "ACTIVE") {
+        await hostA
+          .shutdownKeepingPrivatePostgres(maintenanceQuiescence())
+          .catch(() => undefined);
+      }
+      await ready?.stop().catch(() => undefined);
+      await stopPostgres(toolchain, join(fixture.roots.DATA, "private-postgres"));
+      if (owned.ownershipState !== "RELEASED") {
+        await owned.close().catch(() => undefined);
+      }
+    }
+  }, 180_000);
+
+  it("holds the maintenance bootstrap lock against a competing bootstrap", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const keyProvider = makeKeyProvider();
+    const toolchain = await getToolchain();
+    const port = 55522;
+    let ready: ReadyPrivatePostgres | undefined;
+    let host: BootstrapManagedHostContext | undefined;
+    let maintenance:
+      | Awaited<
+          ReturnType<BootstrapManagedHostContext["preparePrivatePostgresMaintenance"]>
+        >
+      | undefined;
+    let postOwned: Awaited<ReturnType<typeof prepared.acquireOwnership>> | undefined;
+    let postReady: ReadyPrivatePostgres | undefined;
+
+    try {
+      ready = await owned.preparePrivatePostgres({
+        toolchainBinDirectory: qualifiedPgBin,
+        initialPort: port,
+        lifecycle: LIFECYCLE,
+        keyProvider,
+      });
+      host = await owned.handoffPrivatePostgresToHost(ready, {
+        keyProvider,
+        timing: HOST_TIMING,
+      });
+      maintenance = await host.preparePrivatePostgresMaintenance({
+        kind: "RESTART_PRIVATE_POSTGRES",
+      });
+
+      const competingPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+      await expect(
+        competingPrepared.acquireOwnership({ heartbeatMs: 1_000 }),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "bootstrap.ownership.lock_present" },
+      });
+      expect(host.state).toBe("ACTIVE");
+      await expect(assertReady(toolchain, ready.port)).resolves.toBeUndefined();
+
+      await maintenance.abortBeforeEntry();
+      expect(maintenance.state).toBe("ABORTED");
+      expect(host.state).toBe("ACTIVE");
+
+      const postPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+      postOwned = await postPrepared.acquireOwnership({ heartbeatMs: 1_000 });
+      postReady = await postOwned.preparePrivatePostgres({
+        toolchainBinDirectory: qualifiedPgBin,
+        lifecycle: LIFECYCLE,
+        keyProvider,
+      });
+      expect(postReady.startupDisposition).toBe("ALREADY_RUNNING");
+      await expect(
+        postOwned.handoffPrivatePostgresToHost(postReady, {
+          keyProvider,
+          timing: HOST_TIMING,
+        }),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "bootstrap.host.existing_owner_detected" },
+      });
+      expect(host.state).toBe("ACTIVE");
+    } finally {
+      if (host?.state === "ACTIVE") {
+        await host
+          .shutdownKeepingPrivatePostgres(maintenanceQuiescence())
+          .catch(() => undefined);
+      }
+      await postReady?.stop().catch(() => undefined);
+      if (postOwned !== undefined && postOwned.ownershipState !== "RELEASED") {
+        await postOwned.close().catch(() => undefined);
+      }
+      await ready?.stop().catch(() => undefined);
+      await stopPostgres(toolchain, join(fixture.roots.DATA, "private-postgres"));
+      if (owned.ownershipState !== "RELEASED") {
+        await owned.close().catch(() => undefined);
+      }
+    }
+  }, 180_000);
+
+  it("keeps PostgreSQL running during managed shutdown and publishes a later fresh token", async () => {
+    const fixture = await makeFixture();
+    const firstPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const firstOwned = await firstPrepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const keyProvider = makeKeyProvider();
+    const toolchain = await getToolchain();
+    const port = 55523;
+    let firstReady: ReadyPrivatePostgres | undefined;
+    let hostA: BootstrapManagedHostContext | undefined;
+    let secondOwned:
+      Awaited<ReturnType<typeof firstPrepared.acquireOwnership>> | undefined;
+    let secondReady: ReadyPrivatePostgres | undefined;
+    let hostB: BootstrapManagedHostContext | undefined;
+
+    try {
+      firstReady = await firstOwned.preparePrivatePostgres({
+        toolchainBinDirectory: qualifiedPgBin,
+        initialPort: port,
+        lifecycle: LIFECYCLE,
+        keyProvider,
+      });
+      hostA = await firstOwned.handoffPrivatePostgresToHost(firstReady, {
+        keyProvider,
+        timing: HOST_TIMING,
+      });
+      const before = await hostOwnershipSnapshot(hostA, keyProvider, port);
+      await hostA.shutdownKeepingPrivatePostgres(maintenanceQuiescence());
+      expect(hostA.state).toBe("CLOSED");
+      await expect(assertReady(toolchain, port)).resolves.toBeUndefined();
+
+      const historical = await hostOwnershipSnapshot(hostA, keyProvider, port);
+      expect(historical.fence[0]?.host_ownership_token).toBe(
+        before.fence[0]?.host_ownership_token,
+      );
+
+      const secondPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+      secondOwned = await secondPrepared.acquireOwnership({ heartbeatMs: 1_000 });
+      secondReady = await secondOwned.preparePrivatePostgres({
+        toolchainBinDirectory: qualifiedPgBin,
+        lifecycle: LIFECYCLE,
+        keyProvider,
+      });
+      expect(secondReady.startupDisposition).toBe("ALREADY_RUNNING");
+      hostB = await secondOwned.handoffPrivatePostgresToHost(secondReady, {
+        keyProvider,
+        timing: HOST_TIMING,
+      });
+      expect(hostB.state).toBe("ACTIVE");
+      expect(hostB.token).not.toBe(before.fence[0]?.host_ownership_token);
+      const after = await hostOwnershipSnapshot(hostB, keyProvider, port);
+      expect(after.fence[0]?.ownership_revision).toBe(
+        String(BigInt(before.fence[0]?.ownership_revision ?? "0") + 1n),
+      );
+    } finally {
+      if (hostB?.state === "ACTIVE") {
+        await hostB
+          .shutdownKeepingPrivatePostgres(maintenanceQuiescence())
+          .catch(() => undefined);
+      }
+      if (hostA?.state === "ACTIVE") {
+        await hostA
+          .shutdownKeepingPrivatePostgres(maintenanceQuiescence())
+          .catch(() => undefined);
+      }
+      await secondReady?.stop().catch(() => undefined);
+      await firstReady?.stop().catch(() => undefined);
+      await stopPostgres(toolchain, join(fixture.roots.DATA, "private-postgres"));
+      if (secondOwned !== undefined && secondOwned.ownershipState !== "RELEASED") {
+        await secondOwned.close().catch(() => undefined);
+      }
+      if (firstOwned.ownershipState !== "RELEASED") {
+        await firstOwned.close().catch(() => undefined);
+      }
+    }
+  }, 180_000);
+
+  it("fails closed when the old Host lease is lost after maintenance preparation", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const keyProvider = makeKeyProvider();
+    const toolchain = await getToolchain();
+    const port = 55524;
+    let ready: ReadyPrivatePostgres | undefined;
+    let host: BootstrapManagedHostContext | undefined;
+
+    try {
+      ready = await owned.preparePrivatePostgres({
+        toolchainBinDirectory: qualifiedPgBin,
+        initialPort: port,
+        lifecycle: LIFECYCLE,
+        keyProvider,
+      });
+      host = await owned.handoffPrivatePostgresToHost(ready, {
+        keyProvider,
+        timing: HOST_TIMING,
+      });
+      const maintenance = await host.preparePrivatePostgresMaintenance({
+        kind: "RESTART_PRIVATE_POSTGRES",
+      });
+      await rawHostForManagedContext(host).close();
+
+      await expect(maintenance.execute(maintenanceQuiescence())).rejects.toMatchObject({
+        problem: { problemCode: "host-ownership.lease.not_active" },
+      });
+      expect(maintenance.state).toBe("ABORTED");
+      await expect(assertReady(toolchain, port)).resolves.toBeUndefined();
+      const journal = await new MaintenanceJournalStore(fixture.roots.INSTANCE).load(
+        maintenance.operationId,
+      );
+      expect(journal.status).toBe("CURRENT");
+      if (journal.status !== "CURRENT") throw new Error("maintenance journal missing");
+      expect(journal.value.state.lastCompletedStage).toBe("ABORTED");
+    } finally {
       await ready?.stop().catch(() => undefined);
       await stopPostgres(toolchain, join(fixture.roots.DATA, "private-postgres"));
       if (owned.ownershipState !== "RELEASED") {
@@ -348,9 +597,11 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
       );
       expect(owned.ownershipState).toBe("RELEASED");
     } finally {
-      await host
-        ?.shutdownKeepingPrivatePostgres(maintenanceQuiescence())
-        .catch(() => undefined);
+      if (host?.state === "ACTIVE") {
+        await host
+          .shutdownKeepingPrivatePostgres(maintenanceQuiescence())
+          .catch(() => undefined);
+      }
       await ready?.stop().catch(() => undefined);
       await stopPostgres(toolchain, join(fixture.roots.DATA, "private-postgres"));
       if (owned.ownershipState !== "RELEASED") {
