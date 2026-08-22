@@ -737,11 +737,6 @@ export async function recoverInterruptedHostMaintenance(
       progress = stage;
     };
 
-    const needsHostTransition = !hasReached(progress, "HOST_LEASE_CLOSED");
-    if (needsHostTransition && controller.state === "STOPPED") {
-      markMutation();
-      await controller.start();
-    }
     if (controller.state === "READY" && !hasReached(progress, "HOST_LEASE_CLOSED")) {
       hostLeaseConnection = await normalizeHistoricalFence(
         options,
@@ -823,11 +818,11 @@ export async function recoverInterruptedHostMaintenance(
       await advance("POSTGRES_STOPPED");
     }
 
+    if (controller.state === "STOPPED") {
+      markMutation();
+      await controller.start();
+    }
     if (!hasReached(progress, "POSTGRES_READY")) {
-      if (controller.state === "STOPPED") {
-        markMutation();
-        await controller.start();
-      }
       await advance("POSTGRES_READY");
     }
     if (controller.state !== "READY") {

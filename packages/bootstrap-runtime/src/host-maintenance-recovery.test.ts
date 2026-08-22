@@ -638,6 +638,84 @@ describe("fixed M5B host-maintenance recovery", () => {
   });
 
   it.each([
+    "POSTGRES_READY",
+    "HOST_LEASE_ACQUIRED",
+    "HOST_TOKEN_PUBLICATION_ARMED",
+    "HOST_TOKEN_PUBLISHED",
+    "BOOTSTRAP_RELEASE_ARMED",
+  ] as const)(
+    "starts an exact STOPPED cluster once at historical progress %s",
+    async (stage) => {
+      const fixture = await makeFixture();
+      const target =
+        stage === "HOST_TOKEN_PUBLICATION_ARMED" ||
+        stage === "HOST_TOKEN_PUBLISHED" ||
+        stage === "BOOTSTRAP_RELEASE_ARMED"
+          ? {
+              hostOwnershipToken: createHostOwnershipToken(),
+              hostBootId: createBootId(),
+              ...(stage === "HOST_TOKEN_PUBLICATION_ARMED"
+                ? {}
+                : { hostOwnershipRevision: "7" }),
+            }
+          : {};
+      const configured = configure(
+        fixture,
+        stage,
+        "PRIVATE_POSTGRES_RESTART",
+        "STOPPED",
+        null,
+        target,
+      );
+
+      const result = await recoverInterruptedHostMaintenance(options(fixture));
+
+      expect(result.kind).toBe("RESTARTED");
+      expect(configured.start).toHaveBeenCalledOnce();
+      expect(configured.stop).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    "POSTGRES_READY",
+    "HOST_LEASE_ACQUIRED",
+    "HOST_TOKEN_PUBLICATION_ARMED",
+    "HOST_TOKEN_PUBLISHED",
+    "BOOTSTRAP_RELEASE_ARMED",
+  ] as const)(
+    "does not restart an already READY cluster at historical progress %s",
+    async (stage) => {
+      const fixture = await makeFixture();
+      const target =
+        stage === "HOST_TOKEN_PUBLICATION_ARMED" ||
+        stage === "HOST_TOKEN_PUBLISHED" ||
+        stage === "BOOTSTRAP_RELEASE_ARMED"
+          ? {
+              hostOwnershipToken: createHostOwnershipToken(),
+              hostBootId: createBootId(),
+              ...(stage === "HOST_TOKEN_PUBLICATION_ARMED"
+                ? {}
+                : { hostOwnershipRevision: "7" }),
+            }
+          : {};
+      const configured = configure(
+        fixture,
+        stage,
+        "PRIVATE_POSTGRES_RESTART",
+        "READY",
+        null,
+        target,
+      );
+
+      const result = await recoverInterruptedHostMaintenance(options(fixture));
+
+      expect(result.kind).toBe("RESTARTED");
+      expect(configured.start).not.toHaveBeenCalled();
+      expect(configured.stop).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
     ["host-ownership.publication.known_not_committed", "FAILED"],
     ["host-ownership.publication.commit_uncertain", "UNCERTAIN"],
     ["host-ownership.publication.committed_unverified", "UNCERTAIN"],
