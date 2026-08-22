@@ -1,7 +1,17 @@
 import { createRequire } from "node:module";
 import { join } from "node:path";
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  ProblemError,
+  type BootId,
+  type Problem,
+} from "@heptalogos/foundation-contracts";
+import {
+  BootstrapOwnerWitnessStore,
+  createBootstrapLockGenerationId,
+  type BootstrapOwnerWitnessBodyV1,
+} from "@heptalogos/bootstrap-state";
 import type { ResolvedLifecycleRoot } from "./roots.js";
+import { currentBootstrapProcessIdentity } from "./bootstrap-process-identity.js";
 
 type ProperLockOptions = {
   readonly stale: number;
@@ -10,6 +20,7 @@ type ProperLockOptions = {
   readonly realpath: boolean;
   readonly lockfilePath: string;
   readonly onCompromised: (error: Error) => void;
+  readonly onReclaimed?: () => void;
 };
 
 type ProperLockfile = {
@@ -17,10 +28,11 @@ type ProperLockfile = {
 };
 
 const require = createRequire(import.meta.url);
-const properLockfile = require("proper-lockfile") as ProperLockfile;
+const properLockfile = require("@bybrave/proper-lockfile2") as ProperLockfile;
 
 const BOOTSTRAP_LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
 const NO_AUTOMATIC_STALE_RECLAIM_MS = Number.MAX_SAFE_INTEGER;
+export const BOOTSTRAP_RECOVERY_STALE_MS = 30_000;
 
 export type BootstrapOwnershipState = "HELD" | "RELEASING" | "COMPROMISED" | "RELEASED";
 
@@ -33,6 +45,7 @@ export interface BootstrapOwnershipLease {
 
 export interface BootstrapOwnershipOptions {
   readonly heartbeatMs: number;
+  readonly bootId: BootId;
 }
 
 interface IssuedOwnershipRecord {
@@ -144,11 +157,28 @@ export function assertBootstrapOwnershipFor(
   issued.assertHeld();
 }
 
-export async function acquireBootstrapOwnership(
+async function acquireBootstrapOwnershipWithStalePolicy(
   instanceRoot: ResolvedLifecycleRoot,
   options: BootstrapOwnershipOptions,
+  stale: number,
 ): Promise<BootstrapOwnershipLease> {
   assertHeartbeat(options.heartbeatMs);
+
+  const witnessStore = new BootstrapOwnerWitnessStore(instanceRoot.canonicalPath);
+  const lockGenerationId = createBootstrapLockGenerationId();
+  const processIdentity = currentBootstrapProcessIdentity();
+  const createdAt = new Date().toISOString();
+  const attemptWitness: BootstrapOwnerWitnessBodyV1 = {
+    schemaVersion: 1,
+    phase: "ATTEMPT",
+    lockGenerationId,
+    bootId: options.bootId,
+    pid: processIdentity.pid,
+    processStartedAtMs: processIdentity.startedAtMs,
+    heartbeatMs: options.heartbeatMs,
+    createdAt,
+  };
+  await witnessStore.createAttempt(attemptWitness);
 
   let state: BootstrapOwnershipState = "HELD";
   let safeCompromisedCause: Problem | undefined;
@@ -158,7 +188,7 @@ export async function acquireBootstrapOwnership(
   let releaseLock: () => Promise<void>;
   try {
     releaseLock = await properLockfile.lock(instanceRoot.canonicalPath, {
-      stale: NO_AUTOMATIC_STALE_RECLAIM_MS,
+      stale,
       update: options.heartbeatMs,
       retries: 0,
       realpath: true,
@@ -170,6 +200,19 @@ export async function acquireBootstrapOwnership(
       },
     });
   } catch (error) {
+    try {
+      await witnessStore.removeAttempt(lockGenerationId);
+    } catch {
+      throw new ProblemError(
+        ownershipProblem(
+          "bootstrap.ownership.witness_cleanup_failed",
+          "integrity",
+          "manual",
+          "Bootstrap ownership witness cleanup failed",
+          "The failed bootstrap ownership attempt could not remove its own ATTEMPT witness",
+        ),
+      );
+    }
     if (errorCode(error) === "ELOCKED") {
       throw new ProblemError(lockPresentProblem());
     }
@@ -182,6 +225,33 @@ export async function acquireBootstrapOwnership(
         "The bootstrap ownership lock could not be acquired",
       ),
     );
+  }
+
+  try {
+    for (const releasing of await witnessStore.listReleasing()) {
+      await witnessStore.removeReleasing(releasing.witness.lockGenerationId);
+    }
+    const ownerWitness: BootstrapOwnerWitnessBodyV1 = {
+      ...attemptWitness,
+      phase: "OWNER",
+    };
+    await witnessStore.publishOwner(ownerWitness);
+    await witnessStore.removeAttempt(lockGenerationId);
+  } catch (error) {
+    const releasingWitness: BootstrapOwnerWitnessBodyV1 & {
+      readonly phase: "RELEASING";
+    } = {
+      ...attemptWitness,
+      phase: "RELEASING",
+    };
+    await witnessStore.publishReleasing(releasingWitness).catch(() => undefined);
+    await witnessStore
+      .removeCurrentOwnerWhileHeld(lockGenerationId)
+      .catch(() => undefined);
+    await releaseLock().catch(() => undefined);
+    await witnessStore.removeReleasing(lockGenerationId).catch(() => undefined);
+    await witnessStore.removeAttempt(lockGenerationId).catch(() => undefined);
+    throw error;
   }
 
   let releasePromise: Promise<void> | undefined;
@@ -212,14 +282,28 @@ export async function acquireBootstrapOwnership(
           state = "RELEASED";
           return;
         }
+        const releasingWitness: BootstrapOwnerWitnessBodyV1 & {
+          readonly phase: "RELEASING";
+        } = {
+          ...attemptWitness,
+          phase: "RELEASING",
+        };
+        let providerLockReleased = false;
         try {
+          await witnessStore.publishReleasing(releasingWitness);
+          await witnessStore.removeCurrentOwnerWhileHeld(lockGenerationId);
           await releaseLock();
+          providerLockReleased = true;
+          await witnessStore.removeReleasing(lockGenerationId);
           if (safeCompromisedCause) {
             state = "COMPROMISED";
             throw new ProblemError(safeCompromisedCause);
           }
           state = "RELEASED";
         } catch {
+          if (!providerLockReleased) {
+            await releaseLock().catch(() => undefined);
+          }
           safeCompromisedCause ??= compromisedProblem();
           state = "COMPROMISED";
           throw new ProblemError(safeCompromisedCause);
@@ -236,4 +320,26 @@ export async function acquireBootstrapOwnership(
   Object.freeze(lease);
 
   return lease;
+}
+
+export async function acquireBootstrapOwnership(
+  instanceRoot: ResolvedLifecycleRoot,
+  options: BootstrapOwnershipOptions,
+): Promise<BootstrapOwnershipLease> {
+  return acquireBootstrapOwnershipWithStalePolicy(
+    instanceRoot,
+    options,
+    NO_AUTOMATIC_STALE_RECLAIM_MS,
+  );
+}
+
+export async function acquireBootstrapRecoveryOwnership(
+  instanceRoot: ResolvedLifecycleRoot,
+  options: BootstrapOwnershipOptions,
+): Promise<BootstrapOwnershipLease> {
+  return acquireBootstrapOwnershipWithStalePolicy(
+    instanceRoot,
+    options,
+    BOOTSTRAP_RECOVERY_STALE_MS,
+  );
 }

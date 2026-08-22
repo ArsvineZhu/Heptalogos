@@ -161,7 +161,11 @@ SecretBackend 采用 platform-composed OS credential/keyring strategy；适用 p
 
 ## Bootstrap Lock
 
-Pre-PostgreSQL ownership window 使用 `proper-lockfile` 4.x；它只承担 atomic lock/stale heartbeat mechanics。正常 Host Authority 仍是 PostgreSQL advisory lease + HostOwnershipFence + HostOwnershipToken。真实 power-loss/cross-platform/source-less behavior 属 implementation qualification。
+Pre-PostgreSQL ownership window 使用 `@bybrave/proper-lockfile2` 5.0.0；它只承担 atomic lock/stale heartbeat mechanics。`proper-lockfile@4.1.2` 的 deterministic delayed-reclaimer race 失败证据保留在 Q-BOOT-01。正常 Host Authority 仍是 PostgreSQL advisory lease + HostOwnershipFence + HostOwnershipToken。真实 power-loss/cross-platform/source-less behavior 属 implementation qualification。
+
+Abandoned bootstrap-owner process generation 使用 Node `process.kill(pid, 0)` +
+`pidusage` 4.0.1；Heptalogos owns the four-state result and UNKNOWN fail-closed
+policy.
 
 ## Sandbox
 

@@ -134,7 +134,10 @@ async function makeFixture(): Promise<{
       return [resolved];
     },
   };
-  const lease = await acquireBootstrapOwnership(resolved, { heartbeatMs: 1000 });
+  const lease = await acquireBootstrapOwnership(resolved, {
+    heartbeatMs: 1000,
+    bootId: createBootId(),
+  });
   const access = openMaintenanceStateAccess(profile, lease);
   return { profile, instanceRoot, lease, access };
 }

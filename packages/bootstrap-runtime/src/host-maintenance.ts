@@ -439,6 +439,7 @@ export function createRestartPrivatePostgresEnteredWindowExecutor(
         target: {
           ...window.journal.target,
           hostOwnershipToken: token,
+          hostBootId: provenance.bootstrap.bootId,
           hostOwnershipRevision: publication.publishedRevision,
         },
       });
@@ -482,6 +483,7 @@ async function prepareMaintenance(
   const lease = await acquireBootstrapOwnership(instanceRoot, {
     heartbeatMs:
       provenance.handoff.bootstrapHeartbeatMs ?? DEFAULT_BOOTSTRAP_HEARTBEAT_MS,
+    bootId: provenance.bootstrap.bootId,
   });
   let returned = false;
   try {

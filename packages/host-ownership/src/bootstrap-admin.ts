@@ -89,6 +89,18 @@ export interface CanonicalHostDatabaseInspection {
   };
 }
 
+export interface HostAdvisoryLeaseInspectionOptions {
+  readonly port: number;
+  readonly advisoryKey: HostAdvisoryKey;
+  readonly passwordProvider: BootstrapAdminPasswordProvider;
+  readonly clientFactory?: unknown;
+}
+
+export interface HostAdvisoryLeaseInspection {
+  readonly live: boolean;
+  readonly backendPids: readonly number[];
+}
+
 export interface HostOwnershipCanonicalSnapshot {
   readonly roles: readonly {
     readonly rolname: string;
@@ -481,6 +493,57 @@ export async function inspectCanonicalHostDatabase(
       if (databases.rows.length > 1) throw incompatibleDatabaseProblem();
       const database = databases.rows[0];
       return database === undefined ? { exists: false } : { exists: true, database };
+    },
+  );
+}
+
+function advisoryKeyMatches(
+  classId: string | null,
+  objectId: string | null,
+  key: HostAdvisoryKey,
+): boolean {
+  if (classId === null || objectId === null) return false;
+  const asUnsigned = (value: number): number => value >>> 0;
+  const classValue = Number(classId);
+  const objectValue = Number(objectId);
+  return (
+    (classValue === key.key1 && objectValue === key.key2) ||
+    (classValue === asUnsigned(key.key1) && objectValue === asUnsigned(key.key2))
+  );
+}
+
+export async function inspectHostAdvisoryLease(
+  options: HostAdvisoryLeaseInspectionOptions,
+): Promise<HostAdvisoryLeaseInspection> {
+  return withBootstrapAdminClient(
+    {
+      port: options.port,
+      database: HOST_OWNERSHIP_CANONICAL_DATABASE,
+      passwordProvider: options.passwordProvider,
+      clientFactory: options.clientFactory,
+    },
+    async (client) => {
+      const result = await client.query<{
+        readonly pid: number;
+        readonly classid: string | null;
+        readonly objid: string | null;
+      }>(
+        `
+SELECT activity.pid, locks.classid::text, locks.objid::text
+FROM pg_locks AS locks
+JOIN pg_stat_activity AS activity ON activity.pid = locks.pid
+WHERE locks.locktype = 'advisory'
+  AND activity.usename = $1
+  AND activity.datname = $2
+`,
+        [HOST_LEASE_ROLE, HOST_OWNERSHIP_CANONICAL_DATABASE],
+      );
+      const backendPids = result.rows
+        .filter((row) =>
+          advisoryKeyMatches(row.classid, row.objid, options.advisoryKey),
+        )
+        .map((row) => row.pid);
+      return { live: backendPids.length > 0, backendPids };
     },
   );
 }

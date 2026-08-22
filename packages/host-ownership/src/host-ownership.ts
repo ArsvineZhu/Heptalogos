@@ -91,19 +91,27 @@ function instanceMismatchProblem(): ProblemError {
   );
 }
 
-function publicationUnverifiedProblem(): ProblemError {
+function publicationCommittedUnverifiedProblem(): ProblemError {
   return publicationProblem(
-    "host-ownership.fence.publication_unverified",
+    "host-ownership.publication.committed_unverified",
     "HostOwnershipToken publication could not be verified",
     "The committed HostOwnershipFence row did not contain the new token and BootId",
   );
 }
 
-function publicationFailedProblem(): ProblemError {
+function publicationKnownNotCommittedProblem(): ProblemError {
   return publicationProblem(
-    "host-ownership.fence.publication_failed",
-    "HostOwnershipToken publication failed",
-    "The HostOwnershipFence publication transaction failed",
+    "host-ownership.publication.known_not_committed",
+    "HostOwnershipToken publication was not committed",
+    "The publication transaction failed before COMMIT and was rolled back",
+  );
+}
+
+function publicationCommitUncertainProblem(): ProblemError {
+  return publicationProblem(
+    "host-ownership.publication.commit_uncertain",
+    "HostOwnershipToken publication commit is uncertain",
+    "The publication COMMIT was issued but its outcome could not be proven",
   );
 }
 
@@ -147,7 +155,7 @@ function assertPublishedRow(
     row.host_ownership_token !== token ||
     row.boot_id !== bootId
   ) {
-    throw publicationUnverifiedProblem();
+    throw publicationCommittedUnverifiedProblem();
   }
 }
 
@@ -156,6 +164,8 @@ export async function publishHostOwnershipToken(
 ): Promise<HostOwnershipPublicationResult> {
   const { connection } = options;
   connection.assertActive();
+  let commitIssued = false;
+  let commitAcknowledged = false;
   let transactionOpen = false;
   try {
     await authorizedConnectionQuery(connection, options.mutationAuthority, "BEGIN");
@@ -189,15 +199,27 @@ SET ownership_revision = ownership_revision + 1,
 WHERE singleton = true`,
       [options.token, options.bootId],
     );
-    await authorizedConnectionQuery(connection, options.mutationAuthority, "COMMIT");
+    options.mutationAuthority.assertCurrent();
+    commitIssued = true;
+    try {
+      await connection.query("COMMIT");
+    } catch {
+      throw publicationCommitUncertainProblem();
+    }
+    commitAcknowledged = true;
     transactionOpen = false;
 
-    const verified = await authorizedConnectionQuery<FenceRow>(
-      connection,
-      options.mutationAuthority,
-      FENCE_AFTER_COMMIT,
-    );
-    if (verified.rows.length !== 1) throw publicationUnverifiedProblem();
+    let verified: { readonly rows: readonly FenceRow[] };
+    try {
+      verified = await authorizedConnectionQuery<FenceRow>(
+        connection,
+        options.mutationAuthority,
+        FENCE_AFTER_COMMIT,
+      );
+    } catch {
+      throw publicationCommittedUnverifiedProblem();
+    }
+    if (verified.rows.length !== 1) throw publicationCommittedUnverifiedProblem();
     assertPublishedRow(
       verified.rows[0],
       options.instanceId,
@@ -206,15 +228,20 @@ WHERE singleton = true`,
     );
     const publishedRevision = nextRevision(previousRevision);
     if (revisionText(verified.rows[0].ownership_revision) !== publishedRevision) {
-      throw publicationUnverifiedProblem();
+      throw publicationCommittedUnverifiedProblem();
     }
     return { previousRevision, publishedRevision };
   } catch (error) {
-    if (transactionOpen && connection.state === "ACTIVE") {
+    if (!commitIssued && transactionOpen && connection.state === "ACTIVE") {
       await connection.query("ROLLBACK").catch(() => undefined);
+      transactionOpen = false;
     }
     if (connection.state === "ACTIVE") connection.fence("token publication failure");
     if (error instanceof ProblemError) throw error;
-    throw publicationFailedProblem();
+    if (commitIssued && !commitAcknowledged) {
+      throw publicationCommitUncertainProblem();
+    }
+    if (commitAcknowledged) throw publicationCommittedUnverifiedProblem();
+    throw publicationKnownNotCommittedProblem();
   }
 }

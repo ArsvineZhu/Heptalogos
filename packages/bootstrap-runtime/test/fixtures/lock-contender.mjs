@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import { join } from "node:path";
 
 const require = createRequire(import.meta.url);
-const properLockfile = require("proper-lockfile");
+const properLockfile = require("@bybrave/proper-lockfile2");
 const NO_AUTOMATIC_STALE_RECLAIM_MS = Number.MAX_SAFE_INTEGER;
 const [instanceRoot, holdMsText, resultFile] = process.argv.slice(2);
 const lockfilePath = join(instanceRoot, ".heptalogos-bootstrap.lock");

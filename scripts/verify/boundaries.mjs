@@ -42,13 +42,17 @@ const restrictedImports = new Map([
       "packages/host-ownership/src/host-ownership.integration.test.ts",
     ],
   ],
-  ["proper-lockfile", ["packages/bootstrap-runtime/src/bootstrap-ownership.ts"]],
+  [
+    "@bybrave/proper-lockfile2",
+    ["packages/bootstrap-runtime/src/bootstrap-ownership.ts"],
+  ],
   ["execa", ["packages/private-postgres/src/process-adapter.ts"]],
   [
     "pg",
     [
       "packages/host-ownership/",
       "packages/bootstrap-runtime/src/host-maintenance.integration.test.ts",
+      "packages/bootstrap-runtime/src/bootstrap-recovery.integration.test.ts",
     ],
   ],
 ]);
@@ -234,7 +238,7 @@ for (const path of sourcePaths) {
       continue;
     }
     const isWorkspaceDependency = workspacePackageNames.has(dependency);
-    if (!declared.has(dependency)) {
+    if (!declared.has(dependency) && dependency !== projectPackage.name) {
       errors.push(
         `${relativePath}: undeclared ${isWorkspaceDependency ? "workspace" : "external"} import: ${specifier}`,
       );

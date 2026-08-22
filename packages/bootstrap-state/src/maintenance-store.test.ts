@@ -106,6 +106,100 @@ describe("MaintenanceJournalStore", () => {
     });
   });
 
+  it("returns the current progress and a coherent previous revision", async () => {
+    const root = await directory();
+    const store = new MaintenanceJournalStore(root);
+    const operationId = createUuidV7Id("MaintenanceOperationId");
+    await store.create(body(operationId));
+    await store.advance({
+      ...body(operationId, 2),
+      lastCompletedStage: "HOST_TOKEN_REVOKED",
+    });
+
+    await expect(store.loadRecoveryHead(operationId)).resolves.toMatchObject({
+      current: { state: { revision: 2, lastCompletedStage: "HOST_TOKEN_REVOKED" } },
+      previous: { state: { revision: 1 } },
+      effectiveProgressStage: "HOST_TOKEN_REVOKED",
+    });
+  });
+
+  it.each(["HOST_TOKEN_PUBLISHED", "BOOTSTRAP_RELEASE_ARMED"] as const)(
+    "loads a legacy M5A token/revision target without hostBootId at %s",
+    async (stage) => {
+      const root = await directory();
+      const store = new MaintenanceJournalStore(root);
+      const operationId = createUuidV7Id("MaintenanceOperationId");
+      const created = await store.create({
+        ...body(operationId),
+        operationType: "PRIVATE_POSTGRES_RESTART",
+        lastCompletedStage: stage,
+        target: {
+          privatePostgres: "RUNNING_SAME_IDENTITY",
+          hostOwnershipToken: createHostOwnershipToken(),
+          hostOwnershipRevision: "9",
+        },
+      });
+      expect(created.state.target.hostBootId).toBeUndefined();
+      await expect(store.load(operationId)).resolves.toMatchObject({
+        status: "CURRENT",
+        value: { state: { revision: 1 } },
+      });
+    },
+  );
+
+  it("uses the validated immediately previous revision for RECOVERY_REQUIRED", async () => {
+    const root = await directory();
+    const store = new MaintenanceJournalStore(root);
+    const operationId = createUuidV7Id("MaintenanceOperationId");
+    await store.create({
+      ...body(operationId),
+      lastCompletedStage: "HOST_LEASE_CLOSED",
+    });
+    await store.advance({
+      ...body(operationId, 2),
+      lastCompletedStage: "RECOVERY_REQUIRED",
+      terminalOutcome: "FAILED",
+    });
+
+    await expect(store.loadRecoveryHead(operationId)).resolves.toMatchObject({
+      current: { state: { lastCompletedStage: "RECOVERY_REQUIRED" } },
+      previous: { state: { revision: 1, lastCompletedStage: "HOST_LEASE_CLOSED" } },
+      effectiveProgressStage: "HOST_LEASE_CLOSED",
+    });
+  });
+
+  it("rejects RECOVERY_REQUIRED without a coherent previous revision", async () => {
+    const root = await directory();
+    const store = new MaintenanceJournalStore(root);
+    const operationId = createUuidV7Id("MaintenanceOperationId");
+    await store.create(body(operationId));
+    await store.advance({
+      ...body(operationId, 2),
+      lastCompletedStage: "RECOVERY_REQUIRED",
+      terminalOutcome: "FAILED",
+    });
+
+    await rm(
+      join(root, "maintenance-journal", operationId, "maintenance-state.previous.json"),
+    );
+    await expect(store.loadRecoveryHead(operationId)).rejects.toMatchObject({
+      problem: { problemCode: "maintenance.journal.recovery_head_previous_missing" },
+    });
+
+    await writeFile(
+      join(root, "maintenance-journal", operationId, "maintenance-state.previous.json"),
+      JSON.stringify(
+        sealMaintenanceJournal({
+          ...body(operationId, 3),
+          lastCompletedStage: "HOST_LEASE_CLOSED",
+        }),
+      ),
+    );
+    await expect(store.loadRecoveryHead(operationId)).rejects.toMatchObject({
+      problem: { problemCode: "maintenance.journal.recovery_head_previous_incoherent" },
+    });
+  });
+
   it("returns CORRUPT when both revisions are invalid and rejects future schemas", async () => {
     const root = await directory();
     const store = new MaintenanceJournalStore(root);

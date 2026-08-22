@@ -419,3 +419,171 @@ returned `REQUEST_CHANGES`; re-review of the corrected candidate and final
 cross-platform CI remain `NOT_RUN`. The historical extracted Ubuntu package
 runtime does not qualify the corrected M4 Linux claim; the M5A Linux PASS above
 is limited to the recorded corrected candidate and scenarios.
+
+## Foundation M5A post-merge closure and M5B boundary (2026-08-22)
+
+The corrected M5A candidate was independently reviewed and merged. This closes
+the M5A reverse-handoff implementation milestone but does not claim M5B or H1
+closure.
+
+```yaml
+m5a_reviewed_head_sha: 538cc6973fcd831cb47a60c5d126006032532591
+m5a_independent_review: PASS
+m5a_final_ci_run: 32570208341
+m5a_final_ci_ubuntu: PASS
+m5a_final_ci_macos: PASS
+m5a_final_ci_windows: PASS
+m5a_squash_merge_sha: 8acedfd49b0bcc42444389c3f28f206d4e8438b6
+m5a_windows_real_pg: NOT_RUN
+m5a_macos_real_pg: NOT_RUN
+m5b: ACTIVE
+h1: OPEN
+```
+
+The final CI projection verified the exact reviewed source SHA on all three
+operating systems; it is not real PostgreSQL qualification. M5B remains
+responsible for bounded abandoned-owner recovery, real process kill/restart,
+and the remaining H1 semantic closure evidence.
+
+## Foundation M5B recovery qualification (2026-08-22)
+
+M5B behavior candidate `c4c1be43f412c868a84a776461b479d3b677ea18` passed
+specific Linux real-PostgreSQL and K1-K3 process subsets without changing the
+M5A boundary. The exact review HEAD
+`9e450f836466d32fb1f3d9027618fac236798eb9` received `REQUEST_CHANGES`.
+
+```yaml
+m5b_read_only_recovery_inspection: PASS
+m5b_recovery_head_previous_validation: PASS
+m5b_restart_stop_recovery_unit: PASS
+m5b_live_advisory_owner_block: PASS
+m5b_unknown_fence_token_block: PASS
+m5b_corrupt_journal_block: PASS
+m5b_linux_real_pg_restart_success_subset: PASS
+m5b_linux_real_pg_live_host_block: PASS
+m5b_linux_real_pg_corrupt_journal_block: PASS
+m5b_linux_real_postgres_full_matrix: NOT_RUN
+m5b_real_process_k1_k3: PASS
+m5b_real_process_k4_actual_maintenance_recovery: NOT_RUN
+m5b_real_process_k5_recovery_restartability: NOT_RUN
+m5b_private_postgres_integration: PASS (20/20)
+m5b_host_ownership_integration: PASS (8/8)
+m5b_bootstrap_runtime_integration: PASS (20/20)
+m5b_windows_real_postgres: NOT_RUN
+m5b_macos_real_postgres: NOT_RUN
+m5b_source_less_recovery: NOT_RUN
+m5b_service_account_acl: NOT_RUN
+m5b_hardware_power_loss: NOT_RUN
+m5b_independent_review: FAIL
+m5b_final_cross_platform_ci: NOT_RUN
+m5b_squash_merge: NOT_RUN
+m5b: ACTIVE
+h1: OPEN
+```
+
+The Linux PostgreSQL subset provenance was the Ubuntu 26.04 security archive
+`postgresql-18`/`postgresql-client-18` 18.6 package set, extracted to a
+temporary qualification root with `libpq5` extracted for runtime linkage.
+All five required binaries reported PostgreSQL 18.6. K1-K3 used real Node
+child termination and stale-lock adjudication; the required real maintenance
+K4/K5 paths and complete PG-1..PG-9 matrix remain `NOT_RUN` until rerun.
+
+## Foundation M5B first corrective real-PostgreSQL evidence — superseded (2026-08-23)
+
+Behavior candidate `e7e46e8e1d58f15e254b9644f5b315cd34090360` had the following
+Linux PostgreSQL 18.6 evidence before the second corrective review. The exact
+review HEAD was `5e8f1aa475730aef982622d05cd488767ac0c08a`, and that review
+returned `REQUEST_CHANGES`; this block is historical, not current truth.
+The `private-postgres` and Host ownership real integration targets passed
+20/20 and 8/8; the combined bootstrap-runtime integration target passed 28/28.
+These are implementation evidence for the current M5B candidate, not a claim
+of Windows/macOS, source-less, service-account ACL, or hardware qualification.
+
+```yaml
+behavior_candidate_sha: e7e46e8e1d58f15e254b9644f5b315cd34090360
+rejected_review_head_sha: 5e8f1aa475730aef982622d05cd488767ac0c08a
+review_outcome: REQUEST_CHANGES
+runtime: "Node 24.19.0 / pnpm 11.22.0"
+postgres_version: PostgreSQL 18.6
+linux_real_pg_recovery: PASS
+real_process_k1_k3: PASS
+real_process_k4_actual_maintenance_recovery: PASS
+real_process_k5_recovery_restartability: PASS
+full_pg_1_to_pg_9_matrix: PASS
+windows_real_pg_recovery: NOT_RUN
+macos_real_pg_recovery: NOT_RUN
+independent_review: FAIL
+final_cross_platform_ci: NOT_RUN
+```
+
+The prior exact review at `9e450f836466d32fb1f3d9027618fac236798eb9` also
+returned `REQUEST_CHANGES`. The second corrective cycle must replace the
+mislabeled PG-1/PG-2 evidence and rerun deterministic K4/K5 before a new
+candidate is submitted.
+
+## Foundation M5B second corrective review blockers (2026-08-23)
+
+```yaml
+behavior_candidate_sha: e7e46e8e1d58f15e254b9644f5b315cd34090360
+rejected_review_head_sha: 5e8f1aa475730aef982622d05cd488767ac0c08a
+review_outcome: REQUEST_CHANGES
+legacy_m5a_journal_v1_compatibility: NOT_RUN
+same_lease_prehost_bootstrap_continuation: NOT_RUN
+pg1_pre_postgres_bootstrap_recovery: NOT_RUN
+pg2_ready_before_handoff_recovery: NOT_RUN
+real_process_k1_k3: PASS
+real_process_k4_actual_maintenance_recovery: NOT_RUN
+real_process_k5_recovery_restartability: NOT_RUN
+linux_real_postgres_full_matrix: NOT_RUN
+windows_real_pg_recovery: NOT_RUN
+macos_real_pg_recovery: NOT_RUN
+source_less_recovery: NOT_RUN
+service_account_acl: NOT_RUN
+hardware_power_loss: NOT_RUN
+independent_review: FAIL
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The M5A reverse-handoff and underlying private-PostgreSQL/Host ownership
+evidence that is independent of the rejected K4/K5/PG-1/PG-2 claims remains
+historical PASS evidence. The second corrective candidate must establish new
+claim-matched runs before those withdrawn M5B rows can return to `PASS`.
+
+## Foundation M5B second corrective qualification (2026-08-23)
+
+The second corrective behavior candidate
+`55c58ed83d5e7b7ce964b659e6250b6f6580634d` now has claim-matched Linux
+PostgreSQL 18.6 evidence. K1-K3 passed 3/3, deterministic K4/K5 passed 1/1
+each, the dedicated pre-Host PG-1/PG-2 scenarios passed 1/1 each, and the
+complete PG-1..PG-9 plus PG-5B/PG-6A/PG-6B matrix passed 11/11. The full
+bootstrap-runtime integration target passed 29/29; private-postgres and
+host-ownership real integration passed 20/20 and 8/8. `pnpm verify` passed.
+
+PG-1 used a child killed before private PostgreSQL preparation and recovered
+through bounded bootstrap-continuation `RECOVER`; PG-2 used a child killed
+after PostgreSQL READY and before Host handoff and preserved cluster identity,
+postmaster PID, and `pg_postmaster_start_time`. The current candidate's
+independent review is `NOT_RUN`; Windows/macOS real PostgreSQL, source-less
+recovery, service-account ACL, hardware power-loss, final CI, and merge remain
+open, and H1 remains OPEN.
+
+## Foundation M5B third corrective qualification (2026-08-23)
+
+The review at exact HEAD `445a77db3041644faccd85c00c826e8d26af3ea8` returned
+`REQUEST_CHANGES`. The new behavior candidate is
+`ce8ecbd2f54b6da39542845b1c23fbb959672c0a`; qualification-only PG-6A coverage
+is in `a41dad0226310889f61515ba16ce910c1dbb0e53`.
+
+The corrected candidate makes `INSPECT` genuinely read-only, with a 13/13
+snapshot regression, and the real PostgreSQL 18.6 PG-6A scenario now uses the
+literal legacy M5A late-stage target without `target.hostBootId`. It verifies
+legacy B, fresh C, unchanged PostgreSQL identity, and explicit `hostBootId` in
+the next durable revision. Unit counts are current: bootstrap-recovery 13/13,
+host-maintenance-recovery 23/23, and recovery-command 7/7; full
+bootstrap-runtime unit output is 155 passed/1 skipped.
+
+All previously recorded Linux K1-K5, PG-1/PG-2, PG matrix, private-postgres,
+Host ownership, bootstrap-runtime integration, and `pnpm verify` evidence was
+rerun for this candidate. Independent review is `NOT_RUN`; final CI and merge
+remain unauthorized, and H1 remains OPEN.

@@ -48,5 +48,23 @@ export type {
   MaintenanceTerminalOutcome,
   PrivatePostgresInitializationProfileRevision as MaintenancePrivatePostgresInitializationProfileRevision,
 } from "./maintenance-model.js";
+export { resolveMaintenanceTargetHostBootId } from "./maintenance-model.js";
 export { MaintenanceJournalStore } from "./maintenance-store.js";
-export type { MaintenanceJournalLoadResult } from "./maintenance-model.js";
+export type {
+  MaintenanceJournalLoadResult,
+  MaintenanceJournalRecoveryHead,
+} from "./maintenance-model.js";
+export {
+  BOOTSTRAP_OWNER_WITNESS_DIGEST_DOMAIN,
+  canonicalBootstrapOwnerWitnessText,
+  parseBootstrapOwnerWitness,
+  sealBootstrapOwnerWitness,
+} from "./bootstrap-owner-witness-codec.js";
+export { BootstrapOwnerWitnessStore } from "./bootstrap-owner-witness-store.js";
+export type {
+  BootstrapLockGenerationId,
+  BootstrapOwnerWitnessBodyV1,
+  BootstrapOwnerWitnessEnvelopeV1,
+  BootstrapOwnerWitnessParseResult,
+} from "./bootstrap-owner-witness-model.js";
+export { createBootstrapLockGenerationId } from "./bootstrap-owner-witness-model.js";

@@ -19,7 +19,21 @@
     "test:integration": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vitest run --root packages/bootstrap-runtime src/private-postgres-bootstrap.integration.test.ts src/host-ownership-handoff.integration.test.ts src/host-maintenance.integration.test.ts"
+        "command": "vitest run --root packages/bootstrap-runtime src/private-postgres-bootstrap.integration.test.ts src/host-ownership-handoff.integration.test.ts src/host-maintenance.integration.test.ts src/bootstrap-recovery.integration.test.ts"
+      }
+    },
+    "test:recovery-process": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run --root packages/bootstrap-runtime src/bootstrap-recovery-process.integration.test.ts"
+      }
+    },
+    "test:recovery-process:postgres": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run --root packages/bootstrap-runtime src/bootstrap-recovery-process.postgres.integration.test.ts"
       }
     }
   }

@@ -98,9 +98,17 @@ plaintext fallback → forbidden
 
 三平台、service account、native closure、rotation/lost-key/restore 在 implementation qualification 中关闭。
 
-### Bootstrap lock — `proper-lockfile`
+### Bootstrap lock — `@bybrave/proper-lockfile2`
 
-只覆盖 PostgreSQL Host lease 尚不可取得的短暂 bootstrap window。正常 Host Authority 始终是 dedicated PostgreSQL advisory lease + HostOwnershipFence + HostOwnershipToken。power-loss/cross-platform/source-less 是 implementation qualification。
+只覆盖 PostgreSQL Host lease 尚不可取得的短暂 bootstrap window。`proper-lockfile@4.1.2` 的 stale `rmdir`/reacquire 交错在 M5B deterministic #121 probe 中失败；`@bybrave/proper-lockfile2@5.0.0` 的 atomic rename claim 通过 delayed/double-reclaimer、heartbeat、killed-owner reclaim、compromise fence、Unicode/space path 与 Node24/ESM/TS7 boundary qualification。正常 Host Authority 始终是 dedicated PostgreSQL advisory lease + HostOwnershipFence + HostOwnershipToken。power-loss/cross-platform/source-less 是 implementation qualification。
+
+### Bootstrap process liveness — Node + `pidusage`
+
+The abandoned-owner boundary uses `process.kill(pid, 0)` followed by
+`pidusage@4.0.1` start-time evidence. Heptalogos owns the
+`SAME_PROCESS`/`PROCESS_DEAD`/`PID_REUSED`/`UNKNOWN` semantics and the fixed
+5-second tolerance; a permission or measurement error is `UNKNOWN` and never
+authorizes reclaim.
 
 ### Windows service wrapper — DEFERRED
 
@@ -125,7 +133,8 @@ plaintext fallback → forbidden
 | Q-MSG-01 | direct adapters | current anti-corruption/mapping property evidence; live protocol remains |
 | Q-POLICY-01 | Cedar | current fail-closed property evidence; selected binding is cedar-wasm |
 | Q-SECRET-01 | SecretBackend contract | current contract property evidence; real OS providers remain |
-| Q-BOOT-01 | proper-lockfile | current process/stale/recovery property evidence; L3 remains |
+| Q-BOOT-01 | @bybrave/proper-lockfile2 | current process/stale/recovery property evidence; L3 remains |
+| bootstrap.process-liveness | Node `process.kill(pid, 0)` + `pidusage` | process-generation boundary evidence; platform/L3 remains |
 
 Property ledger: `results/qualification-status.json`.
 

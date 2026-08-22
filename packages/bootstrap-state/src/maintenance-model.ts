@@ -25,6 +25,7 @@ export type MaintenanceStage =
   | "POSTGRES_STOPPED"
   | "POSTGRES_READY"
   | "HOST_LEASE_ACQUIRED"
+  | "HOST_TOKEN_PUBLICATION_ARMED"
   | "HOST_TOKEN_PUBLISHED"
   | "BOOTSTRAP_RELEASE_ARMED"
   | "ABORTED"
@@ -53,6 +54,7 @@ export interface MaintenanceJournalBodyV1 {
   readonly target: {
     readonly privatePostgres: "RUNNING_SAME_IDENTITY" | "STOPPED";
     readonly hostOwnershipToken?: HostOwnershipToken;
+    readonly hostBootId?: BootId;
     readonly hostOwnershipRevision?: string;
   };
 
@@ -67,9 +69,36 @@ export interface MaintenanceJournalBodyV1 {
   readonly problemCode?: string;
 }
 
+export function resolveMaintenanceTargetHostBootId(
+  body: MaintenanceJournalBodyV1,
+): BootId | undefined {
+  if (body.target.hostBootId !== undefined) return body.target.hostBootId;
+  if (
+    body.operationType !== "PRIVATE_POSTGRES_RESTART" ||
+    (body.lastCompletedStage !== "HOST_TOKEN_PUBLISHED" &&
+      body.lastCompletedStage !== "BOOTSTRAP_RELEASE_ARMED" &&
+      body.lastCompletedStage !== "RECOVERY_REQUIRED")
+  ) {
+    return undefined;
+  }
+  if (
+    body.target.hostOwnershipToken === undefined ||
+    body.target.hostOwnershipRevision === undefined
+  ) {
+    return undefined;
+  }
+  return body.bootId;
+}
+
 export interface MaintenanceJournalEnvelopeV1 {
   readonly state: MaintenanceJournalBodyV1;
   readonly digest: Sha256Digest;
+}
+
+export interface MaintenanceJournalRecoveryHead {
+  readonly current: MaintenanceJournalEnvelopeV1;
+  readonly previous?: MaintenanceJournalEnvelopeV1;
+  readonly effectiveProgressStage: MaintenanceStage;
 }
 
 export type MaintenanceJournalParseResult =

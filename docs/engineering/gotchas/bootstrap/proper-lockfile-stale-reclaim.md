@@ -1,4 +1,4 @@
-# `proper-lockfile` stale reclaim and bootstrap ownership
+# Bootstrap stale reclaim and bootstrap ownership
 
 ## Symptom and risk
 
@@ -9,18 +9,20 @@
 - The `v4.1.2` source uses atomic `mkdir` for normal acquisition, but `rmdir` followed by reacquisition for stale locks: <https://raw.githubusercontent.com/moxystudio/node-proper-lockfile/v4.1.2/lib/lockfile.js>.
 - Upstream issue [#121](https://github.com/moxystudio/node-proper-lockfile/issues/121) remains open and describes the concurrent stale-reclaimer race.
 
-## Heptalogos consequence
+## Historical provider failure
 
-Automatic stale takeover is not a qualified pre-PostgreSQL Authority fence. The normal Host Authority remains the PostgreSQL advisory lease plus `HostOwnershipFence` and `HostOwnershipToken`; this lock only covers the bounded pre-PostgreSQL window.
+`proper-lockfile@4.1.2` is not a qualified pre-PostgreSQL Authority fence: the deterministic delayed-reclaimer probe reproduces issue #121. The normal Host Authority remains the PostgreSQL advisory lease plus `HostOwnershipFence` and `HostOwnershipToken`; the bootstrap lock only covers the bounded pre-PostgreSQL window.
+
+The selected M5B route is `@bybrave/proper-lockfile2@5.0.0`. It claims a stale lock by atomically renaming it to a unique path, verifies the claimed mtime, and restores a changed lock rather than removing a winner's fresh lock. Its required M5B provider properties are recorded in `Q-BOOT-01`.
 
 ## Supported M2 rule
 
-The `bootstrap-runtime` adapter passes an effectively non-expiring stale duration, an explicit heartbeat interval, `retries: 0`, and a fixed lock directory. M2 does not expose a stale timeout or automatically reclaim an abandoned lock. An observed lock is reported as `bootstrap.ownership.lock_present`; M2 cannot distinguish an active owner from an abandoned lock, so both require a later bounded Recovery design.
+The normal `bootstrap-runtime` adapter passes an effectively non-expiring stale duration, an explicit heartbeat interval, `retries: 0`, and a fixed lock directory even with the selected provider. Normal boot does not reclaim an abandoned lock; recovery uses the same provider only after independent bounded abandonment proof. An observed normal lock is reported as `bootstrap.ownership.lock_present`.
 
 ## Regression evidence
 
-`packages/bootstrap-runtime/src/bootstrap-ownership.test.ts` covers single-process state transitions, real cross-process exclusivity, compromised-lock fail-safe behavior, and an ownerless old lock that remains unreclaimed.
+`packages/bootstrap-runtime/src/bootstrap-lock-provider.test.ts` covers the historical #121 failure, atomic delayed/double stale reclaim exclusion, active heartbeat protection, killed-owner reclaim notification, compromise fencing, and Unicode/space paths. `packages/bootstrap-runtime/src/bootstrap-ownership.test.ts` covers the adapter's normal no-auto-reclaim and cross-process ownership behavior.
 
 ## Reopen trigger
 
-Reopen this decision only with a proven upstream route or a bounded recovery algorithm that closes the stale-reclaimer race and has matching cross-platform evidence. Do not add a second lock provider or a manual lock-directory deletion shortcut.
+Reopen this decision only with a proven blocker against `@bybrave/proper-lockfile2` or a bounded recovery algorithm that closes the stale-reclaimer race and has matching cross-platform evidence. Do not add a second lock provider or a manual lock-directory deletion shortcut.

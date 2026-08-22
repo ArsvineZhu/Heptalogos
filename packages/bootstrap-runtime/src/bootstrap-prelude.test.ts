@@ -12,20 +12,26 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   asContentDigest,
+  createBootId,
   createInstallationId,
   createInstanceId,
+  createUuidV7Id,
   digestCanonicalJson,
   LIFECYCLE_ROOT_IDS,
   type BootId,
   type LifecycleRootId,
 } from "@heptalogos/foundation-contracts";
 import {
+  BootstrapOwnerWitnessStore,
   BootstrapStateStore,
   type BootstrapStateBodyV1,
 } from "@heptalogos/bootstrap-state";
 import { prepareBootstrapPrelude } from "./bootstrap-prelude.js";
+import type { BootstrapOwnershipLease } from "./bootstrap-ownership.js";
+import { acquireBootstrapOwnership } from "./bootstrap-ownership.js";
 import type { BootstrapLocatorV1 } from "./locator.js";
 import type { PrivatePostgresSessionToken } from "./private-postgres-bootstrap.js";
+import { resolveBootstrapPathProfile } from "./roots.js";
 
 const preparePrivatePostgresForOwnedPreludeMock = vi.hoisted(() =>
   vi.fn(
@@ -164,6 +170,111 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
       "bootstrap.prelude.owned",
       "bootstrap.prelude.released",
     ]);
+  });
+
+  it("materializes one normal owned prelude from one held ownership generation", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const ownershipWitnesses = new BootstrapOwnerWitnessStore(fixture.instanceRoot);
+
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1000 });
+    const ownerBeforeClose = await ownershipWitnesses.readOwner();
+    expect(ownerBeforeClose?.witness.bootId).toBe(prepared.bootId);
+    expect(owned.ownershipState).toBe("HELD");
+    expect(owned.authoritativeState).toMatchObject({
+      status: "CURRENT",
+      value: { state: { revision: 1 } },
+    });
+
+    await owned.close();
+
+    await expect(ownershipWitnesses.readOwner()).resolves.toBeUndefined();
+    expect(owned.ownershipState).toBe("RELEASED");
+  });
+
+  it("adopts a held lease without creating a second owner generation", async () => {
+    const fixture = await makeFixture();
+    const profile = await resolveBootstrapPathProfile(fixture.locator);
+    const recoveryBootId = createBootId();
+    const bootstrapActivityId = createUuidV7Id("ActivityId");
+    const ownership = await acquireBootstrapOwnership(profile.resolve("INSTANCE"), {
+      heartbeatMs: 1000,
+      bootId: recoveryBootId,
+    });
+    const witnesses = new BootstrapOwnerWitnessStore(fixture.instanceRoot);
+    const ownerBefore = await witnesses.readOwner();
+
+    const preludeModule = (await import("./bootstrap-prelude.js")) as Record<
+      string,
+      unknown
+    >;
+    expect(typeof preludeModule.adoptRecoveredBootstrapOwnershipForPrelude).toBe(
+      "function",
+    );
+    if (
+      typeof preludeModule.adoptRecoveredBootstrapOwnershipForPrelude !== "function"
+    ) {
+      await ownership.release();
+      return;
+    }
+    const adopt = preludeModule.adoptRecoveredBootstrapOwnershipForPrelude as (
+      anchorRoot: string,
+      lease: BootstrapOwnershipLease,
+      identity: { bootId: BootId; bootstrapActivityId: string },
+    ) => Promise<{ ownershipState: string; close(): Promise<void> }>;
+    const owned = await adopt(fixture.anchorRoot, ownership, {
+      bootId: recoveryBootId,
+      bootstrapActivityId,
+    });
+    const ownerAfter = await witnesses.readOwner();
+
+    expect(ownerAfter?.witness.lockGenerationId).toBe(
+      ownerBefore?.witness.lockGenerationId,
+    );
+    expect(await witnesses.listAttempts()).toHaveLength(0);
+    expect(await witnesses.listReleasing()).toHaveLength(0);
+    expect(owned.ownershipState).toBe("HELD");
+
+    await owned.close();
+    await expect(witnesses.readOwner()).resolves.toBeUndefined();
+  });
+
+  it("rejects recovered-lease adoption when the held lease belongs to another root", async () => {
+    const heldFixture = await makeFixture();
+    const requestedFixture = await makeFixture();
+    const profile = await resolveBootstrapPathProfile(heldFixture.locator);
+    const ownership = await acquireBootstrapOwnership(profile.resolve("INSTANCE"), {
+      heartbeatMs: 1000,
+      bootId: createBootId(),
+    });
+    const preludeModule = (await import("./bootstrap-prelude.js")) as Record<
+      string,
+      unknown
+    >;
+    expect(typeof preludeModule.adoptRecoveredBootstrapOwnershipForPrelude).toBe(
+      "function",
+    );
+    if (
+      typeof preludeModule.adoptRecoveredBootstrapOwnershipForPrelude !== "function"
+    ) {
+      await ownership.release();
+      return;
+    }
+    const adopt = preludeModule.adoptRecoveredBootstrapOwnershipForPrelude as (
+      anchorRoot: string,
+      lease: BootstrapOwnershipLease,
+      identity: { bootId: BootId; bootstrapActivityId: string },
+    ) => Promise<unknown>;
+
+    await expect(
+      adopt(requestedFixture.anchorRoot, ownership, {
+        bootId: createBootId(),
+        bootstrapActivityId: createUuidV7Id("ActivityId"),
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.ownership.scope_mismatch" },
+    });
+    expect(ownership.state).toBe("RELEASED");
   });
 
   it("allows competing attempts to keep separate journals while only one mutates state", async () => {

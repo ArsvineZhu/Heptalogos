@@ -6,11 +6,37 @@ export {
   type ResolvedLifecycleRoot,
 } from "./roots.js";
 export {
+  BOOTSTRAP_RECOVERY_STALE_MS,
   acquireBootstrapOwnership,
   type BootstrapOwnershipLease,
   type BootstrapOwnershipOptions,
   type BootstrapOwnershipState,
 } from "./bootstrap-ownership.js";
+export {
+  assertLocalInstallationOwnerFor,
+  proveLocalInstallationOwner,
+  type LocalInstallationOwnerRecoveryPrincipal,
+} from "./local-installation-owner.js";
+export {
+  acquireBootstrapRecoveryLease,
+  reclaimAbandonedBootstrapOwnership,
+  recoverAbandonedBootstrapToHost,
+  inspectBootstrapRecovery,
+  type AbandonedBootstrapContinuationOptions,
+  type BootstrapRecoveryDisposition,
+  type BootstrapRecoveryInspection,
+} from "./bootstrap-recovery.js";
+export {
+  recoverInterruptedHostMaintenance,
+  type HostMaintenanceRecoveryOptions,
+} from "./host-maintenance-recovery.js";
+export {
+  executeBootstrapRecoveryCommand,
+  parseBootstrapRecoveryCommand,
+  type BootstrapRecoveryCommand,
+  type BootstrapRecoveryCommandContext,
+  type BootstrapRecoveryCommandResult,
+} from "./bootstrap-recovery-command.js";
 export type { OwnedBootstrapStateStore } from "./bootstrap-state-access.js";
 export {
   openMaintenanceStateAccess,

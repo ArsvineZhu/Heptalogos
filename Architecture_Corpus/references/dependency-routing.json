@@ -445,11 +445,21 @@
     },
     {
       "roleId": "bootstrap.lock",
-      "route": "proper-lockfile 4.x",
+      "route": "@bybrave/proper-lockfile2 5.0.0",
       "boundary": "Bootstrap ownership adapter; pre-PostgreSQL window only",
       "directive": "USE",
       "packages": [
-        "proper-lockfile"
+        "@bybrave/proper-lockfile2"
+      ]
+    },
+    {
+      "roleId": "bootstrap.process-liveness",
+      "route": "Node process.kill(pid, 0) + pidusage 4.0.1",
+      "boundary": "Abandoned bootstrap-owner process-generation identity adapter",
+      "directive": "USE",
+      "packages": [
+        "pidusage",
+        "@types/pidusage"
       ]
     },
     {
