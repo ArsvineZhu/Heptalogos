@@ -191,13 +191,18 @@ function semanticProblem(body: MaintenanceJournalBodyV1): string | undefined {
     return "maintenance.journal.invalid_semantics";
   }
   if (body.lastCompletedStage === "BOOTSTRAP_RELEASE_ARMED") {
-    const hasTargetOwnership =
-      body.target.hostOwnershipToken !== undefined ||
-      body.target.hostOwnershipRevision !== undefined;
-    if (body.operationType === "PRIVATE_POSTGRES_RESTART" && !hasTargetOwnership) {
+    const hasTargetToken = body.target.hostOwnershipToken !== undefined;
+    const hasTargetRevision = body.target.hostOwnershipRevision !== undefined;
+    if (
+      body.operationType === "PRIVATE_POSTGRES_RESTART" &&
+      (!hasTargetToken || !hasTargetRevision)
+    ) {
       return "maintenance.journal.invalid_semantics";
     }
-    if (body.operationType === "PRIVATE_POSTGRES_STOP" && hasTargetOwnership) {
+    if (
+      body.operationType === "PRIVATE_POSTGRES_STOP" &&
+      (hasTargetToken || hasTargetRevision)
+    ) {
       return "maintenance.journal.invalid_semantics";
     }
   }

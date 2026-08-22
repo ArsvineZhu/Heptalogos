@@ -217,4 +217,42 @@ describe("MaintenanceJournal V1 model and codec", () => {
       ok: true,
     });
   });
+
+  it.each([
+    {
+      operationType: "PRIVATE_POSTGRES_RESTART" as const,
+      privatePostgres: "RUNNING_SAME_IDENTITY" as const,
+      target: { hostOwnershipToken: createHostOwnershipToken() },
+    },
+    {
+      operationType: "PRIVATE_POSTGRES_RESTART" as const,
+      privatePostgres: "RUNNING_SAME_IDENTITY" as const,
+      target: { hostOwnershipRevision: "5" },
+    },
+    {
+      operationType: "PRIVATE_POSTGRES_STOP" as const,
+      privatePostgres: "STOPPED" as const,
+      target: { hostOwnershipToken: createHostOwnershipToken() },
+    },
+    {
+      operationType: "PRIVATE_POSTGRES_STOP" as const,
+      privatePostgres: "STOPPED" as const,
+      target: { hostOwnershipRevision: "5" },
+    },
+  ])(
+    "rejects partial release-armed target ownership: $operationType/$target",
+    ({ operationType, privatePostgres, target }) => {
+      const body = makeBody({
+        operationType,
+        lastCompletedStage: "BOOTSTRAP_RELEASE_ARMED",
+        target: { privatePostgres, ...target },
+      });
+      expect(
+        parseMaintenanceJournal(JSON.stringify(sealMaintenanceJournal(body))),
+      ).toMatchObject({
+        ok: false,
+        problem: { problemCode: "maintenance.journal.invalid_semantics" },
+      });
+    },
+  );
 });
