@@ -15,7 +15,7 @@ surface the ambiguity rather than guessing.
 
 ## Active
 
-- [Foundation M4 Host Ownership Fence & Forward Handoff](active/foundation/m4-host-ownership-fence-forward-handoff.md) — `ACTIVE`
+No active Foundation implementation plan.
 
 ## Completed
 
@@ -24,3 +24,4 @@ surface the ambiguity rather than guessing.
 - [Foundation M1 Final Corrective and Closure](completed/foundation/m1-final-corrective-and-closure.md) — `COMPLETED`
 - [Foundation M2 Pre-PostgreSQL Bootstrap Substrate](completed/foundation/m2-pre-postgresql-bootstrap-substrate.md) — `COMPLETED`
 - [Foundation M3 Private PostgreSQL Bootstrap & Identity](completed/foundation/m3-private-postgresql-bootstrap.md) — `COMPLETED` (implementation merged; qualification remains `PARTIAL`)
+- [Foundation M4 Host Ownership Fence & Forward Handoff](completed/foundation/m4-host-ownership-fence-forward-handoff.md) — `COMPLETED` (implementation merged; qualification remains `PARTIAL`)

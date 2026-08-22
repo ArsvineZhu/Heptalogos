@@ -2,7 +2,7 @@
 
 > **For agentic workers:** execute task-by-task with TDD. Do not widen the milestone to M5 Recovery or H2A Persistence. Every behavior-bearing task must add focused tests before implementation, and every completion claim must be tied to actually executed evidence.
 
-**Status:** ACTIVE — M3 PR #5 is squash-merged at `4b12c14693752d9796f8aa287666e6537321006d`; M3 qualification remains PARTIAL.
+**Status:** COMPLETED — M4 PR #6 is squash-merged at `83e0b603d039036326eca9983af381387a9bfdb3`; M4 qualification remains PARTIAL.
 
 **Goal:** Starting from a genuine `OwnedBootstrapPrelude + ReadyPrivatePostgres`, establish exactly one normal Host ownership authority using a dedicated PostgreSQL session-level advisory lease plus a database `HostOwnershipFence`, publish a fresh `HostOwnershipToken`, then release bootstrap ownership without a successful-path authority gap.
 
@@ -1400,3 +1400,26 @@ M4 final cross-platform CI: NOT_RUN
 M4 merge: NOT_RUN
 M5 reverse handoff / bounded Recovery: OPEN
 ```
+
+## Final closure addendum (2026-08-22)
+
+```text
+implementation candidate SHA: 49370ac764675640699a30c589a7f8e2e1903125
+independently reviewed exact HEAD: 9f10389563e009fe4908cd8fb2f0abc7cf4f600b
+independent review: PASS
+manual final CI run: 32559601995
+final CI target SHA: 9f10389563e009fe4908cd8fb2f0abc7cf4f600b
+final CI Windows: PASS
+final CI Linux: PASS
+final CI macOS: PASS
+squash merge SHA: 83e0b603d039036326eca9983af381387a9bfdb3
+M4 implementation milestone: COMPLETED
+M4 qualification state: PARTIAL
+M5 reverse handoff / bounded Recovery: OPEN
+H1: OPEN
+```
+
+The final CI workflow verified the exact reviewed HEAD on all three operating
+systems. Linux/macOS live PostgreSQL integration, source-less shipping,
+service-account ACL closure, M5 reverse handoff, and H1 closure remain outside
+this milestone's completed implementation claim.

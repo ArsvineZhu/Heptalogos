@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-22T07:16:13.000Z",
+  "recordedAt": "2026-08-22T07:31:18.000Z",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": [
@@ -447,8 +447,8 @@
         "m4_host_ownership_boundaries": "PASS",
         "m4_windows_host_ownership_real_pg": "PASS",
         "m4_windows_bootstrap_host_handoff_real_pg": "PASS",
-        "m4_independent_review": "NOT_RUN",
-        "m4_final_cross_platform_ci": "NOT_RUN",
+        "m4_independent_review": "PASS",
+        "m4_final_cross_platform_ci": "PASS",
         "m4_linux_host_ownership_real_pg": "NOT_RUN",
         "m4_macos_host_ownership_real_pg": "NOT_RUN",
         "windows_real_pg": "PASS",
@@ -475,6 +475,13 @@
         "candidateSha": "b94c61e6fe275aba5e4947c4bd90b38cb5d8658f",
         "finalHardeningCandidateSha": "7c93a3fa3fd9d50d75546d1b45ea28615fea2ae5",
         "m4HostOwnershipCandidateSha": "49370ac764675640699a30c589a7f8e2e1903125",
+        "m4ReviewedHeadSha": "9f10389563e009fe4908cd8fb2f0abc7cf4f600b",
+        "m4FinalCiRunId": "32559601995",
+        "m4FinalCiWorkflow": "verify-manual",
+        "m4FinalCiWindows": "PASS",
+        "m4FinalCiLinux": "PASS",
+        "m4FinalCiMacos": "PASS",
+        "m4SquashMergeSha": "83e0b603d039036326eca9983af381387a9bfdb3",
         "historicalPreCorrectionLinux": {
           "platform": "Linux PRTS 7.0.0-30-generic x86_64",
           "candidateSha": "46e66c776f17b43ae06c0cef8229c4cd4666919c",
@@ -517,8 +524,6 @@
         "macos_real_pg": "No corrected-candidate macOS PostgreSQL 18.6 runtime was available; final cross-platform CI remains NOT_RUN.",
         "source_less_shipping_closure": "The qualification runtime was an extracted Ubuntu package set, not a source-less Heptalogos shipping artifact with ReleaseManifest/SBOM closure.",
         "service_account_acl_closure": "M3 temporary-directory credential tests do not qualify installer/service-account ACL behavior on Windows, macOS, or Linux.",
-        "m4_independent_review": "The exact current M4 candidate has not yet received independent review; final CI is therefore not authorized.",
-        "m4_final_cross_platform_ci": "Final cross-platform CI was intentionally not dispatched before independent review of the current candidate.",
         "m4_linux_host_ownership_real_pg": "No corrected-candidate Linux M4 PostgreSQL runtime was executed.",
         "m4_macos_host_ownership_real_pg": "No corrected-candidate macOS M4 PostgreSQL runtime was executed."
       }

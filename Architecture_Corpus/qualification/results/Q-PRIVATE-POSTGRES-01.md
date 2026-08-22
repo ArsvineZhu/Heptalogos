@@ -205,6 +205,7 @@ earlier addenda as historical evidence.
 
 ```yaml
 candidate_sha: 49370ac764675640699a30c589a7f8e2e1903125
+reviewed_head_sha: 9f10389563e009fe4908cd8fb2f0abc7cf4f600b
 acl_grant_option_closed_world: PASS
 column_acl_closed_world: PASS
 host_role_privilege_confinement: PASS
@@ -218,8 +219,13 @@ windows_bootstrap_host_handoff_real_pg: PASS
 permanent_repository_verify: PASS
 linux_host_ownership_real_pg: NOT_RUN
 macos_host_ownership_real_pg: NOT_RUN
-independent_review: NOT_RUN
-final_cross_platform_ci: NOT_RUN
+independent_review: PASS
+final_cross_platform_ci: PASS
+final_ci_windows: PASS
+final_ci_linux: PASS
+final_ci_macos: PASS
+final_ci_run_id: 32559601995
+squash_merge_sha: 83e0b603d039036326eca9983af381387a9bfdb3
 ```
 
 At this exact candidate SHA, the focused unit suites passed: Host ownership
@@ -227,8 +233,14 @@ At this exact candidate SHA, the focused unit suites passed: Host ownership
 49/49. With the explicit PostgreSQL 18.6 Windows toolchain, real integration
 passed: private-postgres 20/20, Host ownership 7/7 including grant-option and
 column-specific ACL adversarial cases, and bootstrap-runtime 12/12. `pnpm
-verify` also passed. Corrected Linux/macOS real PostgreSQL, independent review,
-and final cross-platform CI remain `NOT_RUN`.
+verify` also passed. The exact reviewed HEAD
+`9f10389563e009fe4908cd8fb2f0abc7cf4f600b` received independent review PASS.
+Manual final CI run `32559601995` checked out and verified that same SHA on
+Windows, Linux, and macOS; all three jobs passed. The PR was then squash merged
+as `83e0b603d039036326eca9983af381387a9bfdb3`. Corrected Linux/macOS real
+PostgreSQL integration remains `NOT_RUN` because the final workflow runs the
+repository verification projection rather than the live PostgreSQL integration
+suite.
 
 ## Historical pre-correction Linux evidence
 
