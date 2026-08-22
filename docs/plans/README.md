@@ -15,7 +15,7 @@ surface the ambiguity rather than guessing.
 
 ## Active
 
-No active Foundation implementation plan.
+- [Foundation M5A Reverse Handoff & PostgreSQL Maintenance Window](active/foundation/m5a-reverse-handoff-maintenance-window.md) — `ACTIVE` (M5A implementation in progress; abandoned-lock Recovery remains M5B)
 
 ## Completed
 
