@@ -438,6 +438,15 @@
       "decisionBasis": "proper-lockfile 4.1.2 failed the deterministic delayed-stale-reclaimer race; proper-lockfile2 5.0.0 passed atomic stale-claim, process, and path qualification; PostgreSQL Host lease remains normal Host authority"
     },
     {
+      "id": "bootstrap.process-liveness",
+      "role": "abandoned bootstrap-owner process-generation liveness",
+      "candidate": "Node process.kill(pid, 0) + pidusage 4.0.1",
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "qualification": "self/live/dead/reused/unknown process identity qualification",
+      "decisionBasis": "Node kill(pid, 0) provides the first liveness probe and pidusage provides process start-time evidence; Heptalogos owns the four-state fail-closed semantics and fixed 5 second tolerance"
+    },
+    {
       "id": "sandbox.wasm",
       "role": "untrusted WASM Extension execution domain",
       "candidate": "to be researched when implementation enters scope",

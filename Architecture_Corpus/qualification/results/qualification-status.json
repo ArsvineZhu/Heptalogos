@@ -181,7 +181,7 @@
     },
     {
       "qualificationId": "Q-BOOT-01",
-      "testedProperty": "Normal concurrency, stale lock recovery, interrupted state/atomic writes, previous revision recovery, and Unicode path",
+      "testedProperty": "Normal concurrency, stale lock recovery, abandoned-owner process-generation identity, interrupted state/atomic writes, previous revision recovery, and Unicode path",
       "evidenceStatus": "PASS",
       "qualificationState": "OPEN",
       "evidence": {
@@ -197,6 +197,12 @@
         "compromised_lease_fenced": "PASS",
         "unicode_space_path": "PASS",
         "node24_esm_ts7_boundary": "PASS",
+        "process_identity_self": "PASS",
+        "process_identity_live_child": "PASS",
+        "process_identity_dead_child": "PASS",
+        "process_identity_pid_reused": "PASS",
+        "process_identity_unknown_kill_probe": "PASS",
+        "process_identity_unknown_pidusage": "PASS",
         "previous_revision_after_corrupt_current": "PASS",
         "kill_during_state_write": "PASS",
         "kill_during_atomic_replace": "PASS",
@@ -212,7 +218,11 @@
         "adapterQualificationTest": "packages/bootstrap-runtime/src/bootstrap-ownership.test.ts: 6/6 PASS",
         "candidateInstall": "@bybrave/proper-lockfile2@5.0.0 direct bootstrap-runtime dependency",
         "boundaryAndDependencyChecks": "pnpm check:dependencies + pnpm check:boundaries PASS",
-        "typescriptChecks": "pnpm typecheck + pnpm tsc6 PASS"
+        "typescriptChecks": "pnpm typecheck + pnpm tsc6 PASS",
+        "processIdentityAdapter": "packages/bootstrap-runtime/src/bootstrap-process-identity.ts",
+        "processIdentityTest": "packages/bootstrap-runtime/src/bootstrap-process-identity.test.ts: 6/6 PASS",
+        "processIdentityProvider": "Node process.kill(pid, 0) + pidusage@4.0.1",
+        "processIdentityTolerance": "5000 ms"
       },
       "notRunReasons": {
         "power_loss_cross_platform": "Power-loss hardware and macOS/Linux crash qualification are outside the current host."

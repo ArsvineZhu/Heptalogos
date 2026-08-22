@@ -453,6 +453,16 @@
       ]
     },
     {
+      "roleId": "bootstrap.process-liveness",
+      "route": "Node process.kill(pid, 0) + pidusage 4.0.1",
+      "boundary": "Abandoned bootstrap-owner process-generation identity adapter",
+      "directive": "USE",
+      "packages": [
+        "pidusage",
+        "@types/pidusage"
+      ]
+    },
+    {
       "roleId": "runtime.graph",
       "route": "@dagrejs/graphlib 4.x",
       "boundary": "Runtime graph mechanics adapter",

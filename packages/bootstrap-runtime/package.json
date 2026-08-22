@@ -17,11 +17,13 @@
     "@heptalogos/host-ownership": "workspace:*",
     "@heptalogos/private-postgres": "workspace:*",
     "ajv": "catalog:",
+    "pidusage": "catalog:",
     "typebox": "catalog:",
     "xstate": "catalog:"
   },
   "devDependencies": {
     "@types/pg": "catalog:",
+    "@types/pidusage": "catalog:",
     "pg": "catalog:",
     "vitest": "catalog:"
   }

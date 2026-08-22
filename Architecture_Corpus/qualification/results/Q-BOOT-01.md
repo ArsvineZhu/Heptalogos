@@ -2,7 +2,7 @@
 
 ```yaml
 qualificationId: Q-BOOT-01
-role: pre-PostgreSQL ownership lock
+role: pre-PostgreSQL ownership lock and abandoned-owner process identity
 evidenceStatus: PASS
 preImplementationDecisionState: CLOSED
 roleDecision: ADOPTED
@@ -25,6 +25,12 @@ evidence:
   compromised_lease_fenced: PASS
   unicode_space_path: PASS
   node24_esm_ts7_boundary: PASS
+  process_identity_self: PASS
+  process_identity_live_child: PASS
+  process_identity_dead_child: PASS
+  process_identity_pid_reused: PASS
+  process_identity_unknown_kill_probe: PASS
+  process_identity_unknown_pidusage: PASS
   previous_revision_after_corrupt_current: PASS
   kill_during_state_write: PASS
   kill_during_atomic_replace: PASS
@@ -47,5 +53,11 @@ selection. The real two-process interleaving parked reclaimer A after stale
 reported acquisition. This is the reproducible #121 hard blocker. The selected
 candidate's atomic rename claim returned `ELOCKED` for A and preserved B's lock
 under the same interleaving.
+
+Process-generation evidence uses a real child fixture and `pidusage@4.0.1`:
+`SAME_PROCESS` is returned for self/live child, `PROCESS_DEAD` only for a
+definitely missing PID, a start-time mismatch beyond 5 seconds is
+`PID_REUSED`, and both an ambiguous `kill(pid, 0)` error and a pidusage failure
+are `UNKNOWN`.
 
 若未来真实 implementation 暴露 reproducible hard blocker，才允许按 `../DEPENDENCY-QUALIFICATION.md` 的 reopening rule 重开 RoleDecision。

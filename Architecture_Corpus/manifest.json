@@ -7,7 +7,7 @@
     "preImplementationSelection": "CLOSED",
     "primaryCandidateCount": 0,
     "unresolvedCount": 0,
-    "adoptedCount": 49,
+    "adoptedCount": 50,
     "deferredCount": 2,
     "rejectedForRoleCount": 7
   },
@@ -90,8 +90,8 @@
     },
     {
       "path": "15-技术与依赖决策账本.md",
-      "size": 16902,
-      "sha256": "1a601692cb298cdd099de9cc58c94ed7f23740bf793146642acf86fd80c596b4"
+      "size": 17089,
+      "sha256": "726f764f50e16b358e02bd39e8544c8d680be19e04c1959a9de959d371624ef3"
     },
     {
       "path": "16-验证与资格认定体系.md",
@@ -135,8 +135,8 @@
     },
     {
       "path": "24-依赖使用与实现路由.md",
-      "size": 15365,
-      "sha256": "e9ede89615ede5f05648d52e93eeb677bdf03b33cbd45b42967c1e314359e92a"
+      "size": 15537,
+      "sha256": "4a5e94bb1c84d73a7c31d1aa5617eb25bba2d56132d6ffabf606f588c71047a4"
     },
     {
       "path": "25-TypeScript与仓库工具链.md",
@@ -155,13 +155,13 @@
     },
     {
       "path": "qualification/DEPENDENCY-QUALIFICATION.md",
-      "size": 7957,
-      "sha256": "0a89ebe2e1512e37dec7cc101db938a5207866d6fdc60f8d79db1297384e99d8"
+      "size": 8447,
+      "sha256": "8a8ef016b85f6c309fee2842073cebc2e43f1727821d16e8e46afb4c030f62a3"
     },
     {
       "path": "qualification/dependency-status.json",
-      "size": 22866,
-      "sha256": "3329b6d9ecce7499395426402ca2bf340bd66c2ff2139acc772d90c0843d557b"
+      "size": 23436,
+      "sha256": "da779425376cfa97f98c75932205a28f5eb83916fdc639ab5de4c2fefb6f84f1"
     },
     {
       "path": "qualification/results/C-CLI-01.md",
@@ -210,8 +210,8 @@
     },
     {
       "path": "qualification/results/Q-BOOT-01.md",
-      "size": 1959,
-      "sha256": "abff427c5d60d972e1aa759e57016ee4eb17d93ba772f5e2ad17beb43db91e9e"
+      "size": 2532,
+      "sha256": "2bcd4004d1a5af8d0973593c3cca3734afbbb8fed0558b735825b837a10a2f24"
     },
     {
       "path": "qualification/results/Q-MSG-01.md",
@@ -245,13 +245,13 @@
     },
     {
       "path": "qualification/results/qualification-status.json",
-      "size": 30884,
-      "sha256": "2a7b894ac9ad335f268275c2baeb74613a367c4ec879748217e2bef271084da6"
+      "size": 31555,
+      "sha256": "62fd737dc96339c7739f01250a37629323476e6eed96c4de9385bed40ab1f12b"
     },
     {
       "path": "qualification/依赖资格矩阵.md",
-      "size": 4213,
-      "sha256": "8520404bff432809e880df3d80a0992ce600f413c6838d7fa1deefeb818e2b67"
+      "size": 4358,
+      "sha256": "710efec96e2766fb3e94db43b4e237c5e502464b533f72aeb597fba986a296ad"
     },
     {
       "path": "qualification/验证结果模板.md",
@@ -260,8 +260,8 @@
     },
     {
       "path": "references/Foundation依赖证据基线-2026-08-20.md",
-      "size": 10851,
-      "sha256": "a042af87d16ceb7e5445be448d1bfc69aacb843daa082f388cc1a342dd21d8b6"
+      "size": 11023,
+      "sha256": "a728b238225299b447667fada42b0e111eb0f3385988b0b306f85c12f2deacc4"
     },
     {
       "path": "references/configuration-governance.json",
@@ -275,8 +275,8 @@
     },
     {
       "path": "references/dependency-routing.json",
-      "size": 13574,
-      "sha256": "b5ad49c6ca864a09d7c0ff1b3b6f07139f1dfdd5cb4a5f068fa9c7aaf9faedf4"
+      "size": 13877,
+      "sha256": "5442daf8438f709d19d493e705b7a424308733912227da1df098a35f5fd354ed"
     },
     {
       "path": "references/storage-governance.json",
