@@ -9,6 +9,7 @@ import {
 } from "@heptalogos/foundation-contracts";
 import { HOST_OWNERSHIP_FENCE_TABLE, HOST_OWNERSHIP_SCHEMA } from "./contracts.js";
 import type { HostLeaseConnection } from "./host-lease-connection.js";
+import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
 
 export interface PublishHostOwnershipTokenOptions {
   readonly connection: HostLeaseConnection;
@@ -17,6 +18,19 @@ export interface PublishHostOwnershipTokenOptions {
   readonly token: HostOwnershipToken;
   readonly fenceLockTimeoutMs: number;
   readonly statementTimeoutMs: number;
+  readonly mutationAuthority: BootstrapMutationAuthority;
+}
+
+async function authorizedConnectionQuery<Row = never>(
+  connection: HostLeaseConnection,
+  authority: BootstrapMutationAuthority,
+  text: string,
+  values?: readonly unknown[],
+): Promise<{ readonly rows: readonly Row[] }> {
+  authority.assertCurrent();
+  const result = await connection.query<Row>(text, values);
+  authority.assertCurrent();
+  return result;
 }
 
 interface FenceRow {
@@ -129,18 +143,30 @@ export async function publishHostOwnershipToken(
   connection.assertActive();
   let transactionOpen = false;
   try {
-    await connection.query("BEGIN");
+    await authorizedConnectionQuery(connection, options.mutationAuthority, "BEGIN");
     transactionOpen = true;
-    await connection.query("SELECT set_config('lock_timeout', $1, true)", [
-      `${options.fenceLockTimeoutMs}ms`,
-    ]);
-    await connection.query("SELECT set_config('statement_timeout', $1, true)", [
-      `${options.statementTimeoutMs}ms`,
-    ]);
-    const locked = await connection.query<FenceRow>(FENCE_FOR_UPDATE);
+    await authorizedConnectionQuery(
+      connection,
+      options.mutationAuthority,
+      "SELECT set_config('lock_timeout', $1, true)",
+      [`${options.fenceLockTimeoutMs}ms`],
+    );
+    await authorizedConnectionQuery(
+      connection,
+      options.mutationAuthority,
+      "SELECT set_config('statement_timeout', $1, true)",
+      [`${options.statementTimeoutMs}ms`],
+    );
+    const locked = await authorizedConnectionQuery<FenceRow>(
+      connection,
+      options.mutationAuthority,
+      FENCE_FOR_UPDATE,
+    );
     if (locked.rows.length !== 1) throw invalidFenceProblem();
     assertFenceRow(locked.rows[0], options.instanceId);
-    await connection.query(
+    await authorizedConnectionQuery(
+      connection,
+      options.mutationAuthority,
       `UPDATE "${HOST_OWNERSHIP_SCHEMA}"."${HOST_OWNERSHIP_FENCE_TABLE}"
 SET ownership_revision = ownership_revision + 1,
     host_ownership_token = $1,
@@ -148,10 +174,14 @@ SET ownership_revision = ownership_revision + 1,
 WHERE singleton = true`,
       [options.token, options.bootId],
     );
-    await connection.query("COMMIT");
+    await authorizedConnectionQuery(connection, options.mutationAuthority, "COMMIT");
     transactionOpen = false;
 
-    const verified = await connection.query<FenceRow>(FENCE_AFTER_COMMIT);
+    const verified = await authorizedConnectionQuery<FenceRow>(
+      connection,
+      options.mutationAuthority,
+      FENCE_AFTER_COMMIT,
+    );
     if (verified.rows.length !== 1) throw publicationUnverifiedProblem();
     assertPublishedRow(
       verified.rows[0],

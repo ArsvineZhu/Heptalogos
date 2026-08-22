@@ -9,6 +9,8 @@ import {
 import { publishHostOwnershipToken } from "./host-ownership.js";
 import type { HostLeaseConnection } from "./host-lease-connection.js";
 
+const mutationAuthority = { assertCurrent(): void {} };
+
 interface FenceRow {
   readonly singleton: boolean;
   readonly instance_id: string;
@@ -104,6 +106,7 @@ describe("HostOwnershipFence token publication", () => {
         token,
         fenceLockTimeoutMs: 1_000,
         statementTimeoutMs: 1_000,
+        mutationAuthority,
       }),
     ).resolves.toBeUndefined();
 
@@ -135,6 +138,7 @@ describe("HostOwnershipFence token publication", () => {
         token: createHostOwnershipToken(),
         fenceLockTimeoutMs: 1_000,
         statementTimeoutMs: 1_000,
+        mutationAuthority,
       }),
     ).rejects.toThrow();
 
@@ -160,10 +164,37 @@ describe("HostOwnershipFence token publication", () => {
         token,
         fenceLockTimeoutMs: 1_000,
         statementTimeoutMs: 1_000,
+        mutationAuthority,
       }),
     ).rejects.toMatchObject({
       problem: { problemCode: "host-ownership.fence.publication_unverified" },
     });
     expect(connection.state).toBe("FENCED");
+  });
+
+  it("fences and refuses success when bootstrap authority is lost after commit", async () => {
+    const { instanceId, connection } = fixture();
+    let calls = 0;
+    const authority = {
+      assertCurrent(): void {
+        calls += 1;
+        if (calls === 12) throw new Error("publication authority lost");
+      },
+    };
+    await expect(
+      publishHostOwnershipToken({
+        connection,
+        instanceId,
+        bootId: createBootId(),
+        token: createHostOwnershipToken(),
+        fenceLockTimeoutMs: 1_000,
+        statementTimeoutMs: 1_000,
+        mutationAuthority: authority,
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "host-ownership.fence.publication_failed" },
+    });
+    expect(connection.state).toBe("FENCED");
+    expect(connection.queries.map((query) => query.text)).toContain("COMMIT");
   });
 });

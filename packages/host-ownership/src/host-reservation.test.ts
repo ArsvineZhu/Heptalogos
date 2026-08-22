@@ -10,6 +10,8 @@ import {
   type BootstrapHostReservationOptions,
 } from "./bootstrap-admin.js";
 
+const mutationAuthority = { assertCurrent(): void {} };
+
 class FakeReservationClient implements BootstrapAdminClient {
   readonly queries: Array<{
     readonly text: string;
@@ -41,7 +43,10 @@ class FakeReservationClient implements BootstrapAdminClient {
   }
 }
 
-function makeOptions(acquired: boolean): {
+function makeOptions(
+  acquired: boolean,
+  mutationAuthority = { assertCurrent(): void {} },
+): {
   readonly client: FakeReservationClient;
   readonly options: BootstrapHostReservationOptions;
 } {
@@ -58,6 +63,7 @@ function makeOptions(acquired: boolean): {
     options: {
       port: 55436,
       advisoryKey: deriveHostAdvisoryKey(instanceId),
+      mutationAuthority,
       passwordProvider: {
         async withBootstrapPassword<T>(
           use: (passwordUtf8: Uint8Array) => Promise<T>,
@@ -97,4 +103,22 @@ describe("bootstrap Host reservation", () => {
     ).resolves.toBeUndefined();
     expect(fixture.client.endCalls).toBe(1);
   });
+
+  it.each([1, 2] as const)(
+    "does not retain a bootstrap reservation when authority is lost at boundary %s",
+    async (assertionNumber) => {
+      let calls = 0;
+      const authority = {
+        assertCurrent(): void {
+          calls += 1;
+          if (calls === assertionNumber) throw new Error("reservation authority lost");
+        },
+      };
+      const fixture = makeOptions(true, authority);
+      await expect(acquireBootstrapHostReservation(fixture.options)).rejects.toThrow(
+        "reservation authority lost",
+      );
+      expect(fixture.client.endCalls).toBe(1);
+    },
+  );
 });

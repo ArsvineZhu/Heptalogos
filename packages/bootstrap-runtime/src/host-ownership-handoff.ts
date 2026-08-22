@@ -8,9 +8,11 @@ import {
   deriveHostAdvisoryKey,
   ensureHostOwnershipSchema,
   HOST_OWNERSHIP_CANONICAL_DATABASE,
+  inspectCanonicalHostDatabase,
   provisionHostOwnershipDatabase,
   publishHostOwnershipToken,
   type BootstrapAdminPasswordProvider,
+  type BootstrapMutationAuthority,
   type HostOwnershipContext,
   type HostOwnershipState,
   type HostOwnershipTimingOptions,
@@ -215,6 +217,9 @@ export async function handoffPrivatePostgresToHostForOwnedPrelude(
   }
 
   const provider = passwordProvider(context, options.keyProvider);
+  const mutationAuthority: BootstrapMutationAuthority = Object.freeze({
+    assertCurrent: context.assertOwnership,
+  });
   const advisoryKey = deriveHostAdvisoryKey(context.instanceId);
   let reservation: Awaited<ReturnType<typeof acquireBootstrapHostReservation>> =
     undefined;
@@ -226,37 +231,72 @@ export async function handoffPrivatePostgresToHostForOwnedPrelude(
 
   try {
     context.assertOwnership();
-    await provisionHostOwnershipDatabase({
+    const databaseInspection = await inspectCanonicalHostDatabase({
       port: ready.port,
       passwordProvider: provider,
+      mutationAuthority,
       clientFactory: options.clientFactory,
     });
-    await recordStage(context, STAGE_DATABASE_VALIDATED, "SUCCEEDED");
 
-    reservation = await acquireBootstrapHostReservation({
-      port: ready.port,
-      advisoryKey,
-      passwordProvider: provider,
-      clientFactory: options.clientFactory,
-    });
+    if (databaseInspection.exists) {
+      reservation = await acquireBootstrapHostReservation({
+        port: ready.port,
+        advisoryKey,
+        passwordProvider: provider,
+        mutationAuthority,
+        clientFactory: options.clientFactory,
+      });
+    } else {
+      await provisionHostOwnershipDatabase({
+        port: ready.port,
+        passwordProvider: provider,
+        mutationAuthority,
+        clientFactory: options.clientFactory,
+      });
+      reservation = await acquireBootstrapHostReservation({
+        port: ready.port,
+        advisoryKey,
+        passwordProvider: provider,
+        mutationAuthority,
+        clientFactory: options.clientFactory,
+      });
+    }
     if (reservation === undefined) {
+      context.assertOwnership();
       await recordStage(context, STAGE_EXISTING_OWNER_DETECTED, "SUCCEEDED");
+      context.assertOwnership();
       context.privatePostgresSession.markYieldedToExistingHost(sessionToken);
       terminalHandoff = true;
+      context.assertOwnership();
       await context.ownership.release();
       throw existingOwnerProblem();
     }
+    if (databaseInspection.exists) {
+      await provisionHostOwnershipDatabase({
+        port: ready.port,
+        passwordProvider: provider,
+        mutationAuthority,
+        clientFactory: options.clientFactory,
+      });
+    }
+    context.assertOwnership();
+    await recordStage(context, STAGE_DATABASE_VALIDATED, "SUCCEEDED");
+    context.assertOwnership();
     await recordStage(context, STAGE_RESERVATION_ACQUIRED, "SUCCEEDED");
 
     await ensureHostOwnershipSchema({
       port: ready.port,
       instanceId: context.instanceId,
       passwordProvider: provider,
+      mutationAuthority,
       clientFactory: options.clientFactory,
     });
+    context.assertOwnership();
     await recordStage(context, STAGE_FENCE_VALIDATED, "SUCCEEDED");
 
+    context.assertOwnership();
     await reservation.release();
+    context.assertOwnership();
     reservationReleased = true;
     reservation = undefined;
 
@@ -269,8 +309,10 @@ export async function handoffPrivatePostgresToHostForOwnedPrelude(
       advisoryKey,
       timing: options.timing,
       passwordProvider: provider,
+      mutationAuthority,
       clientFactory: options.clientFactory,
     });
+    context.assertOwnership();
     await recordStage(context, STAGE_LEASE_ACQUIRED, "SUCCEEDED");
 
     token = createHostOwnershipToken();
@@ -281,11 +323,15 @@ export async function handoffPrivatePostgresToHostForOwnedPrelude(
       token,
       fenceLockTimeoutMs: options.timing.fenceLockTimeoutMs,
       statementTimeoutMs: options.timing.statementTimeoutMs,
+      mutationAuthority,
     });
+    context.assertOwnership();
     await recordStage(context, STAGE_TOKEN_PUBLISHED, "SUCCEEDED");
 
+    context.assertOwnership();
     context.privatePostgresSession.markHandedOff(sessionToken);
     terminalHandoff = true;
+    context.assertOwnership();
     try {
       await context.ownership.release();
     } catch {
@@ -313,6 +359,7 @@ export async function handoffPrivatePostgresToHostForOwnedPrelude(
       context.privatePostgresSession.state === "READY"
     ) {
       try {
+        context.assertOwnership();
         await ready.stop();
       } catch {
         // The original handoff failure remains authoritative; release stays fenced.

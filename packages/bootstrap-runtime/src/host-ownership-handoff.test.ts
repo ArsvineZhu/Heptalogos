@@ -17,6 +17,7 @@ import type { ReadyPrivatePostgres } from "./private-postgres-bootstrap.js";
 
 const hostOwnershipMocks = vi.hoisted(() => ({
   provision: vi.fn(),
+  inspect: vi.fn(),
   reserve: vi.fn(),
   schema: vi.fn(),
   acquireLease: vi.fn(),
@@ -29,6 +30,7 @@ vi.mock("@heptalogos/host-ownership", async () => {
   );
   return {
     ...actual,
+    inspectCanonicalHostDatabase: hostOwnershipMocks.inspect,
     provisionHostOwnershipDatabase: hostOwnershipMocks.provision,
     acquireBootstrapHostReservation: hostOwnershipMocks.reserve,
     ensureHostOwnershipSchema: hostOwnershipMocks.schema,
@@ -48,6 +50,7 @@ function makeContext(
   readonly ownership: { state: string; release: ReturnType<typeof vi.fn> };
   readonly session: ReturnType<typeof createPrivatePostgresSessionTracker>;
   readonly stages: string[];
+  readonly authority: { compromised: boolean };
 } {
   const installationId = createInstallationId();
   const instanceId = createInstanceId();
@@ -55,6 +58,7 @@ function makeContext(
   const session = createPrivatePostgresSessionTracker();
   const sessionToken = session.beginPreparation();
   session.markReady(sessionToken);
+  const authority = { compromised: false };
   const ownership = {
     state: "HELD",
     release: vi.fn(async () => {
@@ -101,7 +105,9 @@ function makeContext(
       assertHeld: () => undefined,
       release: ownership.release,
     } as never,
-    assertOwnership: () => undefined,
+    assertOwnership: () => {
+      if (authority.compromised) throw new Error("bootstrap ownership compromised");
+    },
     state: {} as never,
     journal: {
       checkpoint: vi.fn(async (entry: { readonly stage: string }) => {
@@ -122,7 +128,7 @@ function makeContext(
       return sessionToken;
     },
   } satisfies OwnedBootstrapPreludeHandoffContext;
-  return { context, ready, ownership, session, stages };
+  return { context, ready, ownership, session, stages, authority };
 }
 
 function makeOptions(): HostOwnershipHandoffOptions {
@@ -156,26 +162,93 @@ function installSuccessMocks(): {
 } {
   const releaseReservation = vi.fn(async () => undefined);
   const closeLease = vi.fn(async () => undefined);
-  hostOwnershipMocks.provision.mockResolvedValue({
-    ownerRoleCreated: true,
-    hostLeaseRoleCreated: true,
-    databaseCreated: true,
-  });
-  hostOwnershipMocks.reserve.mockResolvedValue({ release: releaseReservation });
-  hostOwnershipMocks.schema.mockResolvedValue({
-    schemaCreated: true,
-    tableCreated: true,
-    fenceRowInitialized: true,
-  });
-  hostOwnershipMocks.acquireLease.mockResolvedValue({
-    state: "ACTIVE",
-    signal: new AbortController().signal,
-    assertActive: vi.fn(),
-    fence: vi.fn(),
-    query: vi.fn(),
-    close: closeLease,
-  });
-  hostOwnershipMocks.publish.mockResolvedValue(undefined);
+  hostOwnershipMocks.inspect.mockImplementation(
+    async ({
+      mutationAuthority,
+    }: {
+      readonly mutationAuthority: { assertCurrent(): void };
+    }) => {
+      mutationAuthority.assertCurrent();
+      return { exists: false };
+    },
+  );
+  hostOwnershipMocks.provision.mockImplementation(
+    async ({
+      mutationAuthority,
+    }: {
+      readonly mutationAuthority: { assertCurrent(): void };
+    }) => {
+      mutationAuthority.assertCurrent();
+      const result = {
+        ownerRoleCreated: true,
+        hostLeaseRoleCreated: true,
+        databaseCreated: true,
+      };
+      mutationAuthority.assertCurrent();
+      return result;
+    },
+  );
+  hostOwnershipMocks.reserve.mockImplementation(
+    async ({
+      mutationAuthority,
+    }: {
+      readonly mutationAuthority: { assertCurrent(): void };
+    }) => {
+      mutationAuthority.assertCurrent();
+      const release = async () => {
+        mutationAuthority.assertCurrent();
+        await releaseReservation();
+        mutationAuthority.assertCurrent();
+      };
+      mutationAuthority.assertCurrent();
+      return { release };
+    },
+  );
+  hostOwnershipMocks.schema.mockImplementation(
+    async ({
+      mutationAuthority,
+    }: {
+      readonly mutationAuthority: { assertCurrent(): void };
+    }) => {
+      mutationAuthority.assertCurrent();
+      const result = {
+        schemaCreated: true,
+        tableCreated: true,
+        fenceRowInitialized: true,
+      };
+      mutationAuthority.assertCurrent();
+      return result;
+    },
+  );
+  hostOwnershipMocks.acquireLease.mockImplementation(
+    async ({
+      mutationAuthority,
+    }: {
+      readonly mutationAuthority: { assertCurrent(): void };
+    }) => {
+      mutationAuthority.assertCurrent();
+      const result = {
+        state: "ACTIVE",
+        signal: new AbortController().signal,
+        assertActive: vi.fn(),
+        fence: vi.fn(),
+        query: vi.fn(),
+        close: closeLease,
+      };
+      mutationAuthority.assertCurrent();
+      return result;
+    },
+  );
+  hostOwnershipMocks.publish.mockImplementation(
+    async ({
+      mutationAuthority,
+    }: {
+      readonly mutationAuthority: { assertCurrent(): void };
+    }) => {
+      mutationAuthority.assertCurrent();
+      mutationAuthority.assertCurrent();
+    },
+  );
   return { releaseReservation, closeLease };
 }
 
@@ -211,6 +284,7 @@ describe("bootstrap to Host ownership handoff", () => {
 
   it("yields an already-running PostgreSQL process when another Host owns the reservation", async () => {
     const fixture = makeContext("ALREADY_RUNNING");
+    hostOwnershipMocks.inspect.mockResolvedValue({ exists: true });
     hostOwnershipMocks.provision.mockResolvedValue({
       ownerRoleCreated: false,
       hostLeaseRoleCreated: false,
@@ -229,6 +303,9 @@ describe("bootstrap to Host ownership handoff", () => {
     });
     expect(fixture.session.state).toBe("YIELDED_TO_EXISTING_HOST");
     expect(fixture.ownership.state).toBe("RELEASED");
+    expect(hostOwnershipMocks.inspect).toHaveBeenCalledOnce();
+    expect(hostOwnershipMocks.reserve).toHaveBeenCalledOnce();
+    expect(hostOwnershipMocks.provision).not.toHaveBeenCalled();
     expect(hostOwnershipMocks.schema).not.toHaveBeenCalled();
     expect(hostOwnershipMocks.acquireLease).not.toHaveBeenCalled();
     expect(hostOwnershipMocks.publish).not.toHaveBeenCalled();
@@ -332,7 +409,7 @@ describe("bootstrap to Host ownership handoff", () => {
     expect(secondToken).not.toBe(firstToken);
 
     const releaseFailure = makeContext("STARTED_BY_THIS_BOOTSTRAP");
-    installSuccessMocks();
+    const { closeLease } = installSuccessMocks();
     releaseFailure.ownership.release.mockRejectedValueOnce(
       new Error("before bootstrap lock release"),
     );
@@ -347,7 +424,114 @@ describe("bootstrap to Host ownership handoff", () => {
     });
     expect(releaseFailure.session.state).toBe("HANDED_OFF");
     expect(releaseFailure.ownership.state).toBe("HELD");
+    expect(closeLease).toHaveBeenCalledOnce();
     await (releaseFailure.ownership.release as unknown as () => Promise<void>)();
     expect(releaseFailure.ownership.state).toBe("RELEASED");
+  });
+
+  it("does not manufacture Host ACTIVE after bootstrap authority is lost before mutation", async () => {
+    const fixture = makeContext("STARTED_BY_THIS_BOOTSTRAP");
+    installSuccessMocks();
+    fixture.authority.compromised = true;
+
+    await expect(
+      handoffPrivatePostgresToHostForOwnedPrelude(
+        fixture.context,
+        fixture.ready,
+        makeOptions(),
+      ),
+    ).rejects.toThrow("bootstrap ownership compromised");
+    expect(fixture.session.state).toBe("READY");
+    expect(fixture.ownership.state).toBe("HELD");
+    expect(hostOwnershipMocks.provision).not.toHaveBeenCalled();
+    expect(hostOwnershipMocks.acquireLease).not.toHaveBeenCalled();
+  });
+
+  it("stops before schema mutation when authority is lost after reservation", async () => {
+    const fixture = makeContext("STARTED_BY_THIS_BOOTSTRAP");
+    installSuccessMocks();
+    hostOwnershipMocks.schema.mockImplementation(
+      async ({
+        mutationAuthority,
+      }: {
+        readonly mutationAuthority: { assertCurrent(): void };
+      }) => {
+        fixture.authority.compromised = true;
+        mutationAuthority.assertCurrent();
+        return { schemaCreated: true, tableCreated: true, fenceRowInitialized: true };
+      },
+    );
+
+    await expect(
+      handoffPrivatePostgresToHostForOwnedPrelude(
+        fixture.context,
+        fixture.ready,
+        makeOptions(),
+      ),
+    ).rejects.toThrow("bootstrap ownership compromised");
+    expect(hostOwnershipMocks.acquireLease).not.toHaveBeenCalled();
+    expect(fixture.session.state).toBe("READY");
+    expect(fixture.ownership.state).toBe("HELD");
+  });
+
+  it("stops before token publication when authority is lost during Host lease acquisition", async () => {
+    const fixture = makeContext("STARTED_BY_THIS_BOOTSTRAP");
+    installSuccessMocks();
+    hostOwnershipMocks.acquireLease.mockImplementation(
+      async ({
+        mutationAuthority,
+      }: {
+        readonly mutationAuthority: { assertCurrent(): void };
+      }) => {
+        mutationAuthority.assertCurrent();
+        fixture.authority.compromised = true;
+        mutationAuthority.assertCurrent();
+        return {
+          state: "ACTIVE",
+          signal: new AbortController().signal,
+          assertActive: vi.fn(),
+          fence: vi.fn(),
+          query: vi.fn(),
+        };
+      },
+    );
+
+    await expect(
+      handoffPrivatePostgresToHostForOwnedPrelude(
+        fixture.context,
+        fixture.ready,
+        makeOptions(),
+      ),
+    ).rejects.toThrow("bootstrap ownership compromised");
+    expect(hostOwnershipMocks.publish).not.toHaveBeenCalled();
+    expect(fixture.session.state).toBe("READY");
+    expect(fixture.ownership.state).toBe("HELD");
+  });
+
+  it("fences the tentative Host lease when authority is lost after token mutation", async () => {
+    const fixture = makeContext("STARTED_BY_THIS_BOOTSTRAP");
+    const { closeLease } = installSuccessMocks();
+    hostOwnershipMocks.publish.mockImplementation(
+      async ({
+        mutationAuthority,
+      }: {
+        readonly mutationAuthority: { assertCurrent(): void };
+      }) => {
+        fixture.authority.compromised = true;
+        mutationAuthority.assertCurrent();
+      },
+    );
+
+    await expect(
+      handoffPrivatePostgresToHostForOwnedPrelude(
+        fixture.context,
+        fixture.ready,
+        makeOptions(),
+      ),
+    ).rejects.toThrow("bootstrap ownership compromised");
+    expect(closeLease).toHaveBeenCalledOnce();
+    expect(fixture.session.state).toBe("READY");
+    expect(fixture.ownership.state).toBe("HELD");
+    expect(fixture.ready.stopSpy).not.toHaveBeenCalled();
   });
 });

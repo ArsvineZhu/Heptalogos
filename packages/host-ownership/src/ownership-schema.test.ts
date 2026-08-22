@@ -13,6 +13,8 @@ import {
 } from "./bootstrap-admin.js";
 import { ensureHostOwnershipSchema } from "./ownership-schema.js";
 
+const mutationAuthority = { assertCurrent(): void {} };
+
 interface SchemaState {
   schemaExists: boolean;
   tableExists: boolean;
@@ -29,19 +31,19 @@ interface SchemaState {
     readonly definition: string;
   }[];
   readonly fenceRows: Array<Record<string, unknown>>;
-  readonly databaseAcl: Array<{
+  databaseAcl: Array<{
     readonly grantee: string;
     readonly privilege_type: string;
   }>;
-  readonly publicSchemaAcl: Array<{
+  publicSchemaAcl: Array<{
     readonly grantee: string;
     readonly privilege_type: string;
   }>;
-  readonly schemaAcl: Array<{
+  schemaAcl: Array<{
     readonly grantee: string;
     readonly privilege_type: string;
   }>;
-  readonly tableAcl: Array<{
+  tableAcl: Array<{
     readonly grantee: string;
     readonly privilege_type: string;
   }>;
@@ -176,6 +178,57 @@ class FakeSchemaClient implements BootstrapAdminClient {
         this.state.tableExists = true;
         this.state.tableOwner = HOST_OWNERSHIP_OWNER_ROLE;
       }
+      if (normalized.startsWith("REVOKE ALL ON DATABASE")) {
+        this.state.databaseAcl = this.state.databaseAcl.filter(
+          (row) => row.grantee !== "PUBLIC",
+        );
+      }
+      if (normalized.startsWith("GRANT CONNECT ON DATABASE")) {
+        this.state.databaseAcl = [
+          ...this.state.databaseAcl.filter(
+            (row) =>
+              !(row.grantee === HOST_LEASE_ROLE && row.privilege_type === "CONNECT"),
+          ),
+          { grantee: HOST_LEASE_ROLE, privilege_type: "CONNECT" },
+        ];
+      }
+      if (normalized === "REVOKE CREATE ON SCHEMA public FROM PUBLIC") {
+        this.state.publicSchemaAcl = this.state.publicSchemaAcl.filter(
+          (row) => !(row.grantee === "PUBLIC" && row.privilege_type === "CREATE"),
+        );
+      }
+      if (
+        normalized.startsWith("REVOKE ALL ON SCHEMA") &&
+        normalized.includes("FROM PUBLIC")
+      ) {
+        this.state.schemaAcl = this.state.schemaAcl.filter(
+          (row) => row.grantee !== "PUBLIC",
+        );
+      }
+      if (normalized.startsWith("GRANT USAGE ON SCHEMA")) {
+        this.state.schemaAcl = [
+          ...this.state.schemaAcl.filter(
+            (row) =>
+              !(row.grantee === HOST_LEASE_ROLE && row.privilege_type === "USAGE"),
+          ),
+          { grantee: HOST_LEASE_ROLE, privilege_type: "USAGE" },
+        ];
+      }
+      if (
+        normalized.startsWith("REVOKE ALL ON TABLE") &&
+        normalized.includes("FROM PUBLIC")
+      ) {
+        this.state.tableAcl = this.state.tableAcl.filter(
+          (row) => row.grantee !== "PUBLIC",
+        );
+      }
+      if (normalized.startsWith("GRANT SELECT, UPDATE ON TABLE")) {
+        this.state.tableAcl = [
+          ...this.state.tableAcl.filter((row) => row.grantee !== HOST_LEASE_ROLE),
+          { grantee: HOST_LEASE_ROLE, privilege_type: "SELECT" },
+          { grantee: HOST_LEASE_ROLE, privilege_type: "UPDATE" },
+        ];
+      }
       return { rows: [] };
     }
     if (normalized.startsWith("INSERT INTO")) {
@@ -206,6 +259,9 @@ function makeOptions(
   instanceId: string,
   state: SchemaState,
   fault?: SchemaFault,
+  authority: Parameters<
+    typeof ensureHostOwnershipSchema
+  >[0]["mutationAuthority"] = mutationAuthority,
 ): {
   readonly client: FakeSchemaClient;
   readonly options: Parameters<typeof ensureHostOwnershipSchema>[0];
@@ -235,6 +291,7 @@ function makeOptions(
     options: {
       port: 55436,
       instanceId: parsedInstanceId,
+      mutationAuthority: authority,
       passwordProvider,
       clientFactory: factory,
     },
@@ -433,4 +490,86 @@ describe("HostOwnershipFence schema", () => {
       ownership_revision: "0",
     });
   });
+
+  it("fails closed on an unexpected explicit database, schema, or table grantee", async () => {
+    const baseState: SchemaState = {
+      schemaExists: true,
+      tableExists: true,
+      fenceRows: [
+        {
+          singleton: true,
+          instance_id: "0197cfe0-0000-7000-8000-000000000001",
+          ownership_revision: "0",
+          host_ownership_token: null,
+          boot_id: null,
+        },
+      ],
+      databaseAcl: [{ grantee: HOST_LEASE_ROLE, privilege_type: "CONNECT" }],
+      publicSchemaAcl: [],
+      schemaAcl: [{ grantee: HOST_LEASE_ROLE, privilege_type: "USAGE" }],
+      tableAcl: [
+        { grantee: HOST_LEASE_ROLE, privilege_type: "SELECT" },
+        { grantee: HOST_LEASE_ROLE, privilege_type: "UPDATE" },
+      ],
+    };
+    const cases: Array<
+      Partial<Pick<SchemaState, "databaseAcl" | "schemaAcl" | "tableAcl">>
+    > = [
+      { databaseAcl: [{ grantee: "m4_intruder", privilege_type: "CONNECT" }] },
+      { schemaAcl: [{ grantee: "m4_intruder", privilege_type: "USAGE" }] },
+      { tableAcl: [{ grantee: "m4_intruder", privilege_type: "SELECT" }] },
+    ];
+    for (const change of cases) {
+      const fixture = makeOptions("0197cfe0-0000-7000-8000-000000000001", {
+        ...baseState,
+        ...change,
+      });
+      await expect(ensureHostOwnershipSchema(fixture.options)).rejects.toMatchObject({
+        problem: { problemCode: "host-ownership.schema.incompatible" },
+      });
+    }
+  });
+
+  it.each([1, 2] as const)(
+    "stops schema mutation when bootstrap authority is lost at boundary %s",
+    async (assertionNumber) => {
+      let calls = 0;
+      const authority = {
+        assertCurrent(): void {
+          calls += 1;
+          if (calls === assertionNumber) throw new Error("schema authority lost");
+        },
+      };
+      const state: SchemaState = {
+        schemaExists: false,
+        tableExists: false,
+        fenceRows: [],
+        databaseAcl: [
+          { grantee: "PUBLIC", privilege_type: "CONNECT" },
+          { grantee: "PUBLIC", privilege_type: "TEMPORARY" },
+        ],
+        publicSchemaAcl: [],
+        schemaAcl: [],
+        tableAcl: [],
+      };
+      const fixture = makeOptions(
+        "0197cfe0-0000-7000-8000-000000000001",
+        state,
+        undefined,
+        authority,
+      );
+      await expect(ensureHostOwnershipSchema(fixture.options)).rejects.toThrow(
+        "schema authority lost",
+      );
+      if (assertionNumber === 1) {
+        expect(fixture.client.calls.map((call) => call.text).join("\n")).not.toContain(
+          "REVOKE ALL ON DATABASE",
+        );
+      } else {
+        expect(fixture.client.calls.map((call) => call.text).join("\n")).toContain(
+          "REVOKE ALL ON DATABASE",
+        );
+      }
+    },
+  );
 });

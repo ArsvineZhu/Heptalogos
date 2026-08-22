@@ -17,11 +17,13 @@ import {
   type BootstrapAdminPasswordProvider,
   withBootstrapAdminClient,
 } from "./bootstrap-admin.js";
+import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
 
 export interface OwnershipSchemaOptions {
   readonly port: number;
   readonly instanceId: InstanceId;
   readonly passwordProvider: BootstrapAdminPasswordProvider;
+  readonly mutationAuthority: BootstrapMutationAuthority;
   readonly clientFactory?: unknown;
 }
 
@@ -57,6 +59,7 @@ interface ConstraintRow {
 interface AclRow {
   readonly grantee: string;
   readonly privilege_type: string;
+  readonly owner_name?: string;
 }
 
 interface FenceRow {
@@ -74,25 +77,25 @@ WHERE n.nspname = $1
 `;
 
 const DATABASE_ACL_QUERY = `
-SELECT CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(acl.grantee) END AS grantee,
+SELECT pg_get_userbyid(databases.datdba) AS owner_name,
+       CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(acl.grantee) END AS grantee,
        acl.privilege_type
 FROM pg_catalog.pg_database AS databases
 CROSS JOIN LATERAL aclexplode(
   COALESCE(databases.datacl, acldefault('d', databases.datdba))
 ) AS acl
 WHERE databases.datname = $1
-  AND (acl.grantee = 0 OR pg_get_userbyid(acl.grantee) = $2)
 `;
 
 const SCHEMA_ACL_QUERY = `
-SELECT CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(acl.grantee) END AS grantee,
+SELECT pg_get_userbyid(namespaces.nspowner) AS owner_name,
+       CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(acl.grantee) END AS grantee,
        acl.privilege_type
 FROM pg_catalog.pg_namespace AS namespaces
 CROSS JOIN LATERAL aclexplode(
   COALESCE(namespaces.nspacl, acldefault('n', namespaces.nspowner))
 ) AS acl
 WHERE namespaces.nspname = $1
-  AND (acl.grantee = 0 OR pg_get_userbyid(acl.grantee) = $2)
 `;
 
 const TABLE_QUERY = `
@@ -122,7 +125,8 @@ ORDER BY conname
 `;
 
 const TABLE_ACL_QUERY = `
-SELECT CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(acl.grantee) END AS grantee,
+SELECT pg_get_userbyid(tables.relowner) AS owner_name,
+       CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(acl.grantee) END AS grantee,
        acl.privilege_type
 FROM pg_catalog.pg_class AS tables
 JOIN pg_catalog.pg_namespace AS namespaces ON namespaces.oid = tables.relnamespace
@@ -130,7 +134,6 @@ CROSS JOIN LATERAL aclexplode(
   COALESCE(tables.relacl, acldefault('r', tables.relowner))
 ) AS acl
 WHERE namespaces.nspname = $1 AND tables.relname = $2
-  AND (acl.grantee = 0 OR pg_get_userbyid(acl.grantee) = $3)
 `;
 
 const FENCE_QUERY = `
@@ -175,20 +178,54 @@ function quoteIdentifier(identifier: string): string {
   return `"${identifier.replaceAll('"', '""')}"`;
 }
 
-function privileges(rows: readonly AclRow[], grantee: string): Set<string> {
-  return new Set(
-    rows.filter((row) => row.grantee === grantee).map((row) => row.privilege_type),
+function explicitAcl(rows: readonly AclRow[]): readonly AclRow[] {
+  // PostgreSQL reports the object's implicit owner privileges through
+  // acldefault(). They are authority inherent to the canonical owner, not
+  // grant edges that Host ownership must manage. Every other explicit edge
+  // remains visible and is validated closed-world.
+  return rows.filter(
+    (row) => row.owner_name === undefined || row.grantee !== row.owner_name,
   );
 }
 
-function assertSubset(
-  actual: ReadonlySet<string>,
+function aclKeys(rows: readonly AclRow[]): Set<string> {
+  return new Set(rows.map((row) => `${row.grantee}:${row.privilege_type}`));
+}
+
+function assertAclSubset(
+  rows: readonly AclRow[],
   allowed: ReadonlySet<string>,
   detail: string,
 ): void {
-  for (const privilege of actual) {
-    if (!allowed.has(privilege)) throw incompatibleSchemaProblem(detail);
+  for (const edge of aclKeys(explicitAcl(rows))) {
+    if (!allowed.has(edge)) throw incompatibleSchemaProblem(detail);
   }
+}
+
+function assertAclExact(
+  rows: readonly AclRow[],
+  expected: ReadonlySet<string>,
+  detail: string,
+): void {
+  const actual = aclKeys(explicitAcl(rows));
+  if (
+    actual.size !== expected.size ||
+    [...actual].some((edge) => !expected.has(edge))
+  ) {
+    throw incompatibleSchemaProblem(detail);
+  }
+}
+
+async function authorizedMutation<Row = never>(
+  client: BootstrapAdminClient,
+  authority: BootstrapMutationAuthority,
+  text: string,
+  values?: readonly unknown[],
+): Promise<{ readonly rows: readonly Row[] }> {
+  authority.assertCurrent();
+  const result = await client.query<Row>(text, values);
+  authority.assertCurrent();
+  return result;
 }
 
 function assertExactColumns(rows: readonly ColumnRow[]): void {
@@ -253,40 +290,68 @@ function assertFenceRow(row: FenceRow, instanceId: InstanceId): void {
   }
 }
 
-async function ensureDatabasePrivileges(client: BootstrapAdminClient): Promise<void> {
+async function ensureDatabasePrivileges(
+  client: BootstrapAdminClient,
+  authority: BootstrapMutationAuthority,
+): Promise<void> {
   const rows = await client.query<AclRow>(DATABASE_ACL_QUERY, [
     HOST_OWNERSHIP_CANONICAL_DATABASE,
-    HOST_LEASE_ROLE,
   ]);
-  assertSubset(
-    privileges(rows.rows, "PUBLIC"),
-    new Set(["CONNECT", "TEMPORARY"]),
-    "Unexpected PUBLIC database privileges exist on the canonical database",
+  assertAclSubset(
+    rows.rows,
+    new Set(["PUBLIC:CONNECT", "PUBLIC:TEMPORARY", `${HOST_LEASE_ROLE}:CONNECT`]),
+    "Unexpected explicit database privilege exists on the canonical database",
   );
-  await client.query(
+  await authorizedMutation(
+    client,
+    authority,
     `REVOKE ALL ON DATABASE ${quoteIdentifier(HOST_OWNERSHIP_CANONICAL_DATABASE)} FROM PUBLIC`,
   );
-  await client.query(
+  await authorizedMutation(
+    client,
+    authority,
     `GRANT CONNECT ON DATABASE ${quoteIdentifier(HOST_OWNERSHIP_CANONICAL_DATABASE)} TO ${quoteIdentifier(HOST_LEASE_ROLE)}`,
+  );
+  const verified = await client.query<AclRow>(DATABASE_ACL_QUERY, [
+    HOST_OWNERSHIP_CANONICAL_DATABASE,
+  ]);
+  assertAclExact(
+    verified.rows,
+    new Set([`${HOST_LEASE_ROLE}:CONNECT`]),
+    "Canonical database privileges do not match the closed-world contract",
   );
 }
 
 async function ensurePublicSchemaPrivileges(
   client: BootstrapAdminClient,
+  authority: BootstrapMutationAuthority,
 ): Promise<void> {
-  const rows = await client.query<AclRow>(SCHEMA_ACL_QUERY, [
-    "public",
-    HOST_LEASE_ROLE,
-  ]);
-  assertSubset(
-    privileges(rows.rows, "PUBLIC"),
-    new Set(["USAGE", "CREATE"]),
-    "Unexpected PUBLIC privileges exist on the public schema",
+  const rows = await client.query<AclRow>(SCHEMA_ACL_QUERY, ["public"]);
+  assertAclSubset(
+    rows.rows,
+    new Set(["PUBLIC:USAGE", "PUBLIC:CREATE"]),
+    "Unexpected explicit privilege exists on the public schema",
   );
-  await client.query("REVOKE CREATE ON SCHEMA public FROM PUBLIC");
+  const preserved = new Set(
+    [...aclKeys(explicitAcl(rows.rows))].filter((edge) => edge !== "PUBLIC:CREATE"),
+  );
+  await authorizedMutation(
+    client,
+    authority,
+    "REVOKE CREATE ON SCHEMA public FROM PUBLIC",
+  );
+  const verified = await client.query<AclRow>(SCHEMA_ACL_QUERY, ["public"]);
+  assertAclExact(
+    verified.rows,
+    preserved,
+    "Public schema privileges do not match the closed-world contract",
+  );
 }
 
-async function ensureProductSchema(client: BootstrapAdminClient): Promise<boolean> {
+async function ensureProductSchema(
+  client: BootstrapAdminClient,
+  authority: BootstrapMutationAuthority,
+): Promise<boolean> {
   const rows = await client.query<SchemaRow>(SCHEMA_QUERY, [HOST_OWNERSHIP_SCHEMA]);
   if (rows.rows.length > 1) {
     throw incompatibleSchemaProblem(
@@ -302,33 +367,44 @@ async function ensureProductSchema(client: BootstrapAdminClient): Promise<boolea
   }
 
   if (schemaCreated) {
-    await client.query(
+    await authorizedMutation(
+      client,
+      authority,
       `CREATE SCHEMA ${quoteIdentifier(HOST_OWNERSHIP_SCHEMA)} AUTHORIZATION ${quoteIdentifier(HOST_OWNERSHIP_OWNER_ROLE)}`,
     );
   } else {
-    const acl = await client.query<AclRow>(SCHEMA_ACL_QUERY, [
-      HOST_OWNERSHIP_SCHEMA,
-      HOST_LEASE_ROLE,
-    ]);
-    if (privileges(acl.rows, "PUBLIC").size !== 0) {
-      throw incompatibleSchemaProblem("PUBLIC has privileges on the Heptalogos schema");
-    }
-    assertSubset(
-      privileges(acl.rows, HOST_LEASE_ROLE),
-      new Set(["USAGE"]),
-      "The host lease role has unexpected Heptalogos schema privileges",
+    const acl = await client.query<AclRow>(SCHEMA_ACL_QUERY, [HOST_OWNERSHIP_SCHEMA]);
+    assertAclSubset(
+      acl.rows,
+      new Set(["PUBLIC:USAGE", "PUBLIC:CREATE", `${HOST_LEASE_ROLE}:USAGE`]),
+      "Unexpected explicit privilege exists on the Heptalogos schema",
     );
   }
-  await client.query(
+  await authorizedMutation(
+    client,
+    authority,
     `REVOKE ALL ON SCHEMA ${quoteIdentifier(HOST_OWNERSHIP_SCHEMA)} FROM PUBLIC`,
   );
-  await client.query(
+  await authorizedMutation(
+    client,
+    authority,
     `GRANT USAGE ON SCHEMA ${quoteIdentifier(HOST_OWNERSHIP_SCHEMA)} TO ${quoteIdentifier(HOST_LEASE_ROLE)}`,
+  );
+  const verified = await client.query<AclRow>(SCHEMA_ACL_QUERY, [
+    HOST_OWNERSHIP_SCHEMA,
+  ]);
+  assertAclExact(
+    verified.rows,
+    new Set([`${HOST_LEASE_ROLE}:USAGE`]),
+    "Heptalogos schema privileges do not match the closed-world contract",
   );
   return schemaCreated;
 }
 
-async function ensureFenceTable(client: BootstrapAdminClient): Promise<boolean> {
+async function ensureFenceTable(
+  client: BootstrapAdminClient,
+  authority: BootstrapMutationAuthority,
+): Promise<boolean> {
   const rows = await client.query<TableRow>(TABLE_QUERY, [
     HOST_OWNERSHIP_SCHEMA,
     HOST_OWNERSHIP_FENCE_TABLE,
@@ -361,18 +437,27 @@ async function ensureFenceTable(client: BootstrapAdminClient): Promise<boolean> 
     const acl = await client.query<AclRow>(TABLE_ACL_QUERY, [
       HOST_OWNERSHIP_SCHEMA,
       HOST_OWNERSHIP_FENCE_TABLE,
-      HOST_LEASE_ROLE,
     ]);
-    if (privileges(acl.rows, "PUBLIC").size !== 0) {
-      throw incompatibleSchemaProblem("PUBLIC has privileges on HostOwnershipFence");
-    }
-    assertSubset(
-      privileges(acl.rows, HOST_LEASE_ROLE),
-      new Set(["SELECT", "UPDATE"]),
-      "The host lease role has unexpected HostOwnershipFence privileges",
+    assertAclSubset(
+      acl.rows,
+      new Set([
+        "PUBLIC:SELECT",
+        "PUBLIC:INSERT",
+        "PUBLIC:UPDATE",
+        "PUBLIC:DELETE",
+        "PUBLIC:TRUNCATE",
+        "PUBLIC:REFERENCES",
+        "PUBLIC:TRIGGER",
+        `${HOST_LEASE_ROLE}:SELECT`,
+        `${HOST_LEASE_ROLE}:UPDATE`,
+      ]),
+      "Unexpected explicit privilege exists on HostOwnershipFence",
     );
   } else {
-    await client.query(`
+    await authorizedMutation(
+      client,
+      authority,
+      `
 CREATE TABLE ${quoteIdentifier(HOST_OWNERSHIP_SCHEMA)}.${quoteIdentifier(HOST_OWNERSHIP_FENCE_TABLE)} (
   singleton boolean NOT NULL,
   instance_id uuid NOT NULL,
@@ -382,20 +467,39 @@ CREATE TABLE ${quoteIdentifier(HOST_OWNERSHIP_SCHEMA)}.${quoteIdentifier(HOST_OW
   CONSTRAINT host_ownership_fence_singleton_pkey PRIMARY KEY (singleton),
   CONSTRAINT host_ownership_fence_singleton_check CHECK (singleton),
   CONSTRAINT host_ownership_fence_revision_check CHECK (ownership_revision >= 0)
-)`);
-    await client.query(
+)`,
+    );
+    await authorizedMutation(
+      client,
+      authority,
       `ALTER TABLE ${tableRef} OWNER TO ${quoteIdentifier(HOST_OWNERSHIP_OWNER_ROLE)}`,
     );
   }
-  await client.query(`REVOKE ALL ON TABLE ${tableRef} FROM PUBLIC`);
-  await client.query(
+  await authorizedMutation(
+    client,
+    authority,
+    `REVOKE ALL ON TABLE ${tableRef} FROM PUBLIC`,
+  );
+  await authorizedMutation(
+    client,
+    authority,
     `GRANT SELECT, UPDATE ON TABLE ${tableRef} TO ${quoteIdentifier(HOST_LEASE_ROLE)}`,
+  );
+  const verified = await client.query<AclRow>(TABLE_ACL_QUERY, [
+    HOST_OWNERSHIP_SCHEMA,
+    HOST_OWNERSHIP_FENCE_TABLE,
+  ]);
+  assertAclExact(
+    verified.rows,
+    new Set([`${HOST_LEASE_ROLE}:SELECT`, `${HOST_LEASE_ROLE}:UPDATE`]),
+    "HostOwnershipFence privileges do not match the closed-world contract",
   );
   return tableCreated;
 }
 
 async function ensureFenceRow(
   client: BootstrapAdminClient,
+  authority: BootstrapMutationAuthority,
   instanceId: InstanceId,
 ): Promise<boolean> {
   const rows = await client.query<FenceRow>(FENCE_QUERY);
@@ -410,7 +514,9 @@ async function ensureFenceRow(
     assertFenceRow(existing, instanceId);
     return false;
   }
-  await client.query(
+  await authorizedMutation(
+    client,
+    authority,
     `
 INSERT INTO ${quoteIdentifier(HOST_OWNERSHIP_SCHEMA)}.${quoteIdentifier(HOST_OWNERSHIP_FENCE_TABLE)}
   (singleton, instance_id, ownership_revision, host_ownership_token, boot_id)
@@ -432,11 +538,18 @@ export async function ensureHostOwnershipSchema(
       clientFactory: options.clientFactory,
     },
     async (client) => {
-      await ensureDatabasePrivileges(client);
-      await ensurePublicSchemaPrivileges(client);
-      const schemaCreated = await ensureProductSchema(client);
-      const tableCreated = await ensureFenceTable(client);
-      const fenceRowInitialized = await ensureFenceRow(client, options.instanceId);
+      await ensureDatabasePrivileges(client, options.mutationAuthority);
+      await ensurePublicSchemaPrivileges(client, options.mutationAuthority);
+      const schemaCreated = await ensureProductSchema(
+        client,
+        options.mutationAuthority,
+      );
+      const tableCreated = await ensureFenceTable(client, options.mutationAuthority);
+      const fenceRowInitialized = await ensureFenceRow(
+        client,
+        options.mutationAuthority,
+        options.instanceId,
+      );
       return { schemaCreated, tableCreated, fenceRowInitialized };
     },
   );

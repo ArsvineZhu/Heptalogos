@@ -9,6 +9,7 @@ import {
   HOST_OWNERSHIP_OWNER_ROLE,
 } from "./contracts.js";
 import type { HostAdvisoryKey } from "./advisory-key.js";
+import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
 import {
   encodePostgresScramSha256Verifier,
   matchesPostgresScramSha256Verifier,
@@ -46,6 +47,7 @@ export interface BootstrapAdminPasswordProvider {
 export interface BootstrapAdminProvisioningOptions {
   readonly port: number;
   readonly passwordProvider: BootstrapAdminPasswordProvider;
+  readonly mutationAuthority: BootstrapMutationAuthority;
   /** Test-only structural seam; production uses the private pg adapter. */
   readonly clientFactory?: unknown;
 }
@@ -66,6 +68,65 @@ export interface BootstrapAdminSessionOptions {
 export interface BootstrapHostReservationOptions {
   readonly port: number;
   readonly advisoryKey: HostAdvisoryKey;
+  readonly passwordProvider: BootstrapAdminPasswordProvider;
+  readonly mutationAuthority: BootstrapMutationAuthority;
+  readonly clientFactory?: unknown;
+}
+
+export interface BootstrapAdminInspectionOptions {
+  readonly port: number;
+  readonly passwordProvider: BootstrapAdminPasswordProvider;
+  readonly mutationAuthority: BootstrapMutationAuthority;
+  readonly clientFactory?: unknown;
+}
+
+export interface CanonicalHostDatabaseInspection {
+  readonly exists: boolean;
+  readonly database?: {
+    readonly datname: string;
+    readonly owner_name: string;
+    readonly encoding_name: string;
+  };
+}
+
+export interface HostOwnershipCanonicalSnapshot {
+  readonly roles: readonly {
+    readonly rolname: string;
+    readonly rolcanlogin: boolean;
+    readonly rolsuper: boolean;
+    readonly rolcreatedb: boolean;
+    readonly rolcreaterole: boolean;
+    readonly rolreplication: boolean;
+    readonly rolbypassrls: boolean;
+    readonly rolconnlimit: number;
+    readonly rolinherit: boolean;
+  }[];
+  readonly database: readonly {
+    readonly datname: string;
+    readonly owner_name: string;
+    readonly encoding_name: string;
+    readonly acl: string | null;
+  }[];
+  readonly schema: readonly {
+    readonly nspname: string;
+    readonly owner_name: string;
+    readonly acl: string | null;
+  }[];
+  readonly table: readonly {
+    readonly relname: string;
+    readonly owner_name: string;
+    readonly acl: string | null;
+  }[];
+  readonly fence: readonly {
+    readonly instance_id: string;
+    readonly ownership_revision: string | number;
+    readonly host_ownership_token: string | null;
+    readonly boot_id: string | null;
+  }[];
+}
+
+export interface HostOwnershipCanonicalSnapshotOptions {
+  readonly port: number;
   readonly passwordProvider: BootstrapAdminPasswordProvider;
   readonly clientFactory?: unknown;
 }
@@ -101,11 +162,14 @@ WHERE rolname = $1
 `;
 
 const MEMBERSHIP_QUERY = `
-SELECT granted_role.rolname AS granted_role, memberships.admin_option
+SELECT member.rolname AS member_role,
+       granted_role.rolname AS granted_role,
+       memberships.admin_option
 FROM pg_catalog.pg_auth_members AS memberships
 JOIN pg_catalog.pg_roles AS member ON member.oid = memberships.member
 JOIN pg_catalog.pg_roles AS granted_role ON granted_role.oid = memberships.roleid
-WHERE member.rolname = $1
+WHERE member.rolname IN ($1, $2)
+   OR granted_role.rolname IN ($1, $2)
 `;
 
 const DATABASE_QUERY = `
@@ -182,6 +246,18 @@ function asBoolean(value: unknown): boolean | undefined {
   return undefined;
 }
 
+async function authorizedMutation<Row = never>(
+  client: BootstrapAdminClient,
+  authority: BootstrapMutationAuthority,
+  text: string,
+  values?: readonly unknown[],
+): Promise<BootstrapAdminQueryResult<Row>> {
+  authority.assertCurrent();
+  const result = await client.query<Row>(text, values);
+  authority.assertCurrent();
+  return result;
+}
+
 function roleIsExact(
   role: RoleRow,
   expectedLogin: boolean,
@@ -201,6 +277,7 @@ function roleIsExact(
 
 async function ensureRole(
   client: BootstrapAdminClient,
+  authority: BootstrapMutationAuthority,
   roleName: string,
   expectedLogin: boolean,
   expectedConnectionLimit: number,
@@ -211,7 +288,10 @@ async function ensureRole(
   if (roles.rows.length > 1) throw incompatibleRoleProblem(roleName);
   const existing = roles.rows[0];
   if (existing !== undefined) {
-    const memberships = await client.query(MEMBERSHIP_QUERY, [roleName]);
+    const memberships = await client.query(MEMBERSHIP_QUERY, [
+      HOST_OWNERSHIP_OWNER_ROLE,
+      HOST_LEASE_ROLE,
+    ]);
     if (
       !roleIsExact(existing, expectedLogin, expectedConnectionLimit) ||
       memberships.rows.length !== 0
@@ -240,13 +320,18 @@ async function ensureRole(
   const connectionClause = expectedLogin ? " CONNECTION LIMIT 1" : "";
   const passwordClause =
     verifier === undefined ? "" : ` PASSWORD ${quoteLiteral(verifier)}`;
-  await client.query(
+  await authorizedMutation(
+    client,
+    authority,
     `CREATE ROLE ${quoteIdentifier(roleName)} ${privilegeClauses.join(" ")}${connectionClause}${passwordClause}`,
   );
   return true;
 }
 
-async function ensureDatabase(client: BootstrapAdminClient): Promise<boolean> {
+async function ensureDatabase(
+  client: BootstrapAdminClient,
+  authority: BootstrapMutationAuthority,
+): Promise<boolean> {
   const databases = await client.query<DatabaseRow>(DATABASE_QUERY, [
     HOST_OWNERSHIP_CANONICAL_DATABASE,
   ]);
@@ -263,7 +348,9 @@ async function ensureDatabase(client: BootstrapAdminClient): Promise<boolean> {
     return false;
   }
 
-  await client.query(
+  await authorizedMutation(
+    client,
+    authority,
     `CREATE DATABASE ${quoteIdentifier(HOST_OWNERSHIP_CANONICAL_DATABASE)} OWNER ${quoteIdentifier(HOST_OWNERSHIP_OWNER_ROLE)} ENCODING 'UTF8' TEMPLATE template0`,
   );
   return true;
@@ -321,7 +408,9 @@ export async function acquireBootstrapHostReservation(
       password: decodeUtf8(passwordUtf8),
     });
     try {
-      const result = await client.query<{ readonly acquired: unknown }>(
+      const result = await authorizedMutation<{ readonly acquired: unknown }>(
+        client,
+        options.mutationAuthority,
         "SELECT pg_try_advisory_lock($1::integer, $2::integer) AS acquired",
         [options.advisoryKey.key1, options.advisoryKey.key2],
       );
@@ -344,7 +433,11 @@ export async function acquireBootstrapHostReservation(
           if (releasePromise !== undefined) return releasePromise;
           releasePromise = (async () => {
             try {
-              const releasedResult = await client.query<{ readonly released: unknown }>(
+              const releasedResult = await authorizedMutation<{
+                readonly released: unknown;
+              }>(
+                client,
+                options.mutationAuthority,
                 "SELECT pg_advisory_unlock($1::integer, $2::integer) AS released",
                 [options.advisoryKey.key1, options.advisoryKey.key2],
               );
@@ -369,6 +462,110 @@ export async function acquireBootstrapHostReservation(
   });
 }
 
+export async function inspectCanonicalHostDatabase(
+  options: BootstrapAdminInspectionOptions,
+): Promise<CanonicalHostDatabaseInspection> {
+  return withBootstrapAdminClient(
+    {
+      port: options.port,
+      database: "postgres",
+      passwordProvider: options.passwordProvider,
+      clientFactory: options.clientFactory,
+    },
+    async (admin) => {
+      options.mutationAuthority.assertCurrent();
+      const databases = await admin.query<DatabaseRow>(DATABASE_QUERY, [
+        HOST_OWNERSHIP_CANONICAL_DATABASE,
+      ]);
+      options.mutationAuthority.assertCurrent();
+      if (databases.rows.length > 1) throw incompatibleDatabaseProblem();
+      const database = databases.rows[0];
+      return database === undefined ? { exists: false } : { exists: true, database };
+    },
+  );
+}
+
+export async function inspectHostOwnershipCanonicalSnapshot(
+  options: HostOwnershipCanonicalSnapshotOptions,
+): Promise<HostOwnershipCanonicalSnapshot> {
+  const administrative = await withBootstrapAdminClient(
+    {
+      port: options.port,
+      database: "postgres",
+      passwordProvider: options.passwordProvider,
+      clientFactory: options.clientFactory,
+    },
+    async (admin) => {
+      const roles = await admin.query<HostOwnershipCanonicalSnapshot["roles"][number]>(
+        `
+SELECT rolname, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole,
+       rolreplication, rolbypassrls, rolconnlimit, rolinherit
+FROM pg_catalog.pg_roles
+WHERE rolname IN ($1, $2)
+ORDER BY rolname
+`,
+        [HOST_OWNERSHIP_OWNER_ROLE, HOST_LEASE_ROLE],
+      );
+      const database = await admin.query<
+        HostOwnershipCanonicalSnapshot["database"][number]
+      >(
+        `
+SELECT datname, pg_get_userbyid(datdba) AS owner_name,
+       pg_encoding_to_char(encoding) AS encoding_name,
+       datacl::text AS acl
+FROM pg_catalog.pg_database
+WHERE datname = $1
+`,
+        [HOST_OWNERSHIP_CANONICAL_DATABASE],
+      );
+      return { roles: roles.rows, database: database.rows };
+    },
+  );
+  const ownership = await withBootstrapAdminClient(
+    {
+      port: options.port,
+      database: HOST_OWNERSHIP_CANONICAL_DATABASE,
+      passwordProvider: options.passwordProvider,
+      clientFactory: options.clientFactory,
+    },
+    async (admin) => {
+      const schema = await admin.query<
+        HostOwnershipCanonicalSnapshot["schema"][number]
+      >(
+        `
+SELECT nspname, pg_get_userbyid(nspowner) AS owner_name,
+       nspacl::text AS acl
+FROM pg_catalog.pg_namespace
+WHERE nspname = $1
+`,
+        ["heptalogos"],
+      );
+      const table = await admin.query<HostOwnershipCanonicalSnapshot["table"][number]>(
+        `
+SELECT c.relname, pg_get_userbyid(c.relowner) AS owner_name,
+       c.relacl::text AS acl
+FROM pg_catalog.pg_class AS c
+JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+WHERE n.nspname = $1 AND c.relname = $2
+`,
+        ["heptalogos", "host_ownership_fence"],
+      );
+      const fence = await admin.query<HostOwnershipCanonicalSnapshot["fence"][number]>(
+        `
+SELECT instance_id, ownership_revision, host_ownership_token, boot_id
+FROM "heptalogos"."host_ownership_fence"
+WHERE singleton = true
+`,
+      );
+      return { schema: schema.rows, table: table.rows, fence: fence.rows };
+    },
+  );
+  return {
+    ...administrative,
+    ...ownership,
+  };
+}
+
 export async function provisionHostOwnershipDatabase(
   options: BootstrapAdminProvisioningOptions,
 ): Promise<BootstrapAdminProvisioningResult> {
@@ -382,6 +579,7 @@ export async function provisionHostOwnershipDatabase(
     async (admin) => {
       const ownerRoleCreated = await ensureRole(
         admin,
+        options.mutationAuthority,
         HOST_OWNERSHIP_OWNER_ROLE,
         false,
         -1,
@@ -396,13 +594,17 @@ export async function provisionHostOwnershipDatabase(
           });
           const hostLeaseRoleCreated = await ensureRole(
             admin,
+            options.mutationAuthority,
             HOST_LEASE_ROLE,
             true,
             1,
             verifier,
             hostLeasePasswordUtf8,
           );
-          const databaseCreated = await ensureDatabase(admin);
+          const databaseCreated = await ensureDatabase(
+            admin,
+            options.mutationAuthority,
+          );
           return { ownerRoleCreated, hostLeaseRoleCreated, databaseCreated };
         },
       );

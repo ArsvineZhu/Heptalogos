@@ -7,6 +7,7 @@ import {
 import {
   type BootstrapAdminClient,
   type BootstrapAdminClientFactory,
+  inspectCanonicalHostDatabase,
   type BootstrapAdminProvisioningOptions,
   provisionHostOwnershipDatabase,
 } from "./bootstrap-admin.js";
@@ -18,6 +19,7 @@ const EXACT_HOST_VERIFIER = encodePostgresScramSha256Verifier(HOST_PASSWORD, {
   iterations: 4096,
   salt: HOST_SALT,
 });
+const mutationAuthority = { assertCurrent(): void {} };
 
 interface RoleRow {
   readonly rolname: string;
@@ -38,9 +40,16 @@ interface DatabaseRow {
   readonly encoding_name: string;
 }
 
+interface MembershipRow {
+  readonly member_role: string;
+  readonly granted_role: string;
+  readonly admin_option: boolean;
+}
+
 interface FakeState {
   readonly roles: Map<string, RoleRow>;
   readonly databases: Map<string, DatabaseRow>;
+  readonly membershipRows?: readonly MembershipRow[];
 }
 
 type ProvisionFault =
@@ -94,15 +103,15 @@ class FakeClient implements BootstrapAdminClient {
   ): Promise<{ readonly rows: readonly Row[] }> {
     this.calls.push({ text, values });
     const normalized = text.replace(/\s+/gu, " ").trim();
+    if (normalized.includes("FROM pg_catalog.pg_auth_members")) {
+      return { rows: (this.state.membershipRows ?? []) as Row[] };
+    }
     if (
       normalized.includes("FROM pg_catalog.pg_roles") ||
       normalized.includes("FROM pg_catalog.pg_authid")
     ) {
       const role = this.state.roles.get(String(values[0]));
       return { rows: role === undefined ? [] : [role as Row] };
-    }
-    if (normalized.includes("FROM pg_catalog.pg_auth_members")) {
-      return { rows: [] };
     }
     if (normalized.includes("FROM pg_catalog.pg_database")) {
       const database = this.state.databases.get(String(values[0]));
@@ -143,7 +152,10 @@ class FakeClient implements BootstrapAdminClient {
   async end(): Promise<void> {}
 }
 
-function makeFixture(state: FakeState): {
+function makeFixture(
+  state: FakeState,
+  authority: BootstrapAdminProvisioningOptions["mutationAuthority"] = mutationAuthority,
+): {
   readonly client: FakeClient;
   readonly factory: BootstrapAdminClientFactory;
   readonly options: BootstrapAdminProvisioningOptions;
@@ -158,6 +170,7 @@ function makeFixture(state: FakeState): {
   };
   const options: BootstrapAdminProvisioningOptions = {
     port: 55436,
+    mutationAuthority: authority,
     clientFactory: factory,
     passwordProvider: {
       async withBootstrapPassword<T>(
@@ -178,6 +191,7 @@ function makeFixture(state: FakeState): {
 function makeFaultFixture(
   state: FakeState,
   fault: ProvisionFault,
+  authority: BootstrapAdminProvisioningOptions["mutationAuthority"] = mutationAuthority,
 ): {
   readonly client: FakeClient;
   readonly options: BootstrapAdminProvisioningOptions;
@@ -190,6 +204,7 @@ function makeFaultFixture(
   };
   const options: BootstrapAdminProvisioningOptions = {
     port: 55436,
+    mutationAuthority: authority,
     clientFactory: factory,
     passwordProvider: {
       async withBootstrapPassword<T>(
@@ -205,6 +220,22 @@ function makeFaultFixture(
     },
   };
   return { client, options };
+}
+
+function authorityThatFailsAt(assertionNumber: number): {
+  readonly authority: BootstrapAdminProvisioningOptions["mutationAuthority"];
+  readonly calls: () => number;
+} {
+  let calls = 0;
+  return {
+    authority: {
+      assertCurrent() {
+        calls += 1;
+        if (calls === assertionNumber) throw new Error("bootstrap authority lost");
+      },
+    },
+    calls: () => calls,
+  };
 }
 
 describe("bootstrap host ownership database provisioning", () => {
@@ -345,5 +376,78 @@ describe("bootstrap host ownership database provisioning", () => {
     expect(state.databases.get(HOST_OWNERSHIP_CANONICAL_DATABASE)).toEqual(
       exactDatabase(),
     );
+  });
+
+  it.each([1, 2] as const)(
+    "stops provisioning when bootstrap authority is lost at mutation boundary %s",
+    async (assertionNumber) => {
+      const state: FakeState = { roles: new Map(), databases: new Map() };
+      const authority = authorityThatFailsAt(assertionNumber);
+      const fixture = makeFixture(state, authority.authority);
+
+      await expect(provisionHostOwnershipDatabase(fixture.options)).rejects.toThrow(
+        "bootstrap authority lost",
+      );
+      if (assertionNumber === 1) {
+        expect(fixture.client.calls.map((call) => call.text).join("\n")).not.toContain(
+          "CREATE ROLE",
+        );
+      } else {
+        expect(state.roles.has(HOST_OWNERSHIP_OWNER_ROLE)).toBe(true);
+        expect(state.roles.has(HOST_LEASE_ROLE)).toBe(false);
+      }
+    },
+  );
+
+  it("rejects every protected-role membership direction", async () => {
+    const directions = [
+      [HOST_OWNERSHIP_OWNER_ROLE, HOST_LEASE_ROLE],
+      [HOST_LEASE_ROLE, HOST_OWNERSHIP_OWNER_ROLE],
+      ["m4_intruder", HOST_OWNERSHIP_OWNER_ROLE],
+      [HOST_OWNERSHIP_OWNER_ROLE, "m4_intruder"],
+    ] as const;
+    for (const [member_role, granted_role] of directions) {
+      const fixture = makeFixture({
+        roles: new Map([
+          [HOST_OWNERSHIP_OWNER_ROLE, exactRole(HOST_OWNERSHIP_OWNER_ROLE, false, -1)],
+          [HOST_LEASE_ROLE, exactRole(HOST_LEASE_ROLE, true, 1)],
+        ]),
+        databases: new Map(),
+        membershipRows: [{ member_role, granted_role, admin_option: false }],
+      });
+      await expect(
+        provisionHostOwnershipDatabase(fixture.options),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "host-ownership.bootstrap_admin.incompatible_role" },
+      });
+    }
+  });
+
+  it("inspects the canonical database without provisioning mutation", async () => {
+    const absent = makeFixture({ roles: new Map(), databases: new Map() });
+    await expect(
+      inspectCanonicalHostDatabase({
+        port: absent.options.port,
+        passwordProvider: absent.options.passwordProvider,
+        mutationAuthority,
+        clientFactory: absent.options.clientFactory,
+      }),
+    ).resolves.toEqual({ exists: false });
+    expect(absent.client.calls.map((call) => call.text).join("\n")).not.toContain(
+      "CREATE",
+    );
+
+    const present = makeFixture({
+      roles: new Map(),
+      databases: new Map([[HOST_OWNERSHIP_CANONICAL_DATABASE, exactDatabase()]]),
+    });
+    await expect(
+      inspectCanonicalHostDatabase({
+        port: present.options.port,
+        passwordProvider: present.options.passwordProvider,
+        mutationAuthority,
+        clientFactory: present.options.clientFactory,
+      }),
+    ).resolves.toMatchObject({ exists: true, database: exactDatabase() });
   });
 });
