@@ -56,6 +56,9 @@ export interface PrivatePostgresLifecycleOptions {
 
 export type PrivatePostgresControlGuard = () => void;
 
+export type PrivatePostgresStartupDisposition =
+  "STARTED_BY_THIS_BOOTSTRAP" | "ALREADY_RUNNING";
+
 export interface PrivatePostgresInitializationProfile {
   readonly bootstrapRoleName: string;
   readonly encoding: "UTF8";
@@ -82,6 +85,7 @@ export interface ReadyPrivatePostgresMechanics {
   readonly placement: PrivatePostgresPlacement;
   readonly identity: PrivatePostgresClusterIdentity;
   readonly port: number;
+  readonly startupDisposition: PrivatePostgresStartupDisposition;
   stop(): Promise<void>;
   restart(): Promise<void>;
 }

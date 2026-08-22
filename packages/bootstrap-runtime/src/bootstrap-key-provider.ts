@@ -8,11 +8,16 @@ export interface BootstrapKeyRequestContext {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
   readonly bootId: BootId;
-  readonly purpose: "private-postgres-bootstrap-superuser";
+  readonly purpose:
+    "private-postgres-bootstrap-superuser" | "private-postgres-host-lease-role";
 }
 
 export interface BootstrapKeyProvider {
   withPrivatePostgresBootstrapPassword<T>(
+    context: BootstrapKeyRequestContext,
+    use: (passwordUtf8: Uint8Array) => Promise<T>,
+  ): Promise<T>;
+  withPrivatePostgresHostLeasePassword<T>(
     context: BootstrapKeyRequestContext,
     use: (passwordUtf8: Uint8Array) => Promise<T>,
   ): Promise<T>;

@@ -17,6 +17,7 @@ export type ContentDigest<TBrand extends string> = Branded<string, `sha256:${TBr
 export type InstallationId = UuidV7Id<"InstallationId">;
 export type InstanceId = UuidV7Id<"InstanceId">;
 export type BootId = UuidV7Id<"BootId">;
+export type HostOwnershipToken = UuidV7Id<"HostOwnershipToken">;
 
 export function createUuidV7Id<TBrand extends string>(brand: TBrand): UuidV7Id<TBrand> {
   void brand;
@@ -27,6 +28,8 @@ export const createInstallationId = (): InstallationId =>
   createUuidV7Id("InstallationId");
 export const createInstanceId = (): InstanceId => createUuidV7Id("InstanceId");
 export const createBootId = (): BootId => createUuidV7Id("BootId");
+export const createHostOwnershipToken = (): HostOwnershipToken =>
+  createUuidV7Id("HostOwnershipToken");
 
 export function isUuidV7(value: unknown): value is UuidV7Id<string> {
   return (
@@ -51,6 +54,9 @@ export const parseInstanceId = (value: unknown): InstanceId | undefined =>
   parseUuidV7Id("InstanceId", value);
 export const parseBootId = (value: unknown): BootId | undefined =>
   parseUuidV7Id("BootId", value);
+export const parseHostOwnershipToken = (
+  value: unknown,
+): HostOwnershipToken | undefined => parseUuidV7Id("HostOwnershipToken", value);
 
 export function isSha256Hex(value: unknown): value is string {
   return typeof value === "string" && sha256HexShape.test(value);

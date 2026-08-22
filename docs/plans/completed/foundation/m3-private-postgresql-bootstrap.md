@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Use `superpowers:test-driven-development` for every behavior-bearing change and `superpowers:verification-before-completion` before any PASS/completion claim. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** ACTIVE
+**Status:** COMPLETED — implementation merged at `4b12c14693752d9796f8aa287666e6537321006d`; qualification remains PARTIAL.
 
 **Goal:** Extend the proven M2 pre-PostgreSQL bootstrap substrate so that a bootstrap owner can safely initialize or validate one private PostgreSQL 18 cluster for its Instance, persist portable cluster identity, start/verify/stop/restart the exact cluster, and expose a `ReadyPrivatePostgres` handoff seam without yet granting Host ownership or normal canonical mutation authority.
 
@@ -2522,6 +2522,21 @@ No unresolved placeholder marker, generic “add tests”, unspecified provider 
 ## Type consistency
 
 The plan uses one `PrivatePostgresToolchain`, one portable placement model, one `PrivatePostgresBootstrapStateV1`, one `ReadyPrivatePostgresMechanics`, one `BootstrapKeyProvider`, and one `ReadyPrivatePostgres` orchestration seam consistently across tasks.
+
+## Post-merge reconciliation (2026-08-22)
+
+```text
+actual squash-merge SHA: 4b12c14693752d9796f8aa287666e6537321006d
+implementation milestone merged: true
+stale ReadyPrivatePostgres handle/session-generation correction included: PASS
+Q-PRIVATE-POSTGRES-01 qualification: PARTIAL
+post-fix independent re-review: NOT_RUN
+corrected-final-head Windows/macOS/Linux final CI: NOT_RUN
+corrected-final-head Linux/macOS real PostgreSQL: NOT_RUN
+source-less shipping closure: NOT_RUN
+service-account ACL closure: NOT_RUN
+H1: OPEN
+```
 
 ## Scope check
 

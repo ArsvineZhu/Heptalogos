@@ -74,6 +74,7 @@ interface TestReadyPrivatePostgres {
   readonly port: number;
   readonly clusterSystemIdentifier: string;
   readonly toolchainVersion: "18.6";
+  readonly startupDisposition: "STARTED_BY_THIS_BOOTSTRAP" | "ALREADY_RUNNING";
   stop(): Promise<void>;
   restart(): Promise<void>;
 }
@@ -140,6 +141,12 @@ function makeOptions(
     ): Promise<T> {
       contexts.push(context);
       return use(new TextEncoder().encode("M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6"));
+    },
+    async withPrivatePostgresHostLeasePassword<T>(
+      _context: BootstrapKeyRequestContext,
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      return use(new TextEncoder().encode("H".repeat(32)));
     },
   };
   return {
@@ -211,6 +218,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         instanceId: fixture.instanceId,
         port: 55436,
         toolchainVersion: "18.6",
+        startupDisposition: "STARTED_BY_THIS_BOOTSTRAP",
       });
       expect("mechanics" in ready).toBe(false);
       expect(typeof ready.stop).toBe("function");

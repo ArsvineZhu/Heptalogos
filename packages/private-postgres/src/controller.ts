@@ -19,6 +19,7 @@ import {
   type PrivatePostgresLifecycleOptions,
   type PrivatePostgresControlGuard,
   type PrivatePostgresPlacement,
+  type PrivatePostgresStartupDisposition,
   type PrivatePostgresToolchain,
 } from "./contracts.js";
 import { withRestrictedPasswordFile } from "./credential-file.js";
@@ -490,6 +491,15 @@ function stopUncertainProblem(): ProblemError {
   );
 }
 
+function alreadyRunningControlDeniedProblem(): ProblemError {
+  return controllerProblem(
+    "private-postgres.lifecycle.already_running_control_denied",
+    "Already-running private PostgreSQL control is denied",
+    "This PostgreSQL process was observed running before bootstrap started it; stop or restart requires the Host ownership handoff authority",
+    "conflict",
+  );
+}
+
 async function stopWithProof(
   options: StartPrivatePostgresClusterOptions,
   lifecycleState: PrivatePostgresLifecycleTracker,
@@ -676,27 +686,49 @@ export async function startPrivatePostgresCluster(
       expectedIdentity: options.expectedIdentity,
       timeoutMs: options.lifecycle.startupTimeoutMs,
     });
-    await startProcess(options, lifecycleState);
-    lifecycleState.send({ type: "START_COMMAND_SUCCEEDED" });
-    await waitForPrivatePostgresReadiness(
-      options,
-      options.expectedIdentity.persistedPort,
-    );
-    const started = await validateExistingCluster({
-      toolchain: options.toolchain,
-      placement: options.placement,
-      expectedIdentity: options.expectedIdentity,
-      timeoutMs: options.lifecycle.startupTimeoutMs,
-    });
-    lifecycleState.send({ type: "READY_PROVEN" });
+    const processStatus = await readPrivatePostgresProcessStatus(options);
+    let startupDisposition: PrivatePostgresStartupDisposition;
+    let started: Awaited<ReturnType<typeof validateExistingCluster>>;
+    if (processStatus === "RUNNING") {
+      await waitForPrivatePostgresReadiness(
+        options,
+        options.expectedIdentity.persistedPort,
+      );
+      started = await validateExistingCluster({
+        toolchain: options.toolchain,
+        placement: options.placement,
+        expectedIdentity: options.expectedIdentity,
+        timeoutMs: options.lifecycle.startupTimeoutMs,
+      });
+      startupDisposition = "ALREADY_RUNNING";
+    } else {
+      startupDisposition = "STARTED_BY_THIS_BOOTSTRAP";
+      await startProcess(options, lifecycleState);
+      lifecycleState.send({ type: "START_COMMAND_SUCCEEDED" });
+      await waitForPrivatePostgresReadiness(
+        options,
+        options.expectedIdentity.persistedPort,
+      );
+      started = await validateExistingCluster({
+        toolchain: options.toolchain,
+        placement: options.placement,
+        expectedIdentity: options.expectedIdentity,
+        timeoutMs: options.lifecycle.startupTimeoutMs,
+      });
+      lifecycleState.send({ type: "READY_PROVEN" });
+    }
 
     return {
       toolchain: started.toolchain,
       placement: started.placement,
       identity: started.identity,
       port: started.port,
+      startupDisposition,
       async stop(): Promise<void> {
         options.assertControlAuthority();
+        if (startupDisposition === "ALREADY_RUNNING") {
+          throw alreadyRunningControlDeniedProblem();
+        }
         if (
           lifecycleState.detail === "startCommandPending" ||
           lifecycleState.detail === "startedPendingReady" ||
@@ -713,6 +745,9 @@ export async function startPrivatePostgresCluster(
       },
       async restart(): Promise<void> {
         options.assertControlAuthority();
+        if (startupDisposition === "ALREADY_RUNNING") {
+          throw alreadyRunningControlDeniedProblem();
+        }
         if (
           lifecycleState.detail === "startCommandPending" ||
           lifecycleState.detail === "startedPendingReady" ||

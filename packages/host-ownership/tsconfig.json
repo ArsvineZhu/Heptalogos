@@ -15,13 +15,7 @@
       "path": "../foundation-contracts"
     },
     {
-      "path": "../bootstrap-state"
-    },
-    {
       "path": "../private-postgres"
-    },
-    {
-      "path": "../host-ownership"
     }
   ]
 }

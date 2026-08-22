@@ -56,6 +56,24 @@ describe("restricted repository imports", () => {
     ).toBe(false);
   });
 
+  it("allows pg only in the host-ownership adapter", () => {
+    expect(
+      isRestrictedImportAllowed(
+        "pg",
+        "packages/host-ownership/src/host-lease-connection.ts",
+      ),
+    ).toBe(true);
+    expect(
+      isRestrictedImportAllowed(
+        "pg",
+        "packages/bootstrap-runtime/src/host-ownership-handoff.ts",
+      ),
+    ).toBe(false);
+    expect(
+      isRestrictedImportAllowed("pg", "packages/future-product/src/index.ts"),
+    ).toBe(false);
+  });
+
   it("allows private-postgres only through its package and bootstrap-runtime", () => {
     expect(
       isRestrictedImportAllowed(

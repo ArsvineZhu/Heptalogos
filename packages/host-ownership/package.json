@@ -1,5 +1,5 @@
 {
-  "name": "@heptalogos/bootstrap-runtime",
+  "name": "@heptalogos/host-ownership",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,15 +11,14 @@
     }
   },
   "dependencies": {
-    "@heptalogos/bootstrap-state": "workspace:*",
     "@heptalogos/foundation-contracts": "workspace:*",
-    "@heptalogos/host-ownership": "workspace:*",
-    "@heptalogos/private-postgres": "workspace:*",
-    "ajv": "catalog:",
-    "proper-lockfile": "catalog:",
-    "typebox": "catalog:"
+    "pg": "catalog:",
+    "xstate": "catalog:"
   },
   "devDependencies": {
+    "@heptalogos/private-postgres": "workspace:*",
+    "@types/pg": "catalog:",
+    "fast-check": "catalog:",
     "vitest": "catalog:"
   }
 }

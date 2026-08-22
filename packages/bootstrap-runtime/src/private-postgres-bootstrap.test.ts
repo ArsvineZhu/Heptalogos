@@ -167,6 +167,12 @@ function makeOptions(
       calls.count += 1;
       return use(new TextEncoder().encode("M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6"));
     },
+    async withPrivatePostgresHostLeasePassword<T>(
+      _context: BootstrapKeyRequestContext,
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      return use(new TextEncoder().encode("H".repeat(32)));
+    },
   };
   return {
     toolchainBinDirectory,
@@ -236,6 +242,73 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
         problem: { problemCode: "bootstrap.private_postgres.release_blocked" },
       });
     }
+  });
+
+  it("allows only M4 terminal handoff states to release without stopping PostgreSQL", () => {
+    const handedOff = createPrivatePostgresSessionTracker();
+    const handedOffToken = handedOff.beginPreparation();
+    handedOff.markReady(handedOffToken);
+    handedOff.markHandedOff(handedOffToken);
+    expect(handedOff.state).toBe("HANDED_OFF");
+    expect(() => handedOff.assertReleaseAllowed()).not.toThrow();
+    expect(() => handedOff.beginPreparation()).toThrowError();
+
+    const yielded = createPrivatePostgresSessionTracker();
+    const yieldedToken = yielded.beginPreparation();
+    yielded.markReady(yieldedToken);
+    yielded.markYieldedToExistingHost(yieldedToken);
+    expect(yielded.state).toBe("YIELDED_TO_EXISTING_HOST");
+    expect(() => yielded.assertReleaseAllowed()).not.toThrow();
+  });
+
+  it("rejects a stale token from manufacturing a terminal handoff state", () => {
+    const session = createPrivatePostgresSessionTracker();
+    const firstToken = session.beginPreparation();
+    session.markReady(firstToken);
+    session.beginStop(firstToken);
+    session.markQuiescent(firstToken);
+
+    const secondToken = session.beginPreparation();
+    session.markReady(secondToken);
+    try {
+      session.markHandedOff(firstToken);
+      throw new Error("expected stale token to be rejected");
+    } catch (error) {
+      expect(error).toMatchObject({
+        problem: { problemCode: "bootstrap.private_postgres.stale_handle" },
+      });
+    }
+    expect(session.state).toBe("READY");
+  });
+
+  it("rejects control on an already-running handle before mechanics or shared state", async () => {
+    const session = createPrivatePostgresSessionTracker();
+    const token = session.beginPreparation();
+    session.markReady(token);
+    const stop = vi.fn(async () => undefined);
+    const restart = vi.fn(async () => undefined);
+    const lifecycle = createOwnershipScopedPrivatePostgresLifecycle(
+      {
+        privatePostgresSession: session,
+        assertOwnership: () => undefined,
+      },
+      { startupDisposition: "ALREADY_RUNNING", stop, restart } as never,
+      token,
+    );
+
+    await expect(lifecycle.stop()).rejects.toMatchObject({
+      problem: {
+        problemCode: "bootstrap.private_postgres.already_running_control_denied",
+      },
+    });
+    await expect(lifecycle.restart()).rejects.toMatchObject({
+      problem: {
+        problemCode: "bootstrap.private_postgres.already_running_control_denied",
+      },
+    });
+    expect(stop).not.toHaveBeenCalled();
+    expect(restart).not.toHaveBeenCalled();
+    expect(session.state).toBe("READY");
   });
 
   it("does not let compromised ownership reach retained lifecycle mechanics", async () => {

@@ -12,6 +12,7 @@ export {
   type PrivatePostgresInitializationResult,
   type PrivatePostgresLifecycleOptions,
   type PrivatePostgresPlacement,
+  type PrivatePostgresStartupDisposition,
   type PrivatePostgresToolchain,
   type ReadyPrivatePostgresMechanics,
 } from "./contracts.js";

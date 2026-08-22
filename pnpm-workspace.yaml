@@ -13,6 +13,7 @@ overrides:
 
 catalog:
   "@nx/js": 23.1.1
+  "@types/pg": 8.23.1
   "@types/node": 24.13.3
   "@typescript/native": "npm:typescript@7.0.2"
   ajv: 8.20.0
@@ -22,6 +23,7 @@ catalog:
   fast-check: 4.9.0
   nx: 23.1.1
   proper-lockfile: 4.1.2
+  pg: 8.23.0
   prettier: 3.9.6
   typescript: "npm:@typescript/typescript6@6.0.2"
   typescript-eslint: 8.67.0
