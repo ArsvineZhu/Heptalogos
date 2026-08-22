@@ -31,6 +31,13 @@ import {
 } from "./private-postgres-bootstrap.js";
 import type { OwnedBootstrapStateStore } from "./bootstrap-state-access.js";
 import type { BootstrapPathProfile } from "./roots.js";
+import {
+  createManagedHostContext,
+  markManagedHostTerminal,
+  type BootstrapManagedHostContext,
+  type HostMaintenanceQuiescence,
+  type PrivatePostgresMaintenanceRequest,
+} from "./managed-host.js";
 
 export interface HostOwnershipHandoffOptions {
   readonly keyProvider: BootstrapKeyProvider;
@@ -376,4 +383,40 @@ export async function handoffPrivatePostgresToHostForOwnedPrelude(
     }
     throw error;
   }
+}
+
+function maintenanceNotImplementedProblem(): ProblemError {
+  return handoffProblem(
+    "bootstrap.maintenance.not_ready",
+    "Private PostgreSQL maintenance is not available yet",
+    "The managed Host maintenance capability has not been connected to the reverse-handoff executor",
+    "unavailable",
+  );
+}
+
+export async function handoffPrivatePostgresToManagedHostForOwnedPrelude(
+  context: OwnedBootstrapPreludeHandoffContext,
+  ready: ReadyPrivatePostgres,
+  options: HostOwnershipHandoffOptions,
+): Promise<BootstrapManagedHostContext> {
+  const raw = await handoffPrivatePostgresToHostForOwnedPrelude(
+    context,
+    ready,
+    options,
+  );
+  let managed: BootstrapManagedHostContext;
+  managed = createManagedHostContext(raw, {
+    async preparePrivatePostgresMaintenance(
+      _request: PrivatePostgresMaintenanceRequest,
+    ) {
+      throw maintenanceNotImplementedProblem();
+    },
+    async shutdownKeepingPrivatePostgres(quiescence: HostMaintenanceQuiescence) {
+      await quiescence.quiesce();
+      raw.assertActive();
+      await raw.close();
+      markManagedHostTerminal(managed);
+    },
+  });
+  return managed;
 }

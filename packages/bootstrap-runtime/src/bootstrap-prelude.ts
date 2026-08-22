@@ -34,10 +34,10 @@ import {
   type ReadyPrivatePostgres,
 } from "./private-postgres-bootstrap.js";
 import {
-  handoffPrivatePostgresToHostForOwnedPrelude,
+  handoffPrivatePostgresToManagedHostForOwnedPrelude,
   type HostOwnershipHandoffOptions,
 } from "./host-ownership-handoff.js";
-import type { HostOwnershipContext } from "@heptalogos/host-ownership";
+import type { BootstrapManagedHostContext } from "./managed-host.js";
 
 export interface PreparedBootstrapPrelude {
   readonly installationId: InstallationId;
@@ -66,7 +66,7 @@ export interface OwnedBootstrapPrelude {
   handoffPrivatePostgresToHost(
     ready: ReadyPrivatePostgres,
     options: HostOwnershipHandoffOptions,
-  ): Promise<HostOwnershipContext>;
+  ): Promise<BootstrapManagedHostContext>;
   close(): Promise<void>;
 }
 
@@ -329,7 +329,7 @@ export async function prepareBootstrapPrelude(
           ready: ReadyPrivatePostgres,
           options: HostOwnershipHandoffOptions,
         ) {
-          return handoffPrivatePostgresToHostForOwnedPrelude(
+          return handoffPrivatePostgresToManagedHostForOwnedPrelude(
             {
               installationId,
               instanceId,
