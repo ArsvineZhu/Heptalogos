@@ -847,7 +847,10 @@ export async function recoverInterruptedHostMaintenance(
     }
     let freshToken: HostOwnershipToken;
     let publicationBootId: BootId;
-    if (hasReached(progress, "HOST_TOKEN_PUBLICATION_ARMED")) {
+    const targetIsHistorical =
+      body.target.hostOwnershipToken !== undefined &&
+      body.target.hostBootId === historicalBootId;
+    if (hasReached(progress, "HOST_TOKEN_PUBLICATION_ARMED") && !targetIsHistorical) {
       const candidateToken = body.target.hostOwnershipToken;
       const candidateBootId = body.target.hostBootId;
       if (candidateToken === undefined || candidateBootId === undefined) {
@@ -881,9 +884,11 @@ export async function recoverInterruptedHostMaintenance(
           "Recovery refuses to publish a source, historical target, or invalid Host token",
         );
       }
+      const { hostOwnershipRevision: _historicalRevision, ...targetWithoutRevision } =
+        body.target;
       await advance("HOST_TOKEN_PUBLICATION_ARMED", {
         target: {
-          ...body.target,
+          ...targetWithoutRevision,
           privatePostgres: "RUNNING_SAME_IDENTITY",
           hostOwnershipToken: freshToken,
           hostBootId: publicationBootId,
