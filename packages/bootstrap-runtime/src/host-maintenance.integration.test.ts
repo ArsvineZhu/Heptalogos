@@ -1,9 +1,10 @@
 import { execFile } from "node:child_process";
-import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
+import { Client } from "pg";
 import {
   BootstrapJournal,
   BootstrapStateStore,
@@ -19,6 +20,7 @@ import {
   type LifecycleRootId,
 } from "@heptalogos/foundation-contracts";
 import {
+  deriveHostAdvisoryKey,
   inspectHostOwnershipCanonicalSnapshot,
   type BootstrapAdminPasswordProvider,
 } from "@heptalogos/host-ownership";
@@ -35,7 +37,6 @@ import type {
 import { prepareBootstrapPrelude } from "./bootstrap-prelude.js";
 import type { ReadyPrivatePostgres } from "./private-postgres-bootstrap.js";
 import {
-  rawHostForManagedContext,
   type BootstrapManagedHostContext,
   type HostMaintenanceQuiescence,
 } from "./managed-host.js";
@@ -192,6 +193,106 @@ async function assertReady(
     "--port",
     String(port),
   ]);
+}
+
+async function postmasterPid(dataDirectory: string): Promise<string> {
+  const contents = await readFile(join(dataDirectory, "postmaster.pid"), "utf8");
+  const pid = contents.split("\n", 1)[0]?.trim();
+  if (pid === undefined || pid.length === 0) {
+    throw new Error("postmaster.pid did not contain a PID");
+  }
+  return pid;
+}
+
+async function connectBootstrapClient(
+  host: BootstrapManagedHostContext,
+  keyProvider: BootstrapKeyProvider,
+  port: number,
+): Promise<Client> {
+  let client: Client | undefined;
+  await keyProvider.withPrivatePostgresBootstrapPassword(
+    {
+      installationId: host.installationId,
+      instanceId: host.instanceId,
+      bootId: host.bootId,
+      purpose: "private-postgres-bootstrap-superuser",
+    },
+    async (passwordUtf8) => {
+      const candidate = new Client({
+        host: "127.0.0.1",
+        port,
+        database: "heptalogos",
+        user: "heptalogos_bootstrap",
+        password: new TextDecoder().decode(passwordUtf8),
+        connectionTimeoutMillis: 10_000,
+      });
+      await candidate.connect();
+      client = candidate;
+    },
+  );
+  if (client === undefined) throw new Error("bootstrap admin client was not connected");
+  return client;
+}
+
+async function findHostLeaseBackend(
+  client: Client,
+  instanceId: BootstrapManagedHostContext["instanceId"],
+): Promise<number> {
+  const key = deriveHostAdvisoryKey(instanceId);
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    const result = await client.query<{
+      readonly pid: number;
+      readonly classid: string | null;
+      readonly objid: string | null;
+    }>(
+      `
+SELECT activity.pid, locks.classid::text, locks.objid::text
+FROM pg_locks AS locks
+JOIN pg_stat_activity AS activity ON activity.pid = locks.pid
+WHERE locks.locktype = 'advisory'
+  AND activity.usename = 'heptalogos_host_lease'
+  AND activity.datname = 'heptalogos'
+`,
+    );
+    const asUnsigned = (value: number): number => value >>> 0;
+    const matching = result.rows.find(
+      (row) =>
+        row.classid !== null &&
+        row.objid !== null &&
+        ((Number(row.classid) === key.key1 && Number(row.objid) === key.key2) ||
+          (Number(row.classid) === asUnsigned(key.key1) &&
+            Number(row.objid) === asUnsigned(key.key2))),
+    );
+    const pid = matching?.pid;
+    if (pid !== undefined) return pid;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error("dedicated Host lease backend was not found");
+}
+
+async function waitForHostLeaseLoss(host: BootstrapManagedHostContext): Promise<void> {
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    if (host.signal.aborted) return;
+    try {
+      host.assertActive();
+    } catch {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error("Host lease did not report loss after backend termination");
+}
+
+async function postmasterStartTime(client: Client): Promise<string> {
+  const result = await client.query<{ readonly started_at: string }>(
+    "SELECT pg_postmaster_start_time()::text AS started_at",
+  );
+  const startedAt = result.rows[0]?.started_at;
+  if (startedAt === undefined)
+    throw new Error("postmaster start time was not returned");
+  return startedAt;
 }
 
 async function stopPostgres(
@@ -501,7 +602,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
     }
   }, 180_000);
 
-  it("fails closed when the old Host lease is lost after maintenance preparation", async () => {
+  it("fails closed when PostgreSQL terminates the dedicated Host lease during entry", async () => {
     const fixture = await makeFixture();
     const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
     const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
@@ -510,6 +611,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
     const port = 55524;
     let ready: ReadyPrivatePostgres | undefined;
     let host: BootstrapManagedHostContext | undefined;
+    let admin: Client | undefined;
 
     try {
       ready = await owned.preparePrivatePostgres({
@@ -525,20 +627,64 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
       const maintenance = await host.preparePrivatePostgresMaintenance({
         kind: "RESTART_PRIVATE_POSTGRES",
       });
-      await rawHostForManagedContext(host).close();
 
-      await expect(maintenance.execute(maintenanceQuiescence())).rejects.toMatchObject({
-        problem: { problemCode: "host-ownership.lease.not_active" },
+      const beforeFence = await hostOwnershipSnapshot(host, keyProvider, port);
+      const dataDirectory = join(fixture.roots.DATA, "private-postgres");
+      const postmasterPidBefore = await postmasterPid(dataDirectory);
+      admin = await connectBootstrapClient(host, keyProvider, port);
+      const postmasterStartedBefore = await postmasterStartTime(admin);
+
+      const quiescence: HostMaintenanceQuiescence = {
+        async quiesce() {
+          const backendPid = await findHostLeaseBackend(
+            admin as Client,
+            host!.instanceId,
+          );
+          const terminated = await (admin as Client).query<{
+            readonly terminated: boolean;
+          }>("SELECT pg_terminate_backend($1::integer) AS terminated", [backendPid]);
+          expect(terminated.rows[0]?.terminated).toBe(true);
+          await waitForHostLeaseLoss(host as BootstrapManagedHostContext);
+          await (admin as Client).end();
+          admin = undefined;
+          return { async resumeAfterAbort() {} };
+        },
+      };
+
+      await expect(maintenance.execute(quiescence)).rejects.toMatchObject({
+        problem: { problemCode: "bootstrap.maintenance.abort_resume_failed" },
       });
-      expect(maintenance.state).toBe("ABORTED");
+      expect(maintenance.state).toBe("RECOVERY_REQUIRED");
+      expect(() => host!.assertActive()).toThrow();
+      expect(host!.state).toBe("CLOSED");
       await expect(assertReady(toolchain, port)).resolves.toBeUndefined();
+      expect(await postmasterPid(dataDirectory)).toBe(postmasterPidBefore);
+      admin = await connectBootstrapClient(host, keyProvider, port);
+      await expect(postmasterStartTime(admin)).resolves.toBe(postmasterStartedBefore);
+
+      const afterFence = await hostOwnershipSnapshot(host, keyProvider, port);
+      expect(afterFence.fence[0]).toMatchObject({
+        host_ownership_token: beforeFence.fence[0]?.host_ownership_token,
+        ownership_revision: beforeFence.fence[0]?.ownership_revision,
+      });
       const journal = await new MaintenanceJournalStore(fixture.roots.INSTANCE).load(
         maintenance.operationId,
       );
       expect(journal.status).toBe("CURRENT");
       if (journal.status !== "CURRENT") throw new Error("maintenance journal missing");
-      expect(journal.value.state.lastCompletedStage).toBe("ABORTED");
+      expect(journal.value.state).toMatchObject({
+        lastCompletedStage: "RECOVERY_REQUIRED",
+        terminalOutcome: "FAILED",
+      });
+
+      const competingPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+      await expect(
+        competingPrepared.acquireOwnership({ heartbeatMs: 1_000 }),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "bootstrap.ownership.lock_present" },
+      });
     } finally {
+      await admin?.end().catch(() => undefined);
       await ready?.stop().catch(() => undefined);
       await stopPostgres(toolchain, join(fixture.roots.DATA, "private-postgres"));
       if (owned.ownershipState !== "RELEASED") {

@@ -21,6 +21,8 @@
     "xstate": "catalog:"
   },
   "devDependencies": {
+    "@types/pg": "catalog:",
+    "pg": "catalog:",
     "vitest": "catalog:"
   }
 }
