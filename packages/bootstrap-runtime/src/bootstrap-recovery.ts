@@ -26,6 +26,7 @@ import {
   type BootstrapProcessIdentityStatus,
 } from "./bootstrap-process-identity.js";
 import {
+  acquireBootstrapOwnership,
   acquireBootstrapRecoveryOwnership,
   BOOTSTRAP_RECOVERY_STALE_MS,
   type BootstrapOwnershipLease,
@@ -440,6 +441,20 @@ export async function reclaimAbandonedBootstrapOwnership(
   principal: LocalInstallationOwnerRecoveryPrincipal,
   options: BootstrapOwnershipOptions,
 ): Promise<BootstrapOwnershipLease> {
+  return acquireBootstrapRecoveryLease(anchorRoot, principal, options, [
+    "ABANDONED_OWNER_ELIGIBLE",
+  ]);
+}
+
+export async function acquireBootstrapRecoveryLease(
+  anchorRoot: string,
+  principal: LocalInstallationOwnerRecoveryPrincipal,
+  options: BootstrapOwnershipOptions,
+  allowedDispositions: readonly BootstrapRecoveryDisposition[] = [
+    "ABANDONED_OWNER_ELIGIBLE",
+    "INCOMPLETE_MAINTENANCE",
+  ],
+): Promise<BootstrapOwnershipLease> {
   const locator = await loadBootstrapLocator(anchorRoot);
   const paths = await resolveBootstrapPathProfile(locator);
   const instanceRoot = paths.resolve("INSTANCE");
@@ -451,15 +466,18 @@ export async function reclaimAbandonedBootstrapOwnership(
   );
 
   const inspection = await inspectBootstrapRecovery(anchorRoot);
-  if (inspection.disposition !== "ABANDONED_OWNER_ELIGIBLE") {
+  if (!allowedDispositions.includes(inspection.disposition)) {
     throw recoveryConflict(
       "bootstrap.recovery.not_eligible",
       "Bootstrap ownership is not eligible for recovery",
-      `Recovery requires ABANDONED_OWNER_ELIGIBLE, observed ${inspection.disposition}`,
+      `Recovery does not allow ${inspection.disposition} for this operation`,
     );
   }
 
-  const lease = await acquireBootstrapRecoveryOwnership(instanceRoot, options);
+  const lease =
+    inspection.disposition === "ABANDONED_OWNER_ELIGIBLE"
+      ? await acquireBootstrapRecoveryOwnership(instanceRoot, options)
+      : await acquireBootstrapOwnership(instanceRoot, options);
   try {
     const rechecked = await inspectBootstrapRecovery(anchorRoot);
     if (rechecked.disposition !== "ACTIVE_BOOTSTRAP_OWNER") {
