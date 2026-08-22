@@ -22,6 +22,7 @@ describe("Host maintenance transition tracker", () => {
       { type: "WINDOW_ENTERED" },
       { type: "POSTGRES_STOPPED" },
       { type: "POSTGRES_READY" },
+      { type: "HOST_LEASE_ACQUIRED" },
       { type: "HOST_REACQUIRED" },
       { type: "COMPLETED" },
     );
@@ -60,6 +61,7 @@ describe("Host maintenance transition tracker", () => {
       { type: "WINDOW_ENTERED" },
       { type: "POSTGRES_STOPPED" },
       { type: "POSTGRES_READY" },
+      { type: "HOST_LEASE_ACQUIRED" },
       { type: "HOST_REACQUIRED" },
       { type: "COMPLETED" },
     );

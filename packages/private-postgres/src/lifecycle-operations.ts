@@ -1,4 +1,3 @@
-import { performance } from "node:perf_hooks";
 import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
 import type {
   PrivatePostgresExpectedIdentity,
@@ -7,7 +6,12 @@ import type {
   PrivatePostgresToolchain,
 } from "./contracts.js";
 import { validateExistingCluster } from "./controller.js";
-import { runPostgresTool } from "./process-adapter.js";
+import {
+  lifecycleProcessOptions,
+  readPrivatePostgresProcessStatus,
+  runPrivatePostgresCtlChecked,
+  waitForPrivatePostgresReadiness,
+} from "./lifecycle-process.js";
 
 export interface PrivatePostgresLifecycleOperationsOptions {
   readonly toolchain: PrivatePostgresToolchain;
@@ -19,8 +23,6 @@ export interface PrivatePostgresLifecycleOperationsOptions {
 }
 
 export type ExistingPrivatePostgresProcessStatus = "RUNNING" | "STOPPED";
-
-const STATUS_PROBE_TIMEOUT_MS = 5_000;
 
 function operationProblem(
   problemCode: string,
@@ -38,85 +40,13 @@ function operationProblem(
   });
 }
 
-function timeoutSeconds(timeoutMs: number): string {
-  return String(Math.max(1, Math.ceil(timeoutMs / 1000)));
-}
-
-async function readProcessStatus(
-  options: PrivatePostgresLifecycleOperationsOptions,
-  timeoutMs = options.lifecycle.startupTimeoutMs,
-): Promise<ExistingPrivatePostgresProcessStatus> {
-  const result = await runPostgresTool(
-    options.toolchain.pgCtl,
-    ["status", "--pgdata", options.placement.canonicalDataDirectory],
-    { timeoutMs: Math.min(STATUS_PROBE_TIMEOUT_MS, timeoutMs) },
-  );
-  if (result.exitCode === 0) return "RUNNING";
-  if (result.exitCode === 3) return "STOPPED";
-  throw operationProblem(
-    "private-postgres.lifecycle.status_uncertain",
-    "Private PostgreSQL process status is uncertain",
-    "pg_ctl could not prove whether the validated private PostgreSQL process is running",
-  );
-}
-
-async function waitForReadiness(
-  options: PrivatePostgresLifecycleOperationsOptions,
-): Promise<void> {
-  const deadline = performance.now() + options.lifecycle.startupTimeoutMs;
-  while (performance.now() < deadline) {
-    const remainingMs = Math.max(1, deadline - performance.now());
-    const status = await runPostgresTool(
-      options.toolchain.pgCtl,
-      ["status", "--pgdata", options.placement.canonicalDataDirectory],
-      { timeoutMs: Math.min(STATUS_PROBE_TIMEOUT_MS, Math.ceil(remainingMs)) },
-    );
-    if (status.exitCode !== 0) {
-      throw operationProblem(
-        "private-postgres.lifecycle.process_exited",
-        "Private PostgreSQL process exited before readiness",
-        "pg_ctl reported that the validated private PostgreSQL process is no longer running",
-        "unavailable",
-      );
-    }
-    const readiness = await runPostgresTool(
-      options.toolchain.pgIsReady,
-      ["--host", "127.0.0.1", "--port", String(options.expectedIdentity.persistedPort)],
-      { timeoutMs: Math.min(STATUS_PROBE_TIMEOUT_MS, Math.ceil(remainingMs)) },
-    );
-    if (readiness.exitCode === 0) return;
-    const waitMs = Math.min(
-      options.lifecycle.readinessPollIntervalMs,
-      Math.max(1, Math.ceil(deadline - performance.now())),
-    );
-    await new Promise<void>((resolve) => setTimeout(resolve, waitMs));
-  }
-  throw operationProblem(
-    "private-postgres.lifecycle.readiness_timeout",
-    "Private PostgreSQL readiness timed out",
-    "The validated private PostgreSQL cluster did not accept loopback connections within the startup budget",
-    "unavailable",
-  );
-}
-
-async function runChecked(
-  executable: string,
-  args: readonly string[],
-  timeoutMs: number,
-  problemCode: string,
-  title: string,
-  detail: string,
-  stdio: "pipe" | "ignore" = "pipe",
-): Promise<void> {
-  const result = await runPostgresTool(executable, args, { timeoutMs, stdio });
-  if (result.exitCode !== 0) {
-    throw operationProblem(problemCode, title, detail, "unavailable");
-  }
-}
-
 export async function observeValidatedCluster(
   options: PrivatePostgresLifecycleOperationsOptions,
 ): Promise<ExistingPrivatePostgresProcessStatus> {
+  const processOptions = lifecycleProcessOptions({
+    ...options,
+    persistedPort: options.expectedIdentity.persistedPort,
+  });
   options.assertControlAuthority();
   await validateExistingCluster({
     toolchain: options.toolchain,
@@ -124,9 +54,12 @@ export async function observeValidatedCluster(
     expectedIdentity: options.expectedIdentity,
     timeoutMs: options.lifecycle.startupTimeoutMs,
   });
-  const status = await readProcessStatus(options);
+  const status = await readPrivatePostgresProcessStatus(
+    processOptions,
+    operationProblem,
+  );
   if (status === "STOPPED") return status;
-  await waitForReadiness(options);
+  await waitForPrivatePostgresReadiness(processOptions, operationProblem);
   await validateExistingCluster({
     toolchain: options.toolchain,
     placement: options.placement,
@@ -139,14 +72,22 @@ export async function observeValidatedCluster(
 export async function stopValidatedCluster(
   options: PrivatePostgresLifecycleOperationsOptions,
 ): Promise<void> {
+  const processOptions = lifecycleProcessOptions({
+    ...options,
+    persistedPort: options.expectedIdentity.persistedPort,
+  });
   options.assertControlAuthority();
-  const before = await readProcessStatus(options, options.lifecycle.shutdownTimeoutMs);
+  const before = await readPrivatePostgresProcessStatus(
+    processOptions,
+    operationProblem,
+    options.lifecycle.shutdownTimeoutMs,
+  );
   if (before === "STOPPED") return;
 
   options.assertControlAuthority();
   try {
-    await runChecked(
-      options.toolchain.pgCtl,
+    await runPrivatePostgresCtlChecked(
+      processOptions,
       [
         "stop",
         "--pgdata",
@@ -154,9 +95,10 @@ export async function stopValidatedCluster(
         "--mode=fast",
         "--wait",
         "--timeout",
-        timeoutSeconds(options.lifecycle.shutdownTimeoutMs),
+        String(Math.max(1, Math.ceil(options.lifecycle.shutdownTimeoutMs / 1000))),
       ],
       options.lifecycle.shutdownTimeoutMs,
+      operationProblem,
       "private-postgres.lifecycle.stop_failed",
       "Private PostgreSQL stop failed",
       "pg_ctl could not stop the private PostgreSQL cluster within the shutdown budget",
@@ -167,7 +109,11 @@ export async function stopValidatedCluster(
 
   let after: ExistingPrivatePostgresProcessStatus;
   try {
-    after = await readProcessStatus(options, options.lifecycle.shutdownTimeoutMs);
+    after = await readPrivatePostgresProcessStatus(
+      processOptions,
+      operationProblem,
+      options.lifecycle.shutdownTimeoutMs,
+    );
   } catch {
     throw operationProblem(
       "private-postgres.lifecycle.stop_uncertain",
@@ -188,9 +134,13 @@ export async function stopValidatedCluster(
 export async function startValidatedCluster(
   options: PrivatePostgresLifecycleOperationsOptions,
 ): Promise<void> {
+  const processOptions = lifecycleProcessOptions({
+    ...options,
+    persistedPort: options.expectedIdentity.persistedPort,
+  });
   options.assertControlAuthority();
-  await runChecked(
-    options.toolchain.pgCtl,
+  await runPrivatePostgresCtlChecked(
+    processOptions,
     [
       "start",
       "--pgdata",
@@ -199,15 +149,16 @@ export async function startValidatedCluster(
       options.logFilePath,
       "--wait",
       "--timeout",
-      timeoutSeconds(options.lifecycle.startupTimeoutMs),
+      String(Math.max(1, Math.ceil(options.lifecycle.startupTimeoutMs / 1000))),
     ],
     options.lifecycle.startupTimeoutMs,
+    operationProblem,
     "private-postgres.lifecycle.start_failed",
     "Private PostgreSQL start failed",
     "pg_ctl could not start the validated private PostgreSQL cluster",
     "ignore",
   );
-  await waitForReadiness(options);
+  await waitForPrivatePostgresReadiness(processOptions, operationProblem);
   await validateExistingCluster({
     toolchain: options.toolchain,
     placement: options.placement,

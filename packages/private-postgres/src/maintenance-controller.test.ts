@@ -162,6 +162,22 @@ describe("existing-cluster private PostgreSQL maintenance controller", () => {
     expect(operations.stopValidatedClusterMock).toHaveBeenCalledOnce();
   });
 
+  it("does not issue start after a stop outcome becomes uncertain", async () => {
+    const { options } = fixture();
+    operations.observeValidatedClusterMock.mockResolvedValue("RUNNING");
+    operations.stopValidatedClusterMock.mockRejectedValue(
+      new Error("stop outcome uncertain"),
+    );
+    const controller = await openPrivatePostgresMaintenanceController(options);
+
+    await expect(controller.stop()).rejects.toThrow("stop outcome uncertain");
+    expect(controller.state).toBe("UNCERTAIN");
+    await expect(controller.start()).rejects.toMatchObject({
+      problem: { problemCode: "private-postgres.maintenance.state_uncertain" },
+    });
+    expect(operations.startValidatedClusterMock).not.toHaveBeenCalled();
+  });
+
   it("returns to READY only after start readiness and identity proof", async () => {
     const { options } = fixture();
     operations.observeValidatedClusterMock.mockResolvedValue("STOPPED");

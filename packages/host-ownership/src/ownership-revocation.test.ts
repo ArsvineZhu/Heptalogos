@@ -244,14 +244,17 @@ describe("HostOwnershipToken bootstrap-admin revocation", () => {
 
   it("does not mutate after bootstrap authority is lost before BEGIN", async () => {
     const fixtureValue = fixture();
-    fixtureValue.options.mutationAuthority = {
-      assertCurrent() {
-        throw new Error("bootstrap authority lost");
+    const options = {
+      ...fixtureValue.options,
+      mutationAuthority: {
+        assertCurrent() {
+          throw new Error("bootstrap authority lost");
+        },
       },
     };
 
     await expect(
-      revokeHostOwnershipTokenForBootstrap(fixtureValue.options),
+      revokeHostOwnershipTokenForBootstrap(options),
     ).rejects.toMatchObject({
       problem: { problemCode: "host-ownership.revocation.known_not_committed" },
     });

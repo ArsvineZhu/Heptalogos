@@ -22,6 +22,7 @@ export type PreparedMaintenanceState =
   | "ENTERED"
   | "POSTGRES_STOPPED"
   | "POSTGRES_READY"
+  | "HOST_LEASE_ACQUIRED"
   | "HOST_REACQUIRED"
   | "COMPLETED"
   | "ABORTED"

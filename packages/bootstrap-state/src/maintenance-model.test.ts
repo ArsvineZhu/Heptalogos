@@ -76,7 +76,7 @@ describe("MaintenanceJournal V1 model and codec", () => {
     "source.hostOwnershipToken",
   ] as const)("rejects invalid UUID identity: %s", (field) => {
     const body = makeBody();
-    const invalid = structuredClone(body) as Record<string, unknown>;
+    const invalid = structuredClone(body) as unknown as Record<string, unknown>;
     if (field.startsWith("source.")) {
       invalid.source = { ...body.source, hostOwnershipToken: "not-a-uuid" };
     } else {

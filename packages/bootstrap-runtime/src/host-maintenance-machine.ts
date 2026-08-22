@@ -8,6 +8,7 @@ export type HostMaintenanceState =
   | "ENTERED"
   | "POSTGRES_STOPPED"
   | "POSTGRES_READY"
+  | "HOST_LEASE_ACQUIRED"
   | "HOST_REACQUIRED"
   | "COMPLETED"
   | "ABORTED"
@@ -19,6 +20,7 @@ export type HostMaintenanceEvent =
   | { readonly type: "WINDOW_ENTERED" }
   | { readonly type: "POSTGRES_STOPPED" }
   | { readonly type: "POSTGRES_READY" }
+  | { readonly type: "HOST_LEASE_ACQUIRED" }
   | { readonly type: "HOST_REACQUIRED" }
   | { readonly type: "COMPLETED" }
   | { readonly type: "ABORTED" }
@@ -61,16 +63,24 @@ const machine = setup({
     entered: {
       on: {
         POSTGRES_STOPPED: "postgresStopped",
+        COMPLETED: "completed",
         RECOVERY_REQUIRED: "recoveryRequired",
       },
     },
     postgresStopped: {
       on: {
         POSTGRES_READY: "postgresReady",
+        COMPLETED: "completed",
         RECOVERY_REQUIRED: "recoveryRequired",
       },
     },
     postgresReady: {
+      on: {
+        HOST_LEASE_ACQUIRED: "hostLeaseAcquired",
+        RECOVERY_REQUIRED: "recoveryRequired",
+      },
+    },
+    hostLeaseAcquired: {
       on: {
         HOST_REACQUIRED: "hostReacquired",
         RECOVERY_REQUIRED: "recoveryRequired",
@@ -97,6 +107,7 @@ const stateByValue: Readonly<Record<string, HostMaintenanceState>> = {
   entered: "ENTERED",
   postgresStopped: "POSTGRES_STOPPED",
   postgresReady: "POSTGRES_READY",
+  hostLeaseAcquired: "HOST_LEASE_ACQUIRED",
   hostReacquired: "HOST_REACQUIRED",
   completed: "COMPLETED",
   aborted: "ABORTED",

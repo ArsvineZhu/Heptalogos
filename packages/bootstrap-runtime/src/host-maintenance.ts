@@ -8,15 +8,21 @@ import {
   type MaintenanceStage,
 } from "@heptalogos/bootstrap-state";
 import {
+  acquireHostLeaseConnection,
+  deriveHostAdvisoryKey,
+  HOST_OWNERSHIP_CANONICAL_DATABASE,
   inspectHostOwnershipCanonicalSnapshot,
+  publishHostOwnershipToken,
   revokeHostOwnershipTokenForBootstrap,
   type HostOwnershipCanonicalSnapshot,
   type HostOwnershipContext,
 } from "@heptalogos/host-ownership";
+import { openPrivatePostgresMaintenanceController } from "@heptalogos/private-postgres";
 import {
   parseBootId,
   parseHostOwnershipToken,
   ProblemError,
+  type HostOwnershipToken,
   type Problem,
 } from "@heptalogos/foundation-contracts";
 import {
@@ -29,6 +35,7 @@ import {
 } from "./maintenance-state-access.js";
 import { createHostMaintenanceTracker } from "./host-maintenance-machine.js";
 import type {
+  BootstrapManagedHostContext,
   HostMaintenanceQuiescence,
   HostQuiescenceLease,
   ManagedHostOperations,
@@ -55,6 +62,7 @@ export interface EnteredMaintenanceWindow {
     stage: MaintenanceStage,
     changes?: Partial<MaintenanceJournalBodyV1>,
   ): Promise<void>;
+  complete(): void;
 }
 
 export interface HostMaintenanceOperationProvenance {
@@ -62,6 +70,14 @@ export interface HostMaintenanceOperationProvenance {
   readonly bootstrap: OwnedBootstrapPreludeHandoffContext;
   readonly handoff: HostOwnershipHandoffOptions;
   readonly privatePostgres: PrivatePostgresMaintenanceDescriptor;
+  readonly createHostToken?: () => HostOwnershipToken;
+  readonly createHostContext?: (
+    connection: Awaited<ReturnType<typeof acquireHostLeaseConnection>>,
+    token: HostOwnershipToken,
+  ) => HostOwnershipContext;
+  readonly createManagedHost?: (
+    raw: HostOwnershipContext,
+  ) => BootstrapManagedHostContext;
   readonly executeEnteredWindow?: (
     window: EnteredMaintenanceWindow,
   ) => Promise<PrivatePostgresMaintenanceResult>;
@@ -302,6 +318,152 @@ export function createHostMaintenanceOperations(
   };
 }
 
+export function createStopPrivatePostgresEnteredWindowExecutor(
+  provenance: HostMaintenanceOperationProvenance,
+): (window: EnteredMaintenanceWindow) => Promise<PrivatePostgresMaintenanceResult> {
+  return async (window) => {
+    const controller = await openPrivatePostgresMaintenanceController({
+      ...provenance.privatePostgres,
+      assertControlAuthority: () => window.lease.assertHeld(),
+    });
+    if (controller.state !== "READY") {
+      throw maintenanceProblem(
+        "bootstrap.maintenance.postgres_not_ready",
+        "Private PostgreSQL is not ready for stop",
+        "Reverse-handoff entry did not observe the existing private PostgreSQL cluster as READY",
+      );
+    }
+    await controller.stop();
+    await window.advance("POSTGRES_STOPPED");
+    await window.advance("BOOTSTRAP_RELEASE_ARMED");
+    await window.lease.release();
+    await Promise.resolve()
+      .then(() =>
+        provenance.bootstrap.journal.checkpoint({
+          schemaVersion: 2,
+          bootId: provenance.bootstrap.bootId,
+          bootstrapActivityId: provenance.bootstrap.bootstrapActivityId,
+          installationId: provenance.bootstrap.installationId,
+          instanceId: provenance.bootstrap.instanceId,
+          stage: "bootstrap.maintenance.completed",
+          at: new Date().toISOString(),
+          outcome: "SUCCEEDED",
+        }),
+      )
+      .catch(() => undefined);
+    window.complete();
+    return { kind: "STOPPED" };
+  };
+}
+
+export function createRestartPrivatePostgresEnteredWindowExecutor(
+  provenance: HostMaintenanceOperationProvenance,
+): (window: EnteredMaintenanceWindow) => Promise<PrivatePostgresMaintenanceResult> {
+  return async (window) => {
+    if (
+      provenance.createHostContext === undefined ||
+      provenance.createManagedHost === undefined ||
+      provenance.createHostToken === undefined
+    ) {
+      throw maintenanceProblem(
+        "bootstrap.maintenance.restart_executor_not_ready",
+        "Private PostgreSQL restart executor is incomplete",
+        "A restart window requires authentic raw Host and managed Host factories for fresh ownership reacquisition",
+        "unavailable",
+      );
+    }
+
+    const controller = await openPrivatePostgresMaintenanceController({
+      ...provenance.privatePostgres,
+      assertControlAuthority: () => window.lease.assertHeld(),
+    });
+    if (controller.state !== "READY") {
+      throw maintenanceProblem(
+        "bootstrap.maintenance.postgres_not_ready",
+        "Private PostgreSQL is not ready for restart",
+        "Reverse-handoff entry did not observe the existing private PostgreSQL cluster as READY",
+      );
+    }
+
+    let rawHost: HostOwnershipContext | undefined;
+    let leaseConnection:
+      Awaited<ReturnType<typeof acquireHostLeaseConnection>> | undefined;
+    let returned = false;
+    try {
+      await controller.stop();
+      await window.advance("POSTGRES_STOPPED");
+
+      await controller.start();
+      await window.advance("POSTGRES_READY");
+
+      window.lease.assertHeld();
+      leaseConnection = await acquireHostLeaseConnection({
+        target: {
+          host: "127.0.0.1",
+          port: provenance.privatePostgres.expectedIdentity.persistedPort,
+          database: HOST_OWNERSHIP_CANONICAL_DATABASE,
+        },
+        advisoryKey: deriveHostAdvisoryKey(provenance.bootstrap.instanceId),
+        timing: provenance.handoff.timing,
+        passwordProvider: passwordProvider(provenance.bootstrap, provenance.handoff),
+        mutationAuthority: { assertCurrent: () => window.lease.assertHeld() },
+        clientFactory: provenance.handoff.clientFactory,
+      });
+      window.lease.assertHeld();
+      await window.advance("HOST_LEASE_ACQUIRED");
+
+      const token = provenance.createHostToken();
+      const publication = await publishHostOwnershipToken({
+        connection: leaseConnection,
+        instanceId: provenance.bootstrap.instanceId,
+        bootId: provenance.bootstrap.bootId,
+        token,
+        fenceLockTimeoutMs: provenance.handoff.timing.fenceLockTimeoutMs,
+        statementTimeoutMs: provenance.handoff.timing.statementTimeoutMs,
+        mutationAuthority: { assertCurrent: () => window.lease.assertHeld() },
+      });
+      leaseConnection.assertActive();
+      rawHost = provenance.createHostContext(leaseConnection, token);
+      rawHost.assertActive();
+      await window.advance("HOST_TOKEN_PUBLISHED", {
+        target: {
+          ...window.journal.target,
+          hostOwnershipToken: token,
+          hostOwnershipRevision: publication.publishedRevision,
+        },
+      });
+      await window.advance("BOOTSTRAP_RELEASE_ARMED");
+
+      await window.lease.release();
+      await Promise.resolve()
+        .then(() =>
+          provenance.bootstrap.journal.checkpoint({
+            schemaVersion: 2,
+            bootId: provenance.bootstrap.bootId,
+            bootstrapActivityId: provenance.bootstrap.bootstrapActivityId,
+            installationId: provenance.bootstrap.installationId,
+            instanceId: provenance.bootstrap.instanceId,
+            stage: "bootstrap.maintenance.completed",
+            at: new Date().toISOString(),
+            outcome: "SUCCEEDED",
+          }),
+        )
+        .catch(() => undefined);
+      window.complete();
+      const managedHost = provenance.createManagedHost(rawHost);
+      returned = true;
+      leaseConnection = undefined;
+      return { kind: "RESTARTED", host: managedHost };
+    } catch (error) {
+      if (!returned) {
+        await rawHost?.close().catch(() => undefined);
+        await leaseConnection?.close().catch(() => undefined);
+      }
+      throw error;
+    }
+  };
+}
+
 async function prepareMaintenance(
   provenance: HostMaintenanceOperationProvenance,
   request: PrivatePostgresMaintenanceRequest,
@@ -379,6 +541,37 @@ function createPreparedMaintenance(
     };
     await access.journal.advance(next);
     body = next;
+    const eventByStage: Partial<
+      Record<
+        MaintenanceStage,
+        | { readonly type: "TOKEN_REVOKED" }
+        | { readonly type: "POSTGRES_STOPPED" }
+        | { readonly type: "POSTGRES_READY" }
+        | { readonly type: "HOST_LEASE_ACQUIRED" }
+        | { readonly type: "HOST_REACQUIRED" }
+      >
+    > = {
+      HOST_TOKEN_REVOKED: { type: "TOKEN_REVOKED" },
+      POSTGRES_STOPPED: { type: "POSTGRES_STOPPED" },
+      POSTGRES_READY: { type: "POSTGRES_READY" },
+      HOST_LEASE_ACQUIRED: { type: "HOST_LEASE_ACQUIRED" },
+      HOST_TOKEN_PUBLISHED: { type: "HOST_REACQUIRED" },
+    };
+    const event = eventByStage[stage];
+    if (event !== undefined && tracker.can(event)) tracker.send(event);
+    const stateByStage: Partial<Record<MaintenanceStage, PreparedMaintenanceState>> = {
+      HOST_QUIESCED: "QUIESCED",
+      HOST_TOKEN_REVOKED: "TOKEN_REVOKED",
+      HOST_LEASE_CLOSED: "ENTERED",
+      POSTGRES_STOPPED: "POSTGRES_STOPPED",
+      POSTGRES_READY: "POSTGRES_READY",
+      HOST_LEASE_ACQUIRED: "HOST_LEASE_ACQUIRED",
+      HOST_TOKEN_PUBLISHED: "HOST_REACQUIRED",
+      ABORTED: "ABORTED",
+      RECOVERY_REQUIRED: "RECOVERY_REQUIRED",
+    };
+    const nextState = stateByStage[stage];
+    if (nextState !== undefined) lifecycleState = nextState;
   };
 
   const markRecoveryRequired = async (error: unknown): Promise<void> => {
@@ -397,6 +590,25 @@ function createPreparedMaintenance(
   const safeAbort = async (error: unknown): Promise<void> => {
     try {
       if (quiescenceLease !== undefined) {
+        lease.assertHeld();
+        provenance.host.assertActive();
+        const snapshot = await inspectHostOwnershipCanonicalSnapshot({
+          port: body.source.persistedPort,
+          passwordProvider: passwordProvider(
+            provenance.bootstrap,
+            provenance.handoff,
+          ),
+          clientFactory: provenance.handoff.clientFactory,
+        });
+        const currentRevision = assertCurrentFence(snapshot, provenance.host);
+        if (currentRevision !== body.source.hostOwnershipRevision) {
+          throw maintenanceProblem(
+            "bootstrap.maintenance.source_fence_changed",
+            "The old Host fence changed before safe abort",
+            "The pre-point-of-no-return abort could not prove the original Host token and ownership revision were still current",
+            "conflict",
+          );
+        }
         await quiescenceLease.resumeAfterAbort();
       }
       if (tracker.can({ type: "ABORTED" })) tracker.send({ type: "ABORTED" });
@@ -475,13 +687,27 @@ function createPreparedMaintenance(
         request,
         lease,
         access,
-        journal: body,
+        get journal() {
+          return body;
+        },
         advance,
+        complete() {
+          if (!tracker.can({ type: "COMPLETED" })) {
+            throw maintenanceProblem(
+              "bootstrap.maintenance.invalid_completion",
+              "Maintenance completion transition is invalid",
+              `The maintenance capability is ${lifecycleState}`,
+              "conflict",
+            );
+          }
+          tracker.send({ type: "COMPLETED" });
+          lifecycleState = "COMPLETED";
+        },
       });
     } catch (error) {
       if (!ponr && (!revocationAttempted || isKnownNotCommitted(error))) {
         await safeAbort(error);
-      } else if (ponr || isRevocationUncertain(error)) {
+      } else {
         await markRecoveryRequired(error);
       }
       throw error;

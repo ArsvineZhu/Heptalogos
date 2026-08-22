@@ -37,7 +37,12 @@ import {
   markManagedHostTerminal,
   type BootstrapManagedHostContext,
 } from "./managed-host.js";
-import { createHostMaintenanceOperations } from "./host-maintenance.js";
+import {
+  createHostMaintenanceOperations,
+  createRestartPrivatePostgresEnteredWindowExecutor,
+  createStopPrivatePostgresEnteredWindowExecutor,
+  type HostMaintenanceOperationProvenance,
+} from "./host-maintenance.js";
 
 export interface HostOwnershipHandoffOptions {
   readonly keyProvider: BootstrapKeyProvider;
@@ -397,15 +402,34 @@ export async function handoffPrivatePostgresToManagedHostForOwnedPrelude(
     ready,
     options,
   );
-  let managed: BootstrapManagedHostContext;
-  managed = createManagedHostContext(raw, {
-    ...createHostMaintenanceOperations({
-      host: raw,
+  const createManagedHost = (
+    host: HostOwnershipContext,
+  ): BootstrapManagedHostContext => {
+    let managed: BootstrapManagedHostContext;
+    const provenance: HostMaintenanceOperationProvenance = {
+      host,
       bootstrap: context,
       handoff: options,
       privatePostgres,
+      createHostToken: createHostOwnershipToken,
+      createHostContext: (connection, token) =>
+        createContext(context, connection, token),
+      createManagedHost,
       onOldHostTerminal: () => markManagedHostTerminal(managed),
-    }),
-  });
-  return managed;
+    };
+    managed = createManagedHostContext(
+      host,
+      createHostMaintenanceOperations({
+        ...provenance,
+        executeEnteredWindow: async (window) => {
+          if (window.request.kind === "STOP_PRIVATE_POSTGRES") {
+            return createStopPrivatePostgresEnteredWindowExecutor(provenance)(window);
+          }
+          return createRestartPrivatePostgresEnteredWindowExecutor(provenance)(window);
+        },
+      }),
+    );
+    return managed;
+  };
+  return createManagedHost(raw);
 }
