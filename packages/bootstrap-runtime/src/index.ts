@@ -16,6 +16,11 @@ export {
   proveLocalInstallationOwner,
   type LocalInstallationOwnerRecoveryPrincipal,
 } from "./local-installation-owner.js";
+export {
+  inspectBootstrapRecovery,
+  type BootstrapRecoveryDisposition,
+  type BootstrapRecoveryInspection,
+} from "./bootstrap-recovery.js";
 export type { OwnedBootstrapStateStore } from "./bootstrap-state-access.js";
 export {
   openMaintenanceStateAccess,
