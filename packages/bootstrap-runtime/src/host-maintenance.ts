@@ -538,6 +538,9 @@ function createPreparedMaintenance(
   let revocationAttempted = false;
   const tracker = createHostMaintenanceTracker();
   let oldHostRetirementPromise: Promise<void> | undefined;
+  type OldHostRetirementResult =
+    { readonly ok: true } | { readonly ok: false; readonly error: unknown };
+  let oldHostRetirementObservation: Promise<OldHostRetirementResult> | undefined;
 
   const beginOldHostRetirement = (): Promise<void> => {
     if (oldHostRetirementPromise !== undefined) {
@@ -550,6 +553,17 @@ function createPreparedMaintenance(
       oldHostRetirementPromise = Promise.reject(error);
     }
     return oldHostRetirementPromise;
+  };
+
+  const observeOldHostRetirement = (): Promise<OldHostRetirementResult> => {
+    if (oldHostRetirementObservation !== undefined) {
+      return oldHostRetirementObservation;
+    }
+    oldHostRetirementObservation = beginOldHostRetirement().then(
+      () => ({ ok: true as const }),
+      (error: unknown) => ({ ok: false as const, error }),
+    );
+    return oldHostRetirementObservation;
   };
 
   const advance = async (
@@ -603,13 +617,14 @@ function createPreparedMaintenance(
     if (tracker.can({ type: "RECOVERY_REQUIRED" })) {
       tracker.send({ type: "RECOVERY_REQUIRED" });
     }
-    await beginOldHostRetirement().catch(() => undefined);
+    const oldHostRetirement = observeOldHostRetirement();
     if (lease.state === "HELD") {
       await advance("RECOVERY_REQUIRED", {
         terminalOutcome: isRevocationUncertain(error) ? "UNCERTAIN" : "FAILED",
         problemCode: problemCodeOf(error),
       }).catch(() => undefined);
     }
+    await oldHostRetirement;
   };
 
   const safeAbort = async (error: unknown): Promise<void> => {
@@ -679,12 +694,15 @@ function createPreparedMaintenance(
         clientFactory: provenance.handoff.clientFactory,
       });
       ponr = true;
-      const oldHostClose = beginOldHostRetirement();
+      const oldHostClose = observeOldHostRetirement();
       tracker.send({ type: "TOKEN_REVOKED" });
       lifecycleState = "TOKEN_REVOKED";
       await advance("HOST_TOKEN_REVOKED");
 
-      await oldHostClose;
+      const oldHostCloseResult = await oldHostClose;
+      if (!oldHostCloseResult.ok) {
+        throw oldHostCloseResult.error;
+      }
       if (provenance.host.state !== "CLOSED") {
         throw maintenanceProblem(
           "bootstrap.maintenance.host_close_unverified",

@@ -126,9 +126,18 @@ function makeFixture(): {
   readonly state: BootstrapStateEnvelopeV2;
   readonly trace: string[];
   readonly setFailJournalStage: (stage: MaintenanceStage | undefined) => void;
+  readonly setDelayJournalStage: (stage: MaintenanceStage | undefined) => void;
+  readonly waitForDelayedJournalStage: () => Promise<void>;
+  readonly releaseDelayedJournal: () => void;
 } {
   const trace: string[] = [];
   let failJournalStage: MaintenanceStage | undefined;
+  let delayJournalStage: MaintenanceStage | undefined;
+  let releaseDelayedJournal: (() => void) | undefined;
+  let resolveDelayedJournalStage: (() => void) | undefined;
+  const delayedJournalStageReached = new Promise<void>((resolve) => {
+    resolveDelayedJournalStage = resolve;
+  });
   const installationId = createInstallationId();
   const instanceId = createInstanceId();
   const bootId = createBootId();
@@ -199,6 +208,13 @@ function makeFixture(): {
       trace.push(`journal.advance:${value.lastCompletedStage}`);
       if (value.lastCompletedStage === failJournalStage) {
         throw new Error(`journal advance failed: ${value.lastCompletedStage}`);
+      }
+      if (value.lastCompletedStage === delayJournalStage) {
+        resolveDelayedJournalStage?.();
+        await new Promise<void>((resolve) => {
+          releaseDelayedJournal = resolve;
+        });
+        releaseDelayedJournal = undefined;
       }
       return { state: value, digest: state.digest };
     },
@@ -340,6 +356,15 @@ function makeFixture(): {
     trace,
     setFailJournalStage(stage) {
       failJournalStage = stage;
+    },
+    setDelayJournalStage(stage) {
+      delayJournalStage = stage;
+    },
+    waitForDelayedJournalStage() {
+      return delayedJournalStageReached;
+    },
+    releaseDelayedJournal() {
+      releaseDelayedJournal?.();
     },
   };
 }
@@ -666,6 +691,57 @@ describe("reverse-handoff maintenance preparation and entry", () => {
     ).rejects.toThrow("journal advance failed: HOST_TOKEN_REVOKED");
     expect(prepared.state).toBe("RECOVERY_REQUIRED");
     expect(fixture.rawHost.state).toBe("CLOSED");
+    expect(() => managed.assertActive()).toThrow();
+    expect(fixture.freshLease.state).toBe("HELD");
+    expect(fixture.trace).toContain("journal.advance:RECOVERY_REQUIRED");
+    expect(fixture.trace).not.toContain("bootstrap.release");
+  });
+
+  it("observes an immediate old Host close rejection while token journal advancement is delayed", async () => {
+    const fixture = makeFixture();
+    const closeError = new Error("old Host close failed");
+    fixture.rawHost.close = vi.fn(async () => {
+      throw closeError;
+    });
+    fixture.setDelayJournalStage("HOST_TOKEN_REVOKED");
+    let managed: BootstrapManagedHostContext;
+    const operationsProvenance = {
+      host: fixture.rawHost,
+      bootstrap: fixture.context,
+      handoff: fixture.handoff,
+      privatePostgres: fixture.descriptor,
+      beginOldHostRetirement: async () => {
+        markManagedHostTerminal(managed);
+        await fixture.rawHost.close();
+      },
+    };
+    const operations = createHostMaintenanceOperations(operationsProvenance);
+    managed = createManagedHostContext(fixture.rawHost, operations);
+    const prepared = await managed.preparePrivatePostgresMaintenance({
+      kind: "RESTART_PRIVATE_POSTGRES",
+    });
+    const unhandledRejections: unknown[] = [];
+    const onUnhandledRejection = (reason: unknown) => {
+      unhandledRejections.push(reason);
+    };
+    process.on("unhandledRejection", onUnhandledRejection);
+
+    try {
+      const execution = prepared.execute({
+        async quiesce() {
+          return { async resumeAfterAbort() {} };
+        },
+      });
+      await fixture.waitForDelayedJournalStage();
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      fixture.releaseDelayedJournal();
+      await expect(execution).rejects.toBe(closeError);
+    } finally {
+      process.off("unhandledRejection", onUnhandledRejection);
+    }
+
+    expect(unhandledRejections).toEqual([]);
+    expect(prepared.state).toBe("RECOVERY_REQUIRED");
     expect(() => managed.assertActive()).toThrow();
     expect(fixture.freshLease.state).toBe("HELD");
     expect(fixture.trace).toContain("journal.advance:RECOVERY_REQUIRED");
