@@ -487,3 +487,33 @@ temporary qualification root with `libpq5` extracted for runtime linkage.
 All five required binaries reported PostgreSQL 18.6. K1-K3 used real Node
 child termination and stale-lock adjudication; the required real maintenance
 K4/K5 paths and complete PG-1..PG-9 matrix remain `NOT_RUN` until rerun.
+
+## Foundation M5B corrective real-PostgreSQL evidence (2026-08-23)
+
+The exact candidate `e7e46e8e1d58f15e254b9644f5b315cd34090360` completed the Linux PostgreSQL 18.6 recovery
+qualification. K1-K3 passed 3/3, real maintenance/recovery K4/K5 passed 2/2,
+and the complete PG-1..PG-9 matrix plus the 5B/6A/6B split cases passed 11/11.
+The `private-postgres` and Host ownership real integration targets passed
+20/20 and 8/8; the combined bootstrap-runtime integration target passed 28/28.
+These are implementation evidence for the current M5B candidate, not a claim
+of Windows/macOS, source-less, service-account ACL, or hardware qualification.
+
+```yaml
+candidate_sha: e7e46e8e1d58f15e254b9644f5b315cd34090360
+runtime: "Node 24.19.0 / pnpm 11.22.0"
+postgres_version: PostgreSQL 18.6
+linux_real_pg_recovery: PASS
+real_process_k1_k3: PASS
+real_process_k4_actual_maintenance_recovery: PASS
+real_process_k5_recovery_restartability: PASS
+full_pg_1_to_pg_9_matrix: PASS
+windows_real_pg_recovery: NOT_RUN
+macos_real_pg_recovery: NOT_RUN
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+```
+
+The prior exact review at `9e450f836466d32fb1f3d9027618fac236798eb9`
+returned `REQUEST_CHANGES`; that historical outcome is separate from the
+current candidate's machine verification status. The current candidate awaits
+independent review.

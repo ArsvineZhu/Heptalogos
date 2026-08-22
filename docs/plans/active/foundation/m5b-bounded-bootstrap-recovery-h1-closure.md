@@ -41,7 +41,7 @@ is in scope.
 - [x] Recover interrupted M5A restart/stop operations without token reuse,
       unnecessary restart, live-Host theft, or journal inference.
 - [x] Expose only fixed `INSPECT` and `RECOVER` recovery command semantics.
-- [ ] Qualify the complete real PostgreSQL 18.6 recovery matrix and real
+- [x] Qualify the complete real PostgreSQL 18.6 recovery matrix and real
       M5A/M5B process kill/restart semantics.
 - [x] Run H1 regression/boundary verification and record exact behavior SHA.
 - [ ] Obtain independent review of the exact SHA, then dispatch exact-SHA
@@ -56,7 +56,7 @@ Windows/macOS real PostgreSQL, source-less invocation, service-account ACL,
 and hardware power-loss claims remain `NOT_RUN` unless actually qualified;
 they must not be upgraded by unit tests or generic cross-platform CI.
 
-## PR8 corrective review baseline (2026-08-23)
+## PR8 corrective review baseline — rejected candidate (2026-08-23)
 
 ```yaml
 behaviorCandidateSha: c4c1be43f412c868a84a776461b479d3b677ea18
@@ -89,3 +89,37 @@ Independent review returned `REQUEST_CHANGES` at the rejected exact HEAD
 and the complete Linux PG-1..PG-9 matrix were not proven by that candidate.
 Windows/macOS real PostgreSQL, source-less recovery, service-account ACL, and
 hardware power-loss evidence remain `NOT_RUN`.
+
+## PR8 corrective qualification candidate (2026-08-23)
+
+```yaml
+exactCandidateSha: e7e46e8e1d58f15e254b9644f5b315cd34090360
+behaviorCandidateSha: e7e46e8e1d58f15e254b9644f5b315cd34090360
+node: 24.19.0
+pnpm: 11.22.0
+postgres: 18.6
+bootstrapRuntimeUnit: PASS (144 passed, 1 skipped)
+bootstrapStateUnit: PASS (107 passed, 2 skipped)
+recoveryProcessK1K3: PASS (3/3)
+recoveryProcessK4ActualMaintenance: PASS (1/1)
+recoveryProcessK5RecoveryRestartability: PASS (1/1)
+linuxPostgresRestartSuccessSubset: PASS
+linuxPostgresLiveHostBlock: PASS
+linuxPostgresCorruptJournalBlock: PASS
+linuxPostgresFullMatrixPg1Pg9: PASS (11/11 including 5B/6A/6B split cases)
+privatePostgresIntegration: PASS (20/20)
+hostOwnershipIntegration: PASS (8/8)
+bootstrapRuntimeIntegration: PASS (28/28)
+repositoryVerify: PASS
+independentReview: NOT_RUN
+finalCrossPlatformCi: NOT_RUN
+squashMerge: NOT_RUN
+M5B: ACTIVE
+H1: OPEN
+```
+
+The prior review at `9e450f836466d32fb1f3d9027618fac236798eb9` returned
+`REQUEST_CHANGES`; that historical review outcome is not the verification
+status of the current candidate. The current exact candidate awaits independent
+review. Windows/macOS real PostgreSQL, source-less recovery, service-account
+ACL, hardware power-loss, final CI, and merge remain `NOT_RUN`.
