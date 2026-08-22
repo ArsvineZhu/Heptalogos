@@ -5,6 +5,10 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  resolvePrivatePostgresToolchain,
+  type PrivatePostgresToolchain,
+} from "@heptalogos/private-postgres";
+import {
   asContentDigest,
   createInstallationId,
   createInstanceId,
@@ -17,7 +21,11 @@ import {
   BootstrapStateStore,
   type BootstrapStateBodyV1,
 } from "@heptalogos/bootstrap-state";
-import type { HostOwnershipContext } from "@heptalogos/host-ownership";
+import {
+  inspectHostOwnershipCanonicalSnapshot,
+  type BootstrapAdminPasswordProvider,
+  type HostOwnershipContext,
+} from "@heptalogos/host-ownership";
 import type {
   BootstrapKeyProvider,
   BootstrapKeyRequestContext,
@@ -32,9 +40,11 @@ const qualifiedPgBin: string =
       "BLOCKED: HEPTALOGOS_TEST_PG_BIN is required for bootstrap-to-Host PostgreSQL qualification",
     );
   })();
+let resolvedToolchain: PrivatePostgresToolchain | undefined;
 
 const execFileAsync = promisify(execFile);
 const directories: string[] = [];
+const BOOTSTRAP_PASSWORD = "M4_TEST_BOOTSTRAP_PASSWORD_0123456789";
 const LIFECYCLE = {
   startupTimeoutMs: 60_000,
   shutdownTimeoutMs: 30_000,
@@ -93,9 +103,7 @@ function makeKeyProvider(): BootstrapKeyProvider {
       _context: BootstrapKeyRequestContext,
       use: (passwordUtf8: Uint8Array) => Promise<T>,
     ): Promise<T> {
-      const password = new TextEncoder().encode(
-        "M4_TEST_BOOTSTRAP_PASSWORD_0123456789",
-      );
+      const password = new TextEncoder().encode(BOOTSTRAP_PASSWORD);
       try {
         return await use(password);
       } finally {
@@ -116,15 +124,55 @@ function makeKeyProvider(): BootstrapKeyProvider {
   };
 }
 
+async function hostOwnershipSnapshot(
+  ready: ReadyPrivatePostgres,
+  keyProvider: BootstrapKeyProvider,
+): Promise<unknown> {
+  const passwordProvider: BootstrapAdminPasswordProvider = {
+    withBootstrapPassword(use) {
+      return keyProvider.withPrivatePostgresBootstrapPassword(
+        {
+          installationId: ready.installationId,
+          instanceId: ready.instanceId,
+          bootId: ready.bootId,
+          purpose: "private-postgres-bootstrap-superuser",
+        },
+        use,
+      );
+    },
+    withHostLeasePassword(use) {
+      return keyProvider.withPrivatePostgresHostLeasePassword(
+        {
+          installationId: ready.installationId,
+          instanceId: ready.instanceId,
+          bootId: ready.bootId,
+          purpose: "private-postgres-host-lease-role",
+        },
+        use,
+      );
+    },
+  };
+  return inspectHostOwnershipCanonicalSnapshot({
+    port: ready.port,
+    passwordProvider,
+  });
+}
+
+async function getToolchain(): Promise<PrivatePostgresToolchain> {
+  resolvedToolchain ??= await resolvePrivatePostgresToolchain(qualifiedPgBin);
+  return resolvedToolchain;
+}
+
 async function stopQualifiedPostgres(dataDirectory: string): Promise<void> {
   try {
     await access(join(dataDirectory, "postmaster.pid"));
   } catch {
     return;
   }
+  const toolchain = await getToolchain();
   await new Promise<void>((resolve) => {
     const child = spawn(
-      join(qualifiedPgBin, process.platform === "win32" ? "pg_ctl.exe" : "pg_ctl"),
+      toolchain.pgCtl,
       ["stop", "--pgdata", dataDirectory, "--mode=fast", "--wait", "--timeout", "60"],
       { windowsHide: true, stdio: "ignore" },
     );
@@ -134,13 +182,12 @@ async function stopQualifiedPostgres(dataDirectory: string): Promise<void> {
 }
 
 async function assertPostgresReady(port: number): Promise<void> {
-  await execFileAsync(
-    join(
-      qualifiedPgBin,
-      process.platform === "win32" ? "pg_isready.exe" : "pg_isready",
-    ),
-    ["--host", "127.0.0.1", "--port", String(port)],
-  );
+  await execFileAsync((await getToolchain()).pgIsReady, [
+    "--host",
+    "127.0.0.1",
+    "--port",
+    String(port),
+  ]);
 }
 
 async function journalStages(
@@ -254,6 +301,7 @@ describe("bootstrap to Host ownership real PostgreSQL 18.6 qualification", () =>
         });
         expect(secondReady.startupDisposition).toBe("ALREADY_RUNNING");
         expect(secondReady.port).toBe(firstReady.port);
+        const beforeHandoff = await hostOwnershipSnapshot(firstReady, keyProvider);
 
         await expect(
           secondOwned.handoffPrivatePostgresToHost(secondReady, {
@@ -268,6 +316,9 @@ describe("bootstrap to Host ownership real PostgreSQL 18.6 qualification", () =>
         ).rejects.toMatchObject({
           problem: { problemCode: "bootstrap.host.existing_owner_detected" },
         });
+        await expect(hostOwnershipSnapshot(firstReady, keyProvider)).resolves.toEqual(
+          beforeHandoff,
+        );
         expect(secondOwned.ownershipState).toBe("RELEASED");
         const activeHost = hostA;
         if (activeHost === undefined) throw new Error("Host A was not established");

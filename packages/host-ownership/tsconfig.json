@@ -13,6 +13,9 @@
   "references": [
     {
       "path": "../foundation-contracts"
+    },
+    {
+      "path": "../private-postgres"
     }
   ]
 }

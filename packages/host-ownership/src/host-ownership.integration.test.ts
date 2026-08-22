@@ -19,11 +19,16 @@ import {
   deriveHostAdvisoryKey,
   ensureHostOwnershipSchema,
   HOST_LEASE_ROLE,
+  HOST_OWNERSHIP_OWNER_ROLE,
   provisionHostOwnershipDatabase,
   publishHostOwnershipToken,
   type BootstrapAdminPasswordProvider,
   type HostOwnershipTimingOptions,
 } from "./index.js";
+import {
+  resolvePrivatePostgresToolchain,
+  type PrivatePostgresToolchain,
+} from "@heptalogos/private-postgres";
 
 const qualifiedPgBin: string =
   process.env.HEPTALOGOS_TEST_PG_BIN ??
@@ -32,6 +37,7 @@ const qualifiedPgBin: string =
       "BLOCKED: HEPTALOGOS_TEST_PG_BIN is required for Host ownership PostgreSQL qualification",
     );
   })();
+let resolvedToolchain: PrivatePostgresToolchain | undefined;
 
 const execFileAsync = promisify(execFile);
 const BOOTSTRAP_PASSWORD = "M4_TEST_BOOTSTRAP_PASSWORD_0123456789";
@@ -42,6 +48,7 @@ const TIMING: HostOwnershipTimingOptions = {
   fenceLockTimeoutMs: 10_000,
   keepAliveInitialDelayMs: 1_000,
 };
+const mutationAuthority = { assertCurrent(): void {} };
 
 interface ClusterFixture {
   readonly root: string;
@@ -63,8 +70,9 @@ async function runTool(executable: string, args: readonly string[]): Promise<voi
 }
 
 async function runPgCtl(args: readonly string[]): Promise<void> {
+  const toolchain = await getToolchain();
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(join(qualifiedPgBin, "pg_ctl.exe"), [...args], {
+    const child = spawn(toolchain.pgCtl, [...args], {
       windowsHide: true,
       stdio: "ignore",
     });
@@ -77,6 +85,11 @@ async function runPgCtl(args: readonly string[]): Promise<void> {
       }
     });
   });
+}
+
+async function getToolchain(): Promise<PrivatePostgresToolchain> {
+  resolvedToolchain ??= await resolvePrivatePostgresToolchain(qualifiedPgBin);
+  return resolvedToolchain;
 }
 
 async function freePort(): Promise<number> {
@@ -116,7 +129,7 @@ function makeProvider(): BootstrapAdminPasswordProvider {
 }
 
 async function waitUntilReady(port: number): Promise<void> {
-  const readyTool = join(qualifiedPgBin, "pg_isready.exe");
+  const readyTool = (await getToolchain()).pgIsReady;
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
     try {
@@ -130,6 +143,7 @@ async function waitUntilReady(port: number): Promise<void> {
 }
 
 async function createCluster(): Promise<ClusterFixture> {
+  const toolchain = await getToolchain();
   const root = await mkdtemp(join(tmpdir(), "heptalogos-m4-host-pg-"));
   const dataDirectory = join(root, "data");
   const tempDirectory = join(root, "temp");
@@ -146,7 +160,7 @@ async function createCluster(): Promise<ClusterFixture> {
     ),
   );
   await writeFile(passwordFile, `${BOOTSTRAP_PASSWORD}\n`, { encoding: "utf8" });
-  await runTool(join(qualifiedPgBin, "initdb.exe"), [
+  await runTool(toolchain.initdb, [
     "--pgdata",
     dataDirectory,
     "--encoding=UTF8",
@@ -217,17 +231,20 @@ async function prepareHostLease(fixture: ClusterFixture) {
   await provisionHostOwnershipDatabase({
     port: fixture.port,
     passwordProvider: fixture.provider,
+    mutationAuthority,
   });
   const reservation = await acquireBootstrapHostReservation({
     port: fixture.port,
     advisoryKey: deriveHostAdvisoryKey(fixture.instanceId),
     passwordProvider: fixture.provider,
+    mutationAuthority,
   });
   if (reservation === undefined) throw new Error("expected bootstrap reservation");
   await ensureHostOwnershipSchema({
     port: fixture.port,
     instanceId: fixture.instanceId,
     passwordProvider: fixture.provider,
+    mutationAuthority,
   });
   await reservation.release();
   return acquireHostLeaseConnection({
@@ -235,6 +252,7 @@ async function prepareHostLease(fixture: ClusterFixture) {
     advisoryKey: deriveHostAdvisoryKey(fixture.instanceId),
     timing: TIMING,
     passwordProvider: fixture.provider,
+    mutationAuthority,
   });
 }
 
@@ -251,6 +269,7 @@ async function publish(
     token,
     fenceLockTimeoutMs: TIMING.fenceLockTimeoutMs,
     statementTimeoutMs: TIMING.statementTimeoutMs,
+    mutationAuthority,
   });
   return { token, bootId };
 }
@@ -313,6 +332,7 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
           port: fixture.port,
           advisoryKey: deriveHostAdvisoryKey(fixture.instanceId),
           passwordProvider: fixture.provider,
+          mutationAuthority,
         }),
       ).resolves.toBeUndefined();
       await expect(
@@ -321,6 +341,7 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
           advisoryKey: deriveHostAdvisoryKey(fixture.instanceId),
           timing: TIMING,
           passwordProvider: fixture.provider,
+          mutationAuthority,
         }),
       ).rejects.toMatchObject({
         problem: { problemCode: "host-ownership.lease.connection_failed" },
@@ -436,6 +457,67 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
         await readFile(join(fixture.root, "log", "postgres.log"), "utf8"),
       ).not.toContain(HOST_LEASE_PASSWORD);
     } finally {
+      await admin.end().catch(() => undefined);
+      await lease.close().catch(() => undefined);
+    }
+  }, 120_000);
+
+  it("rejects adversarial ACL and protected-role membership edges", async () => {
+    const fixture = await createCluster();
+    const lease = await prepareHostLease(fixture);
+    const admin = await bootstrapClient(fixture, "postgres");
+    const intruder = "m4_intruder";
+    try {
+      const published = await publish(fixture, lease);
+      const before = await lease.query<{
+        readonly ownership_revision: string;
+        readonly host_ownership_token: string;
+      }>(
+        "SELECT ownership_revision, host_ownership_token FROM heptalogos.host_ownership_fence WHERE singleton = true",
+      );
+      await admin.query(`CREATE ROLE "${intruder}" NOLOGIN`);
+      await admin.query(
+        `GRANT UPDATE ON TABLE heptalogos.host_ownership_fence TO "${intruder}"`,
+      );
+      await expect(
+        ensureHostOwnershipSchema({
+          port: fixture.port,
+          instanceId: fixture.instanceId,
+          passwordProvider: fixture.provider,
+          mutationAuthority,
+        }),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "host-ownership.schema.incompatible" },
+      });
+      const afterAclAttack = await lease.query<{
+        readonly ownership_revision: string;
+        readonly host_ownership_token: string;
+      }>(
+        "SELECT ownership_revision, host_ownership_token FROM heptalogos.host_ownership_fence WHERE singleton = true",
+      );
+      expect(afterAclAttack.rows[0]).toEqual(before.rows[0]);
+      expect(afterAclAttack.rows[0]?.host_ownership_token).toBe(published.token);
+
+      await admin.query(
+        `REVOKE UPDATE ON TABLE heptalogos.host_ownership_fence FROM "${intruder}"`,
+      );
+      for (const protectedRole of [HOST_OWNERSHIP_OWNER_ROLE, HOST_LEASE_ROLE]) {
+        await admin.query(`GRANT "${protectedRole}" TO "${intruder}"`);
+        await expect(
+          provisionHostOwnershipDatabase({
+            port: fixture.port,
+            passwordProvider: fixture.provider,
+            mutationAuthority,
+          }),
+        ).rejects.toMatchObject({
+          problem: {
+            problemCode: "host-ownership.bootstrap_admin.incompatible_role",
+          },
+        });
+        await admin.query(`REVOKE "${protectedRole}" FROM "${intruder}"`);
+      }
+    } finally {
+      await admin.query(`DROP ROLE IF EXISTS "${intruder}"`).catch(() => undefined);
       await admin.end().catch(() => undefined);
       await lease.close().catch(() => undefined);
     }
