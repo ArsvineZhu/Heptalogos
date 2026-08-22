@@ -4,6 +4,24 @@
 
 **Status:** ACTIVE — Foundation M4 PR #6 passed exact-SHA final CI and was squash-merged to `master`; M5A implementation is in progress.
 
+## Corrective pass — independent review corrections (2026-08-22)
+
+```text
+Independent review @ 65a56c7a8906e49658d8a304d0903668d8f64228 = REQUEST_CHANGES
+
+RC-1 MaintenanceJournal partial target ownership acceptance
+RC-2 stale old-Host capability after PONR / RECOVERY_REQUIRED
+RC-3 Scenario F did not exercise live PostgreSQL Host-lease backend death
+
+Correction status = IN_PROGRESS
+final CI = NOT_AUTHORIZED
+merge = NOT_AUTHORIZED
+```
+
+This corrective pass preserves the fixed M5A Authority semantics, PONR, and
+two-phase `BOOTSTRAP_RELEASE_ARMED` finalization. It does not widen scope into
+M5B recovery, force-unlock, or a generic Recovery framework.
+
 **Goal:** Starting from a live, M4-established normal Host that owns the dedicated PostgreSQL advisory lease and current `HostOwnershipToken`, establish the reverse `Host → bootstrap` Authority handoff, enter a bounded PostgreSQL maintenance window without an ownership gap, support controlled private-PostgreSQL stop or same-cluster restart, and reacquire a fresh Host lease/token before normal Host operation can resume.
 
 **Architecture:** `@heptalogos/bootstrap-runtime` remains the orchestration/Authority owner. It acquires bootstrap ownership **before** any normal Host Authority is revoked, persists a crash-safe `MaintenanceJournal`, obtains an explicit quiescence proof, revokes the current fence token through a bootstrap-admin PostgreSQL transaction, closes the old Host lease, then grants an `@heptalogos/private-postgres` maintenance controller only while the stronger reverse-handoff control guard is valid. Restart resumes by validating the same private cluster, obtaining a new dedicated Host lease, publishing a **fresh** token, and only then releasing bootstrap ownership. Low-level PostgreSQL mechanics remain in `host-ownership` / `private-postgres`; raw `pg`, `pg_ctl`, XState, and lockfile objects do not leak into stable Host contracts.
