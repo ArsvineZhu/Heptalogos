@@ -13,6 +13,7 @@ import {
   type BootstrapStateBodyV2,
   type BootstrapStateEnvelopeV2,
   type MaintenanceJournalBodyV1,
+  type MaintenanceStage,
 } from "@heptalogos/bootstrap-state";
 import type { HostOwnershipContext } from "@heptalogos/host-ownership";
 import type { BootstrapOwnershipLease } from "./bootstrap-ownership.js";
@@ -22,6 +23,11 @@ import type {
 } from "./host-ownership-handoff.js";
 import type { BootstrapPathProfile, ResolvedLifecycleRoot } from "./roots.js";
 import type { PrivatePostgresMaintenanceDescriptor } from "./private-postgres-bootstrap.js";
+import {
+  createManagedHostContext,
+  markManagedHostTerminal,
+  type BootstrapManagedHostContext,
+} from "./managed-host.js";
 
 const mocks = vi.hoisted(() => ({
   acquireBootstrapOwnershipMock: vi.fn(),
@@ -119,8 +125,10 @@ function makeFixture(): {
   readonly freshLease: BootstrapOwnershipLease;
   readonly state: BootstrapStateEnvelopeV2;
   readonly trace: string[];
+  readonly setFailJournalStage: (stage: MaintenanceStage | undefined) => void;
 } {
   const trace: string[] = [];
+  let failJournalStage: MaintenanceStage | undefined;
   const installationId = createInstallationId();
   const instanceId = createInstanceId();
   const bootId = createBootId();
@@ -189,6 +197,9 @@ function makeFixture(): {
     },
     async advance(value: MaintenanceJournalBodyV1) {
       trace.push(`journal.advance:${value.lastCompletedStage}`);
+      if (value.lastCompletedStage === failJournalStage) {
+        throw new Error(`journal advance failed: ${value.lastCompletedStage}`);
+      }
       return { state: value, digest: state.digest };
     },
   };
@@ -327,6 +338,9 @@ function makeFixture(): {
     freshLease,
     state,
     trace,
+    setFailJournalStage(stage) {
+      failJournalStage = stage;
+    },
   };
 }
 
@@ -503,8 +517,8 @@ describe("reverse-handoff maintenance preparation and entry", () => {
       "quiesce",
       expect.stringMatching(/^journal.advance:HOST_QUIESCED$/u),
       "fence.revoke",
-      expect.stringMatching(/^journal.advance:HOST_TOKEN_REVOKED$/u),
       "host.close",
+      expect.stringMatching(/^journal.advance:HOST_TOKEN_REVOKED$/u),
       expect.stringMatching(/^journal.advance:HOST_LEASE_CLOSED$/u),
       "old-host.terminal",
     ]);
@@ -546,13 +560,20 @@ describe("reverse-handoff maintenance preparation and entry", () => {
         problem: { problemCode: "host-ownership.revocation.commit_uncertain" },
       }),
     );
-    const operations = createHostMaintenanceOperations({
+    let managed: BootstrapManagedHostContext;
+    const operationsProvenance = {
       host: fixture.rawHost,
       bootstrap: fixture.context,
       handoff: fixture.handoff,
       privatePostgres: fixture.descriptor,
-    });
-    const prepared = await operations.preparePrivatePostgresMaintenance({
+      beginOldHostRetirement: async () => {
+        markManagedHostTerminal(managed);
+        await fixture.rawHost.close();
+      },
+    };
+    const operations = createHostMaintenanceOperations(operationsProvenance);
+    managed = createManagedHostContext(fixture.rawHost, operations);
+    const prepared = await managed.preparePrivatePostgresMaintenance({
       kind: "RESTART_PRIVATE_POSTGRES",
     });
 
@@ -563,7 +584,81 @@ describe("reverse-handoff maintenance preparation and entry", () => {
         },
       }),
     ).rejects.toThrow("commit uncertain");
-    expect(fixture.rawHost.state).toBe("ACTIVE");
+    expect(fixture.rawHost.state).toBe("CLOSED");
+    expect(() => managed.assertActive()).toThrow();
+    expect(fixture.freshLease.state).toBe("HELD");
+    expect(fixture.trace).toContain("journal.advance:RECOVERY_REQUIRED");
+    expect(fixture.trace).not.toContain("bootstrap.release");
+  });
+
+  it("retires the old managed Host after committed-but-unverified revocation", async () => {
+    const fixture = makeFixture();
+    mocks.revokeMock.mockRejectedValueOnce(
+      Object.assign(new Error("committed but unverified"), {
+        problem: { problemCode: "host-ownership.revocation.committed_unverified" },
+      }),
+    );
+    let managed: BootstrapManagedHostContext;
+    const operationsProvenance = {
+      host: fixture.rawHost,
+      bootstrap: fixture.context,
+      handoff: fixture.handoff,
+      privatePostgres: fixture.descriptor,
+      beginOldHostRetirement: async () => {
+        markManagedHostTerminal(managed);
+        await fixture.rawHost.close();
+      },
+    };
+    const operations = createHostMaintenanceOperations(operationsProvenance);
+    managed = createManagedHostContext(fixture.rawHost, operations);
+    const prepared = await managed.preparePrivatePostgresMaintenance({
+      kind: "RESTART_PRIVATE_POSTGRES",
+    });
+
+    await expect(
+      prepared.execute({
+        async quiesce() {
+          return { async resumeAfterAbort() {} };
+        },
+      }),
+    ).rejects.toThrow("committed but unverified");
+    expect(prepared.state).toBe("RECOVERY_REQUIRED");
+    expect(fixture.rawHost.state).toBe("CLOSED");
+    expect(() => managed.assertActive()).toThrow();
+    expect(fixture.freshLease.state).toBe("HELD");
+    expect(fixture.trace).not.toContain("bootstrap.release");
+  });
+
+  it("retires the old Host before a post-revocation token journal failure can escape", async () => {
+    const fixture = makeFixture();
+    fixture.setFailJournalStage("HOST_TOKEN_REVOKED");
+    let managed: BootstrapManagedHostContext;
+    const operationsProvenance = {
+      host: fixture.rawHost,
+      bootstrap: fixture.context,
+      handoff: fixture.handoff,
+      privatePostgres: fixture.descriptor,
+      beginOldHostRetirement: async () => {
+        markManagedHostTerminal(managed);
+        await fixture.rawHost.close();
+      },
+    };
+    const operations = createHostMaintenanceOperations(operationsProvenance);
+    managed = createManagedHostContext(fixture.rawHost, operations);
+    const prepared = await managed.preparePrivatePostgresMaintenance({
+      kind: "RESTART_PRIVATE_POSTGRES",
+    });
+
+    await expect(
+      prepared.execute({
+        async quiesce() {
+          return { async resumeAfterAbort() {} };
+        },
+      }),
+    ).rejects.toThrow("journal advance failed: HOST_TOKEN_REVOKED");
+    expect(prepared.state).toBe("RECOVERY_REQUIRED");
+    expect(fixture.rawHost.state).toBe("CLOSED");
+    expect(() => managed.assertActive()).toThrow();
     expect(fixture.freshLease.state).toBe("HELD");
     expect(fixture.trace).toContain("journal.advance:RECOVERY_REQUIRED");
     expect(fixture.trace).not.toContain("bootstrap.release");
@@ -576,13 +671,20 @@ describe("reverse-handoff maintenance preparation and entry", () => {
         problem: { problemCode: "host-ownership.revocation.known_not_committed" },
       }),
     );
-    const operations = createHostMaintenanceOperations({
+    let managed: BootstrapManagedHostContext;
+    const operationsProvenance = {
       host: fixture.rawHost,
       bootstrap: fixture.context,
       handoff: fixture.handoff,
       privatePostgres: fixture.descriptor,
-    });
-    const prepared = await operations.preparePrivatePostgresMaintenance({
+      beginOldHostRetirement: async () => {
+        markManagedHostTerminal(managed);
+        await fixture.rawHost.close();
+      },
+    };
+    const operations = createHostMaintenanceOperations(operationsProvenance);
+    managed = createManagedHostContext(fixture.rawHost, operations);
+    const prepared = await managed.preparePrivatePostgresMaintenance({
       kind: "RESTART_PRIVATE_POSTGRES",
     });
 
@@ -600,7 +702,8 @@ describe("reverse-handoff maintenance preparation and entry", () => {
       problem: { problemCode: "bootstrap.maintenance.abort_resume_failed" },
     });
     expect(prepared.state).toBe("RECOVERY_REQUIRED");
-    expect(fixture.rawHost.state).toBe("ACTIVE");
+    expect(fixture.rawHost.state).toBe("CLOSED");
+    expect(() => managed.assertActive()).toThrow();
     expect(fixture.freshLease.state).toBe("HELD");
     expect(fixture.trace).toContain("journal.advance:RECOVERY_REQUIRED");
     expect(fixture.trace).not.toContain("bootstrap.release");

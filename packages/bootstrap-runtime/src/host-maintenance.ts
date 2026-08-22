@@ -70,6 +70,7 @@ export interface HostMaintenanceOperationProvenance {
   readonly bootstrap: OwnedBootstrapPreludeHandoffContext;
   readonly handoff: HostOwnershipHandoffOptions;
   readonly privatePostgres: PrivatePostgresMaintenanceDescriptor;
+  readonly beginOldHostRetirement?: () => Promise<void>;
   readonly createHostToken?: () => HostOwnershipToken;
   readonly createHostContext?: (
     connection: Awaited<ReturnType<typeof acquireHostLeaseConnection>>,
@@ -314,7 +315,7 @@ export function createHostMaintenanceOperations(
     async shutdownKeepingPrivatePostgres(quiescence) {
       await quiescence.quiesce();
       provenance.host.assertActive();
-      await provenance.host.close();
+      await (provenance.beginOldHostRetirement?.() ?? provenance.host.close());
       if (provenance.host.state !== "CLOSED") {
         throw maintenanceProblem(
           "bootstrap.maintenance.host_close_unverified",
@@ -536,6 +537,20 @@ function createPreparedMaintenance(
   let ponr = false;
   let revocationAttempted = false;
   const tracker = createHostMaintenanceTracker();
+  let oldHostRetirementPromise: Promise<void> | undefined;
+
+  const beginOldHostRetirement = (): Promise<void> => {
+    if (oldHostRetirementPromise !== undefined) {
+      return oldHostRetirementPromise;
+    }
+    try {
+      oldHostRetirementPromise =
+        provenance.beginOldHostRetirement?.() ?? provenance.host.close();
+    } catch (error) {
+      oldHostRetirementPromise = Promise.reject(error);
+    }
+    return oldHostRetirementPromise;
+  };
 
   const advance = async (
     stage: MaintenanceStage,
@@ -588,6 +603,7 @@ function createPreparedMaintenance(
     if (tracker.can({ type: "RECOVERY_REQUIRED" })) {
       tracker.send({ type: "RECOVERY_REQUIRED" });
     }
+    await beginOldHostRetirement().catch(() => undefined);
     if (lease.state === "HELD") {
       await advance("RECOVERY_REQUIRED", {
         terminalOutcome: isRevocationUncertain(error) ? "UNCERTAIN" : "FAILED",
@@ -663,12 +679,12 @@ function createPreparedMaintenance(
         clientFactory: provenance.handoff.clientFactory,
       });
       ponr = true;
+      const oldHostClose = beginOldHostRetirement();
       tracker.send({ type: "TOKEN_REVOKED" });
       lifecycleState = "TOKEN_REVOKED";
       await advance("HOST_TOKEN_REVOKED");
 
-      provenance.host.assertActive();
-      await provenance.host.close();
+      await oldHostClose;
       if (provenance.host.state !== "CLOSED") {
         throw maintenanceProblem(
           "bootstrap.maintenance.host_close_unverified",

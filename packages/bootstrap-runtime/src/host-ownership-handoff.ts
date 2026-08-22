@@ -406,16 +406,29 @@ export async function handoffPrivatePostgresToManagedHostForOwnedPrelude(
     host: HostOwnershipContext,
   ): BootstrapManagedHostContext => {
     let managed: BootstrapManagedHostContext;
+    let oldHostRetirementPromise: Promise<void> | undefined;
+    const beginOldHostRetirement = (): Promise<void> => {
+      if (oldHostRetirementPromise !== undefined) {
+        return oldHostRetirementPromise;
+      }
+      markManagedHostTerminal(managed);
+      try {
+        oldHostRetirementPromise = host.close();
+      } catch (error) {
+        oldHostRetirementPromise = Promise.reject(error);
+      }
+      return oldHostRetirementPromise;
+    };
     const provenance: HostMaintenanceOperationProvenance = {
       host,
       bootstrap: context,
       handoff: options,
       privatePostgres,
+      beginOldHostRetirement,
       createHostToken: createHostOwnershipToken,
       createHostContext: (connection, token) =>
         createContext(context, connection, token),
       createManagedHost,
-      onOldHostTerminal: () => markManagedHostTerminal(managed),
     };
     managed = createManagedHostContext(
       host,
