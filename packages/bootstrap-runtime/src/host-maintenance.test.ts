@@ -531,13 +531,20 @@ describe("reverse-handoff maintenance preparation and entry", () => {
         problem: { problemCode: "host-ownership.revocation.known_not_committed" },
       }),
     );
-    const operations = createHostMaintenanceOperations({
+    let managed: BootstrapManagedHostContext;
+    const operationsProvenance = {
       host: fixture.rawHost,
       bootstrap: fixture.context,
       handoff: fixture.handoff,
       privatePostgres: fixture.descriptor,
-    });
-    const prepared = await operations.preparePrivatePostgresMaintenance({
+      beginOldHostRetirement: async () => {
+        markManagedHostTerminal(managed);
+        await fixture.rawHost.close();
+      },
+    };
+    const operations = createHostMaintenanceOperations(operationsProvenance);
+    managed = createManagedHostContext(fixture.rawHost, operations);
+    const prepared = await managed.preparePrivatePostgresMaintenance({
       kind: "RESTART_PRIVATE_POSTGRES",
     });
     const quiescence = {
@@ -548,6 +555,7 @@ describe("reverse-handoff maintenance preparation and entry", () => {
 
     await expect(prepared.execute(quiescence)).rejects.toThrow("known not committed");
     expect(fixture.rawHost.state).toBe("ACTIVE");
+    expect(() => managed.assertActive()).not.toThrow();
     expect(fixture.freshLease.state).toBe("RELEASED");
     expect(fixture.trace).toContain("bootstrap.release");
     expect(fixture.trace).toContain("journal.advance:ABORTED");
