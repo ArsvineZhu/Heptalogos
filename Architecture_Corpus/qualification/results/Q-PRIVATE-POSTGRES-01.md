@@ -447,9 +447,10 @@ and the remaining H1 semantic closure evidence.
 
 ## Foundation M5B recovery qualification (2026-08-22)
 
-M5B behavior candidate `c4c1be43f412c868a84a776461b479d3b677ea18` passed the
-Linux real PostgreSQL and real-process qualification gates without changing
-the M5A boundary:
+M5B behavior candidate `c4c1be43f412c868a84a776461b479d3b677ea18` passed
+specific Linux real-PostgreSQL and K1-K3 process subsets without changing the
+M5A boundary. The exact review HEAD
+`9e450f836466d32fb1f3d9027618fac236798eb9` received `REQUEST_CHANGES`.
 
 ```yaml
 m5b_read_only_recovery_inspection: PASS
@@ -458,8 +459,13 @@ m5b_restart_stop_recovery_unit: PASS
 m5b_live_advisory_owner_block: PASS
 m5b_unknown_fence_token_block: PASS
 m5b_corrupt_journal_block: PASS
-m5b_real_postgres_recovery_linux: PASS
-m5b_real_process_k1_k5: PASS
+m5b_linux_real_pg_restart_success_subset: PASS
+m5b_linux_real_pg_live_host_block: PASS
+m5b_linux_real_pg_corrupt_journal_block: PASS
+m5b_linux_real_postgres_full_matrix: NOT_RUN
+m5b_real_process_k1_k3: PASS
+m5b_real_process_k4_actual_maintenance_recovery: NOT_RUN
+m5b_real_process_k5_recovery_restartability: NOT_RUN
 m5b_private_postgres_integration: PASS (20/20)
 m5b_host_ownership_integration: PASS (8/8)
 m5b_bootstrap_runtime_integration: PASS (20/20)
@@ -468,16 +474,16 @@ m5b_macos_real_postgres: NOT_RUN
 m5b_source_less_recovery: NOT_RUN
 m5b_service_account_acl: NOT_RUN
 m5b_hardware_power_loss: NOT_RUN
-m5b_independent_review: NOT_RUN
+m5b_independent_review: FAIL
 m5b_final_cross_platform_ci: NOT_RUN
 m5b_squash_merge: NOT_RUN
 m5b: ACTIVE
 h1: OPEN
 ```
 
-The Linux PostgreSQL provenance was the Ubuntu 26.04 security archive
+The Linux PostgreSQL subset provenance was the Ubuntu 26.04 security archive
 `postgresql-18`/`postgresql-client-18` 18.6 package set, extracted to a
 temporary qualification root with `libpq5` extracted for runtime linkage.
-All five required binaries reported PostgreSQL 18.6. The process gate used
-real Node child termination, stale-lock adjudication, and two recovery
-contenders; it was not a simulated crash.
+All five required binaries reported PostgreSQL 18.6. K1-K3 used real Node
+child termination and stale-lock adjudication; the required real maintenance
+K4/K5 paths and complete PG-1..PG-9 matrix remain `NOT_RUN` until rerun.

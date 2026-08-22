@@ -14,7 +14,7 @@ selectedRoute: "`@bybrave/proper-lockfile2` 5.0.0"
 
 ```yaml
 evidence:
-  historical_proper_lockfile_4_1_2_delayed_reclaimer: FAIL
+  historical_proper_lockfile_4_1_2_delayed_reclaimer: NOT_RUN
   proper_lockfile2_single_winner: PASS
   normal_atomic_write_parseability: PASS
   proper_lockfile2_delayed_reclaimer: PASS
@@ -47,12 +47,11 @@ evidence:
 
 Power-loss, macOS/Linux and source-less bootstrap behavior remain implementation qualification.
 
-The historical `proper-lockfile@4.1.2` route was intentionally exercised before
-selection. The real two-process interleaving parked reclaimer A after stale
-`stat`, let reclaimer B remove/recreate the lock, then resumed A; both processes
-reported acquisition. This is the reproducible #121 hard blocker. The selected
-candidate's atomic rename claim returned `ELOCKED` for A and preserved B's lock
-under the same interleaving.
+The historical `proper-lockfile@4.1.2` route is retained as role-reopening
+context from upstream issue/source analysis plus a previously observed
+experiment. No immutable committed run log or artifact is available for that
+experiment, so the repository-executable current qualification is limited to
+the selected `@bybrave/proper-lockfile2` provider.
 
 Process-generation evidence uses a real child fixture and `pidusage@4.0.1`:
 `SAME_PROCESS` is returned for self/live child, `PROCESS_DEAD` only for a
@@ -73,21 +72,29 @@ m5b_live_owner_no_steal: PASS
 m5b_unknown_process_blocks: PASS
 m5b_pid_reuse_fail_closed: PASS
 m5b_double_reclaimer_exclusion: PASS
-m5b_real_process_k1_k5: PASS
-m5b_linux_real_postgres_recovery: PASS
+m5b_real_process_k1_k3: PASS
+m5b_real_process_k4_actual_maintenance_recovery: NOT_RUN
+m5b_real_process_k5_recovery_restartability: NOT_RUN
+m5b_linux_real_pg_restart_success_subset: PASS
+m5b_linux_real_pg_live_host_block: PASS
+m5b_linux_real_pg_corrupt_journal_block: PASS
+m5b_linux_real_postgres_full_matrix: NOT_RUN
 m5b_windows_real_postgres_recovery: NOT_RUN
 m5b_macos_real_postgres_recovery: NOT_RUN
 m5b_source_less_recovery: NOT_RUN
 m5b_service_account_acl: NOT_RUN
 m5b_hardware_power_loss: NOT_RUN
-m5b_independent_review: NOT_RUN
+m5b_independent_review: FAIL
 m5b_final_cross_platform_ci: NOT_RUN
 m5b_squash_merge: NOT_RUN
 m5b: ACTIVE
 h1: OPEN
 ```
 
-Evidence was produced with Node 24.19.0, pnpm 11.22.0, the
+The rejected review was against exact HEAD
+`9e450f836466d32fb1f3d9027618fac236798eb9` and returned `REQUEST_CHANGES`.
+The surviving evidence was produced with Node 24.19.0, pnpm 11.22.0, the
 `@bybrave/proper-lockfile2` route, `pidusage@4.0.1`, and an extracted Ubuntu
-26.04 PostgreSQL 18.6 toolchain. The recovery process qualification used real
-child termination and IPC; it did not use a mock process death.
+26.04 PostgreSQL 18.6 toolchain. K1-K3 used real child termination and IPC;
+the required real maintenance/recovery K4-K5 and complete PG-1..PG-9 matrix
+were not yet executed at this rejected candidate.

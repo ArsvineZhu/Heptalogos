@@ -41,7 +41,8 @@ is in scope.
 - [x] Recover interrupted M5A restart/stop operations without token reuse,
       unnecessary restart, live-Host theft, or journal inference.
 - [x] Expose only fixed `INSPECT` and `RECOVER` recovery command semantics.
-- [x] Qualify real PostgreSQL 18.6 recovery and real process kill/restart.
+- [ ] Qualify the complete real PostgreSQL 18.6 recovery matrix and real
+      M5A/M5B process kill/restart semantics.
 - [x] Run H1 regression/boundary verification and record exact behavior SHA.
 - [ ] Obtain independent review of the exact SHA, then dispatch exact-SHA
       cross-platform final CI and squash-merge the PR.
@@ -55,27 +56,36 @@ Windows/macOS real PostgreSQL, source-less invocation, service-account ACL,
 and hardware power-loss claims remain `NOT_RUN` unless actually qualified;
 they must not be upgraded by unit tests or generic cross-platform CI.
 
-## Current implementation evidence (2026-08-22)
+## PR8 corrective review baseline (2026-08-23)
 
 ```yaml
 behaviorCandidateSha: c4c1be43f412c868a84a776461b479d3b677ea18
+rejectedReviewHeadSha: 9e450f836466d32fb1f3d9027618fac236798eb9
+rejectedReviewOutcome: REQUEST_CHANGES
 node: 24.19.0
 pnpm: 11.22.0
 postgres: 18.6
 bootstrapRuntimeUnit: PASS (123 passed, 1 skipped)
 bootstrapStateUnit: PASS (98 passed, 2 skipped)
-recoveryProcessQualification: PASS (K1-K5, 5/5)
-postgresRecoveryQualification: PASS (Linux, M5B scenarios plus existing H1 suites)
+recoveryProcessK1K3: PASS
+recoveryProcessK4ActualMaintenance: NOT_RUN
+recoveryProcessK5RecoveryRestartability: NOT_RUN
+linuxPostgresRestartSuccessSubset: PASS
+linuxPostgresLiveHostBlock: PASS
+linuxPostgresCorruptJournalBlock: PASS
+linuxPostgresFullMatrixPg1Pg9: NOT_RUN
 privatePostgresIntegration: PASS (20/20)
 hostOwnershipIntegration: PASS (8/8)
-bootstrapRuntimeIntegration: PASS (20/20)
-independentReview: NOT_RUN
+bootstrapRuntimeIntegration: PASS (subset only; full PG-1..PG-9 matrix NOT_RUN)
+independentReview: FAIL
 finalCrossPlatformCi: NOT_RUN
 squashMerge: NOT_RUN
 M5B: ACTIVE
 H1: OPEN
 ```
 
-The current candidate has not yet received independent exact-SHA review.
+Independent review returned `REQUEST_CHANGES` at the rejected exact HEAD
+`9e450f836466d32fb1f3d9027618fac236798eb9`. K4/K5 actual maintenance/recovery
+and the complete Linux PG-1..PG-9 matrix were not proven by that candidate.
 Windows/macOS real PostgreSQL, source-less recovery, service-account ACL, and
 hardware power-loss evidence remain `NOT_RUN`.
