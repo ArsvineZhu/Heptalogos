@@ -29,6 +29,7 @@ class FakeLeaseConnection implements HostLeaseConnection {
   currentRow: FenceRow;
   nextReadRow: () => FenceRow;
   failOn: string | undefined;
+  failAfterCommitVerification = false;
 
   constructor(instanceId: InstanceId) {
     this.currentRow = {
@@ -75,6 +76,9 @@ class FakeLeaseConnection implements HostLeaseConnection {
       return { rows: [] };
     }
     if (normalized.includes("SELECT singleton")) {
+      if (!normalized.includes("FOR UPDATE") && this.failAfterCommitVerification) {
+        throw new Error("post-commit verification failure");
+      }
       return { rows: [this.nextReadRow() as Row] };
     }
     return { rows: [] };
@@ -148,6 +152,67 @@ describe("HostOwnershipFence token publication", () => {
     expect(connection.queries.map((query) => query.text)).toContain("ROLLBACK");
   });
 
+  it.each([
+    ["before BEGIN", "BEGIN"],
+    ["after BEGIN before UPDATE", "lock_timeout"],
+    ["after UPDATE before COMMIT", "UPDATE"],
+  ])("classifies %s as known-not-committed", async (_label, failOn) => {
+    const { instanceId, connection } = fixture();
+    connection.failOn = failOn;
+
+    await expect(
+      publishHostOwnershipToken({
+        connection,
+        instanceId,
+        bootId: createBootId(),
+        token: createHostOwnershipToken(),
+        fenceLockTimeoutMs: 1_000,
+        statementTimeoutMs: 1_000,
+        mutationAuthority,
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "host-ownership.publication.known_not_committed" },
+    });
+  });
+
+  it("classifies a COMMIT send or acknowledgement failure as commit-uncertain", async () => {
+    const { instanceId, connection } = fixture();
+    connection.failOn = "COMMIT";
+
+    await expect(
+      publishHostOwnershipToken({
+        connection,
+        instanceId,
+        bootId: createBootId(),
+        token: createHostOwnershipToken(),
+        fenceLockTimeoutMs: 1_000,
+        statementTimeoutMs: 1_000,
+        mutationAuthority,
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "host-ownership.publication.commit_uncertain" },
+    });
+  });
+
+  it("classifies post-COMMIT verification failure as committed-unverified", async () => {
+    const { instanceId, connection } = fixture();
+    connection.failAfterCommitVerification = true;
+
+    await expect(
+      publishHostOwnershipToken({
+        connection,
+        instanceId,
+        bootId: createBootId(),
+        token: createHostOwnershipToken(),
+        fenceLockTimeoutMs: 1_000,
+        statementTimeoutMs: 1_000,
+        mutationAuthority,
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "host-ownership.publication.committed_unverified" },
+    });
+  });
+
   it("returns exact decimal revisions when publishing beyond JS safe integers", async () => {
     const { instanceId, connection } = fixture();
     connection.currentRow = {
@@ -192,7 +257,7 @@ describe("HostOwnershipFence token publication", () => {
         mutationAuthority,
       }),
     ).rejects.toMatchObject({
-      problem: { problemCode: "host-ownership.fence.publication_unverified" },
+      problem: { problemCode: "host-ownership.publication.committed_unverified" },
     });
     expect(connection.state).toBe("FENCED");
   });
@@ -217,7 +282,7 @@ describe("HostOwnershipFence token publication", () => {
         mutationAuthority: authority,
       }),
     ).rejects.toMatchObject({
-      problem: { problemCode: "host-ownership.fence.publication_failed" },
+      problem: { problemCode: "host-ownership.publication.committed_unverified" },
     });
     expect(connection.state).toBe("FENCED");
     expect(connection.queries.map((query) => query.text)).toContain("COMMIT");

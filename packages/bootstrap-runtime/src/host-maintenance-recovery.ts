@@ -140,6 +140,18 @@ function hasReached(progress: MaintenanceStage, target: MaintenanceStage): boole
   return stageIndex(progress) >= stageIndex(target);
 }
 
+function canonicalFenceRevision(value: string | number): string {
+  if (typeof value === "string" && /^(0|[1-9][0-9]*)$/u.test(value)) return value;
+  if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) {
+    return String(value);
+  }
+  throw recoveryProblem(
+    "bootstrap.recovery.invalid_fence_revision",
+    "HostOwnershipFence revision is invalid",
+    "Recovery cannot adjudicate a publication candidate without an unsigned decimal fence revision",
+  );
+}
+
 function requireBootstrapState(
   loaded: BootstrapStateLoadResult,
   profile: BootstrapPathProfile,
@@ -600,9 +612,11 @@ function nextBody(
 }
 
 function isUncertainProblem(error: unknown): boolean {
+  const code = problemCodeOf(error);
   return (
-    problemCodeOf(error)?.includes("uncertain") === true ||
-    problemCodeOf(error) === "host-ownership.revocation.committed_unverified"
+    code?.includes("uncertain") === true ||
+    code === "host-ownership.revocation.committed_unverified" ||
+    code === "host-ownership.publication.committed_unverified"
   );
 }
 
@@ -881,17 +895,51 @@ export async function recoverInterruptedHostMaintenance(
         },
       });
     }
-    const publication = await publishHostOwnershipToken({
-      connection: hostLeaseConnection,
-      instanceId: locator.instanceId,
-      bootId: publicationBootId,
-      token: freshToken,
-      fenceLockTimeoutMs: options.timing.fenceLockTimeoutMs,
-      statementTimeoutMs: options.timing.statementTimeoutMs,
-      mutationAuthority: { assertCurrent: () => lease.assertHeld() },
-    });
     markMutation();
     hostLeaseConnection.assertActive();
+    const publicationSnapshot = await inspectHostOwnershipCanonicalSnapshot({
+      port: options.privatePostgres.expectedIdentity.persistedPort,
+      passwordProvider: provider,
+      clientFactory: options.clientFactory,
+    });
+    const currentFenceToken = assertHistoricalFence(
+      publicationSnapshot,
+      body,
+      historicalBootId,
+    );
+    let publishedRevision: string;
+    if (currentFenceToken === freshToken) {
+      const row = publicationSnapshot.fence[0];
+      if (row === undefined) {
+        throw recoveryProblem(
+          "bootstrap.recovery.invalid_fence",
+          "HostOwnershipFence snapshot is invalid",
+          "Recovery could not read the exact committed publication candidate row",
+        );
+      }
+      publishedRevision = canonicalFenceRevision(row.ownership_revision);
+      if (
+        body.target.hostOwnershipRevision !== undefined &&
+        body.target.hostOwnershipRevision !== publishedRevision
+      ) {
+        throw recoveryProblem(
+          "bootstrap.recovery.publication_revision_mismatch",
+          "Committed Host publication revision does not match the journal",
+          "The exact candidate token is present but its canonical revision disagrees with durable recovery metadata",
+        );
+      }
+    } else {
+      const publication = await publishHostOwnershipToken({
+        connection: hostLeaseConnection,
+        instanceId: locator.instanceId,
+        bootId: publicationBootId,
+        token: freshToken,
+        fenceLockTimeoutMs: options.timing.fenceLockTimeoutMs,
+        statementTimeoutMs: options.timing.statementTimeoutMs,
+        mutationAuthority: { assertCurrent: () => lease.assertHeld() },
+      });
+      publishedRevision = publication.publishedRevision;
+    }
     rawHost = createHostContext(
       locator.installationId,
       locator.instanceId,
@@ -904,10 +952,14 @@ export async function recoverInterruptedHostMaintenance(
       privatePostgres: "RUNNING_SAME_IDENTITY" as const,
       hostOwnershipToken: freshToken,
       hostBootId: publicationBootId,
-      hostOwnershipRevision: publication.publishedRevision,
+      hostOwnershipRevision: publishedRevision,
     };
-    await advance("HOST_TOKEN_PUBLISHED", { target });
-    await advance("BOOTSTRAP_RELEASE_ARMED", { target });
+    if (!hasReached(progress, "HOST_TOKEN_PUBLISHED")) {
+      await advance("HOST_TOKEN_PUBLISHED", { target });
+    }
+    if (!hasReached(progress, "BOOTSTRAP_RELEASE_ARMED")) {
+      await advance("BOOTSTRAP_RELEASE_ARMED", { target });
+    }
     managedHost = createRecoveredManagedHost(
       rawHost,
       bootstrap,

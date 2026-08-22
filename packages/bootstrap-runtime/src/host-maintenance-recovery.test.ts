@@ -236,6 +236,7 @@ function configure(
   operationType: "PRIVATE_POSTGRES_RESTART" | "PRIVATE_POSTGRES_STOP",
   actualPostgres: "READY" | "STOPPED",
   fenceToken: HostOwnershipToken | null,
+  targetOverrides: Partial<MaintenanceJournalBodyV1["target"]> = {},
 ) {
   const trace: string[] = [];
   const sourceToken = createHostOwnershipToken();
@@ -268,6 +269,7 @@ function configure(
         operationType === "PRIVATE_POSTGRES_RESTART"
           ? "RUNNING_SAME_IDENTITY"
           : "STOPPED",
+      ...targetOverrides,
     },
     verifiedPrerequisites: {
       bootstrapStateDigest: state.digest,
@@ -278,10 +280,7 @@ function configure(
     updatedAt: "2026-08-22T08:30:00.000Z",
   };
   const current = sealMaintenanceJournal(body);
-  const head: MaintenanceJournalRecoveryHead = {
-    current,
-    effectiveProgressStage: stage,
-  };
+  let currentBody = body;
   const lease = makeLease(trace);
   const connection = makeHostConnection(trace);
   let currentPostgres = actualPostgres;
@@ -305,10 +304,14 @@ function configure(
       advancedBodies: [] as MaintenanceJournalBodyV1[],
       async loadRecoveryHead() {
         trace.push("journal.head");
-        return head;
+        return {
+          current: sealMaintenanceJournal(currentBody),
+          effectiveProgressStage: currentBody.lastCompletedStage,
+        } satisfies MaintenanceJournalRecoveryHead;
       },
       async advance(next: MaintenanceJournalBodyV1) {
         this.advancedBodies.push(next);
+        currentBody = next;
         trace.push(`journal.advance:${next.lastCompletedStage}`);
         return sealMaintenanceJournal(next);
       },
@@ -348,7 +351,13 @@ function configure(
         instance_id: fixture.locator.instanceId,
         ownership_revision: "7",
         host_ownership_token: fenceToken,
-        boot_id: fenceToken === null ? null : historicalBootId,
+        boot_id:
+          fenceToken === null
+            ? null
+            : fenceToken === body.target.hostOwnershipToken &&
+                body.target.hostBootId !== undefined
+              ? body.target.hostBootId
+              : historicalBootId,
       },
     ],
   });
@@ -565,6 +574,110 @@ describe("fixed M5B host-maintenance recovery", () => {
       configured.advancedBodies.every((body) => body.bootId === configured.body.bootId),
     ).toBe(true);
   });
+
+  it("recognizes an exact committed candidate without republishing it", async () => {
+    const fixture = await makeFixture();
+    const candidate = createHostOwnershipToken();
+    const candidateBootId = createBootId();
+    const configured = configure(
+      fixture,
+      "HOST_TOKEN_PUBLISHED",
+      "PRIVATE_POSTGRES_RESTART",
+      "READY",
+      candidate,
+      {
+        hostOwnershipToken: candidate,
+        hostBootId: candidateBootId,
+        hostOwnershipRevision: "7",
+      },
+    );
+
+    const result = await recoverInterruptedHostMaintenance(options(fixture));
+
+    expect(result.kind).toBe("RESTARTED");
+    expect(mocks.publish).not.toHaveBeenCalled();
+    expect(result.host?.token).toBe(candidate);
+  });
+
+  it("retains bootstrap authority when publication fails before any lifecycle mutation", async () => {
+    const fixture = await makeFixture();
+    const candidate = createHostOwnershipToken();
+    const candidateBootId = createBootId();
+    const configured = configure(
+      fixture,
+      "HOST_TOKEN_PUBLISHED",
+      "PRIVATE_POSTGRES_RESTART",
+      "READY",
+      null,
+      {
+        hostOwnershipToken: candidate,
+        hostBootId: candidateBootId,
+        hostOwnershipRevision: "7",
+      },
+    );
+    mocks.publish.mockRejectedValue(
+      new ProblemError({
+        schemaVersion: 1,
+        problemCode: "host-ownership.publication.commit_uncertain",
+        category: "host-ownership",
+        retryClass: "manual",
+        title: "commit uncertain",
+        detail: "controlled publication failure",
+      }),
+    );
+
+    await expect(
+      recoverInterruptedHostMaintenance(options(fixture)),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "host-ownership.publication.commit_uncertain" },
+    });
+    expect(configured.lease.state).toBe("HELD");
+    expect(configured.advancedBodies.at(-1)?.lastCompletedStage).toBe(
+      "RECOVERY_REQUIRED",
+    );
+  });
+
+  it.each([
+    ["host-ownership.publication.known_not_committed", "FAILED"],
+    ["host-ownership.publication.commit_uncertain", "UNCERTAIN"],
+    ["host-ownership.publication.committed_unverified", "UNCERTAIN"],
+  ] as const)(
+    "retains the armed candidate and bootstrap lease for %s",
+    async (problemCode, terminalOutcome) => {
+      const fixture = await makeFixture();
+      const configured = configure(
+        fixture,
+        "POSTGRES_STOPPED",
+        "PRIVATE_POSTGRES_RESTART",
+        "STOPPED",
+        null,
+      );
+      mocks.publish.mockRejectedValue(
+        new ProblemError({
+          schemaVersion: 1,
+          problemCode,
+          category: "host-ownership",
+          retryClass: "manual",
+          title: problemCode,
+          detail: "controlled publication failure",
+        }),
+      );
+
+      await expect(
+        recoverInterruptedHostMaintenance(options(fixture)),
+      ).rejects.toMatchObject({
+        problem: { problemCode },
+      });
+      expect(configured.lease.state).toBe("HELD");
+      const recoveryRequired = configured.advancedBodies.find(
+        (body) => body.lastCompletedStage === "RECOVERY_REQUIRED",
+      );
+      expect(recoveryRequired?.terminalOutcome).toBe(terminalOutcome);
+      expect(recoveryRequired?.target.hostOwnershipToken).toBeDefined();
+      expect(recoveryRequired?.target.hostBootId).toBeDefined();
+      expect(recoveryRequired?.target.hostOwnershipRevision).toBeUndefined();
+    },
+  );
 
   it("rejects a source-token reuse attempt and retains bootstrap ownership after mutation", async () => {
     const fixture = await makeFixture();
