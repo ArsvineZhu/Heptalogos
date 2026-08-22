@@ -6,7 +6,10 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { BootstrapOwnerWitnessStore } from "@heptalogos/bootstrap-state";
 import { createBootId } from "@heptalogos/foundation-contracts";
-import { acquireBootstrapOwnership } from "./bootstrap-ownership.js";
+import {
+  acquireBootstrapOwnership,
+  acquireBootstrapRecoveryOwnership,
+} from "./bootstrap-ownership.js";
 import type { ResolvedLifecycleRoot } from "./roots.js";
 
 const directories: string[] = [];
@@ -143,6 +146,21 @@ describe("bootstrap ownership", () => {
     await expect(lstat(lockDirectory)).resolves.toMatchObject({
       isDirectory: expect.any(Function),
     });
+  });
+
+  it("uses the fixed recovery stale policy only for recovery acquisition", async () => {
+    const instanceRoot = await makeInstanceRoot();
+    const lockDirectory = join(instanceRoot.canonicalPath, LOCK_DIRECTORY);
+    await mkdir(lockDirectory);
+    await utimes(lockDirectory, new Date(0), new Date(0));
+
+    const lease = await acquireBootstrapRecoveryOwnership(
+      instanceRoot,
+      ownershipOptions(),
+    );
+    expect(lease.state).toBe("HELD");
+    await lease.release();
+    await expect(lstat(lockDirectory)).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("returns a lease only after publishing its matching owner witness", async () => {

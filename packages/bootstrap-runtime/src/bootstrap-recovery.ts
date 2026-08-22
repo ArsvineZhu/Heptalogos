@@ -12,6 +12,7 @@ import {
   type MaintenanceOperationId,
 } from "@heptalogos/bootstrap-state";
 import {
+  ProblemError,
   createBootId,
   createUuidV7Id,
   parseUuidV7Id,
@@ -24,12 +25,21 @@ import {
   inspectBootstrapProcessIdentity,
   type BootstrapProcessIdentityStatus,
 } from "./bootstrap-process-identity.js";
+import {
+  acquireBootstrapRecoveryOwnership,
+  BOOTSTRAP_RECOVERY_STALE_MS,
+  type BootstrapOwnershipLease,
+  type BootstrapOwnershipOptions,
+} from "./bootstrap-ownership.js";
+import {
+  assertLocalInstallationOwnerFor,
+  type LocalInstallationOwnerRecoveryPrincipal,
+} from "./local-installation-owner.js";
 import { loadBootstrapLocator } from "./locator.js";
 import { resolveBootstrapPathProfile } from "./roots.js";
 
 const BOOTSTRAP_LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
 const BOOTSTRAP_STATE_DIRECTORY = "bootstrap-state";
-const LOCK_STALE_THRESHOLD_MS = 30_000;
 const MAINTENANCE_OPERATION_REF_PREFIX = "maintenance-journal/v1/";
 
 export type BootstrapRecoveryDisposition =
@@ -86,6 +96,15 @@ function problem(
     title,
     detail,
   };
+}
+
+function recoveryConflict(
+  problemCode: string,
+  title: string,
+  detail: string,
+): ProblemError {
+  const value = problem(problemCode, title, detail, "conflict");
+  return new ProblemError(value);
 }
 
 function isCode(error: unknown, code: string): boolean {
@@ -273,7 +292,7 @@ function classify(
     return maintenance.incomplete ? "INCOMPLETE_MAINTENANCE" : "NO_RECOVERY_REQUIRED";
   }
 
-  if ((lock.ageMs ?? 0) < LOCK_STALE_THRESHOLD_MS) return "BLOCKED";
+  if ((lock.ageMs ?? 0) < BOOTSTRAP_RECOVERY_STALE_MS) return "BLOCKED";
   if (statuses.length === 0) return "BLOCKED";
 
   // An old lock with only PROCESS_DEAD/PID_REUSED evidence is the one case in
@@ -416,4 +435,43 @@ export async function inspectBootstrapRecovery(
   }
 }
 
-export { LOCK_STALE_THRESHOLD_MS as BOOTSTRAP_RECOVERY_STALE_MS };
+export async function reclaimAbandonedBootstrapOwnership(
+  anchorRoot: string,
+  principal: LocalInstallationOwnerRecoveryPrincipal,
+  options: BootstrapOwnershipOptions,
+): Promise<BootstrapOwnershipLease> {
+  const locator = await loadBootstrapLocator(anchorRoot);
+  const paths = await resolveBootstrapPathProfile(locator);
+  const instanceRoot = paths.resolve("INSTANCE");
+  assertLocalInstallationOwnerFor(
+    principal,
+    locator.installationId,
+    locator.instanceId,
+    instanceRoot.canonicalPath,
+  );
+
+  const inspection = await inspectBootstrapRecovery(anchorRoot);
+  if (inspection.disposition !== "ABANDONED_OWNER_ELIGIBLE") {
+    throw recoveryConflict(
+      "bootstrap.recovery.not_eligible",
+      "Bootstrap ownership is not eligible for recovery",
+      `Recovery requires ABANDONED_OWNER_ELIGIBLE, observed ${inspection.disposition}`,
+    );
+  }
+
+  const lease = await acquireBootstrapRecoveryOwnership(instanceRoot, options);
+  try {
+    const rechecked = await inspectBootstrapRecovery(anchorRoot);
+    if (rechecked.disposition !== "ACTIVE_BOOTSTRAP_OWNER") {
+      throw recoveryConflict(
+        "bootstrap.recovery.eligibility_changed",
+        "Bootstrap recovery eligibility changed during acquisition",
+        `The recovered lease did not re-read as ACTIVE_BOOTSTRAP_OWNER; observed ${rechecked.disposition}`,
+      );
+    }
+    return lease;
+  } catch (error) {
+    await lease.release().catch(() => undefined);
+    throw error;
+  }
+}

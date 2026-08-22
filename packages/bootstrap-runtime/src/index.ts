@@ -17,6 +17,8 @@ export {
   type LocalInstallationOwnerRecoveryPrincipal,
 } from "./local-installation-owner.js";
 export {
+  BOOTSTRAP_RECOVERY_STALE_MS,
+  reclaimAbandonedBootstrapOwnership,
   inspectBootstrapRecovery,
   type BootstrapRecoveryDisposition,
   type BootstrapRecoveryInspection,

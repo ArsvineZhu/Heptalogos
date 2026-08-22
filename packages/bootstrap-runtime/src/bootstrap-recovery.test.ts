@@ -16,8 +16,10 @@ import { currentBootstrapProcessIdentity } from "./bootstrap-process-identity.js
 import type { BootstrapLocatorV1 } from "./locator.js";
 import {
   inspectBootstrapRecovery,
+  reclaimAbandonedBootstrapOwnership,
   type BootstrapRecoveryDisposition,
 } from "./bootstrap-recovery.js";
+import { proveLocalInstallationOwner } from "./local-installation-owner.js";
 
 const directories: string[] = [];
 const LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
@@ -169,5 +171,34 @@ describe("bounded bootstrap recovery inspection", () => {
     await makeLock(fixture.instanceRoot, 31_000);
 
     await expectDisposition(fixture.anchorRoot, "BLOCKED");
+  });
+
+  it("reclaims only after authentic local-owner proof and rechecks the lease", async () => {
+    const fixture = await makeFixture();
+    await makeLock(fixture.instanceRoot, 31_000);
+    await new BootstrapOwnerWitnessStore(fixture.instanceRoot).createAttempt({
+      schemaVersion: 1,
+      phase: "ATTEMPT",
+      lockGenerationId: createBootstrapLockGenerationId(),
+      bootId: createBootId(),
+      pid: 999_999,
+      processStartedAtMs: 0,
+      heartbeatMs: 1_000,
+      createdAt: new Date().toISOString(),
+    });
+
+    const principal = await proveLocalInstallationOwner(fixture.anchorRoot);
+    const bootId = createBootId();
+    const lease = await reclaimAbandonedBootstrapOwnership(
+      fixture.anchorRoot,
+      principal,
+      { heartbeatMs: 1_000, bootId },
+    );
+
+    expect(lease.state).toBe("HELD");
+    await expect(
+      new BootstrapOwnerWitnessStore(fixture.instanceRoot).readOwner(),
+    ).resolves.toMatchObject({ witness: { phase: "OWNER", bootId } });
+    await lease.release();
   });
 });

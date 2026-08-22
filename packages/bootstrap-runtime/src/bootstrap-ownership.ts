@@ -32,6 +32,7 @@ const properLockfile = require("@bybrave/proper-lockfile2") as ProperLockfile;
 
 const BOOTSTRAP_LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
 const NO_AUTOMATIC_STALE_RECLAIM_MS = Number.MAX_SAFE_INTEGER;
+export const BOOTSTRAP_RECOVERY_STALE_MS = 30_000;
 
 export type BootstrapOwnershipState = "HELD" | "RELEASING" | "COMPROMISED" | "RELEASED";
 
@@ -156,9 +157,10 @@ export function assertBootstrapOwnershipFor(
   issued.assertHeld();
 }
 
-export async function acquireBootstrapOwnership(
+async function acquireBootstrapOwnershipWithStalePolicy(
   instanceRoot: ResolvedLifecycleRoot,
   options: BootstrapOwnershipOptions,
+  stale: number,
 ): Promise<BootstrapOwnershipLease> {
   assertHeartbeat(options.heartbeatMs);
 
@@ -186,7 +188,7 @@ export async function acquireBootstrapOwnership(
   let releaseLock: () => Promise<void>;
   try {
     releaseLock = await properLockfile.lock(instanceRoot.canonicalPath, {
-      stale: NO_AUTOMATIC_STALE_RECLAIM_MS,
+      stale,
       update: options.heartbeatMs,
       retries: 0,
       realpath: true,
@@ -297,4 +299,26 @@ export async function acquireBootstrapOwnership(
   Object.freeze(lease);
 
   return lease;
+}
+
+export async function acquireBootstrapOwnership(
+  instanceRoot: ResolvedLifecycleRoot,
+  options: BootstrapOwnershipOptions,
+): Promise<BootstrapOwnershipLease> {
+  return acquireBootstrapOwnershipWithStalePolicy(
+    instanceRoot,
+    options,
+    NO_AUTOMATIC_STALE_RECLAIM_MS,
+  );
+}
+
+export async function acquireBootstrapRecoveryOwnership(
+  instanceRoot: ResolvedLifecycleRoot,
+  options: BootstrapOwnershipOptions,
+): Promise<BootstrapOwnershipLease> {
+  return acquireBootstrapOwnershipWithStalePolicy(
+    instanceRoot,
+    options,
+    BOOTSTRAP_RECOVERY_STALE_MS,
+  );
 }
