@@ -10,6 +10,7 @@ type ProperLockOptions = {
   readonly realpath: boolean;
   readonly lockfilePath: string;
   readonly onCompromised: (error: Error) => void;
+  readonly onReclaimed?: () => void;
 };
 
 type ProperLockfile = {
@@ -17,7 +18,7 @@ type ProperLockfile = {
 };
 
 const require = createRequire(import.meta.url);
-const properLockfile = require("proper-lockfile") as ProperLockfile;
+const properLockfile = require("@bybrave/proper-lockfile2") as ProperLockfile;
 
 const BOOTSTRAP_LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
 const NO_AUTOMATIC_STALE_RECLAIM_MS = Number.MAX_SAFE_INTEGER;

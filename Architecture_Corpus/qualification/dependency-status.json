@@ -431,11 +431,11 @@
     {
       "id": "bootstrap.lock",
       "role": "pre-PostgreSQL single-instance/bootstrap lock",
-      "candidate": "proper-lockfile 4.x for the bounded pre-PostgreSQL ownership window",
+      "candidate": "@bybrave/proper-lockfile2 5.0.0 for the bounded pre-PostgreSQL ownership window",
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
       "qualification": "bootstrap crash/power-loss/platform/source-less qualification",
-      "decisionBasis": "bounded stale-reclaim/process evidence is sufficient to select the library; PostgreSQL Host lease remains normal Host authority"
+      "decisionBasis": "proper-lockfile 4.1.2 failed the deterministic delayed-stale-reclaimer race; proper-lockfile2 5.0.0 passed atomic stale-claim, process, and path qualification; PostgreSQL Host lease remains normal Host authority"
     },
     {
       "id": "sandbox.wasm",

@@ -11,12 +11,12 @@
     }
   },
   "dependencies": {
+    "@bybrave/proper-lockfile2": "catalog:",
     "@heptalogos/bootstrap-state": "workspace:*",
     "@heptalogos/foundation-contracts": "workspace:*",
     "@heptalogos/host-ownership": "workspace:*",
     "@heptalogos/private-postgres": "workspace:*",
     "ajv": "catalog:",
-    "proper-lockfile": "catalog:",
     "typebox": "catalog:",
     "xstate": "catalog:"
   },

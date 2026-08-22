@@ -136,7 +136,7 @@ It does not prove private PostgreSQL, runtime supervision, durable work, system 
 - M5A is closed and merged in squash commit `8acedfd49b0bcc42444389c3f28f206d4e8438b6`. Its exact corrected reviewed SHA is `538cc6973fcd831cb47a60c5d126006032532591`; independent review passed and final manual cross-platform CI run `32570208341` passed on Ubuntu, macOS, and Windows.
 - M5A Linux PostgreSQL 18.6 evidence remains PASS at its corrected behavior candidate; Windows/macOS real PostgreSQL, source-less shipping, and service-account ACL evidence remain `NOT_RUN` and are not upgraded by final repository CI.
 - M5B is now the active Foundation implementation plan for bounded abandoned-bootstrap ownership and interrupted M5A recovery. H1 remains OPEN until M5B behavior, real process kill/restart and PostgreSQL evidence, exact-SHA independent review, final CI, squash merge, and post-merge reconciliation are complete.
-- M2 automatic `proper-lockfile` stale takeover remains intentionally disabled; an abandoned pre-PostgreSQL lock is recovery-required until that later Recovery design is qualified.
+- M2/M5B normal boot automatic stale takeover remains intentionally disabled; an abandoned pre-PostgreSQL lock is recovery-required until the later bounded Recovery proof authorizes the same `@bybrave/proper-lockfile2` provider under explicit local recovery authority.
 
 ### Capability closure
 
@@ -146,7 +146,7 @@ The horizon should realize the minimum executable chain around:
 - PathProfile + protected bootstrap locator;
 - independent lifecycle root mapping and path safety;
 - BootstrapRuntime / ProductGeneration selection boundary;
-- bootstrap ownership adapter (`proper-lockfile` route);
+- bootstrap ownership adapter (`@bybrave/proper-lockfile2` route);
 - BootstrapKeyProvider minimum boundary;
 - PrivatePostgresProfile / PrivatePostgresController;
 - dedicated HostLeaseConnection;

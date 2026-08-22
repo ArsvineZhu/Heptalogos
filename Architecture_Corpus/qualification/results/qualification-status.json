@@ -186,11 +186,18 @@
       "qualificationState": "OPEN",
       "evidence": {
         "native_single_winner": "PASS",
-        "proper_lockfile_single_winner": "PASS",
+        "proper_lockfile2_single_winner": "PASS",
         "normal_atomic_write_parseability": "PASS",
-        "kill_owner_stale_reclaim": "PASS",
+        "historical_proper_lockfile_4_1_2_delayed_reclaimer": "FAIL",
+        "proper_lockfile2_delayed_reclaimer": "PASS",
+        "proper_lockfile2_n_way_reclaim": "PASS",
+        "active_heartbeat_not_reclaimed": "PASS",
+        "killed_owner_reclaimed": "PASS",
+        "recovery_reclaim_notification": "PASS",
+        "compromised_lease_fenced": "PASS",
+        "unicode_space_path": "PASS",
+        "node24_esm_ts7_boundary": "PASS",
         "previous_revision_after_corrupt_current": "PASS",
-        "unicode_path": "PASS",
         "kill_during_state_write": "PASS",
         "kill_during_atomic_replace": "PASS",
         "power_loss_cross_platform": "NOT_RUN"
@@ -198,7 +205,14 @@
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
       "evidenceSource": {
-        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
+        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane",
+        "selectedRoute": "@bybrave/proper-lockfile2@5.0.0",
+        "historicalRejectedRoute": "proper-lockfile@4.1.2; deterministic delayed-reclaimer race reproduced",
+        "providerQualificationTest": "packages/bootstrap-runtime/src/bootstrap-lock-provider.test.ts: 6/6 PASS",
+        "adapterQualificationTest": "packages/bootstrap-runtime/src/bootstrap-ownership.test.ts: 6/6 PASS",
+        "candidateInstall": "@bybrave/proper-lockfile2@5.0.0 direct bootstrap-runtime dependency",
+        "boundaryAndDependencyChecks": "pnpm check:dependencies + pnpm check:boundaries PASS",
+        "typescriptChecks": "pnpm typecheck + pnpm tsc6 PASS"
       },
       "notRunReasons": {
         "power_loss_cross_platform": "Power-loss hardware and macOS/Linux crash qualification are outside the current host."

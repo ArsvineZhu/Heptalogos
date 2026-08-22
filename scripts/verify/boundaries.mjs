@@ -42,7 +42,10 @@ const restrictedImports = new Map([
       "packages/host-ownership/src/host-ownership.integration.test.ts",
     ],
   ],
-  ["proper-lockfile", ["packages/bootstrap-runtime/src/bootstrap-ownership.ts"]],
+  [
+    "@bybrave/proper-lockfile2",
+    ["packages/bootstrap-runtime/src/bootstrap-ownership.ts"],
+  ],
   ["execa", ["packages/private-postgres/src/process-adapter.ts"]],
   [
     "pg",

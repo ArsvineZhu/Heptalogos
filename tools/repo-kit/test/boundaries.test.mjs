@@ -23,16 +23,16 @@ describe("restricted repository imports", () => {
     ).toBe(false);
   });
 
-  it("allows proper-lockfile only in its mechanics adapter", () => {
+  it("allows proper-lockfile2 only in its mechanics adapter", () => {
     expect(
       isRestrictedImportAllowed(
-        "proper-lockfile",
+        "@bybrave/proper-lockfile2",
         "packages/bootstrap-runtime/src/bootstrap-ownership.ts",
       ),
     ).toBe(true);
     expect(
       isRestrictedImportAllowed(
-        "proper-lockfile",
+        "@bybrave/proper-lockfile2",
         "packages/bootstrap-runtime/src/bootstrap-prelude.ts",
       ),
     ).toBe(false);

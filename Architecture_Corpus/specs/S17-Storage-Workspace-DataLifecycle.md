@@ -479,7 +479,6 @@ Foundation-owned TOML parsing/serialization
 
 These libraries are implementation mechanics behind Host-owned adapters. Extension/Domain code does not receive raw platform roots or watcher/atomic-write implementation objects.
 
-Do not reimplement atomic replace, cross-platform watch normalization, or TOML parsing in Foundation because avoiding a dependency appears conservative. `C-STORAGE-FS-01` / `C-CONFIG-TOML-01` cover adapter evidence; bootstrap uses the adopted `proper-lockfile` route plus the stricter ownership semantics defined by S01, with remaining crash/platform behavior handled by implementation qualification.
+Do not reimplement atomic replace, cross-platform watch normalization, or TOML parsing in Foundation because avoiding a dependency appears conservative. `C-STORAGE-FS-01` / `C-CONFIG-TOML-01` cover adapter evidence; bootstrap uses the adopted `@bybrave/proper-lockfile2` route plus the stricter ownership semantics defined by S01, with remaining crash/platform behavior handled by implementation qualification.
 
 `OWNER_NATIVE` remains free to use another format/database/library inside its scoped workspace; this section only fixes mechanics that Foundation itself promises to provide.
-

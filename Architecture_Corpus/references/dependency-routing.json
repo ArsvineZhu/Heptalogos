@@ -445,11 +445,11 @@
     },
     {
       "roleId": "bootstrap.lock",
-      "route": "proper-lockfile 4.x",
+      "route": "@bybrave/proper-lockfile2 5.0.0",
       "boundary": "Bootstrap ownership adapter; pre-PostgreSQL window only",
       "directive": "USE",
       "packages": [
-        "proper-lockfile"
+        "@bybrave/proper-lockfile2"
       ]
     },
     {
