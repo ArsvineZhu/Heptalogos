@@ -302,11 +302,13 @@ function configure(
       },
     },
     journal: {
+      advancedBodies: [] as MaintenanceJournalBodyV1[],
       async loadRecoveryHead() {
         trace.push("journal.head");
         return head;
       },
       async advance(next: MaintenanceJournalBodyV1) {
+        this.advancedBodies.push(next);
         trace.push(`journal.advance:${next.lastCompletedStage}`);
         return sealMaintenanceJournal(next);
       },
@@ -370,6 +372,7 @@ function configure(
     trace,
     state,
     sourceToken,
+    advancedBodies: stateAccess.journal.advancedBodies,
   };
 }
 
@@ -525,6 +528,42 @@ describe("fixed M5B host-maintenance recovery", () => {
     expect(mocks.publish).toHaveBeenCalledOnce();
     expect(configured.trace).toContain("fence.publish");
     expect(configured.lease.state).toBe("RELEASED");
+  });
+
+  it("arms the fresh token before publication and preserves source BootId in recovery revisions", async () => {
+    const fixture = await makeFixture();
+    const configured = configure(
+      fixture,
+      "POSTGRES_STOPPED",
+      "PRIVATE_POSTGRES_RESTART",
+      "STOPPED",
+      null,
+    );
+
+    await recoverInterruptedHostMaintenance(options(fixture));
+
+    const recoveryBootId = (
+      mocks.acquireRecoveryLease.mock.calls[0]?.[2] as {
+        bootId: ReturnType<typeof createBootId>;
+      }
+    ).bootId;
+    const armedIndex = configured.trace.indexOf(
+      "journal.advance:HOST_TOKEN_PUBLICATION_ARMED",
+    );
+    const publishIndex = configured.trace.indexOf("fence.publish");
+    expect(armedIndex).toBeGreaterThanOrEqual(0);
+    expect(armedIndex).toBeLessThan(publishIndex);
+
+    const armed = configured.advancedBodies.find(
+      (body) => body.lastCompletedStage === "HOST_TOKEN_PUBLICATION_ARMED",
+    );
+    expect(armed?.target.hostOwnershipToken).toBeDefined();
+    expect(armed?.target.hostBootId).toBe(recoveryBootId);
+    expect(armed?.target.hostOwnershipRevision).toBeUndefined();
+    expect(configured.advancedBodies).not.toHaveLength(0);
+    expect(
+      configured.advancedBodies.every((body) => body.bootId === configured.body.bootId),
+    ).toBe(true);
   });
 
   it("rejects a source-token reuse attempt and retains bootstrap ownership after mutation", async () => {

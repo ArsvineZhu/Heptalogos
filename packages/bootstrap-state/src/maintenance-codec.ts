@@ -66,6 +66,7 @@ const bodySchema = Type.Object(
           Type.Literal("STOPPED"),
         ]),
         hostOwnershipToken: Type.Optional(Type.String({ pattern: UUID_V7_PATTERN })),
+        hostBootId: Type.Optional(Type.String({ pattern: UUID_V7_PATTERN })),
         hostOwnershipRevision: Type.Optional(
           Type.String({ pattern: DECIMAL_REVISION_PATTERN }),
         ),
@@ -89,6 +90,7 @@ const bodySchema = Type.Object(
       Type.Literal("POSTGRES_STOPPED"),
       Type.Literal("POSTGRES_READY"),
       Type.Literal("HOST_LEASE_ACQUIRED"),
+      Type.Literal("HOST_TOKEN_PUBLICATION_ARMED"),
       Type.Literal("HOST_TOKEN_PUBLISHED"),
       Type.Literal("BOOTSTRAP_RELEASE_ARMED"),
       Type.Literal("ABORTED"),
@@ -166,7 +168,9 @@ function assertUuidIdentities(body: MaintenanceJournalBodyV1): boolean {
     parseBootId(body.bootId) !== undefined &&
     parseHostOwnershipToken(body.source.hostOwnershipToken) !== undefined &&
     (body.target.hostOwnershipToken === undefined ||
-      parseHostOwnershipToken(body.target.hostOwnershipToken) !== undefined)
+      parseHostOwnershipToken(body.target.hostOwnershipToken) !== undefined) &&
+    (body.target.hostBootId === undefined ||
+      parseBootId(body.target.hostBootId) !== undefined)
   );
 }
 
@@ -190,19 +194,34 @@ function semanticProblem(body: MaintenanceJournalBodyV1): string | undefined {
   ) {
     return "maintenance.journal.invalid_semantics";
   }
-  if (body.lastCompletedStage === "BOOTSTRAP_RELEASE_ARMED") {
-    const hasTargetToken = body.target.hostOwnershipToken !== undefined;
-    const hasTargetRevision = body.target.hostOwnershipRevision !== undefined;
-    if (
-      body.operationType === "PRIVATE_POSTGRES_RESTART" &&
-      (!hasTargetToken || !hasTargetRevision)
+  const hasTargetToken = body.target.hostOwnershipToken !== undefined;
+  const hasTargetBootId = body.target.hostBootId !== undefined;
+  const hasTargetRevision = body.target.hostOwnershipRevision !== undefined;
+  const hasAnyTargetOwnership = hasTargetToken || hasTargetBootId || hasTargetRevision;
+
+  if (body.operationType === "PRIVATE_POSTGRES_STOP" && hasAnyTargetOwnership) {
+    return "maintenance.journal.invalid_semantics";
+  }
+
+  if (body.operationType === "PRIVATE_POSTGRES_RESTART") {
+    if (body.lastCompletedStage === "HOST_TOKEN_PUBLICATION_ARMED") {
+      if (!hasTargetToken || !hasTargetBootId || hasTargetRevision) {
+        return "maintenance.journal.invalid_semantics";
+      }
+    } else if (
+      body.lastCompletedStage === "HOST_TOKEN_PUBLISHED" ||
+      body.lastCompletedStage === "BOOTSTRAP_RELEASE_ARMED"
     ) {
-      return "maintenance.journal.invalid_semantics";
-    }
-    if (
-      body.operationType === "PRIVATE_POSTGRES_STOP" &&
-      (hasTargetToken || hasTargetRevision)
-    ) {
+      if (!hasTargetToken || !hasTargetBootId || !hasTargetRevision) {
+        return "maintenance.journal.invalid_semantics";
+      }
+    } else if (body.lastCompletedStage === "RECOVERY_REQUIRED") {
+      const validRecoveryShape =
+        !hasAnyTargetOwnership ||
+        (hasTargetToken && hasTargetBootId && !hasTargetRevision) ||
+        (hasTargetToken && hasTargetBootId && hasTargetRevision);
+      if (!validRecoveryShape) return "maintenance.journal.invalid_semantics";
+    } else if (hasAnyTargetOwnership) {
       return "maintenance.journal.invalid_semantics";
     }
   }

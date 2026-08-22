@@ -218,6 +218,116 @@ describe("MaintenanceJournal V1 model and codec", () => {
     });
   });
 
+  it("requires candidate token and BootId without revision at publication arm", () => {
+    const token = createHostOwnershipToken();
+    const bootId = createBootId();
+    const valid = makeBody({
+      lastCompletedStage: "HOST_TOKEN_PUBLICATION_ARMED",
+      target: {
+        privatePostgres: "RUNNING_SAME_IDENTITY",
+        hostOwnershipToken: token,
+        hostBootId: bootId,
+      },
+    });
+    expect(
+      parseMaintenanceJournal(JSON.stringify(sealMaintenanceJournal(valid))),
+    ).toMatchObject({
+      ok: true,
+    });
+
+    for (const target of [
+      { privatePostgres: "RUNNING_SAME_IDENTITY" as const, hostOwnershipToken: token },
+      { privatePostgres: "RUNNING_SAME_IDENTITY" as const, hostBootId: bootId },
+      {
+        privatePostgres: "RUNNING_SAME_IDENTITY" as const,
+        hostOwnershipToken: token,
+        hostBootId: bootId,
+        hostOwnershipRevision: "9",
+      },
+    ]) {
+      expect(
+        parseMaintenanceJournal(
+          JSON.stringify(
+            sealMaintenanceJournal(
+              makeBody({ lastCompletedStage: "HOST_TOKEN_PUBLICATION_ARMED", target }),
+            ),
+          ),
+        ),
+      ).toMatchObject({
+        ok: false,
+        problem: { problemCode: "maintenance.journal.invalid_semantics" },
+      });
+    }
+  });
+
+  it.each(["HOST_TOKEN_PUBLISHED", "BOOTSTRAP_RELEASE_ARMED"] as const)(
+    "requires token, BootId, and revision at %s",
+    (stage) => {
+      const token = createHostOwnershipToken();
+      const bootId = createBootId();
+      const valid = makeBody({
+        lastCompletedStage: stage,
+        target: {
+          privatePostgres: "RUNNING_SAME_IDENTITY",
+          hostOwnershipToken: token,
+          hostBootId: bootId,
+          hostOwnershipRevision: "9",
+        },
+      });
+      expect(
+        parseMaintenanceJournal(JSON.stringify(sealMaintenanceJournal(valid))),
+      ).toMatchObject({
+        ok: true,
+      });
+
+      for (const target of [
+        {
+          privatePostgres: "RUNNING_SAME_IDENTITY" as const,
+          hostOwnershipToken: token,
+          hostBootId: bootId,
+        },
+        {
+          privatePostgres: "RUNNING_SAME_IDENTITY" as const,
+          hostOwnershipToken: token,
+          hostOwnershipRevision: "9",
+        },
+      ]) {
+        expect(
+          parseMaintenanceJournal(
+            JSON.stringify(
+              sealMaintenanceJournal(makeBody({ lastCompletedStage: stage, target })),
+            ),
+          ),
+        ).toMatchObject({
+          ok: false,
+          problem: { problemCode: "maintenance.journal.invalid_semantics" },
+        });
+      }
+    },
+  );
+
+  it.each([
+    "HOST_LEASE_ACQUIRED",
+    "HOST_TOKEN_PUBLICATION_ARMED",
+    "HOST_TOKEN_PUBLISHED",
+    "BOOTSTRAP_RELEASE_ARMED",
+  ] as const)("forbids STOP target ownership fields at %s", (stage) => {
+    const body = makeBody({
+      operationType: "PRIVATE_POSTGRES_STOP",
+      lastCompletedStage: stage,
+      target: {
+        privatePostgres: "STOPPED",
+        hostBootId: createBootId(),
+      },
+    });
+    expect(
+      parseMaintenanceJournal(JSON.stringify(sealMaintenanceJournal(body))),
+    ).toMatchObject({
+      ok: false,
+      problem: { problemCode: "maintenance.journal.invalid_semantics" },
+    });
+  });
+
   it.each([
     {
       operationType: "PRIVATE_POSTGRES_RESTART" as const,

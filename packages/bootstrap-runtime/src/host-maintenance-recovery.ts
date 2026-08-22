@@ -75,6 +75,7 @@ const STAGE_ORDER: readonly MaintenanceStage[] = [
   "POSTGRES_STOPPED",
   "POSTGRES_READY",
   "HOST_LEASE_ACQUIRED",
+  "HOST_TOKEN_PUBLICATION_ARMED",
   "HOST_TOKEN_PUBLISHED",
   "BOOTSTRAP_RELEASE_ARMED",
 ];
@@ -223,20 +224,18 @@ function requireJournalScope(
       "A historical target Host token must never be equal to the source Host token",
     );
   }
-  if (
-    (body.target.hostOwnershipToken === undefined) !==
-    (body.target.hostOwnershipRevision === undefined)
-  ) {
+  const hasTargetToken = body.target.hostOwnershipToken !== undefined;
+  const hasTargetBootId = body.target.hostBootId !== undefined;
+  const hasTargetRevision = body.target.hostOwnershipRevision !== undefined;
+  const hasTargetOwnership = hasTargetToken || hasTargetBootId || hasTargetRevision;
+  if (hasTargetOwnership && (!hasTargetToken || !hasTargetBootId)) {
     throw recoveryProblem(
       "bootstrap.recovery.target_fence_incomplete",
       "MaintenanceJournal target Host ownership is incomplete",
-      "A historical target Host token and revision must be recorded together",
+      "A target Host token and its publication BootId must be recorded together",
     );
   }
-  if (
-    body.operationType === "PRIVATE_POSTGRES_STOP" &&
-    body.target.hostOwnershipToken !== undefined
-  ) {
+  if (body.operationType === "PRIVATE_POSTGRES_STOP" && hasTargetOwnership) {
     throw recoveryProblem(
       "bootstrap.recovery.stop_target_host_present",
       "Stop recovery contains a target Host owner",
@@ -451,15 +450,19 @@ function assertHistoricalFence(
       "conflict",
     );
   }
+  const expectedBootId =
+    token === body.source.hostOwnershipToken
+      ? historicalBootId
+      : (body.target.hostBootId ?? historicalBootId);
   if (
     row.boot_id === null ||
-    parseBootId(row.boot_id) !== historicalBootId ||
-    row.boot_id !== historicalBootId
+    parseBootId(row.boot_id) !== expectedBootId ||
+    row.boot_id !== expectedBootId
   ) {
     throw recoveryProblem(
       "bootstrap.recovery.fence_boot_mismatch",
       "Historical HostOwnershipFence BootId is unexpected",
-      "A historical source or target token is only recoverable under its original bootstrap BootId",
+      "A historical source or target token is only recoverable under its recorded publication BootId",
     );
   }
   return token;
@@ -556,10 +559,14 @@ async function normalizeHistoricalFence(
   const token = assertHistoricalFence(second, body, historicalBootId);
   if (token !== undefined) {
     markMutation();
+    const fenceBootId =
+      token === body.target.hostOwnershipToken
+        ? (body.target.hostBootId ?? historicalBootId)
+        : historicalBootId;
     await revokeHostOwnershipTokenForBootstrap({
       port: options.privatePostgres.expectedIdentity.persistedPort,
       instanceId: body.instanceId,
-      bootId: historicalBootId,
+      bootId: fenceBootId,
       token,
       lockTimeoutMs: options.timing.fenceLockTimeoutMs,
       statementTimeoutMs: options.timing.statementTimeoutMs,
@@ -573,14 +580,12 @@ async function normalizeHistoricalFence(
 
 function nextBody(
   body: MaintenanceJournalBodyV1,
-  recoveryBootId: BootId,
   stage: MaintenanceStage,
   changes: Partial<MaintenanceJournalBodyV1>,
 ): MaintenanceJournalBodyV1 {
   const next: MaintenanceJournalBodyV1 = {
     ...body,
     ...changes,
-    bootId: recoveryBootId,
     revision: body.revision + 1,
     lastCompletedStage: stage,
     updatedAt: new Date().toISOString(),
@@ -712,7 +717,7 @@ export async function recoverInterruptedHostMaintenance(
       stage: MaintenanceStage,
       changes: Partial<MaintenanceJournalBodyV1> = {},
     ): Promise<void> => {
-      const next = nextBody(body, recoveryBootId, stage, changes);
+      const next = nextBody(body, stage, changes);
       await access.journal.advance(next);
       body = next;
       progress = stage;
@@ -831,23 +836,55 @@ export async function recoverInterruptedHostMaintenance(
     if (!hasReached(progress, "HOST_LEASE_ACQUIRED")) {
       await advance("HOST_LEASE_ACQUIRED");
     }
-    const createToken = options.createHostToken ?? createFreshHostOwnershipToken;
-    const freshToken = createToken();
-    if (
-      parseHostOwnershipToken(freshToken) !== freshToken ||
-      freshToken === body.source.hostOwnershipToken ||
-      freshToken === body.target.hostOwnershipToken
-    ) {
-      throw recoveryProblem(
-        "bootstrap.recovery.fresh_token_invalid",
-        "Fresh Host token is not fresh",
-        "Recovery refuses to publish a source, historical target, or invalid Host token",
-      );
+    let freshToken: HostOwnershipToken;
+    let publicationBootId: BootId;
+    if (hasReached(progress, "HOST_TOKEN_PUBLICATION_ARMED")) {
+      const candidateToken = body.target.hostOwnershipToken;
+      const candidateBootId = body.target.hostBootId;
+      if (candidateToken === undefined || candidateBootId === undefined) {
+        throw recoveryProblem(
+          "bootstrap.recovery.publication_candidate_missing",
+          "Host publication candidate is missing",
+          "A recovery stage at or beyond HOST_TOKEN_PUBLICATION_ARMED must retain the exact candidate token and BootId",
+        );
+      }
+      freshToken = candidateToken;
+      publicationBootId = candidateBootId;
+      if (parseHostOwnershipToken(freshToken) !== freshToken) {
+        throw recoveryProblem(
+          "bootstrap.recovery.fresh_token_invalid",
+          "Persisted Host token candidate is invalid",
+          "Recovery refuses to publish an unparseable persisted Host token candidate",
+        );
+      }
+    } else {
+      const createToken = options.createHostToken ?? createFreshHostOwnershipToken;
+      freshToken = createToken();
+      publicationBootId = recoveryBootId;
+      if (
+        parseHostOwnershipToken(freshToken) !== freshToken ||
+        freshToken === body.source.hostOwnershipToken ||
+        freshToken === body.target.hostOwnershipToken
+      ) {
+        throw recoveryProblem(
+          "bootstrap.recovery.fresh_token_invalid",
+          "Fresh Host token is not fresh",
+          "Recovery refuses to publish a source, historical target, or invalid Host token",
+        );
+      }
+      await advance("HOST_TOKEN_PUBLICATION_ARMED", {
+        target: {
+          ...body.target,
+          privatePostgres: "RUNNING_SAME_IDENTITY",
+          hostOwnershipToken: freshToken,
+          hostBootId: publicationBootId,
+        },
+      });
     }
     const publication = await publishHostOwnershipToken({
       connection: hostLeaseConnection,
       instanceId: locator.instanceId,
-      bootId: recoveryBootId,
+      bootId: publicationBootId,
       token: freshToken,
       fenceLockTimeoutMs: options.timing.fenceLockTimeoutMs,
       statementTimeoutMs: options.timing.statementTimeoutMs,
@@ -858,7 +895,7 @@ export async function recoverInterruptedHostMaintenance(
     rawHost = createHostContext(
       locator.installationId,
       locator.instanceId,
-      recoveryBootId,
+      publicationBootId,
       hostLeaseConnection,
       freshToken,
     );
@@ -866,6 +903,7 @@ export async function recoverInterruptedHostMaintenance(
       ...body.target,
       privatePostgres: "RUNNING_SAME_IDENTITY" as const,
       hostOwnershipToken: freshToken,
+      hostBootId: publicationBootId,
       hostOwnershipRevision: publication.publishedRevision,
     };
     await advance("HOST_TOKEN_PUBLISHED", { target });
@@ -912,15 +950,10 @@ export async function recoverInterruptedHostMaintenance(
           const head = await access.journal.loadRecoveryHead(
             initialInspection.operationId,
           );
-          const next = nextBody(
-            head.current.state,
-            recoveryBootId,
-            "RECOVERY_REQUIRED",
-            {
-              terminalOutcome: isUncertainProblem(error) ? "UNCERTAIN" : "FAILED",
-              problemCode: problemCodeOf(error),
-            },
-          );
+          const next = nextBody(head.current.state, "RECOVERY_REQUIRED", {
+            terminalOutcome: isUncertainProblem(error) ? "UNCERTAIN" : "FAILED",
+            problemCode: problemCodeOf(error),
+          });
           await access.journal.advance(next).catch(() => undefined);
         }
       } catch {
