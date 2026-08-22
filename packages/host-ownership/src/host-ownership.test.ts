@@ -66,7 +66,9 @@ class FakeLeaseConnection implements HostLeaseConnection {
       const bootId = String(values[1]);
       this.currentRow = {
         ...this.currentRow,
-        ownership_revision: String(Number(this.currentRow.ownership_revision) + 1),
+        ownership_revision: (
+          BigInt(this.currentRow.ownership_revision) + 1n
+        ).toString(),
         host_ownership_token: token,
         boot_id: bootId,
       };
@@ -108,7 +110,7 @@ describe("HostOwnershipFence token publication", () => {
         statementTimeoutMs: 1_000,
         mutationAuthority,
       }),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({ previousRevision: "4", publishedRevision: "5" });
 
     const sql = connection.queries.map((query) => query.text).join("\n");
     expect(sql).toContain("BEGIN");
@@ -144,6 +146,29 @@ describe("HostOwnershipFence token publication", () => {
 
     expect(connection.state).toBe("FENCED");
     expect(connection.queries.map((query) => query.text)).toContain("ROLLBACK");
+  });
+
+  it("returns exact decimal revisions when publishing beyond JS safe integers", async () => {
+    const { instanceId, connection } = fixture();
+    connection.currentRow = {
+      ...connection.currentRow,
+      ownership_revision: "9007199254740993",
+    };
+
+    await expect(
+      publishHostOwnershipToken({
+        connection,
+        instanceId,
+        bootId: createBootId(),
+        token: createHostOwnershipToken(),
+        fenceLockTimeoutMs: 1_000,
+        statementTimeoutMs: 1_000,
+        mutationAuthority,
+      }),
+    ).resolves.toMatchObject({
+      previousRevision: "9007199254740993",
+      publishedRevision: "9007199254740994",
+    });
   });
 
   it("fences when the committed row does not prove the new token and BootId", async () => {

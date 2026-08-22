@@ -22,8 +22,14 @@ export {
 } from "./ownership-schema.js";
 export {
   publishHostOwnershipToken,
+  type HostOwnershipPublicationResult,
   type PublishHostOwnershipTokenOptions,
 } from "./host-ownership.js";
+export {
+  revokeHostOwnershipTokenForBootstrap,
+  type HostOwnershipRevocationResult,
+  type RevokeHostOwnershipTokenOptions,
+} from "./ownership-revocation.js";
 export { acquireHostLeaseConnection } from "./host-lease-connection.js";
 export type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
 export {
