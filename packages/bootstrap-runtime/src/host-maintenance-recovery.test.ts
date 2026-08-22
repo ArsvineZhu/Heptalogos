@@ -605,6 +605,70 @@ describe("fixed M5B host-maintenance recovery", () => {
     expect(result.host.token).toBe(candidate);
   });
 
+  it("normalizes a legacy M5A target B and publishes a fresh explicit target C", async () => {
+    const fixture = await makeFixture();
+    const legacyToken = createHostOwnershipToken();
+    const configured = configure(
+      fixture,
+      "HOST_TOKEN_PUBLISHED",
+      "PRIVATE_POSTGRES_RESTART",
+      "READY",
+      legacyToken,
+      {
+        hostOwnershipToken: legacyToken,
+        hostOwnershipRevision: "8",
+      },
+    );
+    const legacySnapshot = {
+      roles: [],
+      database: [],
+      schema: [],
+      table: [],
+      fence: [
+        {
+          instance_id: fixture.locator.instanceId,
+          ownership_revision: "7",
+          host_ownership_token: legacyToken,
+          boot_id: configured.body.bootId,
+        },
+      ],
+    };
+    mocks.inspectSnapshot.mockReset();
+    mocks.inspectSnapshot
+      .mockResolvedValueOnce(legacySnapshot)
+      .mockResolvedValueOnce(legacySnapshot)
+      .mockResolvedValue({
+        roles: [],
+        database: [],
+        schema: [],
+        table: [],
+        fence: [
+          {
+            instance_id: fixture.locator.instanceId,
+            ownership_revision: "8",
+            host_ownership_token: null,
+            boot_id: null,
+          },
+        ],
+      });
+
+    const result = await recoverInterruptedHostMaintenance(options(fixture));
+
+    expect(result.kind).toBe("RESTARTED");
+    if (result.kind !== "RESTARTED") throw new Error("recovery result was not a Host");
+    expect(result.host.token).not.toBe(legacyToken);
+    expect(mocks.revoke).toHaveBeenCalledWith(
+      expect.objectContaining({ token: legacyToken, bootId: configured.body.bootId }),
+    );
+    const armed = configured.advancedBodies.find(
+      (body) => body.lastCompletedStage === "HOST_TOKEN_PUBLICATION_ARMED",
+    );
+    expect(armed?.target.hostOwnershipToken).toBe(result.host.token);
+    expect(armed?.target.hostBootId).toBeDefined();
+    expect(armed?.target.hostOwnershipRevision).toBeUndefined();
+    expect(armed?.target.hostOwnershipToken).not.toBe(legacyToken);
+  });
+
   it("recovers an exact candidate committed before HOST_TOKEN_PUBLISHED journaling", async () => {
     const fixture = await makeFixture();
     const configured = configure(

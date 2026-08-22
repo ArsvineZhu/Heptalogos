@@ -48,6 +48,7 @@ export type {
   MaintenanceTerminalOutcome,
   PrivatePostgresInitializationProfileRevision as MaintenancePrivatePostgresInitializationProfileRevision,
 } from "./maintenance-model.js";
+export { resolveMaintenanceTargetHostBootId } from "./maintenance-model.js";
 export { MaintenanceJournalStore } from "./maintenance-store.js";
 export type {
   MaintenanceJournalLoadResult,

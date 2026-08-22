@@ -123,6 +123,30 @@ describe("MaintenanceJournalStore", () => {
     });
   });
 
+  it.each(["HOST_TOKEN_PUBLISHED", "BOOTSTRAP_RELEASE_ARMED"] as const)(
+    "loads a legacy M5A token/revision target without hostBootId at %s",
+    async (stage) => {
+      const root = await directory();
+      const store = new MaintenanceJournalStore(root);
+      const operationId = createUuidV7Id("MaintenanceOperationId");
+      const created = await store.create({
+        ...body(operationId),
+        operationType: "PRIVATE_POSTGRES_RESTART",
+        lastCompletedStage: stage,
+        target: {
+          privatePostgres: "RUNNING_SAME_IDENTITY",
+          hostOwnershipToken: createHostOwnershipToken(),
+          hostOwnershipRevision: "9",
+        },
+      });
+      expect(created.state.target.hostBootId).toBeUndefined();
+      await expect(store.load(operationId)).resolves.toMatchObject({
+        status: "CURRENT",
+        value: { state: { revision: 1 } },
+      });
+    },
+  );
+
   it("uses the validated immediately previous revision for RECOVERY_REQUIRED", async () => {
     const root = await directory();
     const store = new MaintenanceJournalStore(root);

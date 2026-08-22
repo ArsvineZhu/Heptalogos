@@ -1,6 +1,7 @@
 import {
   BootstrapJournal,
   maintenanceOperationRef,
+  resolveMaintenanceTargetHostBootId,
   type BootstrapActivityId,
   type BootstrapStateEnvelopeV2,
   type BootstrapStateLoadResult,
@@ -237,10 +238,11 @@ function requireJournalScope(
     );
   }
   const hasTargetToken = body.target.hostOwnershipToken !== undefined;
-  const hasTargetBootId = body.target.hostBootId !== undefined;
+  const resolvedTargetBootId = resolveMaintenanceTargetHostBootId(body);
   const hasTargetRevision = body.target.hostOwnershipRevision !== undefined;
-  const hasTargetOwnership = hasTargetToken || hasTargetBootId || hasTargetRevision;
-  if (hasTargetOwnership && (!hasTargetToken || !hasTargetBootId)) {
+  const hasTargetOwnership =
+    hasTargetToken || resolvedTargetBootId !== undefined || hasTargetRevision;
+  if (hasTargetOwnership && (!hasTargetToken || resolvedTargetBootId === undefined)) {
     throw recoveryProblem(
       "bootstrap.recovery.target_fence_incomplete",
       "MaintenanceJournal target Host ownership is incomplete",
@@ -454,6 +456,7 @@ function assertHistoricalFence(
     );
   }
   const historicalTarget = body.target.hostOwnershipToken;
+  const resolvedTargetBootId = resolveMaintenanceTargetHostBootId(body);
   if (token !== body.source.hostOwnershipToken && token !== historicalTarget) {
     throw recoveryProblem(
       "bootstrap.recovery.unexpected_fence_token",
@@ -463,9 +466,14 @@ function assertHistoricalFence(
     );
   }
   const expectedBootId =
-    token === body.source.hostOwnershipToken
-      ? historicalBootId
-      : (body.target.hostBootId ?? historicalBootId);
+    token === body.source.hostOwnershipToken ? historicalBootId : resolvedTargetBootId;
+  if (expectedBootId === undefined) {
+    throw recoveryProblem(
+      "bootstrap.recovery.target_fence_incomplete",
+      "MaintenanceJournal target Host ownership is incomplete",
+      "A target Host token requires an explicit or exact legacy publication BootId",
+    );
+  }
   if (
     row.boot_id === null ||
     parseBootId(row.boot_id) !== expectedBootId ||
@@ -573,8 +581,15 @@ async function normalizeHistoricalFence(
     markMutation();
     const fenceBootId =
       token === body.target.hostOwnershipToken
-        ? (body.target.hostBootId ?? historicalBootId)
+        ? resolveMaintenanceTargetHostBootId(body)
         : historicalBootId;
+    if (fenceBootId === undefined) {
+      throw recoveryProblem(
+        "bootstrap.recovery.target_fence_incomplete",
+        "MaintenanceJournal target Host ownership is incomplete",
+        "A target Host token requires an explicit or exact legacy publication BootId",
+      );
+    }
     await revokeHostOwnershipTokenForBootstrap({
       port: options.privatePostgres.expectedIdentity.persistedPort,
       instanceId: body.instanceId,
@@ -595,13 +610,24 @@ function nextBody(
   stage: MaintenanceStage,
   changes: Partial<MaintenanceJournalBodyV1>,
 ): MaintenanceJournalBodyV1 {
-  const next: MaintenanceJournalBodyV1 = {
+  const nextCandidate: MaintenanceJournalBodyV1 = {
     ...body,
     ...changes,
     revision: body.revision + 1,
     lastCompletedStage: stage,
     updatedAt: new Date().toISOString(),
   };
+  const resolvedTargetBootId = resolveMaintenanceTargetHostBootId(nextCandidate);
+  const next: MaintenanceJournalBodyV1 =
+    resolvedTargetBootId !== undefined && nextCandidate.target.hostBootId === undefined
+      ? {
+          ...nextCandidate,
+          target: {
+            ...nextCandidate.target,
+            hostBootId: resolvedTargetBootId,
+          },
+        }
+      : nextCandidate;
   if (stage === "RECOVERY_REQUIRED" || stage === "ABORTED") return next;
   const {
     terminalOutcome: _terminalOutcome,
@@ -849,7 +875,7 @@ export async function recoverInterruptedHostMaintenance(
     let publicationBootId: BootId;
     const targetIsHistorical =
       body.target.hostOwnershipToken !== undefined &&
-      body.target.hostBootId === historicalBootId;
+      resolveMaintenanceTargetHostBootId(body) === historicalBootId;
     if (hasReached(progress, "HOST_TOKEN_PUBLICATION_ARMED") && !targetIsHistorical) {
       const candidateToken = body.target.hostOwnershipToken;
       const candidateBootId = body.target.hostBootId;
