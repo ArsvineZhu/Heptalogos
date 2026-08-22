@@ -169,7 +169,7 @@ addendum above for current qualification truth while preserving that addendum
 as historical evidence.
 
 ```yaml
-candidate_sha: c7f82e379ff28d836fe54d7cfbd266adfc15cacd
+candidate_sha: be1d728bdad5327e7e85764270802c97f97023ee
 bootstrap_authority_continuity: PASS
 existing_host_reservation_before_mutation: PASS
 closed_world_postgres_authority_unit: PASS
@@ -180,8 +180,8 @@ bootstrap_release_failure_fenced: PASS
 focused_host_ownership_unit: PASS
 focused_bootstrap_runtime_unit: PASS
 permanent_repository_verify: PASS
-windows_host_ownership_real_pg: NOT_RUN
-windows_bootstrap_host_handoff_real_pg: NOT_RUN
+windows_host_ownership_real_pg: PASS
+windows_bootstrap_host_handoff_real_pg: PASS
 linux_host_ownership_real_pg: NOT_RUN
 macos_host_ownership_real_pg: NOT_RUN
 independent_review: NOT_RUN
@@ -190,11 +190,11 @@ final_cross_platform_ci: NOT_RUN
 
 The corrective candidate passed `pnpm verify`, the Host ownership unit suite
 (54/54), the bootstrap-runtime unit suite (59 passed, 1 skipped), and the
-private-postgres unit suite (49/49). The current shell has no qualified
-PostgreSQL 18.6 toolchain (`HEPTALOGOS_TEST_PG_BIN` is unset); therefore all
-corrected-candidate real PostgreSQL gates remain `NOT_RUN`. The prior Windows
-and Linux PostgreSQL results must not be read as evidence for this corrected
-candidate SHA.
+private-postgres unit suite (49/49). With the explicit PostgreSQL 18.6
+toolchain resolved from the Windows qualification bin root, corrected-candidate
+real integration passed: private-postgres 20/20, Host ownership 6/6, and
+bootstrap-runtime 12/12. Corrected Linux/macOS real PostgreSQL, independent
+review, and final cross-platform CI remain `NOT_RUN`.
 
 ## Historical pre-correction Linux evidence
 
