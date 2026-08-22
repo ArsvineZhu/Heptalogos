@@ -1151,7 +1151,7 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
     );
     const descriptor = getPrivatePostgresMaintenanceDescriptor(interrupted.ready);
     const targetToken = createHostOwnershipToken();
-    const targetBootId = interrupted.host.bootId;
+    const legacyOperationBootId = interrupted.host.bootId;
     await interrupted.host.shutdownKeepingPrivatePostgres({
       async quiesce() {
         return { async resumeAfterAbort() {} };
@@ -1161,7 +1161,7 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
       fixture,
       55538,
       targetToken,
-      targetBootId,
+      legacyOperationBootId,
     );
     await advanceJournalStage(
       fixture,
@@ -1171,11 +1171,27 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
         target: {
           privatePostgres: "RUNNING_SAME_IDENTITY",
           hostOwnershipToken: targetToken,
-          hostBootId: targetBootId,
           hostOwnershipRevision: targetRevision,
         },
       },
     );
+    const legacy = await new MaintenanceJournalStore(fixture.roots.INSTANCE).load(
+      interrupted.operationId,
+    );
+    expect(legacy).toMatchObject({
+      status: "CURRENT",
+      value: {
+        state: {
+          bootId: legacyOperationBootId,
+          target: {
+            hostOwnershipToken: targetToken,
+            hostOwnershipRevision: targetRevision,
+          },
+        },
+      },
+    });
+    if (legacy.status !== "CURRENT") throw new Error("legacy journal is not current");
+    expect(legacy.value.state.target.hostBootId).toBeUndefined();
     await leaveAbandonedLock(fixture, interrupted.host.bootId);
 
     const result = await recoverInterruptedHostMaintenance({
@@ -1190,6 +1206,25 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
     if (result.kind !== "RESTARTED")
       throw new Error("PG-6A recovery did not return Host");
     expect(result.host.token).not.toBe(targetToken);
+    expect(result.host.bootId).not.toBe(legacyOperationBootId);
+    const final = await new MaintenanceJournalStore(fixture.roots.INSTANCE).load(
+      interrupted.operationId,
+    );
+    expect(final).toMatchObject({
+      status: "CURRENT",
+      value: {
+        state: {
+          target: {
+            hostOwnershipToken: result.host.token,
+            hostBootId: result.host.bootId,
+            hostOwnershipRevision: expect.any(String),
+          },
+        },
+      },
+    });
+    if (final.status !== "CURRENT") throw new Error("final journal is not current");
+    expect(final.value.state.target.hostBootId).toBe(result.host.bootId);
+    expect(final.value.state.target.hostOwnershipRevision).toMatch(/^\d+$/u);
     await result.host.shutdownKeepingPrivatePostgres({
       async quiesce() {
         return { async resumeAfterAbort() {} };
