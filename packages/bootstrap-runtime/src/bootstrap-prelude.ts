@@ -153,6 +153,136 @@ async function loadPreliminaryState(
   return new BootstrapStateStore(join(instanceRoot, BOOTSTRAP_STATE_DIRECTORY)).load();
 }
 
+interface OwnedPreludeMaterializationContext {
+  readonly installationId: InstallationId;
+  readonly instanceId: InstanceId;
+  readonly bootId: BootId;
+  readonly bootstrapActivityId: BootstrapActivityId;
+  readonly paths: BootstrapPathProfile;
+  readonly journal: BootstrapJournal;
+}
+
+async function materializeOwnedBootstrapPrelude(
+  context: OwnedPreludeMaterializationContext,
+  ownership: BootstrapOwnershipLease,
+): Promise<OwnedBootstrapPrelude> {
+  try {
+    const access = openBootstrapStateAccess(context.paths, ownership);
+    const authoritativeState = await access.state.load();
+    const privatePostgresSession = createPrivatePostgresSessionTracker();
+    await record(
+      context.journal,
+      context.installationId,
+      context.instanceId,
+      context.bootId,
+      context.bootstrapActivityId,
+      STAGE_STATE_AUTHORITATIVE_RELOAD,
+      instant(),
+      "SUCCEEDED",
+    );
+    await record(
+      context.journal,
+      context.installationId,
+      context.instanceId,
+      context.bootId,
+      context.bootstrapActivityId,
+      STAGE_PRELUDE_OWNED,
+      instant(),
+      "SUCCEEDED",
+    );
+
+    let closePromise: Promise<void> | undefined;
+    return {
+      installationId: context.installationId,
+      instanceId: context.instanceId,
+      bootId: context.bootId,
+      bootstrapActivityId: context.bootstrapActivityId,
+      paths: context.paths,
+      get ownershipState() {
+        return ownership.state;
+      },
+      get ownershipSignal() {
+        return ownership.signal;
+      },
+      state: access.state,
+      authoritativeState,
+      preparePrivatePostgres(options: PreparePrivatePostgresOptions) {
+        return preparePrivatePostgresForOwnedPrelude(
+          {
+            installationId: context.installationId,
+            instanceId: context.instanceId,
+            bootId: context.bootId,
+            bootstrapActivityId: context.bootstrapActivityId,
+            paths: context.paths,
+            ownership,
+            state: access.state,
+            journal: context.journal,
+            privatePostgresSession,
+          },
+          options,
+        );
+      },
+      handoffPrivatePostgresToHost(
+        ready: ReadyPrivatePostgres,
+        options: HostOwnershipHandoffOptions,
+      ) {
+        return handoffPrivatePostgresToManagedHostForOwnedPrelude(
+          {
+            installationId: context.installationId,
+            instanceId: context.instanceId,
+            bootId: context.bootId,
+            bootstrapActivityId: context.bootstrapActivityId,
+            paths: context.paths,
+            ownership,
+            assertOwnership: () =>
+              assertBootstrapOwnershipFor(
+                ownership,
+                context.paths.resolve("INSTANCE").canonicalPath,
+              ),
+            state: access.state,
+            journal: context.journal,
+            privatePostgresSession,
+            assertReady: (candidate) =>
+              assertReadyPrivatePostgresSession(candidate, privatePostgresSession),
+          },
+          ready,
+          options,
+        );
+      },
+      close(): Promise<void> {
+        if (closePromise) return closePromise;
+        if (ownership.state === "RELEASED") return Promise.resolve();
+        try {
+          privatePostgresSession.assertReleaseAllowed();
+        } catch (error) {
+          return Promise.reject(error);
+        }
+        const current = (async () => {
+          await ownership.release();
+          await record(
+            context.journal,
+            context.installationId,
+            context.instanceId,
+            context.bootId,
+            context.bootstrapActivityId,
+            STAGE_PRELUDE_RELEASED,
+            instant(),
+            "SUCCEEDED",
+          );
+        })();
+        closePromise = current;
+        void current.catch(() => {
+          if (closePromise === current) closePromise = undefined;
+        });
+        return current;
+      },
+    };
+  } catch (error) {
+    await ownership.release();
+    throw error;
+  }
+}
+
 export async function prepareBootstrapPrelude(
   anchorRoot: string,
 ): Promise<PreparedBootstrapPrelude> {
@@ -275,120 +405,21 @@ export async function prepareBootstrapPrelude(
         instant(),
         "SUCCEEDED",
       );
-      const access = openBootstrapStateAccess(paths, ownership);
-      const authoritativeState = await access.state.load();
-      const privatePostgresSession = createPrivatePostgresSessionTracker();
-      await record(
-        journal,
-        installationId,
-        instanceId,
-        bootId,
-        bootstrapActivityId,
-        STAGE_STATE_AUTHORITATIVE_RELOAD,
-        instant(),
-        "SUCCEEDED",
-      );
-      await record(
-        journal,
-        installationId,
-        instanceId,
-        bootId,
-        bootstrapActivityId,
-        STAGE_PRELUDE_OWNED,
-        instant(),
-        "SUCCEEDED",
-      );
-
-      let closePromise: Promise<void> | undefined;
-      return {
+    } catch (error) {
+      await ownership.release();
+      throw error;
+    }
+    return materializeOwnedBootstrapPrelude(
+      {
         installationId,
         instanceId,
         bootId,
         bootstrapActivityId,
         paths,
-        get ownershipState() {
-          return ownership.state;
-        },
-        get ownershipSignal() {
-          return ownership.signal;
-        },
-        state: access.state,
-        authoritativeState,
-        preparePrivatePostgres(options: PreparePrivatePostgresOptions) {
-          return preparePrivatePostgresForOwnedPrelude(
-            {
-              installationId,
-              instanceId,
-              bootId,
-              bootstrapActivityId,
-              paths,
-              ownership,
-              state: access.state,
-              journal,
-              privatePostgresSession,
-            },
-            options,
-          );
-        },
-        handoffPrivatePostgresToHost(
-          ready: ReadyPrivatePostgres,
-          options: HostOwnershipHandoffOptions,
-        ) {
-          return handoffPrivatePostgresToManagedHostForOwnedPrelude(
-            {
-              installationId,
-              instanceId,
-              bootId,
-              bootstrapActivityId,
-              paths,
-              ownership,
-              assertOwnership: () =>
-                assertBootstrapOwnershipFor(
-                  ownership,
-                  paths.resolve("INSTANCE").canonicalPath,
-                ),
-              state: access.state,
-              journal,
-              privatePostgresSession,
-              assertReady: (candidate) =>
-                assertReadyPrivatePostgresSession(candidate, privatePostgresSession),
-            },
-            ready,
-            options,
-          );
-        },
-        close(): Promise<void> {
-          if (closePromise) return closePromise;
-          if (ownership.state === "RELEASED") return Promise.resolve();
-          try {
-            privatePostgresSession.assertReleaseAllowed();
-          } catch (error) {
-            return Promise.reject(error);
-          }
-          const current = (async () => {
-            await ownership.release();
-            await record(
-              journal,
-              installationId,
-              instanceId,
-              bootId,
-              bootstrapActivityId,
-              STAGE_PRELUDE_RELEASED,
-              instant(),
-              "SUCCEEDED",
-            );
-          })();
-          closePromise = current;
-          void current.catch(() => {
-            if (closePromise === current) closePromise = undefined;
-          });
-          return current;
-        },
-      };
-    } catch (error) {
-      await ownership.release();
-      throw error;
-    }
+        journal,
+      },
+      ownership,
+    );
   }
 
   return {

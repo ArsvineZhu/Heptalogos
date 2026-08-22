@@ -20,6 +20,7 @@ import {
   type LifecycleRootId,
 } from "@heptalogos/foundation-contracts";
 import {
+  BootstrapOwnerWitnessStore,
   BootstrapStateStore,
   type BootstrapStateBodyV1,
 } from "@heptalogos/bootstrap-state";
@@ -164,6 +165,26 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
       "bootstrap.prelude.owned",
       "bootstrap.prelude.released",
     ]);
+  });
+
+  it("materializes one normal owned prelude from one held ownership generation", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const ownershipWitnesses = new BootstrapOwnerWitnessStore(fixture.instanceRoot);
+
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1000 });
+    const ownerBeforeClose = await ownershipWitnesses.readOwner();
+    expect(ownerBeforeClose?.witness.bootId).toBe(prepared.bootId);
+    expect(owned.ownershipState).toBe("HELD");
+    expect(owned.authoritativeState).toMatchObject({
+      status: "CURRENT",
+      value: { state: { revision: 1 } },
+    });
+
+    await owned.close();
+
+    await expect(ownershipWitnesses.readOwner()).resolves.toBeUndefined();
+    expect(owned.ownershipState).toBe("RELEASED");
   });
 
   it("allows competing attempts to keep separate journals while only one mutates state", async () => {
