@@ -281,6 +281,7 @@ function configure(
   };
   const current = sealMaintenanceJournal(body);
   let currentBody = body;
+  let beforeAdvance: ((next: MaintenanceJournalBodyV1) => Promise<void>) | undefined;
   const lease = makeLease(trace);
   const connection = makeHostConnection(trace);
   let currentPostgres = actualPostgres;
@@ -310,6 +311,7 @@ function configure(
         } satisfies MaintenanceJournalRecoveryHead;
       },
       async advance(next: MaintenanceJournalBodyV1) {
+        await beforeAdvance?.(next);
         this.advancedBodies.push(next);
         currentBody = next;
         trace.push(`journal.advance:${next.lastCompletedStage}`);
@@ -382,6 +384,9 @@ function configure(
     state,
     sourceToken,
     advancedBodies: stateAccess.journal.advancedBodies,
+    setBeforeAdvance(hook: (next: MaintenanceJournalBodyV1) => Promise<void>) {
+      beforeAdvance = hook;
+    },
   };
 }
 
@@ -597,6 +602,79 @@ describe("fixed M5B host-maintenance recovery", () => {
     expect(result.kind).toBe("RESTARTED");
     expect(mocks.publish).not.toHaveBeenCalled();
     expect(result.host?.token).toBe(candidate);
+  });
+
+  it("recovers an exact candidate committed before HOST_TOKEN_PUBLISHED journaling", async () => {
+    const fixture = await makeFixture();
+    const configured = configure(
+      fixture,
+      "POSTGRES_STOPPED",
+      "PRIVATE_POSTGRES_RESTART",
+      "STOPPED",
+      null,
+    );
+    const secondLease = makeLease([]);
+    mocks.acquireRecoveryLease.mockReset();
+    mocks.acquireRecoveryLease
+      .mockResolvedValueOnce(configured.lease)
+      .mockResolvedValueOnce(secondLease);
+
+    let committedToken: HostOwnershipToken | null = null;
+    let committedBootId: ReturnType<typeof createBootId> | null = null;
+    mocks.inspectSnapshot.mockImplementation(async () => ({
+      roles: [],
+      database: [],
+      schema: [],
+      table: [],
+      fence: [
+        {
+          instance_id: fixture.locator.instanceId,
+          ownership_revision: committedToken === null ? "7" : "9",
+          host_ownership_token: committedToken,
+          boot_id: committedBootId,
+        },
+      ],
+    }));
+    mocks.publish.mockImplementation(
+      async ({
+        token,
+        bootId,
+      }: {
+        readonly token: HostOwnershipToken;
+        readonly bootId: ReturnType<typeof createBootId>;
+      }) => {
+        committedToken = token;
+        committedBootId = bootId;
+        return { previousRevision: "8", publishedRevision: "9" };
+      },
+    );
+
+    let resumeFirstJournal!: () => void;
+    const firstJournalPaused = new Promise<void>((resolve) => {
+      resumeFirstJournal = resolve;
+    });
+    let firstPause = true;
+    let firstJournalReached!: () => void;
+    const firstJournalReady = new Promise<void>((resolve) => {
+      firstJournalReached = resolve;
+    });
+    configured.setBeforeAdvance(async (next) => {
+      if (next.lastCompletedStage === "HOST_TOKEN_PUBLISHED" && firstPause) {
+        firstPause = false;
+        firstJournalReached();
+        await firstJournalPaused;
+      }
+    });
+
+    const firstRun = recoverInterruptedHostMaintenance(options(fixture));
+    await firstJournalReady;
+
+    const secondRun = await recoverInterruptedHostMaintenance(options(fixture));
+    expect(secondRun.kind).toBe("RESTARTED");
+    expect(mocks.publish).toHaveBeenCalledOnce();
+
+    resumeFirstJournal();
+    await expect(firstRun).resolves.toMatchObject({ kind: "RESTARTED" });
   });
 
   it("retains bootstrap authority when publication fails before any lifecycle mutation", async () => {
