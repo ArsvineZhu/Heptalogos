@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: execute task-by-task with TDD. Use a fresh review boundary between tasks that change Authority semantics. Do not widen this milestone into M5B abandoned-lock Recovery, H2A Persistence, or H2B Runtime Kernel work. Every behavior-bearing completion claim must be tied to actually executed evidence.
 
-**Status:** ACTIVE — Foundation M4 PR #6 passed exact-SHA final CI and was squash-merged to `master`; M5A implementation is in progress.
+**Status:** ACTIVE — the corrected M5A behavior candidate is recorded; independent review and final cross-platform CI remain pending.
 
 ## Corrective pass — independent review corrections (2026-08-22)
 
@@ -13,7 +13,11 @@ RC-1 MaintenanceJournal partial target ownership acceptance
 RC-2 stale old-Host capability after PONR / RECOVERY_REQUIRED
 RC-3 Scenario F did not exercise live PostgreSQL Host-lease backend death
 
-Correction status = IN_PROGRESS
+Correction status = COMPLETE through Task 5
+corrected behavior candidate = 9fd68d4656921c344a0ef637d31e91f127d53eaf
+RC-1 = PASS
+RC-2 = PASS
+RC-3 = PASS on Linux PostgreSQL 18.6
 final CI = NOT_AUTHORIZED
 merge = NOT_AUTHORIZED
 ```
@@ -2697,6 +2701,39 @@ M5A independent review: NOT_RUN
 M5A final cross-platform CI: NOT_RUN
 M5A squash merge: NOT_RUN
 
+M5B: OPEN
+H1: OPEN
+```
+
+Corrective execution record (2026-08-22):
+
+```text
+rejected review SHA: 65a56c7a8906e49658d8a304d0903668d8f64228
+corrected behavior candidate: 9fd68d4656921c344a0ef637d31e91f127d53eaf
+
+RC-1 MaintenanceJournal complete target ownership pair: PASS
+RC-2 operation-local old-Host retirement across PONR/recovery uncertainty: PASS
+RC-3 live Scenario F PostgreSQL Host-lease backend termination: PASS on Linux PostgreSQL 18.6
+
+Task 0 review-correction record: PASS
+Task 1 partial target ownership RED tests and pair validation: PASS
+Task 2 old managed-Host terminalization and idempotent raw close: PASS
+Task 3 live Scenario F using pg_terminate_backend during quiesce: PASS
+Task 4 corrected candidate unit/package gates: PASS
+Task 4 corrected candidate real PostgreSQL gates: PASS
+Task 4 corrected candidate pnpm verify: PASS
+Task 5 qualification/evidence reconciliation: PASS
+
+Corrected candidate unit evidence: bootstrap-state 82 passed/2 skipped;
+private-postgres 58 passed; host-ownership 70 passed; bootstrap-runtime
+85 passed/1 skipped.
+Corrected candidate real PostgreSQL 18.6 evidence on Linux:
+private-postgres 20/20, host-ownership 8/8, bootstrap-runtime 17/17.
+
+M5A independent review: NOT_RUN
+M5A final cross-platform CI: NOT_RUN
+Windows real PostgreSQL: NOT_RUN
+macOS real PostgreSQL: NOT_RUN
 M5B: OPEN
 H1: OPEN
 ```

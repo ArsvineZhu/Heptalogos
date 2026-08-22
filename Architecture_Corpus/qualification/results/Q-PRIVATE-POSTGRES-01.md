@@ -303,6 +303,64 @@ repository/dependency/corpus/boundary checks, format checks, and `pnpm verify` w
 also run locally. Windows/macOS real-PG qualification, independent review, and final
 cross-platform CI remain `NOT_RUN`.
 
+## Foundation M5A corrective qualification evidence (2026-08-22)
+
+This addendum records the corrected M5A behavior candidate after the independent
+review at `65a56c7a8906e49658d8a304d0903668d8f64228` returned `REQUEST_CHANGES`.
+The rejected review candidate and the earlier implementation candidate remain
+historical records above; this addendum is the current M5A qualification truth.
+
+```yaml
+rejected_review_sha: 65a56c7a8906e49658d8a304d0903668d8f64228
+historical_pre_correction_m5a_candidate_sha: 7ca699d16aeaf863dab091253ac42a11b744a0bf
+corrected_behavior_candidate_sha: 9fd68d4656921c344a0ef637d31e91f127d53eaf
+rc_1_complete_target_ownership_pair: PASS
+rc_2_operation_local_old_host_retirement: PASS
+rc_3_live_scenario_f_host_lease_backend_termination: PASS
+rc_3_platform: Linux x86_64
+rc_3_postgres_version: PostgreSQL 18.6
+m5a_linux_real_pg: PASS
+m5a_windows_real_pg: NOT_RUN
+m5a_macos_real_pg: NOT_RUN
+m5a_maintenance_journal_partial_target_ownership: PASS
+m5a_old_managed_host_terminalization_after_ponr_or_recovery: PASS
+m5a_old_raw_host_close_idempotence: PASS
+m5a_pre_ponr_known_not_committed_safe_abort_preserves_old_host: PASS
+m5a_scenario_f_live_pg_terminate_backend: PASS
+m5a_scenario_f_postmaster_pid_unchanged: PASS
+m5a_scenario_f_postmaster_start_time_unchanged: PASS
+m5a_scenario_f_old_token_and_revision_unchanged: PASS
+m5a_scenario_f_recovery_required_failed_journal: PASS
+m5a_scenario_f_competing_bootstrap_rejected: PASS
+m5a_scenario_f_no_unsafe_resume_or_host_b: PASS
+m5a_bootstrap_state_unit: "82 passed, 2 skipped"
+m5a_private_postgres_unit: "58 passed"
+m5a_host_ownership_unit: "70 passed"
+m5a_bootstrap_runtime_unit: "85 passed, 1 skipped"
+m5a_private_postgres_integration: "20/20 PASS"
+m5a_host_ownership_integration: "8/8 PASS"
+m5a_bootstrap_runtime_integration: "17/17 PASS"
+m5a_direct_pg_test_client_and_types: PASS
+m5a_test_only_pg_boundary_exception: PASS
+m5a_pnpm_verify: PASS
+m5a_independent_review: NOT_RUN
+m5a_final_cross_platform_ci: NOT_RUN
+m5a_squash_merge: NOT_RUN
+m5b: OPEN
+h1: OPEN
+```
+
+The corrected Linux run was executed after the corrective behavior changes; its
+Linux PASS is not inherited from the rejected candidate. Scenario F acquired a
+fresh bootstrap ownership lease, located the actual dedicated Host lease backend,
+and used PostgreSQL `pg_terminate_backend()` during `quiesce()`. It then proved
+that the old managed Host was terminal/closed, no replacement Host was created,
+the old token and revision were unchanged, the same PostgreSQL postmaster
+continued running, the journal ended at `RECOVERY_REQUIRED` with `FAILED`, and a
+competing bootstrap acquisition was rejected. The direct `pg` client and its
+types are test-only bootstrap-runtime development dependencies, with an explicit
+boundary exception limited to the live integration test.
+
 ## Qualification remaining
 
 This is implementation/product evidence, not a new dependency-selection
