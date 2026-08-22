@@ -20,6 +20,7 @@ export type PrivatePostgresLifecycleEvent =
   | { readonly type: "START_COMMAND_SUCCEEDED" }
   | { readonly type: "START_OUTCOME_UNCERTAIN" }
   | { readonly type: "READY_PROVEN" }
+  | { readonly type: "READY_OBSERVED" }
   | { readonly type: "POST_START_PROOF_FAILED" }
   | { readonly type: "STATUS_RUNNING_PROVEN" }
   | { readonly type: "STATUS_STOPPED_PROVEN" }
@@ -45,6 +46,7 @@ const lifecycleMachine = setup({
     stopped: {
       on: {
         START_COMMAND_ISSUED: "startCommandPending",
+        READY_OBSERVED: "ready",
       },
     },
     startCommandPending: {
