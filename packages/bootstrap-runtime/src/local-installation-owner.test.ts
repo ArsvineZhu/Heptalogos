@@ -12,6 +12,7 @@ import {
   assertLocalInstallationOwnerFor,
   proveLocalInstallationOwner,
 } from "./local-installation-owner.js";
+import { resolveBootstrapPathProfile } from "./roots.js";
 
 const directories: string[] = [];
 
@@ -61,12 +62,13 @@ describe("LOCAL_INSTALLATION_OWNER recovery principal", () => {
       installationId: fixture.locator.installationId,
       instanceId: fixture.locator.instanceId,
     });
+    const paths = await resolveBootstrapPathProfile(fixture.locator);
     expect(() =>
       assertLocalInstallationOwnerFor(
         principal,
         fixture.locator.installationId,
         fixture.locator.instanceId,
-        fixture.roots.INSTANCE,
+        paths.resolve("INSTANCE").canonicalPath,
       ),
     ).not.toThrow();
   });

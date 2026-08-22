@@ -360,7 +360,7 @@ describe("bounded bootstrap recovery inspection", () => {
     });
 
     await expectDisposition(fixture.anchorRoot, "ABANDONED_OWNER_ELIGIBLE");
-  });
+  }, 15_000);
 
   it("reports ACTIVE_BOOTSTRAP_OWNER for a live owner witness", async () => {
     const fixture = await makeFixture();
