@@ -224,9 +224,9 @@
         "m5b_source_less_recovery": "NOT_RUN",
         "m5b_service_account_acl": "NOT_RUN",
         "m5b_hardware_power_loss": "NOT_RUN",
-        "m5b_independent_review": "NOT_RUN",
-        "m5b_final_cross_platform_ci": "NOT_RUN",
-        "m5b_squash_merge": "NOT_RUN",
+        "m5b_independent_review": "PASS",
+        "m5b_final_cross_platform_ci": "PASS",
+        "m5b_squash_merge": "PASS",
         "previous_revision_after_corrupt_current": "PASS",
         "kill_during_state_write": "PASS",
         "kill_during_atomic_replace": "PASS",
@@ -269,6 +269,14 @@
         "m5bPrivatePostgresIntegration": "pnpm nx run private-postgres:test:integration 20/20 PASS",
         "m5bHostOwnershipIntegration": "pnpm nx run host-ownership:test:integration 8/8 PASS",
         "m5bRepositoryVerify": "pnpm verify PASS at qualification candidate a41dad0226310889f61515ba16ce910c1dbb0e53",
+        "m5bExactReviewedHeadSha": "9ca373084252e61c31c3df7c02ad355c31e75c49",
+        "m5bIndependentReview": "PASS (user-confirmed merge authorization)",
+        "m5bFinalCiRunId": "32592990382",
+        "m5bFinalCiWorkflow": "verify-manual",
+        "m5bFinalCiUbuntu": "PASS",
+        "m5bFinalCiMacos": "PASS",
+        "m5bFinalCiWindows": "PASS",
+        "m5bSquashMergeSha": "f16071cbff3e30cd4f839716130270770e99075a",
         "m5bBoundaryAudit": "pnpm check:boundaries PASS; direct pg remains limited to the exact live integration test and package self-reference is verifier-allowed"
       },
       "notRunReasons": {
@@ -277,10 +285,7 @@
         "m5b_macos_real_postgres_recovery": "M5B real PostgreSQL recovery was not run on macOS.",
         "m5b_source_less_recovery": "M5B source-less recovery invocation was not run.",
         "m5b_service_account_acl": "M5B installer/service-account ACL qualification was not run.",
-        "m5b_hardware_power_loss": "M5B hardware power-loss qualification was not run.",
-        "m5b_independent_review": "The prior exact HEAD 445a77db3041644faccd85c00c826e8d26af3ea8 returned REQUEST_CHANGES; the current behavior candidate awaits independent re-review.",
-        "m5b_final_cross_platform_ci": "Final cross-platform CI is not authorized before independent review PASS.",
-        "m5b_squash_merge": "M5B has not been squash-merged."
+        "m5b_hardware_power_loss": "M5B hardware power-loss qualification was not run."
       },
       "preImplementationDecisionState": "CLOSED",
       "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification unless explicitly promoted by a future blocker."
@@ -575,9 +580,9 @@
         "m5b_source_less_recovery": "NOT_RUN",
         "m5b_service_account_acl": "NOT_RUN",
         "m5b_hardware_power_loss": "NOT_RUN",
-        "m5b_independent_review": "NOT_RUN",
-        "m5b_final_cross_platform_ci": "NOT_RUN",
-        "m5b_squash_merge": "NOT_RUN"
+        "m5b_independent_review": "PASS",
+        "m5b_final_cross_platform_ci": "PASS",
+        "m5b_squash_merge": "PASS"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
@@ -653,6 +658,14 @@
         "m5bBootstrapRuntimeIntegration": "pnpm nx run bootstrap-runtime:test:integration PASS (29/29); dedicated recovery matrix PASS (12/12)",
         "m5bH1UnitRegression": "bootstrap-state 113 passed/2 skipped; bootstrap-runtime 155 passed/1 skipped",
         "m5bRepositoryVerify": "pnpm verify PASS at qualification candidate a41dad0226310889f61515ba16ce910c1dbb0e53",
+        "m5bExactReviewedHeadSha": "9ca373084252e61c31c3df7c02ad355c31e75c49",
+        "m5bIndependentReview": "PASS (user-confirmed merge authorization)",
+        "m5bFinalCiRunId": "32592990382",
+        "m5bFinalCiWorkflow": "verify-manual",
+        "m5bFinalCiUbuntu": "PASS",
+        "m5bFinalCiMacos": "PASS",
+        "m5bFinalCiWindows": "PASS",
+        "m5bSquashMergeSha": "f16071cbff3e30cd4f839716130270770e99075a",
         "m5bBoundaryAudit": "pnpm check:boundaries PASS; direct pg remains limited to the exact live integration test and package self-reference is verifier-allowed",
         "historicalPreCorrectionLinux": {
           "platform": "Linux PRTS 7.0.0-30-generic x86_64",
@@ -709,10 +722,7 @@
         "m5b_macos_real_pg": "M5B real PostgreSQL recovery was not run on macOS.",
         "m5b_source_less_recovery": "M5B source-less recovery invocation was not run.",
         "m5b_service_account_acl": "M5B installer/service-account ACL qualification was not run.",
-        "m5b_hardware_power_loss": "M5B hardware power-loss qualification was not run.",
-        "m5b_independent_review": "The prior exact HEAD 445a77db3041644faccd85c00c826e8d26af3ea8 returned REQUEST_CHANGES; the current behavior candidate awaits independent re-review.",
-        "m5b_final_cross_platform_ci": "Final cross-platform CI is not authorized before independent review PASS.",
-        "m5b_squash_merge": "M5B has not been squash-merged."
+        "m5b_hardware_power_loss": "M5B hardware power-loss qualification was not run."
       }
     }
   ],

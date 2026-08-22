@@ -4,8 +4,8 @@
 > This repository record tracks execution state; the external plan remains the
 > complete task specification.
 
-**Status:** ACTIVE — M5A is closed; M5B behavior, qualification, review, CI,
-merge, and post-merge H1 reconciliation remain in scope.
+**Status:** ACTIVE — M5A and the M5B implementation are merged; H1 remains
+open for residual product/platform qualification.
 
 ## Baseline and boundary
 
@@ -15,7 +15,8 @@ M5A reviewed SHA = 538cc6973fcd831cb47a60c5d126006032532591
 M5A independent review = PASS
 M5A final CI run = 32570208341 (Ubuntu/macOS/Windows PASS)
 M5A squash merge = 8acedfd49b0bcc42444389c3f28f206d4e8438b6
-M5B = ACTIVE
+M5B implementation = MERGED in PR #8 squash commit
+f16071cbff3e30cd4f839716130270770e99075a
 H1 = OPEN
 ```
 
@@ -44,10 +45,10 @@ is in scope.
 - [x] Qualify the complete real PostgreSQL 18.6 recovery matrix and real
       M5A/M5B process kill/restart semantics.
 - [x] Run H1 regression/boundary verification and record exact behavior SHA.
-- [ ] Obtain independent review of the exact SHA, then dispatch exact-SHA
-      cross-platform final CI and squash-merge the PR.
-- [ ] Reconcile the merged plan/roadmap/qualification truth and close H1 only
-      after review, final CI, and merge are evidenced.
+- [x] Obtain independent review of the exact SHA, dispatch exact-SHA
+      cross-platform final CI, and squash-merge the PR.
+- [x] Reconcile the merged plan/roadmap/qualification truth; H1 remains OPEN
+      only for the residual qualifications explicitly listed below.
 
 ## Required truth vocabulary
 
@@ -225,5 +226,28 @@ H1: OPEN
 The new behavior candidate removes recovery-inspection journal checkpoints;
 RECOVER remains the mutation path. The live PG-6A qualification now exercises
 the merged-M5A V1 late-stage shape and verifies canonical explicit BootId on the
-new revision. The exact candidate awaits independent review; final CI, merge,
-and H1 closure remain gated.
+new revision. The exact final review target and merge evidence are recorded in
+the post-merge reconciliation below.
+
+## Foundation M5B post-merge reconciliation (2026-08-23)
+
+```yaml
+behavior_candidate_sha: ce8ecbd2f54b6da39542845b1c23fbb959672c0a
+qualification_candidate_sha: a41dad0226310889f61515ba16ce910c1dbb0e53
+exact_reviewed_head_sha: 9ca373084252e61c31c3df7c02ad355c31e75c49
+independent_review: PASS (user-confirmed merge authorization)
+final_ci_run: 32592990382
+final_ci_ubuntu: PASS
+final_ci_macos: PASS
+final_ci_windows: PASS
+squash_merge_sha: f16071cbff3e30cd4f839716130270770e99075a
+m5b: MERGED
+h1: OPEN
+```
+
+The final manual workflow checked out and verified the exact reviewed source
+SHA on Ubuntu, macOS, and Windows. The earlier macOS EPIPE failure was in the
+test helper's asynchronous child-IPC cleanup and was corrected before this
+successful run. Windows/macOS real PostgreSQL, source-less recovery,
+service-account ACL, and hardware power-loss remain `NOT_RUN`; these residual
+claims are not upgraded by the cross-platform repository verification run.
