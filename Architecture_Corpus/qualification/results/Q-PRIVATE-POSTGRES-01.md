@@ -419,3 +419,28 @@ returned `REQUEST_CHANGES`; re-review of the corrected candidate and final
 cross-platform CI remain `NOT_RUN`. The historical extracted Ubuntu package
 runtime does not qualify the corrected M4 Linux claim; the M5A Linux PASS above
 is limited to the recorded corrected candidate and scenarios.
+
+## Foundation M5A post-merge closure and M5B boundary (2026-08-22)
+
+The corrected M5A candidate was independently reviewed and merged. This closes
+the M5A reverse-handoff implementation milestone but does not claim M5B or H1
+closure.
+
+```yaml
+m5a_reviewed_head_sha: 538cc6973fcd831cb47a60c5d126006032532591
+m5a_independent_review: PASS
+m5a_final_ci_run: 32570208341
+m5a_final_ci_ubuntu: PASS
+m5a_final_ci_macos: PASS
+m5a_final_ci_windows: PASS
+m5a_squash_merge_sha: 8acedfd49b0bcc42444389c3f28f206d4e8438b6
+m5a_windows_real_pg: NOT_RUN
+m5a_macos_real_pg: NOT_RUN
+m5b: ACTIVE
+h1: OPEN
+```
+
+The final CI projection verified the exact reviewed source SHA on all three
+operating systems; it is not real PostgreSQL qualification. M5B remains
+responsible for bounded abandoned-owner recovery, real process kill/restart,
+and the remaining H1 semantic closure evidence.

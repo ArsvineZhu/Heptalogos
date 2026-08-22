@@ -470,8 +470,9 @@
         "m5a_private_postgres_integration": "PASS",
         "m5a_host_ownership_integration": "PASS",
         "m5a_bootstrap_runtime_integration": "PASS",
-        "m5a_independent_review": "NOT_RUN",
-        "m5a_final_cross_platform_ci": "NOT_RUN"
+        "m5a_independent_review": "PASS",
+        "m5a_final_cross_platform_ci": "PASS",
+        "m5a_squash_merge": "PASS"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
@@ -516,6 +517,13 @@
         "m5aPonrCloseRejectionObserver": "PASS: old Host close rejection is observed immediately before delayed HOST_TOKEN_REVOKED journaling",
         "m5aRecoveryRequiredBeforeCloseCompletion": "PASS: RECOVERY_REQUIRED is persisted while bootstrap ownership remains held before awaiting close result",
         "m5aCloseFailureRegression": "PASS: immediate close rejection follows normal maintenance error path with no unhandledRejection",
+        "m5aReviewedHeadSha": "538cc6973fcd831cb47a60c5d126006032532591",
+        "m5aIndependentReview": "PASS",
+        "m5aFinalCiRunId": "32570208341",
+        "m5aFinalCiUbuntu": "PASS",
+        "m5aFinalCiMacos": "PASS",
+        "m5aFinalCiWindows": "PASS",
+        "m5aSquashMergeSha": "8acedfd49b0bcc42444389c3f28f206d4e8438b6",
         "m5aBootstrapRuntimeUnit": "86 passed, 1 skipped",
         "historicalPreCorrectionLinux": {
           "platform": "Linux PRTS 7.0.0-30-generic x86_64",
@@ -565,9 +573,7 @@
         "m4_linux_host_ownership_real_pg": "No corrected-candidate Linux M4 PostgreSQL runtime was executed.",
         "m4_macos_host_ownership_real_pg": "No corrected-candidate macOS M4 PostgreSQL runtime was executed.",
         "m5a_windows_real_pg": "No corrected-candidate Windows PostgreSQL 18.6 runtime was available in this run.",
-        "m5a_macos_real_pg": "No corrected-candidate macOS PostgreSQL 18.6 runtime was available in this run.",
-        "m5a_independent_review": "The review at 001ef97f070ecf3a6993c6e129a26de1925862e7 returned REQUEST_CHANGES; the current corrected candidate awaits independent re-review.",
-        "m5a_final_cross_platform_ci": "Final cross-platform CI is only authorized after independent review and is not run for this candidate."
+        "m5a_macos_real_pg": "No corrected-candidate macOS PostgreSQL 18.6 runtime was available in this run."
       }
     }
   ],
