@@ -488,18 +488,21 @@ All five required binaries reported PostgreSQL 18.6. K1-K3 used real Node
 child termination and stale-lock adjudication; the required real maintenance
 K4/K5 paths and complete PG-1..PG-9 matrix remain `NOT_RUN` until rerun.
 
-## Foundation M5B corrective real-PostgreSQL evidence (2026-08-23)
+## Foundation M5B first corrective real-PostgreSQL evidence — superseded (2026-08-23)
 
-The exact candidate `e7e46e8e1d58f15e254b9644f5b315cd34090360` completed the Linux PostgreSQL 18.6 recovery
-qualification. K1-K3 passed 3/3, real maintenance/recovery K4/K5 passed 2/2,
-and the complete PG-1..PG-9 matrix plus the 5B/6A/6B split cases passed 11/11.
+Behavior candidate `e7e46e8e1d58f15e254b9644f5b315cd34090360` had the following
+Linux PostgreSQL 18.6 evidence before the second corrective review. The exact
+review HEAD was `5e8f1aa475730aef982622d05cd488767ac0c08a`, and that review
+returned `REQUEST_CHANGES`; this block is historical, not current truth.
 The `private-postgres` and Host ownership real integration targets passed
 20/20 and 8/8; the combined bootstrap-runtime integration target passed 28/28.
 These are implementation evidence for the current M5B candidate, not a claim
 of Windows/macOS, source-less, service-account ACL, or hardware qualification.
 
 ```yaml
-candidate_sha: e7e46e8e1d58f15e254b9644f5b315cd34090360
+behavior_candidate_sha: e7e46e8e1d58f15e254b9644f5b315cd34090360
+rejected_review_head_sha: 5e8f1aa475730aef982622d05cd488767ac0c08a
+review_outcome: REQUEST_CHANGES
 runtime: "Node 24.19.0 / pnpm 11.22.0"
 postgres_version: PostgreSQL 18.6
 linux_real_pg_recovery: PASS
@@ -509,11 +512,40 @@ real_process_k5_recovery_restartability: PASS
 full_pg_1_to_pg_9_matrix: PASS
 windows_real_pg_recovery: NOT_RUN
 macos_real_pg_recovery: NOT_RUN
-independent_review: NOT_RUN
+independent_review: FAIL
 final_cross_platform_ci: NOT_RUN
 ```
 
-The prior exact review at `9e450f836466d32fb1f3d9027618fac236798eb9`
-returned `REQUEST_CHANGES`; that historical outcome is separate from the
-current candidate's machine verification status. The current candidate awaits
-independent review.
+The prior exact review at `9e450f836466d32fb1f3d9027618fac236798eb9` also
+returned `REQUEST_CHANGES`. The second corrective cycle must replace the
+mislabeled PG-1/PG-2 evidence and rerun deterministic K4/K5 before a new
+candidate is submitted.
+
+## Foundation M5B second corrective review blockers (2026-08-23)
+
+```yaml
+behavior_candidate_sha: e7e46e8e1d58f15e254b9644f5b315cd34090360
+rejected_review_head_sha: 5e8f1aa475730aef982622d05cd488767ac0c08a
+review_outcome: REQUEST_CHANGES
+legacy_m5a_journal_v1_compatibility: NOT_RUN
+same_lease_prehost_bootstrap_continuation: NOT_RUN
+pg1_pre_postgres_bootstrap_recovery: NOT_RUN
+pg2_ready_before_handoff_recovery: NOT_RUN
+real_process_k1_k3: PASS
+real_process_k4_actual_maintenance_recovery: NOT_RUN
+real_process_k5_recovery_restartability: NOT_RUN
+linux_real_postgres_full_matrix: NOT_RUN
+windows_real_pg_recovery: NOT_RUN
+macos_real_pg_recovery: NOT_RUN
+source_less_recovery: NOT_RUN
+service_account_acl: NOT_RUN
+hardware_power_loss: NOT_RUN
+independent_review: FAIL
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The M5A reverse-handoff and underlying private-PostgreSQL/Host ownership
+evidence that is independent of the rejected K4/K5/PG-1/PG-2 claims remains
+historical PASS evidence. The second corrective candidate must establish new
+claim-matched runs before those withdrawn M5B rows can return to `PASS`.

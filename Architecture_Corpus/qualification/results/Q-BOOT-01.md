@@ -99,16 +99,18 @@ The surviving evidence was produced with Node 24.19.0, pnpm 11.22.0, the
 the required real maintenance/recovery K4-K5 and complete PG-1..PG-9 matrix
 were not yet executed at this rejected candidate.
 
-## Foundation M5B corrective qualification candidate (2026-08-23)
+## Foundation M5B first corrective candidate — superseded (2026-08-23)
 
-The corrected exact candidate is `e7e46e8e1d58f15e254b9644f5b315cd34090360`. It includes the bounded recovery
-implementation, the live qualification matrix, and the repository boundary/type
-corrections required for the verification gates. No Windows/macOS real
-PostgreSQL, source-less, ACL, or hardware power-loss claim is inferred from the
-Linux run.
+Behavior candidate `e7e46e8e1d58f15e254b9644f5b315cd34090360` had the following
+Linux evidence before the second corrective review. The exact review HEAD was
+`5e8f1aa475730aef982622d05cd488767ac0c08a`; its review returned
+`REQUEST_CHANGES`. This block is historical evidence and is not the current
+qualification truth.
 
 ```yaml
-candidate_sha: e7e46e8e1d58f15e254b9644f5b315cd34090360
+behavior_candidate_sha: e7e46e8e1d58f15e254b9644f5b315cd34090360
+rejected_review_head_sha: 5e8f1aa475730aef982622d05cd488767ac0c08a
+review_outcome: REQUEST_CHANGES
 runtime: "Node 24.19.0 / pnpm 11.22.0"
 postgres_version: PostgreSQL 18.6
 m5b_read_only_recovery_inspection: PASS
@@ -133,7 +135,7 @@ m5b_macos_real_postgres: NOT_RUN
 m5b_source_less_recovery: NOT_RUN
 m5b_service_account_acl: NOT_RUN
 m5b_hardware_power_loss: NOT_RUN
-m5b_independent_review: NOT_RUN
+m5b_independent_review: FAIL
 m5b_final_cross_platform_ci: NOT_RUN
 m5b_squash_merge: NOT_RUN
 m5b: ACTIVE
@@ -148,7 +150,48 @@ PG-1..PG-9 matrix contributed 11/11 live PostgreSQL tests. The private-postgres
 and Host ownership real integration targets passed 20/20 and 8/8 respectively.
 `pnpm verify` also passed on this exact candidate.
 
-The historical review at `9e450f836466d32fb1f3d9027618fac236798eb9` returned
-`REQUEST_CHANGES`. The current candidate `e7e46e8e1d58f15e254b9644f5b315cd34090360` awaits independent review,
-so `m5b_independent_review` remains `NOT_RUN`; final cross-platform CI and merge
-remain unauthorized until that review passes.
+The earlier review at `9e450f836466d32fb1f3d9027618fac236798eb9` also returned
+`REQUEST_CHANGES`. The current second corrective cycle must rerun the invalidated
+K4/K5 and PG-1/PG-2/full-matrix evidence before a new candidate can be submitted.
+
+## Foundation M5B second corrective review blockers (2026-08-23)
+
+```yaml
+m5b_behavior_candidate_sha: e7e46e8e1d58f15e254b9644f5b315cd34090360
+m5b_rejected_review_head_sha: 5e8f1aa475730aef982622d05cd488767ac0c08a
+m5b_review_outcome: REQUEST_CHANGES
+m5b_read_only_recovery_inspection: PASS
+m5b_same_lock_reclaim: PASS
+m5b_local_installation_owner_binding: PASS
+m5b_live_owner_no_steal: PASS
+m5b_unknown_process_blocks: PASS
+m5b_pid_reuse_fail_closed: PASS
+m5b_double_reclaimer_exclusion: PASS
+m5b_real_process_k1_k3: PASS
+m5b_real_process_k4_actual_maintenance_recovery: NOT_RUN
+m5b_real_process_k5_recovery_restartability: NOT_RUN
+m5b_linux_real_pg_restart_success_subset: PASS
+m5b_linux_real_pg_live_host_block: PASS
+m5b_linux_real_pg_corrupt_journal_block: PASS
+m5b_pg1_pre_postgres_bootstrap_recovery: NOT_RUN
+m5b_pg2_ready_before_handoff_recovery: NOT_RUN
+m5b_linux_real_postgres_full_matrix: NOT_RUN
+m5b_windows_real_postgres: NOT_RUN
+m5b_macos_real_postgres: NOT_RUN
+m5b_source_less_recovery: NOT_RUN
+m5b_service_account_acl: NOT_RUN
+m5b_hardware_power_loss: NOT_RUN
+m5b_independent_review: FAIL
+m5b_final_cross_platform_ci: NOT_RUN
+m5b_squash_merge: NOT_RUN
+m5b: ACTIVE
+h1: OPEN
+```
+
+K4/K5 were not deterministic at the rejected exact HEAD because the fixture
+did not unambiguously arm the requested child boundary. The old PG-1/PG-2
+scenarios were post-handoff maintenance cases rather than pre-Host bootstrap
+recovery, so the full matrix PASS and those two claims are withdrawn pending
+the second corrective runs. Windows/macOS real PostgreSQL, source-less
+recovery, service-account ACL, hardware power-loss, final CI, and merge remain
+`NOT_RUN` or unauthorized.

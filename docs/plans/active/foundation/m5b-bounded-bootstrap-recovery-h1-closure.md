@@ -90,11 +90,12 @@ and the complete Linux PG-1..PG-9 matrix were not proven by that candidate.
 Windows/macOS real PostgreSQL, source-less recovery, service-account ACL, and
 hardware power-loss evidence remain `NOT_RUN`.
 
-## PR8 corrective qualification candidate (2026-08-23)
+## PR8 first corrective qualification candidate — superseded (2026-08-23)
 
 ```yaml
-exactCandidateSha: e7e46e8e1d58f15e254b9644f5b315cd34090360
 behaviorCandidateSha: e7e46e8e1d58f15e254b9644f5b315cd34090360
+rejectedReviewHeadSha: 5e8f1aa475730aef982622d05cd488767ac0c08a
+rejectedReviewOutcome: REQUEST_CHANGES
 node: 24.19.0
 pnpm: 11.22.0
 postgres: 18.6
@@ -111,15 +112,44 @@ privatePostgresIntegration: PASS (20/20)
 hostOwnershipIntegration: PASS (8/8)
 bootstrapRuntimeIntegration: PASS (28/28)
 repositoryVerify: PASS
-independentReview: NOT_RUN
+independentReview: FAIL
 finalCrossPlatformCi: NOT_RUN
 squashMerge: NOT_RUN
 M5B: ACTIVE
 H1: OPEN
 ```
 
-The prior review at `9e450f836466d32fb1f3d9027618fac236798eb9` returned
-`REQUEST_CHANGES`; that historical review outcome is not the verification
-status of the current candidate. The current exact candidate awaits independent
-review. Windows/macOS real PostgreSQL, source-less recovery, service-account
-ACL, hardware power-loss, final CI, and merge remain `NOT_RUN`.
+The prior review at `9e450f836466d32fb1f3d9027618fac236798eb9` also returned
+`REQUEST_CHANGES`. This block records the first corrective candidate only; the
+second review found RC-6 through RC-9 and invalidated its K4/K5 and full-matrix
+qualification claims.
+
+## PR8 second corrective review blockers (2026-08-23)
+
+```yaml
+behaviorCandidateSha: e7e46e8e1d58f15e254b9644f5b315cd34090360
+rejectedReviewHeadSha: 5e8f1aa475730aef982622d05cd488767ac0c08a
+rejectedReviewOutcome: REQUEST_CHANGES
+legacyM5aJournalV1Compatibility: NOT_RUN
+sameLeasePrehostBootstrapContinuation: NOT_RUN
+pg1PrePostgresBootstrapRecovery: NOT_RUN
+pg2ReadyBeforeHandoffRecovery: NOT_RUN
+recoveryProcessK1K3: PASS
+recoveryProcessK4ActualMaintenance: NOT_RUN
+recoveryProcessK5RecoveryRestartability: NOT_RUN
+linuxPostgresFullMatrixPg1Pg9: NOT_RUN
+windowsRealPostgres: NOT_RUN
+macosRealPostgres: NOT_RUN
+sourceLessRecovery: NOT_RUN
+serviceAccountAcl: NOT_RUN
+hardwarePowerLoss: NOT_RUN
+independentReview: FAIL
+finalCrossPlatformCi: NOT_RUN
+squashMerge: NOT_RUN
+M5B: ACTIVE
+H1: OPEN
+```
+
+The repository retains the behavior SHA separately from both rejected review
+HEADs. The next behavior-bearing commits must close RC-6 through RC-9 before a
+new exact review target is created; no final CI or merge is authorized.
