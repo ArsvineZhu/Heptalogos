@@ -1,7 +1,6 @@
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import {
-  BootstrapJournal,
   BootstrapOwnerWitnessStore,
   BootstrapStateStore,
   MaintenanceJournalStore,
@@ -137,27 +136,6 @@ function problemCodeOf(error: unknown): string | undefined {
     return undefined;
   }
   return typeof value.problemCode === "string" ? value.problemCode : undefined;
-}
-
-function checkpoint(
-  installationId: InstallationId,
-  instanceId: InstanceId,
-  bootId: BootId,
-  activityId: BootstrapActivityId,
-  outcome: "STARTED" | "SUCCEEDED" | "FAILED",
-  problemCode?: string,
-): Parameters<BootstrapJournal["checkpoint"]>[0] {
-  return {
-    schemaVersion: 2,
-    bootId,
-    bootstrapActivityId: activityId,
-    installationId,
-    instanceId,
-    stage: "bootstrap.recovery.inspect",
-    at: new Date().toISOString(),
-    outcome,
-    ...(problemCode === undefined ? {} : { problemCode }),
-  };
 }
 
 async function observeLock(instanceRoot: string): Promise<LockObservation> {
@@ -327,142 +305,103 @@ export async function inspectBootstrapRecovery(
   const instanceId = locator.instanceId;
   const recoveryBootId = createBootId();
   const recoveryActivityId = createUuidV7Id("ActivityId");
-  const journal = new BootstrapJournal(instanceRoot);
+  const lock = await observeLock(instanceRoot);
+  const witnessStore = new BootstrapOwnerWitnessStore(instanceRoot);
+  let owner: BootstrapOwnerWitnessEnvelopeV1 | undefined;
+  let attempts: readonly BootstrapOwnerWitnessEnvelopeV1[] = [];
+  let releasing: readonly BootstrapOwnerWitnessEnvelopeV1[] = [];
+  let witnessProblem: Problem | undefined;
+  try {
+    owner = await witnessStore.readOwner();
+    attempts = await witnessStore.listAttempts();
+    releasing = await witnessStore.listReleasing();
+  } catch (error) {
+    witnessProblem = problem(
+      "bootstrap.recovery.witness_inspection_failed",
+      "Bootstrap owner witness could not be inspected",
+      problemCodeOf(error) ??
+        "Bootstrap owner or attempt witness evidence is corrupt or unavailable",
+    );
+  }
 
-  await journal.checkpoint(
-    checkpoint(
-      installationId,
-      instanceId,
-      recoveryBootId,
-      recoveryActivityId,
-      "STARTED",
+  const ownerProcessStatus =
+    owner === undefined
+      ? undefined
+      : await inspectBootstrapProcessIdentity({
+          pid: owner.witness.pid,
+          startedAtMs: owner.witness.processStartedAtMs,
+        });
+  const attemptProcessStatuses = await Promise.all(
+    attempts.map((attempt) =>
+      inspectBootstrapProcessIdentity({
+        pid: attempt.witness.pid,
+        startedAtMs: attempt.witness.processStartedAtMs,
+      }),
+    ),
+  );
+  const releasingProcessStatuses = await Promise.all(
+    releasing.map((witness) =>
+      inspectBootstrapProcessIdentity({
+        pid: witness.witness.pid,
+        startedAtMs: witness.witness.processStartedAtMs,
+      }),
     ),
   );
 
+  let bootstrapState: BootstrapStateLoadResult = { status: "EMPTY" };
+  let stateProblem: Problem | undefined;
   try {
-    const lock = await observeLock(instanceRoot);
-    const witnessStore = new BootstrapOwnerWitnessStore(instanceRoot);
-    let owner: BootstrapOwnerWitnessEnvelopeV1 | undefined;
-    let attempts: readonly BootstrapOwnerWitnessEnvelopeV1[] = [];
-    let releasing: readonly BootstrapOwnerWitnessEnvelopeV1[] = [];
-    let witnessProblem: Problem | undefined;
-    try {
-      owner = await witnessStore.readOwner();
-      attempts = await witnessStore.listAttempts();
-      releasing = await witnessStore.listReleasing();
-    } catch (error) {
-      witnessProblem = problem(
-        "bootstrap.recovery.witness_inspection_failed",
-        "Bootstrap owner witness could not be inspected",
-        problemCodeOf(error) ??
-          "Bootstrap owner or attempt witness evidence is corrupt or unavailable",
-      );
-    }
-
-    const ownerProcessStatus =
-      owner === undefined
-        ? undefined
-        : await inspectBootstrapProcessIdentity({
-            pid: owner.witness.pid,
-            startedAtMs: owner.witness.processStartedAtMs,
-          });
-    const attemptProcessStatuses = await Promise.all(
-      attempts.map((attempt) =>
-        inspectBootstrapProcessIdentity({
-          pid: attempt.witness.pid,
-          startedAtMs: attempt.witness.processStartedAtMs,
-        }),
-      ),
-    );
-    const releasingProcessStatuses = await Promise.all(
-      releasing.map((witness) =>
-        inspectBootstrapProcessIdentity({
-          pid: witness.witness.pid,
-          startedAtMs: witness.witness.processStartedAtMs,
-        }),
-      ),
-    );
-
-    let bootstrapState: BootstrapStateLoadResult = { status: "EMPTY" };
-    let stateProblem: Problem | undefined;
-    try {
-      bootstrapState = await new BootstrapStateStore(
-        join(instanceRoot, BOOTSTRAP_STATE_DIRECTORY),
-      ).load();
-    } catch (error) {
-      stateProblem = problem(
-        "bootstrap.recovery.state_inspection_failed",
-        "BootstrapState could not be inspected",
-        problemCodeOf(error) ?? "BootstrapState could not be loaded read-only",
-        "unavailable",
-      );
-    }
-
-    const maintenance =
-      stateProblem === undefined
-        ? await observeMaintenance(instanceRoot, bootstrapState)
-        : { incomplete: false, problem: stateProblem };
-    const effectiveProblem = lock.problem ?? witnessProblem ?? maintenance.problem;
-    const disposition = classify(
-      effectiveProblem === undefined ? lock : { ...lock, problem: effectiveProblem },
-      ownerProcessStatus,
-      owner !== undefined,
-      attemptProcessStatuses,
-      releasingProcessStatuses,
-      maintenance,
-    );
-
-    await journal.checkpoint(
-      checkpoint(
-        installationId,
-        instanceId,
-        recoveryBootId,
-        recoveryActivityId,
-        "SUCCEEDED",
-        disposition === "BLOCKED" ? effectiveProblem?.problemCode : undefined,
-      ),
-    );
-
-    return {
-      anchorRoot,
-      installationId,
-      instanceId,
-      instanceRoot,
-      recoveryBootId,
-      recoveryActivityId,
-      disposition,
-      lockPresent: lock.present,
-      ...(lock.ageMs === undefined ? {} : { lockAgeMs: lock.ageMs }),
-      ...(owner === undefined ? {} : { owner, ownerProcessStatus }),
-      attempts,
-      attemptProcessStatuses,
-      releasing,
-      releasingProcessStatuses,
-      bootstrapState,
-      maintenanceIncomplete: maintenance.incomplete,
-      ...(maintenance.operationId === undefined
-        ? {}
-        : { operationId: maintenance.operationId }),
-      ...(maintenance.maintenance === undefined
-        ? {}
-        : { maintenance: maintenance.maintenance }),
-      ...(effectiveProblem === undefined ? {} : { problem: effectiveProblem }),
-    };
+    bootstrapState = await new BootstrapStateStore(
+      join(instanceRoot, BOOTSTRAP_STATE_DIRECTORY),
+    ).load();
   } catch (error) {
-    await journal
-      .checkpoint(
-        checkpoint(
-          installationId,
-          instanceId,
-          recoveryBootId,
-          recoveryActivityId,
-          "FAILED",
-          problemCodeOf(error),
-        ),
-      )
-      .catch(() => undefined);
-    throw error;
+    stateProblem = problem(
+      "bootstrap.recovery.state_inspection_failed",
+      "BootstrapState could not be inspected",
+      problemCodeOf(error) ?? "BootstrapState could not be loaded read-only",
+      "unavailable",
+    );
   }
+
+  const maintenance =
+    stateProblem === undefined
+      ? await observeMaintenance(instanceRoot, bootstrapState)
+      : { incomplete: false, problem: stateProblem };
+  const effectiveProblem = lock.problem ?? witnessProblem ?? maintenance.problem;
+  const disposition = classify(
+    effectiveProblem === undefined ? lock : { ...lock, problem: effectiveProblem },
+    ownerProcessStatus,
+    owner !== undefined,
+    attemptProcessStatuses,
+    releasingProcessStatuses,
+    maintenance,
+  );
+
+  return {
+    anchorRoot,
+    installationId,
+    instanceId,
+    instanceRoot,
+    recoveryBootId,
+    recoveryActivityId,
+    disposition,
+    lockPresent: lock.present,
+    ...(lock.ageMs === undefined ? {} : { lockAgeMs: lock.ageMs }),
+    ...(owner === undefined ? {} : { owner, ownerProcessStatus }),
+    attempts,
+    attemptProcessStatuses,
+    releasing,
+    releasingProcessStatuses,
+    bootstrapState,
+    maintenanceIncomplete: maintenance.incomplete,
+    ...(maintenance.operationId === undefined
+      ? {}
+      : { operationId: maintenance.operationId }),
+    ...(maintenance.maintenance === undefined
+      ? {}
+      : { maintenance: maintenance.maintenance }),
+    ...(effectiveProblem === undefined ? {} : { problem: effectiveProblem }),
+  };
 }
 
 export async function reclaimAbandonedBootstrapOwnership(

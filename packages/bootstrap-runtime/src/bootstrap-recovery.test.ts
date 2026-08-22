@@ -1,4 +1,13 @@
-import { mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
+import {
+  lstat,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  utimes,
+  writeFile,
+} from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
@@ -12,7 +21,6 @@ import {
   digestCanonicalJson,
 } from "@heptalogos/foundation-contracts";
 import {
-  BootstrapJournal,
   BootstrapOwnerWitnessStore,
   BootstrapStateStore,
   createBootstrapLockGenerationId,
@@ -23,12 +31,14 @@ import {
 } from "@heptalogos/bootstrap-state";
 import { currentBootstrapProcessIdentity } from "./bootstrap-process-identity.js";
 import type { BootstrapLocatorV1 } from "./locator.js";
+import { loadBootstrapLocator } from "./locator.js";
 import {
   inspectBootstrapRecovery,
   reclaimAbandonedBootstrapOwnership,
   type BootstrapRecoveryDisposition,
 } from "./bootstrap-recovery.js";
 import { proveLocalInstallationOwner } from "./local-installation-owner.js";
+import { resolveBootstrapPathProfile } from "./roots.js";
 
 const directories: string[] = [];
 const LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
@@ -131,13 +141,56 @@ async function expectDisposition(
   anchorRoot: string,
   disposition: BootstrapRecoveryDisposition,
 ) {
+  const locator = await loadBootstrapLocator(anchorRoot);
+  const paths = await resolveBootstrapPathProfile(locator);
+  const instanceRoot = paths.resolve("INSTANCE").canonicalPath;
+  const before = await snapshotInstanceRoot(instanceRoot);
   const inspection = await inspectBootstrapRecovery(anchorRoot);
   expect(inspection.disposition).toBe(disposition);
-  const entries = await new BootstrapJournal(inspection.instanceRoot).read(
-    inspection.recoveryBootId,
-  );
-  expect(entries.map((entry) => entry.outcome)).toEqual(["STARTED", "SUCCEEDED"]);
+  await expect(snapshotInstanceRoot(instanceRoot)).resolves.toEqual(before);
   return inspection;
+}
+
+async function snapshotInstanceRoot(
+  instanceRoot: string,
+): Promise<readonly [string, unknown][]> {
+  const entries: Array<[string, unknown]> = [];
+  async function visit(path: string, relativePath: string): Promise<void> {
+    const metadata = await lstat(path);
+    const key = relativePath.length === 0 ? "." : relativePath;
+    if (metadata.isDirectory()) {
+      entries.push([
+        key,
+        { kind: "directory", mtimeMs: metadata.mtimeMs, size: metadata.size },
+      ]);
+      const children = await readdir(path);
+      for (const child of children.sort()) {
+        await visit(
+          join(path, child),
+          relativePath.length === 0 ? child : join(relativePath, child),
+        );
+      }
+      return;
+    }
+    if (metadata.isFile()) {
+      entries.push([
+        key,
+        {
+          kind: "file",
+          contents: (await readFile(path)).toString("base64"),
+          mtimeMs: metadata.mtimeMs,
+          size: metadata.size,
+        },
+      ]);
+      return;
+    }
+    entries.push([
+      key,
+      { kind: "other", mtimeMs: metadata.mtimeMs, size: metadata.size },
+    ]);
+  }
+  await visit(instanceRoot, "");
+  return entries;
 }
 
 afterEach(async () => {
