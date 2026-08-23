@@ -40,6 +40,7 @@ const restrictedImports = new Map([
       "packages/private-postgres/",
       "packages/bootstrap-runtime/",
       "packages/host-ownership/src/host-ownership.integration.test.ts",
+      "packages/persistence/src/persistence.integration.test.ts",
     ],
   ],
   [
@@ -51,10 +52,12 @@ const restrictedImports = new Map([
     "pg",
     [
       "packages/host-ownership/",
+      "packages/persistence/",
       "packages/bootstrap-runtime/src/host-maintenance.integration.test.ts",
       "packages/bootstrap-runtime/src/bootstrap-recovery.integration.test.ts",
     ],
   ],
+  ["kysely", ["packages/persistence/"]],
 ]);
 
 const hostOwnershipSourcePrefix = "packages/host-ownership/src/";
@@ -101,6 +104,36 @@ if (
   errors.push(
     "packages/bootstrap-runtime/src/index.ts: raw bootstrap/recovery Authority primitive leaked through the public bootstrap-runtime contract",
   );
+}
+
+const persistencePublicSourcePath = resolve(
+  root,
+  "packages/persistence/src/index.ts",
+);
+const persistencePublicSource = readFileSync(persistencePublicSourcePath, "utf8");
+const persistenceMechanicsPattern =
+  /\b(?:Pool|PoolClient|Client|Kysely|PostgresDialect|Transaction|CompiledQuery)\b/u;
+if (persistenceMechanicsPattern.test(persistencePublicSource)) {
+  errors.push(
+    "packages/persistence/src/index.ts: concrete pg/Kysely mechanics must not leak through the persistence package root",
+  );
+}
+for (const match of persistencePublicSource.matchAll(
+  /export\s+\*\s+from\s+["'](\.\/[^"']+)["']/gu,
+)) {
+  const specifier = match[1];
+  const candidatePaths = [
+    resolve(dirname(persistencePublicSourcePath), `${specifier}.ts`),
+    resolve(dirname(persistencePublicSourcePath), `${specifier}.tsx`),
+  ];
+  const targetPath = candidatePaths.find((candidate) => existsSync(candidate));
+  if (!targetPath) continue;
+  const targetSource = readFileSync(targetPath, "utf8");
+  if (/(?:from\s+|import\s*\(\s*)["'](?:pg|kysely)["']/u.test(targetSource)) {
+    errors.push(
+      `packages/persistence/src/index.ts: package-root star export leaks pg/Kysely mechanics from ${specifier}`,
+    );
+  }
 }
 if (
   sensitiveBootstrapAuthorityModules.some((specifier) =>
