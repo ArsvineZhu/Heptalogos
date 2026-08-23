@@ -15,9 +15,8 @@ surface the ambiguity rather than guessing.
 
 ## Active
 
-No H1-S implementation plan remains active. H1-S repository implementation and
-local qualification are complete; independent review, final cross-platform CI,
-and squash merge remain external closure gates.
+- [H1-S review correction](active/foundation/h1s-review-correction.md) — `ACTIVE`
+- [H1-S Stabilization Control Record](active/foundation/h1s-control-record.md) — `ACTIVE` (H1 remains `OPEN`; H2 remains `NOT_ELIGIBLE`)
 
 ## Completed
 
@@ -32,4 +31,3 @@ and squash merge remain external closure gates.
 - [H1-S0 Governance & Truth Reset](completed/foundation/h1s-s0-governance-truth-reset.md) — `COMPLETED`
 - [H1-S1 Foundation Authority & Canonical-State Stabilization](completed/foundation/h1s-s1-foundation-authority-stabilization.md) — `COMPLETED` (live PostgreSQL qualification was deferred to S2 and is now recorded there)
 - [H1-S2 Clean-State Qualification & Closure](completed/foundation/h1s-s2-clean-state-qualification-closure.md) — `COMPLETED` (exact candidate local qualification is complete; external closure gates remain pending)
-- [H1-S Stabilization Control Record](completed/foundation/h1s-control-record.md) — `COMPLETED` (H1 remains open pending exact-candidate review, final CI, and squash merge)

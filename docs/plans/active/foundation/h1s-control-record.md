@@ -12,20 +12,27 @@
 ```yaml
 M5B: CLOSED
 H1_FUNCTIONAL: COMPLETE
-H1_STABILIZATION: IMPLEMENTATION_COMPLETE
+H1_STABILIZATION: REVIEW_CORRECTION_ACTIVE
 H1: OPEN
 H2: NOT_ELIGIBLE
-executionStatus: IMPLEMENTATION_COMPLETE
-externalClosureGates: PENDING
+executionStatus: REVIEW_CORRECTION_ACTIVE
+externalClosureGates: RESET_AFTER_REQUEST_CHANGES
+reviewCorrection:
+  plan: h1s-review-correction.md
+  planState: ACTIVE
+  executionGate: OPEN
+governingPlan: h1s-review-correction.md
+independent review: REQUEST_CHANGES
+reviewed repository head: 803ea6994fea6234e6ce42f79d69b5f92eaddc64
+reason: RC-1..RC-5
 ```
 
 ## Phase plans
 
-All three phase documents are approved. The implementation and evidence
-reconciliation are complete; no active H1-S implementation plan remains.
+All three phase documents are approved and remain completed historical phases.
+The bounded review-correction plan is the only active H1-S implementation plan.
 
 ```yaml
-governingPlan: NONE
 phases:
   S0:
     plan: h1s-s0-governance-truth-reset.md
@@ -53,9 +60,10 @@ with library path
 Windows/macOS PostgreSQL, source-less, ACL, power-loss, independent review,
 final CI, and squash merge remain `NOT_RUN`/`PENDING` external gates.
 
-At this completed phase transition, S2 and this control record move to
-`docs/plans/completed/foundation/`. Final H1 closure remains defined only by
-the externally verified review/CI/merge tuple below.
+S0/S1/S2 remain completed historical phases. This control record is reopened
+under the active review-correction plan because independent review returned
+`REQUEST_CHANGES`; final H1 closure remains defined only by the externally
+verified review/CI/merge tuple below.
 
 ## Branch/PR discipline
 
