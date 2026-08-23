@@ -15,10 +15,9 @@ surface the ambiguity rather than guessing.
 
 ## Active
 
-- [H1-S2 Clean-State Qualification & Closure](active/foundation/h1s-s2-clean-state-qualification-closure.md) — `ACTIVE` (execution-gated by the control record)
-
-Governing H1-S plan: `h1s-s2-clean-state-qualification-closure.md`
-S2 is now open under `h1s-control-record.md` after S1 completion.
+No H1-S implementation plan remains active. H1-S repository implementation and
+local qualification are complete; independent review, final cross-platform CI,
+and squash merge remain external closure gates.
 
 ## Completed
 
@@ -31,4 +30,6 @@ S2 is now open under `h1s-control-record.md` after S1 completion.
 - [Foundation M5A Reverse Handoff & PostgreSQL Maintenance Window](completed/foundation/m5a-reverse-handoff-maintenance-window.md) — `COMPLETED`
 - [Foundation M5B Bounded Bootstrap Recovery & H1 Closure](completed/foundation/m5b-bounded-bootstrap-recovery-h1-closure.md) — `COMPLETED`
 - [H1-S0 Governance & Truth Reset](completed/foundation/h1s-s0-governance-truth-reset.md) — `COMPLETED`
-- [H1-S1 Foundation Authority & Canonical-State Stabilization](completed/foundation/h1s-s1-foundation-authority-stabilization.md) — `COMPLETED` (live PostgreSQL qualification remains an S2 `NOT_RUN` gate)
+- [H1-S1 Foundation Authority & Canonical-State Stabilization](completed/foundation/h1s-s1-foundation-authority-stabilization.md) — `COMPLETED` (live PostgreSQL qualification was deferred to S2 and is now recorded there)
+- [H1-S2 Clean-State Qualification & Closure](completed/foundation/h1s-s2-clean-state-qualification-closure.md) — `COMPLETED` (exact candidate local qualification is complete; external closure gates remain pending)
+- [H1-S Stabilization Control Record](completed/foundation/h1s-control-record.md) — `COMPLETED` (H1 remains open pending exact-candidate review, final CI, and squash merge)

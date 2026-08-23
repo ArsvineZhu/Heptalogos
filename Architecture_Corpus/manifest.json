@@ -215,8 +215,8 @@
     },
     {
       "path": "qualification/results/Q-BOOT-01.md",
-      "size": 14625,
-      "sha256": "f5c3f3c2d765d1d071ea045fbd5b34df8bff10bf82f06bc6551ba621668de281"
+      "size": 15776,
+      "sha256": "4a23fb3fe521ab5a4f8613667a4d77d173f2872b448d70f24d507cda50c9fee8"
     },
     {
       "path": "qualification/results/Q-MSG-01.md",
@@ -230,8 +230,8 @@
     },
     {
       "path": "qualification/results/Q-PRIVATE-POSTGRES-01.md",
-      "size": 28155,
-      "sha256": "21b0aebdc3a114626c8fc4d584b4b79a6cfb021bc2eccb1069be5443fe5e3de5"
+      "size": 29174,
+      "sha256": "3e2725ff525a00444ecc041854f7e15fcada0dc6a27284a10cd917ec5fc689ae"
     },
     {
       "path": "qualification/results/Q-RUNTIME-01.md",
@@ -245,13 +245,13 @@
     },
     {
       "path": "qualification/results/README.md",
-      "size": 2119,
-      "sha256": "dcb886c7e681ab8298776737e89e01109b8adccdc95f6ff931d47a8260663f8d"
+      "size": 2424,
+      "sha256": "b5fc96d925af956c70af58ba18cd26509cc44e75c7db81710aa47cb289e791d1"
     },
     {
       "path": "qualification/results/qualification-status.json",
-      "size": 40845,
-      "sha256": "a6c5c03e6b1463651729cef4e632fc103a4562855db0ebeed162cac31e3cc075"
+      "size": 23921,
+      "sha256": "24c4e80443da85459974e26471ed84fd1b9e5a9f5f897cac982588df068f2e41"
     },
     {
       "path": "qualification/依赖资格矩阵.md",

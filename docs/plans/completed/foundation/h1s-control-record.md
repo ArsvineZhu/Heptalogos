@@ -12,17 +12,20 @@
 ```yaml
 M5B: CLOSED
 H1_FUNCTIONAL: COMPLETE
-H1_STABILIZATION: S1_COMPLETE_S2_ACTIVE
+H1_STABILIZATION: IMPLEMENTATION_COMPLETE
 H1: OPEN
 H2: NOT_ELIGIBLE
+executionStatus: IMPLEMENTATION_COMPLETE
+externalClosureGates: PENDING
 ```
 
 ## Phase plans
 
-All three phase documents are approved and may be stored under `docs/plans/active/foundation/`, but only the plan named by `governingPlan` is executable. This explicit designation satisfies the repository rule for multiple active plans.
+All three phase documents are approved. The implementation and evidence
+reconciliation are complete; no active H1-S implementation plan remains.
 
 ```yaml
-governingPlan: h1s-s2-clean-state-qualification-closure.md
+governingPlan: NONE
 phases:
   S0:
     plan: h1s-s0-governance-truth-reset.md
@@ -33,20 +36,26 @@ phases:
     planState: COMPLETED
     executionGate: CLOSED
   S2:
-    plan: h1s-s2-clean-state-qualification-closure.md
-    planState: ACTIVE
-    executionGate: OPEN
+    plan: completed/foundation/h1s-s2-clean-state-qualification-closure.md
+    planState: COMPLETED
+    executionGate: CLOSED
 ```
 
-S1 local evidence is `PASS` for `pnpm verify` prerequisites, the focused
-bootstrap-state/bootstrap-runtime/private-postgres suites, typecheck, TS6
-compatibility, boundaries, and the real provider-exit recovery process target.
-The live PostgreSQL integration targets and
-`bootstrap-runtime:test:recovery-process:postgres` are `NOT_RUN` because
-`HEPTALOGOS_TEST_PG_BIN` is not configured on this host; S2 owns that
-qualification closure.
+The H1-S behavior candidate is
+`1640c232a4629644c3588ebd108f887e7c786f77`. Local `pnpm verify` is `PASS`;
+private-postgres integration is `20/20 PASS`; Host ownership integration is
+`8/8 PASS`; bootstrap-runtime integration is `28/28 PASS`; the non-PostgreSQL
+real process target is `4/4 PASS`; and the PostgreSQL real process target is
+`2/2 PASS`. The PostgreSQL 18.6 toolchain was reused from
+`/tmp/heptalogos-pg18.6-corrective.PfKw0x/extracted/usr/lib/postgresql/18/bin`
+with library path
+`/tmp/heptalogos-pg18.6-corrective.PfKw0x/extracted/usr/lib/x86_64-linux-gnu`.
+Windows/macOS PostgreSQL, source-less, ACL, power-loss, independent review,
+final CI, and squash merge remain `NOT_RUN`/`PENDING` external gates.
 
-At a phase transition, the completed plan moves to `docs/plans/completed/foundation/`, this record changes `governingPlan`, and the next phase gate changes to `OPEN`. No S1 production work may begin before S0's transition commit; no S2 qualification/closure work may begin before S1's transition commit.
+At this completed phase transition, S2 and this control record move to
+`docs/plans/completed/foundation/`. Final H1 closure remains defined only by
+the externally verified review/CI/merge tuple below.
 
 ## Branch/PR discipline
 

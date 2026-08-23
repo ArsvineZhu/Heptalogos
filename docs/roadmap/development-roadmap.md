@@ -128,23 +128,31 @@ It does not prove private PostgreSQL, runtime supervision, durable work, system 
 
 > Can a Heptalogos installation reliably identify itself, locate its independent lifecycle roots, obtain exclusive bootstrap ownership, start/validate its private PostgreSQL, and hand ownership to exactly one normal Host without an authority gap?
 
-### Current progress (2026-08-22)
+### Current progress (2026-08-23)
 
 Current H-stage truth:
 
 ```yaml
 M5B: CLOSED
 H1_FUNCTIONAL: COMPLETE
-H1_STABILIZATION: ACTIVE
+H1_STABILIZATION: IMPLEMENTATION_COMPLETE
 H1: OPEN
 H2: NOT_ELIGIBLE
 ```
 
-H1 remains open until the H1-S stabilization implementation, local
-qualification, independent exact-candidate review, manual Ubuntu/macOS/Windows
-final CI, unchanged candidate pair immediately before merge, and squash merge
-all succeed. The historical M5B review/CI/merge records below do not satisfy
+H1 functional implementation: COMPLETE.
+
+H1-S repository implementation/qualification: COMPLETE at behavior candidate
+`1640c232a4629644c3588ebd108f887e7c786f77` plus the evidence-only candidate
+recorded in the current qualification ledger.
+
+H1 remains OPEN pending exact-candidate independent review, manual final CI on
+Ubuntu/macOS/Windows, unchanged candidate identity immediately before merge,
+and squash merge. H2 remains NOT_ELIGIBLE until that closure tuple is
+satisfied. The historical M5B review/CI/merge records below do not satisfy
 this new H1-S closure tuple.
+
+Historical milestone context:
 
 - M2 pre-PostgreSQL bootstrap substrate is closed and merged.
 - M3 implementation is merged in squash commit `4b12c14693752d9796f8aa287666e6537321006d`; its corrected-final-head independent re-review, final cross-platform CI, corrected Linux/macOS real PostgreSQL, source-less shipping, and service-account ACL evidence remain `NOT_RUN`, so `Q-PRIVATE-POSTGRES-01 = PARTIAL`.

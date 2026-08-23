@@ -9,21 +9,51 @@ implementationQualification: REQUIRED
 testedProperty: "Exact PostgreSQL 18.6 private bootstrap initialization, portable identity, bounded lifecycle, ownership-held handoff, and fail-closed recovery boundaries"
 ```
 
-## Current H1-S stage truth (2026-08-23)
+## Current H1-S candidate truth (2026-08-23)
 
 ```yaml
 M5B: CLOSED
 H1_FUNCTIONAL: COMPLETE
-H1_STABILIZATION: ACTIVE
+H1_STABILIZATION: IMPLEMENTATION_COMPLETE
 H1: OPEN
 H2: NOT_ELIGIBLE
+behavior_candidate_sha: 1640c232a4629644c3588ebd108f887e7c786f77
 ```
 
-The qualification evidence below preserves historical M3/M4/M5A/M5B
-implementation records. It does not assert that those development-era
-formats remain a PRE_PRODUCTION compatibility obligation. H1-S will replace
-obsolete current properties after canonical behavior is qualified; deferred
-platform/source-less/ACL boundaries remain explicitly `NOT_RUN` unless rerun.
+The machine-readable ledger currently contains the H1-S canonical V1 property
+set. Historical M3/M4/M5A/M5B implementation records remain below as narrative
+evidence and do not assert compatibility with removed development-era formats.
+
+## Current H1-S properties
+
+```yaml
+canonical_v1_private_postgres_identity_commit: PASS
+canonical_v1_initialization_profile_v1: PASS
+exact_toolchain_18_6: PASS
+private_postgres_real_integration: PASS
+host_ownership_real_integration: PASS
+bootstrap_runtime_real_integration: PASS
+recovery_process_postgres: PASS
+linux_real_pg: PASS
+windows_real_pg: NOT_RUN
+macos_real_pg: NOT_RUN
+source_less_shipping_closure: NOT_RUN
+service_account_acl_closure: NOT_RUN
+hardware_power_loss: NOT_RUN
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The current candidate reused PostgreSQL 18.6 from
+`/tmp/heptalogos-pg18.6-corrective.PfKw0x/extracted/usr/lib/postgresql/18/bin`
+with library path
+`/tmp/heptalogos-pg18.6-corrective.PfKw0x/extracted/usr/lib/x86_64-linux-gnu`.
+The five required tools reported 18.6; private-postgres integration passed
+20/20, Host ownership integration 8/8, bootstrap-runtime integration 28/28,
+and PostgreSQL process recovery 2/2. `pnpm verify` also passed.
+
+## Historical corrected-candidate Windows evidence
 
 ## Corrected-candidate Windows evidence
 

@@ -10,58 +10,78 @@ implementationQualification: REQUIRED
 selectedRoute: "`@bybrave/proper-lockfile2` 5.0.0"
 ```
 
-## Current H1-S stage truth (2026-08-23)
+## Current H1-S candidate truth (2026-08-23)
 
 ```yaml
 M5B: CLOSED
 H1_FUNCTIONAL: COMPLETE
-H1_STABILIZATION: ACTIVE
+H1_STABILIZATION: IMPLEMENTATION_COMPLETE
 H1: OPEN
 H2: NOT_ELIGIBLE
+behavior_candidate_sha: 1640c232a4629644c3588ebd108f887e7c786f77
 ```
 
-The M5B properties retained below are implementation/history evidence and are
-scheduled for the H1-S canonical-state and Authority reset. They do not create
-an independent PRE_PRODUCTION compatibility obligation. H1-S current evidence
-will replace obsolete current-property claims after the behavior reset; the
-historical M5B review/CI/merge records remain historical only.
+The machine-readable ledger contains only current H1-S properties. Historical
+M5A/M5B review, CI, and merge records remain below as narrative evidence and do
+not create a current compatibility obligation.
 
-## Observed properties
+## Current properties
 
 ```yaml
 evidence:
-  historical_proper_lockfile_4_1_2_delayed_reclaimer: NOT_RUN
-  proper_lockfile2_single_winner: PASS
-  normal_atomic_write_parseability: PASS
-  proper_lockfile2_delayed_reclaimer: PASS
-  proper_lockfile2_n_way_reclaim: PASS
-  active_heartbeat_not_reclaimed: PASS
-  killed_owner_reclaimed: PASS
-  recovery_reclaim_notification: PASS
-  compromised_lease_fenced: PASS
-  unicode_space_path: PASS
-  node24_esm_ts7_boundary: PASS
-  process_identity_self: PASS
-  process_identity_live_child: PASS
-  process_identity_dead_child: PASS
-  process_identity_pid_reused: PASS
-  process_identity_unknown_kill_probe: PASS
-  process_identity_unknown_pidusage: PASS
-  previous_revision_after_corrupt_current: PASS
-  kill_during_state_write: PASS
-  kill_during_atomic_replace: PASS
-  power_loss_cross_platform: NOT_RUN
+  canonical_bootstrap_state_v1: PASS
+  canonical_bootstrap_journal_v1: PASS
+  canonical_private_postgres_initialization_profile_v1: PASS
+  legacy_preproduction_bootstrap_shape_rejected: PASS
+  legacy_preproduction_maintenance_shape_rejected: PASS
+  recovered_previous_bootstrap_state_read_only: PASS
+  recovered_previous_maintenance_journal_read_only: PASS
+  recovery_declared_root_closure: PASS
+  unrequested_root_unavailable_nonblocking: PASS
+  normal_boot_incomplete_maintenance_blocked: PASS
+  no_lock_dead_attempt_nonblocking: PASS
+  no_lock_dead_owner_nonblocking: PASS
+  incomplete_maintenance_no_lock_routes_recovery: PASS
+  process_identity_start_mismatch_unknown: PASS
+  ambiguous_process_identity_blocks_reclaim: PASS
+  host_maintenance_single_in_process_state_source: PASS
+  raw_recovery_authority_not_public: PASS
+  public_entry_provider_exit_cleanup: PASS
+  private_postgres_real_integration: PASS
+  host_ownership_real_integration: PASS
+  bootstrap_runtime_real_integration: PASS
+  recovery_process_without_postgres: PASS
+  recovery_process_with_postgres: PASS
+  linux_real_postgres_recovery: PASS
+  windows_real_postgres_recovery: NOT_RUN
+  macos_real_postgres_recovery: NOT_RUN
+  source_less_recovery: NOT_RUN
+  service_account_acl: NOT_RUN
+  hardware_power_loss: NOT_RUN
+  independent_review: NOT_RUN
+  final_cross_platform_ci: NOT_RUN
+  squash_merge: NOT_RUN
 ```
+
+Evidence source: `pnpm verify` PASS; bootstrap-state unit 109 passed/2
+skipped; bootstrap-runtime unit 182 passed/1 skipped; private-postgres unit
+58 passed; private-postgres integration 20/20; Host ownership integration 8/8;
+bootstrap-runtime integration 28/28; non-PostgreSQL process recovery 4/4; and
+PostgreSQL process recovery 2/2. The live PostgreSQL 18.6 tools were reused
+from `/tmp/heptalogos-pg18.6-corrective.PfKw0x/extracted/usr/lib/postgresql/18/bin`
+with library path `/tmp/heptalogos-pg18.6-corrective.PfKw0x/extracted/usr/lib/x86_64-linux-gnu`.
 
 ## NOT_RUN / deferred properties
 
-- `power_loss_cross_platform`: Power-loss hardware and macOS/Linux crash qualification are outside the current host.
+- Windows/macOS real PostgreSQL recovery, source-less recovery, service-account ACL, and hardware power-loss remain unrun.
+- Independent review, final cross-platform CI, and squash merge are external closure gates for this exact candidate.
 
 ## Architecture disposition
 
 此 role 的当前 RoleDecision 由 `../dependency-status.json` 冻结为 `ADOPTED`；本记录只报告已证明的 property 与剩余 implementation/product qualification，不构成第二套 Authority。
 
-Power-loss, macOS/Linux and source-less bootstrap behavior remain implementation qualification.
+Power-loss, Windows/macOS and source-less bootstrap behavior remain
+implementation qualification.
 
 The historical `proper-lockfile@4.1.2` route is retained as role-reopening
 context from upstream issue/source analysis plus a previously observed
@@ -71,9 +91,8 @@ the selected `@bybrave/proper-lockfile2` provider.
 
 Process-generation evidence uses a real child fixture and `pidusage@4.0.1`:
 `SAME_PROCESS` is returned for self/live child, `PROCESS_DEAD` only for a
-definitely missing PID, and a start-time mismatch beyond 5 seconds is
-`UNKNOWN`; an ambiguous `kill(pid, 0)` error and a pidusage failure are also
-`UNKNOWN`.
+definitely missing PID, and a start-time mismatch is `UNKNOWN`; ambiguous
+process evidence never authorizes stale-lock reclaim.
 
 若未来真实 implementation 暴露 reproducible hard blocker，才允许按 `../DEPENDENCY-QUALIFICATION.md` 的 reopening rule 重开 RoleDecision。
 

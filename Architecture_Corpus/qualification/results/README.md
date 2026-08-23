@@ -31,6 +31,11 @@ Product qualification deferred to implementation
 
 Machine-readable property ledger: `qualification-status.json`。
 
+`qualification-status.json` is the current property ledger. Historical sections
+in `Q-*.md` are evidence history, not the current behavior contract.
+Independent review, final CI, and squash merge are external candidate-closure
+evidence; they must not be self-recorded by a post-review repository commit.
+
 `qualificationState` 只描述该证据记录的剩余 qualification 完整度：`CLOSED` 表示该记录要求的 property 已关闭，`PARTIAL/OPEN` 表示仍有 implementation/product property 未运行；它**不表示 RoleDecision 重新开放**。RoleDecision 是否开放只读取 `dependency-status.json` / `preImplementationDecisionState`。
 
 | ID | Evidence |

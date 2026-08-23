@@ -412,3 +412,33 @@ H2: ELIGIBLE_TO_START
 ```
 
 This final state is derived from the closure tuple and merge evidence. Do not add a post-merge repository commit solely to restate it.
+
+---
+
+## Execution record (2026-08-23)
+
+```yaml
+planState: COMPLETED
+behaviorCandidateSha: 1640c232a4629644c3588ebd108f887e7c786f77
+task1_clean_state_and_local_qualification: PASS
+task1_postgres_bin: /tmp/heptalogos-pg18.6-corrective.PfKw0x/extracted/usr/lib/postgresql/18/bin
+task1_postgres_version: 18.6
+task1_pnpm_verify: PASS
+task1_private_postgres_integration: PASS (20/20)
+task1_host_ownership_integration: PASS (8/8)
+task1_bootstrap_runtime_integration: PASS (28/28)
+task1_recovery_process: PASS (4/4)
+task1_recovery_process_postgres: PASS (2/2)
+task2_current_qualification_ledger: COMPLETE
+task2_plan_and_control_record_promotion: COMPLETE
+task3_independent_review_exact_candidate: NOT_RUN
+task4_manual_cross_platform_final_ci: NOT_RUN
+task5_squash_merge: NOT_RUN
+externalClosureGates: PENDING
+```
+
+The current machine-readable ledger is the only current property contract;
+historical Q-*.md sections remain narrative history. Windows/macOS PostgreSQL,
+source-less shipping, service-account ACL, and hardware power-loss evidence are
+also `NOT_RUN`. No push, PR, CI dispatch, review request, or merge was
+performed by this execution.
