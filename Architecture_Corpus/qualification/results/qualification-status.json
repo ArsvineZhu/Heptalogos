@@ -221,14 +221,20 @@
         "source_less_recovery": "NOT_RUN",
         "service_account_acl": "NOT_RUN",
         "hardware_power_loss": "NOT_RUN",
-        "independent_review": "NOT_RUN",
-        "final_cross_platform_ci": "NOT_RUN",
-        "squash_merge": "NOT_RUN"
+        "independent_review": "PASS",
+        "final_cross_platform_ci": "PASS",
+        "squash_merge": "PASS"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
       "evidenceSource": {
         "h1sBehaviorCandidateSha": "3cc589b667b0cd64342881caf7d382c2d960a928",
+        "reviewCandidateBaseSha": "257ad6fe73924bcd1c9a00cad6a15938d6e6a2da",
+        "reviewCandidateHeadSha": "80440e89918f3141c087fff65118754bb07e09ca",
+        "independentReview": "PASS",
+        "finalCiRunId": "32643262593",
+        "finalCiHeadSha": "80440e89918f3141c087fff65118754bb07e09ca",
+        "squashMergeSha": "82541933bc2b5e6add0eeee711b4f36350f5d5ff",
         "runtime": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane",
         "selectedRoute": "@bybrave/proper-lockfile2@5.0.0",
         "postgresProvenance": "EDB PostgreSQL 18.6 Windows x86-64 binary archive extracted to a temporary qualification root; not a source-less shipping artifact",
@@ -253,10 +259,7 @@
         "macos_real_postgres_recovery": "No macOS PostgreSQL 18.6 runtime was executed for this H1-S candidate.",
         "source_less_recovery": "Source-less recovery invocation was not run.",
         "service_account_acl": "Installer/service-account ACL qualification was not run.",
-        "hardware_power_loss": "Hardware power-loss qualification was not run.",
-        "independent_review": "Independent review of this exact candidate has not run.",
-        "final_cross_platform_ci": "Manual final cross-platform CI of this exact candidate has not run.",
-        "squash_merge": "The stabilization branch has not been squash-merged."
+        "hardware_power_loss": "Hardware power-loss qualification was not run."
       },
       "preImplementationDecisionState": "CLOSED",
       "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification or external closure gates; they do not reopen the adopted route."
