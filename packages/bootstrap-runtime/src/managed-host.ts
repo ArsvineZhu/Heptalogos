@@ -7,7 +7,9 @@ import {
 } from "@heptalogos/foundation-contracts";
 import type { MaintenanceOperationId } from "@heptalogos/bootstrap-state";
 import type {
+  HostPersistenceAuthority,
   HostOwnershipContext,
+  HostRuntimeDatabaseTarget,
   HostOwnershipState,
 } from "@heptalogos/host-ownership";
 import type { HostMaintenanceState } from "./host-maintenance-machine.js";
@@ -55,11 +57,17 @@ export interface BootstrapManagedHostContext {
   readonly token: HostOwnershipToken;
   readonly state: HostOwnershipState;
   readonly signal: AbortSignal;
+  readonly persistence: HostPersistenceAuthority;
   assertActive(): void;
   preparePrivatePostgresMaintenance(
     request: PrivatePostgresMaintenanceRequest,
   ): Promise<PreparedPrivatePostgresMaintenance>;
   shutdownKeepingPrivatePostgres(quiescence: HostMaintenanceQuiescence): Promise<void>;
+}
+
+export interface ManagedHostPersistenceOptions {
+  readonly target: HostRuntimeDatabaseTarget;
+  readonly withRuntimeDatabasePassword: HostPersistenceAuthority["withRuntimeDatabasePassword"];
 }
 
 export interface ManagedHostOperations {
@@ -117,12 +125,32 @@ export function assertManagedHostContext(
 export function createManagedHostContext(
   raw: HostOwnershipContext,
   operations: ManagedHostOperations,
+  persistenceOptions: ManagedHostPersistenceOptions,
 ): BootstrapManagedHostContext {
   const record: ManagedHostRecord = {
     raw,
     operations,
     terminal: false,
   };
+  const persistence: HostPersistenceAuthority = Object.freeze({
+    installationId: raw.installationId,
+    instanceId: raw.instanceId,
+    bootId: raw.bootId,
+    token: raw.token,
+    target: persistenceOptions.target,
+    signal: raw.signal,
+    assertActive() {
+      if (record.terminal) throw terminalProblem();
+      raw.assertActive();
+    },
+    async withRuntimeDatabasePassword<T>(
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ) {
+      if (record.terminal) throw terminalProblem();
+      raw.assertActive();
+      return await persistenceOptions.withRuntimeDatabasePassword(use);
+    },
+  });
   const managed: BootstrapManagedHostContext = Object.freeze({
     installationId: raw.installationId,
     instanceId: raw.instanceId,
@@ -132,6 +160,7 @@ export function createManagedHostContext(
       return record.terminal ? "CLOSED" : raw.state;
     },
     signal: raw.signal,
+    persistence,
     assertActive() {
       if (record.terminal) throw terminalProblem();
       raw.assertActive();

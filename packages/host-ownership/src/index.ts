@@ -46,6 +46,8 @@ export {
   HOST_RUNTIME_ROLE,
   type HostOwnershipConnectionTarget,
   type HostOwnershipContext,
+  type HostPersistenceAuthority,
+  type HostRuntimeDatabaseTarget,
   type HostOwnershipState,
   type HostOwnershipTimingOptions,
   type PostgresScramVerifierOptions,

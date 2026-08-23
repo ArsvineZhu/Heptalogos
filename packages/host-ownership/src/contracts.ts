@@ -38,6 +38,26 @@ export interface HostOwnershipConnectionTarget {
   readonly database: typeof HOST_OWNERSHIP_CANONICAL_DATABASE;
 }
 
+export interface HostRuntimeDatabaseTarget {
+  readonly host: "127.0.0.1";
+  readonly port: number;
+  readonly database: typeof HOST_OWNERSHIP_CANONICAL_DATABASE;
+  readonly user: typeof HOST_RUNTIME_ROLE;
+}
+
+export interface HostPersistenceAuthority {
+  readonly installationId: InstallationId;
+  readonly instanceId: InstanceId;
+  readonly bootId: BootId;
+  readonly token: HostOwnershipToken;
+  readonly target: HostRuntimeDatabaseTarget;
+  readonly signal: AbortSignal;
+  assertActive(): void;
+  withRuntimeDatabasePassword<T>(
+    use: (passwordUtf8: Uint8Array) => Promise<T>,
+  ): Promise<T>;
+}
+
 export interface HostOwnershipTimingOptions {
   readonly connectionTimeoutMs: number;
   readonly statementTimeoutMs: number;
