@@ -15,9 +15,7 @@ import type {
   PersistenceTransactionContext,
   PersistenceTransactionMode,
 } from "./index.js";
-import {
-  createPersistenceServiceForTests,
-} from "./persistence-service.js";
+import { createPersistenceServiceForTests } from "./persistence-service.js";
 import {
   issueTransactionContext,
   releaseTransactionContext,
@@ -80,17 +78,15 @@ function fakeDatabase(
       if (sql.includes("lock_host_ownership_fence")) {
         order.push("SELECT fence FOR SHARE");
         return {
-          rows:
-            fenceRows ??
-            [
-              {
-                singleton: true,
-                instance_id: authorityValue.instanceId,
-                ownership_revision: "0",
-                host_ownership_token: authorityValue.token,
-                boot_id: authorityValue.bootId,
-              },
-            ],
+          rows: fenceRows ?? [
+            {
+              singleton: true,
+              instance_id: authorityValue.instanceId,
+              ownership_revision: "0",
+              host_ownership_token: authorityValue.token,
+              boot_id: authorityValue.bootId,
+            },
+          ],
         };
       }
       throw new Error(`unexpected SQL: ${query.sql}`);
@@ -144,9 +140,7 @@ describe("persistence package root", () => {
     };
     const service: PersistenceService = {
       state,
-      async read<T>(
-        operation: (context: PersistenceTransactionContext) => Promise<T>,
-      ) {
+      async read<T>(operation: (context: PersistenceTransactionContext) => Promise<T>) {
         return operation({ mode: "READ" });
       },
       async mutate<T>(
@@ -330,20 +324,15 @@ describe("persistence package root", () => {
     const hostAuthority = authority(controller.signal);
     const staleToken = createHostOwnershipToken();
     const staleBootId = createBootId();
-    const database = fakeDatabase(
-      hostAuthority,
-      [],
-      undefined,
-      [
-        {
-          singleton: true,
-          instance_id: hostAuthority.instanceId,
-          ownership_revision: "1",
-          host_ownership_token: staleToken,
-          boot_id: staleBootId,
-        },
-      ],
-    );
+    const database = fakeDatabase(hostAuthority, [], undefined, [
+      {
+        singleton: true,
+        instance_id: hostAuthority.instanceId,
+        ownership_revision: "1",
+        host_ownership_token: staleToken,
+        boot_id: staleBootId,
+      },
+    ]);
     const service = createPersistenceServiceForTests(
       hostAuthority,
       runtimeOptions(),

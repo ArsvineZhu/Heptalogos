@@ -252,7 +252,10 @@ async function createCluster(): Promise<Fixture> {
   return fixture;
 }
 
-async function bootstrapClient(fixture: Fixture, database = "postgres"): Promise<Client> {
+async function bootstrapClient(
+  fixture: Fixture,
+  database = "postgres",
+): Promise<Client> {
   const client = new Client({
     host: "127.0.0.1",
     port: fixture.port,
@@ -702,9 +705,13 @@ describe("H2A-1 host-fenced persistence PostgreSQL 18.6 qualification", () => {
           `CREATE TABLE "${HOST_OWNERSHIP_CANONICAL_DATABASE}"."p8_forbidden" (value integer)`,
         ),
       ).rejects.toThrow();
-      await expect(runtime.query("CREATE DATABASE p8_forbidden_database")).rejects.toThrow();
+      await expect(
+        runtime.query("CREATE DATABASE p8_forbidden_database"),
+      ).rejects.toThrow();
       await expect(runtime.query("CREATE ROLE p8_forbidden_role")).rejects.toThrow();
-      await expect(runtime.query(`SET ROLE "${HOST_OWNERSHIP_OWNER_ROLE}"`)).rejects.toThrow();
+      await expect(
+        runtime.query(`SET ROLE "${HOST_OWNERSHIP_OWNER_ROLE}"`),
+      ).rejects.toThrow();
       expect(HOST_RUNTIME_ROLE).not.toBe(HOST_LEASE_ROLE);
     } finally {
       await runtime.end().catch(() => undefined);

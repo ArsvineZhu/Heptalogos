@@ -383,9 +383,15 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
       await expect(
         runtime.query("CREATE TABLE heptalogos.runtime_forbidden (value integer)"),
       ).rejects.toThrow();
-      await expect(runtime.query("CREATE DATABASE runtime_forbidden_database")).rejects.toThrow();
-      await expect(runtime.query("CREATE ROLE runtime_forbidden_role")).rejects.toThrow();
-      await expect(runtime.query(`SET ROLE "${HOST_OWNERSHIP_OWNER_ROLE}"`)).rejects.toThrow();
+      await expect(
+        runtime.query("CREATE DATABASE runtime_forbidden_database"),
+      ).rejects.toThrow();
+      await expect(
+        runtime.query("CREATE ROLE runtime_forbidden_role"),
+      ).rejects.toThrow();
+      await expect(
+        runtime.query(`SET ROLE "${HOST_OWNERSHIP_OWNER_ROLE}"`),
+      ).rejects.toThrow();
     } finally {
       await runtime.end().catch(() => undefined);
       await admin.end().catch(() => undefined);

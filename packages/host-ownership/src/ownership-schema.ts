@@ -364,7 +364,8 @@ function assertFenceLockFunction(row: FunctionRow): void {
     row.language_name !== "sql" ||
     normalizeDefinition(row.result_definition) !==
       normalizeDefinition(FENCE_LOCK_FUNCTION_RESULT) ||
-    normalizeDefinition(row.source) !== normalizeDefinition(FENCE_LOCK_FUNCTION_SOURCE) ||
+    normalizeDefinition(row.source) !==
+      normalizeDefinition(FENCE_LOCK_FUNCTION_SOURCE) ||
     row.config === null ||
     row.config.length !== 1 ||
     row.config[0] !== "search_path=pg_catalog"
@@ -447,10 +448,7 @@ async function ensureDatabasePrivileges(
   ]);
   assertAclExact(
     verified.rows,
-    new Set([
-      `${HOST_LEASE_ROLE}:CONNECT:false`,
-      `${HOST_RUNTIME_ROLE}:CONNECT:false`,
-    ]),
+    new Set([`${HOST_LEASE_ROLE}:CONNECT:false`, `${HOST_RUNTIME_ROLE}:CONNECT:false`]),
     "Canonical database privileges do not match the closed-world contract",
   );
 }
@@ -540,10 +538,7 @@ async function ensureProductSchema(
   ]);
   assertAclExact(
     verified.rows,
-    new Set([
-      `${HOST_LEASE_ROLE}:USAGE:false`,
-      `${HOST_RUNTIME_ROLE}:USAGE:false`,
-    ]),
+    new Set([`${HOST_LEASE_ROLE}:USAGE:false`, `${HOST_RUNTIME_ROLE}:USAGE:false`]),
     "Heptalogos schema privileges do not match the closed-world contract",
   );
   return schemaCreated;
@@ -710,10 +705,7 @@ $h2a1$`,
   ]);
   assertAclSubset(
     beforeAcl.rows,
-    new Set([
-      "PUBLIC:EXECUTE:false",
-      `${HOST_RUNTIME_ROLE}:EXECUTE:false`,
-    ]),
+    new Set(["PUBLIC:EXECUTE:false", `${HOST_RUNTIME_ROLE}:EXECUTE:false`]),
     "Unexpected explicit privilege exists on the HostOwnershipFence lock function",
   );
   await authorizedMutation(

@@ -54,12 +54,16 @@ const quiescence: HostMaintenanceQuiescence = {
 describe("managed Host capability", () => {
   it("preserves the M4 identity view without exposing raw close", () => {
     const raw = rawHost();
-    const managed = createManagedHostContext(raw, {
-      async preparePrivatePostgresMaintenance() {
-        throw new Error("not implemented in Task 3 fixture");
+    const managed = createManagedHostContext(
+      raw,
+      {
+        async preparePrivatePostgresMaintenance() {
+          throw new Error("not implemented in Task 3 fixture");
+        },
+        async shutdownKeepingPrivatePostgres() {},
       },
-      async shutdownKeepingPrivatePostgres() {},
-    }, persistenceOptions);
+      persistenceOptions,
+    );
 
     expect(managed.installationId).toBe(raw.installationId);
     expect(managed.instanceId).toBe(raw.instanceId);
@@ -86,12 +90,16 @@ describe("managed Host capability", () => {
   });
 
   it("makes the old managed Host terminal after handoff completion", () => {
-    const managed = createManagedHostContext(rawHost(), {
-      async preparePrivatePostgresMaintenance() {
-        throw new Error("not implemented in Task 3 fixture");
+    const managed = createManagedHostContext(
+      rawHost(),
+      {
+        async preparePrivatePostgresMaintenance() {
+          throw new Error("not implemented in Task 3 fixture");
+        },
+        async shutdownKeepingPrivatePostgres() {},
       },
-      async shutdownKeepingPrivatePostgres() {},
-    }, persistenceOptions);
+      persistenceOptions,
+    );
 
     markManagedHostTerminal(managed);
     expect(managed.state).toBe("CLOSED");
@@ -145,14 +153,18 @@ describe("managed Host capability", () => {
   });
 
   it("retains an explicit quiescence seam on the managed contract", async () => {
-    const managed = createManagedHostContext(rawHost(), {
-      async preparePrivatePostgresMaintenance() {
-        throw new Error("not implemented in Task 3 fixture");
+    const managed = createManagedHostContext(
+      rawHost(),
+      {
+        async preparePrivatePostgresMaintenance() {
+          throw new Error("not implemented in Task 3 fixture");
+        },
+        async shutdownKeepingPrivatePostgres(received) {
+          await received.quiesce();
+        },
       },
-      async shutdownKeepingPrivatePostgres(received) {
-        await received.quiesce();
-      },
-    }, persistenceOptions);
+      persistenceOptions,
+    );
 
     await expect(
       managed.shutdownKeepingPrivatePostgres(quiescence),

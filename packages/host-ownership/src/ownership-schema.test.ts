@@ -293,8 +293,7 @@ class FakeSchemaClient implements BootstrapAdminClient {
           : HOST_LEASE_ROLE;
         this.state.databaseAcl = [
           ...this.state.databaseAcl.filter(
-            (row) =>
-              !(row.grantee === grantee && row.privilege_type === "CONNECT"),
+            (row) => !(row.grantee === grantee && row.privilege_type === "CONNECT"),
           ),
           { grantee, privilege_type: "CONNECT" },
         ];
@@ -318,8 +317,7 @@ class FakeSchemaClient implements BootstrapAdminClient {
           : HOST_LEASE_ROLE;
         this.state.schemaAcl = [
           ...this.state.schemaAcl.filter(
-            (row) =>
-              !(row.grantee === grantee && row.privilege_type === "USAGE"),
+            (row) => !(row.grantee === grantee && row.privilege_type === "USAGE"),
           ),
           { grantee, privilege_type: "USAGE" },
         ];
@@ -482,9 +480,7 @@ describe("HostOwnershipFence schema", () => {
     expect(sql).toContain(
       'GRANT SELECT ON TABLE "heptalogos"."host_ownership_fence" TO "heptalogos_runtime"',
     );
-    expect(sql).toContain(
-      'CREATE FUNCTION "heptalogos"."lock_host_ownership_fence"()',
-    );
+    expect(sql).toContain('CREATE FUNCTION "heptalogos"."lock_host_ownership_fence"()');
     expect(sql).toContain("SECURITY DEFINER");
     expect(sql).toContain("FOR SHARE");
     expect(sql).toContain(

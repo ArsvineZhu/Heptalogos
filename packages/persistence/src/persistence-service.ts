@@ -84,7 +84,8 @@ function incompatibleFenceProblem(): ProblemError {
     category: "integrity",
     retryClass: "manual",
     title: "Host ownership fence is incompatible",
-    detail: "The canonical HostOwnershipFence row did not match the required singleton shape",
+    detail:
+      "The canonical HostOwnershipFence row did not match the required singleton shape",
   });
 }
 
@@ -95,7 +96,8 @@ function staleOwnerProblem(): ProblemError {
     category: "conflict",
     retryClass: "after-change",
     title: "Host ownership fence belongs to another owner",
-    detail: "The database fence does not contain the current Host InstanceId, BootId, and token",
+    detail:
+      "The database fence does not contain the current Host InstanceId, BootId, and token",
   });
 }
 
@@ -229,10 +231,7 @@ function createPersistenceServiceFromDatabase(
           await executeSql(transaction, "SET TRANSACTION READ ONLY");
         } else {
           assertAuthorityActive();
-          const rows = await executeSql<HostFenceRow>(
-            transaction,
-            HOST_FENCE_QUERY,
-          );
+          const rows = await executeSql<HostFenceRow>(transaction, HOST_FENCE_QUERY);
           verifyHostFence(rows, authority, hooks);
           assertAuthorityActive();
         }
@@ -261,14 +260,10 @@ function createPersistenceServiceFromDatabase(
     get state() {
       return state;
     },
-    read<T>(
-      operation: (context: PersistenceTransactionContext) => Promise<T>,
-    ) {
+    read<T>(operation: (context: PersistenceTransactionContext) => Promise<T>) {
       return execute("READ", operation);
     },
-    mutate<T>(
-      operation: (context: PersistenceTransactionContext) => Promise<T>,
-    ) {
+    mutate<T>(operation: (context: PersistenceTransactionContext) => Promise<T>) {
       return execute("MUTATION", operation);
     },
     close() {

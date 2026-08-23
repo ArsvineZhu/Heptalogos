@@ -106,10 +106,7 @@ if (
   );
 }
 
-const persistencePublicSourcePath = resolve(
-  root,
-  "packages/persistence/src/index.ts",
-);
+const persistencePublicSourcePath = resolve(root, "packages/persistence/src/index.ts");
 const persistencePublicSource = readFileSync(persistencePublicSourcePath, "utf8");
 const persistenceMechanicsPattern =
   /\b(?:Pool|PoolClient|Client|Kysely|PostgresDialect|Transaction|CompiledQuery)\b/u;
