@@ -4,8 +4,13 @@
 > This repository record tracks execution state; the external plan remains the
 > complete task specification.
 
-**Status:** CLOSED — M5A and M5B are merged; H1 semantic closure is complete.
+**Status:** CLOSED — M5A and M5B are merged; M5B functional work is complete.
 Residual product/platform qualification remains explicitly `PARTIAL`/`NOT_RUN`.
+
+> **H1-S correction:** M5B is CLOSED and H1 functional work is complete. The
+> former “H1 closure” conclusion was superseded by the H1-S stabilization
+> decision. H1 remains OPEN until H1-S closes through its exact candidate
+> review, cross-platform CI and squash-merge tuple.
 
 ## Baseline and boundary
 
@@ -15,9 +20,9 @@ M5A reviewed SHA = 538cc6973fcd831cb47a60c5d126006032532591
 M5A independent review = PASS
 M5A final CI run = 32570208341 (Ubuntu/macOS/Windows PASS)
 M5A squash merge = 8acedfd49b0bcc42444389c3f28f206d4e8438b6
-M5B = CLOSED in PR #8 squash commit
+M5B = CLOSED in PR #8 squash commit (historical M5B closure)
 f16071cbff3e30cd4f839716130270770e99075a
-H1 = CLOSED
+H1 = OPEN pending H1-S (current stage truth)
 ```
 
 M5B uses the one existing `.heptalogos-bootstrap.lock` protocol. Normal boot

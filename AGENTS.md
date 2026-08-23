@@ -95,6 +95,7 @@ Before a consequential change:
 - classify behavior-affecting literals;
 - define failure, restart, recovery, pressure, and external-effect uncertainty where relevant;
 - preserve explicit contract versions across durable/cross-generation boundaries;
+- explicit contract versions do not imply undeclared PRE_PRODUCTION backward compatibility; preserve historical readers only for a declared retained-state or external-consumer obligation;
 - define required Evidence / Execution Lineage and the verification level needed for the claim.
 
 Do not create parallel authority paths for CLI, Web, Operator Assistant, extensions, or background workers. Do not use arbitrary shell/SQL/filesystem mutation as a shortcut around owning services.
@@ -115,7 +116,7 @@ Ordinary pushes do not trigger CI. Agents may dispatch CI only for:
 - a specific cross-platform regression not provable on the current host;
 - explicit user request.
 
-PR Ready is not merge authorization. The implementing Agent's self-review is insufficient. Final CI must verify the exact independently reviewed SHA. Any new commit invalidates prior review and final-CI authorization.
+PR Ready is not merge authorization. The implementing Agent's self-review is insufficient. Final review authorization binds to the complete `(base_sha, head_sha)` candidate, not head alone. Final CI must verify that same independently reviewed pair. A new branch commit invalidates review and final CI; a base-branch change also invalidates both. If base changes, rebase/update the branch, rerun local gates, obtain a new independent review, and rerun final CI.
 
 master changes go through PRs; a direct push requires explicit one-off user authorization. The detailed operating procedure is in `docs/engineering/playbooks/repository/milestone-pr-closure.md`.
 

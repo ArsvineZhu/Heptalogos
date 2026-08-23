@@ -200,7 +200,7 @@ Change the path resolver to require an explicit root set:
 export async function resolveBootstrapPathProfile(
   locator: BootstrapLocatorV1,
   requiredRoots: readonly LifecycleRootId[],
-): Promise<BootstrapPathProfile>
+): Promise<BootstrapPathProfile>;
 ```
 
 There is no default root set.
@@ -253,10 +253,7 @@ H1-S deliberately stops treating start-time mismatch as positive PID-reuse proof
 Canonical status:
 
 ```ts
-type BootstrapProcessIdentityStatus =
-  | "SAME_PROCESS"
-  | "PROCESS_DEAD"
-  | "UNKNOWN";
+type BootstrapProcessIdentityStatus = "SAME_PROCESS" | "PROCESS_DEAD" | "UNKNOWN";
 ```
 
 Rules:

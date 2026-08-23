@@ -130,15 +130,31 @@ It does not prove private PostgreSQL, runtime supervision, durable work, system 
 
 ### Current progress (2026-08-22)
 
+Current H-stage truth:
+
+```yaml
+M5B: CLOSED
+H1_FUNCTIONAL: COMPLETE
+H1_STABILIZATION: ACTIVE
+H1: OPEN
+H2: NOT_ELIGIBLE
+```
+
+H1 remains open until the H1-S stabilization implementation, local
+qualification, independent exact-candidate review, manual Ubuntu/macOS/Windows
+final CI, unchanged candidate pair immediately before merge, and squash merge
+all succeed. The historical M5B review/CI/merge records below do not satisfy
+this new H1-S closure tuple.
+
 - M2 pre-PostgreSQL bootstrap substrate is closed and merged.
 - M3 implementation is merged in squash commit `4b12c14693752d9796f8aa287666e6537321006d`; its corrected-final-head independent re-review, final cross-platform CI, corrected Linux/macOS real PostgreSQL, source-less shipping, and service-account ACL evidence remain `NOT_RUN`, so `Q-PRIVATE-POSTGRES-01 = PARTIAL`.
 - M4 is implemented and squash-merged at `83e0b603d039036326eca9983af381387a9bfdb3`; its exact-SHA independent review and final cross-platform CI are `PASS`, while corrected-candidate Linux/macOS real PostgreSQL, source-less shipping, and service-account ACL evidence remain `NOT_RUN`, so `Q-PRIVATE-POSTGRES-01 = PARTIAL`.
 - M5A is closed and merged in squash commit `8acedfd49b0bcc42444389c3f28f206d4e8438b6`. Its exact corrected reviewed SHA is `538cc6973fcd831cb47a60c5d126006032532591`; independent review passed and final manual cross-platform CI run `32570208341` passed on Ubuntu, macOS, and Windows.
 - M5A Linux PostgreSQL 18.6 evidence remains PASS at its corrected behavior candidate; Windows/macOS real PostgreSQL, source-less shipping, and service-account ACL evidence remain `NOT_RUN` and are not upgraded by final repository CI.
-- M5B was the active Foundation implementation plan for bounded abandoned-bootstrap ownership and interrupted M5A recovery; its implementation and post-merge reconciliation are now complete in squash merge `f16071cbff3e30cd4f839716130270770e99075a`. H1 closure is governed by the semantic exit criteria, while residual L3 product qualification remains separately tracked.
+- M5B was the active Foundation implementation plan for bounded abandoned-bootstrap ownership and interrupted M5A recovery; its implementation and post-merge reconciliation are historical records from squash merge `f16071cbff3e30cd4f839716130270770e99075a`. H1-S now governs current H1 closure, while residual L3 product qualification remains separately tracked.
 - M5B behavior candidate `e7e46e8e1d58f15e254b9644f5b315cd34090360` was reviewed at exact HEAD `5e8f1aa475730aef982622d05cd488767ac0c08a` and returned `REQUEST_CHANGES`. K1-K3 and surviving Linux subsets remain PASS, but K4/K5 deterministic process evidence, real pre-Host PG-1/PG-2 bootstrap recovery, and the complete matrix are `NOT_RUN` pending the second corrective cycle. The earlier review at `9e450f836466d32fb1f3d9027618fac236798eb9` also returned `REQUEST_CHANGES`; final CI and merge remain unauthorized, Windows/macOS real PostgreSQL, source-less recovery, service-account ACL, and hardware power-loss remain `NOT_RUN`, and H1 remains OPEN.
 - M5B second corrective behavior candidate `55c58ed83d5e7b7ce964b659e6250b6f6580634d` now has PASS evidence for RC-6 legacy journal compatibility, same-lease pre-Host continuation, K1-K3 (3/3), deterministic K4/K5 (1/1 each), dedicated PG-1/PG-2 (1/1 each), the Linux PG-1..PG-9 plus PG-5B/PG-6A/PG-6B matrix (11/11), private-postgres (20/20), Host ownership (8/8), bootstrap-runtime integration (29/29), and `pnpm verify`. The current candidate awaits independent review; final CI and merge remain unauthorized, Windows/macOS real PostgreSQL, source-less recovery, service-account ACL, and hardware power-loss remain `NOT_RUN`, and H1 remains OPEN.
-- M5B third corrective behavior candidate `ce8ecbd2f54b6da39542845b1c23fbb959672c0a`, followed by qualification-only `a41dad0226310889f61515ba16ce910c1dbb0e53`, removes the `INSPECT` journal mutation and adds the required live legacy-M5A PG-6A shape. The snapshot inspection regression (13/13), recovery/command units (23/23 and 7/7), K1-K5, PG-1/PG-2, full Linux matrix (11/11), integration suites, and `pnpm verify` pass. Exact final reviewed HEAD `9ca373084252e61c31c3df7c02ad355c31e75c49` passed final CI run `32592990382` on Ubuntu, macOS, and Windows, then merged in squash commit `f16071cbff3e30cd4f839716130270770e99075a`; H1 Own the Machine is CLOSED, while residual Windows/macOS real PostgreSQL, source-less recovery, service-account ACL, and hardware power-loss remain `NOT_RUN`.
+- Historical M5B third corrective behavior candidate `ce8ecbd2f54b6da39542845b1c23fbb959672c0a`, followed by qualification-only `a41dad0226310889f61515ba16ce910c1dbb0e53`, removed the `INSPECT` journal mutation and added the then-required live legacy-M5A PG-6A shape. Its tests and exact final review/CI/merge evidence remain historical M5B evidence; they do not close current H1-S.
 - M2/M5B normal boot automatic stale takeover remains intentionally disabled; an abandoned pre-PostgreSQL lock is recovery-required until the later bounded Recovery proof authorizes the same `@bybrave/proper-lockfile2` provider under explicit local recovery authority.
 
 ### Capability closure

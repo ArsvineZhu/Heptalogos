@@ -17,9 +17,9 @@ the repository-wide policy in `AGENTS.md`.
 7. If review requests changes, commit them, rerun local gates, and obtain a
    new independent review.
 8. After review PASS, manually dispatch final CI with
-   `target_sha=<reviewed HEAD>`.
+   `base_sha=<reviewed base>` and `target_sha=<reviewed HEAD>`.
 9. Require `ubuntu-latest`, `macos-latest`, and `windows-latest` all PASS.
-10. Verify that the PR head still equals the reviewed/CI SHA.
+10. Verify that both the PR base and PR head still equal the reviewed/CI pair.
 11. Squash merge.
 12. Delete the branch.
 
@@ -27,7 +27,9 @@ the repository-wide policy in `AGENTS.md`.
 
 ```text
 commit after review -> review stale
+base-branch move after review -> review stale
 commit after final CI -> review + final CI stale
+base-branch move after final CI -> review + final CI stale
 ```
 
 Never reuse a review or CI run from an older SHA. A new commit requires local
@@ -39,10 +41,12 @@ authorization can be restored.
 For final pre-merge verification after independent review PASS:
 
 ```bash
-SHA="$(git rev-parse HEAD)"
+BASE_SHA="$(git rev-parse origin/master)"
+HEAD_SHA="$(git rev-parse HEAD)"
 gh workflow run verify.yml \
   --ref master \
-  -f target_sha="$SHA" \
+  -f base_sha="$BASE_SHA" \
+  -f target_sha="$HEAD_SHA" \
   -f reason=final-pre-merge
 ```
 
@@ -51,6 +55,7 @@ For a bounded cross-platform regression during Draft:
 ```bash
 gh workflow run verify.yml \
   --ref master \
+  -f base_sha="<BASE_SHA>" \
   -f target_sha="<FULL_SHA>" \
   -f reason=cross-platform-regression
 ```

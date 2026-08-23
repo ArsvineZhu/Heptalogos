@@ -10,6 +10,22 @@ implementationQualification: REQUIRED
 selectedRoute: "`@bybrave/proper-lockfile2` 5.0.0"
 ```
 
+## Current H1-S stage truth (2026-08-23)
+
+```yaml
+M5B: CLOSED
+H1_FUNCTIONAL: COMPLETE
+H1_STABILIZATION: ACTIVE
+H1: OPEN
+H2: NOT_ELIGIBLE
+```
+
+The M5B properties retained below are implementation/history evidence and are
+scheduled for the H1-S canonical-state and Authority reset. They do not create
+an independent PRE_PRODUCTION compatibility obligation. H1-S current evidence
+will replace obsolete current-property claims after the behavior reset; the
+historical M5B review/CI/merge records remain historical only.
+
 ## Observed properties
 
 ```yaml
@@ -61,7 +77,7 @@ are `UNKNOWN`.
 
 若未来真实 implementation 暴露 reproducible hard blocker，才允许按 `../DEPENDENCY-QUALIFICATION.md` 的 reopening rule 重开 RoleDecision。
 
-## Foundation M5B bounded recovery qualification (2026-08-22)
+## Historical Foundation M5B bounded recovery qualification (2026-08-22)
 
 ```yaml
 m5b_behavior_candidate_sha: c4c1be43f412c868a84a776461b479d3b677ea18
@@ -99,7 +115,7 @@ The surviving evidence was produced with Node 24.19.0, pnpm 11.22.0, the
 the required real maintenance/recovery K4-K5 and complete PG-1..PG-9 matrix
 were not yet executed at this rejected candidate.
 
-## Foundation M5B first corrective candidate — superseded (2026-08-23)
+## Historical Foundation M5B first corrective candidate — superseded (2026-08-23)
 
 Behavior candidate `e7e46e8e1d58f15e254b9644f5b315cd34090360` had the following
 Linux evidence before the second corrective review. The exact review HEAD was
@@ -154,7 +170,7 @@ The earlier review at `9e450f836466d32fb1f3d9027618fac236798eb9` also returned
 `REQUEST_CHANGES`. The current second corrective cycle must rerun the invalidated
 K4/K5 and PG-1/PG-2/full-matrix evidence before a new candidate can be submitted.
 
-## Foundation M5B second corrective review blockers (2026-08-23)
+## Historical Foundation M5B second corrective review blockers (2026-08-23)
 
 ```yaml
 m5b_behavior_candidate_sha: e7e46e8e1d58f15e254b9644f5b315cd34090360
@@ -196,7 +212,7 @@ the second corrective runs. Windows/macOS real PostgreSQL, source-less
 recovery, service-account ACL, hardware power-loss, final CI, and merge remain
 `NOT_RUN` or unauthorized.
 
-## Foundation M5B second corrective qualification (2026-08-23)
+## Historical Foundation M5B second corrective qualification (2026-08-23)
 
 The second corrective behavior candidate is
 `55c58ed83d5e7b7ce964b659e6250b6f6580634d`. Production behavior was completed
@@ -255,7 +271,7 @@ the current candidate's machine-readable independent-review status of
 `NOT_RUN`. Windows/macOS real PostgreSQL, source-less recovery, service-account
 ACL, hardware power-loss, final CI, merge, and H1 closure remain outstanding.
 
-## Foundation M5B third corrective qualification (2026-08-23)
+## Historical Foundation M5B third corrective qualification (2026-08-23)
 
 The `445a77db3041644faccd85c00c826e8d26af3ea8` review returned
 `REQUEST_CHANGES`; its findings are historical. The new behavior candidate is
@@ -306,7 +322,7 @@ The new candidate awaits independent exact-HEAD review. Final CI, merge, the
 remaining cross-platform/source-less/ACL/power-loss qualifications, and H1
 closure remain open.
 
-## Foundation M5B post-merge reconciliation (2026-08-23)
+## Historical Foundation M5B post-merge reconciliation (2026-08-23)
 
 ```yaml
 m5b_behavior_candidate_sha: ce8ecbd2f54b6da39542845b1c23fbb959672c0a

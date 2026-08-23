@@ -22,16 +22,16 @@ H2: NOT_ELIGIBLE
 All three phase documents are approved and may be stored under `docs/plans/active/foundation/`, but only the plan named by `governingPlan` is executable. This explicit designation satisfies the repository rule for multiple active plans.
 
 ```yaml
-governingPlan: h1s-s0-governance-truth-reset.md
+governingPlan: h1s-s1-foundation-authority-stabilization.md
 phases:
   S0:
     plan: h1s-s0-governance-truth-reset.md
-    planState: ACTIVE
-    executionGate: OPEN
+    planState: COMPLETED
+    executionGate: CLOSED
   S1:
     plan: h1s-s1-foundation-authority-stabilization.md
     planState: ACTIVE
-    executionGate: BLOCKED_BY_S0
+    executionGate: OPEN
   S2:
     plan: h1s-s2-clean-state-qualification-closure.md
     planState: ACTIVE
