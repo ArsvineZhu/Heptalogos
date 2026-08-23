@@ -366,10 +366,24 @@ ReviewCandidate = (base_sha, head_sha)
 
 A change to either member invalidates independent review and final CI.
 
-Manual final CI accepts both `base_sha` and `target_sha`, fetches the live
-`origin/master`, checks out the target with full history, verifies target HEAD,
-requires live `origin/master == base_sha`, verifies `base_sha` is an ancestor
-of target, then runs `pnpm verify` on Ubuntu/macOS/Windows.
+Manual final CI accepts both `base_sha` and `target_sha`, and its `--ref`
+workflow-definition revision is the reviewed head branch/tag rather than the
+base branch. It fetches the live `origin/master`, checks out the target with
+full history, verifies `GITHUB_SHA == target_sha` and checked-out `HEAD ==
+target_sha`, requires live `origin/master == base_sha`, verifies `base_sha` is
+an ancestor of target, then runs `pnpm verify` on Ubuntu/macOS/Windows. After
+dispatch, the recorded workflow run's `headSha` (GitHub API `head_sha`) must
+equal the reviewed head SHA, and its run ID is part of the external closure
+evidence.
+
+The exact workflow proof is therefore:
+
+```text
+workflow definition SHA == reviewed head SHA
+checked-out target SHA == reviewed head SHA
+live origin/master == reviewed base SHA
+merge-base(reviewed base, reviewed head) == reviewed base SHA
+```
 
 Immediately before squash merge:
 

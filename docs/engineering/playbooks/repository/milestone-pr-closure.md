@@ -17,7 +17,8 @@ the repository-wide policy in `AGENTS.md`.
 7. If review requests changes, commit them, rerun local gates, and obtain a
    new independent review.
 8. After review PASS, manually dispatch final CI with
-   `base_sha=<reviewed base>` and `target_sha=<reviewed HEAD>`.
+   `--ref=<reviewed head branch>` plus `base_sha=<reviewed base>` and
+   `target_sha=<reviewed HEAD>`.
 9. Require `ubuntu-latest`, `macos-latest`, and `windows-latest` all PASS.
 10. Immediately before merge, re-read the live base, branch head, and PR
     metadata against the exact reviewed pair:
@@ -61,22 +62,42 @@ For final pre-merge verification after independent review PASS:
 ```bash
 BASE_SHA="$(git rev-parse origin/master)"
 HEAD_SHA="$(git rev-parse HEAD)"
+REVIEWED_HEAD_REF="$(git branch --show-current)"
+test -n "$REVIEWED_HEAD_REF"
 gh workflow run verify.yml \
-  --ref master \
+  --ref "$REVIEWED_HEAD_REF" \
   -f base_sha="$BASE_SHA" \
   -f target_sha="$HEAD_SHA" \
   -f reason=final-pre-merge
+
+RUN_ID="$(
+  gh run list --workflow verify.yml --event workflow_dispatch \
+    --branch "$REVIEWED_HEAD_REF" --limit 10 \
+    --json databaseId,headSha \
+    --jq '.[] | select(.headSha == "'"$HEAD_SHA"'") | .databaseId' \
+    | head -n 1
+)"
+test -n "$RUN_ID"
+gh run watch "$RUN_ID" --exit-status
+test "$(gh run view "$RUN_ID" --json headSha --jq .headSha)" = "$HEAD_SHA"
+printf 'final_ci_run_id=%s\n' "$RUN_ID"
 ```
 
 For a bounded cross-platform regression during Draft:
 
 ```bash
+TARGET_REF="dev/<milestone>"
 gh workflow run verify.yml \
-  --ref master \
+  --ref "$TARGET_REF" \
   -f base_sha="<BASE_SHA>" \
   -f target_sha="<FULL_SHA>" \
   -f reason=cross-platform-regression
 ```
+
+`--ref` selects the workflow definition revision. Final CI must use the
+reviewed head branch/tag, never `master`; the workflow's `GITHUB_SHA` and the
+run's `headSha` must both equal the reviewed target SHA. Record the verified
+run ID with the final-CI evidence.
 
 Do not prescribe or dispatch CI for ordinary commits. Final CI must run only
 after independent review PASS and must target the exact reviewed SHA.

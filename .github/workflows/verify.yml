@@ -61,6 +61,11 @@ jobs:
         run: >-
           node --input-type=module -e
           "import { execFileSync } from 'node:child_process';
+          const workflowSha=process.env.GITHUB_SHA;
+          if(workflowSha!==process.env.TARGET_SHA){
+            console.error('workflow definition '+workflowSha+' does not match reviewed target '+process.env.TARGET_SHA);
+            process.exit(1);
+          }
           const head=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
           if(head!==process.env.TARGET_SHA){
             console.error('expected '+process.env.TARGET_SHA+' but checked out '+head);

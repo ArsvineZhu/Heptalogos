@@ -4,7 +4,7 @@
 **Stage:** `H1-S`  
 **Baseline master:** `257ad6fe73924bcd1c9a00cad6a15938d6e6a2da`  
 **Branch:** `dev/h1-stabilization`  
-**PR:** `NOT_CREATED` at plan publication; execution creates one Draft PR after the first control/spec commit  
+**PR:** `#11`
 **Spec:** `docs/engineering/specs/h1-stabilization-foundation-authority-reset.md`
 
 ## Current stage truth
@@ -22,8 +22,14 @@ reviewCorrection:
   planState: COMPLETED
   executionGate: CLOSED
 governingPlan: completed/foundation/h1s-review-correction.md
-independent review: NOT_RUN
-reviewed repository head: 803ea6994fea6234e6ce42f79d69b5f92eaddc64
+priorIndependentReview: REQUEST_CHANGES
+priorReviewedRepositoryHead: 803ea6994fea6234e6ce42f79d69b5f92eaddc64
+independentReview: NOT_RUN
+reviewCandidateBase: 257ad6fe73924bcd1c9a00cad6a15938d6e6a2da
+reviewCandidateHead: PR_11_METADATA
+candidateFreeze: READY_FOR_INDEPENDENT_REVIEW
+candidateFreezeAuthority: PR_11_METADATA
+candidateFreezeNote: PR #11 body records the exact pushed HEAD; independent review remains NOT_RUN
 reason: RC-1..RC-6 closed locally; prior REQUEST_CHANGES is historical
 local qualification: PASS
 final cross-platform CI: NOT_RUN

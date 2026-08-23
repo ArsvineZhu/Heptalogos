@@ -32,7 +32,11 @@ approved Hn-S control record and the repository-wide branch/PR policy.
    review of the full Hn-S diff on that exact pair. The implementing agent's
    self-review is not sufficient.
 7. After review PASS, manually run final CI with the same `base_sha` and
-   `target_sha`; require Ubuntu, macOS and Windows jobs to pass.
+   `target_sha`; dispatch `verify.yml` from the reviewed head branch/tag (the
+   workflow-definition ref), never from `master`; require Ubuntu, macOS and
+   Windows jobs to pass. Verify the run's `headSha` equals the reviewed head
+   SHA and record the run ID. Use the concrete dispatch and run-provenance
+   procedure in `milestone-pr-closure.md`.
 8. Immediately before squash merge, verify that the reviewed base and branch
    head still equal the exact pair, and re-read the PR metadata:
 
