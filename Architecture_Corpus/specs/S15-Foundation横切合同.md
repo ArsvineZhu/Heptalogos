@@ -244,6 +244,14 @@ DURABLE PAYLOADS ARE VERSIONED.
 PROTOCOL REVISION IS DATA.
 ```
 
+版本化表达 contract identity；它不自动承诺读取所有历史开发格式。历史兼容只有在存在明确的 retained state 或 external consumer 时才成立：
+
+```text
+VERSIONED != HISTORICALLY COMPATIBLE.
+COMPATIBILITY REQUIRES A DECLARED OBLIGATION.
+CompatibilityEpoch = PRE_PRODUCTION.
+```
+
 任何满足以下任一条件的 contract 都必须显式版本化：
 
 ```text
@@ -274,12 +282,14 @@ producerProtocolRevision?
 reader 必须声明：
 
 ```text
-supported versions
-upcast/migration rule
+supported versions, when a declared compatibility obligation exists
+upcast/migration/reject rule for that obligation
 unsupported future-version behavior
 minimum compatible generation
 replay behavior
 ```
+
+在 `PRE_PRODUCTION` 且没有 declared compatibility obligation 时，reader 只需要支持当前 canonical contract；当前最佳 shape 可成为 V1，obsolete development reader/migration/shim 必须删除，obsolete shape 必须显式 reject。未来 production compatibility obligation 仍必须声明 supported historical versions、migration/upcast 或 reject 规则，不能以本规则降低生产兼容要求。
 
 ---
 
@@ -306,7 +316,7 @@ IM protocol revision metadata
 
 ## 3.4 Generation Coexistence
 
-Upgrade 期间：
+存在 declared compatibility obligation 时，升级期间：
 
 ```text
 A and B may coexist
@@ -323,6 +333,8 @@ or explicitly BLOCK upgrade
 ```
 
 禁止 silently deserialize with current schema。
+
+没有 declared compatibility obligation 的 `PRE_PRODUCTION` 开发格式不进入 generation coexistence contract；它们应被 canonical V1 reader 拒绝，而不是为了历史存在本身保留兼容路径。
 
 ---
 

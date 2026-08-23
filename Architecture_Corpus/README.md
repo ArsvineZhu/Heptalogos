@@ -311,6 +311,7 @@ BootstrapKeyProvider root never migrates across installations
 23. `23-存储拓扑-生命周期根与DataOwner.md`
 24. `24-依赖使用与实现路由.md`
 25. `25-TypeScript与仓库工具链.md`
+26. `26-开发阶段闭包-稳定化与兼容性治理.md`
 
 `specs/` 提供 Foundation 子系统与横切合同的详细设计。
 

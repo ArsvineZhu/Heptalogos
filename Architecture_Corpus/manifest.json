@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "corpus": "Heptalogos Architecture Corpus CN",
-  "designDate": "2026-08-20",
+  "designDate": "2026-08-23",
   "nature": "self-contained current-state architecture authority; Foundation provider selection is closed; residual platform/native/source-less risk is tracked through ImplementationQualification",
   "dependencyBaseline": {
     "preImplementationSelection": "CLOSED",
@@ -11,12 +11,12 @@
     "deferredCount": 2,
     "rejectedForRoleCount": 7
   },
-  "contentFileCount": 72,
+  "contentFileCount": 73,
   "files": [
     {
       "path": "00-项目宪法与工程宪法.md",
-      "size": 21615,
-      "sha256": "a26fae9d11765b8fb3aa057d1682128e9a589db0c63e1b564ad7b62ca58810a1"
+      "size": 22214,
+      "sha256": "aacae45a07c6d60440cd71684283e641006bbbd747fc7792fa375ed0d945e4df"
     },
     {
       "path": "01-产品目标与差异化.md",
@@ -95,8 +95,8 @@
     },
     {
       "path": "16-验证与资格认定体系.md",
-      "size": 15180,
-      "sha256": "5e5d736f1d7f3c26492f589b190896564b3121929d7bab912eff6aeadb861162"
+      "size": 16381,
+      "sha256": "84cb2732eaf3913af8ffb23bf0e256906f3634208a66c5ac722d088336ed876f"
     },
     {
       "path": "17-高级研究子系统接入地图.md",
@@ -110,13 +110,13 @@
     },
     {
       "path": "19-术语表.md",
-      "size": 12614,
-      "sha256": "6cdad4dda81f04711b280f05a461108e4b6ecaca5801757ca3e763c4e70a8bfb"
+      "size": 13536,
+      "sha256": "4ea5a998657014196523d055aa8645001ca01430bac91c33c77ec22d8dd856a3"
     },
     {
       "path": "20-架构审查清单.md",
-      "size": 15840,
-      "sha256": "6bf4bba56f995e825a86fbea6a739b82ee277c26a394900bd0d7dc1f476fc583"
+      "size": 16380,
+      "sha256": "a5e66d23116902c215ba8b88e10206af0f15089c4332ce65d50b82e16dee4a9a"
     },
     {
       "path": "21-配置治理与Configuration-Surface.md",
@@ -144,9 +144,19 @@
       "sha256": "649a228f452831a735a5c94243eccd4bcd3ab9cc9b733b247aa61b7bc649c22c"
     },
     {
+      "path": "26-开发阶段闭包-稳定化与兼容性治理.md",
+      "size": 3522,
+      "sha256": "741be4f7d23572ae54f6b242166d61976fb9d01e3209ccd55026306cf0dfcdc4"
+    },
+    {
       "path": "INDEX.md",
-      "size": 7691,
-      "sha256": "d2773cd21bb04389b968a7e180a25a5b0dcea5339b2a9cada9efe0398780456e"
+      "size": 7844,
+      "sha256": "ee43bd88f2c776dc35ecfd5acc4c61d1c4265c6f35041d661d6b53bb3e706d72"
+    },
+    {
+      "path": "README.md",
+      "size": 12403,
+      "sha256": "1344b8a40ec1b2319a6776068d789189febb32307da826be8189794973fb0b9e"
     },
     {
       "path": "qualification/DEPENDENCY-QUALIFICATION.md",
@@ -234,14 +244,14 @@
       "sha256": "614e082e7325d4f10113e5325a49b4551cff183b0eaa1189a4d35121951a872c"
     },
     {
-      "path": "qualification/results/qualification-status.json",
-      "size": 40845,
-      "sha256": "a6c5c03e6b1463651729cef4e632fc103a4562855db0ebeed162cac31e3cc075"
-    },
-    {
       "path": "qualification/results/README.md",
       "size": 2119,
       "sha256": "dcb886c7e681ab8298776737e89e01109b8adccdc95f6ff931d47a8260663f8d"
+    },
+    {
+      "path": "qualification/results/qualification-status.json",
+      "size": 40845,
+      "sha256": "a6c5c03e6b1463651729cef4e632fc103a4562855db0ebeed162cac31e3cc075"
     },
     {
       "path": "qualification/依赖资格矩阵.md",
@@ -254,9 +264,9 @@
       "sha256": "8747daf987bdf2e8db78af2bd10b24de424790f474e5ca851dc6357c3bf10adc"
     },
     {
-      "path": "README.md",
-      "size": 12344,
-      "sha256": "bc8d3540891dbce787d306d7a78b05a0dd9f65dae05db6720a51040ebb6dd703"
+      "path": "references/Foundation依赖证据基线-2026-08-20.md",
+      "size": 11023,
+      "sha256": "a728b238225299b447667fada42b0e111eb0f3385988b0b306f85c12f2deacc4"
     },
     {
       "path": "references/configuration-governance.json",
@@ -272,11 +282,6 @@
       "path": "references/dependency-routing.json",
       "size": 13877,
       "sha256": "5442daf8438f709d19d493e705b7a424308733912227da1df098a35f5fd354ed"
-    },
-    {
-      "path": "references/Foundation依赖证据基线-2026-08-20.md",
-      "size": 11023,
-      "sha256": "a728b238225299b447667fada42b0e111eb0f3385988b0b306f85c12f2deacc4"
     },
     {
       "path": "references/storage-governance.json",
@@ -360,8 +365,8 @@
     },
     {
       "path": "specs/S15-Foundation横切合同.md",
-      "size": 26247,
-      "sha256": "06bb89051fe603a0d7b0d0599cbac1250cbc07b9fbe0cbaaf0df6897f241d50c"
+      "size": 27321,
+      "sha256": "342bd86416664b9256e7e0a95c26606f2b9363db194320eb9f8721878425d385"
     },
     {
       "path": "specs/S16-Execution-Lineage-Observability.md",

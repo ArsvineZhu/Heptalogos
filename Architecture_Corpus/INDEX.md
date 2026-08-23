@@ -34,6 +34,7 @@
 | `23-存储拓扑-生命周期根与DataOwner.md` | 生命周期根、PathProfile、Storage Workspace、配置载体、DataOwner、多存储后端与 Backup Participant |
 | `24-依赖使用与实现路由.md` | 已采用依赖的强制实现路由、adapter/import 边界与 Agent 使用规则 |
 | `25-TypeScript与仓库工具链.md` | TypeScript 7 主编译器、TS6 API compatibility lane、ESNext/NodeNext、Node types、版本与 prerelease 采用规则 |
+| `26-开发阶段闭包-稳定化与兼容性治理.md` | H-stage stabilization、PRE_PRODUCTION 兼容性边界、候选闭环与 H1/H2 阶段治理 |
 
 ## 详细规格
 
