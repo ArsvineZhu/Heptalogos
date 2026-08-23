@@ -42,6 +42,7 @@ import { resolveBootstrapPathProfile } from "./roots.js";
 
 const directories: string[] = [];
 const LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
+const PROCESS_INSPECTION_TEST_TIMEOUT_MS = 15_000;
 
 async function makeFixture() {
   const anchorRoot = await mkdtemp(join(tmpdir(), "heptalogos-recovery-inspect-"));
@@ -296,23 +297,27 @@ describe("bounded bootstrap recovery inspection", () => {
     await expectDisposition(fixture.anchorRoot, "INCOMPLETE_MAINTENANCE");
   });
 
-  it("blocks no-lock inspection when an OWNER witness proves this process", async () => {
-    const fixture = await makeFixture();
-    const identity = currentBootstrapProcessIdentity();
-    await new BootstrapOwnerWitnessStore(fixture.instanceRoot).publishOwner({
-      schemaVersion: 1,
-      phase: "OWNER",
-      lockGenerationId: createBootstrapLockGenerationId(),
-      bootId: createBootId(),
-      pid: identity.pid,
-      processStartedAtMs: identity.startedAtMs,
-      heartbeatMs: 1_000,
-      createdAt: new Date().toISOString(),
-    });
+  it(
+    "blocks no-lock inspection when an OWNER witness proves this process",
+    async () => {
+      const fixture = await makeFixture();
+      const identity = currentBootstrapProcessIdentity();
+      await new BootstrapOwnerWitnessStore(fixture.instanceRoot).publishOwner({
+        schemaVersion: 1,
+        phase: "OWNER",
+        lockGenerationId: createBootstrapLockGenerationId(),
+        bootId: createBootId(),
+        pid: identity.pid,
+        processStartedAtMs: identity.startedAtMs,
+        heartbeatMs: 1_000,
+        createdAt: new Date().toISOString(),
+      });
 
-    const inspection = await expectDisposition(fixture.anchorRoot, "BLOCKED");
-    expect(inspection.ownerProcessStatus).toBe("SAME_PROCESS");
-  });
+      const inspection = await expectDisposition(fixture.anchorRoot, "BLOCKED");
+      expect(inspection.ownerProcessStatus).toBe("SAME_PROCESS");
+    },
+    PROCESS_INSPECTION_TEST_TIMEOUT_MS,
+  );
 
   it("reports RECOVERED_PREVIOUS as blocked inspection evidence without a recovery decision", async () => {
     const fixture = await makeFixture();

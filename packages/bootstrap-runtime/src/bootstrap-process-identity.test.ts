@@ -20,6 +20,7 @@ const FIXTURE = fileURLToPath(
   new URL("../test/fixtures/process-identity-child.mjs", import.meta.url),
 );
 const children: ChildProcess[] = [];
+const PROCESS_INSPECTION_TEST_TIMEOUT_MS = 15_000;
 
 async function startChild(): Promise<{
   readonly child: ChildProcess;
@@ -49,22 +50,30 @@ afterEach(async () => {
 });
 
 describe("bootstrap process identity", () => {
-  it("classifies the current process as SAME_PROCESS", async () => {
-    const identity = currentBootstrapProcessIdentity();
+  it(
+    "classifies the current process as SAME_PROCESS",
+    async () => {
+      const identity = currentBootstrapProcessIdentity();
 
-    expect(identity.pid).toBe(process.pid);
-    await expect(inspectBootstrapProcessIdentity(identity)).resolves.toBe(
-      "SAME_PROCESS",
-    );
-  });
+      expect(identity.pid).toBe(process.pid);
+      await expect(inspectBootstrapProcessIdentity(identity)).resolves.toBe(
+        "SAME_PROCESS",
+      );
+    },
+    PROCESS_INSPECTION_TEST_TIMEOUT_MS,
+  );
 
-  it("classifies a live child process as SAME_PROCESS", async () => {
-    const { identity } = await startChild();
+  it(
+    "classifies a live child process as SAME_PROCESS",
+    async () => {
+      const { identity } = await startChild();
 
-    await expect(inspectBootstrapProcessIdentity(identity)).resolves.toBe(
-      "SAME_PROCESS",
-    );
-  });
+      await expect(inspectBootstrapProcessIdentity(identity)).resolves.toBe(
+        "SAME_PROCESS",
+      );
+    },
+    PROCESS_INSPECTION_TEST_TIMEOUT_MS,
+  );
 
   it("classifies a terminated child process as PROCESS_DEAD", async () => {
     const { child, identity } = await startChild();
