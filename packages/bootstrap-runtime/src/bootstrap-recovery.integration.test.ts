@@ -20,9 +20,8 @@ import {
   BootstrapOwnerWitnessStore,
   BootstrapStateStore,
   MaintenanceJournalStore,
-  type BootstrapStateBodyV2,
   type BootstrapStateBodyV1,
-  type BootstrapStateEnvelopeV2,
+  type BootstrapStateEnvelopeV1,
   type MaintenanceJournalBodyV1,
 } from "@heptalogos/bootstrap-state";
 import {
@@ -181,7 +180,7 @@ interface InterruptedOperation {
   readonly host: BootstrapManagedHostContext;
   readonly ready: ReadyPrivatePostgres;
   readonly operationId: MaintenanceJournalBodyV1["operationId"];
-  readonly state: BootstrapStateEnvelopeV2;
+  readonly state: BootstrapStateEnvelopeV1;
 }
 
 function makeState(): BootstrapStateBodyV1 {
@@ -409,7 +408,7 @@ async function makeInterruptedOperation(
   });
 
   const locator = await loadBootstrapLocator(fixture.anchorRoot);
-  const profile = await resolveBootstrapPathProfile(locator);
+  const profile = await resolveBootstrapPathProfile(locator, ["INSTANCE"]);
   const operationBootId = host.bootId;
   const lease = await acquireBootstrapOwnership(profile.resolve("INSTANCE"), {
     heartbeatMs: 1_000,
@@ -418,14 +417,14 @@ async function makeInterruptedOperation(
   try {
     const access = openMaintenanceStateAccess(profile, lease);
     const loaded = await access.state.load();
-    if (
-      loaded.status !== "CURRENT" ||
-      loaded.value.state.schemaVersion !== 2 ||
-      loaded.value.state.privatePostgres.schemaVersion !== 2
-    ) {
-      throw new Error("M5B fixture BootstrapState V2 was not available");
+    if (loaded.status !== "CURRENT" || loaded.value.state.schemaVersion !== 1) {
+      throw new Error("M5B fixture BootstrapState V1 was not available");
     }
-    const state = loaded.value as BootstrapStateEnvelopeV2;
+    const privatePostgres = loaded.value.state.privatePostgres;
+    if (privatePostgres === undefined || privatePostgres.schemaVersion !== 1) {
+      throw new Error("M5B fixture private PostgreSQL state was not available");
+    }
+    const state = loaded.value as BootstrapStateEnvelopeV1;
     const snapshot = await inspectHostOwnershipCanonicalSnapshot({
       port,
       passwordProvider: passwordProvider(
@@ -452,9 +451,8 @@ async function makeInterruptedOperation(
       source: {
         hostOwnershipToken: row.host_ownership_token as never,
         hostOwnershipRevision: String(row.ownership_revision),
-        postgresClusterSystemIdentifier:
-          state.state.privatePostgres.clusterSystemIdentifier,
-        persistedPort: state.state.privatePostgres.persistedPort,
+        postgresClusterSystemIdentifier: privatePostgres.clusterSystemIdentifier,
+        persistedPort: privatePostgres.persistedPort,
       },
       target: {
         privatePostgres:
@@ -465,7 +463,7 @@ async function makeInterruptedOperation(
       verifiedPrerequisites: {
         bootstrapStateDigest: state.digest,
         privatePostgresInitializationProfileRevision:
-          state.state.privatePostgres.initializationProfileRevision,
+          privatePostgres.initializationProfileRevision,
       },
       lastCompletedStage: "HOST_QUIESCED",
       updatedAt: new Date().toISOString(),
@@ -617,7 +615,7 @@ async function publishHistoricalTarget(
 ): Promise<string> {
   const keyProvider = makeKeyProvider();
   const locator = await loadBootstrapLocator(fixture.anchorRoot);
-  const profile = await resolveBootstrapPathProfile(locator);
+  const profile = await resolveBootstrapPathProfile(locator, ["INSTANCE"]);
   const lease = await acquireBootstrapOwnership(profile.resolve("INSTANCE"), {
     heartbeatMs: 1_000,
     bootId,
@@ -781,10 +779,10 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
     ).load();
     expect(stateAfter).toMatchObject({
       status: "CURRENT",
-      value: { state: { schemaVersion: 2, revision: 2 } },
+      value: { state: { schemaVersion: 1, revision: 2 } },
     });
-    if (stateAfter.status !== "CURRENT" || stateAfter.value.state.schemaVersion !== 2) {
-      throw new Error("PG-1 did not persist BootstrapState V2");
+    if (stateAfter.status !== "CURRENT" || stateAfter.value.state.schemaVersion !== 1) {
+      throw new Error("PG-1 did not persist BootstrapState V1");
     }
     await assertReady(await resolvePrivatePostgresToolchain(qualifiedPgBin), port);
     const preHost = await inspectPreHostOwnershipState(
@@ -869,7 +867,7 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
       status: "CURRENT",
       value: {
         state: {
-          schemaVersion: 2,
+          schemaVersion: 1,
           revision: 2,
           privatePostgres: {
             clusterSystemIdentifier: boundary.clusterSystemIdentifier,
@@ -1135,96 +1133,6 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
     if (result.kind !== "RESTARTED")
       throw new Error("PG-5B recovery did not return Host");
     await assertReady(toolchain, 55537);
-    await result.host.shutdownKeepingPrivatePostgres({
-      async quiesce() {
-        return { async resumeAfterAbort() {} };
-      },
-    });
-  }, 180_000);
-
-  it("PG-6A normalizes historical target B and publishes a distinct live target C", async () => {
-    const fixture = await makeFixture(55538);
-    const interrupted = await makeInterruptedOperation(
-      fixture,
-      55538,
-      "PRIVATE_POSTGRES_RESTART",
-    );
-    const descriptor = getPrivatePostgresMaintenanceDescriptor(interrupted.ready);
-    const targetToken = createHostOwnershipToken();
-    const legacyOperationBootId = interrupted.host.bootId;
-    await interrupted.host.shutdownKeepingPrivatePostgres({
-      async quiesce() {
-        return { async resumeAfterAbort() {} };
-      },
-    });
-    const targetRevision = await publishHistoricalTarget(
-      fixture,
-      55538,
-      targetToken,
-      legacyOperationBootId,
-    );
-    await advanceJournalStage(
-      fixture,
-      interrupted.operationId,
-      "HOST_TOKEN_PUBLISHED",
-      {
-        target: {
-          privatePostgres: "RUNNING_SAME_IDENTITY",
-          hostOwnershipToken: targetToken,
-          hostOwnershipRevision: targetRevision,
-        },
-      },
-    );
-    const legacy = await new MaintenanceJournalStore(fixture.roots.INSTANCE).load(
-      interrupted.operationId,
-    );
-    expect(legacy).toMatchObject({
-      status: "CURRENT",
-      value: {
-        state: {
-          bootId: legacyOperationBootId,
-          target: {
-            hostOwnershipToken: targetToken,
-            hostOwnershipRevision: targetRevision,
-          },
-        },
-      },
-    });
-    if (legacy.status !== "CURRENT") throw new Error("legacy journal is not current");
-    expect(legacy.value.state.target.hostBootId).toBeUndefined();
-    await leaveAbandonedLock(fixture, interrupted.host.bootId);
-
-    const result = await recoverInterruptedHostMaintenance({
-      anchorRoot: fixture.anchorRoot,
-      principal: await proveLocalInstallationOwner(fixture.anchorRoot),
-      expectedOperationId: interrupted.operationId,
-      keyProvider: makeKeyProvider(),
-      timing: HOST_TIMING,
-      privatePostgres: descriptor,
-    });
-    expect(result.kind).toBe("RESTARTED");
-    if (result.kind !== "RESTARTED")
-      throw new Error("PG-6A recovery did not return Host");
-    expect(result.host.token).not.toBe(targetToken);
-    expect(result.host.bootId).not.toBe(legacyOperationBootId);
-    const final = await new MaintenanceJournalStore(fixture.roots.INSTANCE).load(
-      interrupted.operationId,
-    );
-    expect(final).toMatchObject({
-      status: "CURRENT",
-      value: {
-        state: {
-          target: {
-            hostOwnershipToken: result.host.token,
-            hostBootId: result.host.bootId,
-            hostOwnershipRevision: expect.any(String),
-          },
-        },
-      },
-    });
-    if (final.status !== "CURRENT") throw new Error("final journal is not current");
-    expect(final.value.state.target.hostBootId).toBe(result.host.bootId);
-    expect(final.value.state.target.hostOwnershipRevision).toMatch(/^\d+$/u);
     await result.host.shutdownKeepingPrivatePostgres({
       async quiesce() {
         return { async resumeAfterAbort() {} };

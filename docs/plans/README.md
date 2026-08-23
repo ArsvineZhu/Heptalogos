@@ -15,11 +15,10 @@ surface the ambiguity rather than guessing.
 
 ## Active
 
-- [H1-S1 Foundation Authority & Canonical-State Stabilization](active/foundation/h1s-s1-foundation-authority-stabilization.md) — `ACTIVE` (execution-gated by the control record)
 - [H1-S2 Clean-State Qualification & Closure](active/foundation/h1s-s2-clean-state-qualification-closure.md) — `ACTIVE` (execution-gated by the control record)
 
-Governing H1-S plan: `h1s-s1-foundation-authority-stabilization.md`
-S2 is approved but execution-gated by `h1s-control-record.md`.
+Governing H1-S plan: `h1s-s2-clean-state-qualification-closure.md`
+S2 is now open under `h1s-control-record.md` after S1 completion.
 
 ## Completed
 
@@ -32,3 +31,4 @@ S2 is approved but execution-gated by `h1s-control-record.md`.
 - [Foundation M5A Reverse Handoff & PostgreSQL Maintenance Window](completed/foundation/m5a-reverse-handoff-maintenance-window.md) — `COMPLETED`
 - [Foundation M5B Bounded Bootstrap Recovery & H1 Closure](completed/foundation/m5b-bounded-bootstrap-recovery-h1-closure.md) — `COMPLETED`
 - [H1-S0 Governance & Truth Reset](completed/foundation/h1s-s0-governance-truth-reset.md) — `COMPLETED`
+- [H1-S1 Foundation Authority & Canonical-State Stabilization](completed/foundation/h1s-s1-foundation-authority-stabilization.md) — `COMPLETED` (live PostgreSQL qualification remains an S2 `NOT_RUN` gate)

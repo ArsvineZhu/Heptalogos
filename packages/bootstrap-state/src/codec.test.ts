@@ -10,7 +10,7 @@ import {
   parseBootstrapState,
   sealBootstrapState,
 } from "./codec.js";
-import type { BootstrapStateBodyV1, BootstrapStateBodyV2 } from "./model.js";
+import type { BootstrapStateBodyV1 } from "./model.js";
 
 function makeState(): BootstrapStateBodyV1 {
   return {
@@ -27,9 +27,9 @@ function makeState(): BootstrapStateBodyV1 {
   };
 }
 
-function makeStateV2(): BootstrapStateBodyV2 {
+function makeStateWithPrivatePostgres(): BootstrapStateBodyV1 {
   return {
-    schemaVersion: 2,
+    schemaVersion: 1,
     revision: 1,
     activeBootstrapRuntimeGeneration: asContentDigest(
       "BootstrapRuntimeGenerationId",
@@ -40,7 +40,7 @@ function makeStateV2(): BootstrapStateBodyV2 {
       digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
     ),
     privatePostgres: {
-      schemaVersion: 2,
+      schemaVersion: 1,
       postgresMajor: 18,
       initializedByPostgresVersion: "18.6",
       installationId: createInstallationId(),
@@ -72,57 +72,30 @@ describe("BootstrapState codec", () => {
     expect(sealed.digest.domain).toBe(BOOTSTRAP_STATE_DIGEST_DOMAIN);
   });
 
-  it("seals and parses a valid V2 state", () => {
-    const sealed = sealBootstrapState(makeStateV2());
+  it("seals and parses canonical V1 with private PostgreSQL", () => {
+    const sealed = sealBootstrapState(makeStateWithPrivatePostgres());
     const result = parseBootstrapState(JSON.stringify(sealed));
 
     expect(result).toEqual({ ok: true, value: sealed });
-    expect(sealed.state.schemaVersion).toBe(2);
-    expect(sealed.digest.domain).toBe("heptalogos.bootstrap-state/v2");
+    expect(sealed.state.schemaVersion).toBe(1);
+    expect(sealed.digest.domain).toBe(BOOTSTRAP_STATE_DIGEST_DOMAIN);
   });
 
-  it("roundtrips the V2 private PostgreSQL bootstrap role identity", () => {
-    const base = makeStateV2();
-    const state = {
-      ...base,
-      privatePostgres: {
-        ...base.privatePostgres,
-        schemaVersion: 2,
-        bootstrapRoleName: "heptalogos_bootstrap",
-      },
-    } as unknown as BootstrapStateBodyV2;
-    const sealed = sealBootstrapState(state);
+  it("rejects the obsolete pre-reset outer V2 shape", () => {
+    const sealed = sealBootstrapState(makeStateWithPrivatePostgres());
+    const legacy = {
+      ...sealed,
+      state: { ...sealed.state, schemaVersion: 2 },
+    };
 
-    expect(parseBootstrapState(JSON.stringify(sealed))).toEqual({
-      ok: true,
-      value: sealed,
+    expect(parseBootstrapState(JSON.stringify(legacy))).toMatchObject({
+      ok: false,
+      problem: { problemCode: "bootstrap.state.unsupported_schema" },
     });
   });
 
-  it("continues to parse a legacy V2 private PostgreSQL identity", () => {
-    const base = makeStateV2();
-    if (base.privatePostgres.schemaVersion !== 2) {
-      throw new Error("expected V2 private PostgreSQL identity");
-    }
-    const { bootstrapRoleName: _bootstrapRoleName, ...legacyFields } =
-      base.privatePostgres;
-    const legacyState = {
-      ...base,
-      privatePostgres: {
-        ...legacyFields,
-        schemaVersion: 1,
-      },
-    } as unknown as BootstrapStateBodyV2;
-    const sealed = sealBootstrapState(legacyState);
-
-    expect(parseBootstrapState(JSON.stringify(sealed))).toEqual({
-      ok: true,
-      value: sealed,
-    });
-  });
-
-  it("rejects unknown fields in a V2 state", () => {
-    const sealed = sealBootstrapState(makeStateV2());
+  it("rejects unknown fields in canonical V1 state", () => {
+    const sealed = sealBootstrapState(makeStateWithPrivatePostgres());
     const result = parseBootstrapState(
       JSON.stringify({
         ...sealed,
@@ -136,8 +109,8 @@ describe("BootstrapState codec", () => {
     });
   });
 
-  it("rejects invalid V2 identity, port, and cluster identifier fields", () => {
-    const sealed = sealBootstrapState(makeStateV2());
+  it("rejects invalid canonical identity, port, and cluster identifier fields", () => {
+    const sealed = sealBootstrapState(makeStateWithPrivatePostgres());
     const cases = [
       {
         state: {
@@ -176,17 +149,14 @@ describe("BootstrapState codec", () => {
     }
   });
 
-  it("uses domain-separated V1 and V2 digest domains", () => {
+  it("uses the canonical V1 digest domain", () => {
     expect(sealBootstrapState(makeState()).digest.domain).toBe(
       "heptalogos.bootstrap-state/v1",
     );
-    expect(sealBootstrapState(makeStateV2()).digest.domain).toBe(
-      "heptalogos.bootstrap-state/v2",
-    );
   });
 
-  it("rejects an unsupported future schema before attempting V2 validation", () => {
-    const sealed = sealBootstrapState(makeStateV2());
+  it("rejects an unsupported future schema", () => {
+    const sealed = sealBootstrapState(makeStateWithPrivatePostgres());
     const future = {
       ...sealed,
       state: { ...sealed.state, schemaVersion: 3 },
@@ -198,8 +168,8 @@ describe("BootstrapState codec", () => {
     });
   });
 
-  it("rejects a V2 digest mismatch with the V2 domain", () => {
-    const sealed = sealBootstrapState(makeStateV2());
+  it("rejects a canonical V1 digest mismatch", () => {
+    const sealed = sealBootstrapState(makeStateWithPrivatePostgres());
     const result = parseBootstrapState(
       JSON.stringify({
         ...sealed,

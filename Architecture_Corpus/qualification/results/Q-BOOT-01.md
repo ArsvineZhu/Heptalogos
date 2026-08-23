@@ -71,9 +71,9 @@ the selected `@bybrave/proper-lockfile2` provider.
 
 Process-generation evidence uses a real child fixture and `pidusage@4.0.1`:
 `SAME_PROCESS` is returned for self/live child, `PROCESS_DEAD` only for a
-definitely missing PID, a start-time mismatch beyond 5 seconds is
-`PID_REUSED`, and both an ambiguous `kill(pid, 0)` error and a pidusage failure
-are `UNKNOWN`.
+definitely missing PID, and a start-time mismatch beyond 5 seconds is
+`UNKNOWN`; an ambiguous `kill(pid, 0)` error and a pidusage failure are also
+`UNKNOWN`.
 
 若未来真实 implementation 暴露 reproducible hard blocker，才允许按 `../DEPENDENCY-QUALIFICATION.md` 的 reopening rule 重开 RoleDecision。
 

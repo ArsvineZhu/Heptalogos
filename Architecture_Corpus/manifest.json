@@ -160,8 +160,8 @@
     },
     {
       "path": "qualification/DEPENDENCY-QUALIFICATION.md",
-      "size": 8447,
-      "sha256": "8a8ef016b85f6c309fee2842073cebc2e43f1727821d16e8e46afb4c030f62a3"
+      "size": 8450,
+      "sha256": "81825520038913be47f04c9564a1c5059138b44a61e1dae5a601490de53dd4e4"
     },
     {
       "path": "qualification/dependency-status.json",
@@ -215,8 +215,8 @@
     },
     {
       "path": "qualification/results/Q-BOOT-01.md",
-      "size": 14628,
-      "sha256": "f507e56b00e9e4fe414c8c981d8e91af8cd0949968276b0c29e38f33c595ddee"
+      "size": 14625,
+      "sha256": "f5c3f3c2d765d1d071ea045fbd5b34df8bff10bf82f06bc6551ba621668de281"
     },
     {
       "path": "qualification/results/Q-MSG-01.md",

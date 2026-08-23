@@ -3,12 +3,14 @@ import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const {
-  acquireBootstrapOwnership,
   loadBootstrapLocator,
-  reclaimAbandonedBootstrapOwnership,
   proveLocalInstallationOwner,
   resolveBootstrapPathProfile,
 } = require("@heptalogos/bootstrap-runtime");
+const { acquireBootstrapOwnership } = require("../../dist/bootstrap-ownership.js");
+const {
+  reclaimAbandonedBootstrapOwnership,
+} = require("../../dist/bootstrap-recovery.js");
 const { createBootId } = require("@heptalogos/foundation-contracts");
 
 const anchorRoot = process.argv[2];
@@ -22,9 +24,9 @@ function send(message) {
 
 let lease;
 try {
-  if (role === "hold") {
+  if (role === "hold" || role === "exit-without-release") {
     const locator = await loadBootstrapLocator(anchorRoot);
-    const profile = await resolveBootstrapPathProfile(locator);
+    const profile = await resolveBootstrapPathProfile(locator, ["INSTANCE"]);
     lease = await acquireBootstrapOwnership(profile.resolve("INSTANCE"), {
       heartbeatMs: 1_000,
       bootId: createBootId(),
@@ -39,6 +41,9 @@ try {
     throw new Error(`unsupported role ${role}`);
   }
   send({ type: "acquired" });
+  if (role === "exit-without-release") {
+    setTimeout(() => process.reallyExit?.(0), 50).unref();
+  }
 } catch (error) {
   send({
     type: "error",
@@ -48,20 +53,22 @@ try {
   setTimeout(() => process.exit(0), 20).unref();
 }
 
-process.on("message", async (message) => {
-  if (message?.type !== "release" || lease === undefined) return;
-  try {
-    await lease.release();
-    send({ type: "released" });
-  } catch (error) {
-    send({
-      type: "released",
-      problemCode: error?.problem?.problemCode ?? "UNKNOWN",
-      message: String(error),
-    });
-  }
-});
+if (role !== "exit-without-release") {
+  process.on("message", async (message) => {
+    if (message?.type !== "release" || lease === undefined) return;
+    try {
+      await lease.release();
+      send({ type: "released" });
+    } catch (error) {
+      send({
+        type: "released",
+        problemCode: error?.problem?.problemCode ?? "UNKNOWN",
+        message: String(error),
+      });
+    }
+  });
 
-// Keep the IPC channel active on Node versions that otherwise allow the module
-// evaluation promise to finish before the parent sends a release message.
-createReadStream("/dev/null").on("error", () => undefined);
+  // Keep the IPC channel active on Node versions that otherwise allow the module
+  // evaluation promise to finish before the parent sends a release message.
+  createReadStream("/dev/null").on("error", () => undefined);
+}

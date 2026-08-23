@@ -213,16 +213,12 @@ function semanticProblem(body: MaintenanceJournalBodyV1): string | undefined {
       body.lastCompletedStage === "BOOTSTRAP_RELEASE_ARMED"
     ) {
       const modernTarget = hasTargetToken && hasTargetBootId && hasTargetRevision;
-      const legacyM5aTarget = hasTargetToken && !hasTargetBootId && hasTargetRevision;
-      if (!modernTarget && !legacyM5aTarget) {
-        return "maintenance.journal.invalid_semantics";
-      }
+      if (!modernTarget) return "maintenance.journal.invalid_semantics";
     } else if (body.lastCompletedStage === "RECOVERY_REQUIRED") {
       const validRecoveryShape =
         !hasAnyTargetOwnership ||
         (hasTargetToken && hasTargetBootId && !hasTargetRevision) ||
-        (hasTargetToken && hasTargetBootId && hasTargetRevision) ||
-        (hasTargetToken && !hasTargetBootId && hasTargetRevision);
+        (hasTargetToken && hasTargetBootId && hasTargetRevision);
       if (!validRecoveryShape) return "maintenance.journal.invalid_semantics";
     } else if (hasAnyTargetOwnership) {
       return "maintenance.journal.invalid_semantics";

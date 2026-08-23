@@ -3,13 +3,14 @@ import {
   BootstrapJournal,
   BootstrapStateStore,
   type BootstrapActivityId,
-  type BootstrapJournalCheckpointV2,
+  type BootstrapJournalCheckpointV1,
   type BootstrapStateLoadResult,
   type BootstrapStageOutcome,
 } from "@heptalogos/bootstrap-state";
 import {
   createBootId,
   createUuidV7Id,
+  ProblemError,
   type BootId,
   type InstallationId,
   type InstanceId,
@@ -26,6 +27,7 @@ import {
   openBootstrapStateAccess,
   type OwnedBootstrapStateStore,
 } from "./bootstrap-state-access.js";
+import { inspectMaintenanceObligation } from "./maintenance-obligation.js";
 import {
   createPrivatePostgresSessionTracker,
   assertReadyPrivatePostgresSession,
@@ -73,6 +75,7 @@ export interface OwnedBootstrapPrelude {
 }
 
 const BOOTSTRAP_STATE_DIRECTORY = "bootstrap-state";
+const BOOTSTRAP_PRELUDE_ROOTS = ["INSTANCE", "DATA", "LOG", "TEMP"] as const;
 const STAGE_PRELUDE_STARTED = "bootstrap.prelude.started";
 const STAGE_LOCATOR_RESOLVED = "bootstrap.locator.resolved";
 const STAGE_ROOTS_RESOLVED = "bootstrap.roots.resolved";
@@ -98,6 +101,38 @@ function problemCodeOf(error: unknown): string | undefined {
   return typeof problem.problemCode === "string" ? problem.problemCode : undefined;
 }
 
+function currentBootstrapStateAuthorityRequired(): ProblemError {
+  return new ProblemError({
+    schemaVersion: 1,
+    problemCode: "bootstrap.state.current_authority_required",
+    category: "integrity",
+    retryClass: "manual",
+    title: "Current BootstrapState authority is required",
+    detail:
+      "A recovered previous BootstrapState revision is inspection evidence only and cannot authorize bootstrap",
+  });
+}
+
+function assertMaintenanceObligationClear(
+  obligation: Awaited<ReturnType<typeof inspectMaintenanceObligation>>,
+): void {
+  if (obligation.problem !== undefined) {
+    throw new ProblemError(obligation.problem);
+  }
+  if (!obligation.incomplete) return;
+  throw new ProblemError({
+    schemaVersion: 1,
+    problemCode: "bootstrap.recovery.maintenance_required",
+    category: "conflict",
+    retryClass: "manual",
+    title: "Incomplete maintenance recovery is required",
+    detail:
+      obligation.operationId === undefined
+        ? "BootstrapState references an incomplete maintenance obligation that must be recovered before normal bootstrap"
+        : `MaintenanceJournal operation ${obligation.operationId} is incomplete and must be recovered before normal bootstrap`,
+  });
+}
+
 function checkpoint(
   installationId: InstallationId,
   instanceId: InstanceId,
@@ -107,9 +142,9 @@ function checkpoint(
   at: string,
   outcome: BootstrapStageOutcome,
   problemCode?: string,
-): BootstrapJournalCheckpointV2 {
+): BootstrapJournalCheckpointV1 {
   return {
-    schemaVersion: 2,
+    schemaVersion: 1,
     bootId,
     bootstrapActivityId,
     installationId,
@@ -169,6 +204,13 @@ async function materializeOwnedBootstrapPrelude(
   try {
     const access = openBootstrapStateAccess(context.paths, ownership);
     const authoritativeState = await access.state.load();
+    if (authoritativeState.status === "RECOVERED_PREVIOUS") {
+      throw currentBootstrapStateAuthorityRequired();
+    }
+    await inspectMaintenanceObligation(
+      context.paths.resolve("INSTANCE").canonicalPath,
+      authoritativeState,
+    ).then(assertMaintenanceObligationClear);
     const privatePostgresSession = createPrivatePostgresSessionTracker();
     await record(
       context.journal,
@@ -295,7 +337,7 @@ export async function adoptRecoveredBootstrapOwnershipForPrelude(
 ): Promise<OwnedBootstrapPrelude> {
   try {
     const locator = await loadBootstrapLocator(anchorRoot);
-    const paths = await resolveBootstrapPathProfile(locator);
+    const paths = await resolveBootstrapPathProfile(locator, BOOTSTRAP_PRELUDE_ROOTS);
     const instanceRoot = paths.resolve("INSTANCE").canonicalPath;
     assertBootstrapOwnershipFor(ownership, instanceRoot);
     const journal = new BootstrapJournal(instanceRoot);
@@ -325,7 +367,7 @@ export async function prepareBootstrapPrelude(
 
   const locator: BootstrapLocatorV1 = await loadBootstrapLocator(anchorRoot);
   const locatorResolvedAt = instant();
-  const paths = await resolveBootstrapPathProfile(locator);
+  const paths = await resolveBootstrapPathProfile(locator, BOOTSTRAP_PRELUDE_ROOTS);
   const rootsResolvedAt = instant();
   const installationId = locator.installationId;
   const instanceId = locator.instanceId;
@@ -365,6 +407,13 @@ export async function prepareBootstrapPrelude(
   let preliminaryState: BootstrapStateLoadResult;
   try {
     preliminaryState = await loadPreliminaryState(paths);
+    if (preliminaryState.status === "RECOVERED_PREVIOUS") {
+      throw currentBootstrapStateAuthorityRequired();
+    }
+    await inspectMaintenanceObligation(
+      paths.resolve("INSTANCE").canonicalPath,
+      preliminaryState,
+    ).then(assertMaintenanceObligationClear);
   } catch (error) {
     await record(
       journal,

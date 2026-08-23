@@ -140,7 +140,7 @@ export function createPrivatePostgresInitializationProfileRevision(
   return asContentDigest(
     "PrivatePostgresInitializationProfileRevision",
     digestCanonicalJson(
-      "heptalogos.private-postgres.initialization-profile/v2",
+      "heptalogos.private-postgres.initialization-profile/v1",
       profile as unknown as CanonicalJsonValue,
     ),
   );
@@ -309,10 +309,6 @@ export async function validateExistingCluster(
       "The effective PostgreSQL data directory or HBA path could not be canonicalized",
     );
   }
-  const pathsEqual = (left: string, right: string): boolean =>
-    process.platform === "win32"
-      ? left.toLowerCase() === right.toLowerCase()
-      : left === right;
   let hbaProfile: string;
   try {
     hbaProfile = await readCanonicalHbaProfile(canonicalHbaPath);
@@ -328,8 +324,8 @@ export async function validateExistingCluster(
     runtimeProfile.unixSocketDirectories !== "" ||
     runtimeProfile.passwordEncryption !== "scram-sha-256" ||
     runtimeProfile.port !== options.expectedIdentity.persistedPort ||
-    !pathsEqual(effectiveDataDirectory, canonicalDataDirectory) ||
-    !pathsEqual(effectiveHbaPath, canonicalHbaPath) ||
+    effectiveDataDirectory !== canonicalDataDirectory ||
+    effectiveHbaPath !== canonicalHbaPath ||
     hbaProfile !== createCanonicalHbaProfile()
   ) {
     throw controllerProblem(

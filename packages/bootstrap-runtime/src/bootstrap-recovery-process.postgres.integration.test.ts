@@ -32,9 +32,9 @@ import {
 import {
   loadBootstrapLocator,
   proveLocalInstallationOwner,
-  recoverInterruptedHostMaintenance,
   resolveBootstrapPathProfile,
 } from "@heptalogos/bootstrap-runtime";
+import { recoverInterruptedHostMaintenance } from "./host-maintenance-recovery.js";
 import type { PrivatePostgresMaintenanceDescriptor } from "./private-postgres-bootstrap.js";
 
 const qualifiedPgBin =
@@ -279,18 +279,21 @@ async function buildDescriptor(
   port: number,
 ): Promise<PrivatePostgresMaintenanceDescriptor> {
   const locator = await loadBootstrapLocator(fixture.anchorRoot);
-  const profile = await resolveBootstrapPathProfile(locator);
+  const profile = await resolveBootstrapPathProfile(locator, [
+    "INSTANCE",
+    "DATA",
+    "LOG",
+  ]);
   const loaded = await new BootstrapStateStore(
     join(profile.resolve("INSTANCE").canonicalPath, "bootstrap-state"),
   ).load();
-  if (
-    loaded.status !== "CURRENT" ||
-    loaded.value.state.schemaVersion !== 2 ||
-    loaded.value.state.privatePostgres.schemaVersion !== 2
-  ) {
-    throw new Error("real process fixture did not persist BootstrapState V2");
+  if (loaded.status !== "CURRENT" || loaded.value.state.schemaVersion !== 1) {
+    throw new Error("real process fixture did not persist BootstrapState V1");
   }
   const persisted = loaded.value.state.privatePostgres;
+  if (persisted === undefined || persisted.schemaVersion !== 1) {
+    throw new Error("real process fixture did not persist private PostgreSQL state");
+  }
   const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
   const placement = resolvePrivatePostgresPlacement(
     profile.resolve("DATA").canonicalPath,
@@ -365,7 +368,10 @@ afterEach(async () => {
     directories.map(async (directory) => {
       try {
         const locator = await loadBootstrapLocator(directory);
-        const profile = await resolveBootstrapPathProfile(locator);
+        const profile = await resolveBootstrapPathProfile(locator, [
+          "INSTANCE",
+          "DATA",
+        ]);
         await stopPostgres(
           toolchain,
           join(profile.resolve("DATA").canonicalPath, "private-postgres"),

@@ -1,10 +1,11 @@
 import {
   MaintenanceJournalStore,
   maintenanceOperationRef,
-  type BootstrapStateBodyV2,
-  type BootstrapStateEnvelopeV2,
+  type BootstrapStateBodyV1,
+  type BootstrapStateEnvelopeV1,
   type BootstrapStateLoadResult,
   type MaintenanceOperationId,
+  type PrivatePostgresBootstrapStateV1,
 } from "@heptalogos/bootstrap-state";
 import {
   assertBootstrapOwnershipFor,
@@ -23,7 +24,7 @@ export interface OwnedMaintenanceStateAccess {
   readonly state: OwnedBootstrapStateStore;
   commitOperationPointer(
     operationId: MaintenanceOperationId,
-  ): Promise<BootstrapStateEnvelopeV2>;
+  ): Promise<BootstrapStateEnvelopeV1>;
 }
 
 function stateProblem(
@@ -42,31 +43,44 @@ function stateProblem(
   return new ProblemError(problem);
 }
 
-function requireV2State(
+type CurrentPrivatePostgresStateEnvelope = BootstrapStateEnvelopeV1 & {
+  readonly state: BootstrapStateBodyV1 & {
+    readonly privatePostgres: PrivatePostgresBootstrapStateV1;
+  };
+};
+
+function requireCurrentPrivatePostgresState(
   loaded: BootstrapStateLoadResult,
   profile: BootstrapPathProfile,
-): BootstrapStateEnvelopeV2 {
+): CurrentPrivatePostgresStateEnvelope {
   if (loaded.status === "EMPTY") {
     throw stateProblem(
       "maintenance.state.bootstrap_state_required",
       "BootstrapState is required for maintenance",
-      "M5A cannot create a MaintenanceJournal pointer without authoritative BootstrapState",
+      "A MaintenanceJournal pointer requires authoritative BootstrapState",
     );
   }
   if (loaded.status === "CORRUPT") {
     throw new ProblemError(loaded.problem);
   }
-  if (loaded.value.state.schemaVersion !== 2) {
+  if (loaded.status === "RECOVERED_PREVIOUS") {
     throw stateProblem(
-      "maintenance.state.private_postgres_required",
-      "M4 private PostgreSQL state is required for maintenance",
-      "M5A requires BootstrapState V2 with private PostgreSQL identity",
+      "maintenance.journal.current_authority_required",
+      "Current BootstrapState authority is required for maintenance",
+      "A recovered previous BootstrapState revision is inspection evidence only and cannot authorize a MaintenanceJournal pointer",
     );
   }
-  const state = loaded.value.state;
+  const privatePostgres = loaded.value.state.privatePostgres;
+  if (privatePostgres === undefined) {
+    throw stateProblem(
+      "maintenance.state.private_postgres_required",
+      "Private PostgreSQL state is required for maintenance",
+      "Maintenance requires BootstrapState with canonical private PostgreSQL identity",
+    );
+  }
   if (
-    state.privatePostgres.installationId !== profile.installationId ||
-    state.privatePostgres.instanceId !== profile.instanceId
+    privatePostgres.installationId !== profile.installationId ||
+    privatePostgres.instanceId !== profile.instanceId
   ) {
     throw stateProblem(
       "maintenance.state.identity_mismatch",
@@ -74,7 +88,7 @@ function requireV2State(
       "BootstrapState private PostgreSQL identity belongs to another installation or instance",
     );
   }
-  return loaded.value as BootstrapStateEnvelopeV2;
+  return loaded.value as CurrentPrivatePostgresStateEnvelope;
 }
 
 export function openMaintenanceStateAccess(
@@ -108,22 +122,22 @@ export function openMaintenanceStateAccess(
     state,
     async commitOperationPointer(operationId) {
       assertAuthority();
-      const current = requireV2State(await state.load(), profile);
-      const candidate: BootstrapStateBodyV2 = {
+      const current = requireCurrentPrivatePostgresState(await state.load(), profile);
+      const candidate: BootstrapStateBodyV1 = {
         ...current.state,
         revision: current.state.revision + 1,
         lastCommittedOperationRef: maintenanceOperationRef(operationId),
       };
       assertAuthority();
       const committed = await state.commit(candidate);
-      if (committed.state.schemaVersion !== 2) {
+      if (committed.state.privatePostgres === undefined) {
         throw stateProblem(
           "maintenance.state.pointer_commit_unverified",
           "Maintenance BootstrapState pointer commit is unverified",
-          "The committed BootstrapState did not retain its V2 private PostgreSQL state",
+          "The committed BootstrapState did not retain its canonical private PostgreSQL state",
         );
       }
-      return committed as BootstrapStateEnvelopeV2;
+      return committed as BootstrapStateEnvelopeV1;
     },
   };
 }

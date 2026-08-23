@@ -13,7 +13,6 @@ import {
 import {
   BootstrapStateStore,
   type BootstrapStateBodyV1,
-  type BootstrapStateBodyV2,
 } from "@heptalogos/bootstrap-state";
 import type {
   BootstrapKeyProvider,
@@ -544,6 +543,27 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
     await owned.close();
   });
 
+  it("blocks private PostgreSQL preparation when only RECOVERED_PREVIOUS state is available", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    await owned.state.commit(makeState(2));
+    await rm(join(fixture.instanceRoot, "bootstrap-state", "bootstrap-state.json"), {
+      force: true,
+    });
+    const calls = { count: 0 };
+
+    await expect(
+      callable(owned).preparePrivatePostgres(
+        makeOptions(AMBIGUOUS_START_TEST_BIN, calls),
+      ),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.state.current_authority_required" },
+    });
+    expect(calls.count).toBe(0);
+    await owned.close();
+  });
+
   it("keeps bootstrap ownership held when ambiguous start cleanup is uncertain", async () => {
     const fixture = await makeFixture();
     const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
@@ -559,12 +579,12 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
       }),
     );
     const current = makeState(1);
-    const stateV2: BootstrapStateBodyV2 = {
+    const stateWithPrivatePostgres: BootstrapStateBodyV1 = {
       ...current,
-      schemaVersion: 2,
+      schemaVersion: 1,
       revision: 2,
       privatePostgres: {
-        schemaVersion: 2,
+        schemaVersion: 1,
         postgresMajor: 18,
         initializedByPostgresVersion: "18.6",
         installationId: owned.installationId,
@@ -580,7 +600,7 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
         initializationProfileRevision,
       },
     };
-    await owned.state.commit(stateV2);
+    await owned.state.commit(stateWithPrivatePostgres);
 
     const calls = { count: 0 };
     try {

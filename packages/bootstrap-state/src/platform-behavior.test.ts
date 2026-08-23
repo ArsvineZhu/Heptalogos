@@ -11,7 +11,7 @@ import {
 } from "@heptalogos/foundation-contracts";
 import { parseBootstrapState } from "./codec.js";
 import { BootstrapJournal } from "./journal.js";
-import type { BootstrapJournalCheckpointV2, BootId } from "./journal.js";
+import type { BootstrapJournalCheckpointV1, BootId } from "./journal.js";
 import { BootstrapStateStore } from "./store.js";
 import type { BootstrapStateBodyV1 } from "./model.js";
 
@@ -38,9 +38,9 @@ function makeState(revision: number): BootstrapStateBodyV1 {
   };
 }
 
-function makeEntry(bootId: BootId, stage: string): BootstrapJournalCheckpointV2 {
+function makeEntry(bootId: BootId, stage: string): BootstrapJournalCheckpointV1 {
   return {
-    schemaVersion: 2,
+    schemaVersion: 1,
     bootId,
     bootstrapActivityId: createUuidV7Id("ActivityId"),
     installationId: createInstallationId(),

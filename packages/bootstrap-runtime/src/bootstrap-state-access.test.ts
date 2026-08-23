@@ -14,8 +14,7 @@ import {
   BootstrapJournal,
   BootstrapStateStore,
   type BootstrapStateBodyV1,
-  type BootstrapStateBodyV2,
-  type BootstrapJournalCheckpointV2,
+  type BootstrapJournalCheckpointV1,
 } from "@heptalogos/bootstrap-state";
 import {
   acquireBootstrapOwnership,
@@ -41,9 +40,9 @@ function makeState(revision: number): BootstrapStateBodyV1 {
   };
 }
 
-function makeStateV2(revision: number): BootstrapStateBodyV2 {
+function makeStateWithPrivatePostgres(revision: number): BootstrapStateBodyV1 {
   return {
-    schemaVersion: 2,
+    schemaVersion: 1,
     revision,
     activeBootstrapRuntimeGeneration: asContentDigest(
       "BootstrapRuntimeGenerationId",
@@ -54,7 +53,7 @@ function makeStateV2(revision: number): BootstrapStateBodyV2 {
       digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
     ),
     privatePostgres: {
-      schemaVersion: 2,
+      schemaVersion: 1,
       postgresMajor: 18,
       initializedByPostgresVersion: "18.6",
       installationId: createInstallationId(),
@@ -80,9 +79,9 @@ function makeStateV2(revision: number): BootstrapStateBodyV2 {
 function makeJournalEntry(
   installationId: ReturnType<typeof createInstallationId>,
   instanceId: ReturnType<typeof createInstanceId>,
-): BootstrapJournalCheckpointV2 {
+): BootstrapJournalCheckpointV1 {
   return {
-    schemaVersion: 2,
+    schemaVersion: 1,
     bootId: createBootId(),
     bootstrapActivityId: createUuidV7Id("ActivityId"),
     installationId,
@@ -209,8 +208,10 @@ describe("owned bootstrap state access", () => {
     await expect(access.state.commit(makeState(1))).resolves.toMatchObject({
       state: { revision: 1 },
     });
-    await expect(access.state.commit(makeStateV2(2))).resolves.toMatchObject({
-      state: { schemaVersion: 2, revision: 2 },
+    await expect(
+      access.state.commit(makeStateWithPrivatePostgres(2)),
+    ).resolves.toMatchObject({
+      state: { schemaVersion: 1, revision: 2 },
     });
     const statePath = join(instanceRoot, "bootstrap-state", "bootstrap-state.json");
     const beforeRelease = {
@@ -219,7 +220,9 @@ describe("owned bootstrap state access", () => {
     };
 
     await lease.release();
-    await expect(access.state.commit(makeStateV2(3))).rejects.toMatchObject({
+    await expect(
+      access.state.commit(makeStateWithPrivatePostgres(3)),
+    ).rejects.toMatchObject({
       problem: { problemCode: "bootstrap.ownership.not_held" },
     });
     expect({
@@ -239,7 +242,7 @@ describe("owned bootstrap state access", () => {
       { heartbeatMs: 1000, bootId: createBootId() },
     );
     const access = openBootstrapStateAccess(profile, lease);
-    await access.state.commit(makeStateV2(1));
+    await access.state.commit(makeStateWithPrivatePostgres(1));
     const statePath = join(instanceRoot, "bootstrap-state", "bootstrap-state.json");
     const beforeCompromise = {
       text: await readFile(statePath, "utf8"),
@@ -258,7 +261,9 @@ describe("owned bootstrap state access", () => {
       }
     });
 
-    await expect(access.state.commit(makeStateV2(2))).rejects.toMatchObject({
+    await expect(
+      access.state.commit(makeStateWithPrivatePostgres(2)),
+    ).rejects.toMatchObject({
       problem: { problemCode: "bootstrap.ownership.compromised" },
     });
     expect({

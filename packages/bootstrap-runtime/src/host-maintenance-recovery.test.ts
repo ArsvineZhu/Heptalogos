@@ -17,7 +17,7 @@ import {
   maintenanceOperationRef,
   sealBootstrapState,
   sealMaintenanceJournal,
-  type BootstrapStateBodyV2,
+  type BootstrapStateBodyV1,
   type MaintenanceJournalBodyV1,
   type MaintenanceJournalRecoveryHead,
   type MaintenanceOperationId,
@@ -89,8 +89,8 @@ function makeState(
   descriptor: PrivatePostgresMaintenanceDescriptor,
   operationId?: MaintenanceOperationId,
 ) {
-  const state: BootstrapStateBodyV2 = {
-    schemaVersion: 2,
+  const state: BootstrapStateBodyV1 = {
+    schemaVersion: 1,
     revision: 4,
     activeBootstrapRuntimeGeneration: asContentDigest(
       "BootstrapRuntimeGenerationId",
@@ -104,7 +104,7 @@ function makeState(
       ? {}
       : { lastCommittedOperationRef: maintenanceOperationRef(operationId) }),
     privatePostgres: {
-      schemaVersion: 2,
+      schemaVersion: 1,
       postgresMajor: 18,
       initializedByPostgresVersion: "18.6",
       installationId,
@@ -281,6 +281,7 @@ function configure(
   };
   const current = sealMaintenanceJournal(body);
   let currentBody = body;
+  let recoveredPrevious = false;
   let beforeAdvance: ((next: MaintenanceJournalBodyV1) => Promise<void>) | undefined;
   const lease = makeLease(trace);
   const connection = makeHostConnection(trace);
@@ -298,6 +299,20 @@ function configure(
     state: {
       async load() {
         trace.push("state.load");
+        if (recoveredPrevious) {
+          return {
+            status: "RECOVERED_PREVIOUS",
+            value: state,
+            problem: {
+              schemaVersion: 1,
+              problemCode: "bootstrap.state.current_corrupt",
+              category: "integrity",
+              retryClass: "manual",
+              title: "Current BootstrapState is corrupt",
+              detail: "The previous valid BootstrapState revision was recovered",
+            },
+          } as const;
+        }
         return { status: "CURRENT", value: state } as const;
       },
     },
@@ -387,6 +402,9 @@ function configure(
     setBeforeAdvance(hook: (next: MaintenanceJournalBodyV1) => Promise<void>) {
       beforeAdvance = hook;
     },
+    setRecoveredPrevious(value: boolean) {
+      recoveredPrevious = value;
+    },
   };
 }
 
@@ -436,6 +454,26 @@ afterEach(async () => {
 });
 
 describe("fixed M5B host-maintenance recovery", () => {
+  it("blocks maintenance recovery when only RECOVERED_PREVIOUS state is available", async () => {
+    const fixture = await makeFixture();
+    const configured = configure(
+      fixture,
+      "HOST_LEASE_CLOSED",
+      "PRIVATE_POSTGRES_STOP",
+      "READY",
+      null,
+    );
+    configured.setRecoveredPrevious(true);
+
+    await expect(
+      recoverInterruptedHostMaintenance(options(fixture)),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.state.current_authority_required" },
+    });
+    expect(configured.stop).not.toHaveBeenCalled();
+    expect(mocks.revoke).not.toHaveBeenCalled();
+  });
+
   it("blocks a live advisory Host before PostgreSQL stop or fence mutation", async () => {
     const fixture = await makeFixture();
     const configured = configure(
@@ -605,10 +643,10 @@ describe("fixed M5B host-maintenance recovery", () => {
     expect(result.host.token).toBe(candidate);
   });
 
-  it("normalizes a legacy M5A target B and publishes a fresh explicit target C", async () => {
+  it("rejects a legacy target B without an explicit publication BootId", async () => {
     const fixture = await makeFixture();
     const legacyToken = createHostOwnershipToken();
-    const configured = configure(
+    configure(
       fixture,
       "HOST_TOKEN_PUBLISHED",
       "PRIVATE_POSTGRES_RESTART",
@@ -619,54 +657,11 @@ describe("fixed M5B host-maintenance recovery", () => {
         hostOwnershipRevision: "8",
       },
     );
-    const legacySnapshot = {
-      roles: [],
-      database: [],
-      schema: [],
-      table: [],
-      fence: [
-        {
-          instance_id: fixture.locator.instanceId,
-          ownership_revision: "7",
-          host_ownership_token: legacyToken,
-          boot_id: configured.body.bootId,
-        },
-      ],
-    };
-    mocks.inspectSnapshot.mockReset();
-    mocks.inspectSnapshot
-      .mockResolvedValueOnce(legacySnapshot)
-      .mockResolvedValueOnce(legacySnapshot)
-      .mockResolvedValue({
-        roles: [],
-        database: [],
-        schema: [],
-        table: [],
-        fence: [
-          {
-            instance_id: fixture.locator.instanceId,
-            ownership_revision: "8",
-            host_ownership_token: null,
-            boot_id: null,
-          },
-        ],
-      });
-
-    const result = await recoverInterruptedHostMaintenance(options(fixture));
-
-    expect(result.kind).toBe("RESTARTED");
-    if (result.kind !== "RESTARTED") throw new Error("recovery result was not a Host");
-    expect(result.host.token).not.toBe(legacyToken);
-    expect(mocks.revoke).toHaveBeenCalledWith(
-      expect.objectContaining({ token: legacyToken, bootId: configured.body.bootId }),
-    );
-    const armed = configured.advancedBodies.find(
-      (body) => body.lastCompletedStage === "HOST_TOKEN_PUBLICATION_ARMED",
-    );
-    expect(armed?.target.hostOwnershipToken).toBe(result.host.token);
-    expect(armed?.target.hostBootId).toBeDefined();
-    expect(armed?.target.hostOwnershipRevision).toBeUndefined();
-    expect(armed?.target.hostOwnershipToken).not.toBe(legacyToken);
+    await expect(
+      recoverInterruptedHostMaintenance(options(fixture)),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.recovery.target_fence_incomplete" },
+    });
   });
 
   it("recovers an exact candidate committed before HOST_TOKEN_PUBLISHED journaling", async () => {

@@ -66,7 +66,7 @@ export interface OwnedBootstrapPreludeHandoffContext {
   readonly assertReady: (ready: ReadyPrivatePostgres) => PrivatePostgresSessionToken;
 }
 
-// M4 owns fresh Host token materialization. Recovery reuses this seam so it
+// Host ownership handoff owns fresh Host token materialization. Recovery reuses this seam so it
 // cannot create a parallel token-authority path.
 export function createFreshHostOwnershipToken(): HostOwnershipToken {
   return createHostOwnershipToken();
@@ -146,7 +146,7 @@ async function recordStage(
   problemCode?: string,
 ): Promise<void> {
   await context.journal.checkpoint({
-    schemaVersion: 2,
+    schemaVersion: 1,
     bootId: context.bootId,
     bootstrapActivityId: context.bootstrapActivityId,
     installationId: context.installationId,

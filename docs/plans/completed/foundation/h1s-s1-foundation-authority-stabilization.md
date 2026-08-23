@@ -10,6 +10,14 @@
 
 **Spec:** `docs/engineering/specs/h1-stabilization-foundation-authority-reset.md`
 
+## Execution record
+
+`S1` completed on `dev/h1-stabilization` after the canonical-state, authority,
+root, recovery, process-identity, maintenance-state, public-surface and
+bounded-cleanup changes were implemented and locally verified. Live PostgreSQL
+qualification remains a separate `NOT_RUN` S2 gate because
+`HEPTALOGOS_TEST_PG_BIN` is not configured on this host.
+
 ## Global Constraints
 
 - Execute only when `h1s-control-record.md` names this file as `governingPlan`.

@@ -41,9 +41,9 @@ function makeBody(
     },
     target: { privatePostgres: "RUNNING_SAME_IDENTITY" },
     verifiedPrerequisites: {
-      bootstrapStateDigest: digest("heptalogos.bootstrap-state/v2"),
+      bootstrapStateDigest: digest("heptalogos.bootstrap-state/v1"),
       privatePostgresInitializationProfileRevision: digest(
-        "heptalogos.private-postgres.initialization-profile/v2",
+        "heptalogos.private-postgres.initialization-profile/v1",
       )
         .hex as MaintenanceJournalBodyV1["verifiedPrerequisites"]["privatePostgresInitializationProfileRevision"],
     },
@@ -261,7 +261,7 @@ describe("MaintenanceJournal V1 model and codec", () => {
   });
 
   it.each(["HOST_TOKEN_PUBLISHED", "BOOTSTRAP_RELEASE_ARMED"] as const)(
-    "accepts the legacy M5A token/revision target without hostBootId at %s",
+    "rejects the legacy token/revision target without hostBootId at %s",
     (stage) => {
       const body = makeBody({
         lastCompletedStage: stage,
@@ -274,14 +274,14 @@ describe("MaintenanceJournal V1 model and codec", () => {
       const parsed = parseMaintenanceJournal(
         JSON.stringify(sealMaintenanceJournal(body)),
       );
-      expect(parsed).toMatchObject({ ok: true });
-      if (parsed.ok) {
-        expect(parsed.value.state.target.hostBootId).toBeUndefined();
-      }
+      expect(parsed).toMatchObject({
+        ok: false,
+        problem: { problemCode: "maintenance.journal.invalid_semantics" },
+      });
     },
   );
 
-  it("accepts the legacy M5A target at RECOVERY_REQUIRED", () => {
+  it("rejects the legacy target at RECOVERY_REQUIRED", () => {
     const body = makeBody({
       lastCompletedStage: "RECOVERY_REQUIRED",
       terminalOutcome: "FAILED",
@@ -294,7 +294,8 @@ describe("MaintenanceJournal V1 model and codec", () => {
     expect(
       parseMaintenanceJournal(JSON.stringify(sealMaintenanceJournal(body))),
     ).toMatchObject({
-      ok: true,
+      ok: false,
+      problem: { problemCode: "maintenance.journal.invalid_semantics" },
     });
   });
 
@@ -346,44 +347,6 @@ describe("MaintenanceJournal V1 model and codec", () => {
       }
     },
   );
-
-  it("resolves legacy target BootId only for the exact allowed shapes", async () => {
-    const model = (await import("./maintenance-model.js")) as Record<string, unknown>;
-    expect(typeof model.resolveMaintenanceTargetHostBootId).toBe("function");
-    if (typeof model.resolveMaintenanceTargetHostBootId !== "function") return;
-    const resolveTargetBootId = model.resolveMaintenanceTargetHostBootId as (
-      body: MaintenanceJournalBodyV1,
-    ) => string | undefined;
-    const token = createHostOwnershipToken();
-    const explicitBootId = createBootId();
-    const legacy = makeBody({
-      lastCompletedStage: "HOST_TOKEN_PUBLISHED",
-      target: {
-        privatePostgres: "RUNNING_SAME_IDENTITY",
-        hostOwnershipToken: token,
-        hostOwnershipRevision: "9",
-      },
-    });
-    expect(resolveTargetBootId(legacy)).toBe(legacy.bootId);
-    expect(
-      resolveTargetBootId({
-        ...legacy,
-        lastCompletedStage: "HOST_TOKEN_PUBLICATION_ARMED",
-        target: {
-          privatePostgres: "RUNNING_SAME_IDENTITY",
-          hostOwnershipToken: token,
-          hostBootId: explicitBootId,
-        },
-      }),
-    ).toBe(explicitBootId);
-    expect(
-      resolveTargetBootId({
-        ...legacy,
-        lastCompletedStage: "HOST_TOKEN_PUBLISHED",
-        target: { privatePostgres: "RUNNING_SAME_IDENTITY", hostOwnershipToken: token },
-      }),
-    ).toBeUndefined();
-  });
 
   it.each([
     "HOST_LEASE_ACQUIRED",

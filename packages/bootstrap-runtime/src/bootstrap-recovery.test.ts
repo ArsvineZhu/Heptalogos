@@ -142,7 +142,7 @@ async function expectDisposition(
   disposition: BootstrapRecoveryDisposition,
 ) {
   const locator = await loadBootstrapLocator(anchorRoot);
-  const paths = await resolveBootstrapPathProfile(locator);
+  const paths = await resolveBootstrapPathProfile(locator, ["INSTANCE"]);
   const instanceRoot = paths.resolve("INSTANCE").canonicalPath;
   const before = await snapshotInstanceRoot(instanceRoot);
   const inspection = await inspectBootstrapRecovery(anchorRoot);
@@ -210,6 +210,132 @@ describe("bounded bootstrap recovery inspection", () => {
       "NO_RECOVERY_REQUIRED",
     );
     expect(inspection.maintenanceIncomplete).toBe(false);
+  });
+
+  it("ignores unavailable unrelated roots during read-only recovery inspection", async () => {
+    const fixture = await makeFixture();
+    const roots = {
+      ...fixture.locator.roots,
+      BACKUP: join(tmpdir(), "heptalogos-unavailable-inspect-backup"),
+      CACHE: join(tmpdir(), "heptalogos-unavailable-inspect-cache"),
+      PACKAGE_STAGING: join(tmpdir(), "heptalogos-unavailable-inspect-package-staging"),
+    };
+    await writeFile(
+      join(fixture.anchorRoot, "heptalogos.bootstrap.json"),
+      JSON.stringify({ ...fixture.locator, roots }),
+    );
+
+    const inspection = await expectDisposition(
+      fixture.anchorRoot,
+      "NO_RECOVERY_REQUIRED",
+    );
+
+    expect(inspection.problem).toBeUndefined();
+  });
+
+  it("does not treat a dead historical ATTEMPT as ownership when no lock exists", async () => {
+    const fixture = await makeFixture();
+    await new BootstrapOwnerWitnessStore(fixture.instanceRoot).createAttempt({
+      schemaVersion: 1,
+      phase: "ATTEMPT",
+      lockGenerationId: createBootstrapLockGenerationId(),
+      bootId: createBootId(),
+      pid: 999_999,
+      processStartedAtMs: 0,
+      heartbeatMs: 1_000,
+      createdAt: new Date().toISOString(),
+    });
+
+    const inspection = await expectDisposition(
+      fixture.anchorRoot,
+      "NO_RECOVERY_REQUIRED",
+    );
+    expect(inspection.attemptProcessStatuses).toContain("PROCESS_DEAD");
+  });
+
+  it("does not treat a dead historical OWNER as ownership when no lock exists", async () => {
+    const fixture = await makeFixture();
+    await new BootstrapOwnerWitnessStore(fixture.instanceRoot).publishOwner({
+      schemaVersion: 1,
+      phase: "OWNER",
+      lockGenerationId: createBootstrapLockGenerationId(),
+      bootId: createBootId(),
+      pid: 999_999,
+      processStartedAtMs: 0,
+      heartbeatMs: 1_000,
+      createdAt: new Date().toISOString(),
+    });
+
+    const inspection = await expectDisposition(
+      fixture.anchorRoot,
+      "NO_RECOVERY_REQUIRED",
+    );
+    expect(inspection.ownerProcessStatus).toBe("PROCESS_DEAD");
+  });
+
+  it("routes no-lock incomplete maintenance even with dead historical OWNER evidence", async () => {
+    const fixture = await makeFixture();
+    await writeMaintenancePointer(fixture);
+    await new BootstrapOwnerWitnessStore(fixture.instanceRoot).publishOwner({
+      schemaVersion: 1,
+      phase: "OWNER",
+      lockGenerationId: createBootstrapLockGenerationId(),
+      bootId: createBootId(),
+      pid: 999_999,
+      processStartedAtMs: 0,
+      heartbeatMs: 1_000,
+      createdAt: new Date().toISOString(),
+    });
+
+    await expectDisposition(fixture.anchorRoot, "INCOMPLETE_MAINTENANCE");
+  });
+
+  it("blocks no-lock inspection when an OWNER witness proves this process", async () => {
+    const fixture = await makeFixture();
+    const identity = currentBootstrapProcessIdentity();
+    await new BootstrapOwnerWitnessStore(fixture.instanceRoot).publishOwner({
+      schemaVersion: 1,
+      phase: "OWNER",
+      lockGenerationId: createBootstrapLockGenerationId(),
+      bootId: createBootId(),
+      pid: identity.pid,
+      processStartedAtMs: identity.startedAtMs,
+      heartbeatMs: 1_000,
+      createdAt: new Date().toISOString(),
+    });
+
+    const inspection = await expectDisposition(fixture.anchorRoot, "BLOCKED");
+    expect(inspection.ownerProcessStatus).toBe("SAME_PROCESS");
+  });
+
+  it("reports RECOVERED_PREVIOUS as blocked inspection evidence without a recovery decision", async () => {
+    const fixture = await makeFixture();
+    await writeMaintenancePointer(fixture);
+    const stateStore = new BootstrapStateStore(
+      join(fixture.instanceRoot, "bootstrap-state"),
+    );
+    const current = await stateStore.load();
+    if (current.status !== "CURRENT")
+      throw new Error("expected current BootstrapState");
+    await stateStore.commit({ ...current.value.state, revision: 2 });
+    await writeFile(
+      join(fixture.instanceRoot, "bootstrap-state", "bootstrap-state.json"),
+      "corrupt",
+    );
+    const before = await snapshotInstanceRoot(fixture.instanceRoot);
+
+    const inspection = await inspectBootstrapRecovery(fixture.anchorRoot);
+
+    expect(inspection.disposition).toBe("BLOCKED");
+    expect(inspection.bootstrapState).toMatchObject({
+      status: "RECOVERED_PREVIOUS",
+      value: { state: { revision: 1 } },
+      problem: { problemCode: "bootstrap.state.current_corrupt" },
+    });
+    expect(inspection.problem).toMatchObject({
+      problemCode: "bootstrap.state.current_authority_required",
+    });
+    await expect(snapshotInstanceRoot(fixture.instanceRoot)).resolves.toEqual(before);
   });
 
   it("reports ABANDONED_OWNER_ELIGIBLE only for stale lock plus dead evidence", async () => {
@@ -400,6 +526,25 @@ describe("bounded bootstrap recovery inspection", () => {
     });
 
     await expectDisposition(fixture.anchorRoot, "BLOCKED");
+  });
+
+  it("blocks a stale lock when process identity is ambiguous", async () => {
+    const fixture = await makeFixture();
+    await makeLock(fixture.instanceRoot, 31_000);
+    const identity = currentBootstrapProcessIdentity();
+    await new BootstrapOwnerWitnessStore(fixture.instanceRoot).publishOwner({
+      schemaVersion: 1,
+      phase: "OWNER",
+      lockGenerationId: createBootstrapLockGenerationId(),
+      bootId: createBootId(),
+      pid: identity.pid,
+      processStartedAtMs: identity.startedAtMs - 10_000,
+      heartbeatMs: 1_000,
+      createdAt: new Date().toISOString(),
+    });
+
+    const inspection = await expectDisposition(fixture.anchorRoot, "BLOCKED");
+    expect(inspection.ownerProcessStatus).toBe("UNKNOWN");
   });
 
   it("blocks corrupt owner evidence", async () => {

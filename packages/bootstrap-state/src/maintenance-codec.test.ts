@@ -32,11 +32,11 @@ function body(): MaintenanceJournalBodyV1 {
     },
     target: { privatePostgres: "STOPPED" },
     verifiedPrerequisites: {
-      bootstrapStateDigest: digestCanonicalJson("heptalogos.bootstrap-state/v2", {
+      bootstrapStateDigest: digestCanonicalJson("heptalogos.bootstrap-state/v1", {
         state: true,
       }),
       privatePostgresInitializationProfileRevision: digestCanonicalJson(
-        "heptalogos.private-postgres.initialization-profile/v2",
+        "heptalogos.private-postgres.initialization-profile/v1",
         { profile: true },
       )
         .hex as MaintenanceJournalBodyV1["verifiedPrerequisites"]["privatePostgresInitializationProfileRevision"],

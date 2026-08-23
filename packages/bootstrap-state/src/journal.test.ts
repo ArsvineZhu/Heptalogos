@@ -11,11 +11,7 @@ import {
   digestCanonicalJson,
 } from "@heptalogos/foundation-contracts";
 import { BootstrapJournal } from "./journal.js";
-import type {
-  BootstrapJournalCheckpointV1,
-  BootstrapJournalCheckpointV2,
-  BootId,
-} from "./journal.js";
+import type { BootstrapJournalCheckpointV1, BootId } from "./journal.js";
 
 const directories: string[] = [];
 
@@ -28,37 +24,14 @@ async function makeDirectory(): Promise<string> {
 function makeEntry(
   bootId: BootId,
   stage: string,
-  outcome: BootstrapJournalCheckpointV2["outcome"] = "STARTED",
-): BootstrapJournalCheckpointV2 {
-  return {
-    schemaVersion: 2,
-    bootId,
-    bootstrapActivityId: createUuidV7Id("ActivityId"),
-    installationId: createInstallationId(),
-    instanceId: createInstanceId(),
-    attemptedBootstrapRuntimeGeneration: asContentDigest(
-      "BootstrapRuntimeGenerationId",
-      digestCanonicalJson("test.bootstrap-runtime/v1", { generation: "bootstrap" }),
-    ),
-    attemptedProductGeneration: asContentDigest(
-      "ProductGenerationId",
-      digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
-    ),
-    stage,
-    at: "2026-08-21T00:00:00.000Z",
-    outcome,
-  };
-}
-
-function makeV1Entry(
-  bootId: BootId,
-  stage: string,
   outcome: BootstrapJournalCheckpointV1["outcome"] = "STARTED",
 ): BootstrapJournalCheckpointV1 {
   return {
     schemaVersion: 1,
     bootId,
     bootstrapActivityId: createUuidV7Id("ActivityId"),
+    installationId: createInstallationId(),
+    instanceId: createInstanceId(),
     attemptedBootstrapRuntimeGeneration: asContentDigest(
       "BootstrapRuntimeGenerationId",
       digestCanonicalJson("test.bootstrap-runtime/v1", { generation: "bootstrap" }),
@@ -231,11 +204,11 @@ describe("BootstrapJournal", () => {
     expect(source).not.toMatch(/\bactivate\s*\(/u);
   });
 
-  it("writes and reads an early V2 checkpoint before generation selection", async () => {
+  it("writes and reads a canonical V1 checkpoint before generation selection", async () => {
     const directory = await makeDirectory();
     const journal = new BootstrapJournal(directory);
-    const entry: BootstrapJournalCheckpointV2 = {
-      schemaVersion: 2,
+    const entry: BootstrapJournalCheckpointV1 = {
+      schemaVersion: 1,
       bootId: createBootId(),
       bootstrapActivityId: createUuidV7Id("ActivityId"),
       installationId: createInstallationId(),
@@ -250,25 +223,34 @@ describe("BootstrapJournal", () => {
     await expect(journal.read(entry.bootId)).resolves.toEqual([entry]);
   });
 
-  it("continues to read a valid V1 journal entry", async () => {
+  it("rejects a legacy checkpoint lacking installation and instance identity", async () => {
     const directory = await makeDirectory();
     const journal = new BootstrapJournal(directory);
-    const entry = makeV1Entry(createBootId(), "bootstrap.legacy");
+    const entry = {
+      schemaVersion: 1,
+      bootId: createBootId(),
+      bootstrapActivityId: createUuidV7Id("ActivityId"),
+      stage: "bootstrap.legacy",
+      at: "2026-08-21T00:00:00.000Z",
+      outcome: "STARTED",
+    };
     await mkdir(join(directory, "bootstrap-journal"), { recursive: true });
     await writeFile(
       join(directory, "bootstrap-journal", `${entry.bootId}.json`),
       JSON.stringify([entry]),
     );
 
-    await expect(journal.read(entry.bootId)).resolves.toEqual([entry]);
+    await expect(journal.read(entry.bootId)).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.journal.invalid_entry" },
+    });
   });
 
-  it("rejects a V2 checkpoint whose bootId does not match its filename", async () => {
+  it("rejects a canonical checkpoint whose bootId does not match its filename", async () => {
     const directory = await makeDirectory();
     const journal = new BootstrapJournal(directory);
     const fileBootId = createBootId();
-    const entry: BootstrapJournalCheckpointV2 = {
-      schemaVersion: 2,
+    const entry: BootstrapJournalCheckpointV1 = {
+      schemaVersion: 1,
       bootId: createBootId(),
       bootstrapActivityId: createUuidV7Id("ActivityId"),
       installationId: createInstallationId(),

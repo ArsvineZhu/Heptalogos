@@ -368,17 +368,16 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
         join(fixture.roots.INSTANCE, "bootstrap-state"),
       ).load();
       expect(persisted.status).toBe("CURRENT");
-      if (
-        persisted.status !== "CURRENT" ||
-        persisted.value.state.schemaVersion !== 2 ||
-        persisted.value.state.privatePostgres.schemaVersion !== 2
-      ) {
-        throw new Error("private PostgreSQL V2 state was not persisted");
+      if (persisted.status !== "CURRENT" || persisted.value.state.schemaVersion !== 1) {
+        throw new Error("canonical private PostgreSQL state was not persisted");
+      }
+      const persistedPostgres = persisted.value.state.privatePostgres;
+      if (persistedPostgres === undefined || persistedPostgres.schemaVersion !== 1) {
+        throw new Error("canonical private PostgreSQL identity was not persisted");
       }
       expect(persisted.value.state.lastCommittedOperationRef).toBe(
         `maintenance-journal/v1/${preparedMaintenance.operationId}`,
       );
-      const persistedPostgres = persisted.value.state.privatePostgres;
       expect(persistedPostgres.clusterSystemIdentifier).toBe(
         ready.clusterSystemIdentifier,
       );

@@ -76,7 +76,7 @@ describe("bootstrap process identity", () => {
     );
   });
 
-  it("classifies a same-PID start-time mismatch as PID_REUSED", async () => {
+  it("classifies a live PID with a start-time mismatch as UNKNOWN", async () => {
     const identity = currentBootstrapProcessIdentity();
 
     await expect(
@@ -84,7 +84,7 @@ describe("bootstrap process identity", () => {
         pid: identity.pid,
         startedAtMs: identity.startedAtMs - 10_000,
       }),
-    ).resolves.toBe("PID_REUSED");
+    ).resolves.toBe("UNKNOWN");
   });
 
   it("classifies an ambiguous kill probe as UNKNOWN", async () => {

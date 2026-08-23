@@ -1,6 +1,5 @@
 export {
   BOOTSTRAP_STATE_DIGEST_DOMAIN,
-  BOOTSTRAP_STATE_V2_DIGEST_DOMAIN,
   parseBootstrapState,
   sealBootstrapState,
 } from "./codec.js";
@@ -8,13 +7,10 @@ export type {
   BootstrapRuntimeGenerationId,
   BootstrapStateBody,
   BootstrapStateBodyV1,
-  BootstrapStateBodyV2,
   BootstrapStateEnvelope,
   BootstrapStateEnvelopeV1,
-  BootstrapStateEnvelopeV2,
   BootstrapStateParseResult,
   PrivatePostgresBootstrapStateV1,
-  PrivatePostgresBootstrapStateV2,
   PrivatePostgresInitializationProfileRevision,
   ProductGenerationId,
 } from "./model.js";
@@ -25,7 +21,6 @@ export type {
   BootId,
   BootstrapActivityId,
   BootstrapJournalCheckpointV1,
-  BootstrapJournalCheckpointV2,
   BootstrapJournalCheckpoint,
   BootstrapStageOutcome,
 } from "./journal.js";
@@ -48,7 +43,6 @@ export type {
   MaintenanceTerminalOutcome,
   PrivatePostgresInitializationProfileRevision as MaintenancePrivatePostgresInitializationProfileRevision,
 } from "./maintenance-model.js";
-export { resolveMaintenanceTargetHostBootId } from "./maintenance-model.js";
 export { MaintenanceJournalStore } from "./maintenance-store.js";
 export type {
   MaintenanceJournalLoadResult,

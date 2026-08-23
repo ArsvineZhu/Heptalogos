@@ -12,9 +12,11 @@ const {
   loadBootstrapLocator,
   prepareBootstrapPrelude,
   proveLocalInstallationOwner,
-  recoverInterruptedHostMaintenance,
   resolveBootstrapPathProfile,
 } = require("@heptalogos/bootstrap-runtime");
+const {
+  recoverInterruptedHostMaintenance,
+} = require("../../dist/host-maintenance-recovery.js");
 const {
   resolvePrivatePostgresPlacement,
   resolvePrivatePostgresToolchain,
@@ -108,18 +110,24 @@ async function watchJournalStage(instanceRoot, operationId, stage) {
 
 async function descriptorForRecovery(anchor, binDirectory, port) {
   const locator = await loadBootstrapLocator(anchor);
-  const profile = await resolveBootstrapPathProfile(locator);
+  const profile = await resolveBootstrapPathProfile(locator, [
+    "INSTANCE",
+    "DATA",
+    "LOG",
+  ]);
   const loaded = await new BootstrapStateStore(
     join(profile.resolve("INSTANCE").canonicalPath, "bootstrap-state"),
   ).load();
+  const persisted =
+    loaded.status === "CURRENT" ? loaded.value.state.privatePostgres : undefined;
   if (
     loaded.status !== "CURRENT" ||
-    loaded.value.state.schemaVersion !== 2 ||
-    loaded.value.state.privatePostgres.schemaVersion !== 2
+    loaded.value.state.schemaVersion !== 1 ||
+    persisted === undefined ||
+    persisted.schemaVersion !== 1
   ) {
-    throw new Error("recovery child requires BootstrapState V2");
+    throw new Error("recovery child requires canonical BootstrapState V1");
   }
-  const persisted = loaded.value.state.privatePostgres;
   const toolchain = await resolvePrivatePostgresToolchain(binDirectory);
   const placement = resolvePrivatePostgresPlacement(
     profile.resolve("DATA").canonicalPath,
@@ -160,6 +168,7 @@ async function runMaintenance() {
   });
   const profile = await resolveBootstrapPathProfile(
     await loadBootstrapLocator(anchorRoot),
+    ["INSTANCE"],
   );
   send({
     type: "maintenance-prepared",
@@ -188,7 +197,7 @@ async function runMaintenance() {
 
 async function runRecovery() {
   const locator = await loadBootstrapLocator(anchorRoot);
-  const profile = await resolveBootstrapPathProfile(locator);
+  const profile = await resolveBootstrapPathProfile(locator, ["INSTANCE"]);
   const operationId = operationIdText;
   const descriptor = await descriptorForRecovery(anchorRoot, pgBin, portText);
   send({ type: "recovery-started", operationId });

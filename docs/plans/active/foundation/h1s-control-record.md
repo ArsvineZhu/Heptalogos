@@ -12,7 +12,7 @@
 ```yaml
 M5B: CLOSED
 H1_FUNCTIONAL: COMPLETE
-H1_STABILIZATION: ACTIVE
+H1_STABILIZATION: S1_COMPLETE_S2_ACTIVE
 H1: OPEN
 H2: NOT_ELIGIBLE
 ```
@@ -22,21 +22,29 @@ H2: NOT_ELIGIBLE
 All three phase documents are approved and may be stored under `docs/plans/active/foundation/`, but only the plan named by `governingPlan` is executable. This explicit designation satisfies the repository rule for multiple active plans.
 
 ```yaml
-governingPlan: h1s-s1-foundation-authority-stabilization.md
+governingPlan: h1s-s2-clean-state-qualification-closure.md
 phases:
   S0:
     plan: h1s-s0-governance-truth-reset.md
     planState: COMPLETED
     executionGate: CLOSED
   S1:
-    plan: h1s-s1-foundation-authority-stabilization.md
-    planState: ACTIVE
-    executionGate: OPEN
+    plan: completed/foundation/h1s-s1-foundation-authority-stabilization.md
+    planState: COMPLETED
+    executionGate: CLOSED
   S2:
     plan: h1s-s2-clean-state-qualification-closure.md
     planState: ACTIVE
-    executionGate: BLOCKED_BY_S1
+    executionGate: OPEN
 ```
+
+S1 local evidence is `PASS` for `pnpm verify` prerequisites, the focused
+bootstrap-state/bootstrap-runtime/private-postgres suites, typecheck, TS6
+compatibility, boundaries, and the real provider-exit recovery process target.
+The live PostgreSQL integration targets and
+`bootstrap-runtime:test:recovery-process:postgres` are `NOT_RUN` because
+`HEPTALOGOS_TEST_PG_BIN` is not configured on this host; S2 owns that
+qualification closure.
 
 At a phase transition, the completed plan moves to `docs/plans/completed/foundation/`, this record changes `governingPlan`, and the next phase gate changes to `OPEN`. No S1 production work may begin before S0's transition commit; no S2 qualification/closure work may begin before S1's transition commit.
 

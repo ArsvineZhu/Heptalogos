@@ -8,7 +8,7 @@ export interface BootstrapProcessIdentity {
 }
 
 export type BootstrapProcessIdentityStatus =
-  "SAME_PROCESS" | "PROCESS_DEAD" | "PID_REUSED" | "UNKNOWN";
+  "SAME_PROCESS" | "PROCESS_DEAD" | "UNKNOWN";
 
 function errorCode(error: unknown): string | undefined {
   if (typeof error !== "object" || error === null || !("code" in error)) {
@@ -51,7 +51,7 @@ export async function inspectBootstrapProcessIdentity(
     return Math.abs(startedAtMs - expected.startedAtMs) <=
       PROCESS_START_IDENTITY_TOLERANCE_MS
       ? "SAME_PROCESS"
-      : "PID_REUSED";
+      : "UNKNOWN";
   } catch {
     return "UNKNOWN";
   }

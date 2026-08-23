@@ -19,6 +19,7 @@ export interface BootstrapStateBodyV1 {
   readonly lastKnownGoodProductGeneration?: ProductGenerationId;
   readonly lastCommittedOperationRef?: string;
   readonly lastCompletedStageRef?: string;
+  readonly privatePostgres?: PrivatePostgresBootstrapStateV1;
 }
 
 export interface BootstrapStateEnvelopeV1 {
@@ -35,6 +36,7 @@ export interface PrivatePostgresBootstrapStateV1 {
   readonly initializedByPostgresVersion: string;
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
+  readonly bootstrapRoleName: string;
   readonly dataPlacement: {
     readonly rootId: "DATA";
     readonly relativePath: "private-postgres";
@@ -45,35 +47,8 @@ export interface PrivatePostgresBootstrapStateV1 {
   readonly initializationProfileRevision: PrivatePostgresInitializationProfileRevision;
 }
 
-export interface PrivatePostgresBootstrapStateV2 extends Omit<
-  PrivatePostgresBootstrapStateV1,
-  "schemaVersion"
-> {
-  readonly schemaVersion: 2;
-  readonly bootstrapRoleName: string;
-}
-
-export interface BootstrapStateBodyV2 {
-  readonly schemaVersion: 2;
-  readonly revision: number;
-  readonly activeBootstrapRuntimeGeneration: BootstrapRuntimeGenerationId;
-  readonly previousBootstrapRuntimeGeneration?: BootstrapRuntimeGenerationId;
-  readonly activeProductGeneration: ProductGenerationId;
-  readonly lastKnownGoodProductGeneration?: ProductGenerationId;
-  readonly lastCommittedOperationRef?: string;
-  readonly lastCompletedStageRef?: string;
-  readonly privatePostgres:
-    PrivatePostgresBootstrapStateV1 | PrivatePostgresBootstrapStateV2;
-}
-
-export interface BootstrapStateEnvelopeV2 {
-  readonly state: BootstrapStateBodyV2;
-  readonly digest: Sha256Digest;
-}
-
-export type BootstrapStateBody = BootstrapStateBodyV1 | BootstrapStateBodyV2;
-export type BootstrapStateEnvelope =
-  BootstrapStateEnvelopeV1 | BootstrapStateEnvelopeV2;
+export type BootstrapStateBody = BootstrapStateBodyV1;
+export type BootstrapStateEnvelope = BootstrapStateEnvelopeV1;
 
 export type BootstrapStateParseResult =
   | { readonly ok: true; readonly value: BootstrapStateEnvelope }

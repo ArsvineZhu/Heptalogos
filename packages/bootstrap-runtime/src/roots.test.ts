@@ -45,9 +45,41 @@ afterEach(async () => {
 });
 
 describe("bootstrap lifecycle roots", () => {
+  it("resolves only explicitly requested roots", async () => {
+    const roots = await makeRoots();
+    roots.BACKUP = join(tmpdir(), "heptalogos-root-unrequested-backup");
+
+    const profile = await resolveBootstrapPathProfile(makeLocator(roots), ["INSTANCE"]);
+
+    expect(profile.list().map((root) => root.id)).toEqual(["INSTANCE"]);
+    expect(profile.resolve("INSTANCE").canonicalPath).toBeDefined();
+    let thrown: unknown;
+    try {
+      profile.resolve("BACKUP");
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toMatchObject({
+      problem: { problemCode: "bootstrap.root.not_resolved" },
+    });
+  });
+
+  it("rejects an empty required-root set", async () => {
+    const roots = await makeRoots();
+
+    await expect(
+      resolveBootstrapPathProfile(makeLocator(roots), []),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.root.empty_requirement" },
+    });
+  });
+
   it("resolves independent roots without assuming a common parent", async () => {
     const roots = await makeRoots();
-    const profile = await resolveBootstrapPathProfile(makeLocator(roots));
+    const profile = await resolveBootstrapPathProfile(
+      makeLocator(roots),
+      LIFECYCLE_ROOT_IDS,
+    );
 
     expect(profile.resolve("DATA").canonicalPath).not.toBe(
       profile.resolve("CONFIGURATION").canonicalPath,
@@ -60,11 +92,11 @@ describe("bootstrap lifecycle roots", () => {
     const roots = await makeRoots();
     roots.DATA = join(tmpdir(), "heptalogos-root-does-not-exist");
 
-    await expect(resolveBootstrapPathProfile(makeLocator(roots))).rejects.toMatchObject(
-      {
-        problem: { problemCode: "bootstrap.root.not_found" },
-      },
-    );
+    await expect(
+      resolveBootstrapPathProfile(makeLocator(roots), LIFECYCLE_ROOT_IDS),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.root.not_found" },
+    });
   });
 
   it("rejects a configured root that is a regular file", async () => {
@@ -73,11 +105,11 @@ describe("bootstrap lifecycle roots", () => {
     await writeFile(file, "not a directory");
     roots.DATA = file;
 
-    await expect(resolveBootstrapPathProfile(makeLocator(roots))).rejects.toMatchObject(
-      {
-        problem: { problemCode: "bootstrap.root.not_directory" },
-      },
-    );
+    await expect(
+      resolveBootstrapPathProfile(makeLocator(roots), LIFECYCLE_ROOT_IDS),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.root.not_directory" },
+    });
   });
 
   it.runIf(process.platform !== "win32")(
@@ -91,7 +123,7 @@ describe("bootstrap lifecycle roots", () => {
       roots.DATA = link;
 
       await expect(
-        resolveBootstrapPathProfile(makeLocator(roots)),
+        resolveBootstrapPathProfile(makeLocator(roots), LIFECYCLE_ROOT_IDS),
       ).rejects.toMatchObject({
         problem: { problemCode: "bootstrap.root.link_rejected" },
       });
@@ -111,7 +143,7 @@ describe("bootstrap lifecycle roots", () => {
       const entry = await lstat(link);
       expect(entry.isSymbolicLink()).toBe(true);
       await expect(
-        resolveBootstrapPathProfile(makeLocator(roots)),
+        resolveBootstrapPathProfile(makeLocator(roots), LIFECYCLE_ROOT_IDS),
       ).rejects.toMatchObject({
         problem: { problemCode: "bootstrap.root.link_rejected" },
       });
@@ -124,7 +156,7 @@ describe("bootstrap lifecycle roots", () => {
       LIFECYCLE_ROOT_IDS.map(async (id) => [id, await readdir(roots[id])] as const),
     );
 
-    await resolveBootstrapPathProfile(makeLocator(roots));
+    await resolveBootstrapPathProfile(makeLocator(roots), LIFECYCLE_ROOT_IDS);
 
     const after = await Promise.all(
       LIFECYCLE_ROOT_IDS.map(async (id) => [id, await readdir(roots[id])] as const),

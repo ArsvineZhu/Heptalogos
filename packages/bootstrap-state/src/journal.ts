@@ -27,18 +27,6 @@ export interface BootstrapJournalCheckpointV1 {
   readonly schemaVersion: 1;
   readonly bootId: BootId;
   readonly bootstrapActivityId: BootstrapActivityId;
-  readonly attemptedBootstrapRuntimeGeneration: BootstrapRuntimeGenerationId;
-  readonly attemptedProductGeneration: ProductGenerationId;
-  readonly stage: string;
-  readonly at: string;
-  readonly outcome: BootstrapStageOutcome;
-  readonly problemCode?: string;
-}
-
-export interface BootstrapJournalCheckpointV2 {
-  readonly schemaVersion: 2;
-  readonly bootId: BootId;
-  readonly bootstrapActivityId: BootstrapActivityId;
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
   readonly attemptedBootstrapRuntimeGeneration?: BootstrapRuntimeGenerationId;
@@ -49,30 +37,11 @@ export interface BootstrapJournalCheckpointV2 {
   readonly problemCode?: string;
 }
 
-export type BootstrapJournalCheckpoint =
-  BootstrapJournalCheckpointV1 | BootstrapJournalCheckpointV2;
+export type BootstrapJournalCheckpoint = BootstrapJournalCheckpointV1;
 
 const checkpointSchemaV1 = Type.Object(
   {
     schemaVersion: Type.Literal(1),
-    bootId: Type.String({ pattern: UUID_V7_PATTERN }),
-    bootstrapActivityId: Type.String({ pattern: UUID_V7_PATTERN }),
-    attemptedBootstrapRuntimeGeneration: Type.String({ pattern: SHA256_HEX_PATTERN }),
-    attemptedProductGeneration: Type.String({ pattern: SHA256_HEX_PATTERN }),
-    stage: Type.String({ minLength: 1 }),
-    at: Type.String({ minLength: 1 }),
-    outcome: Type.Union([
-      Type.Literal("STARTED"),
-      Type.Literal("SUCCEEDED"),
-      Type.Literal("FAILED"),
-    ]),
-    problemCode: Type.Optional(Type.String({ minLength: 1 })),
-  },
-  { additionalProperties: false },
-);
-const checkpointSchemaV2 = Type.Object(
-  {
-    schemaVersion: Type.Literal(2),
     bootId: Type.String({ pattern: UUID_V7_PATTERN }),
     bootstrapActivityId: Type.String({ pattern: UUID_V7_PATTERN }),
     installationId: Type.String({ pattern: UUID_V7_PATTERN }),
@@ -94,8 +63,7 @@ const checkpointSchemaV2 = Type.Object(
   },
   { additionalProperties: false },
 );
-const checkpointSchema = Type.Union([checkpointSchemaV1, checkpointSchemaV2]);
-const journalSchema = Type.Array(checkpointSchema);
+const journalSchema = Type.Array(checkpointSchemaV1);
 const ajv = new Ajv2020({
   allErrors: true,
   coerceTypes: false,
@@ -149,9 +117,9 @@ export class BootstrapJournal {
     this.journalDirectory = join(directory, "bootstrap-journal");
   }
 
-  async checkpoint(entry: BootstrapJournalCheckpointV2): Promise<void> {
+  async checkpoint(entry: BootstrapJournalCheckpointV1): Promise<void> {
     const bootId = requireBootId(entry.bootId);
-    this.assertValidV2Identities(entry);
+    this.assertValidIdentities(entry);
 
     await this.serializeCheckpoint(bootId, async () => {
       const existing = await this.readEntries(bootId);
@@ -254,9 +222,7 @@ export class BootstrapJournal {
         ),
       );
     }
-    for (const entry of entries) {
-      if (entry.schemaVersion === 2) this.assertValidV2Identities(entry);
-    }
+    for (const entry of entries) this.assertValidIdentities(entry);
     return entries;
   }
 
@@ -275,7 +241,7 @@ export class BootstrapJournal {
     }
   }
 
-  private assertValidV2Identities(entry: BootstrapJournalCheckpointV2): void {
+  private assertValidIdentities(entry: BootstrapJournalCheckpointV1): void {
     if (!parseInstallationId(entry.installationId)) {
       throw new ProblemError(
         journalProblem(

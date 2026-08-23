@@ -1,20 +1,26 @@
-import { mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
 import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
+import { BootstrapOwnerWitnessStore } from "@heptalogos/bootstrap-state";
 import {
   createInstallationId,
   createInstanceId,
+  createBootId,
   LIFECYCLE_ROOT_IDS,
   type LifecycleRootId,
 } from "@heptalogos/foundation-contracts";
 import type { BootstrapLocatorV1 } from "./locator.js";
-import { reclaimAbandonedBootstrapOwnership } from "./bootstrap-recovery.js";
+import { acquireBootstrapOwnership } from "./bootstrap-ownership.js";
+import {
+  inspectBootstrapRecovery,
+  reclaimAbandonedBootstrapOwnership,
+} from "./bootstrap-recovery.js";
 import { proveLocalInstallationOwner } from "./local-installation-owner.js";
-import { createBootId } from "@heptalogos/foundation-contracts";
+import { resolveBootstrapPathProfile } from "./roots.js";
 
 const OWNER_FIXTURE = fileURLToPath(
   new URL("../test/fixtures/recovery-owner-process.mjs", import.meta.url),
@@ -147,7 +153,10 @@ describe("M5B real process kill/restart qualification", () => {
   it("K1 reclaims a killed bootstrap owner only after stale adjudication", async () => {
     const fixture = await makeFixture();
     const owner = new ChildController(OWNER_FIXTURE, fixture.anchorRoot, "hold");
-    await owner.waitFor("acquired");
+    const started = await owner.waitFor("acquired", "error");
+    if (started.type !== "acquired") {
+      throw new Error(started.message ?? started.problemCode ?? "owner child failed");
+    }
     await owner.stop();
     await staleLock(fixture.instanceRoot);
 
@@ -197,5 +206,41 @@ describe("M5B real process kill/restart qualification", () => {
     });
     expect(owner.process.exitCode).toBeNull();
     await releaseChild(owner);
+  }, 30_000);
+
+  it("cleans the provider lock on clean owner exit while retaining dead witness evidence", async () => {
+    const fixture = await makeFixture();
+    const owner = new ChildController(
+      OWNER_FIXTURE,
+      fixture.anchorRoot,
+      "exit-without-release",
+    );
+    const started = await owner.waitFor("acquired", "error");
+    if (started.type !== "acquired") {
+      throw new Error(started.message ?? started.problemCode ?? "owner child failed");
+    }
+    await once(owner.process, "exit");
+
+    expect(owner.process.exitCode).toBe(0);
+    await expect(
+      lstat(join(fixture.instanceRoot, LOCK_DIRECTORY)),
+    ).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    await expect(
+      new BootstrapOwnerWitnessStore(fixture.instanceRoot).readOwner(),
+    ).resolves.toBeDefined();
+
+    const inspection = await inspectBootstrapRecovery(fixture.anchorRoot);
+    expect(inspection.disposition).toBe("NO_RECOVERY_REQUIRED");
+    expect(inspection.ownerProcessStatus).toBe("PROCESS_DEAD");
+
+    const profile = await resolveBootstrapPathProfile(fixture.locator, ["INSTANCE"]);
+    const lease = await acquireBootstrapOwnership(profile.resolve("INSTANCE"), {
+      heartbeatMs: 1_000,
+      bootId: createBootId(),
+    });
+    expect(lease.state).toBe("HELD");
+    await lease.release();
   }, 30_000);
 });
