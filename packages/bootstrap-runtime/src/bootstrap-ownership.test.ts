@@ -163,6 +163,26 @@ describe("bootstrap ownership", () => {
     await expect(lstat(lockDirectory)).rejects.toMatchObject({ code: "ENOENT" });
   });
 
+  it("accepts the maximum recovery heartbeat", async () => {
+    const instanceRoot = await makeInstanceRoot();
+
+    const lease = await acquireBootstrapRecoveryOwnership(
+      instanceRoot,
+      ownershipOptions(15_000),
+    );
+    await lease.release();
+  });
+
+  it("rejects a recovery heartbeat above the stale-policy bound", async () => {
+    const instanceRoot = await makeInstanceRoot();
+
+    await expect(
+      acquireBootstrapRecoveryOwnership(instanceRoot, ownershipOptions(15_001)),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.ownership.invalid_recovery_heartbeat" },
+    });
+  });
+
   it("returns a lease only after publishing its matching owner witness", async () => {
     const instanceRoot = await makeInstanceRoot();
     const bootId = createBootId();

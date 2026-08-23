@@ -134,6 +134,15 @@ export class MaintenanceJournalStore {
       if (current.status === "CORRUPT") {
         throw new ProblemError(current.problem);
       }
+      if (current.status === "RECOVERED_PREVIOUS") {
+        throw new ProblemError(
+          storeProblem(
+            "maintenance.journal.current_authority_required",
+            "Current MaintenanceJournal authority is required",
+            "A previous MaintenanceJournal revision is recovery evidence only and cannot authorize mutation",
+          ),
+        );
+      }
       const expectedRevision = current.value.state.revision + 1;
       if (body.revision !== expectedRevision) {
         throw new ProblemError(

@@ -1,7 +1,9 @@
 import {
+  type BootstrapActivityId,
+  type BootstrapJournal,
   createMaintenanceOperationId,
-  type BootstrapStateBodyV2,
-  type BootstrapStateEnvelopeV2,
+  type BootstrapStateBodyV1,
+  type BootstrapStateEnvelopeV1,
   type MaintenanceJournalBodyV1,
   type MaintenanceOperationId,
   type MaintenanceOperationType,
@@ -22,7 +24,10 @@ import {
   parseBootId,
   parseHostOwnershipToken,
   ProblemError,
+  type BootId,
   type HostOwnershipToken,
+  type InstallationId,
+  type InstanceId,
   type Problem,
 } from "@heptalogos/foundation-contracts";
 import {
@@ -33,24 +38,39 @@ import {
   openMaintenanceStateAccess,
   type OwnedMaintenanceStateAccess,
 } from "./maintenance-state-access.js";
-import { createHostMaintenanceTracker } from "./host-maintenance-machine.js";
+import {
+  createHostMaintenanceTracker,
+  type HostMaintenanceEvent,
+} from "./host-maintenance-machine.js";
 import type {
   BootstrapManagedHostContext,
   HostMaintenanceQuiescence,
   HostQuiescenceLease,
   ManagedHostOperations,
-  PreparedMaintenanceState,
   PreparedPrivatePostgresMaintenance,
   PrivatePostgresMaintenanceRequest,
   PrivatePostgresMaintenanceResult,
 } from "./managed-host.js";
-import type {
-  HostOwnershipHandoffOptions,
-  OwnedBootstrapPreludeHandoffContext,
-} from "./host-ownership-handoff.js";
+import type { HostOwnershipHandoffOptions } from "./host-ownership-handoff.js";
 import type { PrivatePostgresMaintenanceDescriptor } from "./private-postgres-bootstrap.js";
+import type { BootstrapPathProfile } from "./roots.js";
+
+type CurrentPrivatePostgresStateEnvelope = BootstrapStateEnvelopeV1 & {
+  readonly state: BootstrapStateBodyV1 & {
+    readonly privatePostgres: NonNullable<BootstrapStateBodyV1["privatePostgres"]>;
+  };
+};
 
 const DEFAULT_BOOTSTRAP_HEARTBEAT_MS = 1_000;
+
+export interface HostMaintenanceBootstrapContext {
+  readonly installationId: InstallationId;
+  readonly instanceId: InstanceId;
+  readonly bootId: BootId;
+  readonly bootstrapActivityId: BootstrapActivityId;
+  readonly paths: BootstrapPathProfile;
+  readonly journal: BootstrapJournal;
+}
 
 export interface EnteredMaintenanceWindow {
   readonly operationId: MaintenanceOperationId;
@@ -67,7 +87,7 @@ export interface EnteredMaintenanceWindow {
 
 export interface HostMaintenanceOperationProvenance {
   readonly host: HostOwnershipContext;
-  readonly bootstrap: OwnedBootstrapPreludeHandoffContext;
+  readonly bootstrap: HostMaintenanceBootstrapContext;
   readonly handoff: HostOwnershipHandoffOptions;
   readonly privatePostgres: PrivatePostgresMaintenanceDescriptor;
   readonly beginOldHostRetirement?: () => Promise<void>;
@@ -135,32 +155,40 @@ function decimalRevision(value: string | number): string {
 
 function stateBody(
   loaded: Awaited<ReturnType<OwnedMaintenanceStateAccess["state"]["load"]>>,
-): BootstrapStateEnvelopeV2 {
+): CurrentPrivatePostgresStateEnvelope {
   if (loaded.status === "EMPTY") {
     throw maintenanceProblem(
       "bootstrap.maintenance.bootstrap_state_required",
       "BootstrapState is required for maintenance",
-      "M5A cannot enter maintenance without authoritative BootstrapState",
+      "Host maintenance requires authoritative BootstrapState",
     );
   }
   if (loaded.status === "CORRUPT") throw new ProblemError(loaded.problem);
-  if (loaded.value.state.schemaVersion !== 2) {
+  if (loaded.status === "RECOVERED_PREVIOUS") {
     throw maintenanceProblem(
-      "bootstrap.maintenance.private_postgres_state_required",
-      "M4 private PostgreSQL state is required for maintenance",
-      "M5A requires BootstrapState V2 private PostgreSQL identity",
+      "bootstrap.state.current_authority_required",
+      "Current BootstrapState authority is required",
+      "A recovered previous BootstrapState revision is inspection evidence only and cannot authorize host maintenance",
     );
   }
-  return loaded.value as BootstrapStateEnvelopeV2;
+  if (loaded.value.state.privatePostgres === undefined) {
+    throw maintenanceProblem(
+      "bootstrap.maintenance.private_postgres_state_required",
+      "Private PostgreSQL state is required for maintenance",
+      "Maintenance requires BootstrapState with canonical private PostgreSQL identity",
+    );
+  }
+  return loaded.value as CurrentPrivatePostgresStateEnvelope;
 }
 
 function assertPrivatePostgresIdentity(
-  state: BootstrapStateBodyV2,
+  state: BootstrapStateBodyV1,
   descriptor: PrivatePostgresMaintenanceDescriptor,
 ): void {
   const persisted = state.privatePostgres;
   if (
-    persisted.schemaVersion !== 2 ||
+    persisted === undefined ||
+    persisted.schemaVersion !== 1 ||
     persisted.installationId !== descriptor.expectedIdentity.installationId ||
     persisted.instanceId !== descriptor.expectedIdentity.instanceId ||
     persisted.persistedPort !== descriptor.expectedIdentity.persistedPort ||
@@ -172,7 +200,7 @@ function assertPrivatePostgresIdentity(
     throw maintenanceProblem(
       "bootstrap.maintenance.private_postgres_identity_mismatch",
       "Private PostgreSQL identity does not match maintenance provenance",
-      "The authoritative BootstrapState cluster identity, port, or initialization profile does not match the retained M4 descriptor",
+      "The authoritative BootstrapState cluster identity, port, or initialization profile does not match the retained maintenance descriptor",
     );
   }
 }
@@ -207,7 +235,7 @@ function assertCurrentFence(
 }
 
 function passwordProvider(
-  context: OwnedBootstrapPreludeHandoffContext,
+  context: HostMaintenanceBootstrapContext,
   handoff: HostOwnershipHandoffOptions,
 ) {
   return {
@@ -252,19 +280,47 @@ function targetPostgresOf(
     : "STOPPED";
 }
 
+function eventForCommittedStage(
+  stage: MaintenanceStage,
+): HostMaintenanceEvent | undefined {
+  switch (stage) {
+    case "HOST_QUIESCED":
+      return { type: "QUIESCENCE_PROVEN" };
+    case "HOST_TOKEN_REVOKED":
+      return { type: "TOKEN_REVOKED" };
+    case "HOST_LEASE_CLOSED":
+      return { type: "WINDOW_ENTERED" };
+    case "POSTGRES_STOPPED":
+      return { type: "POSTGRES_STOPPED" };
+    case "POSTGRES_READY":
+      return { type: "POSTGRES_READY" };
+    case "HOST_LEASE_ACQUIRED":
+      return { type: "HOST_LEASE_ACQUIRED" };
+    case "HOST_TOKEN_PUBLISHED":
+      return { type: "HOST_REACQUIRED" };
+    case "ABORTED":
+      return { type: "ABORTED" };
+    case "RECOVERY_REQUIRED":
+      return { type: "RECOVERY_REQUIRED" };
+    default:
+      return undefined;
+  }
+}
+
 function initialJournalBody(
   operationId: MaintenanceOperationId,
   request: PrivatePostgresMaintenanceRequest,
-  context: OwnedBootstrapPreludeHandoffContext,
+  context: HostMaintenanceBootstrapContext,
   host: HostOwnershipContext,
-  state: BootstrapStateEnvelopeV2,
+  state: BootstrapStateEnvelopeV1,
   ownershipRevision: string,
 ): MaintenanceJournalBodyV1 {
-  if (state.state.privatePostgres.schemaVersion !== 2) {
+  const privatePostgres = state.state.privatePostgres;
+  if (privatePostgres === undefined || privatePostgres.schemaVersion !== 1) {
     throw maintenanceProblem(
       "bootstrap.maintenance.private_postgres_state_required",
       "Private PostgreSQL state is not current",
-      "M5A requires the M4 private PostgreSQL state revision",
+      "A canonical private PostgreSQL state revision is required",
     );
   }
   return {
@@ -279,15 +335,14 @@ function initialJournalBody(
     source: {
       hostOwnershipToken: host.token,
       hostOwnershipRevision: ownershipRevision,
-      postgresClusterSystemIdentifier:
-        state.state.privatePostgres.clusterSystemIdentifier,
-      persistedPort: state.state.privatePostgres.persistedPort,
+      postgresClusterSystemIdentifier: privatePostgres.clusterSystemIdentifier,
+      persistedPort: privatePostgres.persistedPort,
     },
     target: { privatePostgres: targetPostgresOf(request) },
     verifiedPrerequisites: {
       bootstrapStateDigest: state.digest,
       privatePostgresInitializationProfileRevision:
-        state.state.privatePostgres.initializationProfileRevision,
+        privatePostgres.initializationProfileRevision,
     },
     lastCompletedStage: "BOOTSTRAP_OWNERSHIP_ACQUIRED",
     updatedAt: new Date().toISOString(),
@@ -345,12 +400,14 @@ export function createStopPrivatePostgresEnteredWindowExecutor(
     }
     await controller.stop();
     await window.advance("POSTGRES_STOPPED");
-    await window.advance("BOOTSTRAP_RELEASE_ARMED");
+    await window.advance("BOOTSTRAP_RELEASE_ARMED", {
+      terminalOutcome: "SUCCEEDED",
+    });
     await window.lease.release();
     await Promise.resolve()
       .then(() =>
         provenance.bootstrap.journal.checkpoint({
-          schemaVersion: 2,
+          schemaVersion: 1,
           bootId: provenance.bootstrap.bootId,
           bootstrapActivityId: provenance.bootstrap.bootstrapActivityId,
           installationId: provenance.bootstrap.installationId,
@@ -443,13 +500,15 @@ export function createRestartPrivatePostgresEnteredWindowExecutor(
           hostOwnershipRevision: publication.publishedRevision,
         },
       });
-      await window.advance("BOOTSTRAP_RELEASE_ARMED");
+      await window.advance("BOOTSTRAP_RELEASE_ARMED", {
+        terminalOutcome: "SUCCEEDED",
+      });
 
       await window.lease.release();
       await Promise.resolve()
         .then(() =>
           provenance.bootstrap.journal.checkpoint({
-            schemaVersion: 2,
+            schemaVersion: 1,
             bootId: provenance.bootstrap.bootId,
             bootstrapActivityId: provenance.bootstrap.bootstrapActivityId,
             installationId: provenance.bootstrap.installationId,
@@ -534,7 +593,6 @@ function createPreparedMaintenance(
   initial: MaintenanceJournalBodyV1,
 ): PreparedPrivatePostgresMaintenance {
   let body = initial;
-  let lifecycleState: PreparedMaintenanceState = "PREPARED";
   let quiescenceLease: HostQuiescenceLease | undefined;
   let ponr = false;
   let revocationAttempted = false;
@@ -579,52 +637,26 @@ function createPreparedMaintenance(
       lastCompletedStage: stage,
       updatedAt: new Date().toISOString(),
     };
+    const event = eventForCommittedStage(stage);
+    if (event !== undefined) tracker.assertCan(event);
     await access.journal.advance(next);
     body = next;
-    const eventByStage: Partial<
-      Record<
-        MaintenanceStage,
-        | { readonly type: "TOKEN_REVOKED" }
-        | { readonly type: "POSTGRES_STOPPED" }
-        | { readonly type: "POSTGRES_READY" }
-        | { readonly type: "HOST_LEASE_ACQUIRED" }
-        | { readonly type: "HOST_REACQUIRED" }
-      >
-    > = {
-      HOST_TOKEN_REVOKED: { type: "TOKEN_REVOKED" },
-      POSTGRES_STOPPED: { type: "POSTGRES_STOPPED" },
-      POSTGRES_READY: { type: "POSTGRES_READY" },
-      HOST_LEASE_ACQUIRED: { type: "HOST_LEASE_ACQUIRED" },
-      HOST_TOKEN_PUBLISHED: { type: "HOST_REACQUIRED" },
-    };
-    const event = eventByStage[stage];
-    if (event !== undefined && tracker.can(event)) tracker.send(event);
-    const stateByStage: Partial<Record<MaintenanceStage, PreparedMaintenanceState>> = {
-      HOST_QUIESCED: "QUIESCED",
-      HOST_TOKEN_REVOKED: "TOKEN_REVOKED",
-      HOST_LEASE_CLOSED: "ENTERED",
-      POSTGRES_STOPPED: "POSTGRES_STOPPED",
-      POSTGRES_READY: "POSTGRES_READY",
-      HOST_LEASE_ACQUIRED: "HOST_LEASE_ACQUIRED",
-      HOST_TOKEN_PUBLISHED: "HOST_REACQUIRED",
-      ABORTED: "ABORTED",
-      RECOVERY_REQUIRED: "RECOVERY_REQUIRED",
-    };
-    const nextState = stateByStage[stage];
-    if (nextState !== undefined) lifecycleState = nextState;
+    if (event !== undefined) tracker.send(event);
   };
 
   const markRecoveryRequired = async (error: unknown): Promise<void> => {
-    lifecycleState = "RECOVERY_REQUIRED";
-    if (tracker.can({ type: "RECOVERY_REQUIRED" })) {
-      tracker.send({ type: "RECOVERY_REQUIRED" });
-    }
     const oldHostRetirement = observeOldHostRetirement();
     if (lease.state === "HELD") {
       await advance("RECOVERY_REQUIRED", {
         terminalOutcome: isRevocationUncertain(error) ? "UNCERTAIN" : "FAILED",
         problemCode: problemCodeOf(error),
       }).catch(() => undefined);
+    }
+    if (
+      tracker.state !== "RECOVERY_REQUIRED" &&
+      tracker.can({ type: "RECOVERY_REQUIRED" })
+    ) {
+      tracker.send({ type: "RECOVERY_REQUIRED" });
     }
     await oldHostRetirement;
   };
@@ -650,9 +682,7 @@ function createPreparedMaintenance(
         }
         await quiescenceLease.resumeAfterAbort();
       }
-      if (tracker.can({ type: "ABORTED" })) tracker.send({ type: "ABORTED" });
       await advance("ABORTED", { terminalOutcome: "ABORTED" });
-      lifecycleState = "ABORTED";
       await lease.release();
     } catch (abortError) {
       await markRecoveryRequired(abortError);
@@ -664,11 +694,11 @@ function createPreparedMaintenance(
   const execute = async (
     quiescence: HostMaintenanceQuiescence,
   ): Promise<PrivatePostgresMaintenanceResult> => {
-    if (lifecycleState !== "PREPARED") {
+    if (tracker.state !== "PREPARED") {
       throw maintenanceProblem(
         "bootstrap.maintenance.invalid_state",
         "Prepared maintenance capability is not executable",
-        `The maintenance capability is ${lifecycleState}`,
+        `The maintenance capability is ${tracker.state}`,
         "conflict",
       );
     }
@@ -676,8 +706,6 @@ function createPreparedMaintenance(
       lease.assertHeld();
       provenance.host.assertActive();
       quiescenceLease = await quiescence.quiesce();
-      tracker.send({ type: "QUIESCENCE_PROVEN" });
-      lifecycleState = "QUIESCED";
       await advance("HOST_QUIESCED");
 
       lease.assertHeld();
@@ -697,8 +725,6 @@ function createPreparedMaintenance(
       });
       ponr = true;
       const oldHostClose = observeOldHostRetirement();
-      tracker.send({ type: "TOKEN_REVOKED" });
-      lifecycleState = "TOKEN_REVOKED";
       await advance("HOST_TOKEN_REVOKED");
 
       const oldHostCloseResult = await oldHostClose;
@@ -713,8 +739,6 @@ function createPreparedMaintenance(
         );
       }
       await advance("HOST_LEASE_CLOSED");
-      tracker.send({ type: "WINDOW_ENTERED" });
-      lifecycleState = "ENTERED";
       provenance.onOldHostTerminal?.();
 
       if (provenance.executeEnteredWindow === undefined) {
@@ -739,12 +763,11 @@ function createPreparedMaintenance(
             throw maintenanceProblem(
               "bootstrap.maintenance.invalid_completion",
               "Maintenance completion transition is invalid",
-              `The maintenance capability is ${lifecycleState}`,
+              `The maintenance capability is ${tracker.state}`,
               "conflict",
             );
           }
           tracker.send({ type: "COMPLETED" });
-          lifecycleState = "COMPLETED";
         },
       });
     } catch (error) {
@@ -758,7 +781,7 @@ function createPreparedMaintenance(
   };
 
   const abortBeforeEntry = async (): Promise<void> => {
-    if (lifecycleState !== "PREPARED") {
+    if (tracker.state !== "PREPARED") {
       throw maintenanceProblem(
         "bootstrap.maintenance.abort_after_entry",
         "Maintenance capability cannot abort after entry",
@@ -767,14 +790,13 @@ function createPreparedMaintenance(
       );
     }
     await advance("ABORTED", { terminalOutcome: "ABORTED" });
-    lifecycleState = "ABORTED";
     await lease.release();
   };
 
   return {
     operationId: body.operationId,
     get state() {
-      return lifecycleState;
+      return tracker.state;
     },
     signal: lease.signal,
     execute,

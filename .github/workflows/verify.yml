@@ -3,6 +3,10 @@ name: verify-manual
 on:
   workflow_dispatch:
     inputs:
+      base_sha:
+        description: Full reviewed base-branch commit SHA
+        required: true
+        type: string
       target_sha:
         description: Full commit SHA to verify
         required: true
@@ -37,6 +41,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.target_sha }}
+          fetch-depth: 0
           persist-credentials: false
 
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
@@ -46,18 +51,38 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
 
-      - name: Verify checked-out SHA
+      - name: Fetch reviewed base branch
+        run: git fetch --no-tags origin master:refs/remotes/origin/master
+
+      - name: Verify reviewed candidate pair
         env:
-          EXPECTED_SHA: ${{ inputs.target_sha }}
+          BASE_SHA: ${{ inputs.base_sha }}
+          TARGET_SHA: ${{ inputs.target_sha }}
         run: >-
           node --input-type=module -e
           "import { execFileSync } from 'node:child_process';
-          const actual=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
-          if(actual!==process.env.EXPECTED_SHA){
-            console.error('expected '+process.env.EXPECTED_SHA+' but checked out '+actual);
+          const workflowSha=process.env.GITHUB_SHA;
+          if(workflowSha!==process.env.TARGET_SHA){
+            console.error('workflow definition '+workflowSha+' does not match reviewed target '+process.env.TARGET_SHA);
             process.exit(1);
           }
-          console.log('PASS target SHA '+actual);"
+          const head=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+          if(head!==process.env.TARGET_SHA){
+            console.error('expected '+process.env.TARGET_SHA+' but checked out '+head);
+            process.exit(1);
+          }
+          const currentBase=execFileSync('git',['rev-parse','refs/remotes/origin/master'],{encoding:'utf8'}).trim();
+          if(currentBase!==process.env.BASE_SHA){
+            console.error('reviewed base '+process.env.BASE_SHA+' moved to '+currentBase);
+            process.exit(1);
+          }
+          execFileSync('git',['cat-file','-e',process.env.BASE_SHA+'^{commit}']);
+          const mergeBase=execFileSync('git',['merge-base',process.env.BASE_SHA,process.env.TARGET_SHA],{encoding:'utf8'}).trim();
+          if(mergeBase!==process.env.BASE_SHA){
+            console.error('base '+process.env.BASE_SHA+' is not an ancestor of target '+process.env.TARGET_SHA);
+            process.exit(1);
+          }
+          console.log('PASS review candidate base='+process.env.BASE_SHA+' head='+head);"
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm verify

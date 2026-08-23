@@ -1,3 +1,7 @@
+// Evaluate the ownership adapter before the public entry point's other runtime
+// dependencies so its adopted provider registers exit cleanup first.
+import "./bootstrap-ownership.js";
+
 export const BOOTSTRAP_RUNTIME_PACKAGE = "@heptalogos/bootstrap-runtime" as const;
 export { loadBootstrapLocator, type BootstrapLocatorV1 } from "./locator.js";
 export {
@@ -5,31 +9,20 @@ export {
   type BootstrapPathProfile,
   type ResolvedLifecycleRoot,
 } from "./roots.js";
-export {
-  BOOTSTRAP_RECOVERY_STALE_MS,
-  acquireBootstrapOwnership,
-  type BootstrapOwnershipLease,
-  type BootstrapOwnershipOptions,
-  type BootstrapOwnershipState,
+export type {
+  BootstrapOwnershipLease,
+  BootstrapOwnershipOptions,
+  BootstrapOwnershipState,
 } from "./bootstrap-ownership.js";
 export {
-  assertLocalInstallationOwnerFor,
   proveLocalInstallationOwner,
   type LocalInstallationOwnerRecoveryPrincipal,
 } from "./local-installation-owner.js";
 export {
-  acquireBootstrapRecoveryLease,
-  reclaimAbandonedBootstrapOwnership,
-  recoverAbandonedBootstrapToHost,
   inspectBootstrapRecovery,
-  type AbandonedBootstrapContinuationOptions,
   type BootstrapRecoveryDisposition,
   type BootstrapRecoveryInspection,
 } from "./bootstrap-recovery.js";
-export {
-  recoverInterruptedHostMaintenance,
-  type HostMaintenanceRecoveryOptions,
-} from "./host-maintenance-recovery.js";
 export {
   executeBootstrapRecoveryCommand,
   parseBootstrapRecoveryCommand,
@@ -38,10 +31,6 @@ export {
   type BootstrapRecoveryCommandResult,
 } from "./bootstrap-recovery-command.js";
 export type { OwnedBootstrapStateStore } from "./bootstrap-state-access.js";
-export {
-  openMaintenanceStateAccess,
-  type OwnedMaintenanceStateAccess,
-} from "./maintenance-state-access.js";
 export {
   prepareBootstrapPrelude,
   type OwnedBootstrapPrelude,

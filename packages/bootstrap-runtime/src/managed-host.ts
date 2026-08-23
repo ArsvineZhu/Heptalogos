@@ -10,23 +10,13 @@ import type {
   HostOwnershipContext,
   HostOwnershipState,
 } from "@heptalogos/host-ownership";
+import type { HostMaintenanceState } from "./host-maintenance-machine.js";
 
 export type PrivatePostgresMaintenanceRequest =
   | { readonly kind: "RESTART_PRIVATE_POSTGRES" }
   | { readonly kind: "STOP_PRIVATE_POSTGRES" };
 
-export type PreparedMaintenanceState =
-  | "PREPARED"
-  | "QUIESCED"
-  | "TOKEN_REVOKED"
-  | "ENTERED"
-  | "POSTGRES_STOPPED"
-  | "POSTGRES_READY"
-  | "HOST_LEASE_ACQUIRED"
-  | "HOST_REACQUIRED"
-  | "COMPLETED"
-  | "ABORTED"
-  | "RECOVERY_REQUIRED";
+export type PreparedMaintenanceState = HostMaintenanceState;
 
 export interface HostMaintenanceQuiescence {
   quiesce(): Promise<HostQuiescenceLease>;

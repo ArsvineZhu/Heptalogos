@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   asContentDigest,
   createBootId,
+  createHostOwnershipToken,
   createInstallationId,
   createInstanceId,
   createUuidV7Id,
@@ -24,7 +25,10 @@ import {
 import {
   BootstrapOwnerWitnessStore,
   BootstrapStateStore,
+  MaintenanceJournalStore,
+  maintenanceOperationRef,
   type BootstrapStateBodyV1,
+  type MaintenanceJournalBodyV1,
 } from "@heptalogos/bootstrap-state";
 import { prepareBootstrapPrelude } from "./bootstrap-prelude.js";
 import type { BootstrapOwnershipLease } from "./bootstrap-ownership.js";
@@ -117,6 +121,58 @@ async function makeFixture(anchorRoot?: string): Promise<{
   return { anchorRoot: anchor, instanceRoot: roots.INSTANCE, locator };
 }
 
+async function writeMaintenanceObligation(
+  fixture: Awaited<ReturnType<typeof makeFixture>>,
+  terminalOutcome?: MaintenanceJournalBodyV1["terminalOutcome"],
+): Promise<void> {
+  const operationId = createUuidV7Id("MaintenanceOperationId");
+  const stateStore = new BootstrapStateStore(
+    join(fixture.instanceRoot, "bootstrap-state"),
+  );
+  const current = await stateStore.load();
+  if (current.status !== "CURRENT") throw new Error("expected current BootstrapState");
+  const committed = await stateStore.commit({
+    ...current.value.state,
+    revision: current.value.state.revision + 1,
+    lastCommittedOperationRef: maintenanceOperationRef(operationId),
+  });
+  const lastCompletedStage =
+    terminalOutcome === "SUCCEEDED"
+      ? "BOOTSTRAP_RELEASE_ARMED"
+      : terminalOutcome === "ABORTED"
+        ? "ABORTED"
+        : terminalOutcome === "FAILED" || terminalOutcome === "UNCERTAIN"
+          ? "RECOVERY_REQUIRED"
+          : "POSTGRES_STOPPED";
+  await new MaintenanceJournalStore(fixture.instanceRoot).create({
+    schemaVersion: 1,
+    revision: 1,
+    operationId,
+    activityId: createUuidV7Id("ActivityId"),
+    installationId: fixture.locator.installationId,
+    instanceId: fixture.locator.instanceId,
+    bootId: createBootId(),
+    operationType: "PRIVATE_POSTGRES_STOP",
+    source: {
+      hostOwnershipToken: createHostOwnershipToken(),
+      hostOwnershipRevision: "7",
+      postgresClusterSystemIdentifier: "123",
+      persistedPort: 55432,
+    },
+    target: { privatePostgres: "STOPPED" },
+    verifiedPrerequisites: {
+      bootstrapStateDigest: committed.digest,
+      privatePostgresInitializationProfileRevision: asContentDigest(
+        "PrivatePostgresInitializationProfileRevision",
+        digestCanonicalJson("test.private-postgres-profile/v1", { profile: "prelude" }),
+      ),
+    },
+    lastCompletedStage,
+    updatedAt: "2026-08-23T00:00:00.000Z",
+    ...(terminalOutcome === undefined ? {} : { terminalOutcome }),
+  });
+}
+
 async function stages(
   journal: Awaited<ReturnType<typeof prepareBootstrapPrelude>>["journal"],
   bootId: BootId,
@@ -172,6 +228,135 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
     ]);
   });
 
+  it("blocks normal bootstrap when only RECOVERED_PREVIOUS state is available", async () => {
+    const fixture = await makeFixture();
+    const stateStore = new BootstrapStateStore(
+      join(fixture.instanceRoot, "bootstrap-state"),
+    );
+    await stateStore.commit(makeState(2));
+    await writeFile(
+      join(fixture.instanceRoot, "bootstrap-state", "bootstrap-state.json"),
+      "corrupt",
+    );
+
+    await expect(prepareBootstrapPrelude(fixture.anchorRoot)).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.state.current_authority_required" },
+    });
+  });
+
+  it("fails closed when a normal bootstrap required root is unavailable", async () => {
+    const fixture = await makeFixture();
+    const roots = {
+      ...fixture.locator.roots,
+      DATA: join(tmpdir(), "heptalogos-unavailable-prelude-data"),
+    };
+    await writeFile(
+      join(fixture.anchorRoot, "heptalogos.bootstrap.json"),
+      JSON.stringify({ ...fixture.locator, roots }),
+    );
+
+    await expect(prepareBootstrapPrelude(fixture.anchorRoot)).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.root.not_found" },
+    });
+  });
+
+  it("blocks normal bootstrap on an incomplete maintenance obligation before ownership", async () => {
+    const fixture = await makeFixture();
+    await writeMaintenanceObligation(fixture);
+
+    await expect(prepareBootstrapPrelude(fixture.anchorRoot)).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.recovery.maintenance_required" },
+    });
+    await expect(
+      lstat(join(fixture.instanceRoot, LOCK_DIRECTORY)),
+    ).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  });
+
+  it("rechecks the maintenance obligation after acquiring ownership", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    await writeMaintenanceObligation(fixture);
+
+    await expect(
+      prepared.acquireOwnership({ heartbeatMs: 1_000 }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.recovery.maintenance_required" },
+    });
+    await expect(
+      lstat(join(fixture.instanceRoot, LOCK_DIRECTORY)),
+    ).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  });
+
+  it("allows normal bootstrap after BOOTSTRAP_RELEASE_ARMED/SUCCEEDED", async () => {
+    const fixture = await makeFixture();
+    await writeMaintenanceObligation(fixture, "SUCCEEDED");
+
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    await owned.close();
+  });
+
+  it("allows normal bootstrap after ABORTED/ABORTED", async () => {
+    const fixture = await makeFixture();
+    await writeMaintenanceObligation(fixture, "ABORTED");
+
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    await owned.close();
+  });
+
+  it.each(["FAILED", "UNCERTAIN"] as const)(
+    "blocks normal bootstrap for RECOVERY_REQUIRED/%s",
+    async (terminalOutcome) => {
+      const fixture = await makeFixture();
+      await writeMaintenanceObligation(fixture, terminalOutcome);
+
+      await expect(prepareBootstrapPrelude(fixture.anchorRoot)).rejects.toMatchObject({
+        problem: { problemCode: "bootstrap.recovery.maintenance_required" },
+      });
+    },
+  );
+
+  it("blocks owned authoritative reload when only RECOVERED_PREVIOUS state is available", async () => {
+    const fixture = await makeFixture();
+    const stateStore = new BootstrapStateStore(
+      join(fixture.instanceRoot, "bootstrap-state"),
+    );
+    await stateStore.commit(makeState(2));
+    await writeFile(
+      join(fixture.instanceRoot, "bootstrap-state", "bootstrap-state.json"),
+      "corrupt",
+    );
+    const profile = await resolveBootstrapPathProfile(fixture.locator, ["INSTANCE"]);
+    const ownership = await acquireBootstrapOwnership(profile.resolve("INSTANCE"), {
+      heartbeatMs: 1000,
+      bootId: createBootId(),
+    });
+    const preludeModule = (await import("./bootstrap-prelude.js")) as Record<
+      string,
+      unknown
+    >;
+    const adopt = preludeModule.adoptRecoveredBootstrapOwnershipForPrelude as (
+      anchorRoot: string,
+      lease: BootstrapOwnershipLease,
+      identity: { bootId: BootId; bootstrapActivityId: string },
+    ) => Promise<unknown>;
+
+    await expect(
+      adopt(fixture.anchorRoot, ownership, {
+        bootId: createBootId(),
+        bootstrapActivityId: createUuidV7Id("ActivityId"),
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.state.current_authority_required" },
+    });
+    expect(ownership.state).toBe("RELEASED");
+  });
+
   it("materializes one normal owned prelude from one held ownership generation", async () => {
     const fixture = await makeFixture();
     const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
@@ -194,7 +379,7 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
 
   it("adopts a held lease without creating a second owner generation", async () => {
     const fixture = await makeFixture();
-    const profile = await resolveBootstrapPathProfile(fixture.locator);
+    const profile = await resolveBootstrapPathProfile(fixture.locator, ["INSTANCE"]);
     const recoveryBootId = createBootId();
     const bootstrapActivityId = createUuidV7Id("ActivityId");
     const ownership = await acquireBootstrapOwnership(profile.resolve("INSTANCE"), {
@@ -242,7 +427,9 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
   it("rejects recovered-lease adoption when the held lease belongs to another root", async () => {
     const heldFixture = await makeFixture();
     const requestedFixture = await makeFixture();
-    const profile = await resolveBootstrapPathProfile(heldFixture.locator);
+    const profile = await resolveBootstrapPathProfile(heldFixture.locator, [
+      "INSTANCE",
+    ]);
     const ownership = await acquireBootstrapOwnership(profile.resolve("INSTANCE"), {
       heartbeatMs: 1000,
       bootId: createBootId(),

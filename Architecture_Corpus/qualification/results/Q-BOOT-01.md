@@ -10,42 +10,90 @@ implementationQualification: REQUIRED
 selectedRoute: "`@bybrave/proper-lockfile2` 5.0.0"
 ```
 
-## Observed properties
+## Current H1-S candidate truth (2026-08-23)
+
+```yaml
+M5B: CLOSED
+H1_FUNCTIONAL: COMPLETE
+H1_STABILIZATION: REVIEW_CORRECTION_IMPLEMENTATION_COMPLETE
+H1: OPEN
+H2: NOT_ELIGIBLE
+behavior_candidate_sha: 3cc589b667b0cd64342881caf7d382c2d960a928
+```
+
+The machine-readable ledger contains only current H1-S properties. Historical
+M5A/M5B review, CI, and merge records remain below as narrative evidence and do
+not create a current compatibility obligation.
+
+## Current properties
 
 ```yaml
 evidence:
-  historical_proper_lockfile_4_1_2_delayed_reclaimer: NOT_RUN
-  proper_lockfile2_single_winner: PASS
-  normal_atomic_write_parseability: PASS
-  proper_lockfile2_delayed_reclaimer: PASS
-  proper_lockfile2_n_way_reclaim: PASS
-  active_heartbeat_not_reclaimed: PASS
-  killed_owner_reclaimed: PASS
-  recovery_reclaim_notification: PASS
-  compromised_lease_fenced: PASS
-  unicode_space_path: PASS
-  node24_esm_ts7_boundary: PASS
-  process_identity_self: PASS
-  process_identity_live_child: PASS
-  process_identity_dead_child: PASS
-  process_identity_pid_reused: PASS
-  process_identity_unknown_kill_probe: PASS
-  process_identity_unknown_pidusage: PASS
-  previous_revision_after_corrupt_current: PASS
-  kill_during_state_write: PASS
-  kill_during_atomic_replace: PASS
-  power_loss_cross_platform: NOT_RUN
+  canonical_bootstrap_state_v1: PASS
+  canonical_bootstrap_journal_v1: PASS
+  canonical_private_postgres_initialization_profile_v1: PASS
+  legacy_preproduction_bootstrap_shape_rejected: PASS
+  legacy_preproduction_maintenance_shape_rejected: PASS
+  recovered_previous_bootstrap_state_read_only: PASS
+  recovered_previous_maintenance_journal_read_only: PASS
+  recovery_declared_root_closure: PASS
+  unrequested_root_unavailable_nonblocking: PASS
+  normal_boot_incomplete_maintenance_blocked: PASS
+  no_lock_dead_attempt_nonblocking: PASS
+  no_lock_dead_owner_nonblocking: PASS
+  incomplete_maintenance_no_lock_routes_recovery: PASS
+  process_identity_start_mismatch_unknown: PASS
+  ambiguous_process_identity_blocks_reclaim: PASS
+  host_maintenance_single_in_process_state_source: PASS
+  raw_recovery_authority_not_public: PASS
+  sensitive_authority_package_root_star_export_guard: PASS
+  maintenance_success_terminal_v1: PASS
+  post_restart_normal_boot_continuity: PASS
+  post_stop_normal_boot_continuity: PASS
+  illegal_host_maintenance_transition_not_durably_committed: PASS
+  recovery_error_journal_requires_current_bootstrap_state: PASS
+  recovery_error_journal_requires_current_operation_pointer: PASS
+  public_entry_provider_exit_cleanup: PASS
+  private_postgres_real_integration: PASS
+  host_ownership_real_integration: PASS
+  bootstrap_runtime_real_integration: PASS
+  recovery_process_without_postgres: PASS
+  recovery_process_with_postgres: PASS
+  linux_real_postgres_recovery: NOT_RUN
+  windows_real_postgres_recovery: PASS
+  macos_real_postgres_recovery: NOT_RUN
+  source_less_recovery: NOT_RUN
+  service_account_acl: NOT_RUN
+  hardware_power_loss: NOT_RUN
+  independent_review: NOT_RUN
+  final_cross_platform_ci: NOT_RUN
+  squash_merge: NOT_RUN
 ```
+
+Evidence source: `pnpm verify` PASS; forced H1 package tests were
+bootstrap-state 111 passed/3 skipped, private-postgres 58 passed,
+Host ownership 75 passed, and bootstrap-runtime 195 passed/2 skipped.
+Private-postgres integration was 20/20, Host ownership integration 8/8,
+bootstrap-runtime integration 30/30, non-PostgreSQL process recovery 4/4,
+and PostgreSQL process recovery 2/2. The corrected candidate also ran the
+RC-1 continuity, RC-2 transition, RC-3 current-state/pointer, and RC-6 export
+guard regressions. PostgreSQL 18.6 was executed on Windows x64 from the EDB
+archive in the temporary bin root
+`C:\Users\Arsvine\AppData\Local\Temp\heptalogos-pg18.6-correction-20260823\extracted\pgsql\bin`;
+all five required tools reported 18.6.
 
 ## NOT_RUN / deferred properties
 
-- `power_loss_cross_platform`: Power-loss hardware and macOS/Linux crash qualification are outside the current host.
+- Linux/macOS real PostgreSQL recovery, source-less recovery, service-account ACL, and hardware power-loss remain unrun.
+- Independent review, final cross-platform CI, and squash merge are external closure gates for this exact candidate.
 
 ## Architecture disposition
 
 此 role 的当前 RoleDecision 由 `../dependency-status.json` 冻结为 `ADOPTED`；本记录只报告已证明的 property 与剩余 implementation/product qualification，不构成第二套 Authority。
 
-Power-loss, macOS/Linux and source-less bootstrap behavior remain implementation qualification.
+Power-loss, Linux/macOS and source-less bootstrap behavior remain
+implementation qualification; the current Windows result is limited to the
+extracted PostgreSQL 18.6 runtime qualification.
 
 The historical `proper-lockfile@4.1.2` route is retained as role-reopening
 context from upstream issue/source analysis plus a previously observed
@@ -55,13 +103,12 @@ the selected `@bybrave/proper-lockfile2` provider.
 
 Process-generation evidence uses a real child fixture and `pidusage@4.0.1`:
 `SAME_PROCESS` is returned for self/live child, `PROCESS_DEAD` only for a
-definitely missing PID, a start-time mismatch beyond 5 seconds is
-`PID_REUSED`, and both an ambiguous `kill(pid, 0)` error and a pidusage failure
-are `UNKNOWN`.
+definitely missing PID, and a start-time mismatch is `UNKNOWN`; ambiguous
+process evidence never authorizes stale-lock reclaim.
 
 若未来真实 implementation 暴露 reproducible hard blocker，才允许按 `../DEPENDENCY-QUALIFICATION.md` 的 reopening rule 重开 RoleDecision。
 
-## Foundation M5B bounded recovery qualification (2026-08-22)
+## Historical Foundation M5B bounded recovery qualification (2026-08-22)
 
 ```yaml
 m5b_behavior_candidate_sha: c4c1be43f412c868a84a776461b479d3b677ea18
@@ -99,7 +146,7 @@ The surviving evidence was produced with Node 24.19.0, pnpm 11.22.0, the
 the required real maintenance/recovery K4-K5 and complete PG-1..PG-9 matrix
 were not yet executed at this rejected candidate.
 
-## Foundation M5B first corrective candidate — superseded (2026-08-23)
+## Historical Foundation M5B first corrective candidate — superseded (2026-08-23)
 
 Behavior candidate `e7e46e8e1d58f15e254b9644f5b315cd34090360` had the following
 Linux evidence before the second corrective review. The exact review HEAD was
@@ -154,7 +201,7 @@ The earlier review at `9e450f836466d32fb1f3d9027618fac236798eb9` also returned
 `REQUEST_CHANGES`. The current second corrective cycle must rerun the invalidated
 K4/K5 and PG-1/PG-2/full-matrix evidence before a new candidate can be submitted.
 
-## Foundation M5B second corrective review blockers (2026-08-23)
+## Historical Foundation M5B second corrective review blockers (2026-08-23)
 
 ```yaml
 m5b_behavior_candidate_sha: e7e46e8e1d58f15e254b9644f5b315cd34090360
@@ -196,7 +243,7 @@ the second corrective runs. Windows/macOS real PostgreSQL, source-less
 recovery, service-account ACL, hardware power-loss, final CI, and merge remain
 `NOT_RUN` or unauthorized.
 
-## Foundation M5B second corrective qualification (2026-08-23)
+## Historical Foundation M5B second corrective qualification (2026-08-23)
 
 The second corrective behavior candidate is
 `55c58ed83d5e7b7ce964b659e6250b6f6580634d`. Production behavior was completed
@@ -255,7 +302,7 @@ the current candidate's machine-readable independent-review status of
 `NOT_RUN`. Windows/macOS real PostgreSQL, source-less recovery, service-account
 ACL, hardware power-loss, final CI, merge, and H1 closure remain outstanding.
 
-## Foundation M5B third corrective qualification (2026-08-23)
+## Historical Foundation M5B third corrective qualification (2026-08-23)
 
 The `445a77db3041644faccd85c00c826e8d26af3ea8` review returned
 `REQUEST_CHANGES`; its findings are historical. The new behavior candidate is
@@ -306,7 +353,7 @@ The new candidate awaits independent exact-HEAD review. Final CI, merge, the
 remaining cross-platform/source-less/ACL/power-loss qualifications, and H1
 closure remain open.
 
-## Foundation M5B post-merge reconciliation (2026-08-23)
+## Historical Foundation M5B post-merge reconciliation (2026-08-23)
 
 ```yaml
 m5b_behavior_candidate_sha: ce8ecbd2f54b6da39542845b1c23fbb959672c0a

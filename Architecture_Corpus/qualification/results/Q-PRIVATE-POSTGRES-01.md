@@ -9,6 +9,84 @@ implementationQualification: REQUIRED
 testedProperty: "Exact PostgreSQL 18.6 private bootstrap initialization, portable identity, bounded lifecycle, ownership-held handoff, and fail-closed recovery boundaries"
 ```
 
+## Current H1-S candidate truth (2026-08-23)
+
+```yaml
+M5B: CLOSED
+H1_FUNCTIONAL: COMPLETE
+H1_STABILIZATION: REVIEW_CORRECTION_IMPLEMENTATION_COMPLETE
+H1: OPEN
+H2: NOT_ELIGIBLE
+behavior_candidate_sha: 3cc589b667b0cd64342881caf7d382c2d960a928
+```
+
+The machine-readable ledger currently contains the H1-S canonical V1 property
+set. Historical M3/M4/M5A/M5B implementation records remain below as narrative
+evidence and do not assert compatibility with removed development-era formats.
+
+## Current H1-S properties
+
+```yaml
+canonical_v1_private_postgres_identity_commit: PASS
+canonical_v1_initialization_profile_v1: PASS
+exact_toolchain_18_6: PASS
+private_postgres_real_integration: PASS
+host_ownership_real_integration: PASS
+bootstrap_runtime_real_integration: PASS
+recovery_process_postgres: PASS
+linux_real_pg: NOT_RUN
+windows_real_pg: PASS
+macos_real_pg: NOT_RUN
+source_less_shipping_closure: NOT_RUN
+service_account_acl_closure: NOT_RUN
+hardware_power_loss: NOT_RUN
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The corrected candidate executed PostgreSQL 18.6 on Windows x64 from the EDB
+archive in the temporary bin root
+`C:\Users\Arsvine\AppData\Local\Temp\heptalogos-pg18.6-correction-20260823\extracted\pgsql\bin`.
+The five required tools reported 18.6; private-postgres integration passed
+20/20, Host ownership integration 8/8, bootstrap-runtime integration 30/30,
+and PostgreSQL process recovery 2/2. `pnpm verify` also passed.
+
+## Current H1-S review-correction qualification
+
+```yaml
+candidate_sha: 3cc589b667b0cd64342881caf7d382c2d960a928
+runtime: "Windows x64 / Node 24.19.0 / pnpm 11.22.0"
+postgres_provenance: "EDB PostgreSQL 18.6 Windows x86-64 binary archive extracted to a temporary qualification root; not a source-less shipping artifact"
+exact_toolchain_18_6: PASS
+maintenance_success_terminal_v1: PASS
+post_restart_normal_boot_continuity: PASS
+post_stop_normal_boot_continuity: PASS
+illegal_host_maintenance_transition_not_durably_committed: PASS
+recovery_error_journal_requires_current_bootstrap_state: PASS
+recovery_error_journal_requires_current_operation_pointer: PASS
+private_postgres_real_integration: PASS (20/20)
+host_ownership_real_integration: PASS (8/8)
+bootstrap_runtime_real_integration: PASS (30/30)
+recovery_process_without_postgres: PASS (4/4)
+recovery_process_with_postgres: PASS (2/2)
+linux_real_pg: NOT_RUN
+macos_real_pg: NOT_RUN
+source_less_shipping_closure: NOT_RUN
+service_account_acl_closure: NOT_RUN
+hardware_power_loss: NOT_RUN
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+This current-host run proves Windows extracted-runtime PostgreSQL behavior for
+the corrected candidate. It does not upgrade Linux/macOS, source-less shipping,
+service-account ACL, hardware power-loss, independent-review, final-CI, or
+merge claims.
+
+## Historical corrected-candidate Windows evidence
+
 ## Corrected-candidate Windows evidence
 
 ```yaml
@@ -197,7 +275,7 @@ ACL and role-membership edges; grant-option and column-specific ACL closure
 was not yet evidenced at that SHA. Corrected Linux/macOS real PostgreSQL,
 independent review, and final cross-platform CI remain `NOT_RUN`.
 
-## Foundation M4 privilege-closure correction evidence (2026-08-22)
+## Historical Foundation M4 privilege-closure correction evidence (2026-08-22)
 
 This is the current M4 implementation candidate. It supersedes the preceding
 corrective candidate for current qualification truth while preserving both
@@ -256,7 +334,7 @@ linux_real_pg: PASS
 It was produced before the corrective behavior changes and must not be read as
 qualification of the corrected candidate SHA.
 
-## Foundation M5A reverse-handoff evidence (2026-08-22)
+## Historical Foundation M5A reverse-handoff evidence (2026-08-22)
 
 This addendum records the M5A implementation candidate separately. It does not
 upgrade the historical M4 evidence, close H1, or claim process-death,
@@ -303,7 +381,7 @@ repository/dependency/corpus/boundary checks, format checks, and `pnpm verify` w
 also run locally. Windows/macOS real-PG qualification, independent review, and final
 cross-platform CI remain `NOT_RUN`.
 
-## Foundation M5A corrective qualification evidence (2026-08-22)
+## Historical Foundation M5A corrective qualification evidence (2026-08-22)
 
 This addendum records the corrected M5A behavior candidate after the independent
 review at `65a56c7a8906e49658d8a304d0903668d8f64228` returned `REQUEST_CHANGES`.
@@ -361,7 +439,7 @@ competing bootstrap acquisition was rejected. The direct `pg` client and its
 types are test-only bootstrap-runtime development dependencies, with an explicit
 boundary exception limited to the live integration test.
 
-## Foundation M5A PONR close-rejection correction evidence (2026-08-22)
+## Historical Foundation M5A PONR close-rejection correction evidence (2026-08-22)
 
 This addendum records the second independent review result and the subsequent
 behavior correction. The review target remained exact at
@@ -420,7 +498,7 @@ cross-platform CI remain `NOT_RUN`. The historical extracted Ubuntu package
 runtime does not qualify the corrected M4 Linux claim; the M5A Linux PASS above
 is limited to the recorded corrected candidate and scenarios.
 
-## Foundation M5A post-merge closure and M5B boundary (2026-08-22)
+## Historical Foundation M5A post-merge closure and M5B boundary (2026-08-22)
 
 The corrected M5A candidate was independently reviewed and merged. This closes
 the M5A reverse-handoff implementation milestone but does not claim M5B or H1
@@ -445,7 +523,7 @@ operating systems; it is not real PostgreSQL qualification. M5B remains
 responsible for bounded abandoned-owner recovery, real process kill/restart,
 and the remaining H1 semantic closure evidence.
 
-## Foundation M5B recovery qualification (2026-08-22)
+## Historical Foundation M5B recovery qualification (2026-08-22)
 
 M5B behavior candidate `c4c1be43f412c868a84a776461b479d3b677ea18` passed
 specific Linux real-PostgreSQL and K1-K3 process subsets without changing the
@@ -488,7 +566,7 @@ All five required binaries reported PostgreSQL 18.6. K1-K3 used real Node
 child termination and stale-lock adjudication; the required real maintenance
 K4/K5 paths and complete PG-1..PG-9 matrix remain `NOT_RUN` until rerun.
 
-## Foundation M5B first corrective real-PostgreSQL evidence — superseded (2026-08-23)
+## Historical Foundation M5B first corrective real-PostgreSQL evidence — superseded (2026-08-23)
 
 Behavior candidate `e7e46e8e1d58f15e254b9644f5b315cd34090360` had the following
 Linux PostgreSQL 18.6 evidence before the second corrective review. The exact
@@ -521,7 +599,7 @@ returned `REQUEST_CHANGES`. The second corrective cycle must replace the
 mislabeled PG-1/PG-2 evidence and rerun deterministic K4/K5 before a new
 candidate is submitted.
 
-## Foundation M5B second corrective review blockers (2026-08-23)
+## Historical Foundation M5B second corrective review blockers (2026-08-23)
 
 ```yaml
 behavior_candidate_sha: e7e46e8e1d58f15e254b9644f5b315cd34090360
@@ -550,7 +628,7 @@ evidence that is independent of the rejected K4/K5/PG-1/PG-2 claims remains
 historical PASS evidence. The second corrective candidate must establish new
 claim-matched runs before those withdrawn M5B rows can return to `PASS`.
 
-## Foundation M5B second corrective qualification (2026-08-23)
+## Historical Foundation M5B second corrective qualification (2026-08-23)
 
 The second corrective behavior candidate
 `55c58ed83d5e7b7ce964b659e6250b6f6580634d` now has claim-matched Linux
@@ -568,7 +646,7 @@ independent review is `NOT_RUN`; Windows/macOS real PostgreSQL, source-less
 recovery, service-account ACL, hardware power-loss, final CI, and merge remain
 open, and H1 remains OPEN.
 
-## Foundation M5B third corrective qualification (2026-08-23)
+## Historical Foundation M5B third corrective qualification (2026-08-23)
 
 The review at exact HEAD `445a77db3041644faccd85c00c826e8d26af3ea8` returned
 `REQUEST_CHANGES`. The new behavior candidate is
@@ -588,7 +666,7 @@ Host ownership, bootstrap-runtime integration, and `pnpm verify` evidence was
 rerun for this candidate. Independent review is `NOT_RUN`; final CI and merge
 remain unauthorized, and H1 remains OPEN.
 
-## Foundation M5B post-merge reconciliation (2026-08-23)
+## Historical Foundation M5B post-merge reconciliation (2026-08-23)
 
 ```yaml
 m5b_behavior_candidate_sha: ce8ecbd2f54b6da39542845b1c23fbb959672c0a

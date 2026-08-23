@@ -43,6 +43,35 @@ describe("Host maintenance transition tracker", () => {
     expect(() => afterRevocation.send({ type: "ABORTED" })).toThrow();
   });
 
+  it.each([
+    ["PREPARED", [] as const],
+    [
+      "ENTERED",
+      [
+        { type: "QUIESCENCE_PROVEN" },
+        { type: "TOKEN_REVOKED" },
+        { type: "WINDOW_ENTERED" },
+      ] as const,
+    ],
+  ] as const)(
+    "rejects POSTGRES_READY during %s without mutating the tracker",
+    (_expectedState, events) => {
+      const tracker = createHostMaintenanceTracker();
+      move(tracker, ...events);
+
+      let error: unknown;
+      try {
+        tracker.assertCan({ type: "POSTGRES_READY" });
+      } catch (caught) {
+        error = caught;
+      }
+      expect(error).toMatchObject({
+        problem: { problemCode: "bootstrap.maintenance.invalid_transition" },
+      });
+      expect(tracker.state).toBe(_expectedState);
+    },
+  );
+
   it("makes RECOVERY_REQUIRED terminal and never returns to a pre-PONR state", () => {
     const tracker = createHostMaintenanceTracker();
     move(tracker, { type: "QUIESCENCE_PROVEN" }, { type: "RECOVERY_REQUIRED" });

@@ -1,3 +1,6 @@
+// Load the adopted provider before bootstrap-state's write-file-atomic transitive
+// signal-exit adapter so provider exit cleanup remains registered.
+import "@bybrave/proper-lockfile2";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import {
@@ -33,6 +36,7 @@ const properLockfile = require("@bybrave/proper-lockfile2") as ProperLockfile;
 const BOOTSTRAP_LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
 const NO_AUTOMATIC_STALE_RECLAIM_MS = Number.MAX_SAFE_INTEGER;
 export const BOOTSTRAP_RECOVERY_STALE_MS = 30_000;
+const MAX_RECOVERY_HEARTBEAT_MS = 15_000;
 
 export type BootstrapOwnershipState = "HELD" | "RELEASING" | "COMPROMISED" | "RELEASED";
 
@@ -88,6 +92,24 @@ function assertHeartbeat(heartbeatMs: number): void {
         "manual",
         "Bootstrap ownership heartbeat is invalid",
         "Bootstrap ownership heartbeatMs must be an integer of at least 1000 milliseconds",
+      ),
+    );
+  }
+}
+
+function assertRecoveryHeartbeat(heartbeatMs: number): void {
+  if (
+    !Number.isInteger(heartbeatMs) ||
+    heartbeatMs < 1_000 ||
+    heartbeatMs > MAX_RECOVERY_HEARTBEAT_MS
+  ) {
+    throw new ProblemError(
+      ownershipProblem(
+        "bootstrap.ownership.invalid_recovery_heartbeat",
+        "validation",
+        "manual",
+        "Bootstrap recovery heartbeat is invalid",
+        "Recovery bootstrap heartbeatMs must be an integer between 1000 and 15000 milliseconds",
       ),
     );
   }
@@ -161,8 +183,10 @@ async function acquireBootstrapOwnershipWithStalePolicy(
   instanceRoot: ResolvedLifecycleRoot,
   options: BootstrapOwnershipOptions,
   stale: number,
+  recovery: boolean,
 ): Promise<BootstrapOwnershipLease> {
-  assertHeartbeat(options.heartbeatMs);
+  if (recovery) assertRecoveryHeartbeat(options.heartbeatMs);
+  else assertHeartbeat(options.heartbeatMs);
 
   const witnessStore = new BootstrapOwnerWitnessStore(instanceRoot.canonicalPath);
   const lockGenerationId = createBootstrapLockGenerationId();
@@ -330,6 +354,7 @@ export async function acquireBootstrapOwnership(
     instanceRoot,
     options,
     NO_AUTOMATIC_STALE_RECLAIM_MS,
+    false,
   );
 }
 
@@ -341,5 +366,6 @@ export async function acquireBootstrapRecoveryOwnership(
     instanceRoot,
     options,
     BOOTSTRAP_RECOVERY_STALE_MS,
+    true,
   );
 }

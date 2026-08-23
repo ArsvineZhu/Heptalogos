@@ -14,7 +14,6 @@ import {
 import {
   createMaintenanceOperationId,
   type BootstrapStateBodyV1,
-  type BootstrapStateBodyV2,
   type MaintenanceJournalBodyV1,
   BootstrapStateStore,
 } from "@heptalogos/bootstrap-state";
@@ -45,16 +44,16 @@ function makeStateV1(revision = 1): BootstrapStateBodyV1 {
   };
 }
 
-function makeStateV2(
+function makeStateWithPrivatePostgres(
   installationId: ReturnType<typeof createInstallationId>,
   instanceId: ReturnType<typeof createInstanceId>,
   revision = 1,
-): BootstrapStateBodyV2 {
+): BootstrapStateBodyV1 {
   return {
     ...makeStateV1(revision),
-    schemaVersion: 2,
+    schemaVersion: 1,
     privatePostgres: {
-      schemaVersion: 2,
+      schemaVersion: 1,
       postgresMajor: 18,
       initializedByPostgresVersion: "18.6",
       installationId,
@@ -95,7 +94,7 @@ function makeJournalBody(
     },
     target: { privatePostgres: "STOPPED" },
     verifiedPrerequisites: {
-      bootstrapStateDigest: digestCanonicalJson("heptalogos.bootstrap-state/v2", {
+      bootstrapStateDigest: digestCanonicalJson("heptalogos.bootstrap-state/v1", {
         state: true,
       }),
       privatePostgresInitializationProfileRevision: asContentDigest(
@@ -201,11 +200,50 @@ describe("owned maintenance state access", () => {
     });
   });
 
+  it("rejects an operation pointer when only RECOVERED_PREVIOUS is available", async () => {
+    const fixture = await makeFixture();
+    const raw = new BootstrapStateStore(join(fixture.instanceRoot, "bootstrap-state"));
+    const statePath = join(
+      fixture.instanceRoot,
+      "bootstrap-state",
+      "bootstrap-state.json",
+    );
+
+    await raw.commit(
+      makeStateWithPrivatePostgres(
+        fixture.profile.installationId,
+        fixture.profile.instanceId,
+        1,
+      ),
+    );
+    await raw.commit(
+      makeStateWithPrivatePostgres(
+        fixture.profile.installationId,
+        fixture.profile.instanceId,
+        2,
+      ),
+    );
+    await rm(statePath, { force: true });
+
+    await expect(raw.load()).resolves.toMatchObject({
+      status: "RECOVERED_PREVIOUS",
+      value: { state: { revision: 1 } },
+    });
+    await expect(
+      fixture.access.commitOperationPointer(createMaintenanceOperationId()),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "maintenance.journal.current_authority_required" },
+    });
+  });
+
   it("creates the journal before committing the BootstrapState operation pointer", async () => {
     const fixture = await makeFixture();
     const raw = new BootstrapStateStore(join(fixture.instanceRoot, "bootstrap-state"));
     await raw.commit(
-      makeStateV2(fixture.profile.installationId, fixture.profile.instanceId),
+      makeStateWithPrivatePostgres(
+        fixture.profile.installationId,
+        fixture.profile.instanceId,
+      ),
     );
     const body = makeJournalBody();
 

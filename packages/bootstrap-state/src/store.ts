@@ -102,16 +102,12 @@ export class BootstrapStateStore {
     if (current.status === "CORRUPT") {
       throw new ProblemError(current.problem);
     }
-    if (
-      current.status !== "EMPTY" &&
-      current.value.state.schemaVersion === 2 &&
-      candidate.schemaVersion === 1
-    ) {
+    if (current.status === "RECOVERED_PREVIOUS") {
       throw new ProblemError(
         storeProblem(
-          "bootstrap.state.schema_downgrade",
-          "BootstrapState schema downgrade is not allowed",
-          "A BootstrapState V2 revision cannot be replaced by a V1 revision",
+          "bootstrap.state.current_authority_required",
+          "Current BootstrapState authority is required",
+          "A previous BootstrapState revision is recovery evidence only and cannot authorize mutation",
         ),
       );
     }

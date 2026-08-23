@@ -90,6 +90,31 @@ describe("bounded bootstrap recovery commands", () => {
     });
   });
 
+  it("routes no-lock dead-witness incomplete maintenance to MAINTENANCE recovery", async () => {
+    mocks.inspect.mockResolvedValue({
+      ...inspection,
+      lockPresent: false,
+      ownerProcessStatus: "PROCESS_DEAD",
+      disposition: "INCOMPLETE_MAINTENANCE",
+      maintenanceIncomplete: true,
+    });
+    mocks.recover.mockResolvedValue({ kind: "STOPPED" });
+
+    await expect(
+      executeBootstrapRecoveryCommand(
+        "/installation",
+        { kind: "RECOVER", expectedOperationId: operationId },
+        { kind: "MAINTENANCE", recovery: { principal: {} } } as never,
+      ),
+    ).resolves.toMatchObject({
+      kind: "RECOVERED",
+      recoveryKind: "MAINTENANCE",
+      operationId,
+    });
+    expect(mocks.recover).toHaveBeenCalledOnce();
+    expect(mocks.continue).not.toHaveBeenCalled();
+  });
+
   it("dispatches abandoned bootstrap continuation when no maintenance is incomplete", async () => {
     const abandoned = {
       ...inspection,

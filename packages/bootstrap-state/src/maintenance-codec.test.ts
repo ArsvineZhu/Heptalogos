@@ -32,11 +32,11 @@ function body(): MaintenanceJournalBodyV1 {
     },
     target: { privatePostgres: "STOPPED" },
     verifiedPrerequisites: {
-      bootstrapStateDigest: digestCanonicalJson("heptalogos.bootstrap-state/v2", {
+      bootstrapStateDigest: digestCanonicalJson("heptalogos.bootstrap-state/v1", {
         state: true,
       }),
       privatePostgresInitializationProfileRevision: digestCanonicalJson(
-        "heptalogos.private-postgres.initialization-profile/v2",
+        "heptalogos.private-postgres.initialization-profile/v1",
         { profile: true },
       )
         .hex as MaintenanceJournalBodyV1["verifiedPrerequisites"]["privatePostgresInitializationProfileRevision"],
@@ -47,6 +47,10 @@ function body(): MaintenanceJournalBodyV1 {
 }
 
 describe("MaintenanceJournal envelope integrity", () => {
+  function canonical(state: MaintenanceJournalBodyV1): string {
+    return JSON.stringify(sealMaintenanceJournal(state));
+  }
+
   it("uses the fixed domain-separated digest envelope", () => {
     const sealed = sealMaintenanceJournal(body());
     expect(sealed.digest).toMatchObject({
@@ -72,6 +76,48 @@ describe("MaintenanceJournal envelope integrity", () => {
     expect(parseMaintenanceJournal(JSON.stringify(tampered))).toMatchObject({
       ok: false,
       problem: { problemCode: "maintenance.journal.digest_mismatch" },
+    });
+  });
+
+  it("accepts BOOTSTRAP_RELEASE_ARMED only as successful terminal completion", () => {
+    const journal = body();
+    expect(
+      parseMaintenanceJournal(
+        canonical({
+          ...journal,
+          lastCompletedStage: "BOOTSTRAP_RELEASE_ARMED",
+          terminalOutcome: "SUCCEEDED",
+        }),
+      ).ok,
+    ).toBe(true);
+  });
+
+  it("rejects SUCCEEDED on an earlier progress stage", () => {
+    expect(
+      parseMaintenanceJournal(
+        canonical({
+          ...body(),
+          lastCompletedStage: "POSTGRES_STOPPED",
+          terminalOutcome: "SUCCEEDED",
+        }),
+      ),
+    ).toMatchObject({
+      ok: false,
+      problem: { problemCode: "maintenance.journal.invalid_semantics" },
+    });
+  });
+
+  it("rejects BOOTSTRAP_RELEASE_ARMED without SUCCEEDED", () => {
+    expect(
+      parseMaintenanceJournal(
+        canonical({
+          ...body(),
+          lastCompletedStage: "BOOTSTRAP_RELEASE_ARMED",
+        }),
+      ),
+    ).toMatchObject({
+      ok: false,
+      problem: { problemCode: "maintenance.journal.invalid_semantics" },
     });
   });
 });

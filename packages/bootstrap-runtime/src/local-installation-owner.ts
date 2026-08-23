@@ -153,9 +153,9 @@ export async function proveLocalInstallationOwner(
 ): Promise<LocalInstallationOwnerRecoveryPrincipal> {
   await assertAnchorIsCanonicalDirectory(anchorRoot);
   const locator = await loadBootstrapLocator(anchorRoot);
-  const profile = await resolveBootstrapPathProfile(locator);
+  const profile = await resolveBootstrapPathProfile(locator, ["INSTANCE"]);
   const instanceRoot = profile.resolve("INSTANCE").canonicalPath;
-  await assertRootsReadable(profile.list().map((root) => root.canonicalPath));
+  await assertRootsReadable([instanceRoot]);
   await assertPosixOwner(instanceRoot);
   await proveInstanceWrite(instanceRoot);
 

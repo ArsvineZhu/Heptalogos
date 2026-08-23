@@ -29,12 +29,10 @@ import {
   resolvePrivatePostgresToolchain,
   type PrivatePostgresToolchain,
 } from "@heptalogos/private-postgres";
-import {
-  loadBootstrapLocator,
-  proveLocalInstallationOwner,
-  recoverInterruptedHostMaintenance,
-  resolveBootstrapPathProfile,
-} from "@heptalogos/bootstrap-runtime";
+import { loadBootstrapLocator } from "./locator.js";
+import { proveLocalInstallationOwner } from "./local-installation-owner.js";
+import { resolveBootstrapPathProfile } from "./roots.js";
+import { recoverInterruptedHostMaintenance } from "./host-maintenance-recovery.js";
 import type { PrivatePostgresMaintenanceDescriptor } from "./private-postgres-bootstrap.js";
 
 const qualifiedPgBin =
@@ -252,6 +250,7 @@ async function waitForChildDurableStage(
   }
   expect(signal.operationId).toBe(operationId);
   expect(signal.stage).toBe(stage);
+  await child.kill();
 
   const journal = new MaintenanceJournalStore(instanceRoot);
   const loaded = await journal.load(operationId);
@@ -279,18 +278,21 @@ async function buildDescriptor(
   port: number,
 ): Promise<PrivatePostgresMaintenanceDescriptor> {
   const locator = await loadBootstrapLocator(fixture.anchorRoot);
-  const profile = await resolveBootstrapPathProfile(locator);
+  const profile = await resolveBootstrapPathProfile(locator, [
+    "INSTANCE",
+    "DATA",
+    "LOG",
+  ]);
   const loaded = await new BootstrapStateStore(
     join(profile.resolve("INSTANCE").canonicalPath, "bootstrap-state"),
   ).load();
-  if (
-    loaded.status !== "CURRENT" ||
-    loaded.value.state.schemaVersion !== 2 ||
-    loaded.value.state.privatePostgres.schemaVersion !== 2
-  ) {
-    throw new Error("real process fixture did not persist BootstrapState V2");
+  if (loaded.status !== "CURRENT" || loaded.value.state.schemaVersion !== 1) {
+    throw new Error("real process fixture did not persist BootstrapState V1");
   }
   const persisted = loaded.value.state.privatePostgres;
+  if (persisted === undefined || persisted.schemaVersion !== 1) {
+    throw new Error("real process fixture did not persist private PostgreSQL state");
+  }
   const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
   const placement = resolvePrivatePostgresPlacement(
     profile.resolve("DATA").canonicalPath,
@@ -344,7 +346,7 @@ async function stopPostgres(
   dataDirectory: string,
 ) {
   try {
-    await access(join(dataDirectory, "postmaster.pid"));
+    await access(dataDirectory);
   } catch {
     return;
   }
@@ -361,22 +363,22 @@ async function stopPostgres(
 
 afterEach(async () => {
   const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
-  await Promise.all(
-    directories.map(async (directory) => {
-      try {
-        const locator = await loadBootstrapLocator(directory);
-        const profile = await resolveBootstrapPathProfile(locator);
-        await stopPostgres(
-          toolchain,
-          join(profile.resolve("DATA").canonicalPath, "private-postgres"),
-        );
-      } catch {
-        // The child may have died before it completed locator/state setup.
-      }
-      await rm(directory, { recursive: true, force: true });
-    }),
-  );
-  directories.splice(0);
+  const cleanupDirectories = directories.splice(0);
+  for (const directory of cleanupDirectories) {
+    try {
+      const locator = await loadBootstrapLocator(directory);
+      const profile = await resolveBootstrapPathProfile(locator, ["INSTANCE", "DATA"]);
+      await stopPostgres(
+        toolchain,
+        join(profile.resolve("DATA").canonicalPath, "private-postgres"),
+      );
+    } catch {
+      // The child may have died before it completed locator/state setup.
+    }
+  }
+  for (const directory of cleanupDirectories) {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 describe("M5B real maintenance/recovery process qualification", () => {
@@ -507,5 +509,6 @@ describe("M5B real maintenance/recovery process qualification", () => {
     expect(final.value.state.target.hostBootId).toBe(armed.target.hostBootId);
     secondRecovery.send({ type: "release" });
     await secondRecovery.waitFor("released");
+    await secondRecovery.kill();
   }, 300_000);
 });

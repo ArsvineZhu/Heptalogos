@@ -3,7 +3,6 @@ import { join } from "node:path";
 import {
   BootstrapOwnerWitnessStore,
   BootstrapStateStore,
-  MaintenanceJournalStore,
   type BootstrapActivityId,
   type BootstrapOwnerWitnessEnvelopeV1,
   type BootstrapStateLoadResult,
@@ -14,7 +13,6 @@ import {
   ProblemError,
   createBootId,
   createUuidV7Id,
-  parseUuidV7Id,
   type BootId,
   type InstallationId,
   type InstanceId,
@@ -38,6 +36,10 @@ import {
 import { loadBootstrapLocator } from "./locator.js";
 import { resolveBootstrapPathProfile } from "./roots.js";
 import {
+  inspectMaintenanceObligation,
+  type MaintenanceObligationInspection,
+} from "./maintenance-obligation.js";
+import {
   adoptRecoveredBootstrapOwnershipForPrelude,
   type OwnedBootstrapPrelude,
 } from "./bootstrap-prelude.js";
@@ -47,8 +49,8 @@ import type { BootstrapManagedHostContext } from "./managed-host.js";
 
 const BOOTSTRAP_LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
 const BOOTSTRAP_STATE_DIRECTORY = "bootstrap-state";
-const MAINTENANCE_OPERATION_REF_PREFIX = "maintenance-journal/v1/";
 const DEFAULT_BOOTSTRAP_HEARTBEAT_MS = 1_000;
+const RECOVERY_ROOTS = ["INSTANCE"] as const;
 
 export type BootstrapRecoveryDisposition =
   | "NO_RECOVERY_REQUIRED"
@@ -86,12 +88,7 @@ interface LockObservation {
   readonly problem?: Problem;
 }
 
-interface MaintenanceObservation {
-  readonly operationId?: MaintenanceOperationId;
-  readonly maintenance?: MaintenanceJournalLoadResult;
-  readonly incomplete: boolean;
-  readonly problem?: Problem;
-}
+type MaintenanceObservation = MaintenanceObligationInspection;
 
 function problem(
   problemCode: string,
@@ -159,107 +156,6 @@ async function observeLock(instanceRoot: string): Promise<LockObservation> {
   }
 }
 
-function operationIdFromReference(
-  reference: string | undefined,
-): MaintenanceOperationId | undefined {
-  if (
-    reference === undefined ||
-    !reference.startsWith(MAINTENANCE_OPERATION_REF_PREFIX)
-  ) {
-    return undefined;
-  }
-  const value = reference.slice(MAINTENANCE_OPERATION_REF_PREFIX.length);
-  return parseUuidV7Id("MaintenanceOperationId", value);
-}
-
-function maintenanceIsIncomplete(value: MaintenanceJournalLoadResult): boolean {
-  if (value.status !== "CURRENT") return false;
-  return (
-    value.value.state.terminalOutcome === undefined ||
-    value.value.state.terminalOutcome === "FAILED" ||
-    value.value.state.terminalOutcome === "UNCERTAIN" ||
-    value.value.state.lastCompletedStage === "RECOVERY_REQUIRED"
-  );
-}
-
-async function observeMaintenance(
-  instanceRoot: string,
-  state: BootstrapStateLoadResult,
-): Promise<MaintenanceObservation> {
-  if (state.status === "CORRUPT") {
-    return { incomplete: false, problem: state.problem };
-  }
-  if (state.status === "EMPTY") return { incomplete: false };
-
-  const reference = state.value.state.lastCommittedOperationRef;
-  if (reference === undefined) return { incomplete: false };
-
-  const operationId = operationIdFromReference(reference);
-  if (operationId === undefined) {
-    return {
-      incomplete: false,
-      problem: problem(
-        "bootstrap.recovery.invalid_operation_reference",
-        "Bootstrap maintenance operation reference is invalid",
-        "BootstrapState lastCommittedOperationRef is not a supported MaintenanceJournal V1 reference",
-        "validation",
-      ),
-    };
-  }
-
-  let maintenance: MaintenanceJournalLoadResult;
-  try {
-    maintenance = await new MaintenanceJournalStore(instanceRoot).load(operationId);
-  } catch (error) {
-    return {
-      operationId,
-      incomplete: false,
-      problem: problem(
-        "bootstrap.recovery.maintenance_load_failed",
-        "MaintenanceJournal could not be inspected",
-        problemCodeOf(error) ??
-          "The MaintenanceJournal could not be loaded without mutation",
-        "unavailable",
-      ),
-    };
-  }
-
-  if (maintenance.status === "EMPTY") {
-    return {
-      operationId,
-      maintenance,
-      incomplete: false,
-      problem: problem(
-        "bootstrap.recovery.maintenance_missing",
-        "Committed MaintenanceJournal is missing",
-        "BootstrapState points to a MaintenanceJournal operation that has no readable revision",
-      ),
-    };
-  }
-  if (maintenance.status === "CORRUPT") {
-    return {
-      operationId,
-      maintenance,
-      incomplete: false,
-      problem: maintenance.problem,
-    };
-  }
-  if (maintenance.status === "RECOVERED_PREVIOUS") {
-    return {
-      operationId,
-      maintenance,
-      incomplete: false,
-      problem: maintenance.problem,
-    };
-  }
-
-  return {
-    operationId,
-    maintenance,
-    incomplete: maintenanceIsIncomplete(maintenance),
-  };
-}
-
 function classify(
   lock: LockObservation,
   ownerProcessStatus: BootstrapProcessIdentityStatus | undefined,
@@ -277,19 +173,28 @@ function classify(
     ...attemptProcessStatuses,
     ...(lock.present && !hasOwnerWitness ? releasingProcessStatuses : []),
   ];
-  if (statuses.includes("SAME_PROCESS")) return "ACTIVE_BOOTSTRAP_OWNER";
-  if (statuses.includes("UNKNOWN")) return "BLOCKED";
-
   if (!lock.present) {
-    if (statuses.length > 0) return "BLOCKED";
+    const ownerAttemptStatuses = [
+      ...(ownerProcessStatus === undefined ? [] : [ownerProcessStatus]),
+      ...attemptProcessStatuses,
+    ];
+    if (
+      ownerAttemptStatuses.includes("SAME_PROCESS") ||
+      ownerAttemptStatuses.includes("UNKNOWN")
+    ) {
+      return "BLOCKED";
+    }
     return maintenance.incomplete ? "INCOMPLETE_MAINTENANCE" : "NO_RECOVERY_REQUIRED";
   }
+
+  if (statuses.includes("SAME_PROCESS")) return "ACTIVE_BOOTSTRAP_OWNER";
+  if (statuses.includes("UNKNOWN")) return "BLOCKED";
 
   if ((lock.ageMs ?? 0) < BOOTSTRAP_RECOVERY_STALE_MS) return "BLOCKED";
   if (statuses.length === 0) return "BLOCKED";
 
-  // An old lock with only PROCESS_DEAD/PID_REUSED evidence is the one case in
-  // which the existing lock protocol may be asked to reclaim ownership. The
+  // An old lock with only PROCESS_DEAD evidence is the one case in which the
+  // existing lock protocol may be asked to reclaim ownership. The
   // maintenance pointer is returned alongside this disposition so the later
   // executor can recover the bounded operation under the newly held lease.
   return "ABANDONED_OWNER_ELIGIBLE";
@@ -299,7 +204,7 @@ export async function inspectBootstrapRecovery(
   anchorRoot: string,
 ): Promise<BootstrapRecoveryInspection> {
   const locator = await loadBootstrapLocator(anchorRoot);
-  const paths = await resolveBootstrapPathProfile(locator);
+  const paths = await resolveBootstrapPathProfile(locator, RECOVERY_ROOTS);
   const instanceRoot = paths.resolve("INSTANCE").canonicalPath;
   const installationId = locator.installationId;
   const instanceId = locator.instanceId;
@@ -365,7 +270,7 @@ export async function inspectBootstrapRecovery(
 
   const maintenance =
     stateProblem === undefined
-      ? await observeMaintenance(instanceRoot, bootstrapState)
+      ? await inspectMaintenanceObligation(instanceRoot, bootstrapState)
       : { incomplete: false, problem: stateProblem };
   const effectiveProblem = lock.problem ?? witnessProblem ?? maintenance.problem;
   const disposition = classify(
@@ -424,7 +329,7 @@ export async function acquireBootstrapRecoveryLease(
   ],
 ): Promise<BootstrapOwnershipLease> {
   const locator = await loadBootstrapLocator(anchorRoot);
-  const paths = await resolveBootstrapPathProfile(locator);
+  const paths = await resolveBootstrapPathProfile(locator, RECOVERY_ROOTS);
   const instanceRoot = paths.resolve("INSTANCE");
   assertLocalInstallationOwnerFor(
     principal,

@@ -53,6 +53,27 @@ afterEach(async () => {
 });
 
 describe("LOCAL_INSTALLATION_OWNER recovery principal", () => {
+  it("proves ownership when unrelated lifecycle roots are unavailable", async () => {
+    const fixture = await makeFixture();
+    const roots = {
+      ...fixture.locator.roots,
+      BACKUP: join(tmpdir(), "heptalogos-unavailable-backup"),
+      CACHE: join(tmpdir(), "heptalogos-unavailable-cache"),
+      PACKAGE_STAGING: join(tmpdir(), "heptalogos-unavailable-package-staging"),
+    };
+    await writeFile(
+      join(fixture.anchorRoot, "heptalogos.bootstrap.json"),
+      JSON.stringify({ ...fixture.locator, roots }),
+    );
+
+    const principal = await proveLocalInstallationOwner(fixture.anchorRoot);
+
+    expect(principal).toMatchObject({
+      kind: "LOCAL_INSTALLATION_OWNER",
+      instanceId: fixture.locator.instanceId,
+    });
+  });
+
   it("proves and scopes an authentic local installation owner", async () => {
     const fixture = await makeFixture();
     const principal = await proveLocalInstallationOwner(fixture.anchorRoot);
@@ -62,7 +83,7 @@ describe("LOCAL_INSTALLATION_OWNER recovery principal", () => {
       installationId: fixture.locator.installationId,
       instanceId: fixture.locator.instanceId,
     });
-    const paths = await resolveBootstrapPathProfile(fixture.locator);
+    const paths = await resolveBootstrapPathProfile(fixture.locator, ["INSTANCE"]);
     expect(() =>
       assertLocalInstallationOwnerFor(
         principal,

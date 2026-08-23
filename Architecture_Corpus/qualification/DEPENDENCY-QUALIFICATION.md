@@ -106,9 +106,9 @@ plaintext fallback → forbidden
 
 The abandoned-owner boundary uses `process.kill(pid, 0)` followed by
 `pidusage@4.0.1` start-time evidence. Heptalogos owns the
-`SAME_PROCESS`/`PROCESS_DEAD`/`PID_REUSED`/`UNKNOWN` semantics and the fixed
-5-second tolerance; a permission or measurement error is `UNKNOWN` and never
-authorizes reclaim.
+`SAME_PROCESS`/`PROCESS_DEAD`/`UNKNOWN` semantics and the fixed 5-second
+tolerance; a permission, measurement, or start-time mismatch is `UNKNOWN` and
+never authorizes reclaim.
 
 ### Windows service wrapper — DEFERRED
 

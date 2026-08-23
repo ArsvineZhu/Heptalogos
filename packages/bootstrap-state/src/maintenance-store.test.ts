@@ -46,11 +46,11 @@ function body(
     },
     target: { privatePostgres: "STOPPED" },
     verifiedPrerequisites: {
-      bootstrapStateDigest: digestCanonicalJson("heptalogos.bootstrap-state/v2", {
+      bootstrapStateDigest: digestCanonicalJson("heptalogos.bootstrap-state/v1", {
         state: true,
       }),
       privatePostgresInitializationProfileRevision: digestCanonicalJson(
-        "heptalogos.private-postgres.initialization-profile/v2",
+        "heptalogos.private-postgres.initialization-profile/v1",
         { profile: true },
       )
         .hex as MaintenanceJournalBodyV1["verifiedPrerequisites"]["privatePostgresInitializationProfileRevision"],
@@ -123,26 +123,62 @@ describe("MaintenanceJournalStore", () => {
     });
   });
 
+  it("never advances from RECOVERED_PREVIOUS and does not mutate either file", async () => {
+    const root = await directory();
+    const store = new MaintenanceJournalStore(root);
+    const operationId = createUuidV7Id("MaintenanceOperationId");
+    await store.create(body(operationId));
+    await store.advance({
+      ...body(operationId, 2),
+      lastCompletedStage: "HOST_TOKEN_REVOKED",
+    });
+
+    const journalPath = join(root, "maintenance-journal", operationId);
+    await writeFile(join(journalPath, "maintenance-state.json"), "corrupt");
+    const currentBefore = await readFile(
+      join(journalPath, "maintenance-state.json"),
+      "utf8",
+    );
+    const previousBefore = await readFile(
+      join(journalPath, "maintenance-state.previous.json"),
+      "utf8",
+    );
+
+    await expect(
+      store.advance({
+        ...body(operationId, 2),
+        lastCompletedStage: "POSTGRES_STOPPED",
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "maintenance.journal.current_authority_required" },
+    });
+    await expect(
+      readFile(join(journalPath, "maintenance-state.json"), "utf8"),
+    ).resolves.toBe(currentBefore);
+    await expect(
+      readFile(join(journalPath, "maintenance-state.previous.json"), "utf8"),
+    ).resolves.toBe(previousBefore);
+  });
+
   it.each(["HOST_TOKEN_PUBLISHED", "BOOTSTRAP_RELEASE_ARMED"] as const)(
-    "loads a legacy M5A token/revision target without hostBootId at %s",
+    "rejects a legacy token/revision target without hostBootId at %s",
     async (stage) => {
       const root = await directory();
       const store = new MaintenanceJournalStore(root);
       const operationId = createUuidV7Id("MaintenanceOperationId");
-      const created = await store.create({
-        ...body(operationId),
-        operationType: "PRIVATE_POSTGRES_RESTART",
-        lastCompletedStage: stage,
-        target: {
-          privatePostgres: "RUNNING_SAME_IDENTITY",
-          hostOwnershipToken: createHostOwnershipToken(),
-          hostOwnershipRevision: "9",
-        },
-      });
-      expect(created.state.target.hostBootId).toBeUndefined();
-      await expect(store.load(operationId)).resolves.toMatchObject({
-        status: "CURRENT",
-        value: { state: { revision: 1 } },
+      await expect(
+        store.create({
+          ...body(operationId),
+          operationType: "PRIVATE_POSTGRES_RESTART",
+          lastCompletedStage: stage,
+          target: {
+            privatePostgres: "RUNNING_SAME_IDENTITY",
+            hostOwnershipToken: createHostOwnershipToken(),
+            hostOwnershipRevision: "9",
+          },
+        }),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "maintenance.journal.invalid_semantics" },
       });
     },
   );

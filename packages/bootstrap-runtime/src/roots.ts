@@ -1,6 +1,5 @@
 import { lstat, realpath } from "node:fs/promises";
 import {
-  LIFECYCLE_ROOT_IDS,
   ProblemError,
   type InstallationId,
   type InstanceId,
@@ -96,9 +95,18 @@ async function resolveRoot(
 
 export async function resolveBootstrapPathProfile(
   locator: BootstrapLocatorV1,
+  requiredRoots: readonly LifecycleRootId[],
 ): Promise<BootstrapPathProfile> {
+  if (requiredRoots.length === 0) {
+    throw rootProblem(
+      "bootstrap.root.empty_requirement",
+      "At least one bootstrap lifecycle root is required",
+      "Bootstrap path resolution must declare the lifecycle roots needed by the caller",
+    );
+  }
+  const uniqueRequiredRoots = [...new Set(requiredRoots)];
   const resolvedRoots = await Promise.all(
-    LIFECYCLE_ROOT_IDS.map((id) => resolveRoot(id, locator.roots[id])),
+    uniqueRequiredRoots.map((id) => resolveRoot(id, locator.roots[id])),
   );
   const roots = Object.freeze([...resolvedRoots]);
   const byId = new Map(roots.map((root) => [root.id, root]));
@@ -110,7 +118,7 @@ export async function resolveBootstrapPathProfile(
       const resolved = byId.get(root);
       if (!resolved) {
         throw rootProblem(
-          "bootstrap.root.not_found",
+          "bootstrap.root.not_resolved",
           "Bootstrap lifecycle root is not available",
           `Lifecycle root ${root} is not available in the bootstrap path profile`,
         );

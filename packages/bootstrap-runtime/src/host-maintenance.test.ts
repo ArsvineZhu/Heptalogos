@@ -10,8 +10,8 @@ import {
 } from "@heptalogos/foundation-contracts";
 import {
   sealBootstrapState,
-  type BootstrapStateBodyV2,
-  type BootstrapStateEnvelopeV2,
+  type BootstrapStateBodyV1,
+  type BootstrapStateEnvelopeV1,
   type MaintenanceJournalBodyV1,
   type MaintenanceStage,
 } from "@heptalogos/bootstrap-state";
@@ -82,9 +82,9 @@ const {
 function makeState(
   installationId: ReturnType<typeof createInstallationId>,
   instanceId: ReturnType<typeof createInstanceId>,
-): BootstrapStateEnvelopeV2 {
-  const state: BootstrapStateBodyV2 = {
-    schemaVersion: 2,
+): BootstrapStateEnvelopeV1 {
+  const state: BootstrapStateBodyV1 = {
+    schemaVersion: 1,
     revision: 4,
     activeBootstrapRuntimeGeneration: asContentDigest(
       "BootstrapRuntimeGenerationId",
@@ -95,7 +95,7 @@ function makeState(
       digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
     ),
     privatePostgres: {
-      schemaVersion: 2,
+      schemaVersion: 1,
       postgresMajor: 18,
       initializedByPostgresVersion: "18.6",
       installationId,
@@ -114,7 +114,7 @@ function makeState(
       ),
     },
   };
-  return sealBootstrapState(state) as BootstrapStateEnvelopeV2;
+  return sealBootstrapState(state) as BootstrapStateEnvelopeV1;
 }
 
 function makeFixture(): {
@@ -123,16 +123,18 @@ function makeFixture(): {
   readonly handoff: HostOwnershipHandoffOptions;
   readonly descriptor: PrivatePostgresMaintenanceDescriptor;
   readonly freshLease: BootstrapOwnershipLease;
-  readonly state: BootstrapStateEnvelopeV2;
+  readonly state: BootstrapStateEnvelopeV1;
   readonly trace: string[];
   readonly setFailJournalStage: (stage: MaintenanceStage | undefined) => void;
   readonly setDelayJournalStage: (stage: MaintenanceStage | undefined) => void;
+  readonly setRecoveredPrevious: (value: boolean) => void;
   readonly waitForDelayedJournalStage: () => Promise<void>;
   readonly releaseDelayedJournal: () => void;
 } {
   const trace: string[] = [];
   let failJournalStage: MaintenanceStage | undefined;
   let delayJournalStage: MaintenanceStage | undefined;
+  let recoveredPrevious = false;
   let releaseDelayedJournal: (() => void) | undefined;
   let resolveDelayedJournalStage: (() => void) | undefined;
   const delayedJournalStageReached = new Promise<void>((resolve) => {
@@ -224,6 +226,20 @@ function makeFixture(): {
     state: {
       async load() {
         trace.push("state.load");
+        if (recoveredPrevious) {
+          return {
+            status: "RECOVERED_PREVIOUS",
+            value: state,
+            problem: {
+              schemaVersion: 1,
+              problemCode: "bootstrap.state.current_corrupt",
+              category: "integrity",
+              retryClass: "manual",
+              title: "Current BootstrapState is corrupt",
+              detail: "The previous valid BootstrapState revision was recovered",
+            },
+          } as const;
+        }
         return { status: "CURRENT", value: state } as const;
       },
       async commit() {
@@ -290,7 +306,7 @@ function makeFixture(): {
       persistedPort: 55432,
       clusterSystemIdentifier: "12345678901234567890",
       initializationProfileRevision:
-        state.state.privatePostgres.initializationProfileRevision,
+        state.state.privatePostgres!.initializationProfileRevision,
     },
     logFilePath: `${root}/private-postgres.log`,
     lifecycle: {
@@ -360,6 +376,9 @@ function makeFixture(): {
     setDelayJournalStage(stage) {
       delayJournalStage = stage;
     },
+    setRecoveredPrevious(value) {
+      recoveredPrevious = value;
+    },
     waitForDelayedJournalStage() {
       return delayedJournalStageReached;
     },
@@ -370,6 +389,25 @@ function makeFixture(): {
 }
 
 describe("reverse-handoff maintenance preparation and entry", () => {
+  it("blocks maintenance preparation when only RECOVERED_PREVIOUS state is available", async () => {
+    const fixture = makeFixture();
+    fixture.setRecoveredPrevious(true);
+    const operations = createHostMaintenanceOperations({
+      host: fixture.rawHost,
+      bootstrap: fixture.context,
+      handoff: fixture.handoff,
+      privatePostgres: fixture.descriptor,
+    });
+
+    await expect(
+      operations.preparePrivatePostgresMaintenance({
+        kind: "STOP_PRIVATE_POSTGRES",
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.state.current_authority_required" },
+    });
+  });
+
   it("stops PostgreSQL, arms the journal, releases bootstrap, and completes", async () => {
     const fixture = makeFixture();
     const stop = vi.fn().mockResolvedValue(undefined);
@@ -547,6 +585,35 @@ describe("reverse-handoff maintenance preparation and entry", () => {
       expect.stringMatching(/^journal.advance:HOST_LEASE_CLOSED$/u),
       "old-host.terminal",
     ]);
+  });
+
+  it("does not durably commit an illegal entered-window transition", async () => {
+    const fixture = makeFixture();
+    const operations = createHostMaintenanceOperations({
+      host: fixture.rawHost,
+      bootstrap: fixture.context,
+      handoff: fixture.handoff,
+      privatePostgres: fixture.descriptor,
+      executeEnteredWindow: async (window) => {
+        await window.advance("POSTGRES_READY");
+        return { kind: "STOPPED" as const };
+      },
+    });
+    const prepared = await operations.preparePrivatePostgresMaintenance({
+      kind: "STOP_PRIVATE_POSTGRES",
+    });
+
+    await expect(
+      prepared.execute({
+        async quiesce() {
+          return { async resumeAfterAbort() {} };
+        },
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.maintenance.invalid_transition" },
+    });
+    expect(fixture.trace).not.toContain("journal.advance:POSTGRES_READY");
+    expect(prepared.state).toBe("RECOVERY_REQUIRED");
   });
 
   it("safely aborts before PONR when revocation is known not committed", async () => {

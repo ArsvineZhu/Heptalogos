@@ -57,8 +57,8 @@ const restrictedImports = new Map([
   ],
 ]);
 
-const m4HostOwnershipSourcePrefix = "packages/host-ownership/src/";
-const m4AdapterSourcePaths = new Set([
+const hostOwnershipSourcePrefix = "packages/host-ownership/src/";
+const hostOwnershipAdapterSourcePaths = new Set([
   "packages/host-ownership/src/bootstrap-admin.ts",
   "packages/host-ownership/src/host-lease-connection.ts",
 ]);
@@ -69,6 +69,48 @@ const hostOwnershipPublicSource = readFileSync(
 if (/\b(?:Client|Pool|XState|StateMachine)\b/u.test(hostOwnershipPublicSource)) {
   errors.push(
     "packages/host-ownership/src/index.ts: raw PostgreSQL/XState mechanics must not leak through the public Host ownership contract",
+  );
+}
+
+const bootstrapRuntimePublicSource = readFileSync(
+  resolve(root, "packages/bootstrap-runtime/src/index.ts"),
+  "utf8",
+);
+const rawBootstrapAuthorityExports = [
+  "acquireBootstrapOwnership",
+  "acquireBootstrapRecoveryLease",
+  "reclaimAbandonedBootstrapOwnership",
+  "recoverAbandonedBootstrapToHost",
+  "recoverInterruptedHostMaintenance",
+  "openMaintenanceStateAccess",
+  "OwnedMaintenanceStateAccess",
+  "BOOTSTRAP_RECOVERY_STALE_MS",
+  "assertLocalInstallationOwnerFor",
+];
+const sensitiveBootstrapAuthorityModules = [
+  "./bootstrap-ownership.js",
+  "./bootstrap-recovery.js",
+  "./host-maintenance-recovery.js",
+  "./maintenance-state-access.js",
+];
+if (
+  rawBootstrapAuthorityExports.some((name) =>
+    new RegExp(`\\b${name}\\b`, "u").test(bootstrapRuntimePublicSource),
+  )
+) {
+  errors.push(
+    "packages/bootstrap-runtime/src/index.ts: raw bootstrap/recovery Authority primitive leaked through the public bootstrap-runtime contract",
+  );
+}
+if (
+  sensitiveBootstrapAuthorityModules.some((specifier) =>
+    new RegExp(`export\\s+\\*\\s+from\\s+["']${specifier}["']`, "u").test(
+      bootstrapRuntimePublicSource,
+    ),
+  )
+) {
+  errors.push(
+    "packages/bootstrap-runtime/src/index.ts: sensitive bootstrap/recovery Authority module exported through a package-root star export",
   );
 }
 
@@ -157,18 +199,18 @@ const sourcePaths = collect(root, (sourcePath) => /\.(?:ts|tsx)$/u.test(sourcePa
 for (const path of sourcePaths) {
   const relativePath = relative(root, path).replaceAll("\\", "/");
   const source = readFileSync(path, "utf8");
-  if (relativePath.startsWith(m4HostOwnershipSourcePrefix)) {
+  if (relativePath.startsWith(hostOwnershipSourcePrefix)) {
     for (const forbidden of ["Kysely", "DBOS", "PersistenceService"]) {
       if (new RegExp(`\\b${forbidden}\\b`, "u").test(source)) {
         errors.push(
-          `${relativePath}: M4 Host ownership must not materialize ${forbidden}`,
+          `${relativePath}: Host ownership must not materialize ${forbidden}`,
         );
       }
     }
     if (
       /(?:from|import\s*\()\s*["'](?:kysely|dbos|@dbos-inc\/dbos-sdk)["']/u.test(source)
     ) {
-      errors.push(`${relativePath}: M4 Host ownership must not import Kysely or DBOS`);
+      errors.push(`${relativePath}: Host ownership must not import Kysely or DBOS`);
     }
   }
   if (
@@ -176,18 +218,18 @@ for (const path of sourcePaths) {
     !(
       relativePath === "packages/foundation-contracts/src/identity.ts" ||
       relativePath === "packages/foundation-contracts/src/index.ts" ||
-      relativePath.startsWith(m4HostOwnershipSourcePrefix) ||
+      relativePath.startsWith(hostOwnershipSourcePrefix) ||
       relativePath === "packages/bootstrap-runtime/src/host-ownership-handoff.ts" ||
       relativePath.endsWith(".test.ts")
     )
   ) {
     errors.push(
-      `${relativePath}: HostOwnershipToken creation is outside the M4 Host acquisition path`,
+      `${relativePath}: HostOwnershipToken creation is outside the Host acquisition path`,
     );
   }
   if (
-    relativePath.startsWith(m4HostOwnershipSourcePrefix) &&
-    !m4AdapterSourcePaths.has(relativePath) &&
+    relativePath.startsWith(hostOwnershipSourcePrefix) &&
+    !hostOwnershipAdapterSourcePaths.has(relativePath) &&
     !relativePath.endsWith(".test.ts") &&
     /from\s+["']pg["']/u.test(source)
   ) {

@@ -17,7 +17,6 @@ import {
 import {
   BootstrapJournal,
   BootstrapStateStore,
-  type BootstrapStateBodyV2,
   type BootstrapStateBodyV1,
 } from "@heptalogos/bootstrap-state";
 import type {
@@ -202,7 +201,7 @@ afterEach(async () => {
 });
 
 describe("private PostgreSQL bootstrap orchestration", () => {
-  it("initializes, commits V2, returns ready, and keeps bootstrap ownership held", async () => {
+  it("initializes, commits canonical private PostgreSQL state, returns ready, and keeps bootstrap ownership held", async () => {
     const fixture = await makeFixture();
     const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
     const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
@@ -237,10 +236,10 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         status: "CURRENT",
         value: {
           state: {
-            schemaVersion: 2,
+            schemaVersion: 1,
             revision: 2,
             privatePostgres: {
-              schemaVersion: 2,
+              schemaVersion: 1,
               postgresMajor: 18,
               initializedByPostgresVersion: "18.6",
               installationId: fixture.installationId,
@@ -303,7 +302,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
     }
   }, 120_000);
 
-  it("restarts from V2 without initdb and preserves identity and port", async () => {
+  it("restarts from canonical state without initdb and preserves identity and port", async () => {
     const fixture = await makeFixture();
     const firstPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
     const firstOwned = await firstPrepared.acquireOwnership({ heartbeatMs: 1_000 });
@@ -334,7 +333,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         expect(secondContexts).toHaveLength(0);
         await expect(loadState(fixture)).resolves.toMatchObject({
           status: "CURRENT",
-          value: { state: { schemaVersion: 2, revision: 2 } },
+          value: { state: { schemaVersion: 1, revision: 2 } },
         });
         await expect(
           journalStages(fixture, secondPrepared.bootId),
@@ -411,15 +410,15 @@ describe("private PostgreSQL bootstrap orchestration", () => {
       const identity = firstReady.clusterSystemIdentifier;
       await firstReady.stop();
       const loaded = await loadState(fixture);
-      if (loaded.status !== "CURRENT" || loaded.value.state.schemaVersion !== 2) {
-        throw new Error("expected authoritative BootstrapState V2");
+      if (loaded.status !== "CURRENT" || loaded.value.state.schemaVersion !== 1) {
+        throw new Error("expected authoritative BootstrapState V1");
       }
-      const current: BootstrapStateBodyV2 = loaded.value.state;
+      const current: BootstrapStateBodyV1 = loaded.value.state;
       await firstOwned.state.commit({
         ...current,
         revision: current.revision + 1,
         privatePostgres: {
-          ...current.privatePostgres,
+          ...current.privatePostgres!,
           initializedByPostgresVersion: "18.4",
         },
       });
@@ -445,7 +444,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
     }
   }, 120_000);
 
-  it("rejects a conflicting initial port before starting or mutating a V2 cluster", async () => {
+  it("rejects a conflicting initial port before starting or mutating the canonical cluster", async () => {
     const fixture = await makeFixture();
     const firstPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
     const firstOwned = await firstPrepared.acquireOwnership({ heartbeatMs: 1_000 });
@@ -495,7 +494,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
     }
   }, 120_000);
 
-  it("requires recovery after a fault between initdb and V2 commit", async () => {
+  it("requires recovery after a fault between initdb and canonical state commit", async () => {
     const fixture = await makeFixture();
     const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
     const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
@@ -540,7 +539,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
     }
   }, 120_000);
 
-  it("recovers after a fault between V2 commit and PostgreSQL start", async () => {
+  it("recovers after a fault between canonical state commit and PostgreSQL start", async () => {
     const fixture = await makeFixture();
     const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
     const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
@@ -560,7 +559,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
 
       await expect(loadState(fixture)).resolves.toMatchObject({
         status: "CURRENT",
-        value: { state: { schemaVersion: 2, revision: 2 } },
+        value: { state: { schemaVersion: 1, revision: 2 } },
       });
       await expect(
         access(join(fixture.roots.DATA, "private-postgres", "postmaster.pid")),
@@ -606,7 +605,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
 
       await expect(loadState(fixture)).resolves.toMatchObject({
         status: "CURRENT",
-        value: { state: { schemaVersion: 2, revision: 2 } },
+        value: { state: { schemaVersion: 1, revision: 2 } },
       });
       await expect(
         access(join(fixture.roots.DATA, "private-postgres", "postmaster.pid")),
@@ -633,7 +632,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
     }
   }, 120_000);
 
-  it("does not adopt a valid-looking PostgreSQL directory without V2 identity", async () => {
+  it("does not adopt a valid-looking PostgreSQL directory without canonical identity", async () => {
     const fixture = await makeFixture();
     const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
     const placement = resolvePrivatePostgresPlacement(fixture.roots.DATA);

@@ -3,10 +3,9 @@ import {
   BootstrapJournal,
   type BootstrapActivityId,
   type BootstrapStateBodyV1,
-  type BootstrapStateBodyV2,
   type BootstrapStateLoadResult,
   type BootstrapStageOutcome,
-  type PrivatePostgresBootstrapStateV2,
+  type PrivatePostgresBootstrapStateV1,
 } from "@heptalogos/bootstrap-state";
 import {
   ProblemError,
@@ -361,7 +360,7 @@ async function recordStage(
   problemCode?: string,
 ): Promise<void> {
   await context.journal.checkpoint({
-    schemaVersion: 2,
+    schemaVersion: 1,
     bootId: context.bootId,
     bootstrapActivityId: context.bootstrapActivityId,
     installationId: context.installationId,
@@ -390,9 +389,7 @@ async function invokeTestHook(
   await hook?.(phase);
 }
 
-function stateBody(
-  loaded: BootstrapStateLoadResult,
-): BootstrapStateBodyV1 | BootstrapStateBodyV2 {
+function stateBody(loaded: BootstrapStateLoadResult): BootstrapStateBodyV1 {
   if (loaded.status === "CORRUPT") {
     throw new ProblemError(loaded.problem);
   }
@@ -400,28 +397,38 @@ function stateBody(
     throw bootstrapProblem(
       "bootstrap.private_postgres.state_required",
       "BootstrapState is required before private PostgreSQL preparation",
-      "M3 cannot invent active generation identity when BootstrapState is empty",
+      "The bootstrap runtime cannot invent active generation identity when BootstrapState is empty",
       "unavailable",
+    );
+  }
+  if (loaded.status === "RECOVERED_PREVIOUS") {
+    throw bootstrapProblem(
+      "bootstrap.state.current_authority_required",
+      "Current BootstrapState authority is required",
+      "A recovered previous BootstrapState revision is inspection evidence only and cannot authorize private PostgreSQL preparation",
     );
   }
   return loaded.value.state;
 }
 
 function hasPrivatePostgres(
-  state: BootstrapStateBodyV1 | BootstrapStateBodyV2,
-): state is BootstrapStateBodyV2 {
-  return state.schemaVersion === 2;
+  state: BootstrapStateBodyV1,
+): state is BootstrapStateBodyV1 & {
+  readonly privatePostgres: PrivatePostgresBootstrapStateV1;
+} {
+  return state.privatePostgres !== undefined;
 }
 
 function assertPrivatePostgresPlacement(
-  privatePostgres: BootstrapStateBodyV2["privatePostgres"],
+  privatePostgres: BootstrapStateBodyV1["privatePostgres"],
   placement: PrivatePostgresPlacement,
   installationId: InstallationId,
   instanceId: InstanceId,
   toolchain: PrivatePostgresToolchain,
-): asserts privatePostgres is PrivatePostgresBootstrapStateV2 {
+): asserts privatePostgres is PrivatePostgresBootstrapStateV1 {
   if (
-    privatePostgres.schemaVersion !== 2 ||
+    privatePostgres === undefined ||
+    privatePostgres.schemaVersion !== 1 ||
     privatePostgres.bootstrapRoleName !== PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME ||
     privatePostgres.installationId !== installationId ||
     privatePostgres.instanceId !== instanceId ||
@@ -439,7 +446,7 @@ function assertPrivatePostgresPlacement(
 }
 
 function expectedIdentityFromState(
-  state: BootstrapStateBodyV2,
+  state: BootstrapStateBodyV1,
   placement: PrivatePostgresPlacement,
   installationId: InstallationId,
   instanceId: InstanceId,
@@ -490,17 +497,17 @@ function expectedIdentityFromInitialization(
   };
 }
 
-function nextStateV2(
+function nextStateV1(
   current: BootstrapStateBodyV1,
   expected: PrivatePostgresExpectedIdentity,
   toolchain: PrivatePostgresToolchain,
-): BootstrapStateBodyV2 {
+): BootstrapStateBodyV1 {
   return {
     ...current,
-    schemaVersion: 2,
+    schemaVersion: 1,
     revision: current.revision + 1,
     privatePostgres: {
-      schemaVersion: 2,
+      schemaVersion: 1,
       postgresMajor: expected.postgresMajor,
       initializedByPostgresVersion: toolchain.version,
       installationId: expected.installationId,
@@ -558,7 +565,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
         throw bootstrapProblem(
           "bootstrap.private_postgres.port_conflict",
           "Private PostgreSQL port conflicts with BootstrapState",
-          "The persisted private PostgreSQL port is authoritative; M3 does not relocate an existing cluster",
+          "The persisted private PostgreSQL port is authoritative; bootstrap does not relocate an existing cluster",
           "conflict",
         );
       }
@@ -582,7 +589,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
         throw bootstrapProblem(
           "bootstrap.private_postgres.recovery_required",
           "Private PostgreSQL directory requires recovery",
-          "DATA/private-postgres is non-empty without authoritative BootstrapState private PostgreSQL identity; M3 will not adopt or overwrite it",
+          "DATA/private-postgres is non-empty without authoritative BootstrapState private PostgreSQL identity; bootstrap will not adopt or overwrite it",
           "conflict",
         );
       }
@@ -626,7 +633,7 @@ export async function preparePrivatePostgresForOwnedPrelude(
         initialized,
       );
       assertOwnership(context);
-      await context.state.commit(nextStateV2(currentBody, expectedIdentity, toolchain));
+      await context.state.commit(nextStateV1(currentBody, expectedIdentity, toolchain));
       await recordStage(context, STAGE_IDENTITY_COMMITTED, "SUCCEEDED");
       await invokeTestHook(options, "after-state-commit-before-start");
     }
