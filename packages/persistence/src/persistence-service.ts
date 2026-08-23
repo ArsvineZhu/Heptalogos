@@ -159,18 +159,35 @@ function createPersistenceServiceFromDatabase(
 ): PersistenceService {
   let state: PersistenceServiceState = "OPEN";
   let drainPromise: Promise<void> | undefined;
+  let drainRequested = false;
+  let drainStarted = false;
+  let activeTransactions = 0;
+  let resolveDrain: (() => void) | undefined;
+  let rejectDrain: ((error: unknown) => void) | undefined;
+
+  const maybeStartDrain = (): void => {
+    if (!drainRequested || drainStarted || activeTransactions !== 0) return;
+    drainStarted = true;
+    void database.destroy().then(
+      () => {
+        state = "CLOSED";
+        resolveDrain?.();
+      },
+      () => {
+        state = "CLOSED";
+        rejectDrain?.(persistenceServiceCloseFailedProblem());
+      },
+    );
+  };
 
   const drain = (): Promise<void> => {
     if (drainPromise !== undefined) return drainPromise;
-    drainPromise = database.destroy().then(
-      () => {
-        state = "CLOSED";
-      },
-      (error: unknown) => {
-        state = "CLOSED";
-        throw persistenceServiceCloseFailedProblem();
-      },
-    );
+    drainRequested = true;
+    drainPromise = new Promise<void>((resolve, reject) => {
+      resolveDrain = resolve;
+      rejectDrain = reject;
+    });
+    maybeStartDrain();
     return drainPromise;
   };
 
@@ -204,6 +221,7 @@ function createPersistenceServiceFromDatabase(
   ): Promise<T> => {
     assertOpen();
     let operationCompleted = false;
+    activeTransactions += 1;
     try {
       return await database.transaction().execute(async (transaction) => {
         if (mode === "READ") {
@@ -232,6 +250,9 @@ function createPersistenceServiceFromDatabase(
       }
       if (error instanceof ProblemError) throw error;
       throw persistenceTransactionFailedProblem();
+    } finally {
+      activeTransactions -= 1;
+      maybeStartDrain();
     }
   };
 

@@ -67,6 +67,8 @@ function fakeDatabase(
   order: string[],
   onFenceVerified: () => void = () => undefined,
   fenceRows: readonly Record<string, unknown>[] | undefined = undefined,
+  completionError: unknown = undefined,
+  onDestroy: () => void = () => undefined,
 ) {
   const transaction = {
     async executeQuery(query: { readonly sql: string }) {
@@ -104,6 +106,7 @@ function fakeDatabase(
           order.push("transaction begins");
           try {
             const value = await callback(transaction);
+            if (completionError !== undefined) throw completionError;
             order.push("transaction completion");
             return value;
           } catch (error) {
@@ -113,7 +116,9 @@ function fakeDatabase(
         },
       };
     },
-    async destroy() {},
+    async destroy() {
+      onDestroy();
+    },
     onFenceVerified,
   };
 }
@@ -402,5 +407,87 @@ describe("persistence package root", () => {
     ).rejects.toMatchObject({
       problem: { problemCode: "persistence.transaction.failed" },
     });
+  });
+
+  it("allows an already-admitted mutation to finish after a late process-local lease loss", async () => {
+    const controller = new AbortController();
+    let locallyActive = true;
+    const hostAuthority = authority(controller.signal, () => {
+      if (!locallyActive) throw new Error("late local lease loss");
+    });
+    const database = fakeDatabase(hostAuthority, []);
+    const service = createPersistenceServiceForTests(
+      hostAuthority,
+      runtimeOptions(),
+      database,
+    );
+
+    await expect(
+      service.mutate(async () => {
+        locallyActive = false;
+        return "already admitted";
+      }),
+    ).resolves.toBe("already admitted");
+  });
+
+  it("classifies a failed transaction completion after callback success as commit uncertainty", async () => {
+    const controller = new AbortController();
+    const hostAuthority = authority(controller.signal);
+    const database = fakeDatabase(
+      hostAuthority,
+      [],
+      undefined,
+      undefined,
+      new Error("connection terminated after callback completion"),
+    );
+    const service = createPersistenceServiceForTests(
+      hostAuthority,
+      runtimeOptions(),
+      database,
+    );
+    let operationCount = 0;
+
+    await expect(
+      service.mutate(async () => {
+        operationCount += 1;
+        return "committed-but-unacknowledged";
+      }),
+    ).rejects.toMatchObject({
+      problem: {
+        problemCode: "persistence.transaction.commit_uncertain",
+        retryClass: "manual",
+      },
+    });
+    expect(operationCount).toBe(1);
+  });
+
+  it("defers pool destruction until an admitted mutation exits after authority abort", async () => {
+    const controller = new AbortController();
+    const hostAuthority = authority(controller.signal);
+    let destroyCount = 0;
+    const database = fakeDatabase(
+      hostAuthority,
+      [],
+      undefined,
+      undefined,
+      undefined,
+      () => {
+        destroyCount += 1;
+      },
+    );
+    const service = createPersistenceServiceForTests(
+      hostAuthority,
+      runtimeOptions(),
+      database,
+    );
+
+    await expect(
+      service.mutate(async () => {
+        controller.abort();
+        expect(destroyCount).toBe(0);
+        return "entered mutation completed";
+      }),
+    ).resolves.toBe("entered mutation completed");
+    expect(destroyCount).toBe(1);
   });
 });
