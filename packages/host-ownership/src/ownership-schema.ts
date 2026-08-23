@@ -9,6 +9,7 @@ import {
   HOST_LEASE_ROLE,
   HOST_OWNERSHIP_CANONICAL_DATABASE,
   HOST_OWNERSHIP_FENCE_TABLE,
+  HOST_OWNERSHIP_FENCE_LOCK_FUNCTION,
   HOST_OWNERSHIP_OWNER_ROLE,
   HOST_OWNERSHIP_SCHEMA,
   HOST_RUNTIME_ROLE,
@@ -55,6 +56,15 @@ interface ConstraintRow {
   readonly conname: string;
   readonly contype: string;
   readonly definition: string;
+}
+
+interface FunctionRow {
+  readonly owner_name: string;
+  readonly security_definer: boolean;
+  readonly language_name: string;
+  readonly result_definition: string;
+  readonly source: string;
+  readonly config: readonly string[] | null;
 }
 
 interface AclRow {
@@ -164,6 +174,38 @@ CROSS JOIN LATERAL aclexplode(
   COALESCE(tables.relacl, acldefault('r', tables.relowner))
 ) AS acl
 WHERE namespaces.nspname = $1 AND tables.relname = $2
+`;
+
+const FUNCTION_QUERY = `
+SELECT pg_get_userbyid(functions.proowner) AS owner_name,
+       functions.prosecdef AS security_definer,
+       languages.lanname AS language_name,
+       pg_get_function_result(functions.oid) AS result_definition,
+       functions.prosrc AS source,
+       functions.proconfig AS config
+FROM pg_catalog.pg_proc AS functions
+JOIN pg_catalog.pg_namespace AS namespaces
+  ON namespaces.oid = functions.pronamespace
+JOIN pg_catalog.pg_language AS languages
+  ON languages.oid = functions.prolang
+WHERE namespaces.nspname = $1 AND functions.proname = $2
+`;
+
+const FUNCTION_ACL_QUERY = `
+SELECT pg_get_userbyid(functions.proowner) AS owner_name,
+       pg_get_userbyid(acl.grantor) AS grantor,
+       CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(acl.grantee) END AS grantee,
+       acl.privilege_type,
+       acl.is_grantable
+FROM pg_catalog.pg_proc AS functions
+JOIN pg_catalog.pg_namespace AS namespaces
+  ON namespaces.oid = functions.pronamespace
+CROSS JOIN LATERAL aclexplode(
+  COALESCE(functions.proacl, acldefault('f', functions.proowner))
+) AS acl
+WHERE namespaces.nspname = $1
+  AND functions.proname = $2
+  AND functions.pronargs = 0
 `;
 
 const FENCE_QUERY = `
@@ -295,6 +337,42 @@ function assertNoColumnAcl(rows: readonly ColumnAclRow[]): void {
 
 function normalizeDefinition(definition: string): string {
   return definition.replace(/\s+/gu, " ").trim().toLowerCase();
+}
+
+const FENCE_LOCK_FUNCTION_SOURCE = `
+SELECT f.singleton,
+       f.instance_id,
+       f.ownership_revision,
+       f.host_ownership_token,
+       f.boot_id
+FROM "heptalogos"."host_ownership_fence" AS f
+WHERE f.singleton = true
+FOR SHARE
+`.trim();
+
+const FENCE_LOCK_FUNCTION_RESULT =
+  "TABLE(singleton boolean, instance_id uuid, ownership_revision bigint, host_ownership_token uuid, boot_id uuid)";
+
+function fenceLockFunctionRef(): string {
+  return `${quoteIdentifier(HOST_OWNERSHIP_SCHEMA)}.${quoteIdentifier(HOST_OWNERSHIP_FENCE_LOCK_FUNCTION)}()`;
+}
+
+function assertFenceLockFunction(row: FunctionRow): void {
+  if (
+    row.owner_name !== HOST_OWNERSHIP_OWNER_ROLE ||
+    row.security_definer !== true ||
+    row.language_name !== "sql" ||
+    normalizeDefinition(row.result_definition) !==
+      normalizeDefinition(FENCE_LOCK_FUNCTION_RESULT) ||
+    normalizeDefinition(row.source) !== normalizeDefinition(FENCE_LOCK_FUNCTION_SOURCE) ||
+    row.config === null ||
+    row.config.length !== 1 ||
+    row.config[0] !== "search_path=pg_catalog"
+  ) {
+    throw incompatibleSchemaProblem(
+      "HostOwnershipFence lock function does not match the canonical security-definer contract",
+    );
+  }
 }
 
 function assertExactConstraints(rows: readonly ConstraintRow[]): void {
@@ -582,6 +660,83 @@ CREATE TABLE ${quoteIdentifier(HOST_OWNERSHIP_SCHEMA)}.${quoteIdentifier(HOST_OW
   return tableCreated;
 }
 
+async function ensureFenceLockFunction(
+  client: BootstrapAdminClient,
+  authority: BootstrapMutationAuthority,
+): Promise<void> {
+  const metadata = await client.query<FunctionRow>(FUNCTION_QUERY, [
+    HOST_OWNERSHIP_SCHEMA,
+    HOST_OWNERSHIP_FENCE_LOCK_FUNCTION,
+  ]);
+  if (metadata.rows.length > 1) {
+    throw incompatibleSchemaProblem(
+      "Multiple HostOwnershipFence lock function overloads were observed",
+    );
+  }
+
+  const functionRef = fenceLockFunctionRef();
+  if (metadata.rows.length === 0) {
+    await authorizedMutation(
+      client,
+      authority,
+      `
+CREATE FUNCTION ${functionRef}
+RETURNS TABLE (
+  singleton boolean,
+  instance_id uuid,
+  ownership_revision bigint,
+  host_ownership_token uuid,
+  boot_id uuid
+)
+LANGUAGE SQL
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $h2a1$
+${FENCE_LOCK_FUNCTION_SOURCE}
+$h2a1$`,
+    );
+    await authorizedMutation(
+      client,
+      authority,
+      `ALTER FUNCTION ${functionRef} OWNER TO ${quoteIdentifier(HOST_OWNERSHIP_OWNER_ROLE)}`,
+    );
+  } else {
+    assertFenceLockFunction(metadata.rows[0]);
+  }
+
+  const beforeAcl = await client.query<AclRow>(FUNCTION_ACL_QUERY, [
+    HOST_OWNERSHIP_SCHEMA,
+    HOST_OWNERSHIP_FENCE_LOCK_FUNCTION,
+  ]);
+  assertAclSubset(
+    beforeAcl.rows,
+    new Set([
+      "PUBLIC:EXECUTE:false",
+      `${HOST_RUNTIME_ROLE}:EXECUTE:false`,
+    ]),
+    "Unexpected explicit privilege exists on the HostOwnershipFence lock function",
+  );
+  await authorizedMutation(
+    client,
+    authority,
+    `REVOKE ALL ON FUNCTION ${functionRef} FROM PUBLIC`,
+  );
+  await authorizedMutation(
+    client,
+    authority,
+    `GRANT EXECUTE ON FUNCTION ${functionRef} TO ${quoteIdentifier(HOST_RUNTIME_ROLE)}`,
+  );
+  const verifiedAcl = await client.query<AclRow>(FUNCTION_ACL_QUERY, [
+    HOST_OWNERSHIP_SCHEMA,
+    HOST_OWNERSHIP_FENCE_LOCK_FUNCTION,
+  ]);
+  assertAclExact(
+    verifiedAcl.rows,
+    new Set([`${HOST_RUNTIME_ROLE}:EXECUTE:false`]),
+    "HostOwnershipFence lock function privileges do not match the closed-world contract",
+  );
+}
+
 async function ensureFenceRow(
   client: BootstrapAdminClient,
   authority: BootstrapMutationAuthority,
@@ -630,6 +785,7 @@ export async function ensureHostOwnershipSchema(
         options.mutationAuthority,
       );
       const tableCreated = await ensureFenceTable(client, options.mutationAuthority);
+      await ensureFenceLockFunction(client, options.mutationAuthority);
       const fenceRowInitialized = await ensureFenceRow(
         client,
         options.mutationAuthority,

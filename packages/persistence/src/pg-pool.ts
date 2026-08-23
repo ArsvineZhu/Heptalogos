@@ -26,6 +26,19 @@ export function createPersistencePool(
     application_name: "heptalogos-runtime",
   });
 
+  // pg-pool removes its idle error listener while a client is checked out.
+  // Keep a permanent sink as well so a socket loss during an active
+  // transaction cannot become an unhandled EventEmitter error.
+  pool.on("connect", (client) => {
+    client.on("error", (error: unknown) => {
+      try {
+        options.onBackgroundError(error);
+      } catch {
+        // Background event handlers cannot throw into node-postgres.
+      }
+    });
+  });
+
   pool.on("error", (error: unknown) => {
     try {
       options.onBackgroundError(error);

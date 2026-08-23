@@ -5,7 +5,10 @@ import {
   ProblemError,
 } from "@heptalogos/foundation-contracts";
 import { CompiledQuery } from "kysely";
-import type { HostPersistenceAuthority } from "@heptalogos/host-ownership";
+import {
+  HOST_OWNERSHIP_FENCE_LOCK_FUNCTION,
+  type HostPersistenceAuthority,
+} from "@heptalogos/host-ownership";
 import {
   type PersistenceRuntimeOptions,
   type PersistenceService,
@@ -55,9 +58,7 @@ SELECT singleton,
        ownership_revision,
        host_ownership_token,
        boot_id
-FROM "heptalogos"."host_ownership_fence"
-WHERE singleton = true
-FOR SHARE
+FROM "heptalogos"."${HOST_OWNERSHIP_FENCE_LOCK_FUNCTION}"()
 `;
 
 async function executeSql<Row>(

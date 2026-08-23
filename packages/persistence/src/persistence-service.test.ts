@@ -77,7 +77,7 @@ function fakeDatabase(
         order.push("SET TRANSACTION READ ONLY");
         return { rows: [] };
       }
-      if (sql.includes("FOR SHARE")) {
+      if (sql.includes("lock_host_ownership_fence")) {
         order.push("SELECT fence FOR SHARE");
         return {
           rows:
