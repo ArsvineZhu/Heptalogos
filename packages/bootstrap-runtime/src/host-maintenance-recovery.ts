@@ -202,6 +202,34 @@ function requireBootstrapState(
   return value as BootstrapStateEnvelopeV1;
 }
 
+function requireCurrentBootstrapStateForErrorJournal(
+  loaded: BootstrapStateLoadResult,
+  profile: BootstrapPathProfile,
+  descriptor: PrivatePostgresMaintenanceDescriptor,
+  operationId: MaintenanceOperationId,
+): BootstrapStateEnvelopeV1 {
+  if (loaded.status !== "CURRENT") {
+    throw recoveryProblem(
+      "bootstrap.recovery.current_state_required_for_error_journal",
+      "Current BootstrapState is required for recovery error journaling",
+      "Recovery will not mutate MaintenanceJournal after current BootstrapState authority is lost",
+    );
+  }
+
+  const current = requireBootstrapState(loaded, profile, descriptor);
+  if (
+    current.state.lastCommittedOperationRef !== maintenanceOperationRef(operationId)
+  ) {
+    throw recoveryProblem(
+      "bootstrap.recovery.operation_pointer_changed",
+      "BootstrapState operation pointer changed during recovery finalization",
+      "Recovery will not append to a MaintenanceJournal that is no longer selected by current BootstrapState",
+      "conflict",
+    );
+  }
+  return current;
+}
+
 function requireJournalScope(
   body: MaintenanceJournalBodyV1,
   operationId: MaintenanceOperationId,
@@ -1008,16 +1036,20 @@ export async function recoverInterruptedHostMaintenance(
       try {
         const access = openMaintenanceStateAccess(profile, lease);
         const current = await access.state.load();
-        if (current.status !== "CORRUPT") {
-          const head = await access.journal.loadRecoveryHead(
-            initialInspection.operationId,
-          );
-          const next = nextBody(head.current.state, "RECOVERY_REQUIRED", {
-            terminalOutcome: isUncertainProblem(error) ? "UNCERTAIN" : "FAILED",
-            problemCode: problemCodeOf(error),
-          });
-          await access.journal.advance(next).catch(() => undefined);
-        }
+        requireCurrentBootstrapStateForErrorJournal(
+          current,
+          profile,
+          options.privatePostgres,
+          initialInspection.operationId,
+        );
+        const head = await access.journal.loadRecoveryHead(
+          initialInspection.operationId,
+        );
+        const next = nextBody(head.current.state, "RECOVERY_REQUIRED", {
+          terminalOutcome: isUncertainProblem(error) ? "UNCERTAIN" : "FAILED",
+          problemCode: problemCodeOf(error),
+        });
+        await access.journal.advance(next).catch(() => undefined);
       } catch {
         // The first failure remains authoritative; do not guess through a corrupt journal.
       }

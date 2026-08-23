@@ -230,6 +230,13 @@ function makeHostConnection(trace: string[]) {
   };
 }
 
+type FinalizationStateMode =
+  | "CURRENT"
+  | "RECOVERED_PREVIOUS"
+  | "EMPTY"
+  | "POINTER_CHANGED"
+  | "IDENTITY_MISMATCH";
+
 function configure(
   fixture: Awaited<ReturnType<typeof makeFixture>>,
   stage: MaintenanceStage,
@@ -285,6 +292,8 @@ function configure(
   const current = sealMaintenanceJournal(body);
   let currentBody = body;
   let recoveredPrevious = false;
+  let stateLoadCount = 0;
+  let finalizationStateMode: FinalizationStateMode = "CURRENT";
   let beforeAdvance: ((next: MaintenanceJournalBodyV1) => Promise<void>) | undefined;
   const lease = makeLease(trace);
   const connection = makeHostConnection(trace);
@@ -302,6 +311,7 @@ function configure(
     state: {
       async load() {
         trace.push("state.load");
+        stateLoadCount += 1;
         if (recoveredPrevious) {
           return {
             status: "RECOVERED_PREVIOUS",
@@ -315,6 +325,46 @@ function configure(
               detail: "The previous valid BootstrapState revision was recovered",
             },
           } as const;
+        }
+        if (stateLoadCount > 1) {
+          if (finalizationStateMode === "EMPTY") return { status: "EMPTY" } as const;
+          if (finalizationStateMode === "RECOVERED_PREVIOUS") {
+            return {
+              status: "RECOVERED_PREVIOUS",
+              value: state,
+              problem: {
+                schemaVersion: 1,
+                problemCode: "bootstrap.state.current_corrupt",
+                category: "integrity",
+                retryClass: "manual",
+                title: "Current BootstrapState is corrupt",
+                detail: "The previous valid BootstrapState revision was recovered",
+              },
+            } as const;
+          }
+          if (finalizationStateMode === "POINTER_CHANGED") {
+            return {
+              status: "CURRENT",
+              value: sealBootstrapState({
+                ...state.state,
+                lastCommittedOperationRef: maintenanceOperationRef(
+                  createUuidV7Id("MaintenanceOperationId"),
+                ),
+              }),
+            } as const;
+          }
+          if (finalizationStateMode === "IDENTITY_MISMATCH") {
+            return {
+              status: "CURRENT",
+              value: sealBootstrapState({
+                ...state.state,
+                privatePostgres: {
+                  ...state.state.privatePostgres!,
+                  clusterSystemIdentifier: "99999999999999999999",
+                },
+              }),
+            } as const;
+          }
         }
         return { status: "CURRENT", value: state } as const;
       },
@@ -407,6 +457,9 @@ function configure(
     },
     setRecoveredPrevious(value: boolean) {
       recoveredPrevious = value;
+    },
+    setFinalizationState(mode: FinalizationStateMode) {
+      finalizationStateMode = mode;
     },
   };
 }
@@ -922,6 +975,47 @@ describe("fixed M5B host-maintenance recovery", () => {
       expect(recoveryRequired?.target.hostOwnershipToken).toBeDefined();
       expect(recoveryRequired?.target.hostBootId).toBeDefined();
       expect(recoveryRequired?.target.hostOwnershipRevision).toBeUndefined();
+    },
+  );
+
+  it.each([
+    "RECOVERED_PREVIOUS",
+    "EMPTY",
+    "POINTER_CHANGED",
+    "IDENTITY_MISMATCH",
+    "CURRENT",
+  ] as const)(
+    "requires current exact BootstrapState authority for error journaling: %s",
+    async (finalizationState) => {
+      const fixture = await makeFixture();
+      const configured = configure(
+        fixture,
+        "POSTGRES_STOPPED",
+        "PRIVATE_POSTGRES_RESTART",
+        "STOPPED",
+        null,
+      );
+      configured.setFinalizationState(finalizationState);
+      const originalFailure = new ProblemError({
+        schemaVersion: 1,
+        problemCode: "test.recovery.original_failure",
+        category: "unavailable",
+        retryClass: "manual",
+        title: "Original recovery failure",
+        detail: "The controlled publication failed",
+      });
+      mocks.publish.mockRejectedValue(originalFailure);
+
+      await expect(
+        recoverInterruptedHostMaintenance(options(fixture)),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "test.recovery.original_failure" },
+      });
+      expect(
+        configured.advancedBodies.some(
+          (body) => body.lastCompletedStage === "RECOVERY_REQUIRED",
+        ),
+      ).toBe(finalizationState === "CURRENT");
     },
   );
 

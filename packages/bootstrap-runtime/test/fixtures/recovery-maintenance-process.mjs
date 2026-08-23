@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createRequire } from "node:module";
 import { parseRecoveryMaintenanceProcessArgs } from "./recovery-maintenance-process-args.mjs";
@@ -5,7 +6,7 @@ import { parseRecoveryMaintenanceProcessArgs } from "./recovery-maintenance-proc
 const require = createRequire(import.meta.url);
 const {
   BootstrapStateStore,
-  MaintenanceJournalStore,
+  parseMaintenanceJournal,
 } = require("@heptalogos/bootstrap-state");
 const { createBootId } = require("@heptalogos/foundation-contracts");
 const {
@@ -85,15 +86,19 @@ function quiescence() {
 }
 
 async function watchJournalStage(instanceRoot, operationId, stage) {
-  const journal = new MaintenanceJournalStore(instanceRoot);
+  const currentPath = join(
+    instanceRoot,
+    "maintenance-journal",
+    operationId,
+    "maintenance-state.json",
+  );
   let stopped = false;
   const timer = setInterval(async () => {
     if (stopped) return;
     try {
-      const loaded = await journal.load(operationId);
+      const parsed = parseMaintenanceJournal(await readFile(currentPath, "utf8"));
       if (
-        loaded.status === "CURRENT" &&
-        loaded.value.state.lastCompletedStage === stage
+        parsed.ok && parsed.value.state.lastCompletedStage === stage
       ) {
         stopped = true;
         clearInterval(timer);
