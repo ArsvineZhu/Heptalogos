@@ -1,8 +1,8 @@
 # Heptalogos Development Roadmap
 
 **Status:** LIVING ROADMAP / planning guidance<br>
-**Date:** 2026-08-21<br>
-**Repository baseline:** `master@fdc2af95e4c90b6ca0093ab96fd72a808e05ed57` (Foundation M2 merged)<br>
+**Date:** 2026-08-24<br>
+**Repository baseline:** `master@82541933bc2b5e6add0eeee711b4f36350f5d5ff` (H1 squash merge)<br>
 **Architecture baseline:** `Architecture_Corpus` design state 2026-08-20
 
 > This document is a roadmap, not an Architecture Corpus authority and not an Implementation Plan. It guides future plan decomposition, sequencing, risk retirement, and acceptance. If it conflicts with the Architecture Corpus, the Corpus wins. If implementation evidence invalidates roadmap assumptions without invalidating architecture semantics, update the roadmap rather than silently changing the Corpus.
@@ -135,9 +135,9 @@ Current H-stage truth:
 ```yaml
 M5B: CLOSED
 H1_FUNCTIONAL: COMPLETE
-H1_STABILIZATION: REVIEW_CORRECTION_IMPLEMENTATION_COMPLETE
-H1: OPEN
-H2: NOT_ELIGIBLE
+H1_STABILIZATION: CLOSED
+H1: CLOSED
+H2: ELIGIBLE
 ```
 
 H1 functional implementation: COMPLETE.
@@ -147,13 +147,17 @@ behavior candidate `3cc589b667b0cd64342881caf7d382c2d960a928`. Current evidence
 is bound to that candidate and the exact Windows PostgreSQL 18.6 runtime used
 for the fresh qualification run.
 
-H1 remains OPEN pending exact-candidate independent review, manual final CI on
-Ubuntu/macOS/Windows, unchanged candidate identity immediately before merge,
-and squash merge. H2 remains NOT_ELIGIBLE until that closure tuple is
-satisfied. The current corrected run proves Windows extracted-runtime
+The exact H1-S reviewed pair is
+`(257ad6fe73924bcd1c9a00cad6a15938d6e6a2da,
+80440e89918f3141c087fff65118754bb07e09ca)`. Independent review is `PASS`;
+manual final cross-platform CI run `32643262593` is `PASS` for head
+`80440e89918f3141c087fff65118754bb07e09ca`; and squash merge
+`82541933bc2b5e6add0eeee711b4f36350f5d5ff` is `PASS`. H1 is therefore closed
+and H2 is eligible. The current corrected run proves Windows extracted-runtime
 PostgreSQL 18.6 behavior; Linux/macOS real PostgreSQL, source-less shipping,
-service-account ACL, and hardware power-loss remain NOT_RUN. The historical M5B
-review/CI/merge records below do not satisfy this new H1-S closure tuple.
+service-account ACL, and hardware power-loss remain product-qualification
+`NOT_RUN` items. The historical M5B review/CI/merge records below do not replace
+this current H1-S closure tuple.
 
 Historical milestone context:
 

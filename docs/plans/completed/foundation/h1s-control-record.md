@@ -12,29 +12,26 @@
 ```yaml
 M5B: CLOSED
 H1_FUNCTIONAL: COMPLETE
-H1_STABILIZATION: REVIEW_CORRECTION_IMPLEMENTATION_COMPLETE
-H1: OPEN
-H2: NOT_ELIGIBLE
-executionStatus: REVIEW_CORRECTION_IMPLEMENTATION_COMPLETE
-externalClosureGates: RESET_AFTER_REQUEST_CHANGES
-reviewCorrection:
-  plan: completed/foundation/h1s-review-correction.md
-  planState: COMPLETED
-  executionGate: CLOSED
-governingPlan: completed/foundation/h1s-review-correction.md
-priorIndependentReview: REQUEST_CHANGES
-priorReviewedRepositoryHead: 803ea6994fea6234e6ce42f79d69b5f92eaddc64
-independentReview: NOT_RUN
+H1_STABILIZATION: CLOSED
+H1: CLOSED
+H2: ELIGIBLE
+executionStatus: CLOSED
+externalClosureGates: CLOSED
+independentReview: PASS
 reviewCandidateBase: 257ad6fe73924bcd1c9a00cad6a15938d6e6a2da
-reviewCandidateHead: PR_11_METADATA
-candidateFreeze: READY_FOR_INDEPENDENT_REVIEW
-candidateFreezeAuthority: PR_11_METADATA
-candidateFreezeNote: PR #11 body records the exact pushed HEAD; independent review remains NOT_RUN
-reason: RC-1..RC-6 closed locally; prior REQUEST_CHANGES is historical
-local qualification: PASS
-final cross-platform CI: NOT_RUN
-squash merge: NOT_RUN
+reviewCandidateHead: 80440e89918f3141c087fff65118754bb07e09ca
+finalCrossPlatformCI: PASS
+finalCiRunId: 32643262593
+finalCiHeadSha: 80440e89918f3141c087fff65118754bb07e09ca
+squashMerge: PASS
+squashMergeSha: 82541933bc2b5e6add0eeee711b4f36350f5d5ff
 ```
+
+Historical review-correction evidence remains in
+`completed/foundation/h1s-review-correction.md`; its earlier independent
+review result was `REQUEST_CHANGES` for repository head
+`803ea6994fea6234e6ce42f79d69b5f92eaddc64`. That historical result does not
+override the later exact-candidate review/CI/merge closure tuple above.
 
 ## Phase plans
 
@@ -58,7 +55,7 @@ phases:
     executionGate: CLOSED
 ```
 
-The corrected H1-S behavior candidate is
+The corrected H1-S behavior candidate was
 `3cc589b667b0cd64342881caf7d382c2d960a928`. Local `pnpm verify` is `PASS`;
 private-postgres integration is `20/20 PASS`; Host ownership integration is
 `8/8 PASS`; bootstrap-runtime integration is `30/30 PASS`; the non-PostgreSQL
@@ -66,8 +63,9 @@ real process target is `4/4 PASS`; and the PostgreSQL real process target is
 `2/2 PASS`. The exact PostgreSQL 18.6 toolchain was executed on Windows x64
 from the temporary EDB archive root
 `C:\Users\Arsvine\AppData\Local\Temp\heptalogos-pg18.6-correction-20260823\extracted\pgsql\bin`.
-Linux/macOS PostgreSQL, source-less, ACL, power-loss, independent review,
-final CI, and squash merge remain `NOT_RUN`/`PENDING` external gates.
+The exact reviewed pair, manual final CI, and squash merge are now recorded as
+`PASS` above. Linux/macOS PostgreSQL, source-less, service-account ACL, and
+hardware power-loss remain product-qualification `NOT_RUN` items.
 
 S0/S1/S2 and the review-correction plan remain completed historical phases.
 The prior independent review `REQUEST_CHANGES` is historical; final H1 closure
