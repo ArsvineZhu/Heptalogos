@@ -637,9 +637,10 @@ function createPreparedMaintenance(
       lastCompletedStage: stage,
       updatedAt: new Date().toISOString(),
     };
+    const event = eventForCommittedStage(stage);
+    if (event !== undefined) tracker.assertCan(event);
     await access.journal.advance(next);
     body = next;
-    const event = eventForCommittedStage(stage);
     if (event !== undefined) tracker.send(event);
   };
 

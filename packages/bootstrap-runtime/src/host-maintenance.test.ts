@@ -587,6 +587,35 @@ describe("reverse-handoff maintenance preparation and entry", () => {
     ]);
   });
 
+  it("does not durably commit an illegal entered-window transition", async () => {
+    const fixture = makeFixture();
+    const operations = createHostMaintenanceOperations({
+      host: fixture.rawHost,
+      bootstrap: fixture.context,
+      handoff: fixture.handoff,
+      privatePostgres: fixture.descriptor,
+      executeEnteredWindow: async (window) => {
+        await window.advance("POSTGRES_READY");
+        return { kind: "STOPPED" as const };
+      },
+    });
+    const prepared = await operations.preparePrivatePostgresMaintenance({
+      kind: "STOP_PRIVATE_POSTGRES",
+    });
+
+    await expect(
+      prepared.execute({
+        async quiesce() {
+          return { async resumeAfterAbort() {} };
+        },
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.maintenance.invalid_transition" },
+    });
+    expect(fixture.trace).not.toContain("journal.advance:POSTGRES_READY");
+    expect(prepared.state).toBe("RECOVERY_REQUIRED");
+  });
+
   it("safely aborts before PONR when revocation is known not committed", async () => {
     const fixture = makeFixture();
     mocks.revokeMock.mockRejectedValueOnce(

@@ -29,6 +29,7 @@ export type HostMaintenanceEvent =
 export interface HostMaintenanceTracker {
   readonly state: HostMaintenanceState;
   can(event: HostMaintenanceEvent): boolean;
+  assertCan(event: HostMaintenanceEvent): void;
   send(event: HostMaintenanceEvent): void;
 }
 
@@ -130,17 +131,22 @@ function invalidTransition(
 
 export function createHostMaintenanceTracker(): HostMaintenanceTracker {
   let snapshot: Snapshot = initialTransition(machine)[0];
+  const currentState = (): HostMaintenanceState =>
+    stateByValue[String(snapshot.value)];
+  const assertCan = (event: HostMaintenanceEvent): void => {
+    if (!snapshot.can(event)) throw invalidTransition(currentState(), event);
+  };
 
   return {
     get state() {
-      return stateByValue[String(snapshot.value)];
+      return currentState();
     },
     can(event) {
       return snapshot.can(event);
     },
+    assertCan,
     send(event) {
-      const state = stateByValue[String(snapshot.value)];
-      if (!snapshot.can(event)) throw invalidTransition(state, event);
+      assertCan(event);
       snapshot = transition(machine, snapshot, event)[0];
     },
   };
