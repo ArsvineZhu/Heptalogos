@@ -400,7 +400,9 @@ export function createStopPrivatePostgresEnteredWindowExecutor(
     }
     await controller.stop();
     await window.advance("POSTGRES_STOPPED");
-    await window.advance("BOOTSTRAP_RELEASE_ARMED");
+    await window.advance("BOOTSTRAP_RELEASE_ARMED", {
+      terminalOutcome: "SUCCEEDED",
+    });
     await window.lease.release();
     await Promise.resolve()
       .then(() =>
@@ -498,7 +500,9 @@ export function createRestartPrivatePostgresEnteredWindowExecutor(
           hostOwnershipRevision: publication.publishedRevision,
         },
       });
-      await window.advance("BOOTSTRAP_RELEASE_ARMED");
+      await window.advance("BOOTSTRAP_RELEASE_ARMED", {
+        terminalOutcome: "SUCCEEDED",
+      });
 
       await window.lease.release();
       await Promise.resolve()

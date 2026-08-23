@@ -178,7 +178,7 @@ describe("MaintenanceJournal V1 model and codec", () => {
     },
     {
       stage: "BOOTSTRAP_RELEASE_ARMED" as const,
-      terminalOutcome: "SUCCEEDED" as const,
+      terminalOutcome: undefined,
     },
   ])("enforces terminal stage invariants: $stage", ({ stage, terminalOutcome }) => {
     const body = makeBody({
@@ -198,6 +198,7 @@ describe("MaintenanceJournal V1 model and codec", () => {
       operationType: "PRIVATE_POSTGRES_RESTART",
       lastCompletedStage: "BOOTSTRAP_RELEASE_ARMED",
       target: { privatePostgres: "RUNNING_SAME_IDENTITY" },
+      terminalOutcome: "SUCCEEDED",
     });
     expect(
       parseMaintenanceJournal(JSON.stringify(sealMaintenanceJournal(restart))),
@@ -210,6 +211,7 @@ describe("MaintenanceJournal V1 model and codec", () => {
       operationType: "PRIVATE_POSTGRES_STOP",
       lastCompletedStage: "BOOTSTRAP_RELEASE_ARMED",
       target: { privatePostgres: "STOPPED" },
+      terminalOutcome: "SUCCEEDED",
     });
     expect(
       parseMaintenanceJournal(JSON.stringify(sealMaintenanceJournal(stop))),
@@ -312,6 +314,9 @@ describe("MaintenanceJournal V1 model and codec", () => {
           hostBootId: bootId,
           hostOwnershipRevision: "9",
         },
+        ...(stage === "BOOTSTRAP_RELEASE_ARMED"
+          ? { terminalOutcome: "SUCCEEDED" as const }
+          : {}),
       });
       expect(
         parseMaintenanceJournal(JSON.stringify(sealMaintenanceJournal(valid))),

@@ -178,20 +178,22 @@ function semanticProblem(body: MaintenanceJournalBodyV1): string | undefined {
   if (!assertUuidIdentities(body)) return "maintenance.journal.invalid_schema";
   if (!isCanonicalInstant(body.updatedAt)) return "maintenance.journal.invalid_schema";
 
-  if (body.lastCompletedStage === "ABORTED" && body.terminalOutcome !== "ABORTED") {
-    return "maintenance.journal.invalid_semantics";
-  }
-  if (
-    body.lastCompletedStage === "RECOVERY_REQUIRED" &&
-    body.terminalOutcome !== "FAILED" &&
-    body.terminalOutcome !== "UNCERTAIN"
-  ) {
-    return "maintenance.journal.invalid_semantics";
-  }
-  if (
-    body.lastCompletedStage === "BOOTSTRAP_RELEASE_ARMED" &&
-    body.terminalOutcome !== undefined
-  ) {
+  if (body.lastCompletedStage === "BOOTSTRAP_RELEASE_ARMED") {
+    if (body.terminalOutcome !== "SUCCEEDED") {
+      return "maintenance.journal.invalid_semantics";
+    }
+  } else if (body.lastCompletedStage === "ABORTED") {
+    if (body.terminalOutcome !== "ABORTED") {
+      return "maintenance.journal.invalid_semantics";
+    }
+  } else if (body.lastCompletedStage === "RECOVERY_REQUIRED") {
+    if (
+      body.terminalOutcome !== "FAILED" &&
+      body.terminalOutcome !== "UNCERTAIN"
+    ) {
+      return "maintenance.journal.invalid_semantics";
+    }
+  } else if (body.terminalOutcome !== undefined) {
     return "maintenance.journal.invalid_semantics";
   }
   const hasTargetToken = body.target.hostOwnershipToken !== undefined;

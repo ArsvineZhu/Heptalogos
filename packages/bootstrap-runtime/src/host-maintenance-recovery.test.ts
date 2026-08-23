@@ -278,6 +278,9 @@ function configure(
     },
     lastCompletedStage: stage,
     updatedAt: "2026-08-22T08:30:00.000Z",
+    ...(stage === "BOOTSTRAP_RELEASE_ARMED"
+      ? { terminalOutcome: "SUCCEEDED" as const }
+      : {}),
   };
   const current = sealMaintenanceJournal(body);
   let currentBody = body;
@@ -562,6 +565,26 @@ describe("fixed M5B host-maintenance recovery", () => {
     expect(mocks.revoke).not.toHaveBeenCalled();
   });
 
+  it("commits a successful terminal outcome after recovered STOP", async () => {
+    const fixture = await makeFixture();
+    const configured = configure(
+      fixture,
+      "HOST_LEASE_CLOSED",
+      "PRIVATE_POSTGRES_STOP",
+      "READY",
+      null,
+    );
+
+    await expect(recoverInterruptedHostMaintenance(options(fixture))).resolves.toEqual({
+      kind: "STOPPED",
+    });
+    expect(
+      configured.advancedBodies.find(
+        (body) => body.lastCompletedStage === "BOOTSTRAP_RELEASE_ARMED",
+      ),
+    ).toMatchObject({ terminalOutcome: "SUCCEEDED" });
+  });
+
   it("does not perform a second restart after POSTGRES_STOPPED", async () => {
     const fixture = await makeFixture();
     const configured = configure(
@@ -811,6 +834,13 @@ describe("fixed M5B host-maintenance recovery", () => {
       expect(result.kind).toBe("RESTARTED");
       expect(configured.start).toHaveBeenCalledOnce();
       expect(configured.stop).not.toHaveBeenCalled();
+      if (stage !== "BOOTSTRAP_RELEASE_ARMED") {
+        expect(
+          configured.advancedBodies.find(
+            (body) => body.lastCompletedStage === "BOOTSTRAP_RELEASE_ARMED",
+          ),
+        ).toMatchObject({ terminalOutcome: "SUCCEEDED" });
+      }
     },
   );
 

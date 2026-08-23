@@ -59,11 +59,11 @@ function operationIdFromReference(
 
 function maintenanceIsIncomplete(value: MaintenanceJournalLoadResult): boolean {
   if (value.status !== "CURRENT") return false;
-  return (
-    value.value.state.terminalOutcome === undefined ||
-    value.value.state.terminalOutcome === "FAILED" ||
-    value.value.state.terminalOutcome === "UNCERTAIN" ||
-    value.value.state.lastCompletedStage === "RECOVERY_REQUIRED"
+  const body = value.value.state;
+  return !(
+    (body.lastCompletedStage === "BOOTSTRAP_RELEASE_ARMED" &&
+      body.terminalOutcome === "SUCCEEDED") ||
+    (body.lastCompletedStage === "ABORTED" && body.terminalOutcome === "ABORTED")
   );
 }
 

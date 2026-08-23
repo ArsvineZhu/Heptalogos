@@ -156,6 +156,19 @@ hostOwnershipRevision (when publication is committed)
 
 Delete `resolveMaintenanceTargetHostBootId()` and all fallback-to-operation-`bootId` behavior. Legacy late-stage targets lacking `hostBootId` are rejected.
 
+Durable maintenance completion is represented without adding a new stage:
+
+```text
+BOOTSTRAP_RELEASE_ARMED + SUCCEEDED
+= target state has been durably established while bootstrap ownership is still held
+= the historical operation no longer blocks future normal bootstrap
+
+bootstrap lock/provider reality still independently gates concurrent ownership acquisition
+```
+
+No new `COMPLETED` `MaintenanceStage` is introduced. Earlier progress stages
+remain incomplete even if an invalid terminal outcome claims success.
+
 ### 5.4 Locator and owner witness
 
 `BootstrapLocator` and `BootstrapOwnerWitness` remain canonical V1. No compatibility generation is added.

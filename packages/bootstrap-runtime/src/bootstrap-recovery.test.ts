@@ -102,6 +102,12 @@ async function writeMaintenancePointer(
     ),
     lastCommittedOperationRef: maintenanceOperationRef(operationId),
   };
+  const lastCompletedStage =
+    terminalOutcome === "SUCCEEDED"
+      ? "BOOTSTRAP_RELEASE_ARMED"
+      : terminalOutcome === "FAILED"
+        ? "RECOVERY_REQUIRED"
+        : "POSTGRES_STOPPED";
   const body: MaintenanceJournalBodyV1 = {
     schemaVersion: 1,
     revision: 1,
@@ -127,7 +133,7 @@ async function writeMaintenancePointer(
         digestCanonicalJson("test.private-postgres-profile/v1", { profile: true }),
       ),
     },
-    lastCompletedStage: "POSTGRES_STOPPED",
+    lastCompletedStage,
     updatedAt: "2026-08-22T08:30:00.000Z",
     ...(terminalOutcome === undefined ? {} : { terminalOutcome }),
   };

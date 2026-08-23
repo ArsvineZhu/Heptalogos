@@ -601,7 +601,13 @@ function nextBody(
     updatedAt: new Date().toISOString(),
   };
   const next = nextCandidate;
-  if (stage === "RECOVERY_REQUIRED" || stage === "ABORTED") return next;
+  if (
+    stage === "RECOVERY_REQUIRED" ||
+    stage === "ABORTED" ||
+    stage === "BOOTSTRAP_RELEASE_ARMED"
+  ) {
+    return next;
+  }
   const {
     terminalOutcome: _terminalOutcome,
     problemCode: _problemCode,
@@ -779,6 +785,7 @@ export async function recoverInterruptedHostMaintenance(
       if (!hasReached(progress, "BOOTSTRAP_RELEASE_ARMED")) {
         await advance("BOOTSTRAP_RELEASE_ARMED", {
           target: { privatePostgres: "STOPPED" },
+          terminalOutcome: "SUCCEEDED",
         });
       }
       await lease.release();
@@ -958,7 +965,10 @@ export async function recoverInterruptedHostMaintenance(
       await advance("HOST_TOKEN_PUBLISHED", { target });
     }
     if (!hasReached(progress, "BOOTSTRAP_RELEASE_ARMED")) {
-      await advance("BOOTSTRAP_RELEASE_ARMED", { target });
+      await advance("BOOTSTRAP_RELEASE_ARMED", {
+        target,
+        terminalOutcome: "SUCCEEDED",
+      });
     }
     managedHost = createRecoveredManagedHost(
       rawHost,

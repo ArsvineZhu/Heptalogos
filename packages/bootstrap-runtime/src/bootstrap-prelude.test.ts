@@ -136,6 +136,14 @@ async function writeMaintenanceObligation(
     revision: current.value.state.revision + 1,
     lastCommittedOperationRef: maintenanceOperationRef(operationId),
   });
+  const lastCompletedStage =
+    terminalOutcome === "SUCCEEDED"
+      ? "BOOTSTRAP_RELEASE_ARMED"
+      : terminalOutcome === "ABORTED"
+        ? "ABORTED"
+        : terminalOutcome === "FAILED" || terminalOutcome === "UNCERTAIN"
+          ? "RECOVERY_REQUIRED"
+          : "POSTGRES_STOPPED";
   await new MaintenanceJournalStore(fixture.instanceRoot).create({
     schemaVersion: 1,
     revision: 1,
@@ -159,7 +167,7 @@ async function writeMaintenanceObligation(
         digestCanonicalJson("test.private-postgres-profile/v1", { profile: "prelude" }),
       ),
     },
-    lastCompletedStage: "POSTGRES_STOPPED",
+    lastCompletedStage,
     updatedAt: "2026-08-23T00:00:00.000Z",
     ...(terminalOutcome === undefined ? {} : { terminalOutcome }),
   });
@@ -283,20 +291,26 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
     });
   });
 
-  it.each(["SUCCEEDED", "ABORTED"] as const)(
-    "allows normal bootstrap after terminal historical maintenance %s",
-    async (terminalOutcome) => {
-      const fixture = await makeFixture();
-      await writeMaintenanceObligation(fixture, terminalOutcome);
+  it("allows normal bootstrap after BOOTSTRAP_RELEASE_ARMED/SUCCEEDED", async () => {
+    const fixture = await makeFixture();
+    await writeMaintenanceObligation(fixture, "SUCCEEDED");
 
-      const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
-      const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
-      await owned.close();
-    },
-  );
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    await owned.close();
+  });
+
+  it("allows normal bootstrap after ABORTED/ABORTED", async () => {
+    const fixture = await makeFixture();
+    await writeMaintenanceObligation(fixture, "ABORTED");
+
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    await owned.close();
+  });
 
   it.each(["FAILED", "UNCERTAIN"] as const)(
-    "blocks normal bootstrap for non-terminal maintenance outcome %s",
+    "blocks normal bootstrap for RECOVERY_REQUIRED/%s",
     async (terminalOutcome) => {
       const fixture = await makeFixture();
       await writeMaintenanceObligation(fixture, terminalOutcome);
