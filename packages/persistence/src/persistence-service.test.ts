@@ -4,6 +4,7 @@ import {
   createHostOwnershipToken,
   createInstallationId,
   createInstanceId,
+  ProblemError,
 } from "@heptalogos/foundation-contracts";
 import type { HostPersistenceAuthority } from "@heptalogos/host-ownership";
 import * as persistence from "./index.js";
@@ -36,7 +37,10 @@ function runtimeOptions(): PersistenceRuntimeOptions {
   };
 }
 
-function authority(signal: AbortSignal): HostPersistenceAuthority {
+function authority(
+  signal: AbortSignal,
+  onAssert: () => void = () => undefined,
+): HostPersistenceAuthority {
   return {
     installationId: createInstallationId(),
     instanceId: createInstanceId(),
@@ -49,10 +53,68 @@ function authority(signal: AbortSignal): HostPersistenceAuthority {
       user: "heptalogos_runtime",
     },
     signal,
-    assertActive() {},
+    assertActive() {
+      onAssert();
+    },
     async withRuntimeDatabasePassword(use) {
       return use(new TextEncoder().encode("R".repeat(32)));
     },
+  };
+}
+
+function fakeDatabase(
+  authorityValue: HostPersistenceAuthority,
+  order: string[],
+  onFenceVerified: () => void = () => undefined,
+  fenceRows: readonly Record<string, unknown>[] | undefined = undefined,
+) {
+  const transaction = {
+    async executeQuery(query: { readonly sql: string }) {
+      const sql = query.sql.replace(/\s+/gu, " ").trim();
+      if (sql.startsWith("SET TRANSACTION READ ONLY")) {
+        order.push("SET TRANSACTION READ ONLY");
+        return { rows: [] };
+      }
+      if (sql.includes("FOR SHARE")) {
+        order.push("SELECT fence FOR SHARE");
+        return {
+          rows:
+            fenceRows ??
+            [
+              {
+                singleton: true,
+                instance_id: authorityValue.instanceId,
+                ownership_revision: "0",
+                host_ownership_token: authorityValue.token,
+                boot_id: authorityValue.bootId,
+              },
+            ],
+        };
+      }
+      throw new Error(`unexpected SQL: ${query.sql}`);
+    },
+  } as unknown as PersistenceInternalTransaction;
+
+  return {
+    transaction() {
+      return {
+        async execute<T>(
+          callback: (value: PersistenceInternalTransaction) => Promise<T>,
+        ): Promise<T> {
+          order.push("transaction begins");
+          try {
+            const value = await callback(transaction);
+            order.push("transaction completion");
+            return value;
+          } catch (error) {
+            order.push("transaction rollback");
+            throw error;
+          }
+        },
+      };
+    },
+    async destroy() {},
+    onFenceVerified,
   };
 }
 
@@ -146,5 +208,199 @@ describe("persistence package root", () => {
     releaseDestroy();
     await firstClose;
     expect(service.state).toBe("CLOSED");
+  });
+
+  it("linearizes a mutation only after the held FOR SHARE fence and final active check", async () => {
+    const controller = new AbortController();
+    const order: string[] = [];
+    let assertCount = 0;
+    const hostAuthority = authority(controller.signal, () => {
+      assertCount += 1;
+      order.push("authority.assertActive");
+    });
+    const database = fakeDatabase(hostAuthority, order, () => {
+      order.push("verify singleton/InstanceId/BootId/token");
+    });
+    const service = createPersistenceServiceForTests(
+      hostAuthority,
+      runtimeOptions(),
+      database,
+      { onFenceVerified: database.onFenceVerified },
+    );
+
+    await expect(
+      service.mutate(async (context) => {
+        order.push("invoke operation");
+        expect(context.mode).toBe("MUTATION");
+        return "committed";
+      }),
+    ).resolves.toBe("committed");
+
+    expect(assertCount).toBe(3);
+    expect(order).toEqual([
+      "authority.assertActive",
+      "transaction begins",
+      "authority.assertActive",
+      "SELECT fence FOR SHARE",
+      "verify singleton/InstanceId/BootId/token",
+      "authority.assertActive",
+      "invoke operation",
+      "transaction completion",
+    ]);
+  });
+
+  it("starts a read with database-enforced READ ONLY and no write fence", async () => {
+    const controller = new AbortController();
+    const order: string[] = [];
+    const hostAuthority = authority(controller.signal, () => {
+      order.push("authority.assertActive");
+    });
+    const database = fakeDatabase(hostAuthority, order);
+    const service = createPersistenceServiceForTests(
+      hostAuthority,
+      runtimeOptions(),
+      database,
+    );
+
+    await expect(
+      service.read(async (context) => {
+        order.push("invoke operation");
+        expect(context.mode).toBe("READ");
+        return "read";
+      }),
+    ).resolves.toBe("read");
+
+    expect(order).toEqual([
+      "authority.assertActive",
+      "transaction begins",
+      "SET TRANSACTION READ ONLY",
+      "invoke operation",
+      "transaction completion",
+    ]);
+  });
+
+  it("rolls back without invoking a mutation when the final in-lock Host check fails", async () => {
+    const controller = new AbortController();
+    const order: string[] = [];
+    let assertCount = 0;
+    const hostAuthority = authority(controller.signal, () => {
+      assertCount += 1;
+      order.push("authority.assertActive");
+      if (assertCount === 3) throw new Error("Host lease lost");
+    });
+    const database = fakeDatabase(hostAuthority, order, () => {
+      order.push("verify singleton/InstanceId/BootId/token");
+    });
+    const service = createPersistenceServiceForTests(
+      hostAuthority,
+      runtimeOptions(),
+      database,
+      { onFenceVerified: database.onFenceVerified },
+    );
+    let invoked = 0;
+
+    await expect(
+      service.mutate(async () => {
+        invoked += 1;
+        return undefined;
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "persistence.service.fenced" },
+    });
+
+    expect(invoked).toBe(0);
+    expect(order).toEqual([
+      "authority.assertActive",
+      "transaction begins",
+      "authority.assertActive",
+      "SELECT fence FOR SHARE",
+      "verify singleton/InstanceId/BootId/token",
+      "authority.assertActive",
+      "transaction rollback",
+    ]);
+  });
+
+  it("rejects a structurally valid but stale database owner before operation invocation", async () => {
+    const controller = new AbortController();
+    const hostAuthority = authority(controller.signal);
+    const staleToken = createHostOwnershipToken();
+    const staleBootId = createBootId();
+    const database = fakeDatabase(
+      hostAuthority,
+      [],
+      undefined,
+      [
+        {
+          singleton: true,
+          instance_id: hostAuthority.instanceId,
+          ownership_revision: "1",
+          host_ownership_token: staleToken,
+          boot_id: staleBootId,
+        },
+      ],
+    );
+    const service = createPersistenceServiceForTests(
+      hostAuthority,
+      runtimeOptions(),
+      database,
+    );
+    let invoked = 0;
+
+    await expect(
+      service.mutate(async () => {
+        invoked += 1;
+        return undefined;
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "persistence.host_fence.stale_owner" },
+    });
+    expect(invoked).toBe(0);
+  });
+
+  it("rejects a malformed or missing singleton fence as incompatible", async () => {
+    const controller = new AbortController();
+    const hostAuthority = authority(controller.signal);
+    const database = fakeDatabase(hostAuthority, [], undefined, []);
+    const service = createPersistenceServiceForTests(
+      hostAuthority,
+      runtimeOptions(),
+      database,
+    );
+
+    await expect(service.mutate(async () => undefined)).rejects.toMatchObject({
+      problem: { problemCode: "persistence.host_fence.incompatible" },
+    });
+  });
+
+  it("preserves operation ProblemError and maps other operation failures", async () => {
+    const controller = new AbortController();
+    const hostAuthority = authority(controller.signal);
+    const database = fakeDatabase(hostAuthority, []);
+    const service = createPersistenceServiceForTests(
+      hostAuthority,
+      runtimeOptions(),
+      database,
+    );
+    const expected = new ProblemError({
+      schemaVersion: 1,
+      problemCode: "test.operation.problem",
+      category: "conflict",
+      retryClass: "manual",
+      title: "test problem",
+      detail: "preserve me",
+    });
+
+    await expect(
+      service.mutate(async () => {
+        throw expected;
+      }),
+    ).rejects.toBe(expected);
+    await expect(
+      service.mutate(async () => {
+        throw new Error("driver or operation failure");
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "persistence.transaction.failed" },
+    });
   });
 });
