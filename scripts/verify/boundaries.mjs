@@ -87,6 +87,12 @@ const rawBootstrapAuthorityExports = [
   "BOOTSTRAP_RECOVERY_STALE_MS",
   "assertLocalInstallationOwnerFor",
 ];
+const sensitiveBootstrapAuthorityModules = [
+  "./bootstrap-ownership.js",
+  "./bootstrap-recovery.js",
+  "./host-maintenance-recovery.js",
+  "./maintenance-state-access.js",
+];
 if (
   rawBootstrapAuthorityExports.some((name) =>
     new RegExp(`\\b${name}\\b`, "u").test(bootstrapRuntimePublicSource),
@@ -94,6 +100,17 @@ if (
 ) {
   errors.push(
     "packages/bootstrap-runtime/src/index.ts: raw bootstrap/recovery Authority primitive leaked through the public bootstrap-runtime contract",
+  );
+}
+if (
+  sensitiveBootstrapAuthorityModules.some((specifier) =>
+    new RegExp(`export\\s+\\*\\s+from\\s+["']${specifier}["']`, "u").test(
+      bootstrapRuntimePublicSource,
+    ),
+  )
+) {
+  errors.push(
+    "packages/bootstrap-runtime/src/index.ts: sensitive bootstrap/recovery Authority module exported through a package-root star export",
   );
 }
 
