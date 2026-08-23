@@ -1,8 +1,13 @@
 # H2 Entry + H2A-1 Host-Fenced Persistence Authority Implementation Plan
 
-**Repository plan state:** `ACTIVE`  
+**Repository plan state:** `COMPLETED`  
 **H2 base SHA:** `54688d2bb0da2b8516a84634459495956bd96b8c`  
 **Behavior branch:** `dev/h2a1-host-fenced-persistence-authority`
+
+**Local implementation closure:** `PASS` at behavior candidate
+`55ea588e2db37b90e4672fdcd68698248da9b446` plus the final local verification
+and evidence/documentation updates. Independent review, exact-pair final CI,
+and squash merge remain governance steps after this candidate freeze.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: execute this plan task-by-task with TDD. Use `superpowers:subagent-driven-development` where available, or `superpowers:executing-plans` for inline execution. Use a fresh review boundary for every task that changes Authority, credential, transaction, or PostgreSQL privilege semantics. Do not widen this plan into H2B RuntimeSubstrate, DBOS, Lineage/Evidence, Management, Subject, Messaging, AI, or Extension runtime work.
 
@@ -55,9 +60,9 @@ H1 squash merge:
 82541933bc2b5e6add0eeee711b4f36350f5d5ff
 ```
 
-**Intended repository path after the H1 truth-reconciliation PR merges:**
+**Completed repository path:**
 
-`docs/plans/active/foundation/h2a1-host-fenced-persistence-authority.md`
+`docs/plans/completed/foundation/h2a1-host-fenced-persistence-authority.md`
 
 ---
 
@@ -344,7 +349,7 @@ squashMerge: PASS
 
 Residual product qualification such as Linux/macOS real PostgreSQL, source-less recovery, service-account ACL, and hardware power-loss remains exactly `NOT_RUN` unless separately executed.
 
-- [ ] **Step 0.1: Verify the actual merged baseline before editing**
+- [x] **Step 0.1: Verify the actual merged baseline before editing**
 
 ```bash
 git switch master
@@ -355,13 +360,13 @@ gh pr view 11 --json state,mergedAt,mergeCommit,headRefOid,baseRefOid
 
 Expected: PR #11 is merged; merge commit is `82541933...`; head is `80440e...`; base is `257ad6...`.
 
-- [ ] **Step 0.2: Create the docs-only reconciliation branch**
+- [x] **Step 0.2: Create the docs-only reconciliation branch**
 
 ```bash
 git switch -c docs/h1-postmerge-truth-reconciliation
 ```
 
-- [ ] **Step 0.3: Enumerate current-truth references before changing them**
+- [x] **Step 0.3: Enumerate current-truth references before changing them**
 
 ```bash
 rg -n \
@@ -378,7 +383,7 @@ HISTORICAL/RULE   -> must remain historical/procedural
 
 Known current-truth files include the four Phase A files. If another machine-readable/current-status projection appears, include it in this PR. If the hit is a historical plan/spec narrative, leave it unchanged.
 
-- [ ] **Step 0.4: Update `h1s-control-record.md` with the exact closure tuple**
+- [x] **Step 0.4: Update `h1s-control-record.md` with the exact closure tuple**
 
 Required current block:
 
@@ -402,7 +407,7 @@ squashMergeSha: 82541933bc2b5e6add0eeee711b4f36350f5d5ff
 
 Preserve the previous REQUEST_CHANGES record as historical evidence; do not erase chronology.
 
-- [ ] **Step 0.5: Update the current qualification ledger without inflating product claims**
+- [x] **Step 0.5: Update the current qualification ledger without inflating product claims**
 
 In `Q-BOOT-01`:
 
@@ -424,13 +429,13 @@ hardware_power_loss = NOT_RUN
 
 Do not change `ImplementationQualification = REQUIRED` merely because H1 stage closure succeeded.
 
-- [ ] **Step 0.6: Reconcile roadmap and plan navigation**
+- [x] **Step 0.6: Reconcile roadmap and plan navigation**
 
 `docs/roadmap/development-roadmap.md` current H1 block must say H1 is closed and H2 is eligible, while preserving residual qualification debt. Update the stale repository baseline to the actual merged H1 commit or explicitly state the newer planning baseline.
 
 `docs/plans/README.md` must no longer say H2 is `NOT_ELIGIBLE`. It should state that no H2 implementation plan is active **yet**, but H2 is eligible to begin.
 
-- [ ] **Step 0.7: Verify that no behavior file changed**
+- [x] **Step 0.7: Verify that no behavior file changed**
 
 ```bash
 git diff --name-only master...HEAD
@@ -438,7 +443,7 @@ git diff --name-only master...HEAD
 
 Expected paths are documentation/evidence only. Any `packages/**`, test, workflow, or behavior-bearing script change is a hard failure for Task 0.
 
-- [ ] **Step 0.8: Run reconciliation gates**
+- [x] **Step 0.8: Run reconciliation gates**
 
 ```bash
 pnpm check:agents
@@ -449,7 +454,7 @@ pnpm format:check
 
 Expected: all PASS.
 
-- [ ] **Step 0.9: Commit and open the reconciliation PR**
+- [x] **Step 0.9: Commit and open the reconciliation PR**
 
 ```bash
 cat > /tmp/h1-reconciliation-pr-body.md <<'BODY'
@@ -475,7 +480,7 @@ The PR body must include the exact review pair, CI run ID/head SHA, merge SHA, a
 
 Do **not** dispatch manual cross-platform final CI for this docs/evidence-only reconciliation PR.
 
-- [ ] **Step 0.10: Merge only after explicit authorization, then refresh master**
+- [x] **Step 0.10: Merge only after explicit authorization, then refresh master**
 
 Use squash merge only if the execution session has explicit merge authorization. After merge:
 
@@ -504,7 +509,7 @@ rg -n 'H1: CLOSED|H2: ELIGIBLE' \
 
 **Produces:** one active H2A-1 plan and branch.
 
-- [ ] **Step 1.1: Verify entry truth and clean baseline**
+- [x] **Step 1.1: Verify entry truth and clean baseline**
 
 ```bash
 git switch master
@@ -519,7 +524,7 @@ pnpm verify
 
 Expected: clean tree, H2 eligible, `pnpm verify` PASS.
 
-- [ ] **Step 1.2: Create the behavior branch**
+- [x] **Step 1.2: Create the behavior branch**
 
 ```bash
 H2_BASE_SHA="$(git rev-parse HEAD)"
@@ -528,11 +533,11 @@ git switch -c dev/h2a1-host-fenced-persistence-authority
 
 Record `H2_BASE_SHA` in the active plan header when installing this file.
 
-- [ ] **Step 1.3: Install this plan as repository Authority**
+- [x] **Step 1.3: Install this plan as repository Authority**
 
 Create `docs/plans/active/foundation/` if it does not exist. Copy this plan to the intended path and mark its repository plan state `ACTIVE`. Update `docs/plans/README.md` so this exact path is the sole active plan.
 
-- [ ] **Step 1.4: Commit only plan activation**
+- [x] **Step 1.4: Commit only plan activation**
 
 ```bash
 git add docs/plans
@@ -557,7 +562,7 @@ git commit -m "docs: activate H2A1 persistence authority plan"
 
 **Produces:** compilable empty persistence workspace with exact Catalog routing; no persistence behavior yet.
 
-- [ ] **Step 2.1: Refresh exact Kysely registry evidence**
+- [x] **Step 2.1: Refresh exact Kysely registry evidence**
 
 ```bash
 pnpm view kysely version engines peerDependencies dependencies --json
@@ -565,7 +570,7 @@ pnpm view kysely version engines peerDependencies dependencies --json
 
 Expected for this plan: stable version `0.29.5`. If not, stop and amend the plan before modifying the Catalog.
 
-- [ ] **Step 2.2: Add exact Catalog pin**
+- [x] **Step 2.2: Add exact Catalog pin**
 
 Add:
 
@@ -576,7 +581,7 @@ catalog:
 
 Do not add a range and do not add a prerelease.
 
-- [ ] **Step 2.3: Create `@heptalogos/persistence` package metadata**
+- [x] **Step 2.3: Create `@heptalogos/persistence` package metadata**
 
 `packages/persistence/package.json`:
 
@@ -611,15 +616,15 @@ Do not add a range and do not add a prerelease.
 
 Dev dependencies are for real H1→H2 integration setup only; production persistence must not import bootstrap-runtime/private-postgres.
 
-- [ ] **Step 2.4: Create Nx/test targets following existing package patterns**
+- [x] **Step 2.4: Create Nx/test targets following existing package patterns**
 
 `project.json` must provide `lint`, unit `test`, and `test:integration`. Integration command runs only `src/persistence.integration.test.ts` and requires `HEPTALOGOS_TEST_PG_BIN`, matching existing real-PG qualification style.
 
-- [ ] **Step 2.5: Create TS configs by following existing TS7/NodeNext package references**
+- [x] **Step 2.5: Create TS configs by following existing TS7/NodeNext package references**
 
 Do not introduce a package-local compiler baseline or `skipLibCheck=true`.
 
-- [ ] **Step 2.6: Install and prove routing before behavior code**
+- [x] **Step 2.6: Install and prove routing before behavior code**
 
 ```bash
 pnpm install
@@ -629,7 +634,7 @@ pnpm typecheck
 
 Expected: all PASS.
 
-- [ ] **Step 2.7: Commit workspace materialization**
+- [x] **Step 2.7: Commit workspace materialization**
 
 ```bash
 git add pnpm-workspace.yaml pnpm-lock.yaml packages/persistence
@@ -655,7 +660,7 @@ git commit -m "build: add persistence workspace and Kysely route"
 
 **Produces:** `heptalogos_runtime` exists with exact least privilege and a distinct SCRAM credential.
 
-- [ ] **Step 3.1: Write failing BootstrapKeyProvider contract tests/fake compile changes**
+- [x] **Step 3.1: Write failing BootstrapKeyProvider contract tests/fake compile changes**
 
 Extend the purpose union:
 
@@ -677,7 +682,7 @@ withPrivatePostgresRuntimePassword<T>(
 
 Run the affected bootstrap-runtime unit target. Expected: FAIL until all provider fakes implement the method.
 
-- [ ] **Step 3.2: Add role constants and exact role contract**
+- [x] **Step 3.2: Add role constants and exact role contract**
 
 In `host-ownership/src/contracts.ts`:
 
@@ -704,7 +709,7 @@ SCRAM verifier matches provided runtime credential
 
 Existing mismatched credentials remain fail-closed; no silent password reset.
 
-- [ ] **Step 3.3: Write failing ACL tests before changing grants**
+- [x] **Step 3.3: Write failing ACL tests before changing grants**
 
 Required final explicit ACL set:
 
@@ -725,13 +730,13 @@ host_ownership_fence:
 
 Explicitly assert the absence of runtime `UPDATE`, schema `CREATE`, role membership and ownership.
 
-- [ ] **Step 3.4: Implement provisioning/grants and update canonical snapshot inspection**
+- [x] **Step 3.4: Implement provisioning/grants and update canonical snapshot inspection**
 
 `HostOwnershipCanonicalSnapshot.roles` must include the runtime role. The runtime role must be created before schema ACL materialization needs to grant it privileges.
 
 Do not grant DML on hypothetical future product tables here.
 
-- [ ] **Step 3.5: Run host-ownership unit tests**
+- [x] **Step 3.5: Run host-ownership unit tests**
 
 ```bash
 pnpm nx test host-ownership
@@ -739,7 +744,7 @@ pnpm nx test host-ownership
 
 Expected: PASS.
 
-- [ ] **Step 3.6: Run real-PG role/ACL qualification on the current host**
+- [x] **Step 3.6: Run real-PG role/ACL qualification on the current host**
 
 ```bash
 : "${HEPTALOGOS_TEST_PG_BIN:?Set HEPTALOGOS_TEST_PG_BIN to the qualified PostgreSQL 18.6 bin directory}"
@@ -757,7 +762,7 @@ SET ROLE heptalogos_owner
 
 Record only the OS actually executed.
 
-- [ ] **Step 3.7: Commit the runtime-principal boundary**
+- [x] **Step 3.7: Commit the runtime-principal boundary**
 
 ```bash
 git add packages/bootstrap-runtime packages/host-ownership
@@ -782,11 +787,11 @@ git commit -m "feat: provision least-privilege runtime database principal"
 
 **Produces:** `BootstrapManagedHostContext.persistence: HostPersistenceAuthority` with no raw bootstrap or pg capability.
 
-- [ ] **Step 4.1: Add the structural contract to host-ownership**
+- [x] **Step 4.1: Add the structural contract to host-ownership**
 
 Implement the interfaces from §1.3 and export only those types/constants at package root. Do not export a raw password value or provider implementation.
 
-- [ ] **Step 4.2: Write failing managed-host terminality tests**
+- [x] **Step 4.2: Write failing managed-host terminality tests**
 
 Required case:
 
@@ -799,7 +804,7 @@ expect(() => host.persistence.assertActive()).toThrow();
 
 Also assert that `.persistence` exposes no bootstrap password, host-lease password, raw `HostLeaseConnection`, `pg` client or Kysely object.
 
-- [ ] **Step 4.3: Construct the capability inside bootstrap-runtime**
+- [x] **Step 4.3: Construct the capability inside bootstrap-runtime**
 
 The capability target is:
 
@@ -816,7 +821,7 @@ The capability target is:
 
 `assertActive()` must check the same `ManagedHostRecord.terminal` fence used by the managed Host **and** the underlying raw Host ownership context.
 
-- [ ] **Step 4.4: Add capability to public managed Host**
+- [x] **Step 4.4: Add capability to public managed Host**
 
 `BootstrapManagedHostContext` gains only:
 
@@ -826,7 +831,7 @@ readonly persistence: HostPersistenceAuthority;
 
 Do not expose the whole key provider.
 
-- [ ] **Step 4.5: Run bootstrap-runtime units and existing real handoff integration**
+- [x] **Step 4.5: Run bootstrap-runtime units and existing real handoff integration**
 
 ```bash
 pnpm nx test bootstrap-runtime
@@ -836,7 +841,7 @@ pnpm nx run bootstrap-runtime:test:integration
 
 Expected: existing H1 scenarios remain PASS and new runtime role/capability does not change ownership ordering.
 
-- [ ] **Step 4.6: Commit the H1→H2 capability seam**
+- [x] **Step 4.6: Commit the H1→H2 capability seam**
 
 ```bash
 git add packages/host-ownership packages/bootstrap-runtime
@@ -855,15 +860,15 @@ git commit -m "feat: issue host-scoped persistence authority"
 
 **Produces:** public PersistenceService contract + private pg/Kysely mechanics.
 
-- [ ] **Step 5.1: Write the public contract first**
+- [x] **Step 5.1: Write the public contract first**
 
 Implement exactly the public types in §1.4 in `contracts.ts`. `index.ts` exports only Heptalogos-owned contracts, Problem-safe factory, and no implementation-library types.
 
-- [ ] **Step 5.2: Write a failing public-surface test**
+- [x] **Step 5.2: Write a failing public-surface test**
 
 The test must import only from `./index.js` and assert representative exports exist. Add a static boundary check later in Task 9; do not depend only on runtime reflection.
 
-- [ ] **Step 5.3: Implement issued transaction-context tokens**
+- [x] **Step 5.3: Implement issued transaction-context tokens**
 
 `transaction-context.ts` uses a private `WeakMap<object, Kysely transaction>`.
 
@@ -879,7 +884,7 @@ no Kysely type appears in package-root declarations
 
 The internal resolver is not exported from `index.ts`.
 
-- [ ] **Step 5.4: Implement pg Pool adapter with dynamic password callback**
+- [x] **Step 5.4: Implement pg Pool adapter with dynamic password callback**
 
 Pool configuration must use:
 
@@ -894,7 +899,7 @@ Use explicit options for max/idle/connection/statement/lock/idle-in-transaction 
 
 Attach an `error` listener. It calls `onBackgroundError(error)` and must not throw from the event handler or start unowned retry work.
 
-- [ ] **Step 5.5: Implement Kysely adapter**
+- [x] **Step 5.5: Implement Kysely adapter**
 
 Production mechanics:
 
@@ -906,7 +911,7 @@ new Kysely({
 
 Kysely remains private to this package. Do not expose the dialect/database instance.
 
-- [ ] **Step 5.6: Implement service lifecycle**
+- [x] **Step 5.6: Implement service lifecycle**
 
 State:
 
@@ -925,7 +930,7 @@ Rules:
 - no fire-and-forget cleanup promise is untracked;
 - pool close does not attempt Host lease reacquisition.
 
-- [ ] **Step 5.7: Run persistence unit tests**
+- [x] **Step 5.7: Run persistence unit tests**
 
 ```bash
 pnpm nx test persistence
@@ -934,7 +939,7 @@ pnpm typecheck
 
 Expected: PASS.
 
-- [ ] **Step 5.8: Commit the package boundary**
+- [x] **Step 5.8: Commit the package boundary**
 
 ```bash
 git add packages/persistence
@@ -956,7 +961,7 @@ git commit -m "feat: add persistence service boundary"
 
 **Produces:** the H2A-1 Authority invariant.
 
-- [ ] **Step 6.1: Write failing mutation ordering tests using fake internal transaction mechanics**
+- [x] **Step 6.1: Write failing mutation ordering tests using fake internal transaction mechanics**
 
 The test double must record this exact order:
 
@@ -975,7 +980,7 @@ If the third `assertActive()` fails, operation invocation count must remain zero
 
 Do not add an `assertActive()` after operation completion as a prerequisite for commit; an already-admitted transaction is allowed to complete under the held shared fence.
 
-- [ ] **Step 6.2: Implement exact fence query**
+- [x] **Step 6.2: Implement exact fence query**
 
 The internal query selects:
 
@@ -1002,11 +1007,11 @@ ownership_revision is a valid non-negative integer representation
 
 Mismatch is `persistence.host_fence.stale_owner` when identity is structurally valid but no longer current; malformed/missing fence shape is `persistence.host_fence.incompatible`.
 
-- [ ] **Step 6.3: Write failing read-only test**
+- [x] **Step 6.3: Write failing read-only test**
 
 Within `read()`, an internal test operation attempts an `INSERT` into a qualification table. Expected: PostgreSQL rejects it because the transaction is read-only, not because application code inspected the SQL.
 
-- [ ] **Step 6.4: Implement read transaction**
+- [x] **Step 6.4: Implement read transaction**
 
 First transaction statement:
 
@@ -1016,11 +1021,11 @@ SET TRANSACTION READ ONLY
 
 Then issue a READ context. Admission requires active service/Host, but no `FOR SHARE` fence is taken.
 
-- [ ] **Step 6.5: Implement mutation transaction**
+- [x] **Step 6.5: Implement mutation transaction**
 
 Use Kysely transaction mechanics. Create the context only after all fence/admission checks pass. Remove its WeakMap binding in `finally` when the callback scope ends.
 
-- [ ] **Step 6.6: Map framework failures to stable Problems**
+- [x] **Step 6.6: Map framework failures to stable Problems**
 
 Rules:
 
@@ -1033,7 +1038,7 @@ body completed, outer transaction completion rejects
 
 Do not attach raw SQL or credentials to Problem metadata.
 
-- [ ] **Step 6.7: Run unit tests**
+- [x] **Step 6.7: Run unit tests**
 
 ```bash
 pnpm nx test persistence
@@ -1041,7 +1046,7 @@ pnpm nx test persistence
 
 Expected: PASS.
 
-- [ ] **Step 6.8: Commit fenced transaction semantics**
+- [x] **Step 6.8: Commit fenced transaction semantics**
 
 ```bash
 git add packages/persistence
@@ -1062,7 +1067,7 @@ git commit -m "feat: fence canonical persistence mutations"
 
 **Produces:** fail-safe service behavior around lease loss and ambiguous commit acknowledgement.
 
-- [ ] **Step 7.1: Test lease loss before mutation admission**
+- [x] **Step 7.1: Test lease loss before mutation admission**
 
 Use an authority fake whose first checks succeed but whose final in-lock `assertActive()` throws. Expected:
 
@@ -1072,11 +1077,11 @@ transaction rolled back
 service reports fenced/ownership failure
 ```
 
-- [ ] **Step 7.2: Test lease loss after admission**
+- [x] **Step 7.2: Test lease loss after admission**
 
 Once the operation callback has started, flip the process-local authority to fenced. Expected: the already-entered transaction is not cancelled merely by a late process-local check; transaction completion is allowed. The real PostgreSQL serialization proof is Task 8.
 
-- [ ] **Step 7.3: Test commit uncertainty classification**
+- [x] **Step 7.3: Test commit uncertainty classification**
 
 Use the internal transaction-mechanics seam to simulate:
 
@@ -1092,11 +1097,11 @@ problemCode = persistence.transaction.commit_uncertain
 retryClass = manual
 ```
 
-- [ ] **Step 7.4: Test close/fence idempotency**
+- [x] **Step 7.4: Test close/fence idempotency**
 
 Repeated abort + repeated `close()` must cause one pool close sequence and terminal `CLOSED` state.
 
-- [ ] **Step 7.5: Run unit suite and commit**
+- [x] **Step 7.5: Run unit suite and commit**
 
 ```bash
 pnpm nx test persistence
@@ -1121,21 +1126,21 @@ Use `HEPTALOGOS_TEST_PG_BIN` exactly like existing H1 PostgreSQL qualification. 
 
 ### Scenario P1 — current Host mutation succeeds
 
-- [ ] Start a private PostgreSQL fixture.
-- [ ] Provision owner/lease/runtime roles and ownership schema.
-- [ ] Acquire Host A lease and publish token A.
-- [ ] Create a qualification table owned by `heptalogos_owner` and explicitly grant runtime role the DML required by the test.
-- [ ] Build PersistenceService A from Host A authority.
-- [ ] `mutate()` inserts/updates one row.
-- [ ] Verify committed row through an independent read.
+- [x] Start a private PostgreSQL fixture.
+- [x] Provision owner/lease/runtime roles and ownership schema.
+- [x] Acquire Host A lease and publish token A.
+- [x] Create a qualification table owned by `heptalogos_owner` and explicitly grant runtime role the DML required by the test.
+- [x] Build PersistenceService A from Host A authority.
+- [x] `mutate()` inserts/updates one row.
+- [x] Verify committed row through an independent read.
 
 Expected: PASS.
 
 ### Scenario P2 — structurally active but stale token fails at the database fence
 
-- [ ] Publish token B as the current fence token.
-- [ ] Construct a test-only structurally active authority carrying old token A but the valid runtime credential/target.
-- [ ] Call `mutate()`.
+- [x] Publish token B as the current fence token.
+- [x] Construct a test-only structurally active authority carrying old token A but the valid runtime credential/target.
+- [x] Call `mutate()`.
 
 Expected:
 
@@ -1149,15 +1154,15 @@ This proves database fencing independently of process-local admission correctnes
 
 ### Scenario P3 — already-entered old transaction serializes before new token publication
 
-- [ ] Host A holds lease/token A.
-- [ ] Start `mutate()` A and pause inside the operation callback; reaching the callback proves the shared fence is already held and post-lock `assertActive()` passed.
-- [ ] Close/lose Host A dedicated lease.
-- [ ] Acquire Host B lease.
-- [ ] Start `publishHostOwnershipToken(... token B ...)` from Host B.
-- [ ] Verify publication has not completed while A's operation remains paused.
-- [ ] Release A's operation barrier and let A commit.
-- [ ] Verify B publication now completes.
-- [ ] Verify fence row contains B.
+- [x] Host A holds lease/token A.
+- [x] Start `mutate()` A and pause inside the operation callback; reaching the callback proves the shared fence is already held and post-lock `assertActive()` passed.
+- [x] Close/lose Host A dedicated lease.
+- [x] Acquire Host B lease.
+- [x] Start `publishHostOwnershipToken(... token B ...)` from Host B.
+- [x] Verify publication has not completed while A's operation remains paused.
+- [x] Release A's operation barrier and let A commit.
+- [x] Verify B publication now completes.
+- [x] Verify fence row contains B.
 
 Expected ordering:
 
@@ -1175,29 +1180,29 @@ This is the central E34/S03 proof.
 
 ### Scenario P4 — no new mutation after Host A loss
 
-- [ ] After P3 closes lease A, call another `mutate()` through A.
+- [x] After P3 closes lease A, call another `mutate()` through A.
 
 Expected: fail before operation invocation. Do not reconnect/reacquire in-place.
 
 ### Scenario P5 — read-only database enforcement
 
-- [ ] `read()` attempts qualification-table DML through the package-internal test resolver.
+- [x] `read()` attempts qualification-table DML through the package-internal test resolver.
 
 Expected: PostgreSQL read-only transaction error; no row mutation.
 
 ### Scenario P6 — read does not block Host token publication
 
-- [ ] Hold a long `read()` transaction after `SET TRANSACTION READ ONLY`.
-- [ ] Publish a new Host token from a valid new owner sequence.
+- [x] Hold a long `read()` transaction after `SET TRANSACTION READ ONLY`.
+- [x] Publish a new Host token from a valid new owner sequence.
 
 Expected: the read transaction itself does not hold the `HostOwnershipFence` row and therefore is not the blocker. Any lease/ownership prerequisite is handled separately by the test fixture.
 
 ### Scenario P7 — commit acknowledgement loss is explicit uncertainty
 
-- [ ] Inside a mutating transaction, perform the final qualification-table DML.
-- [ ] Query that transaction connection's `pg_backend_pid()` through the package-internal test resolver.
-- [ ] From an independent bootstrap/admin test connection, terminate that backend after the last DML but before the operation callback returns.
-- [ ] Let the callback return so Kysely attempts transaction completion on the dead connection.
+- [x] Inside a mutating transaction, perform the final qualification-table DML.
+- [x] Query that transaction connection's `pg_backend_pid()` through the package-internal test resolver.
+- [x] From an independent bootstrap/admin test connection, terminate that backend after the last DML but before the operation callback returns.
+- [x] Let the callback return so Kysely attempts transaction completion on the dead connection.
 
 Expected:
 
@@ -1229,7 +1234,7 @@ CREATE ROLE
 SET ROLE heptalogos_owner
 ```
 
-- [ ] **Step 8.9: Execute the matrix on the available real-PG host**
+- [x] **Step 8.9: Execute the matrix on the available real-PG host**
 
 ```bash
 : "${HEPTALOGOS_TEST_PG_BIN:?Set HEPTALOGOS_TEST_PG_BIN to the qualified PostgreSQL 18.6 bin directory}"
@@ -1238,7 +1243,7 @@ pnpm nx run persistence:test:integration
 
 Expected: all P1-P8 tests PASS on the actually executed host.
 
-- [ ] **Step 8.10: Re-run H1 real-PG regression targets**
+- [x] **Step 8.10: Re-run H1 real-PG regression targets**
 
 ```bash
 : "${HEPTALOGOS_TEST_PG_BIN:?Set HEPTALOGOS_TEST_PG_BIN to the qualified PostgreSQL 18.6 bin directory}"
@@ -1250,7 +1255,7 @@ pnpm nx run bootstrap-runtime:test:integration
 
 Expected: PASS. H2A-1 must not regress H1 ownership or handoff.
 
-- [ ] **Step 8.11: Commit integration proof**
+- [x] **Step 8.11: Commit integration proof**
 
 ```bash
 git add packages/persistence packages/host-ownership packages/bootstrap-runtime
@@ -1270,7 +1275,7 @@ git commit -m "test: prove host-fenced persistence on real postgres"
 
 **Produces:** mechanical enforcement of the architecture route.
 
-- [ ] **Step 9.1: Write failing boundary assertions before relaxing existing `pg` restriction**
+- [x] **Step 9.1: Write failing boundary assertions before relaxing existing `pg` restriction**
 
 Required import policy:
 
@@ -1285,7 +1290,7 @@ kysely production imports:
 
 Do not broadly permit `pg` or Kysely under `packages/**`.
 
-- [ ] **Step 9.2: Add package-root leakage checks**
+- [x] **Step 9.2: Add package-root leakage checks**
 
 Read `packages/persistence/src/index.ts` and fail if it exports/imports public names matching concrete mechanics such as:
 
@@ -1301,11 +1306,11 @@ CompiledQuery
 
 Also reject package-root `export *` from internal files that import `pg`/Kysely.
 
-- [ ] **Step 9.3: Preserve host-ownership anti-capture guard**
+- [x] **Step 9.3: Preserve host-ownership anti-capture guard**
 
 Existing rule that `host-ownership` must not materialize `Kysely`, `DBOS`, or `PersistenceService` remains in force. Do not move persistence mechanics back into H1 packages.
 
-- [ ] **Step 9.4: Run static gates**
+- [x] **Step 9.4: Run static gates**
 
 ```bash
 pnpm check:dependencies
@@ -1316,7 +1321,7 @@ pnpm tsc6
 
 Expected: PASS.
 
-- [ ] **Step 9.5: Commit enforcement**
+- [x] **Step 9.5: Commit enforcement**
 
 ```bash
 git add scripts/verify/boundaries.mjs
@@ -1338,7 +1343,7 @@ git commit -m "chore: enforce persistence dependency boundaries"
 
 **Produces:** truthful current evidence and a reviewable candidate.
 
-- [ ] **Step 10.1: Add a current persistence qualification record**
+- [x] **Step 10.1: Add a current persistence qualification record**
 
 Record the exact qualification ID `Q-PERSISTENCE-01` with at least:
 
@@ -1361,7 +1366,7 @@ service_headless_persistence                NOT_RUN
 
 Set `qualificationState` to `PARTIAL` unless every declared product-qualification boundary is actually proven. Keep `pg` and Kysely `ImplementationQualification = REQUIRED` unless the Architecture qualification contract's full closure conditions have genuinely been met.
 
-- [ ] **Step 10.2: Update roadmap progress without claiming H2 closure**
+- [x] **Step 10.2: Update roadmap progress without claiming H2 closure**
 
 Record that H2A-1 persistence Authority is implemented/qualified on the candidate, but:
 
@@ -1372,7 +1377,7 @@ H2 != CLOSED
 
 H2A still needs Schema/Time/ExecutionContext/minimal Lineage/Evidence work. H2B remains separate.
 
-- [ ] **Step 10.3: Run full clean local verification**
+- [x] **Step 10.3: Run full clean local verification**
 
 ```bash
 pnpm verify
@@ -1391,7 +1396,7 @@ pnpm nx run bootstrap-runtime:test:integration
 
 Record exact PASS/FAIL/NOT_RUN. Never infer another OS.
 
-- [ ] **Step 10.4: Close/move the plan before review**
+- [x] **Step 10.4: Close/move the plan before review**
 
 Move:
 
@@ -1402,7 +1407,7 @@ docs/plans/active/foundation/h2a1-host-fenced-persistence-authority.md
 
 Set plan state `COMPLETED` only if all implementation tasks and local evidence gates in this plan are complete. Update `docs/plans/README.md` so no stale active path remains.
 
-- [ ] **Step 10.5: Run repository gates again after documentation movement**
+- [x] **Step 10.5: Run repository gates again after documentation movement**
 
 ```bash
 pnpm check:agents
@@ -1416,7 +1421,7 @@ pnpm verify
 
 Expected: all PASS.
 
-- [ ] **Step 10.6: Commit final evidence/documentation reconciliation**
+- [x] **Step 10.6: Commit final evidence/documentation reconciliation**
 
 ```bash
 git add Architecture_Corpus docs
@@ -1551,16 +1556,16 @@ H2A-1 deliberately does not predefine the final cross-package repository transac
 
 Before using this file as an active repository plan, verify:
 
-- [ ] H1 merge/CI/review evidence still matches the exact values in Task 0.
-- [ ] H1 reconciliation PR is separate and docs/evidence-only.
-- [ ] H2 behavior branch starts from the merged reconciliation master, not `82541933...` directly.
-- [ ] Kysely registry stable exact version is still `0.29.5`; otherwise amend the plan.
-- [ ] No task introduces Cordis/DBOS/Management/Subject scope.
-- [ ] `heptalogos_runtime` is distinct, least-privilege, `NOINHERIT`, and cannot mutate the fence.
-- [ ] `HostPersistenceAuthority` does not expose BootstrapKeyProvider or raw pg/Kysely objects.
-- [ ] Mutation ordering contains the **post-lock active check** and no post-operation active check that would incorrectly invalidate already-linearized transactions.
-- [ ] Real-PG P3 proves B publication waits for A's already-entered shared-fence transaction.
-- [ ] Real-PG P7 classifies commit acknowledgement loss as uncertainty without automatic retry.
-- [ ] Public persistence root has no framework leakage.
-- [ ] Current evidence ledger preserves all genuinely NOT_RUN platform/source-less claims.
+- [x] H1 merge/CI/review evidence still matches the exact values in Task 0.
+- [x] H1 reconciliation PR is separate and docs/evidence-only.
+- [x] H2 behavior branch starts from the merged reconciliation master, not `82541933...` directly.
+- [x] Kysely registry stable exact version is still `0.29.5`; otherwise amend the plan.
+- [x] No task introduces Cordis/DBOS/Management/Subject scope.
+- [x] `heptalogos_runtime` is distinct, least-privilege, `NOINHERIT`, and cannot mutate the fence.
+- [x] `HostPersistenceAuthority` does not expose BootstrapKeyProvider or raw pg/Kysely objects.
+- [x] Mutation ordering contains the **post-lock active check** and no post-operation active check that would incorrectly invalidate already-linearized transactions.
+- [x] Real-PG P3 proves B publication waits for A's already-entered shared-fence transaction.
+- [x] Real-PG P7 classifies commit acknowledgement loss as uncertainty without automatic retry.
+- [x] Public persistence root has no framework leakage.
+- [x] Current evidence ledger preserves all genuinely NOT_RUN platform/source-less claims.
 - [ ] Final review/CI candidate is bound to exact `(base_sha, head_sha)`.

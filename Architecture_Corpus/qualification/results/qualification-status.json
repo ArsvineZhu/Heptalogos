@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-23T10:40:01.694Z",
+  "recordedAt": "2026-08-24T04:17:05+08:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": [
@@ -493,6 +493,53 @@
         "final_cross_platform_ci": "Manual final cross-platform CI of this exact candidate has not run.",
         "squash_merge": "The stabilization branch has not been squash-merged."
       }
+    },
+    {
+      "qualificationId": "Q-PERSISTENCE-01",
+      "testedProperty": "H2A-1 Host-scoped persistence authority, least-privilege runtime PostgreSQL access, read-only transactions, and database-fenced mutation admission",
+      "evidenceStatus": "PASS",
+      "qualificationState": "PARTIAL",
+      "evidence": {
+        "kysely_exact_version_consumer_compile": "PASS",
+        "runtime_role_least_privilege": "PASS",
+        "current_token_mutation": "PASS",
+        "stale_token_database_fence": "PASS",
+        "shared_fence_new_owner_serialization": "PASS",
+        "lease_loss_new_mutation_rejected": "PASS",
+        "read_only_database_enforcement": "PASS",
+        "commit_acknowledgement_uncertainty": "PASS",
+        "framework_leakage_gate": "PASS",
+        "direct_for_share_denied_without_update": "PASS",
+        "real_postgres_windows": "PASS",
+        "real_postgres_linux": "NOT_RUN",
+        "real_postgres_macos": "NOT_RUN",
+        "source_less_persistence": "NOT_RUN",
+        "service_headless_persistence": "NOT_RUN"
+      },
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "evidenceSource": {
+        "candidateHeadAtRecord": "d4981a851f894bb161900bf598cbf0aec9bd7648",
+        "runtime": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane",
+        "kysely": "0.29.5 exact catalog route; consumer typecheck and declaration build PASS",
+        "postgresProvenance": "EDB PostgreSQL 18.6 Windows x86-64 binary archive extracted to a temporary qualification root; not a source-less shipping artifact",
+        "postgresBinDirectory": "C:\\Users\\Arsvine\\AppData\\Local\\Temp\\heptalogos-pg18.6-correction-20260823\\extracted\\pgsql\\bin",
+        "persistenceUnit": "13/13 PASS",
+        "hostOwnershipUnit": "76/76 PASS",
+        "persistenceIntegration": "pnpm nx run persistence:test:integration: P1-P8 8/8 PASS",
+        "hostOwnershipIntegration": "pnpm nx run host-ownership:test:integration: 9/9 PASS",
+        "bootstrapRuntimeIntegration": "pnpm nx run bootstrap-runtime:test:integration: 30/30 PASS",
+        "runtimeFenceAdaptation": "Direct runtime FOR SHARE rejected with PostgreSQL 42501; owner-owned SECURITY DEFINER lock function executes the exact FOR SHARE body and P8 passes",
+        "staticGates": "pnpm check:dependencies, pnpm check:boundaries, pnpm typecheck, pnpm tsc6 PASS",
+        "repositoryVerification": "pnpm verify PASS",
+        "finalRealPostgresRerun": "persistence 8/8, host-ownership 9/9, bootstrap-runtime 30/30 PASS on Windows PostgreSQL 18.6"
+      },
+      "notRunReasons": {
+        "real_postgres_linux": "No Linux PostgreSQL 18.6 runtime was executed on this Windows host.",
+        "real_postgres_macos": "No macOS PostgreSQL 18.6 runtime was executed on this Windows host.",
+        "source_less_persistence": "The qualification runtime used an extracted EDB Windows package set, not a source-less Heptalogos shipping artifact.",
+        "service_headless_persistence": "No installed service-account/headless product runtime was executed."
+      }
     }
   ],
   "architectureReviewRequired": [],
@@ -512,7 +559,8 @@
       "Q-MSG-01",
       "Q-POLICY-01",
       "Q-BOOT-01",
-      "Q-PRIVATE-POSTGRES-01"
+      "Q-PRIVATE-POSTGRES-01",
+      "Q-PERSISTENCE-01"
     ]
   }
 }

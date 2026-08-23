@@ -128,7 +128,7 @@ It does not prove private PostgreSQL, runtime supervision, durable work, system 
 
 > Can a Heptalogos installation reliably identify itself, locate its independent lifecycle roots, obtain exclusive bootstrap ownership, start/validate its private PostgreSQL, and hand ownership to exactly one normal Host without an authority gap?
 
-### Current progress (2026-08-23)
+### Current progress (2026-08-24)
 
 Current H-stage truth:
 
@@ -158,6 +158,19 @@ PostgreSQL 18.6 behavior; Linux/macOS real PostgreSQL, source-less shipping,
 service-account ACL, and hardware power-loss remain product-qualification
 `NOT_RUN` items. The historical M5B review/CI/merge records below do not replace
 this current H1-S closure tuple.
+
+H2A-1 Host-Fenced Persistence Authority is implemented on branch
+`dev/h2a1-host-fenced-persistence-authority` at behavior candidate
+`55ea588e2db37b90e4672fdcd68698248da9b446`. `Q-PERSISTENCE-01` has
+`evidenceStatus: PASS` and `qualificationState: PARTIAL`: the Windows
+PostgreSQL 18.6 P1-P8 matrix, H1 ownership/bootstrap-runtime regressions,
+least-privilege runtime role, transaction lifecycle, and dependency/leakage
+gates pass. Linux/macOS PostgreSQL, source-less persistence, and installed
+service/headless runtime claims remain `NOT_RUN`. PostgreSQL's requirement for
+`UPDATE` privilege on direct `FOR SHARE` is handled by an owner-owned
+`SECURITY DEFINER` lock function; the runtime table ACL remains without
+`UPDATE`. H2A is not closed and H2 is not closed; Schema/Time/
+ExecutionContext/minimal Lineage work remains.
 
 Historical milestone context:
 
