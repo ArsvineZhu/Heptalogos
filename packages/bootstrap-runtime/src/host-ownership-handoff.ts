@@ -185,6 +185,17 @@ function passwordProvider(
         use,
       );
     },
+    withRuntimePassword(use) {
+      return keyProvider.withPrivatePostgresRuntimePassword(
+        {
+          installationId: context.installationId,
+          instanceId: context.instanceId,
+          bootId: context.bootId,
+          purpose: "private-postgres-runtime-role",
+        },
+        use,
+      );
+    },
   };
 }
 

@@ -8,6 +8,7 @@ import type {
 export const HOST_OWNERSHIP_CANONICAL_DATABASE = "heptalogos" as const;
 export const HOST_OWNERSHIP_OWNER_ROLE = "heptalogos_owner" as const;
 export const HOST_LEASE_ROLE = "heptalogos_host_lease" as const;
+export const HOST_RUNTIME_ROLE = "heptalogos_runtime" as const;
 export const HOST_OWNERSHIP_SCHEMA = "heptalogos" as const;
 export const HOST_OWNERSHIP_FENCE_TABLE = "host_ownership_fence" as const;
 export const HOST_LEASE_SCRAM_ITERATIONS = 4096 as const;

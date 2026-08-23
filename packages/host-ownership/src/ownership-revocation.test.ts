@@ -98,6 +98,9 @@ function fixture(): {
     async withHostLeasePassword<T>(use: (value: Uint8Array) => Promise<T>) {
       return use(new TextEncoder().encode("H".repeat(32)));
     },
+    async withRuntimePassword<T>(use: (value: Uint8Array) => Promise<T>) {
+      return use(new TextEncoder().encode("R".repeat(32)));
+    },
   };
   const factory: BootstrapAdminClientFactory = {
     async connect() {

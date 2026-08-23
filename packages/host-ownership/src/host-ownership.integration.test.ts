@@ -20,6 +20,7 @@ import {
   ensureHostOwnershipSchema,
   HOST_LEASE_ROLE,
   HOST_OWNERSHIP_OWNER_ROLE,
+  HOST_RUNTIME_ROLE,
   provisionHostOwnershipDatabase,
   publishHostOwnershipToken,
   revokeHostOwnershipTokenForBootstrap,
@@ -43,6 +44,7 @@ let resolvedToolchain: PrivatePostgresToolchain | undefined;
 const execFileAsync = promisify(execFile);
 const BOOTSTRAP_PASSWORD = "M4_TEST_BOOTSTRAP_PASSWORD_0123456789";
 const HOST_LEASE_PASSWORD = "M4_TEST_HOST_LEASE_PASSWORD_0123456789";
+const RUNTIME_PASSWORD = "M4_TEST_RUNTIME_PASSWORD_0123456789";
 const TIMING: HostOwnershipTimingOptions = {
   connectionTimeoutMs: 10_000,
   statementTimeoutMs: 10_000,
@@ -120,6 +122,16 @@ function makeProvider(): BootstrapAdminPasswordProvider {
       use: (passwordUtf8: Uint8Array) => Promise<T>,
     ): Promise<T> {
       const password = new TextEncoder().encode(HOST_LEASE_PASSWORD);
+      try {
+        return await use(password);
+      } finally {
+        password.fill(0);
+      }
+    },
+    async withRuntimePassword<T>(
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      const password = new TextEncoder().encode(RUNTIME_PASSWORD);
       try {
         return await use(password);
       } finally {
@@ -314,6 +326,70 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
       });
     } finally {
       await lease.close();
+    }
+  }, 120_000);
+
+  it("proves the runtime role privilege closure", async () => {
+    const fixture = await createCluster();
+    const lease = await prepareHostLease(fixture);
+    const admin = await bootstrapClient(fixture);
+    const runtime = new Client({
+      host: "127.0.0.1",
+      port: fixture.port,
+      database: "heptalogos",
+      user: HOST_RUNTIME_ROLE,
+      password: RUNTIME_PASSWORD,
+      connectionTimeoutMillis: 10_000,
+    });
+    try {
+      await runtime.connect();
+      const role = await admin.query<{
+        readonly rolname: string;
+        readonly rolcanlogin: boolean;
+        readonly rolsuper: boolean;
+        readonly rolcreatedb: boolean;
+        readonly rolcreaterole: boolean;
+        readonly rolreplication: boolean;
+        readonly rolbypassrls: boolean;
+        readonly rolconnlimit: number;
+        readonly rolinherit: boolean;
+      }>(
+        `SELECT rolname, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole,
+                rolreplication, rolbypassrls, rolconnlimit, rolinherit
+         FROM pg_catalog.pg_roles WHERE rolname = $1`,
+        [HOST_RUNTIME_ROLE],
+      );
+      expect(role.rows).toHaveLength(1);
+      expect(role.rows[0]).toEqual({
+        rolname: HOST_RUNTIME_ROLE,
+        rolcanlogin: true,
+        rolsuper: false,
+        rolcreatedb: false,
+        rolcreaterole: false,
+        rolreplication: false,
+        rolbypassrls: false,
+        rolconnlimit: -1,
+        rolinherit: false,
+      });
+
+      await expect(
+        runtime.query("SELECT singleton FROM heptalogos.host_ownership_fence"),
+      ).resolves.toMatchObject({ rows: [{ singleton: true }] });
+      await expect(
+        runtime.query(
+          "UPDATE heptalogos.host_ownership_fence SET ownership_revision = ownership_revision + 1",
+        ),
+      ).rejects.toThrow();
+      await expect(
+        runtime.query("CREATE TABLE heptalogos.runtime_forbidden (value integer)"),
+      ).rejects.toThrow();
+      await expect(runtime.query("CREATE DATABASE runtime_forbidden_database")).rejects.toThrow();
+      await expect(runtime.query("CREATE ROLE runtime_forbidden_role")).rejects.toThrow();
+      await expect(runtime.query(`SET ROLE "${HOST_OWNERSHIP_OWNER_ROLE}"`)).rejects.toThrow();
+    } finally {
+      await runtime.end().catch(() => undefined);
+      await admin.end().catch(() => undefined);
+      await lease.close().catch(() => undefined);
     }
   }, 120_000);
 

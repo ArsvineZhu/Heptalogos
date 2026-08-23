@@ -480,6 +480,12 @@ function options(
       ) {
         return use(new TextEncoder().encode("H".repeat(32)));
       },
+      async withPrivatePostgresRuntimePassword<T>(
+        _context: unknown,
+        use: (password: Uint8Array) => Promise<T>,
+      ) {
+        return use(new TextEncoder().encode("R".repeat(32)));
+      },
     },
     timing: {
       connectionTimeoutMs: 1_000,

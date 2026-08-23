@@ -11,6 +11,7 @@ import {
   HOST_OWNERSHIP_FENCE_TABLE,
   HOST_OWNERSHIP_OWNER_ROLE,
   HOST_OWNERSHIP_SCHEMA,
+  HOST_RUNTIME_ROLE,
 } from "./contracts.js";
 import {
   type BootstrapAdminClient,
@@ -344,6 +345,7 @@ async function ensureDatabasePrivileges(
       "PUBLIC:CONNECT:false",
       "PUBLIC:TEMPORARY:false",
       `${HOST_LEASE_ROLE}:CONNECT:false`,
+      `${HOST_RUNTIME_ROLE}:CONNECT:false`,
     ]),
     "Unexpected explicit database privilege exists on the canonical database",
   );
@@ -357,12 +359,20 @@ async function ensureDatabasePrivileges(
     authority,
     `GRANT CONNECT ON DATABASE ${quoteIdentifier(HOST_OWNERSHIP_CANONICAL_DATABASE)} TO ${quoteIdentifier(HOST_LEASE_ROLE)}`,
   );
+  await authorizedMutation(
+    client,
+    authority,
+    `GRANT CONNECT ON DATABASE ${quoteIdentifier(HOST_OWNERSHIP_CANONICAL_DATABASE)} TO ${quoteIdentifier(HOST_RUNTIME_ROLE)}`,
+  );
   const verified = await client.query<AclRow>(DATABASE_ACL_QUERY, [
     HOST_OWNERSHIP_CANONICAL_DATABASE,
   ]);
   assertAclExact(
     verified.rows,
-    new Set([`${HOST_LEASE_ROLE}:CONNECT:false`]),
+    new Set([
+      `${HOST_LEASE_ROLE}:CONNECT:false`,
+      `${HOST_RUNTIME_ROLE}:CONNECT:false`,
+    ]),
     "Canonical database privileges do not match the closed-world contract",
   );
 }
@@ -427,6 +437,7 @@ async function ensureProductSchema(
         "PUBLIC:USAGE:false",
         "PUBLIC:CREATE:false",
         `${HOST_LEASE_ROLE}:USAGE:false`,
+        `${HOST_RUNTIME_ROLE}:USAGE:false`,
       ]),
       "Unexpected explicit privilege exists on the Heptalogos schema",
     );
@@ -441,12 +452,20 @@ async function ensureProductSchema(
     authority,
     `GRANT USAGE ON SCHEMA ${quoteIdentifier(HOST_OWNERSHIP_SCHEMA)} TO ${quoteIdentifier(HOST_LEASE_ROLE)}`,
   );
+  await authorizedMutation(
+    client,
+    authority,
+    `GRANT USAGE ON SCHEMA ${quoteIdentifier(HOST_OWNERSHIP_SCHEMA)} TO ${quoteIdentifier(HOST_RUNTIME_ROLE)}`,
+  );
   const verified = await client.query<AclRow>(SCHEMA_ACL_QUERY, [
     HOST_OWNERSHIP_SCHEMA,
   ]);
   assertAclExact(
     verified.rows,
-    new Set([`${HOST_LEASE_ROLE}:USAGE:false`]),
+    new Set([
+      `${HOST_LEASE_ROLE}:USAGE:false`,
+      `${HOST_RUNTIME_ROLE}:USAGE:false`,
+    ]),
     "Heptalogos schema privileges do not match the closed-world contract",
   );
   return schemaCreated;
@@ -506,6 +525,7 @@ async function ensureFenceTable(
         "PUBLIC:TRIGGER:false",
         `${HOST_LEASE_ROLE}:SELECT:false`,
         `${HOST_LEASE_ROLE}:UPDATE:false`,
+        `${HOST_RUNTIME_ROLE}:SELECT:false`,
       ]),
       "Unexpected explicit privilege exists on HostOwnershipFence",
     );
@@ -541,13 +561,22 @@ CREATE TABLE ${quoteIdentifier(HOST_OWNERSHIP_SCHEMA)}.${quoteIdentifier(HOST_OW
     authority,
     `GRANT SELECT, UPDATE ON TABLE ${tableRef} TO ${quoteIdentifier(HOST_LEASE_ROLE)}`,
   );
+  await authorizedMutation(
+    client,
+    authority,
+    `GRANT SELECT ON TABLE ${tableRef} TO ${quoteIdentifier(HOST_RUNTIME_ROLE)}`,
+  );
   const verified = await client.query<AclRow>(TABLE_ACL_QUERY, [
     HOST_OWNERSHIP_SCHEMA,
     HOST_OWNERSHIP_FENCE_TABLE,
   ]);
   assertAclExact(
     verified.rows,
-    new Set([`${HOST_LEASE_ROLE}:SELECT:false`, `${HOST_LEASE_ROLE}:UPDATE:false`]),
+    new Set([
+      `${HOST_LEASE_ROLE}:SELECT:false`,
+      `${HOST_LEASE_ROLE}:UPDATE:false`,
+      `${HOST_RUNTIME_ROLE}:SELECT:false`,
+    ]),
     "HostOwnershipFence privileges do not match the closed-world contract",
   );
   return tableCreated;

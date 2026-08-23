@@ -324,6 +324,17 @@ function passwordProvider(
         use,
       );
     },
+    withRuntimePassword<T>(use: (password: Uint8Array) => Promise<T>) {
+      return options.keyProvider.withPrivatePostgresRuntimePassword(
+        {
+          installationId,
+          instanceId,
+          bootId,
+          purpose: "private-postgres-runtime-role",
+        },
+        use,
+      );
+    },
   };
 }
 

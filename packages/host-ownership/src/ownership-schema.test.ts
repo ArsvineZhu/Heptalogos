@@ -5,6 +5,7 @@ import {
   HOST_OWNERSHIP_CANONICAL_DATABASE,
   HOST_OWNERSHIP_OWNER_ROLE,
   HOST_OWNERSHIP_SCHEMA,
+  HOST_RUNTIME_ROLE,
 } from "./contracts.js";
 import {
   type BootstrapAdminClient,
@@ -227,12 +228,15 @@ class FakeSchemaClient implements BootstrapAdminClient {
         );
       }
       if (normalized.startsWith("GRANT CONNECT ON DATABASE")) {
+        const grantee = normalized.includes(`\"${HOST_RUNTIME_ROLE}\"`)
+          ? HOST_RUNTIME_ROLE
+          : HOST_LEASE_ROLE;
         this.state.databaseAcl = [
           ...this.state.databaseAcl.filter(
             (row) =>
-              !(row.grantee === HOST_LEASE_ROLE && row.privilege_type === "CONNECT"),
+              !(row.grantee === grantee && row.privilege_type === "CONNECT"),
           ),
-          { grantee: HOST_LEASE_ROLE, privilege_type: "CONNECT" },
+          { grantee, privilege_type: "CONNECT" },
         ];
       }
       if (normalized === "REVOKE CREATE ON SCHEMA public FROM PUBLIC") {
@@ -249,12 +253,15 @@ class FakeSchemaClient implements BootstrapAdminClient {
         );
       }
       if (normalized.startsWith("GRANT USAGE ON SCHEMA")) {
+        const grantee = normalized.includes(`\"${HOST_RUNTIME_ROLE}\"`)
+          ? HOST_RUNTIME_ROLE
+          : HOST_LEASE_ROLE;
         this.state.schemaAcl = [
           ...this.state.schemaAcl.filter(
             (row) =>
-              !(row.grantee === HOST_LEASE_ROLE && row.privilege_type === "USAGE"),
+              !(row.grantee === grantee && row.privilege_type === "USAGE"),
           ),
-          { grantee: HOST_LEASE_ROLE, privilege_type: "USAGE" },
+          { grantee, privilege_type: "USAGE" },
         ];
       }
       if (
@@ -270,6 +277,12 @@ class FakeSchemaClient implements BootstrapAdminClient {
           ...this.state.tableAcl.filter((row) => row.grantee !== HOST_LEASE_ROLE),
           { grantee: HOST_LEASE_ROLE, privilege_type: "SELECT" },
           { grantee: HOST_LEASE_ROLE, privilege_type: "UPDATE" },
+        ];
+      }
+      if (normalized.startsWith("GRANT SELECT ON TABLE")) {
+        this.state.tableAcl = [
+          ...this.state.tableAcl.filter((row) => row.grantee !== HOST_RUNTIME_ROLE),
+          { grantee: HOST_RUNTIME_ROLE, privilege_type: "SELECT" },
         ];
       }
       return { rows: [] };
@@ -326,6 +339,11 @@ function makeOptions(
     ): Promise<T> {
       return use(new TextEncoder().encode("H".repeat(32)));
     },
+    async withRuntimePassword<T>(
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      return use(new TextEncoder().encode("R".repeat(32)));
+    },
   };
   const parsedInstanceId = parseInstanceId(instanceId);
   if (parsedInstanceId === undefined) throw new Error("invalid test InstanceId");
@@ -377,8 +395,17 @@ describe("HostOwnershipFence schema", () => {
     expect(sql).toContain(
       `GRANT CONNECT ON DATABASE \"${HOST_OWNERSHIP_CANONICAL_DATABASE}\"`,
     );
+    expect(sql).toContain(
+      `GRANT CONNECT ON DATABASE \"${HOST_OWNERSHIP_CANONICAL_DATABASE}\" TO \"heptalogos_runtime\"`,
+    );
     expect(sql).toContain(`GRANT USAGE ON SCHEMA \"${HOST_OWNERSHIP_SCHEMA}\"`);
+    expect(sql).toContain(
+      `GRANT USAGE ON SCHEMA \"${HOST_OWNERSHIP_SCHEMA}\" TO \"heptalogos_runtime\"`,
+    );
     expect(sql).toContain("GRANT SELECT, UPDATE ON");
+    expect(sql).toContain(
+      'GRANT SELECT ON TABLE "heptalogos"."host_ownership_fence" TO "heptalogos_runtime"',
+    );
     expect(sql).toContain("INSERT INTO");
   });
 

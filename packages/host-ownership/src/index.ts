@@ -43,6 +43,7 @@ export {
   HOST_OWNERSHIP_FENCE_TABLE,
   HOST_OWNERSHIP_OWNER_ROLE,
   HOST_OWNERSHIP_SCHEMA,
+  HOST_RUNTIME_ROLE,
   type HostOwnershipConnectionTarget,
   type HostOwnershipContext,
   type HostOwnershipState,

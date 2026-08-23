@@ -75,6 +75,11 @@ function makeOptions(
         ): Promise<T> {
           return use(new TextEncoder().encode("H".repeat(32)));
         },
+        async withRuntimePassword<T>(
+          use: (passwordUtf8: Uint8Array) => Promise<T>,
+        ): Promise<T> {
+          return use(new TextEncoder().encode("R".repeat(32)));
+        },
       },
       clientFactory: factory,
     },

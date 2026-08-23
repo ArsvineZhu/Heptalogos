@@ -147,6 +147,12 @@ function makeOptions(
     ): Promise<T> {
       return use(new TextEncoder().encode("H".repeat(32)));
     },
+    async withPrivatePostgresRuntimePassword<T>(
+      _context: BootstrapKeyRequestContext,
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      return use(new TextEncoder().encode("R".repeat(32)));
+    },
   };
   return {
     toolchainBinDirectory: qualifiedPgBin,
