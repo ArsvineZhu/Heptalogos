@@ -22,6 +22,7 @@ if (!pgBin) {
 }
 const qualifiedPgBin = pgBin;
 const allowControlAuthority = (): void => undefined;
+const POSTGRES_INTEGRATION_TEST_TIMEOUT_MS = 120_000;
 
 const { resolvePrivatePostgresToolchain } = await import("./toolchain.js");
 const { PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME, PRIVATE_POSTGRES_QUALIFIED_VERSION } =
@@ -36,64 +37,68 @@ const {
 const { runPostgresTool } = await import("./process-adapter.js");
 
 describe("private PostgreSQL first initialization", () => {
-  it("initializes an absent target with the deterministic M3 profile", async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-data-"));
-    const tempRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-temp-"));
-    const logRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-log-"));
-    const placement = resolvePrivatePostgresPlacement(dataRoot);
-    const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
+  it(
+    "initializes an absent target with the deterministic M3 profile",
+    async () => {
+      const dataRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-data-"));
+      const tempRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-temp-"));
+      const logRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-log-"));
+      const placement = resolvePrivatePostgresPlacement(dataRoot);
+      const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
 
-    try {
-      expect(toolchain.version).toBe(PRIVATE_POSTGRES_QUALIFIED_VERSION);
-      const result = await initializePrivatePostgresCluster({
-        toolchain,
-        placement,
-        credentialTempRoot: tempRoot,
-        bootstrapPasswordUtf8: new TextEncoder().encode(
+      try {
+        expect(toolchain.version).toBe(PRIVATE_POSTGRES_QUALIFIED_VERSION);
+        const result = await initializePrivatePostgresCluster({
+          toolchain,
+          placement,
+          credentialTempRoot: tempRoot,
+          bootstrapPasswordUtf8: new TextEncoder().encode(
+            "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
+          ),
+          port: 55432,
+          lifecycle: {
+            startupTimeoutMs: 60_000,
+            shutdownTimeoutMs: 30_000,
+            readinessPollIntervalMs: 100,
+          },
+          assertControlAuthority: allowControlAuthority,
+        });
+
+        expect(result.identity.postgresMajor).toBe(18);
+        expect(result.identity.clusterSystemIdentifier).toMatch(/^[0-9]+$/u);
+        expect(result.dataPageChecksumVersion).toBe(1);
+        expect(result.initializationProfileRevision).toBe(
+          createPrivatePostgresInitializationProfileRevision(55432),
+        );
+        await expect(
+          readFile(join(placement.canonicalDataDirectory, "PG_VERSION"), "utf8"),
+        ).resolves.toBe("18\n");
+        await expect(
+          readFile(
+            join(placement.canonicalDataDirectory, "postgresql.auto.conf"),
+            "utf8",
+          ),
+        ).resolves.toBe(
+          "listen_addresses = '127.0.0.1'\nunix_socket_directories = ''\nport = 55432\npassword_encryption = 'scram-sha-256'\n",
+        );
+        await expect(
+          readFile(join(placement.canonicalDataDirectory, "pg_hba.conf"), "utf8"),
+        ).resolves.toBe(
+          "# Heptalogos private PostgreSQL HBA profile v1\nhost all all 127.0.0.1/32 scram-sha-256\n",
+        );
+        expect(JSON.stringify(result)).not.toContain(
           "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
-        ),
-        port: 55432,
-        lifecycle: {
-          startupTimeoutMs: 60_000,
-          shutdownTimeoutMs: 30_000,
-          readinessPollIntervalMs: 100,
-        },
-        assertControlAuthority: allowControlAuthority,
-      });
-
-      expect(result.identity.postgresMajor).toBe(18);
-      expect(result.identity.clusterSystemIdentifier).toMatch(/^[0-9]+$/u);
-      expect(result.dataPageChecksumVersion).toBe(1);
-      expect(result.initializationProfileRevision).toBe(
-        createPrivatePostgresInitializationProfileRevision(55432),
-      );
-      await expect(
-        readFile(join(placement.canonicalDataDirectory, "PG_VERSION"), "utf8"),
-      ).resolves.toBe("18\n");
-      await expect(
-        readFile(
-          join(placement.canonicalDataDirectory, "postgresql.auto.conf"),
-          "utf8",
-        ),
-      ).resolves.toBe(
-        "listen_addresses = '127.0.0.1'\nunix_socket_directories = ''\nport = 55432\npassword_encryption = 'scram-sha-256'\n",
-      );
-      await expect(
-        readFile(join(placement.canonicalDataDirectory, "pg_hba.conf"), "utf8"),
-      ).resolves.toBe(
-        "# Heptalogos private PostgreSQL HBA profile v1\nhost all all 127.0.0.1/32 scram-sha-256\n",
-      );
-      expect(JSON.stringify(result)).not.toContain(
-        "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
-      );
-    } finally {
-      await Promise.all(
-        [dataRoot, tempRoot, logRoot].map((root) =>
-          rm(root, { recursive: true, force: true }),
-        ),
-      );
-    }
-  });
+        );
+      } finally {
+        await Promise.all(
+          [dataRoot, tempRoot, logRoot].map((root) =>
+            rm(root, { recursive: true, force: true }),
+          ),
+        );
+      }
+    },
+    POSTGRES_INTEGRATION_TEST_TIMEOUT_MS,
+  );
 
   it("requires control authority before initdb and leaves the target untouched", async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-data-"));
@@ -681,50 +686,54 @@ describe("private PostgreSQL first initialization", () => {
       }
     }, 120_000);
 
-    it("fails closed when an unrelated process occupies the persisted port", async () => {
-      const cluster = await createLifecycleCluster(55434);
-      const blocker = createServer();
-      await new Promise<void>((resolve, reject) => {
-        blocker.once("error", reject);
-        blocker.listen(55434, "127.0.0.1", () => resolve());
-      });
-
-      try {
-        await expect(
-          startPrivatePostgresCluster({
-            toolchain: cluster.initialized.toolchain,
-            placement: cluster.initialized.placement,
-            expectedIdentity: cluster.expected,
-            logFilePath: join(cluster.logRoot, "private-postgres.log"),
-            lifecycle: {
-              startupTimeoutMs: 10_000,
-              shutdownTimeoutMs: 30_000,
-              readinessPollIntervalMs: 100,
-            },
-            assertControlAuthority: allowControlAuthority,
-          }),
-        ).rejects.toMatchObject({
-          problem: {
-            problemCode: "private-postgres.lifecycle.start_cleanup_uncertain",
-          },
+    it(
+      "fails closed when an unrelated process occupies the persisted port",
+      async () => {
+        const cluster = await createLifecycleCluster(55434);
+        const blocker = createServer();
+        await new Promise<void>((resolve, reject) => {
+          blocker.once("error", reject);
+          blocker.listen(55434, "127.0.0.1", () => resolve());
         });
-        await expect(
-          access(
-            join(
-              cluster.initialized.placement.canonicalDataDirectory,
-              "postmaster.pid",
+
+        try {
+          await expect(
+            startPrivatePostgresCluster({
+              toolchain: cluster.initialized.toolchain,
+              placement: cluster.initialized.placement,
+              expectedIdentity: cluster.expected,
+              logFilePath: join(cluster.logRoot, "private-postgres.log"),
+              lifecycle: {
+                startupTimeoutMs: 10_000,
+                shutdownTimeoutMs: 30_000,
+                readinessPollIntervalMs: 100,
+              },
+              assertControlAuthority: allowControlAuthority,
+            }),
+          ).rejects.toMatchObject({
+            problem: {
+              problemCode: "private-postgres.lifecycle.start_cleanup_uncertain",
+            },
+          });
+          await expect(
+            access(
+              join(
+                cluster.initialized.placement.canonicalDataDirectory,
+                "postmaster.pid",
+              ),
             ),
-          ),
-        ).rejects.toMatchObject({ code: "ENOENT" });
-      } finally {
-        await new Promise<void>((resolve) => blocker.close(() => resolve()));
-        await Promise.all(
-          [cluster.dataRoot, cluster.tempRoot, cluster.logRoot].map((root) =>
-            rm(root, { recursive: true, force: true }),
-          ),
-        );
-      }
-    });
+          ).rejects.toMatchObject({ code: "ENOENT" });
+        } finally {
+          await new Promise<void>((resolve) => blocker.close(() => resolve()));
+          await Promise.all(
+            [cluster.dataRoot, cluster.tempRoot, cluster.logRoot].map((root) =>
+              rm(root, { recursive: true, force: true }),
+            ),
+          );
+        }
+      },
+      POSTGRES_INTEGRATION_TEST_TIMEOUT_MS,
+    );
 
     it("reports an unexpected server exit instead of silently reinitializing", async () => {
       const cluster = await createLifecycleCluster(55435);
