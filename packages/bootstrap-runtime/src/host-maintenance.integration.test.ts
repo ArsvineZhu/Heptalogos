@@ -445,7 +445,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
     }
   }, 180_000);
 
-  it("holds the maintenance bootstrap lock against a competing bootstrap", async () => {
+  it("blocks a competing bootstrap before lock acquisition when maintenance is incomplete", async () => {
     const fixture = await makeFixture();
     const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
     const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
@@ -477,11 +477,8 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
         kind: "RESTART_PRIVATE_POSTGRES",
       });
 
-      const competingPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
-      await expect(
-        competingPrepared.acquireOwnership({ heartbeatMs: 1_000 }),
-      ).rejects.toMatchObject({
-        problem: { problemCode: "bootstrap.ownership.lock_present" },
+      await expect(prepareBootstrapPrelude(fixture.anchorRoot)).rejects.toMatchObject({
+        problem: { problemCode: "bootstrap.recovery.maintenance_required" },
       });
       expect(host.state).toBe("ACTIVE");
       await expect(assertReady(toolchain, ready.port)).resolves.toBeUndefined();
@@ -676,11 +673,8 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
         terminalOutcome: "FAILED",
       });
 
-      const competingPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
-      await expect(
-        competingPrepared.acquireOwnership({ heartbeatMs: 1_000 }),
-      ).rejects.toMatchObject({
-        problem: { problemCode: "bootstrap.ownership.lock_present" },
+      await expect(prepareBootstrapPrelude(fixture.anchorRoot)).rejects.toMatchObject({
+        problem: { problemCode: "bootstrap.recovery.maintenance_required" },
       });
     } finally {
       await admin?.end().catch(() => undefined);

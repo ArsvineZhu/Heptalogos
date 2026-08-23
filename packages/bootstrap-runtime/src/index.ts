@@ -1,3 +1,7 @@
+// Evaluate the ownership adapter before the public entry point's other runtime
+// dependencies so its adopted provider registers exit cleanup first.
+import "./bootstrap-ownership.js";
+
 export const BOOTSTRAP_RUNTIME_PACKAGE = "@heptalogos/bootstrap-runtime" as const;
 export { loadBootstrapLocator, type BootstrapLocatorV1 } from "./locator.js";
 export {

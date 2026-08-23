@@ -29,11 +29,9 @@ import {
   resolvePrivatePostgresToolchain,
   type PrivatePostgresToolchain,
 } from "@heptalogos/private-postgres";
-import {
-  loadBootstrapLocator,
-  proveLocalInstallationOwner,
-  resolveBootstrapPathProfile,
-} from "@heptalogos/bootstrap-runtime";
+import { loadBootstrapLocator } from "./locator.js";
+import { proveLocalInstallationOwner } from "./local-installation-owner.js";
+import { resolveBootstrapPathProfile } from "./roots.js";
 import { recoverInterruptedHostMaintenance } from "./host-maintenance-recovery.js";
 import type { PrivatePostgresMaintenanceDescriptor } from "./private-postgres-bootstrap.js";
 
