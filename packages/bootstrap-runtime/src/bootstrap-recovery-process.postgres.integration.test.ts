@@ -367,10 +367,7 @@ afterEach(async () => {
   for (const directory of cleanupDirectories) {
     try {
       const locator = await loadBootstrapLocator(directory);
-      const profile = await resolveBootstrapPathProfile(locator, [
-        "INSTANCE",
-        "DATA",
-      ]);
+      const profile = await resolveBootstrapPathProfile(locator, ["INSTANCE", "DATA"]);
       await stopPostgres(
         toolchain,
         join(profile.resolve("DATA").canonicalPath, "private-postgres"),

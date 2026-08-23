@@ -51,6 +51,9 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
 
+      - name: Fetch reviewed base branch
+        run: git fetch --no-tags origin master:refs/remotes/origin/master
+
       - name: Verify reviewed candidate pair
         env:
           BASE_SHA: ${{ inputs.base_sha }}
@@ -61,6 +64,11 @@ jobs:
           const head=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
           if(head!==process.env.TARGET_SHA){
             console.error('expected '+process.env.TARGET_SHA+' but checked out '+head);
+            process.exit(1);
+          }
+          const currentBase=execFileSync('git',['rev-parse','refs/remotes/origin/master'],{encoding:'utf8'}).trim();
+          if(currentBase!==process.env.BASE_SHA){
+            console.error('reviewed base '+process.env.BASE_SHA+' moved to '+currentBase);
             process.exit(1);
           }
           execFileSync('git',['cat-file','-e',process.env.BASE_SHA+'^{commit}']);

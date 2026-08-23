@@ -231,11 +231,7 @@ function makeHostConnection(trace: string[]) {
 }
 
 type FinalizationStateMode =
-  | "CURRENT"
-  | "RECOVERED_PREVIOUS"
-  | "EMPTY"
-  | "POINTER_CHANGED"
-  | "IDENTITY_MISMATCH";
+  "CURRENT" | "RECOVERED_PREVIOUS" | "EMPTY" | "POINTER_CHANGED" | "IDENTITY_MISMATCH";
 
 function configure(
   fixture: Awaited<ReturnType<typeof makeFixture>>,

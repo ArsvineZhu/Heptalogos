@@ -7,8 +7,10 @@ approved Hn-S control record and the repository-wide branch/PR policy.
 ## Scope and invariants
 
 - Use a short-lived `dev/h<n>-stabilization` branch and one Draft PR.
-- Execute only the phase plan named by the control record's `governingPlan`.
-- Promote phase plans through the control record; do not run a later phase early.
+- Default to one bounded stabilization plan. Use a control record and serial
+  phase plans only when ordered independent phases are genuinely required.
+- When a control record exists, execute only the plan named by its
+  `governingPlan` and do not run a later phase early.
 - Complete all repository mutations before independent review begins.
 - Treat `Hn-S` as short and bounded; defer new subsystem, architecture expansion,
   and next-milestone capability work.
@@ -32,15 +34,30 @@ approved Hn-S control record and the repository-wide branch/PR policy.
 7. After review PASS, manually run final CI with the same `base_sha` and
    `target_sha`; require Ubuntu, macOS and Windows jobs to pass.
 8. Immediately before squash merge, verify that the reviewed base and branch
-   head still equal the exact pair. A move of either invalidates review and CI;
-   rebase/update, rerun local gates, obtain new independent review and rerun
-   final CI when this occurs.
+   head still equal the exact pair, and re-read the PR metadata:
+
+   ```bash
+   git fetch --no-tags origin master
+   test "$(git rev-parse origin/master)" = "$REVIEWED_BASE_SHA"
+   test "$(git rev-parse HEAD)" = "$REVIEWED_HEAD_SHA"
+   test "$(gh pr view "$PR_NUMBER" --json baseRefOid --jq .baseRefOid)" = "$REVIEWED_BASE_SHA"
+   test "$(gh pr view "$PR_NUMBER" --json headRefOid --jq .headRefOid)" = "$REVIEWED_HEAD_SHA"
+   ```
+
+   A move or metadata mismatch invalidates review and CI; rebase/update, rerun
+   local gates, obtain new independent review and rerun final CI when this
+   occurs.
+
 9. Squash merge the single PR through the normal repository action, then delete
    the stabilization branch.
-10. Perform post-merge reconciliation read-only. Verify PR merge state, exact
-    review and CI candidate identity, ordering of gates before merge, absence of
-    later candidate commits, and branch deletion. Do not add a repository
-    commit merely to record review, CI or merge outcomes.
+10. After squash merge, keep the merged behavior candidate immutable. Perform
+    truth reconciliation only through a separate docs/evidence-only PR that
+    changes no production code, tests, or behavior contract; cites externally
+    observed review/CI/merge evidence; runs repository/corpus/document gates;
+    changes Hn from OPEN to CLOSED only when the closure tuple actually
+    occurred; and does not rerun or rewrite the merged behavior candidate.
+    For H1, squash merge is the semantic closure event; the reconciliation PR
+    records `H1: CLOSED / H2: ELIGIBLE`, and H2 waits for that PR to merge.
 
 ## Final closure tuple
 

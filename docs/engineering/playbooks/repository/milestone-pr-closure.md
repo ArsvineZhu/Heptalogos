@@ -19,9 +19,27 @@ the repository-wide policy in `AGENTS.md`.
 8. After review PASS, manually dispatch final CI with
    `base_sha=<reviewed base>` and `target_sha=<reviewed HEAD>`.
 9. Require `ubuntu-latest`, `macos-latest`, and `windows-latest` all PASS.
-10. Verify that both the PR base and PR head still equal the reviewed/CI pair.
-11. Squash merge.
-12. Delete the branch.
+10. Immediately before merge, re-read the live base, branch head, and PR
+    metadata against the exact reviewed pair:
+
+    ```bash
+    git fetch --no-tags origin master
+    test "$(git rev-parse origin/master)" = "$REVIEWED_BASE_SHA"
+    test "$(git rev-parse HEAD)" = "$REVIEWED_HEAD_SHA"
+    test "$(gh pr view "$PR_NUMBER" --json baseRefOid --jq .baseRefOid)" = "$REVIEWED_BASE_SHA"
+    test "$(gh pr view "$PR_NUMBER" --json headRefOid --jq .headRefOid)" = "$REVIEWED_HEAD_SHA"
+    ```
+
+    Any mismatch means review invalid, final CI invalid, and merge forbidden.
+
+11. Squash merge with the expected reviewed head SHA.
+12. Delete the branch only after merge succeeds.
+13. After squash merge, keep the behavior candidate immutable. If repository
+    truth needs updating, open a separate docs/evidence-only PR that changes no
+    production code, tests, or behavior contract; cites externally observed
+    review/CI/merge evidence; runs repository/corpus/document gates; and
+    records closure only when the tuple actually occurred. Do not rerun or
+    rewrite the merged behavior candidate in that PR.
 
 ## Invalidation rule
 

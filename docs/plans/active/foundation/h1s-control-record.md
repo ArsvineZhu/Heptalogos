@@ -75,7 +75,7 @@ no ordinary CI
 one final independent review
 one final manual cross-platform CI
 one squash merge
-post-merge reconciliation: read-only/non-mutating
+post-merge truth reconciliation: separate docs/evidence-only PR
 ```
 
 Any production/test/doc commit after final independent review invalidates review and final CI. Any change to the reviewed base branch also invalidates the candidate.
@@ -117,4 +117,12 @@ head_sha_unchanged_before_merge: true
 squash_merge: PASS
 ```
 
-The repository MUST NOT add a post-review/post-CI evidence commit merely to change these fields. Final outcomes live in the PR/review/workflow/merge evidence; post-merge reconciliation verifies them without mutating the repository.
+The merged behavior candidate is immutable after review and final CI. After
+squash merge, repository truth may be reconciled only through a separate
+docs/evidence-only PR that changes no production code, tests, or behavior
+contract; cites externally observed review/CI/merge evidence; runs
+repository/corpus/document gates; changes H1 from OPEN to CLOSED only when the
+closure tuple actually occurred; and does not rerun or rewrite the merged
+behavior candidate. For H1, squash merge success is followed by a
+reconciliation PR recording `H1: CLOSED / H2: ELIGIBLE`; H2 waits for that PR
+to merge.

@@ -124,6 +124,19 @@ All implementation verification gates must remain locally runnable and reproduci
 
 Milestone closure additionally requires the manual cross-platform CI projection defined in §6.
 
+The default Hn-S governance shape is one bounded stabilization plan, one branch,
+and one PR. Escalate to a control record with serial phase plans only when the
+work genuinely requires ordered independent phases; do not make phased records
+mandatory by convention.
+
+After squash merge, the reviewed behavior candidate is immutable. Repository
+truth may be reconciled only through a separate docs/evidence-only PR that
+changes no production code, tests, or behavior contract, cites externally
+observed review/CI/merge evidence, runs the repository/corpus/document gates,
+and changes Hn from OPEN to CLOSED only when the closure tuple actually
+occurred. The reconciliation PR must not rerun or rewrite the merged behavior
+candidate.
+
 ## 7. Completion truth
 
 Verification status is exactly:

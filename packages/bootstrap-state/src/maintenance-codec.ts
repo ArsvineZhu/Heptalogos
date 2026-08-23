@@ -187,10 +187,7 @@ function semanticProblem(body: MaintenanceJournalBodyV1): string | undefined {
       return "maintenance.journal.invalid_semantics";
     }
   } else if (body.lastCompletedStage === "RECOVERY_REQUIRED") {
-    if (
-      body.terminalOutcome !== "FAILED" &&
-      body.terminalOutcome !== "UNCERTAIN"
-    ) {
+    if (body.terminalOutcome !== "FAILED" && body.terminalOutcome !== "UNCERTAIN") {
       return "maintenance.journal.invalid_semantics";
     }
   } else if (body.terminalOutcome !== undefined) {

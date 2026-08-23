@@ -97,9 +97,7 @@ async function watchJournalStage(instanceRoot, operationId, stage) {
     if (stopped) return;
     try {
       const parsed = parseMaintenanceJournal(await readFile(currentPath, "utf8"));
-      if (
-        parsed.ok && parsed.value.state.lastCompletedStage === stage
-      ) {
+      if (parsed.ok && parsed.value.state.lastCompletedStage === stage) {
         stopped = true;
         clearInterval(timer);
         send({ type: "durable-stage", operationId, stage }, () =>

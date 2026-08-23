@@ -129,10 +129,12 @@ describe("shared maintenance obligation inspection", () => {
         makeMaintenanceBody(operationId, lastCompletedStage, terminalOutcome),
       );
 
-      await expect(inspectMaintenanceObligation(instanceRoot, {
-        status: "CURRENT",
-        value: current,
-      })).resolves.toMatchObject({ incomplete });
+      await expect(
+        inspectMaintenanceObligation(instanceRoot, {
+          status: "CURRENT",
+          value: current,
+        }),
+      ).resolves.toMatchObject({ incomplete });
     },
   );
 });

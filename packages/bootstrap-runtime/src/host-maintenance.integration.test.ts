@@ -456,9 +456,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
     let hostA: BootstrapManagedHostContext | undefined;
     let hostB: BootstrapManagedHostContext | undefined;
     let hostC: BootstrapManagedHostContext | undefined;
-    let secondOwned:
-      | Awaited<ReturnType<typeof prepared.acquireOwnership>>
-      | undefined;
+    let secondOwned: Awaited<ReturnType<typeof prepared.acquireOwnership>> | undefined;
     let secondReady: ReadyPrivatePostgres | undefined;
 
     try {
@@ -561,9 +559,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
     const port = 55526;
     let ready: ReadyPrivatePostgres | undefined;
     let host: BootstrapManagedHostContext | undefined;
-    let secondOwned:
-      | Awaited<ReturnType<typeof prepared.acquireOwnership>>
-      | undefined;
+    let secondOwned: Awaited<ReturnType<typeof prepared.acquireOwnership>> | undefined;
     let secondReady: ReadyPrivatePostgres | undefined;
 
     try {

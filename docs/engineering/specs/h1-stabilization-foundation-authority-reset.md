@@ -40,7 +40,15 @@ implementation plans complete
 = H1 CLOSED / H2 ELIGIBLE
 ```
 
-The squash-merge event is the closure event. Repository files MUST NOT be changed after the final reviewed head merely to record review/CI/merge outcomes; doing so would invalidate the exact candidate. Post-merge reconciliation is read-only/non-mutating.
+The squash-merge event is the semantic closure event. The merged behavior
+candidate is immutable after review and final CI. Repository truth may be
+reconciled only through a separate docs/evidence-only PR that changes no
+production code, tests, or behavior contract; cites externally observed
+review/CI/merge evidence; runs repository/corpus/document gates; changes Hn
+from OPEN to CLOSED only when the closure tuple actually occurred; and does
+not rerun or rewrite the merged behavior candidate. For H1, squash merge
+success is followed by a reconciliation PR recording `H1: CLOSED / H2:
+ELIGIBLE`; H2 waits for that PR to merge.
 
 ## 3. Scope budget
 
@@ -358,12 +366,25 @@ ReviewCandidate = (base_sha, head_sha)
 
 A change to either member invalidates independent review and final CI.
 
-Manual final CI accepts both `base_sha` and `target_sha`, checks out the target with full history, verifies target HEAD, verifies `base_sha` is an ancestor of target, then runs `pnpm verify` on Ubuntu/macOS/Windows.
+Manual final CI accepts both `base_sha` and `target_sha`, fetches the live
+`origin/master`, checks out the target with full history, verifies target HEAD,
+requires live `origin/master == base_sha`, verifies `base_sha` is an ancestor
+of target, then runs `pnpm verify` on Ubuntu/macOS/Windows.
 
 Immediately before squash merge:
 
 - `origin/master` must still equal reviewed `base_sha`;
 - PR head must still equal reviewed `head_sha`.
+
+The exact pre-merge checks are:
+
+```bash
+git fetch --no-tags origin master
+test "$(git rev-parse origin/master)" = "$REVIEWED_BASE_SHA"
+test "$(git rev-parse HEAD)" = "$REVIEWED_HEAD_SHA"
+test "$(gh pr view "$PR_NUMBER" --json baseRefOid --jq .baseRefOid)" = "$REVIEWED_BASE_SHA"
+test "$(gh pr view "$PR_NUMBER" --json headRefOid --jq .headRefOid)" = "$REVIEWED_HEAD_SHA"
+```
 
 If master moves, rebase the stabilization branch on the new master, rerun local qualification, obtain a new independent review and rerun final CI.
 
