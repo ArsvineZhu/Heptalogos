@@ -15,10 +15,10 @@ selectedRoute: "`@bybrave/proper-lockfile2` 5.0.0"
 ```yaml
 M5B: CLOSED
 H1_FUNCTIONAL: COMPLETE
-H1_STABILIZATION: IMPLEMENTATION_COMPLETE
+H1_STABILIZATION: REVIEW_CORRECTION_IMPLEMENTATION_COMPLETE
 H1: OPEN
 H2: NOT_ELIGIBLE
-behavior_candidate_sha: 1640c232a4629644c3588ebd108f887e7c786f77
+behavior_candidate_sha: 3cc589b667b0cd64342881caf7d382c2d960a928
 ```
 
 The machine-readable ledger contains only current H1-S properties. Historical
@@ -46,14 +46,21 @@ evidence:
   ambiguous_process_identity_blocks_reclaim: PASS
   host_maintenance_single_in_process_state_source: PASS
   raw_recovery_authority_not_public: PASS
+  sensitive_authority_package_root_star_export_guard: PASS
+  maintenance_success_terminal_v1: PASS
+  post_restart_normal_boot_continuity: PASS
+  post_stop_normal_boot_continuity: PASS
+  illegal_host_maintenance_transition_not_durably_committed: PASS
+  recovery_error_journal_requires_current_bootstrap_state: PASS
+  recovery_error_journal_requires_current_operation_pointer: PASS
   public_entry_provider_exit_cleanup: PASS
   private_postgres_real_integration: PASS
   host_ownership_real_integration: PASS
   bootstrap_runtime_real_integration: PASS
   recovery_process_without_postgres: PASS
   recovery_process_with_postgres: PASS
-  linux_real_postgres_recovery: PASS
-  windows_real_postgres_recovery: NOT_RUN
+  linux_real_postgres_recovery: NOT_RUN
+  windows_real_postgres_recovery: PASS
   macos_real_postgres_recovery: NOT_RUN
   source_less_recovery: NOT_RUN
   service_account_acl: NOT_RUN
@@ -63,25 +70,30 @@ evidence:
   squash_merge: NOT_RUN
 ```
 
-Evidence source: `pnpm verify` PASS; bootstrap-state unit 109 passed/2
-skipped; bootstrap-runtime unit 182 passed/1 skipped; private-postgres unit
-58 passed; private-postgres integration 20/20; Host ownership integration 8/8;
-bootstrap-runtime integration 28/28; non-PostgreSQL process recovery 4/4; and
-PostgreSQL process recovery 2/2. The live PostgreSQL 18.6 tools were reused
-from `/tmp/heptalogos-pg18.6-corrective.PfKw0x/extracted/usr/lib/postgresql/18/bin`
-with library path `/tmp/heptalogos-pg18.6-corrective.PfKw0x/extracted/usr/lib/x86_64-linux-gnu`.
+Evidence source: `pnpm verify` PASS; forced H1 package tests were
+bootstrap-state 111 passed/3 skipped, private-postgres 58 passed,
+Host ownership 75 passed, and bootstrap-runtime 195 passed/2 skipped.
+Private-postgres integration was 20/20, Host ownership integration 8/8,
+bootstrap-runtime integration 30/30, non-PostgreSQL process recovery 4/4,
+and PostgreSQL process recovery 2/2. The corrected candidate also ran the
+RC-1 continuity, RC-2 transition, RC-3 current-state/pointer, and RC-6 export
+guard regressions. PostgreSQL 18.6 was executed on Windows x64 from the EDB
+archive in the temporary bin root
+`C:\Users\Arsvine\AppData\Local\Temp\heptalogos-pg18.6-correction-20260823\extracted\pgsql\bin`;
+all five required tools reported 18.6.
 
 ## NOT_RUN / deferred properties
 
-- Windows/macOS real PostgreSQL recovery, source-less recovery, service-account ACL, and hardware power-loss remain unrun.
+- Linux/macOS real PostgreSQL recovery, source-less recovery, service-account ACL, and hardware power-loss remain unrun.
 - Independent review, final cross-platform CI, and squash merge are external closure gates for this exact candidate.
 
 ## Architecture disposition
 
 此 role 的当前 RoleDecision 由 `../dependency-status.json` 冻结为 `ADOPTED`；本记录只报告已证明的 property 与剩余 implementation/product qualification，不构成第二套 Authority。
 
-Power-loss, Windows/macOS and source-less bootstrap behavior remain
-implementation qualification.
+Power-loss, Linux/macOS and source-less bootstrap behavior remain
+implementation qualification; the current Windows result is limited to the
+extracted PostgreSQL 18.6 runtime qualification.
 
 The historical `proper-lockfile@4.1.2` route is retained as role-reopening
 context from upstream issue/source analysis plus a previously observed

@@ -1287,3 +1287,38 @@ all RC-1..RC-5 mandatory defects are closed
 ```
 
 At that point the branch is **ready for independent re-review**, not yet authorized for final CI or merge.
+
+---
+
+# Execution record (2026-08-23)
+
+```yaml
+planState: COMPLETED
+behaviorCandidateSha: 3cc589b667b0cd64342881caf7d382c2d960a928
+localQualification: PASS
+pnpm_verify: PASS
+bootstrap_state_unit: PASS (111 passed, 3 skipped)
+private_postgres_unit: PASS (58 passed)
+host_ownership_unit: PASS (75 passed)
+bootstrap_runtime_unit: PASS (195 passed, 2 skipped)
+private_postgres_integration: PASS (20/20)
+host_ownership_integration: PASS (8/8)
+bootstrap_runtime_integration: PASS (30/30)
+recovery_process: PASS (4/4)
+recovery_process_postgres: PASS (2/2)
+postgres_version: PostgreSQL 18.6
+postgres_platform: Windows x64 extracted EDB qualification runtime
+linux_real_postgres: NOT_RUN
+macos_real_postgres: NOT_RUN
+source_less_shipping: NOT_RUN
+service_account_acl: NOT_RUN
+hardware_power_loss: NOT_RUN
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+externalClosureGates: PENDING
+```
+
+No push, PR, CI dispatch, independent review request, or merge was performed
+by this execution. The branch is ready for independent re-review of the exact
+candidate; final CI and merge remain unauthorized until that review passes.

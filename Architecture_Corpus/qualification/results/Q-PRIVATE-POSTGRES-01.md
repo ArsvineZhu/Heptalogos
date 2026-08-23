@@ -14,10 +14,10 @@ testedProperty: "Exact PostgreSQL 18.6 private bootstrap initialization, portabl
 ```yaml
 M5B: CLOSED
 H1_FUNCTIONAL: COMPLETE
-H1_STABILIZATION: IMPLEMENTATION_COMPLETE
+H1_STABILIZATION: REVIEW_CORRECTION_IMPLEMENTATION_COMPLETE
 H1: OPEN
 H2: NOT_ELIGIBLE
-behavior_candidate_sha: 1640c232a4629644c3588ebd108f887e7c786f77
+behavior_candidate_sha: 3cc589b667b0cd64342881caf7d382c2d960a928
 ```
 
 The machine-readable ledger currently contains the H1-S canonical V1 property
@@ -34,8 +34,8 @@ private_postgres_real_integration: PASS
 host_ownership_real_integration: PASS
 bootstrap_runtime_real_integration: PASS
 recovery_process_postgres: PASS
-linux_real_pg: PASS
-windows_real_pg: NOT_RUN
+linux_real_pg: NOT_RUN
+windows_real_pg: PASS
 macos_real_pg: NOT_RUN
 source_less_shipping_closure: NOT_RUN
 service_account_acl_closure: NOT_RUN
@@ -45,13 +45,45 @@ final_cross_platform_ci: NOT_RUN
 squash_merge: NOT_RUN
 ```
 
-The current candidate reused PostgreSQL 18.6 from
-`/tmp/heptalogos-pg18.6-corrective.PfKw0x/extracted/usr/lib/postgresql/18/bin`
-with library path
-`/tmp/heptalogos-pg18.6-corrective.PfKw0x/extracted/usr/lib/x86_64-linux-gnu`.
+The corrected candidate executed PostgreSQL 18.6 on Windows x64 from the EDB
+archive in the temporary bin root
+`C:\Users\Arsvine\AppData\Local\Temp\heptalogos-pg18.6-correction-20260823\extracted\pgsql\bin`.
 The five required tools reported 18.6; private-postgres integration passed
-20/20, Host ownership integration 8/8, bootstrap-runtime integration 28/28,
+20/20, Host ownership integration 8/8, bootstrap-runtime integration 30/30,
 and PostgreSQL process recovery 2/2. `pnpm verify` also passed.
+
+## Current H1-S review-correction qualification
+
+```yaml
+candidate_sha: 3cc589b667b0cd64342881caf7d382c2d960a928
+runtime: "Windows x64 / Node 24.19.0 / pnpm 11.22.0"
+postgres_provenance: "EDB PostgreSQL 18.6 Windows x86-64 binary archive extracted to a temporary qualification root; not a source-less shipping artifact"
+exact_toolchain_18_6: PASS
+maintenance_success_terminal_v1: PASS
+post_restart_normal_boot_continuity: PASS
+post_stop_normal_boot_continuity: PASS
+illegal_host_maintenance_transition_not_durably_committed: PASS
+recovery_error_journal_requires_current_bootstrap_state: PASS
+recovery_error_journal_requires_current_operation_pointer: PASS
+private_postgres_real_integration: PASS (20/20)
+host_ownership_real_integration: PASS (8/8)
+bootstrap_runtime_real_integration: PASS (30/30)
+recovery_process_without_postgres: PASS (4/4)
+recovery_process_with_postgres: PASS (2/2)
+linux_real_pg: NOT_RUN
+macos_real_pg: NOT_RUN
+source_less_shipping_closure: NOT_RUN
+service_account_acl_closure: NOT_RUN
+hardware_power_loss: NOT_RUN
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+This current-host run proves Windows extracted-runtime PostgreSQL behavior for
+the corrected candidate. It does not upgrade Linux/macOS, source-less shipping,
+service-account ACL, hardware power-loss, independent-review, final-CI, or
+merge claims.
 
 ## Historical corrected-candidate Windows evidence
 

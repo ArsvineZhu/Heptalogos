@@ -135,22 +135,25 @@ Current H-stage truth:
 ```yaml
 M5B: CLOSED
 H1_FUNCTIONAL: COMPLETE
-H1_STABILIZATION: IMPLEMENTATION_COMPLETE
+H1_STABILIZATION: REVIEW_CORRECTION_IMPLEMENTATION_COMPLETE
 H1: OPEN
 H2: NOT_ELIGIBLE
 ```
 
 H1 functional implementation: COMPLETE.
 
-H1-S repository implementation/qualification: COMPLETE at behavior candidate
-`1640c232a4629644c3588ebd108f887e7c786f77` plus the evidence-only candidate
-recorded in the current qualification ledger.
+H1-S review-correction implementation/qualification: COMPLETE at corrected
+behavior candidate `3cc589b667b0cd64342881caf7d382c2d960a928`. Current evidence
+is bound to that candidate and the exact Windows PostgreSQL 18.6 runtime used
+for the fresh qualification run.
 
 H1 remains OPEN pending exact-candidate independent review, manual final CI on
 Ubuntu/macOS/Windows, unchanged candidate identity immediately before merge,
 and squash merge. H2 remains NOT_ELIGIBLE until that closure tuple is
-satisfied. The historical M5B review/CI/merge records below do not satisfy
-this new H1-S closure tuple.
+satisfied. The current corrected run proves Windows extracted-runtime
+PostgreSQL 18.6 behavior; Linux/macOS real PostgreSQL, source-less shipping,
+service-account ACL, and hardware power-loss remain NOT_RUN. The historical M5B
+review/CI/merge records below do not satisfy this new H1-S closure tuple.
 
 Historical milestone context:
 

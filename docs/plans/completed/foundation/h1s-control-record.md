@@ -12,25 +12,29 @@
 ```yaml
 M5B: CLOSED
 H1_FUNCTIONAL: COMPLETE
-H1_STABILIZATION: REVIEW_CORRECTION_ACTIVE
+H1_STABILIZATION: REVIEW_CORRECTION_IMPLEMENTATION_COMPLETE
 H1: OPEN
 H2: NOT_ELIGIBLE
-executionStatus: REVIEW_CORRECTION_ACTIVE
+executionStatus: REVIEW_CORRECTION_IMPLEMENTATION_COMPLETE
 externalClosureGates: RESET_AFTER_REQUEST_CHANGES
 reviewCorrection:
-  plan: h1s-review-correction.md
-  planState: ACTIVE
-  executionGate: OPEN
-governingPlan: h1s-review-correction.md
-independent review: REQUEST_CHANGES
+  plan: completed/foundation/h1s-review-correction.md
+  planState: COMPLETED
+  executionGate: CLOSED
+governingPlan: completed/foundation/h1s-review-correction.md
+independent review: NOT_RUN
 reviewed repository head: 803ea6994fea6234e6ce42f79d69b5f92eaddc64
-reason: RC-1..RC-5
+reason: RC-1..RC-6 closed locally; prior REQUEST_CHANGES is historical
+local qualification: PASS
+final cross-platform CI: NOT_RUN
+squash merge: NOT_RUN
 ```
 
 ## Phase plans
 
-All three phase documents are approved and remain completed historical phases.
-The bounded review-correction plan is the only active H1-S implementation plan.
+All three phase documents and the bounded review-correction plan are completed
+historical phases. No H1-S implementation plan remains active after this local
+correction/evidence closure.
 
 ```yaml
 phases:
@@ -48,22 +52,20 @@ phases:
     executionGate: CLOSED
 ```
 
-The H1-S behavior candidate is
-`1640c232a4629644c3588ebd108f887e7c786f77`. Local `pnpm verify` is `PASS`;
+The corrected H1-S behavior candidate is
+`3cc589b667b0cd64342881caf7d382c2d960a928`. Local `pnpm verify` is `PASS`;
 private-postgres integration is `20/20 PASS`; Host ownership integration is
-`8/8 PASS`; bootstrap-runtime integration is `28/28 PASS`; the non-PostgreSQL
+`8/8 PASS`; bootstrap-runtime integration is `30/30 PASS`; the non-PostgreSQL
 real process target is `4/4 PASS`; and the PostgreSQL real process target is
-`2/2 PASS`. The PostgreSQL 18.6 toolchain was reused from
-`/tmp/heptalogos-pg18.6-corrective.PfKw0x/extracted/usr/lib/postgresql/18/bin`
-with library path
-`/tmp/heptalogos-pg18.6-corrective.PfKw0x/extracted/usr/lib/x86_64-linux-gnu`.
-Windows/macOS PostgreSQL, source-less, ACL, power-loss, independent review,
+`2/2 PASS`. The exact PostgreSQL 18.6 toolchain was executed on Windows x64
+from the temporary EDB archive root
+`C:\Users\Arsvine\AppData\Local\Temp\heptalogos-pg18.6-correction-20260823\extracted\pgsql\bin`.
+Linux/macOS PostgreSQL, source-less, ACL, power-loss, independent review,
 final CI, and squash merge remain `NOT_RUN`/`PENDING` external gates.
 
-S0/S1/S2 remain completed historical phases. This control record is reopened
-under the active review-correction plan because independent review returned
-`REQUEST_CHANGES`; final H1 closure remains defined only by the externally
-verified review/CI/merge tuple below.
+S0/S1/S2 and the review-correction plan remain completed historical phases.
+The prior independent review `REQUEST_CHANGES` is historical; final H1 closure
+remains defined only by the externally verified review/CI/merge tuple below.
 
 ## Branch/PR discipline
 
