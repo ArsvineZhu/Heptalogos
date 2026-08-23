@@ -15,9 +15,7 @@ surface the ambiguity rather than guessing.
 
 ## Active
 
-No H2 implementation plan is active yet. H1 is `CLOSED` and H2 is `ELIGIBLE`
-after the merged H1 closure tuple and its separate post-merge truth
-reconciliation. The next H2 plan must be activated on the reconciled master.
+- [H2A-1 Host-Fenced Persistence Authority](active/foundation/h2a1-host-fenced-persistence-authority.md) — `ACTIVE` (sole active plan; base `54688d2bb0da2b8516a84634459495956bd96b8c`)
 
 ## Completed
 
