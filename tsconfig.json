@@ -1,10 +1,23 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/foundation-contracts" },
-    { "path": "./packages/bootstrap-state" },
-    { "path": "./packages/private-postgres" },
-    { "path": "./packages/bootstrap-runtime" },
-    { "path": "./packages/host-ownership" }
+    {
+      "path": "./packages/foundation-contracts"
+    },
+    {
+      "path": "./packages/bootstrap-state"
+    },
+    {
+      "path": "./packages/private-postgres"
+    },
+    {
+      "path": "./packages/bootstrap-runtime"
+    },
+    {
+      "path": "./packages/host-ownership"
+    },
+    {
+      "path": "./packages/persistence"
+    }
   ]
 }
