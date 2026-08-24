@@ -34,6 +34,8 @@ evidenceStatus: PASS
 qualificationState: PARTIAL
 implementationQualification: REQUIRED
 behavior_candidate_sha: 00c03f7e635724636dc9fca56c6fc856e6b04603
+reviewed_base_sha: b306975bba3592a0d8c2e2e6d1649f2523af27bc
+reviewed_head_sha: 2b492ef69131cc9792babb094ec2be33b13a9c69
 local_implementation_closure: PASS
 repository_verification: PASS
 canonical_schema_unit: PASS (3 passed)
@@ -63,27 +65,29 @@ real_postgres_linux: NOT_RUN
 real_postgres_macos: NOT_RUN
 source_less: NOT_RUN
 service_headless: NOT_RUN
-independent_review: NOT_RUN
-final_cross_platform_ci: NOT_RUN
-squash_merge: NOT_RUN
+independent_review: PASS
+final_ci_run: 32731811379
+final_cross_platform_ci: PASS (Ubuntu/macOS/Windows)
+squash_merge_sha: 2c8a68c7e76884d75fb3314ff18b1806a0625b3d
+squash_merge: PASS
 ```
 
 The previous reviewed pair
 `b306975bba3592a0d8c2e2e6d1649f2523af27bc` →
 `adc22feaf91a9307838ebbfa5a89840b04bc86f1` returned
-`Independent Review = REQUEST_CHANGES`. This corrected behavior candidate
+`Independent Review = REQUEST_CHANGES`. At that stage, this corrected behavior candidate
 closes the reported Host reacquisition, credential provenance, Corpus status,
 canonical snapshot, and joint-authority signal findings. A new independent
-review for the corrected exact pair is still `NOT_RUN`; final CI and merge
-remain unauthorized.
+review for the corrected exact pair was still `NOT_RUN`; final CI and merge
+were not yet authorized.
 
 The subsequent reviewed pair
 `b306975bba3592a0d8c2e2e6d1649f2523af27bc` →
 `20082b28f31408beb7ed7aa573417bffb4bd2912` also returned
 `Independent Review = REQUEST_CHANGES`, identifying the post-bootstrap-release
 Host liveness proof and recovery admission-epoch projection. Those findings
-are addressed by the current behavior candidate above; a new independent
-review is still `NOT_RUN`.
+were addressed by the current behavior candidate above; the resulting pair
+was then independently reviewed and closed by the final tuple below.
 
 The real-PG qualification used the extracted EDB PostgreSQL 18.6 Windows
 toolchain at:
@@ -99,6 +103,7 @@ inside `@heptalogos/canonical-schema`, and rejects normal continuity identity
 mismatches without update/repair. C1-C8 were executed against real PostgreSQL;
 C9 rejects obsolete V1 bytes with `bootstrap.state.invalid_schema`.
 
-Linux/macOS, source-less, service/headless, independent review, final CI, and
-merge are intentionally still `NOT_RUN`; repository CI or later review cannot
-be inferred from this local qualification record.
+Linux/macOS, source-less, and service/headless claims remain `NOT_RUN` and are
+not upgraded by repository CI. The final exact closure tuple is recorded above:
+independent review `PASS`, final CI run `32731811379` `PASS` on all three
+platforms, and squash merge `2c8a68c7e76884d75fb3314ff18b1806a0625b3d` `PASS`.

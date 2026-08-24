@@ -138,7 +138,7 @@ H1_FUNCTIONAL: COMPLETE
 H1_STABILIZATION: CLOSED
 H1: CLOSED
 H2A_1: CLOSED
-H2A_2: ACTIVE
+H2A_2: CLOSED
 H2A: OPEN
 H2B: ELIGIBLE_BY_H1_BUT_IMPLEMENTATION_DEFERRED_PENDING_EXECUTION_CONTEXT_SPINE
 H2: OPEN
@@ -197,9 +197,13 @@ persistence/Host ownership/bootstrap-runtime regression integrations are
 `PASS`. Linux/macOS PostgreSQL, source-less, and service/headless claims remain
 `NOT_RUN`. PRE_PRODUCTION development shapes have no project-internal
 compatibility bridge in H2A-2; obsolete current-V1 bytes are rejected. Epoch
-mismatch outside the authorized restore window is fail-closed. Independent
-review, final CI, and merge remain `NOT_RUN` for the eventual exact candidate
-pair.
+mismatch outside the authorized restore window is fail-closed. The final exact
+pair
+`b306975bba3592a0d8c2e2e6d1649f2523af27bc` →
+`2b492ef69131cc9792babb094ec2be33b13a9c69` received independent review
+`PASS`, final CI run `32731811379` passed on Ubuntu/macOS/Windows, and squash
+merged as `2c8a68c7e76884d75fb3314ff18b1806a0625b3d`. Linux/macOS PostgreSQL,
+source-less, and service/headless claims remain `NOT_RUN`.
 
 Historical milestone context:
 
