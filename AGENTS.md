@@ -120,6 +120,12 @@ PR Ready is not merge authorization. The implementing Agent's self-review is ins
 
 master changes go through PRs; a direct push requires explicit one-off user authorization. The detailed operating procedure is in `docs/engineering/playbooks/repository/milestone-pr-closure.md`.
 
+Independent Review is an external out-of-band gate. The user/operator supplies
+the review result for an exact `(base_sha, head_sha)` pair. GitHub PR review
+objects/approvals/comments are not the source of this gate and must not be
+queried to discover it unless explicitly requested. GitHub is used to verify
+the candidate pair, CI run identity, and merge state.
+
 All implementation verification gates must remain locally runnable and reproducible. GitHub Actions is not the sole verification substrate.
 
 Milestone closure additionally requires the manual cross-platform CI projection defined in §6.

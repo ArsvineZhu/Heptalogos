@@ -13,9 +13,12 @@ the repository-wide policy in `AGENTS.md`.
    or an explicit user request.
 5. When implementation is complete and local gates are green, mark the PR
    Ready.
-6. Stop and obtain independent review on the exact HEAD.
-7. If review requests changes, commit them, rerun local gates, and obtain a
-   new independent review.
+6. Freeze the exact `(base_sha, head_sha)` pair, hand the candidate off for
+   external out-of-band independent review, and wait for the user/operator to
+   supply `PASS` or `REQUEST_CHANGES` for that pair. Do not query GitHub review
+   state as a surrogate for this gate.
+7. If the supplied review result is `REQUEST_CHANGES`, commit the corrections,
+   rerun local gates, freeze a new pair, and obtain a new external review.
 8. After review PASS, manually dispatch final CI with
    `--ref=<reviewed head branch>` plus `base_sha=<reviewed base>` and
    `target_sha=<reviewed HEAD>`.
