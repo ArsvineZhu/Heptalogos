@@ -138,6 +138,15 @@ telemetry:
   traceFlags?
 ```
 
+`ContinuityEpochId` is a bootstrap/recovery-visible timeline identity, not a
+Boot identity or an Authority credential. Bootstrap Closure establishes the
+expected epoch before normal lineage is exposed; canonical PostgreSQL must
+materialize and verify the same ID. Ordinary restart changes `BootId` and
+`HostOwnershipToken` but preserves the epoch. A destructive restore records a
+new epoch and the resulting lineage must make that discontinuity explicit.
+An epoch mismatch outside the authorized restore materialization window blocks
+normal runtime and cannot be repaired by choosing one side implicitly.
+
 进程内异步传播优先使用 Node `AsyncLocalStorage` 与 OpenTelemetry Context mechanics；业务代码不得自行建立第二套 thread-local/context stack。
 
 跨进程、跨 durable wait、跨 WorkItem/DBOS、跨重启传播时，只依赖显式、versioned `LineageContextRef`；不能依赖进程内 AsyncLocalStorage。

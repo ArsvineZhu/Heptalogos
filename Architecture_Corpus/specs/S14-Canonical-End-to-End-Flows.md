@@ -11,9 +11,11 @@ stable Bootstrap Closure
 → start Early Observability / BootstrapJournal
 → initialize/start PrivatePostgresProfile
 → acquire authoritative PostgreSQL Host lease
-→ ensure minimal HostOwnershipFence schema exists under bootstrap+lease ownership
-→ publish new HostOwnershipToken
-→ run required product/DBOS migrations under migration authority
+→ establish/validate HostOwnershipFence under bootstrap+lease ownership
+→ publish fresh HostOwnershipToken
+→ ensure expected ContinuityEpochId exists in committed BootstrapState
+→ run canonical migrations under distinct migration authority
+→ materialize and verify the same ContinuityEpochId in canonical PostgreSQL
 → initialize canonical System state
 → FIRST_RUN_SETUP
 → generate one-shot local admin claim secret; persist only digest/state/expiry canonically
@@ -24,7 +26,8 @@ stable Bootstrap Closure
 → crash after commit but before file delete still cannot replay claim
 → Management READY
 → SubjectDesiredState = STOPPED
-→ release bootstrap lock after Host lease/canonical ownership established
+→ only then release bootstrap ownership
+→ return normal managed Host only after canonical initialization succeeds
 ```
 
 不存在 default password、remote unauthenticated onboarding 或 GUI dependency。
@@ -40,6 +43,7 @@ Bootstrap Closure
 → private PG
 → Host lease
 → publish new HostOwnershipToken under HostOwnershipFence
+→ load and verify the same committed ContinuityEpochId
 → normal ExecutionLineage handoff
 → runtime reconcile
 → Management
