@@ -60,6 +60,7 @@ const restrictedImports = new Map([
       "packages/canonical-schema/",
       "packages/bootstrap-runtime/src/host-maintenance.integration.test.ts",
       "packages/bootstrap-runtime/src/bootstrap-recovery.integration.test.ts",
+      "packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts",
     ],
   ],
   ["kysely", ["packages/persistence/", "packages/canonical-schema/"]],

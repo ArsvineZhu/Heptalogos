@@ -22,6 +22,9 @@
     },
     {
       "path": "../host-ownership"
+    },
+    {
+      "path": "../canonical-schema"
     }
   ]
 }
