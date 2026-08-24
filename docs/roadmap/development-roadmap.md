@@ -185,11 +185,12 @@ Instances create one epoch under Bootstrap Closure before normal runtime,
 ordinary restart/crash retry reuses the committed value, and destructive
 restore/rollback rotates it inside the bootstrap-owned recovery window. H2A-2
 is locally implementation-complete at behavior candidate
-`5a5c221af967a224b4585e644dfa18b2f476ed62`, establishing canonical
+`00c03f7e635724636dc9fca56c6fc856e6b04603`, establishing canonical
 BootstrapState V1 with that required epoch, the distinct migration authority,
 the current canonical schema baseline, normal materialization/verification,
 and canonical admission on full bootstrap, maintenance restart, and
-interrupted-maintenance recovery.
+interrupted-maintenance recovery, including the post-bootstrap-release Host
+liveness proof.
 Local `pnpm verify` is `PASS`. Windows PostgreSQL 18.6 C1-C9 evidence is
 `PASS` (9 scenarios; 8 Vitest cases because C4/C5 are parameterized), and the
 persistence/Host ownership/bootstrap-runtime regression integrations are

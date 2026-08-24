@@ -2372,6 +2372,35 @@ review returns `PASS` for the new `(base_sha, head_sha)` pair.
 
 ---
 
+## Review correction cycle 2 (2026-08-24)
+
+The next external review covered exact pair
+`b306975bba3592a0d8c2e2e6d1649f2523af27bc` →
+`20082b28f31408beb7ed7aa573417bffb4bd2912` and returned
+`REQUEST_CHANGES` with one P1 post-bootstrap-release Host liveness blocker and
+one P2 recovery epoch projection issue:
+
+- [x] Assert the reacquired Host lease after bootstrap ownership release and
+  before completion/checkpoint/managed Host exposure in both maintenance
+  restart and interrupted recovery.
+- [x] Keep the durable recovery position at `BOOTSTRAP_RELEASE_ARMED` when the
+  post-release Host proof fails; do not report `RESTARTED` or successful
+  completion, and terminalize/close the provisional Host.
+- [x] Pass `admission.continuityEpochId` into the recovered managed Host so the
+  just-verified CURRENT epoch is the returned Host projection.
+- [x] Add release-close fault-injection regressions for both reacquisition
+  paths and a reload-epoch projection regression.
+- [x] Rerun the full local gates and Windows PostgreSQL 18.6 bootstrap-runtime
+  integration.
+
+The corrected behavior candidate is
+`00c03f7e635724636dc9fca56c6fc856e6b04603`; the next evidence-only commit
+updates current qualification and roadmap records without changing production
+behavior. A new independent review for the resulting exact pair is required;
+final CI and squash merge remain forbidden until it returns `PASS`.
+
+---
+
 # Task 13 — Final CI and squash merge only after external review PASS
 
 Execute only after the user/operator explicitly reports:
