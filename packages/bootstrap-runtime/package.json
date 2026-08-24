@@ -22,6 +22,7 @@
     "xstate": "catalog:"
   },
   "devDependencies": {
+    "@heptalogos/canonical-schema": "workspace:*",
     "@types/pg": "catalog:",
     "@types/pidusage": "catalog:",
     "pg": "catalog:",

@@ -31,6 +31,10 @@ const builtins = new Set([
 
 const restrictedImports = new Map([
   [
+    "@heptalogos/canonical-schema",
+    ["packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts"],
+  ],
+  [
     "@heptalogos/bootstrap-state",
     ["packages/bootstrap-runtime/", "packages/bootstrap-state/"],
   ],
@@ -53,11 +57,12 @@ const restrictedImports = new Map([
     [
       "packages/host-ownership/",
       "packages/persistence/",
+      "packages/canonical-schema/",
       "packages/bootstrap-runtime/src/host-maintenance.integration.test.ts",
       "packages/bootstrap-runtime/src/bootstrap-recovery.integration.test.ts",
     ],
   ],
-  ["kysely", ["packages/persistence/"]],
+  ["kysely", ["packages/persistence/", "packages/canonical-schema/"]],
 ]);
 
 const hostOwnershipSourcePrefix = "packages/host-ownership/src/";
@@ -113,6 +118,22 @@ const persistenceMechanicsPattern =
 if (persistenceMechanicsPattern.test(persistencePublicSource)) {
   errors.push(
     "packages/persistence/src/index.ts: concrete pg/Kysely mechanics must not leak through the persistence package root",
+  );
+}
+
+const canonicalSchemaPublicSourcePath = resolve(
+  root,
+  "packages/canonical-schema/src/index.ts",
+);
+const canonicalSchemaPublicSource = readFileSync(
+  canonicalSchemaPublicSourcePath,
+  "utf8",
+);
+const canonicalSchemaMechanicsPattern =
+  /\b(?:Pool|PoolClient|Client|Kysely|PostgresDialect|Migrator|MigrationProvider)\b/u;
+if (canonicalSchemaMechanicsPattern.test(canonicalSchemaPublicSource)) {
+  errors.push(
+    "packages/canonical-schema/src/index.ts: concrete pg/Kysely migration mechanics must not leak through the canonical-schema package root",
   );
 }
 for (const match of persistencePublicSource.matchAll(
