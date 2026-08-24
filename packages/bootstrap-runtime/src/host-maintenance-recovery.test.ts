@@ -26,6 +26,7 @@ import {
 import type { BootstrapLocatorV1 } from "./locator.js";
 import type { PrivatePostgresMaintenanceDescriptor } from "./private-postgres-bootstrap.js";
 import type { BootstrapOwnershipLease } from "./bootstrap-ownership.js";
+import type { HostMaintenanceRecoveryOptions } from "./host-maintenance-recovery.js";
 
 const mocks = vi.hoisted(() => ({
   inspectRecovery: vi.fn(),
@@ -465,11 +466,13 @@ function configure(
 function options(
   fixture: Awaited<ReturnType<typeof makeFixture>>,
   createHostToken?: () => HostOwnershipToken,
+  initializeCanonicalHost: HostMaintenanceRecoveryOptions["initializeCanonicalHost"] = async () =>
+    undefined,
 ) {
   return {
     anchorRoot: fixture.anchorRoot,
     principal: {} as never,
-    initializeCanonicalHost: async () => undefined,
+    initializeCanonicalHost,
     keyProvider: {
       async withPrivatePostgresBootstrapPassword<T>(
         _context: unknown,
@@ -667,6 +670,67 @@ describe("fixed M5B host-maintenance recovery", () => {
     expect(mocks.publish).toHaveBeenCalledOnce();
     expect(configured.trace).toContain("fence.publish");
     expect(configured.lease.state).toBe("RELEASED");
+  });
+
+  it("initializes the canonical Host before arming release during interrupted restart recovery", async () => {
+    const fixture = await makeFixture();
+    const configured = configure(
+      fixture,
+      "POSTGRES_STOPPED",
+      "PRIVATE_POSTGRES_RESTART",
+      "STOPPED",
+      null,
+    );
+    const initializeCanonicalHost = vi.fn(
+      async ({
+        authority,
+      }: Parameters<HostMaintenanceRecoveryOptions["initializeCanonicalHost"]>[0]) => {
+        configured.trace.push("canonical.initialize");
+        authority.assertCurrent();
+      },
+    );
+
+    const result = await recoverInterruptedHostMaintenance(
+      options(fixture, undefined, initializeCanonicalHost),
+    );
+
+    expect(result.kind).toBe("RESTARTED");
+    expect(initializeCanonicalHost).toHaveBeenCalledOnce();
+    const publishIndex = configured.trace.indexOf("fence.publish");
+    const initializeIndex = configured.trace.indexOf("canonical.initialize");
+    const armIndex = configured.trace.indexOf(
+      "journal.advance:BOOTSTRAP_RELEASE_ARMED",
+    );
+    expect(publishIndex).toBeGreaterThanOrEqual(0);
+    expect(initializeIndex).toBeGreaterThan(publishIndex);
+    expect(armIndex).toBeGreaterThan(initializeIndex);
+    expect(configured.lease.state).toBe("RELEASED");
+  });
+
+  it("closes the reacquired Host lease and journals recovery when canonical admission fails", async () => {
+    const fixture = await makeFixture();
+    const configured = configure(
+      fixture,
+      "POSTGRES_STOPPED",
+      "PRIVATE_POSTGRES_RESTART",
+      "STOPPED",
+      null,
+    );
+    const initializeCanonicalHost = vi.fn(async () => {
+      throw new Error("canonical initialization failed");
+    });
+
+    await expect(
+      recoverInterruptedHostMaintenance(
+        options(fixture, undefined, initializeCanonicalHost),
+      ),
+    ).rejects.toThrow("canonical initialization failed");
+
+    expect(configured.lease.state).toBe("HELD");
+    expect(configured.trace).toContain("host-lease.close");
+    expect(configured.advancedBodies.at(-1)?.lastCompletedStage).toBe(
+      "RECOVERY_REQUIRED",
+    );
   });
 
   it("arms the fresh token before publication and preserves source BootId in recovery revisions", async () => {

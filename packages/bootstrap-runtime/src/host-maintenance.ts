@@ -43,6 +43,7 @@ import {
   createHostMaintenanceTracker,
   type HostMaintenanceEvent,
 } from "./host-maintenance-machine.js";
+import { admitCanonicalHost } from "./canonical-host-admission.js";
 import type {
   BootstrapManagedHostContext,
   HostMaintenanceQuiescence,
@@ -524,6 +525,30 @@ export function createRestartPrivatePostgresEnteredWindowExecutor(
           hostBootId: freshBootId,
           hostOwnershipRevision: publication.publishedRevision,
         },
+      });
+      const activeLeaseConnection = leaseConnection;
+      if (activeLeaseConnection === undefined) {
+        throw maintenanceProblem(
+          "bootstrap.maintenance.host_lease_required",
+          "A fresh Host lease is required for canonical admission",
+          "Maintenance restart cannot expose a managed Host without the newly acquired Host lease",
+        );
+      }
+      await admitCanonicalHost({
+        installationId: provenance.bootstrap.installationId,
+        instanceId: provenance.bootstrap.instanceId,
+        bootId: freshBootId,
+        token,
+        port: provenance.privatePostgres.expectedIdentity.persistedPort,
+        bootstrapOwnership: window.lease,
+        hostLeaseConnection: activeLeaseConnection,
+        keyProvider: provenance.handoff.keyProvider,
+        loadCurrentContinuityEpochId: async () => {
+          const currentState = stateBody(await window.access.state.load());
+          assertPrivatePostgresIdentity(currentState.state, provenance.privatePostgres);
+          return currentState.state.continuityEpochId;
+        },
+        initializeCanonicalHost: provenance.handoff.initializeCanonicalHost,
       });
       await window.advance("BOOTSTRAP_RELEASE_ARMED", {
         terminalOutcome: "SUCCEEDED",

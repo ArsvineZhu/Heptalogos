@@ -649,10 +649,15 @@ export async function inspectHostOwnershipCanonicalSnapshot(
 SELECT rolname, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole,
        rolreplication, rolbypassrls, rolconnlimit, rolinherit
 FROM pg_catalog.pg_roles
-WHERE rolname IN ($1, $2, $3)
+WHERE rolname IN ($1, $2, $3, $4)
 ORDER BY rolname
 `,
-        [HOST_OWNERSHIP_OWNER_ROLE, HOST_LEASE_ROLE, HOST_RUNTIME_ROLE],
+        [
+          HOST_OWNERSHIP_OWNER_ROLE,
+          HOST_LEASE_ROLE,
+          HOST_RUNTIME_ROLE,
+          HOST_MIGRATION_ROLE,
+        ],
       );
       const database = await admin.query<
         HostOwnershipCanonicalSnapshot["database"][number]

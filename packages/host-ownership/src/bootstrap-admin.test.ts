@@ -10,6 +10,7 @@ import {
   type BootstrapAdminClient,
   type BootstrapAdminClientFactory,
   inspectCanonicalHostDatabase,
+  inspectHostOwnershipCanonicalSnapshot,
   type BootstrapAdminProvisioningOptions,
   provisionHostOwnershipDatabase,
 } from "./bootstrap-admin.js";
@@ -156,12 +157,21 @@ class FakeClient implements BootstrapAdminClient {
       normalized.includes("FROM pg_catalog.pg_roles") ||
       normalized.includes("FROM pg_catalog.pg_authid")
     ) {
-      const role = this.state.roles.get(String(values[0]));
-      return { rows: role === undefined ? [] : [role as Row] };
+      const roles = values
+        .map((value) => this.state.roles.get(String(value)))
+        .filter((role): role is RoleRow => role !== undefined);
+      return { rows: roles as Row[] };
     }
     if (normalized.includes("FROM pg_catalog.pg_database")) {
       const database = this.state.databases.get(String(values[0]));
       return { rows: database === undefined ? [] : [database as Row] };
+    }
+    if (
+      normalized.includes("FROM pg_catalog.pg_namespace") ||
+      normalized.includes("FROM pg_catalog.pg_class") ||
+      normalized.includes('FROM "heptalogos"."host_ownership_fence"')
+    ) {
+      return { rows: [] };
     }
     if (normalized.startsWith("CREATE ROLE")) {
       const host = normalized.includes(`\"${HOST_LEASE_ROLE}\"`);
@@ -658,5 +668,34 @@ describe("bootstrap host ownership database provisioning", () => {
         clientFactory: present.options.clientFactory,
       }),
     ).resolves.toMatchObject({ exists: true, database: exactDatabase() });
+  });
+
+  it("includes the migration principal in the canonical ownership snapshot", async () => {
+    const fixture = makeFixture(exactProvisionedState());
+
+    const snapshot = await inspectHostOwnershipCanonicalSnapshot({
+      port: fixture.options.port,
+      passwordProvider: fixture.options.passwordProvider,
+      clientFactory: fixture.options.clientFactory,
+    });
+
+    expect(snapshot.roles.map((role) => role.rolname).sort()).toEqual(
+      [
+        HOST_LEASE_ROLE,
+        HOST_MIGRATION_ROLE,
+        HOST_OWNERSHIP_OWNER_ROLE,
+        HOST_RUNTIME_ROLE,
+      ].sort(),
+    );
+    const roleQuery = fixture.client.calls.find((call) =>
+      call.text.includes("FROM pg_catalog.pg_roles"),
+    );
+    expect(roleQuery?.text).toContain("rolname IN ($1, $2, $3, $4)");
+    expect(roleQuery?.values).toEqual([
+      HOST_OWNERSHIP_OWNER_ROLE,
+      HOST_LEASE_ROLE,
+      HOST_RUNTIME_ROLE,
+      HOST_MIGRATION_ROLE,
+    ]);
   });
 });

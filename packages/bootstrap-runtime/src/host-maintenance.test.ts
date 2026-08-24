@@ -145,6 +145,7 @@ function makeFixture(): {
   readonly descriptor: PrivatePostgresMaintenanceDescriptor;
   readonly freshLease: BootstrapOwnershipLease;
   readonly state: BootstrapStateEnvelopeV1;
+  readonly access: unknown;
   readonly trace: string[];
   readonly setFailJournalStage: (stage: MaintenanceStage | undefined) => void;
   readonly setDelayJournalStage: (stage: MaintenanceStage | undefined) => void;
@@ -403,6 +404,7 @@ function makeFixture(): {
     descriptor,
     freshLease,
     state,
+    access,
     trace,
     setFailJournalStage(stage) {
       failJournalStage = stage;
@@ -462,7 +464,7 @@ describe("reverse-handoff maintenance preparation and entry", () => {
       operationId: "01a0289d-3af4-734a-bf68-f6dedf9fd50b" as never,
       request: { kind: "STOP_PRIVATE_POSTGRES" as const },
       lease: fixture.freshLease,
-      access: {} as never,
+      access: fixture.access as never,
       journal: {} as MaintenanceJournalBodyV1,
       async advance(stage: string) {
         fixture.trace.push(`entered.advance:${stage}`);
@@ -959,10 +961,18 @@ describe("reverse-handoff maintenance preparation and entry", () => {
       },
     );
     const createManagedHost = vi.fn(() => managedHost);
+    const initializeCanonicalHost = vi.fn(
+      async ({
+        authority,
+      }: Parameters<HostOwnershipHandoffOptions["initializeCanonicalHost"]>[0]) => {
+        fixture.trace.push("canonical.initialize");
+        authority.assertCurrent();
+      },
+    );
     const provenance = {
       host: fixture.rawHost,
       bootstrap: fixture.context,
-      handoff: fixture.handoff,
+      handoff: { ...fixture.handoff, initializeCanonicalHost },
       privatePostgres: fixture.descriptor,
       createHostToken: createHostOwnershipToken,
       createHostContext,
@@ -998,7 +1008,7 @@ describe("reverse-handoff maintenance preparation and entry", () => {
       operationId: journal.operationId,
       request: { kind: "RESTART_PRIVATE_POSTGRES" as const },
       lease: fixture.freshLease,
-      access: {} as never,
+      access: fixture.access as never,
       get journal() {
         return journal;
       },
@@ -1044,6 +1054,8 @@ describe("reverse-handoff maintenance preparation and entry", () => {
       "entered.advance:HOST_LEASE_ACQUIRED",
       "new-host.publish",
       "entered.advance:HOST_TOKEN_PUBLISHED",
+      "state.load",
+      "canonical.initialize",
       "entered.advance:BOOTSTRAP_RELEASE_ARMED",
       "bootstrap.release",
       "entered.complete",

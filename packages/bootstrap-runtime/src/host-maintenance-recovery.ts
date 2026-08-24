@@ -55,6 +55,7 @@ import {
   type HostMaintenanceBootstrapContext,
   type HostMaintenanceOperationProvenance,
 } from "./host-maintenance.js";
+import { admitCanonicalHost } from "./canonical-host-admission.js";
 import type { HostOwnershipHandoffOptions } from "./host-ownership-handoff.js";
 import { createFreshHostOwnershipToken } from "./host-ownership-handoff.js";
 import { loadBootstrapLocator } from "./locator.js";
@@ -1039,6 +1040,33 @@ export async function recoverInterruptedHostMaintenance(
     if (!hasReached(progress, "HOST_TOKEN_PUBLISHED")) {
       await advance("HOST_TOKEN_PUBLISHED", { target });
     }
+    const activeHostLeaseConnection = hostLeaseConnection;
+    if (activeHostLeaseConnection === undefined) {
+      throw recoveryProblem(
+        "bootstrap.recovery.host_lease_required",
+        "A fresh Host lease is required for canonical admission",
+        "Interrupted maintenance recovery cannot expose a managed Host without the recovered Host lease",
+      );
+    }
+    await admitCanonicalHost({
+      installationId: locator.installationId,
+      instanceId: locator.instanceId,
+      bootId: publicationBootId,
+      token: freshToken,
+      port: options.privatePostgres.expectedIdentity.persistedPort,
+      bootstrapOwnership: lease,
+      hostLeaseConnection: activeHostLeaseConnection,
+      keyProvider: options.keyProvider,
+      loadCurrentContinuityEpochId: async () => {
+        const currentState = requireBootstrapState(
+          await access.state.load(),
+          profile,
+          options.privatePostgres,
+        );
+        return currentState.state.continuityEpochId;
+      },
+      initializeCanonicalHost: options.initializeCanonicalHost,
+    });
     if (!hasReached(progress, "BOOTSTRAP_RELEASE_ARMED")) {
       await advance("BOOTSTRAP_RELEASE_ARMED", {
         target,

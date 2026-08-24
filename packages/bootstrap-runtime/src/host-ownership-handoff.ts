@@ -10,15 +10,14 @@ import {
   deriveHostAdvisoryKey,
   ensureHostOwnershipSchema,
   HOST_OWNERSHIP_CANONICAL_DATABASE,
-  HOST_MIGRATION_ROLE,
   HOST_RUNTIME_ROLE,
   inspectCanonicalHostDatabase,
   provisionHostOwnershipDatabase,
   publishHostOwnershipToken,
   type BootstrapAdminPasswordProvider,
   type BootstrapMutationAuthority,
-  type HostOwnershipContext,
   type HostCanonicalMigrationAuthority,
+  type HostOwnershipContext,
   type HostOwnershipState,
   type HostOwnershipTimingOptions,
 } from "@heptalogos/host-ownership";
@@ -42,6 +41,7 @@ import {
   markManagedHostTerminal,
   type BootstrapManagedHostContext,
 } from "./managed-host.js";
+import { admitCanonicalHost } from "./canonical-host-admission.js";
 import {
   createHostMaintenanceOperations,
   createRestartPrivatePostgresEnteredWindowExecutor,
@@ -410,14 +410,6 @@ async function handoffPrivatePostgresToHostForOwnedPreludeInternal(
     context.assertOwnership();
     await recordStage(context, STAGE_TOKEN_PUBLISHED, "SUCCEEDED");
 
-    const currentState = await context.state.load();
-    if (currentState.status !== "CURRENT") {
-      throw currentBootstrapStateRequiredProblem();
-    }
-    continuityEpochId = currentState.value.state.continuityEpochId;
-    context.assertOwnership();
-    await recordStage(context, STAGE_STATE_AUTHORITATIVE_RELOADED, "SUCCEEDED");
-
     const activeLeaseConnection = leaseConnection;
     const activeToken = token;
     if (activeLeaseConnection === undefined || activeToken === undefined) {
@@ -428,52 +420,32 @@ async function handoffPrivatePostgresToHostForOwnedPreludeInternal(
         "integrity",
       );
     }
-    const assertMigrationCurrent = (): void => {
-      context.assertOwnership();
-      activeLeaseConnection.assertActive();
-    };
-    const migrationAuthority: HostCanonicalMigrationAuthority = Object.freeze({
+    const admission = await admitCanonicalHost({
       installationId: context.installationId,
       instanceId: context.instanceId,
       bootId: context.bootId,
       token: activeToken,
-      continuityEpochId,
-      target: {
-        host: "127.0.0.1" as const,
-        port: ready.port,
-        database: HOST_OWNERSHIP_CANONICAL_DATABASE,
-        user: HOST_MIGRATION_ROLE,
+      port: ready.port,
+      bootstrapOwnership: context.ownership,
+      hostLeaseConnection: activeLeaseConnection,
+      keyProvider: options.keyProvider,
+      loadCurrentContinuityEpochId: async () => {
+        const currentState = await context.state.load();
+        if (currentState.status !== "CURRENT") {
+          throw currentBootstrapStateRequiredProblem();
+        }
+        continuityEpochId = currentState.value.state.continuityEpochId;
+        context.assertOwnership();
+        await recordStage(context, STAGE_STATE_AUTHORITATIVE_RELOADED, "SUCCEEDED");
+        return continuityEpochId;
       },
-      signal: activeLeaseConnection.signal,
-      assertCurrent: assertMigrationCurrent,
-      async withMigrationDatabasePassword<T>(
-        use: (passwordUtf8: Uint8Array) => Promise<T>,
-      ): Promise<T> {
-        assertMigrationCurrent();
-        return options.keyProvider.withPrivatePostgresMigrationPassword(
-          {
-            installationId: context.installationId,
-            instanceId: context.instanceId,
-            bootId: context.bootId,
-            purpose: "private-postgres-migration-role",
-          },
-          async (passwordUtf8) => {
-            assertMigrationCurrent();
-            const result = await use(passwordUtf8);
-            assertMigrationCurrent();
-            return result;
-          },
-        );
+      initializeCanonicalHost: async (initialization) => {
+        canonicalInitializationStarted = true;
+        await recordStage(context, STAGE_CANONICAL_INITIALIZATION_STARTED, "STARTED");
+        await options.initializeCanonicalHost(initialization);
       },
     });
-
-    canonicalInitializationStarted = true;
-    await recordStage(context, STAGE_CANONICAL_INITIALIZATION_STARTED, "STARTED");
-    await options.initializeCanonicalHost({
-      authority: migrationAuthority,
-      expectedContinuityEpochId: continuityEpochId,
-    });
-    migrationAuthority.assertCurrent();
+    continuityEpochId = admission.continuityEpochId;
     canonicalInitializationSucceeded = true;
     await recordStage(context, STAGE_CANONICAL_INITIALIZATION_SUCCEEDED, "SUCCEEDED");
 
@@ -612,7 +584,7 @@ export async function handoffPrivatePostgresToManagedHostForOwnedPrelude(
             {
               installationId: context.installationId,
               instanceId: context.instanceId,
-              bootId: raw.bootId,
+              bootId: host.bootId,
               purpose: "private-postgres-runtime-role",
             },
             use,
