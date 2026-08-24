@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-25T03:41:12+08:00",
+  "recordedAt": "2026-08-25T05:13:13+08:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": [
@@ -49,24 +49,60 @@
     },
     {
       "qualificationId": "Q-RUNTIME-01",
-      "testedProperty": "Cordis lifecycle cleanup, disposer behavior, scope/generation isolation, and thin RuntimeSubstrate adapter fit",
+    "testedProperty": "H2B thin Cordis RuntimeSubstrate public-package lifecycle/resource conformance",
       "evidenceStatus": "PASS",
-      "qualificationState": "OPEN",
+    "qualificationState": "PARTIAL",
       "evidence": {
         "P1_dependency_lifecycle": "PASS",
         "P2_partial_activation_failure": "PASS",
         "P3_disposer_failure": "PASS",
         "P4_scope_generation_isolation": "PASS",
-        "L2_adapter_fit": "PASS"
+      "L2_adapter_fit": "PASS",
+      "exact_cordis_version": "PASS",
+      "exact_graphlib_catalog_pin": "PASS",
+      "cordis_ts7_public_declaration_resolution": "PASS",
+      "cordis_plugin_fiber_conformance": "PASS",
+      "partial_activation_cleanup": "PASS",
+      "sibling_parent_isolation": "PASS",
+      "reentrant_dispose": "PASS",
+      "background_failure_observation": "PASS",
+      "disposer_failure_observation": "PASS",
+      "settlement_timeout": "PASS",
+      "abort_before_disposal": "PASS",
+      "reverse_close_order": "PASS",
+      "runtime_substrate_unit": "PASS",
+      "runtime_substrate_typecheck": "PASS",
+      "runtime_substrate_lint": "PASS",
+      "runtime_substrate_build": "PASS",
+      "dependency_boundary_gate": "PASS",
+      "repository_verification": "PASS",
+      "real_postgres_runtime_composition": "NOT_RUN",
+      "source_less_shipping": "NOT_RUN",
+      "service_headless": "NOT_RUN",
+      "cross_platform_ci": "NOT_RUN",
+      "independent_review": "NOT_RUN",
+      "squash_merge": "NOT_RUN"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
-      "evidenceSource": {
-        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
-      },
-      "notRunReasons": {
-        "product_runtime_start_stop": "Pilot remains synthetic L1/L2; no complete RuntimeSubstrate or product runtime is implemented."
-      },
+    "evidenceSource": {
+      "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane",
+      "h2bBehaviorCandidateSha": "ec349a5",
+      "exactCordis": "4.0.0-rc.8",
+      "exactGraphlibCatalogPin": "4.0.5",
+      "runtimeSubstrateUnit": "11/11 PASS",
+      "runtimeSubstrateVerification": "pnpm verify PASS",
+      "cordisDeclarationResolution": "Package-local moduleResolution Bundler required for Cordis extensionless declaration imports; skipLibCheck remains false"
+    },
+    "notRunReasons": {
+      "product_runtime_start_stop": "H2B RuntimeKernel/Supervisor composition is not implemented yet.",
+      "real_postgres_runtime_composition": "Task 5 is not run yet.",
+      "source_less_shipping": "Source-less product closure is deferred until H2B implementation completion.",
+      "service_headless": "Installed service/headless runtime is not run yet.",
+      "cross_platform_ci": "Final exact-pair CI is deferred until the H2 implementation candidate is complete by explicit operator direction.",
+      "independent_review": "H2B exact-pair independent review is not run yet.",
+      "squash_merge": "H2B PR is still in development."
+    },
       "preImplementationDecisionState": "CLOSED",
       "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification unless explicitly promoted by a future blocker."
     },
