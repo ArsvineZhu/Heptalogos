@@ -66,6 +66,15 @@ const restrictedImports = new Map([
       "packages/execution-lineage/src/execution-context-runtime.test.ts",
     ],
   ],
+  ["cordis", ["packages/runtime-substrate/"]],
+  [
+    "@dagrejs/graphlib",
+    [
+      "packages/runtime-kernel/src/runtime-graph.ts",
+      "packages/runtime-kernel/src/runtime-graph.test.ts",
+    ],
+  ],
+  ["@heptalogos/execution-lineage/runtime-kernel", ["packages/runtime-kernel/"]],
   [
     "@heptalogos/bootstrap-state",
     ["packages/bootstrap-runtime/", "packages/bootstrap-state/"],
@@ -347,6 +356,17 @@ const sourcePaths = collect(root, (sourcePath) => /\.(?:ts|tsx)$/u.test(sourcePa
 for (const path of sourcePaths) {
   const relativePath = relative(root, path).replaceAll("\\", "/");
   const source = readFileSync(path, "utf8");
+  if (relativePath.startsWith("packages/runtime-substrate/")) {
+    if (
+      /(?:from|import\s*\(|require\s*\()(?:\s*["'])(?:@heptalogos\/(?:persistence|execution-lineage)|\.\.\/)/u.test(
+        source,
+      )
+    ) {
+      errors.push(
+        `${relativePath}: runtime-substrate must not depend on PersistenceService or execution-lineage`,
+      );
+    }
+  }
   if (relativePath.startsWith(hostOwnershipSourcePrefix)) {
     for (const forbidden of ["Kysely", "DBOS", "PersistenceService"]) {
       if (new RegExp(`\\b${forbidden}\\b`, "u").test(source)) {

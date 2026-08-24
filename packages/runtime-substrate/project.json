@@ -1,0 +1,18 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "runtime-substrate",
+  "projectType": "library",
+  "sourceRoot": "packages/runtime-substrate/src",
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "eslint packages/runtime-substrate" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run --root packages/runtime-substrate"
+      }
+    }
+  }
+}
