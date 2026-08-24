@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use the repository’s Heptalogos architecture/runtime/verification skills first, then execute this plan task-by-task with TDD. Do not reinterpret milestone boundaries during implementation. Do not query GitHub review objects to discover Independent Review; the user/operator supplies that external out-of-band result for the exact candidate pair.
 
-**State:** `COMPLETED` for local implementation/evidence; external review, final CI, and merge remain `NOT_RUN`  
+**State:** `COMPLETED` for local implementation/evidence; external review, final CI, and merge remain `NOT_RUN`
 **Baseline:** `master@b306975bba3592a0d8c2e2e6d1649f2523af27bc`  
 **Target branch:** `dev/h2a2-canonical-schema-continuity-authority`  
 **Integration unit:** one branch → one Draft PR → local qualification → external independent review on exact pair → manual exact-pair final CI → squash merge  
