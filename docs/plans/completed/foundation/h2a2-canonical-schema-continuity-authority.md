@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use the repository’s Heptalogos architecture/runtime/verification skills first, then execute this plan task-by-task with TDD. Do not reinterpret milestone boundaries during implementation. Do not query GitHub review objects to discover Independent Review; the user/operator supplies that external out-of-band result for the exact candidate pair.
 
-**State:** `COMPLETED` for local implementation/evidence; external review, final CI, and merge remain `NOT_RUN`
+**State:** `COMPLETED`; local implementation/evidence, external review, final CI, and squash merge are all recorded
 **Baseline:** `master@b306975bba3592a0d8c2e2e6d1649f2523af27bc`  
 **Target branch:** `dev/h2a2-canonical-schema-continuity-authority`  
 **Integration unit:** one branch → one Draft PR → local qualification → external independent review on exact pair → manual exact-pair final CI → squash merge  
@@ -2450,6 +2450,27 @@ Then squash merge.
 
 After merge, if review/CI/merge truth must be written into the repository, use a separate docs/evidence-only reconciliation PR. Do not modify the merged H2A-2 behavior candidate.
 
+## Post-merge truth reconciliation (2026-08-24)
+
+This separate docs/evidence-only reconciliation records the closure tuple for
+the immutable H2A-2 behavior candidate:
+
+```yaml
+reviewed_base: b306975bba3592a0d8c2e2e6d1649f2523af27bc
+reviewed_head: 2b492ef69131cc9792babb094ec2be33b13a9c69
+independent_review: PASS
+final_ci_run: 32731811379
+final_ci_ubuntu: PASS
+final_ci_macos: PASS
+final_ci_windows: PASS
+squash_merge: PASS
+squash_merge_sha: 2c8a68c7e76884d75fb3314ff18b1806a0625b3d
+```
+
+No production code, tests, workflow, or behavior contract is changed by this
+reconciliation. Linux/macOS real PostgreSQL, source-less, and service/headless
+qualification remain `NOT_RUN`.
+
 ---
 
 # Acceptance criteria
@@ -2478,7 +2499,10 @@ H2A-2 is locally implementation-complete only when all of the following are true
 20. Existing H2A-1 persistence/Host ownership/bootstrap-runtime regressions remain PASS.
 21. `pnpm verify` PASS at the final candidate.
 22. Real-PG evidence is reported only for the platform actually run.
-23. External Independent Review, final CI, and merge remain `NOT_RUN` until they actually happen.
+23. The external closure tuple occurred for the exact reviewed candidate:
+    independent review `PASS`, final CI `PASS` on Ubuntu/macOS/Windows, and
+    squash merge `PASS`; deferred Linux/macOS real PostgreSQL, source-less,
+    and service/headless qualification remain `NOT_RUN`.
 
 ---
 

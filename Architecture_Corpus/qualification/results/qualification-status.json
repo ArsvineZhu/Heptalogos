@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-24T04:17:05+08:00",
+  "recordedAt": "2026-08-24T21:23:44+08:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": [
@@ -531,9 +531,9 @@
         "h2a2_real_postgres_macos": "NOT_RUN",
         "h2a2_source_less": "NOT_RUN",
         "h2a2_service_headless": "NOT_RUN",
-        "h2a2_independent_review": "NOT_RUN",
-        "h2a2_final_cross_platform_ci": "NOT_RUN",
-        "h2a2_squash_merge": "NOT_RUN"
+        "h2a2_independent_review": "PASS",
+        "h2a2_final_cross_platform_ci": "PASS",
+        "h2a2_squash_merge": "PASS"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
@@ -559,11 +559,17 @@
         "staticGates": "pnpm check:dependencies, pnpm check:boundaries, pnpm typecheck, pnpm tsc6 PASS",
         "repositoryVerification": "pnpm verify PASS",
         "finalRealPostgresRerun": "persistence 8/8, host-ownership 9/9, bootstrap-runtime 30/30 PASS on Windows PostgreSQL 18.6",
-        "h2a2BehaviorCandidateSha": "de6c00516ae5fd604ee614a743f3cd6f95dd8e6f",
+        "h2a2BehaviorCandidateSha": "00c03f7e635724636dc9fca56c6fc856e6b04603",
+        "h2a2ReviewCandidateBaseSha": "b306975bba3592a0d8c2e2e6d1649f2523af27bc",
+        "h2a2ReviewCandidateHeadSha": "2b492ef69131cc9792babb094ec2be33b13a9c69",
+        "h2a2IndependentReview": "PASS",
+        "h2a2FinalCiRunId": "32731811379",
+        "h2a2FinalCiHeadSha": "2b492ef69131cc9792babb094ec2be33b13a9c69",
+        "h2a2SquashMergeSha": "2c8a68c7e76884d75fb3314ff18b1806a0625b3d",
         "h2a2CanonicalSchemaUnit": "3/3 PASS",
-        "h2a2BootstrapRuntimeUnit": "208 passed, 2 skipped",
+        "h2a2BootstrapRuntimeUnit": "213 passed, 2 skipped",
         "h2a2BootstrapStateUnit": "113 passed, 3 skipped",
-        "h2a2HostOwnershipUnit": "80 passed",
+        "h2a2HostOwnershipUnit": "81 passed",
         "h2a2PersistenceUnit": "13 passed",
         "h2a2C1ToC9": "9/9 scenarios PASS; 8 Vitest cases because C4/C5 are parameterized",
         "h2a2PersistenceIntegration": "8/8 PASS",
@@ -581,9 +587,7 @@
         "h2a2_real_postgres_linux_macos": "No Linux or macOS PostgreSQL 18.6 runtime was executed on this Windows host.",
         "h2a2_source_less": "The H2A-2 qualification used an extracted Windows PostgreSQL toolchain, not a source-less shipping artifact.",
         "h2a2_service_headless": "No installed service-account/headless H2A-2 runtime was executed.",
-        "h2a2_independent_review": "Independent review for the final H2A-2 exact candidate pair has not run.",
-        "h2a2_final_cross_platform_ci": "Manual final cross-platform CI for the final H2A-2 exact candidate pair has not run.",
-        "h2a2_squash_merge": "The H2A-2 stabilization branch has not been squash-merged."
+        "h2a2_closure": "Independent review, final CI, and squash merge PASS for the exact H2A-2 closure tuple; deferred platform/product qualification remains NOT_RUN."
       }
     }
   ],
