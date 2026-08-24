@@ -64,6 +64,31 @@ H1 squash merge:
 
 `docs/plans/completed/foundation/h2a1-host-fenced-persistence-authority.md`
 
+## Post-merge truth reconciliation (2026-08-24)
+
+The implementation candidate named by the historical sections below was
+subsequently reviewed, CI-verified, and squash-merged. The following is the
+current closure record; historical milestone passages are retained as
+contemporaneous evidence and are not rewritten.
+
+```yaml
+h2a1_reviewed_pair:
+  base: 54688d2bb0da2b8516a84634459495956bd96b8c
+  head: e09f94d2a268480fea27b779c2b160fb3c5c68b5
+  independent_review: PASS
+  review_source: external_out_of_band_user_operator_feedback
+
+final_ci:
+  run_id: 32697218296
+  head: e09f94d2a268480fea27b779c2b160fb3c5c68b5
+  ubuntu: PASS
+  macos: PASS
+  windows: PASS
+
+squash_merge:
+  sha: 900a7b876ed4be7506beacead9f3285d1f4a5577
+```
+
 ---
 
 # 0. Global constraints

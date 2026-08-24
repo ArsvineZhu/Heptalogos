@@ -2,7 +2,7 @@
 
 **Status:** LIVING ROADMAP / planning guidance<br>
 **Date:** 2026-08-24<br>
-**Repository baseline:** `master@82541933bc2b5e6add0eeee711b4f36350f5d5ff` (H1 squash merge)<br>
+**Repository baseline:** `master@900a7b876ed4be7506beacead9f3285d1f4a5577` (H2A-1 squash merge)<br>
 **Architecture baseline:** `Architecture_Corpus` design state 2026-08-20
 
 > This document is a roadmap, not an Architecture Corpus authority and not an Implementation Plan. It guides future plan decomposition, sequencing, risk retirement, and acceptance. If it conflicts with the Architecture Corpus, the Corpus wins. If implementation evidence invalidates roadmap assumptions without invalidating architecture semantics, update the roadmap rather than silently changing the Corpus.
@@ -137,7 +137,10 @@ M5B: CLOSED
 H1_FUNCTIONAL: COMPLETE
 H1_STABILIZATION: CLOSED
 H1: CLOSED
-H2: ELIGIBLE
+H2A_1: CLOSED
+H2A: OPEN
+H2B: ELIGIBLE_BY_H1_BUT_IMPLEMENTATION_DEFERRED_PENDING_EXECUTION_CONTEXT_SPINE
+H2: OPEN
 ```
 
 H1 functional implementation: COMPLETE.
@@ -159,18 +162,29 @@ service-account ACL, and hardware power-loss remain product-qualification
 `NOT_RUN` items. The historical M5B review/CI/merge records below do not replace
 this current H1-S closure tuple.
 
-H2A-1 Host-Fenced Persistence Authority is implemented on branch
-`dev/h2a1-host-fenced-persistence-authority` at behavior candidate
-`55ea588e2db37b90e4672fdcd68698248da9b446`. `Q-PERSISTENCE-01` has
-`evidenceStatus: PASS` and `qualificationState: PARTIAL`: the Windows
-PostgreSQL 18.6 P1-P8 matrix, H1 ownership/bootstrap-runtime regressions,
-least-privilege runtime role, transaction lifecycle, and dependency/leakage
-gates pass. Linux/macOS PostgreSQL, source-less persistence, and installed
+H2A-1 Host-Fenced Persistence Authority is squash-merged at
+`900a7b876ed4be7506beacead9f3285d1f4a5577`. Its exact reviewed pair is
+`(54688d2bb0da2b8516a84634459495956bd96b8c,
+e09f94d2a268480fea27b779c2b160fb3c5c68b5)`, with external out-of-band user /
+operator independent review `PASS`. Final cross-platform CI run
+`32697218296` is `PASS` for Ubuntu, macOS, and Windows at the reviewed head;
+the squash merge is `PASS`. `Q-PERSISTENCE-01` keeps
+`evidenceStatus: PASS` and `qualificationState: PARTIAL`: Windows PostgreSQL
+18.6 behavior, H1 ownership/bootstrap-runtime regressions, least-privilege
+runtime role, transaction lifecycle, and dependency/leakage gates pass.
+Linux/macOS PostgreSQL, source-less persistence, and installed
 service/headless runtime claims remain `NOT_RUN`. PostgreSQL's requirement for
 `UPDATE` privilege on direct `FOR SHARE` is handled by an owner-owned
 `SECURITY DEFINER` lock function; the runtime table ACL remains without
-`UPDATE`. H2A is not closed and H2 is not closed; Schema/Time/
-ExecutionContext/minimal Lineage work remains.
+`UPDATE`. H2A and H2 remain open; Schema/Time/ExecutionContext/minimal
+Lineage work remains.
+
+The initial `ContinuityEpochId` authority is now explicit in the Corpus: new
+Instances create one epoch under Bootstrap Closure before normal runtime,
+ordinary restart/crash retry reuses the committed value, and destructive
+restore/rollback rotates it inside the bootstrap-owned recovery window. H2A-2
+must preserve this ordering while adding canonical migration/materialization;
+epoch mismatch outside that window is fail-closed.
 
 Historical milestone context:
 
