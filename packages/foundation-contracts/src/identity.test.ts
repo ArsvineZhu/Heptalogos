@@ -4,12 +4,14 @@ import { digestCanonicalJson } from "./digest.js";
 import {
   asContentDigest,
   createBootId,
+  createContinuityEpochId,
   createHostOwnershipToken,
   createInstallationId,
   createInstanceId,
   createUuidV7Id,
   parseContentDigest,
   parseBootId,
+  parseContinuityEpochId,
   parseHostOwnershipToken,
   parseInstallationId,
   parseInstanceId,
@@ -79,6 +81,17 @@ describe("identity primitives", () => {
     expect(validateUuid(first)).toBe(true);
     expect(uuidVersion(first)).toBe(7);
     expect(uuidVersion(second)).toBe(7);
+  });
+
+  it("creates and parses a stable ContinuityEpochId primitive", () => {
+    const epoch = createContinuityEpochId();
+
+    expect(uuidVersion(epoch)).toBe(7);
+    expect(parseContinuityEpochId(epoch)).toBe(epoch);
+    expect(parseContinuityEpochId("00000000-0000-4000-8000-000000000000")).toBe(
+      undefined,
+    );
+    expect(parseContinuityEpochId("banana")).toBeUndefined();
   });
 
   it("rejects malformed or non-v7 typed identity values", () => {
