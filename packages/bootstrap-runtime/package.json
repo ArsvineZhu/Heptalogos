@@ -26,6 +26,8 @@
     "@heptalogos/evidence": "workspace:*",
     "@heptalogos/execution-lineage": "workspace:*",
     "@heptalogos/persistence": "workspace:*",
+    "@heptalogos/runtime-kernel": "workspace:*",
+    "@heptalogos/runtime-substrate": "workspace:*",
     "@heptalogos/time-service": "workspace:*",
     "@types/pg": "catalog:",
     "kysely": "catalog:",

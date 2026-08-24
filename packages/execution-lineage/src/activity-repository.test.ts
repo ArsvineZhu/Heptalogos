@@ -79,6 +79,39 @@ describe("retained Activity repository", () => {
     });
   });
 
+  it("rejects completion for an Activity that is not current", async () => {
+    const current = makeContext();
+    const stale = { ...current, activityId: createActivityId() };
+    const service = createExecutionLineageService();
+
+    await expect(
+      service.completeCurrent(mutationFor(current), stale, {
+        endedAt: "2026-08-24T15:00:01.123Z" as never,
+        outcome: "SUCCEEDED",
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "lineage.persistence.current_activity_mismatch" },
+    });
+  });
+
+  it("rejects completion when the Host origin differs from the mutation", async () => {
+    const current = makeContext();
+    const stale = {
+      ...current,
+      origin: { ...current.origin, bootId: createBootId() },
+    };
+    const service = createExecutionLineageService();
+
+    await expect(
+      service.completeCurrent(mutationFor(current), stale, {
+        endedAt: "2026-08-24T15:00:01.123Z" as never,
+        outcome: "FAILED",
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "lineage.persistence.origin_mismatch" },
+    });
+  });
+
   it("rejects a Bootstrap summary from another current Instance or epoch", async () => {
     const current = makeContext();
     const draft: BootstrapRetainedActivityDraft = {

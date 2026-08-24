@@ -36,6 +36,12 @@
       "path": "../persistence"
     },
     {
+      "path": "../runtime-kernel"
+    },
+    {
+      "path": "../runtime-substrate"
+    },
+    {
       "path": "../time-service"
     }
   ]

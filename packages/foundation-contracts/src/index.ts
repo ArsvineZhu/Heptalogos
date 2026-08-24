@@ -38,6 +38,27 @@ export {
   type Instant,
 } from "./identity.js";
 export type { RetentionClass, Sensitivity } from "./data-governance.js";
+export {
+  createCapabilityId,
+  createMicroSystemId,
+  createMicroSystemInstanceId,
+  createProviderId,
+  createServiceId,
+  NAMESPACED_ID_PATTERN,
+  parseCapabilityId,
+  parseMicroSystemId,
+  parseMicroSystemInstanceId,
+  parseProviderId,
+  parseServiceId,
+  type CapabilityId,
+  type MicroSystemId,
+  type MicroSystemInstanceId,
+  type NamespacedId,
+  type PackageGenerationId,
+  type ProductGenerationId,
+  type ProviderId,
+  type ServiceId,
+} from "./runtime-identity.js";
 export { LIFECYCLE_ROOT_IDS, type LifecycleRootId } from "./lifecycle-root.js";
 export {
   ProblemError,

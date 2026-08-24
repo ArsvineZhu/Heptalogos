@@ -1,5 +1,6 @@
 export {
   type ActivityImportance,
+  type ActivityCompletion,
   type ActivityLink,
   type ActivityRequest,
   type ActivityTelemetryCorrelation,
