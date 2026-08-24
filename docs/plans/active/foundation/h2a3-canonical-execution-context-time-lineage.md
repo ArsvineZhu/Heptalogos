@@ -1128,7 +1128,7 @@ one Draft PR branch
 roadmap accurately describing current H2A execution order
 ```
 
-- [ ] **0.1 Verify the exact baseline and clean tree**
+- [x] **0.1 Verify the exact baseline and clean tree**
 
 ```bash
 git fetch --no-tags origin master
@@ -1145,7 +1145,7 @@ origin/master = 446d0f6bce449f177c66fb569341020757b44c9b
 
 If master differs, **STOP**. Report the new SHA and `git log --oneline 446d0f6..origin/master`. Do not silently rebase this plan or decide that new commits are irrelevant.
 
-- [ ] **0.2 Verify the baseline**
+- [x] **0.2 Verify the baseline**
 
 ```bash
 git switch master
@@ -1158,13 +1158,13 @@ Expected: `pnpm verify` PASS.
 
 If baseline verification fails, classify and report it before H2A-3 changes. Do not absorb an unrelated baseline failure into this milestone.
 
-- [ ] **0.3 Create the branch**
+- [x] **0.3 Create the branch**
 
 ```bash
 git switch -c dev/h2a3-canonical-execution-context-time-lineage
 ```
 
-- [ ] **0.4 Register this exact plan**
+- [x] **0.4 Register this exact plan**
 
 Copy this document verbatim to:
 
@@ -1182,7 +1182,7 @@ Change `docs/plans/README.md` Active section to:
 
 Do not edit completed H2A-1/H2A-2 historical plan records.
 
-- [ ] **0.5 Correct the living roadmap**
+- [x] **0.5 Correct the living roadmap**
 
 Update the roadmap header baseline from the stale H2A-1 baseline to:
 
@@ -1210,7 +1210,7 @@ H2B: ELIGIBLE_BY_H1_BUT_IMPLEMENTATION_DEFERRED_PENDING_EXECUTION_CONTEXT_SPINE
 
 until H2A-3 is functionally complete.
 
-- [ ] **0.6 Run doc/repository gates and commit**
+- [x] **0.6 Run doc/repository gates and commit**
 
 ```bash
 pnpm check:corpus
@@ -1302,12 +1302,12 @@ Use the real project import paths; the snippets show required behavior.
 
 ### Implementation steps
 
-- [ ] **1.1 Add `ActivityId`, `EvidenceId`, `Instant`, `RetentionClass`, and `Sensitivity` primitives** exactly as DL-02 specifies; place the two cross-cutting governance unions in `foundation-contracts/src/data-governance.ts` and export them from the package root.
-- [ ] **1.2 Make `BootstrapActivityId` an alias of `ActivityId`** without changing the journal file format or making bootstrap depend on new normal-runtime packages.
-- [ ] **1.3 Add `@opentelemetry/api: 1.9.1` to the strict pnpm Catalog**. Do not add an OTel SDK package.
-- [ ] **1.4 Create `@heptalogos/schema-runtime`** with fixed `Ajv2020` profile, normalized Heptalogos validation issues, and `package.json` exports for exactly `.` and `./typebox` as specified by DL-04.
-- [ ] **1.5 Create `@heptalogos/time-service`** with system/fake implementations and IANA timezone validation.
-- [ ] **1.6 Extend boundary enforcement**:
+- [x] **1.1 Add `ActivityId`, `EvidenceId`, `Instant`, `RetentionClass`, and `Sensitivity` primitives** exactly as DL-02 specifies; place the two cross-cutting governance unions in `foundation-contracts/src/data-governance.ts` and export them from the package root.
+- [x] **1.2 Make `BootstrapActivityId` an alias of `ActivityId`** without changing the journal file format or making bootstrap depend on new normal-runtime packages.
+- [x] **1.3 Add `@opentelemetry/api: 1.9.1` to the strict pnpm Catalog**. Do not add an OTel SDK package.
+- [x] **1.4 Create `@heptalogos/schema-runtime`** with fixed `Ajv2020` profile, normalized Heptalogos validation issues, and `package.json` exports for exactly `.` and `./typebox` as specified by DL-04.
+- [x] **1.5 Create `@heptalogos/time-service`** with system/fake implementations and IANA timezone validation.
+- [x] **1.6 Extend boundary enforcement**:
 
 Required restricted-import semantics:
 
@@ -1326,7 +1326,7 @@ direct "typebox"
 
 Do not broaden the five-file Bootstrap exception set. If implementation discovers another existing baseline direct import that the plan missed, STOP and report the exact file rather than silently extending the allowlist.
 
-- [ ] **1.7 Run focused gates**
+- [x] **1.7 Run focused gates**
 
 ```bash
 pnpm exec vitest run --root packages/foundation-contracts
@@ -1340,7 +1340,7 @@ pnpm tsc6
 
 Expected: PASS.
 
-- [ ] **1.8 Commit**
+- [x] **1.8 Commit**
 
 ```bash
 git add pnpm-workspace.yaml pnpm-lock.yaml scripts/verify/boundaries.mjs \
@@ -1476,14 +1476,14 @@ Add an OTel API-only projection test without installing a ContextManager/SDK: co
 
 ### Implementation steps
 
-- [ ] **2.1 Implement Activity/ExecutionContext contracts** exactly within DL-05 through DL-08.
-- [ ] **2.2 Implement one ALS-based runtime**; use `AsyncLocalStorage.run`, never `enterWith` for normal Activity scopes.
-- [ ] **2.3 Capture OTel correlation** from active OpenTelemetry Context if a valid span is present. Do not derive ActivityId from trace/span IDs.
-- [ ] **2.4 Implement `capture()`** by capturing the current Heptalogos context and current OTel Context and restoring both only for the callback scope.
-- [ ] **2.5 Implement SchemaRuntime-backed `LineageContextRef V1` encode/decode** and continuity checks.
-- [ ] **2.6 Implement internal suppression scope**; do not export it from package root.
-- [ ] **2.7 Add package-root leakage checks** so `AsyncLocalStorage`, OTel SDK/provider objects, Ajv objects, and Kysely objects are not exported as stable execution-lineage contracts.
-- [ ] **2.8 Run focused gates**
+- [x] **2.1 Implement Activity/ExecutionContext contracts** exactly within DL-05 through DL-08.
+- [x] **2.2 Implement one ALS-based runtime**; use `AsyncLocalStorage.run`, never `enterWith` for normal Activity scopes.
+- [x] **2.3 Capture OTel correlation** from active OpenTelemetry Context if a valid span is present. Do not derive ActivityId from trace/span IDs.
+- [x] **2.4 Implement `capture()`** by capturing the current Heptalogos context and current OTel Context and restoring both only for the callback scope.
+- [x] **2.5 Implement SchemaRuntime-backed `LineageContextRef V1` encode/decode** and continuity checks.
+- [x] **2.6 Implement internal suppression scope**; do not export it from package root.
+- [x] **2.7 Add package-root leakage checks** so `AsyncLocalStorage`, OTel SDK/provider objects, Ajv objects, and Kysely objects are not exported as stable execution-lineage contracts.
+- [x] **2.8 Run focused gates**
 
 ```bash
 pnpm exec vitest run --root packages/execution-lineage --exclude '**/*.integration.test.ts'
@@ -1495,7 +1495,7 @@ pnpm tsc6
 
 Expected: PASS.
 
-- [ ] **2.9 Commit**
+- [x] **2.9 Commit**
 
 ```bash
 git add packages/execution-lineage scripts/verify/boundaries.mjs
@@ -1600,10 +1600,10 @@ The existing DB fence remains the final Authority proof. The test must show both
 
 ### Implementation sequence
 
-- [ ] **3.1 Introduce discriminated read/mutation transaction context types**.
-- [ ] **3.2 Change `PersistenceService` constructors to the exact DL-09 signatures** and update all existing call sites/tests explicitly; do not retain an overload with the old context-free mutation signature.
-- [ ] **3.3 Capture execution metadata at transaction admission**. For mutation, require it and compare all five origin fields to `HostPersistenceAuthority`.
-- [ ] **3.4 Preserve existing H2A-1 ordering** inside the mutating transaction:
+- [x] **3.1 Introduce discriminated read/mutation transaction context types**.
+- [x] **3.2 Change `PersistenceService` constructors to the exact DL-09 signatures** and update all existing call sites/tests explicitly; do not retain an overload with the old context-free mutation signature.
+- [x] **3.3 Capture execution metadata at transaction admission**. For mutation, require it and compare all five origin fields to `HostPersistenceAuthority`.
+- [x] **3.4 Preserve existing H2A-1 ordering** inside the mutating transaction:
 
 ```text
 assert service/Host active
@@ -1618,9 +1618,9 @@ assert service/Host active
 
 Do not remove or weaken any existing fence/lifecycle check.
 
-- [ ] **3.5 Add `foundation-repository` callback seam** over genuine WeakMap-issued transactions.
-- [ ] **3.6 Mechanically restrict the subpath** using the DL-11 full-specifier verifier layer to execution-lineage/evidence/persistence test code. Raw Kysely remains forbidden in ordinary package roots and unrelated packages.
-- [ ] **3.7 Add `execution-lineage` provider adapter**:
+- [x] **3.5 Add `foundation-repository` callback seam** over genuine WeakMap-issued transactions.
+- [x] **3.6 Mechanically restrict the subpath** using the DL-11 full-specifier verifier layer to execution-lineage/evidence/persistence test code. Raw Kysely remains forbidden in ordinary package roots and unrelated packages.
+- [x] **3.7 Add `execution-lineage` provider adapter**:
 
 ```ts
 export function createPersistenceExecutionContextProvider(
@@ -1630,7 +1630,7 @@ export function createPersistenceExecutionContextProvider(
 
 It returns `undefined` when no Activity is current and otherwise maps only the fields in `PersistenceExecutionMetadata`.
 
-- [ ] **3.8 Run regression gates**
+- [x] **3.8 Run regression gates**
 
 ```bash
 pnpm exec vitest run --root packages/persistence --exclude '**/*.integration.test.ts'
@@ -1642,7 +1642,7 @@ pnpm tsc6
 
 Then run the existing real PostgreSQL persistence integration target using the same repository procedure used by H2A-1. Expected: all prior H2A-1 scenarios PASS plus new execution-admission scenarios PASS.
 
-- [ ] **3.9 Commit**
+- [x] **3.9 Commit**
 
 ```bash
 git add packages/persistence packages/execution-lineage/src/persistence-adapter.ts \
@@ -1740,14 +1740,14 @@ it("stores references only and exposes no arbitrary payload field", () => {
 
 ### Implementation sequence
 
-- [ ] **4.1 Rename and rewrite migration key/file** to `0001_foundation_baseline`. Do not retain the old migration as a second entry.
-- [ ] **4.2 Add Activity/Link/Evidence tables and least-privilege grants** exactly as DL-14.
-- [ ] **4.3 Update `CanonicalDatabase` typing** so migration code reflects the current baseline. Do not expose this migration typing as a normal runtime repository API.
-- [ ] **4.4 Implement `ExecutionLineageService.retainCurrent` and `retainBootstrapReference`** using the restricted persistence repository seam. Enforce the exact transaction/origin checks and fixed Problems from DL-12. Do not add a generic Activity import or completion updater.
-- [ ] **4.5 Implement `EvidenceService.recordRequired`**. Inject `TimeService`; create `EvidenceId`; derive ActivityId from transaction; insert only the bounded fields in DL-12.
-- [ ] **4.6 Add boundary checks** so execution-lineage/evidence package roots do not export Kysely/pg objects and only approved repository source files can import `@heptalogos/persistence/foundation-repository`.
-- [ ] **4.7 Extend the existing `bootstrap-runtime` canonical initialization integration** to assert the rewritten migration name, new tables/CHECKs/FKs, and least-privilege grants after a fresh H2A-2-style bootstrap/canonical initialization. Reuse its existing `HEPTALOGOS_TEST_PG_BIN` process fixture; do not create another PG launcher in `canonical-schema`.
-- [ ] **4.8 Run focused gates**
+- [x] **4.1 Rename and rewrite migration key/file** to `0001_foundation_baseline`. Do not retain the old migration as a second entry.
+- [x] **4.2 Add Activity/Link/Evidence tables and least-privilege grants** exactly as DL-14.
+- [x] **4.3 Update `CanonicalDatabase` typing** so migration code reflects the current baseline. Do not expose this migration typing as a normal runtime repository API.
+- [x] **4.4 Implement `ExecutionLineageService.retainCurrent` and `retainBootstrapReference`** using the restricted persistence repository seam. Enforce the exact transaction/origin checks and fixed Problems from DL-12. Do not add a generic Activity import or completion updater.
+- [x] **4.5 Implement `EvidenceService.recordRequired`**. Inject `TimeService`; create `EvidenceId`; derive ActivityId from transaction; insert only the bounded fields in DL-12.
+- [x] **4.6 Add boundary checks** so execution-lineage/evidence package roots do not export Kysely/pg objects and only approved repository source files can import `@heptalogos/persistence/foundation-repository`.
+- [x] **4.7 Extend the existing `bootstrap-runtime` canonical initialization integration** to assert the rewritten migration name, new tables/CHECKs/FKs, and least-privilege grants after a fresh H2A-2-style bootstrap/canonical initialization. Reuse its existing `HEPTALOGOS_TEST_PG_BIN` process fixture; do not create another PG launcher in `canonical-schema`.
+- [x] **4.8 Run focused gates**
 
 ```bash
 pnpm exec vitest run --root packages/canonical-schema --exclude '**/*.integration.test.ts'
@@ -1761,7 +1761,7 @@ pnpm tsc6
 
 Then, when an actual PostgreSQL 18.x toolchain path is available, run the existing Bootstrap integration target containing `canonical-initialization.integration.test.ts` with `HEPTALOGOS_TEST_PG_BIN=<postgres-bin-directory>`. Expected when actually exercised: PASS. If no toolchain is available, record this real-PG property as `NOT_RUN`; a skipped/non-executed suite is never PASS.
 
-- [ ] **4.9 Commit**
+- [x] **4.9 Commit**
 
 ```bash
 git add packages/canonical-schema packages/execution-lineage packages/evidence \
@@ -1858,12 +1858,12 @@ The integration code must contain no timer wait, network call, subprocess call, 
 
 ### Execution steps
 
-- [ ] **5.1 Add the DL-20 devDependencies and test target entry, then write A1-A5 failing scenarios in `h2a3-execution-foundation.integration.test.ts`**.
-- [ ] **5.2 Run the explicit Bootstrap integration target with `HEPTALOGOS_TEST_PG_BIN` and verify the new A1-A5 scenarios fail for the expected missing behavior, while existing integration scenarios remain green**.
-- [ ] **5.3 Implement only missing transaction/repository behavior needed by the fixed design**. If a failure implies a new generic transaction API or domain owner, STOP and report instead of expanding scope.
-- [ ] **5.4 Run A1-A5 to PASS**.
-- [ ] **5.5 Re-run H2A-1 persistence integration regression** to prove no loss of Host-fence behavior.
-- [ ] **5.6 Commit**
+- [x] **5.1 Add the DL-20 devDependencies and test target entry, then write A1-A5 failing scenarios in `h2a3-execution-foundation.integration.test.ts`**.
+- [x] **5.2 Run the explicit Bootstrap integration target with `HEPTALOGOS_TEST_PG_BIN` and verify the new A1-A5 scenarios fail for the expected missing behavior, while existing integration scenarios remain green**.
+- [x] **5.3 Implement only missing transaction/repository behavior needed by the fixed design**. If a failure implies a new generic transaction API or domain owner, STOP and report instead of expanding scope.
+- [x] **5.4 Run A1-A5 to PASS**.
+- [x] **5.5 Re-run H2A-1 persistence integration regression** to prove no loss of Host-fence behavior.
+- [x] **5.6 Commit**
 
 ```bash
 git add packages/bootstrap-runtime packages/execution-lineage packages/evidence packages/persistence
@@ -1937,11 +1937,11 @@ The test may use real PostgreSQL because retained Activity persistence is being 
 
 ### Execution steps
 
-- [ ] **6.1 Write pure projector unit tests for successful, failed, and incomplete BootstrapJournal input, then implement only the bounded summary projection in `execution-lineage/bootstrap-handoff.ts`**.
-- [ ] **6.2 Extend the already-registered H2A-3 Bootstrap integration suite with B1-B6 using the same real-PostgreSQL/Host fixture from Task 5**.
-- [ ] **6.3 Prove the first current-Host Activity is caused by the existing bootstrap Activity and that BootstrapJournal bytes remain unchanged**.
-- [ ] **6.4 Run bootstrap-state, bootstrap-runtime, host-ownership, persistence, canonical-schema, execution-lineage regressions**.
-- [ ] **6.5 Commit**
+- [x] **6.1 Write pure projector unit tests for successful, failed, and incomplete BootstrapJournal input, then implement only the bounded summary projection in `execution-lineage/bootstrap-handoff.ts`**.
+- [x] **6.2 Extend the already-registered H2A-3 Bootstrap integration suite with B1-B6 using the same real-PostgreSQL/Host fixture from Task 5**.
+- [x] **6.3 Prove the first current-Host Activity is caused by the existing bootstrap Activity and that BootstrapJournal bytes remain unchanged**.
+- [x] **6.4 Run bootstrap-state, bootstrap-runtime, host-ownership, persistence, canonical-schema, execution-lineage regressions**.
+- [x] **6.5 Commit**
 
 ```bash
 git add packages/bootstrap-state packages/bootstrap-runtime packages/execution-lineage
@@ -2061,8 +2061,8 @@ Do not set H2A CLOSED.
 
 ### Full local gate
 
-- [ ] **7.1 Run every focused test/integration target** and record counts/status in this plan.
-- [ ] **7.2 Run Corpus/repository/dependency/boundary gates**:
+- [x] **7.1 Run every focused test/integration target** and record counts/status in this plan.
+- [x] **7.2 Run Corpus/repository/dependency/boundary gates**:
 
 ```bash
 pnpm check:agents
@@ -2073,7 +2073,7 @@ pnpm check:boundaries
 pnpm toolchain:check
 ```
 
-- [ ] **7.3 Run full verification**
+- [x] **7.3 Run full verification**
 
 ```bash
 pnpm verify
@@ -2081,7 +2081,7 @@ pnpm verify
 
 Expected: PASS.
 
-- [ ] **7.4 Inspect working tree and branch diff**
+- [x] **7.4 Inspect working tree and branch diff**
 
 ```bash
 git status --short
@@ -2251,33 +2251,33 @@ Do not pre-fill PASS. The implementing Agent records only observed results.
 
 ```yaml
 h2a3:
-  baseline: 446d0f6bce449f177c66fb569341020757b44c9b
-  branch: dev/h2a3-canonical-execution-context-time-lineage
-  behaviorCandidate: null
-  reviewPair:
-    base: null
-    head: null
-  local:
-    foundation_contracts: NOT_RUN
-    schema_runtime: NOT_RUN
-    time_service: NOT_RUN
-    execution_context: NOT_RUN
-    lineage_context_ref: NOT_RUN
-    persistence_execution_admission: NOT_RUN
-    canonical_schema_clean_baseline: NOT_RUN
-    retained_activity_repository: NOT_RUN
-    evidence_repository: NOT_RUN
-    required_atomicity_real_postgres: NOT_RUN
-    bootstrap_lineage_handoff: NOT_RUN
-    h1_regression: NOT_RUN
-    h2a1_persistence_regression: NOT_RUN
-    h2a2_canonical_regression: NOT_RUN
-    check_dependencies: NOT_RUN
-    check_boundaries: NOT_RUN
-    pnpm_verify: NOT_RUN
-  externalIndependentReview: NOT_RUN
-  finalCrossPlatformCI: NOT_RUN
-  squashMerge: NOT_RUN
+ baseline: 446d0f6bce449f177c66fb569341020757b44c9b
+ branch: dev/h2a3-canonical-execution-context-time-lineage
+ behaviorCandidate: 2d63af9aea2b919bf8a29e0fe4a144cfee2c04ee
+ reviewPair:
+ base: NOT_RUN
+ head: NOT_RUN
+ local:
+ foundation_contracts: PASS (19/19)
+ schema_runtime: PASS (2/2)
+ time_service: PASS (4/4)
+ execution_context: PASS (21/21)
+ lineage_context_ref: PASS (included in execution-lineage 21/21)
+ persistence_execution_admission: PASS (19/19 unit; 9/9 real PostgreSQL)
+ canonical_schema_clean_baseline: PASS (3/3 unit; bootstrap-runtime integration)
+ retained_activity_repository: PASS (execution-lineage 21/21; real PostgreSQL)
+ evidence_repository: PASS (4/4)
+ required_atomicity_real_postgres: PASS (A1-A5, 5/5)
+ bootstrap_lineage_handoff: PASS (B1-B6, 9/9 test cases)
+ h1_regression: PASS (bootstrap-runtime existing scenarios included)
+ h2a1_persistence_regression: PASS (9/9)
+ h2a2_canonical_regression: PASS (bootstrap-runtime target 47/47)
+ check_dependencies: PASS
+ check_boundaries: PASS
+ pnpm_verify: PASS
+ externalIndependentReview: NOT_RUN
+ finalCrossPlatformCI: NOT_RUN
+ squashMerge: NOT_RUN
 ```
 
 Status vocabulary for executable gates remains exactly:
@@ -2302,4 +2302,3 @@ These decisions are intentional and should not be “simplified” during implem
 8. **The canonical migration is rewritten in PRE_PRODUCTION.** Repository history is not a product compatibility obligation. The current best baseline remains the only supported development schema.
 9. **Bootstrap remains independent.** H1 recovery must continue working when normal PostgreSQL/lineage/OTel is broken. H2A imports/references Early Observability after normal runtime becomes available; it does not invert that dependency.
 10. **StorageWorkspace stays deferred until a real filesystem owner exists.** S17 remains authoritative, but implementing an unused workspace subsystem in H2A would increase maintenance burden without closing an H2A invariant.
-

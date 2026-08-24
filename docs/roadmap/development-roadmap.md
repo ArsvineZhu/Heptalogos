@@ -139,10 +139,15 @@ H1_STABILIZATION: CLOSED
 H1: CLOSED
 H2A_1: CLOSED
 H2A_2: CLOSED
-H2A_3: ACTIVE
-H2A: OPEN
-H2B: ELIGIBLE_BY_H1_BUT_IMPLEMENTATION_DEFERRED_PENDING_EXECUTION_CONTEXT_SPINE
+H2A_3: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+H2A: FUNCTIONALLY_COMPLETE_PENDING_STABILIZATION_AND_CLOSURE
+H2B: ELIGIBLE_AFTER_H2A3_MERGE
 H2: OPEN
+```
+
+H2A-3 implementation and Windows PostgreSQL 18.6 local qualification are complete on branch `dev/h2a3-canonical-execution-context-time-lineage`; the exact external review, manual cross-platform CI, and squash-merge closure tuple remain pending. H2A remains open until the bounded stabilization/closure plan completes.
+
+```yaml
 ```
 
 H1 functional implementation: COMPLETE.

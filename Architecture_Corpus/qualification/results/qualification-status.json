@@ -496,7 +496,7 @@
     },
     {
       "qualificationId": "Q-PERSISTENCE-01",
-      "testedProperty": "H2A-1 Host-scoped persistence authority plus H2A-2 canonical BootstrapState continuity, migration authority, Kysely baseline, and fail-closed materialization",
+      "testedProperty": "H2A-1 Host-scoped persistence authority plus H2A-2 canonical BootstrapState continuity and H2A-3 canonical ExecutionContext, retained Activity/Evidence atomicity, and Bootstrap-to-Host lineage handoff",
       "evidenceStatus": "PASS",
       "qualificationState": "PARTIAL",
       "evidence": {
@@ -533,7 +533,20 @@
         "h2a2_service_headless": "NOT_RUN",
         "h2a2_independent_review": "PASS",
         "h2a2_final_cross_platform_ci": "PASS",
-        "h2a2_squash_merge": "PASS"
+        "h2a2_squash_merge": "PASS",
+        "current_execution_context_required_for_mutation": "PASS",
+        "stale_execution_origin_rejected": "PASS",
+        "required_lineage_evidence_atomicity": "PASS",
+        "read_context_cannot_obtain_mutation_repository": "PASS",
+        "h2a3_required_atomicity_real_postgres": "PASS",
+        "h2a3_bootstrap_lineage_handoff": "PASS",
+        "h2a3_real_postgres_linux": "NOT_RUN",
+        "h2a3_real_postgres_macos": "NOT_RUN",
+        "h2a3_source_less": "NOT_RUN",
+        "h2a3_service_headless": "NOT_RUN",
+        "h2a3_independent_review": "NOT_RUN",
+        "h2a3_final_cross_platform_ci": "NOT_RUN",
+        "h2a3_squash_merge": "NOT_RUN"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
@@ -577,7 +590,26 @@
         "h2a2BootstrapRuntimeIntegration": "38/38 PASS",
         "h2a2PostgresProvenance": "EDB PostgreSQL 18.6 Windows x86-64 binary archive extracted to a temporary qualification root; not a source-less shipping artifact",
         "h2a2PostgresBinDirectory": "C:\\Users\\Arsvine\\AppData\\Local\\Temp\\heptalogos-pg18.6-correction-20260823\\extracted\\pgsql\\bin",
-        "h2a2RepositoryVerification": "pnpm verify PASS"
+        "h2a2RepositoryVerification": "pnpm verify PASS",
+        "h2a3BehaviorCandidateSha": "2d63af9aea2b919bf8a29e0fe4a144cfee2c04ee",
+        "h2a3ReviewCandidateBaseSha": "446d0f6bce449f177c66fb569341020757b44c9b",
+        "h2a3ReviewCandidateHeadSha": "NOT_RUN",
+        "h2a3FoundationContractsUnit": "19/19 PASS",
+        "h2a3SchemaRuntimeUnit": "2/2 PASS",
+        "h2a3TimeServiceUnit": "4/4 PASS",
+        "h2a3ExecutionLineageUnit": "21/21 PASS",
+        "h2a3PersistenceUnit": "19/19 PASS",
+        "h2a3CanonicalSchemaUnit": "3/3 PASS",
+        "h2a3EvidenceUnit": "4/4 PASS",
+        "h2a3BootstrapStateUnit": "113 passed, 3 skipped",
+        "h2a3HostOwnershipUnit": "81 passed",
+        "h2a3BootstrapRuntimeUnit": "213 passed, 2 skipped",
+        "h2a3PersistenceIntegration": "9/9 PASS",
+        "h2a3HostOwnershipIntegration": "10/10 PASS",
+        "h2a3BootstrapRuntimeIntegration": "47/47 PASS",
+        "h2a3PostgresBinDirectory": "C:\\Users\\Arsvine\\AppData\\Local\\Temp\\heptalogos-pg18.6-correction-20260823\\extracted\\pgsql\\bin",
+        "h2a3StaticGates": "pnpm check:agents, check:corpus, check:repository, check:dependencies, check:boundaries, toolchain:check PASS",
+        "h2a3RepositoryVerification": "pnpm verify PASS"
       },
       "notRunReasons": {
         "real_postgres_linux": "No Linux PostgreSQL 18.6 runtime was executed on this Windows host.",
@@ -587,7 +619,12 @@
         "h2a2_real_postgres_linux_macos": "No Linux or macOS PostgreSQL 18.6 runtime was executed on this Windows host.",
         "h2a2_source_less": "The H2A-2 qualification used an extracted Windows PostgreSQL toolchain, not a source-less shipping artifact.",
         "h2a2_service_headless": "No installed service-account/headless H2A-2 runtime was executed.",
-        "h2a2_closure": "Independent review, final CI, and squash merge PASS for the exact H2A-2 closure tuple; deferred platform/product qualification remains NOT_RUN."
+        "h2a2_closure": "Independent review, final CI, and squash merge PASS for the exact H2A-2 closure tuple; deferred platform/product qualification remains NOT_RUN.",
+        "h2a3_real_postgres_linux": "No Linux PostgreSQL 18.6 runtime was executed on this Windows host.",
+        "h2a3_real_postgres_macos": "No macOS PostgreSQL 18.6 runtime was executed on this Windows host.",
+        "h2a3_source_less": "The H2A-3 qualification runtime used an extracted EDB Windows package set, not a source-less shipping artifact.",
+        "h2a3_service_headless": "No installed service-account/headless H2A-3 runtime was executed.",
+        "h2a3_review_and_closure": "H2A-3 exact-pair independent review, final cross-platform CI, and squash merge are not yet run."
       }
     }
   ],
