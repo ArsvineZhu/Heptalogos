@@ -15,7 +15,7 @@ surface the ambiguity rather than guessing.
 
 ## Active
 
-No active implementation plan.
+- [H2A-2 Canonical Schema & Continuity Authority](active/foundation/h2a2-canonical-schema-continuity-authority.md) — `ACTIVE`
 
 ## Completed
 
