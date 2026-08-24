@@ -154,7 +154,7 @@ export function createExecutionContextRuntime(
     operation: (context: ExecutionContext) => Promise<T>,
     parentActivityId: ActivityId | undefined,
     causationActivityId: ActivityId | undefined,
-    parentOtel: OTelContext,
+    parentOtel: LineageTelemetryContext,
   ): Promise<T> => {
     const execution = createExecutionContext(
       request,
