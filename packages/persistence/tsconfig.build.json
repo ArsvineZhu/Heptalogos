@@ -23,9 +23,6 @@
     },
     {
       "path": "../bootstrap-state/tsconfig.build.json"
-    },
-    {
-      "path": "../bootstrap-runtime/tsconfig.build.json"
     }
   ]
 }
