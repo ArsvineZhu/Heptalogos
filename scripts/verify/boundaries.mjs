@@ -31,6 +31,28 @@ const builtins = new Set([
 
 const restrictedImports = new Map([
   [
+    "ajv",
+    [
+      "packages/schema-runtime/",
+      "packages/bootstrap-state/src/codec.ts",
+      "packages/bootstrap-state/src/journal.ts",
+      "packages/bootstrap-state/src/bootstrap-owner-witness-codec.ts",
+      "packages/bootstrap-state/src/maintenance-codec.ts",
+      "packages/bootstrap-runtime/src/locator.ts",
+    ],
+  ],
+  [
+    "typebox",
+    [
+      "packages/schema-runtime/",
+      "packages/bootstrap-state/src/codec.ts",
+      "packages/bootstrap-state/src/journal.ts",
+      "packages/bootstrap-state/src/bootstrap-owner-witness-codec.ts",
+      "packages/bootstrap-state/src/maintenance-codec.ts",
+      "packages/bootstrap-runtime/src/locator.ts",
+    ],
+  ],
+  [
     "@heptalogos/canonical-schema",
     ["packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts"],
   ],

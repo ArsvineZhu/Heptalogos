@@ -5,6 +5,8 @@ import {
   asContentDigest,
   createBootId,
   createContinuityEpochId,
+  createActivityId,
+  createEvidenceId,
   createHostOwnershipToken,
   createInstallationId,
   createInstanceId,
@@ -15,7 +17,11 @@ import {
   parseHostOwnershipToken,
   parseInstallationId,
   parseInstanceId,
+  parseActivityId,
+  parseEvidenceId,
+  parseInstant,
   parseUuidV7Id,
+  formatInstant,
 } from "./identity.js";
 
 describe("identity primitives", () => {
@@ -95,5 +101,27 @@ describe("identity primitives", () => {
     expect(parseInstallationId("banana")).toBeUndefined();
     expect(parseInstanceId("00000000-0000-4000-8000-000000000000")).toBeUndefined();
     expect(parseBootId(null)).toBeUndefined();
+  });
+
+  it("creates and parses ActivityId and EvidenceId as UUIDv7 identities", () => {
+    const activityId = createActivityId();
+    const evidenceId = createEvidenceId();
+
+    expect(parseActivityId(activityId)).toBe(activityId);
+    expect(parseEvidenceId(evidenceId)).toBe(evidenceId);
+    expect(uuidVersion(activityId)).toBe(7);
+    expect(uuidVersion(evidenceId)).toBe(7);
+  });
+
+  it("parses only canonical millisecond UTC Instants", () => {
+    expect(parseInstant("2026-08-24T15:00:00.123Z")).toBeDefined();
+    expect(parseInstant("2026-08-24T15:00:00Z")).toBeUndefined();
+    expect(parseInstant("2026-08-24T23:00:00.123+08:00")).toBeUndefined();
+  });
+
+  it("formats Date to the canonical Instant contract", () => {
+    expect(formatInstant(new Date("2026-08-24T15:00:00.123Z"))).toBe(
+      "2026-08-24T15:00:00.123Z",
+    );
   });
 });

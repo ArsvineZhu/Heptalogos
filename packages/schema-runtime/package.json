@@ -1,0 +1,25 @@
+{
+  "name": "@heptalogos/schema-runtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./typebox": {
+      "types": "./dist/typebox.d.ts",
+      "import": "./dist/typebox.js",
+      "default": "./dist/typebox.js"
+    }
+  },
+  "dependencies": {
+    "ajv": "catalog:",
+    "typebox": "catalog:"
+  },
+  "devDependencies": {
+    "vitest": "catalog:"
+  }
+}

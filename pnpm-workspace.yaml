@@ -35,6 +35,7 @@ catalog:
   "@bybrave/proper-lockfile2": 5.0.0
   pidusage: 4.0.1
   "@types/pidusage": 2.0.5
+  "@opentelemetry/api": 1.9.1
 
 allowBuilds:
   esbuild: true
