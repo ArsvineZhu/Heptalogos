@@ -496,7 +496,7 @@
     },
     {
       "qualificationId": "Q-PERSISTENCE-01",
-      "testedProperty": "H2A-1 Host-scoped persistence authority, least-privilege runtime PostgreSQL access, read-only transactions, and database-fenced mutation admission",
+      "testedProperty": "H2A-1 Host-scoped persistence authority plus H2A-2 canonical BootstrapState continuity, migration authority, Kysely baseline, and fail-closed materialization",
       "evidenceStatus": "PASS",
       "qualificationState": "PARTIAL",
       "evidence": {
@@ -517,7 +517,23 @@
         "service_headless_persistence": "NOT_RUN",
         "independent_review": "PASS",
         "final_cross_platform_ci": "PASS",
-        "squash_merge": "PASS"
+        "squash_merge": "PASS",
+        "h2a2_canonical_v1_continuity_epoch": "PASS",
+        "h2a2_continuity_genesis_idempotence": "PASS",
+        "h2a2_migration_authority_contract": "PASS",
+        "h2a2_canonical_schema_unit": "PASS",
+        "h2a2_static_migration_provider": "PASS",
+        "h2a2_managed_host_epoch_propagation": "PASS",
+        "h2a2_host_restart_boot_and_token_fence": "PASS",
+        "h2a2_obsolete_v1_without_epoch_c9": "PASS",
+        "h2a2_real_postgres_c1_to_c9": "PASS",
+        "h2a2_real_postgres_linux": "NOT_RUN",
+        "h2a2_real_postgres_macos": "NOT_RUN",
+        "h2a2_source_less": "NOT_RUN",
+        "h2a2_service_headless": "NOT_RUN",
+        "h2a2_independent_review": "NOT_RUN",
+        "h2a2_final_cross_platform_ci": "NOT_RUN",
+        "h2a2_squash_merge": "NOT_RUN"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
@@ -542,13 +558,32 @@
         "runtimeFenceAdaptation": "Direct runtime FOR SHARE rejected with PostgreSQL 42501; owner-owned SECURITY DEFINER lock function executes the exact FOR SHARE body and P8 passes",
         "staticGates": "pnpm check:dependencies, pnpm check:boundaries, pnpm typecheck, pnpm tsc6 PASS",
         "repositoryVerification": "pnpm verify PASS",
-        "finalRealPostgresRerun": "persistence 8/8, host-ownership 9/9, bootstrap-runtime 30/30 PASS on Windows PostgreSQL 18.6"
+        "finalRealPostgresRerun": "persistence 8/8, host-ownership 9/9, bootstrap-runtime 30/30 PASS on Windows PostgreSQL 18.6",
+        "h2a2BehaviorCandidateSha": "de6c00516ae5fd604ee614a743f3cd6f95dd8e6f",
+        "h2a2CanonicalSchemaUnit": "3/3 PASS",
+        "h2a2BootstrapRuntimeUnit": "208 passed, 2 skipped",
+        "h2a2BootstrapStateUnit": "113 passed, 3 skipped",
+        "h2a2HostOwnershipUnit": "80 passed",
+        "h2a2PersistenceUnit": "13 passed",
+        "h2a2C1ToC9": "9/9 scenarios PASS; 8 Vitest cases because C4/C5 are parameterized",
+        "h2a2PersistenceIntegration": "8/8 PASS",
+        "h2a2HostOwnershipIntegration": "10/10 PASS",
+        "h2a2BootstrapRuntimeIntegration": "38/38 PASS",
+        "h2a2PostgresProvenance": "EDB PostgreSQL 18.6 Windows x86-64 binary archive extracted to a temporary qualification root; not a source-less shipping artifact",
+        "h2a2PostgresBinDirectory": "C:\\Users\\Arsvine\\AppData\\Local\\Temp\\heptalogos-pg18.6-correction-20260823\\extracted\\pgsql\\bin",
+        "h2a2RepositoryVerification": "pnpm verify PASS"
       },
       "notRunReasons": {
         "real_postgres_linux": "No Linux PostgreSQL 18.6 runtime was executed on this Windows host.",
         "real_postgres_macos": "No macOS PostgreSQL 18.6 runtime was executed on this Windows host.",
         "source_less_persistence": "The qualification runtime used an extracted EDB Windows package set, not a source-less Heptalogos shipping artifact.",
-        "service_headless_persistence": "No installed service-account/headless product runtime was executed."
+        "service_headless_persistence": "No installed service-account/headless product runtime was executed.",
+        "h2a2_real_postgres_linux_macos": "No Linux or macOS PostgreSQL 18.6 runtime was executed on this Windows host.",
+        "h2a2_source_less": "The H2A-2 qualification used an extracted Windows PostgreSQL toolchain, not a source-less shipping artifact.",
+        "h2a2_service_headless": "No installed service-account/headless H2A-2 runtime was executed.",
+        "h2a2_independent_review": "Independent review for the final H2A-2 exact candidate pair has not run.",
+        "h2a2_final_cross_platform_ci": "Manual final cross-platform CI for the final H2A-2 exact candidate pair has not run.",
+        "h2a2_squash_merge": "The H2A-2 stabilization branch has not been squash-merged."
       }
     }
   ],

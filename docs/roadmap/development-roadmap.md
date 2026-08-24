@@ -184,11 +184,19 @@ The initial `ContinuityEpochId` authority is now explicit in the Corpus: new
 Instances create one epoch under Bootstrap Closure before normal runtime,
 ordinary restart/crash retry reuses the committed value, and destructive
 restore/rollback rotates it inside the bootstrap-owned recovery window. H2A-2
-is ACTIVE to establish canonical BootstrapState V1 with that required epoch,
-the distinct migration authority, the current canonical schema baseline, and
-normal materialization/verification. PRE_PRODUCTION development shapes are
-migration compatibility bridges are not part of H2A-2. Epoch
-mismatch outside the authorized restore window is fail-closed.
+is locally implementation-complete at behavior candidate
+`de6c00516ae5fd604ee614a743f3cd6f95dd8e6f`, establishing canonical
+BootstrapState V1 with that required epoch, the distinct migration authority,
+the current canonical schema baseline, and normal materialization/verification.
+Local `pnpm verify` is `PASS`. Windows PostgreSQL 18.6 C1-C9 evidence is
+`PASS` (9 scenarios; 8 Vitest cases because C4/C5 are parameterized), and the
+persistence/Host ownership/bootstrap-runtime regression integrations are
+`PASS`. Linux/macOS PostgreSQL, source-less, and service/headless claims remain
+`NOT_RUN`. PRE_PRODUCTION development shapes have no project-internal
+compatibility bridge in H2A-2; obsolete current-V1 bytes are rejected. Epoch
+mismatch outside the authorized restore window is fail-closed. Independent
+review, final CI, and merge remain `NOT_RUN` for the eventual exact candidate
+pair.
 
 Historical milestone context:
 

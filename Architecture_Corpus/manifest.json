@@ -11,7 +11,7 @@
     "deferredCount": 2,
     "rejectedForRoleCount": 7
   },
-  "contentFileCount": 73,
+  "contentFileCount": 74,
   "files": [
     {
       "path": "00-项目宪法与工程宪法.md",
@@ -245,13 +245,13 @@
     },
     {
       "path": "qualification/results/README.md",
-      "size": 2424,
-      "sha256": "b5fc96d925af956c70af58ba18cd26509cc44e75c7db81710aa47cb289e791d1"
+      "size": 2509,
+      "sha256": "82ad006130df535bf9912a4ec7fb8e1b5faa6213081004b5e78139de09d8a398"
     },
     {
       "path": "qualification/results/qualification-status.json",
-      "size": 28471,
-      "sha256": "678423264d0adec9a38ad1054727835bb9e5837496c739b6582a5d38de39e7a7"
+      "size": 30919,
+      "sha256": "fb11f0c0bfcd40a0845b3e32016342c15528d0ddcb04501994ccb36101a5634c"
     },
     {
       "path": "qualification/依赖资格矩阵.md",
@@ -377,6 +377,11 @@
       "path": "specs/S17-Storage-Workspace-DataLifecycle.md",
       "size": 13827,
       "sha256": "e09af17f6d6777b527c1bf379e74d2347a6de3f5e3b73cd723cc294d8ce2cc88"
+    },
+    {
+      "path": "qualification/results/Q-PERSISTENCE-01.md",
+      "size": 3570,
+      "sha256": "23622867a2fd59fb0214c4c28ec9c8b42992f2e2b2a4137ba5ecf168f4dd8391"
     }
   ]
 }

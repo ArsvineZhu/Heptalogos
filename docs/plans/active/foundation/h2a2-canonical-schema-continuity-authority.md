@@ -2219,6 +2219,35 @@ git commit -m "docs: record H2A2 local qualification"
 
 Rerun `pnpm verify` after this commit.
 
+### Task 11 execution record (2026-08-24)
+
+The local behavior candidate is
+`de6c00516ae5fd604ee614a743f3cd6f95dd8e6f`. The exact Windows qualification
+runtime is PostgreSQL 18.6 from the extracted EDB toolchain at
+`C:\Users\Arsvine\AppData\Local\Temp\heptalogos-pg18.6-correction-20260823\extracted\pgsql\bin`.
+
+```text
+canonical-schema unit: 3 passed
+BootstrapState unit: 113 passed, 3 skipped
+bootstrap-runtime unit: 208 passed, 2 skipped
+host-ownership unit: 80 passed
+persistence unit: 13 passed
+C1-C9: 9/9 scenarios PASS (8 Vitest cases; C4/C5 parameterized)
+persistence integration: 8/8 PASS
+host-ownership integration: 10/10 PASS
+bootstrap-runtime integration: 38/38 PASS
+pnpm verify: PASS
+Linux/macOS PostgreSQL: NOT_RUN
+source-less/service/headless qualification: NOT_RUN
+independent review: NOT_RUN
+final cross-platform CI: NOT_RUN
+squash merge: NOT_RUN
+```
+
+The evidence record is maintained in `Q-PERSISTENCE-01` and the machine-readable
+`qualification-status.json`. H2A-1 historical review/CI/merge fields remain
+unchanged.
+
 ---
 
 # Task 12 — Candidate freeze, plan completion, and external review handoff
