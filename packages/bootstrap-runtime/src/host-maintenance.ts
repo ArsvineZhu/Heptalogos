@@ -21,6 +21,7 @@ import {
 } from "@heptalogos/host-ownership";
 import { openPrivatePostgresMaintenanceController } from "@heptalogos/private-postgres";
 import {
+  createBootId,
   parseBootId,
   parseHostOwnershipToken,
   ProblemError,
@@ -42,6 +43,7 @@ import {
   createHostMaintenanceTracker,
   type HostMaintenanceEvent,
 } from "./host-maintenance-machine.js";
+import { admitCanonicalHost } from "./canonical-host-admission.js";
 import type {
   BootstrapManagedHostContext,
   HostMaintenanceQuiescence,
@@ -95,6 +97,7 @@ export interface HostMaintenanceOperationProvenance {
   readonly createHostContext?: (
     connection: Awaited<ReturnType<typeof acquireHostLeaseConnection>>,
     token: HostOwnershipToken,
+    bootId?: BootId,
   ) => HostOwnershipContext;
   readonly createManagedHost?: (
     raw: HostOwnershipContext,
@@ -268,6 +271,17 @@ function passwordProvider(
           instanceId: context.instanceId,
           bootId: context.bootId,
           purpose: "private-postgres-runtime-role",
+        },
+        use,
+      );
+    },
+    withMigrationPassword<T>(use: (password: Uint8Array) => Promise<T>) {
+      return handoff.keyProvider.withPrivatePostgresMigrationPassword(
+        {
+          installationId: context.installationId,
+          instanceId: context.instanceId,
+          bootId: context.bootId,
+          purpose: "private-postgres-migration-role",
         },
         use,
       );
@@ -491,31 +505,57 @@ export function createRestartPrivatePostgresEnteredWindowExecutor(
       await window.advance("HOST_LEASE_ACQUIRED");
 
       const token = provenance.createHostToken();
+      const freshBootId = createBootId();
       const publication = await publishHostOwnershipToken({
         connection: leaseConnection,
         instanceId: provenance.bootstrap.instanceId,
-        bootId: provenance.bootstrap.bootId,
+        bootId: freshBootId,
         token,
         fenceLockTimeoutMs: provenance.handoff.timing.fenceLockTimeoutMs,
         statementTimeoutMs: provenance.handoff.timing.statementTimeoutMs,
         mutationAuthority: { assertCurrent: () => window.lease.assertHeld() },
       });
       leaseConnection.assertActive();
-      rawHost = provenance.createHostContext(leaseConnection, token);
+      rawHost = provenance.createHostContext(leaseConnection, token, freshBootId);
       rawHost.assertActive();
       await window.advance("HOST_TOKEN_PUBLISHED", {
         target: {
           ...window.journal.target,
           hostOwnershipToken: token,
-          hostBootId: provenance.bootstrap.bootId,
+          hostBootId: freshBootId,
           hostOwnershipRevision: publication.publishedRevision,
         },
+      });
+      const activeLeaseConnection = leaseConnection;
+      if (activeLeaseConnection === undefined) {
+        throw maintenanceProblem(
+          "bootstrap.maintenance.host_lease_required",
+          "A fresh Host lease is required for canonical admission",
+          "Maintenance restart cannot expose a managed Host without the newly acquired Host lease",
+        );
+      }
+      await admitCanonicalHost({
+        installationId: provenance.bootstrap.installationId,
+        instanceId: provenance.bootstrap.instanceId,
+        bootId: freshBootId,
+        token,
+        port: provenance.privatePostgres.expectedIdentity.persistedPort,
+        bootstrapOwnership: window.lease,
+        hostLeaseConnection: activeLeaseConnection,
+        keyProvider: provenance.handoff.keyProvider,
+        loadCurrentContinuityEpochId: async () => {
+          const currentState = stateBody(await window.access.state.load());
+          assertPrivatePostgresIdentity(currentState.state, provenance.privatePostgres);
+          return currentState.state.continuityEpochId;
+        },
+        initializeCanonicalHost: provenance.handoff.initializeCanonicalHost,
       });
       await window.advance("BOOTSTRAP_RELEASE_ARMED", {
         terminalOutcome: "SUCCEEDED",
       });
 
       await window.lease.release();
+      rawHost.assertActive();
       await Promise.resolve()
         .then(() =>
           provenance.bootstrap.journal.checkpoint({

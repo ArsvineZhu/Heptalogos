@@ -59,6 +59,7 @@ const stateSchemaV1 = Type.Object(
       Type.String({ pattern: SHA256_HEX_PATTERN }),
     ),
     activeProductGeneration: Type.String({ pattern: SHA256_HEX_PATTERN }),
+    continuityEpochId: Type.String({ pattern: UUID_V7_PATTERN }),
     lastKnownGoodProductGeneration: Type.Optional(
       Type.String({ pattern: SHA256_HEX_PATTERN }),
     ),

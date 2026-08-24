@@ -8,6 +8,7 @@ import {
   HOST_OWNERSHIP_CANONICAL_DATABASE,
   HOST_OWNERSHIP_OWNER_ROLE,
   HOST_RUNTIME_ROLE,
+  HOST_MIGRATION_ROLE,
 } from "./contracts.js";
 import type { HostAdvisoryKey } from "./advisory-key.js";
 import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
@@ -44,6 +45,7 @@ export interface BootstrapAdminPasswordProvider {
   withBootstrapPassword<T>(use: (passwordUtf8: Uint8Array) => Promise<T>): Promise<T>;
   withHostLeasePassword<T>(use: (passwordUtf8: Uint8Array) => Promise<T>): Promise<T>;
   withRuntimePassword<T>(use: (passwordUtf8: Uint8Array) => Promise<T>): Promise<T>;
+  withMigrationPassword<T>(use: (passwordUtf8: Uint8Array) => Promise<T>): Promise<T>;
 }
 
 export interface BootstrapAdminProvisioningOptions {
@@ -58,6 +60,7 @@ export interface BootstrapAdminProvisioningResult {
   readonly ownerRoleCreated: boolean;
   readonly hostLeaseRoleCreated: boolean;
   readonly runtimeRoleCreated: boolean;
+  readonly migrationRoleCreated: boolean;
   readonly databaseCreated: boolean;
 }
 
@@ -163,6 +166,32 @@ interface RoleRow {
   readonly rolpassword: string | null;
 }
 
+interface MembershipRow {
+  readonly member_role: string;
+  readonly granted_role: string;
+  readonly admin_option: unknown;
+  readonly inherit_option: unknown;
+  readonly set_option: unknown;
+}
+
+interface ExpectedMembership {
+  readonly memberRole: string;
+  readonly grantedRole: string;
+  readonly adminOption: boolean;
+  readonly inheritOption: boolean;
+  readonly setOption: boolean;
+}
+
+const EXPECTED_PROTECTED_MEMBERSHIPS: readonly ExpectedMembership[] = [
+  {
+    memberRole: HOST_MIGRATION_ROLE,
+    grantedRole: HOST_OWNERSHIP_OWNER_ROLE,
+    adminOption: false,
+    inheritOption: false,
+    setOption: true,
+  },
+];
+
 interface DatabaseRow {
   readonly datname: string;
   readonly owner_name: string;
@@ -179,12 +208,14 @@ WHERE rolname = $1
 const MEMBERSHIP_QUERY = `
 SELECT member.rolname AS member_role,
        granted_role.rolname AS granted_role,
-       memberships.admin_option
+       memberships.admin_option,
+       memberships.inherit_option,
+       memberships.set_option
 FROM pg_catalog.pg_auth_members AS memberships
 JOIN pg_catalog.pg_roles AS member ON member.oid = memberships.member
 JOIN pg_catalog.pg_roles AS granted_role ON granted_role.oid = memberships.roleid
- WHERE member.rolname IN ($1, $2, $3)
-   OR granted_role.rolname IN ($1, $2, $3)
+ WHERE member.rolname IN ($1, $2, $3, $4)
+   OR granted_role.rolname IN ($1, $2, $3, $4)
 `;
 
 const DATABASE_QUERY = `
@@ -290,6 +321,23 @@ function roleIsExact(
   );
 }
 
+function membershipsAreExact(
+  actual: readonly MembershipRow[],
+  expected: readonly ExpectedMembership[],
+): boolean {
+  if (actual.length !== expected.length) return false;
+  return expected.every((required) =>
+    actual.some(
+      (membership) =>
+        membership.member_role === required.memberRole &&
+        membership.granted_role === required.grantedRole &&
+        asBoolean(membership.admin_option) === required.adminOption &&
+        asBoolean(membership.inherit_option) === required.inheritOption &&
+        asBoolean(membership.set_option) === required.setOption,
+    ),
+  );
+}
+
 async function ensureRole(
   client: BootstrapAdminClient,
   authority: BootstrapMutationAuthority,
@@ -298,19 +346,24 @@ async function ensureRole(
   expectedConnectionLimit: number,
   verifier: string | undefined,
   passwordUtf8: Uint8Array | undefined,
+  expectedMemberships: readonly ExpectedMembership[] = [],
 ): Promise<boolean> {
   const roles = await client.query<RoleRow>(ROLE_QUERY, [roleName]);
   if (roles.rows.length > 1) throw incompatibleRoleProblem(roleName);
   const existing = roles.rows[0];
   if (existing !== undefined) {
-    const memberships = await client.query(MEMBERSHIP_QUERY, [
+    const memberships = await client.query<MembershipRow>(MEMBERSHIP_QUERY, [
       HOST_OWNERSHIP_OWNER_ROLE,
       HOST_LEASE_ROLE,
       HOST_RUNTIME_ROLE,
+      HOST_MIGRATION_ROLE,
     ]);
     if (
       !roleIsExact(existing, expectedLogin, expectedConnectionLimit) ||
-      memberships.rows.length !== 0
+      !(expectedMemberships.length === 0
+        ? memberships.rows.length === 0 ||
+          membershipsAreExact(memberships.rows, EXPECTED_PROTECTED_MEMBERSHIPS)
+        : membershipsAreExact(memberships.rows, expectedMemberships))
     ) {
       throw incompatibleRoleProblem(roleName);
     }
@@ -341,6 +394,15 @@ async function ensureRole(
     authority,
     `CREATE ROLE ${quoteIdentifier(roleName)} ${privilegeClauses.join(" ")}${connectionClause}${passwordClause}`,
   );
+  for (const membership of expectedMemberships.filter(
+    (candidate) => candidate.memberRole === roleName,
+  )) {
+    await authorizedMutation(
+      client,
+      authority,
+      `GRANT ${quoteIdentifier(membership.grantedRole)} TO ${quoteIdentifier(membership.memberRole)} WITH INHERIT ${membership.inheritOption ? "TRUE" : "FALSE"}, SET ${membership.setOption ? "TRUE" : "FALSE"}`,
+    );
+  }
   return true;
 }
 
@@ -370,6 +432,25 @@ async function ensureDatabase(
     `CREATE DATABASE ${quoteIdentifier(HOST_OWNERSHIP_CANONICAL_DATABASE)} OWNER ${quoteIdentifier(HOST_OWNERSHIP_OWNER_ROLE)} ENCODING 'UTF8' TEMPLATE template0`,
   );
   return true;
+}
+
+async function ensureDatabaseConnectAcl(
+  client: BootstrapAdminClient,
+  authority: BootstrapMutationAuthority,
+): Promise<void> {
+  const database = quoteIdentifier(HOST_OWNERSHIP_CANONICAL_DATABASE);
+  await authorizedMutation(
+    client,
+    authority,
+    `REVOKE CONNECT ON DATABASE ${database} FROM PUBLIC`,
+  );
+  for (const role of [HOST_LEASE_ROLE, HOST_RUNTIME_ROLE, HOST_MIGRATION_ROLE]) {
+    await authorizedMutation(
+      client,
+      authority,
+      `GRANT CONNECT ON DATABASE ${database} TO ${quoteIdentifier(role)}`,
+    );
+  }
 }
 
 const defaultClientFactory: BootstrapAdminClientFactory = {
@@ -568,10 +649,15 @@ export async function inspectHostOwnershipCanonicalSnapshot(
 SELECT rolname, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole,
        rolreplication, rolbypassrls, rolconnlimit, rolinherit
 FROM pg_catalog.pg_roles
-WHERE rolname IN ($1, $2, $3)
+WHERE rolname IN ($1, $2, $3, $4)
 ORDER BY rolname
 `,
-        [HOST_OWNERSHIP_OWNER_ROLE, HOST_LEASE_ROLE, HOST_RUNTIME_ROLE],
+        [
+          HOST_OWNERSHIP_OWNER_ROLE,
+          HOST_LEASE_ROLE,
+          HOST_RUNTIME_ROLE,
+          HOST_MIGRATION_ROLE,
+        ],
       );
       const database = await admin.query<
         HostOwnershipCanonicalSnapshot["database"][number]
@@ -686,16 +772,39 @@ export async function provisionHostOwnershipDatabase(
                 runtimeVerifier,
                 runtimePasswordUtf8,
               );
-              const databaseCreated = await ensureDatabase(
-                admin,
-                options.mutationAuthority,
+              return options.passwordProvider.withMigrationPassword(
+                async (migrationPasswordUtf8) => {
+                  const migrationVerifier = encodePostgresScramSha256Verifier(
+                    migrationPasswordUtf8,
+                    {
+                      iterations: HOST_LEASE_SCRAM_ITERATIONS,
+                      salt: randomBytes(HOST_LEASE_SCRAM_SALT_BYTES),
+                    },
+                  );
+                  const migrationRoleCreated = await ensureRole(
+                    admin,
+                    options.mutationAuthority,
+                    HOST_MIGRATION_ROLE,
+                    true,
+                    1,
+                    migrationVerifier,
+                    migrationPasswordUtf8,
+                    EXPECTED_PROTECTED_MEMBERSHIPS,
+                  );
+                  const databaseCreated = await ensureDatabase(
+                    admin,
+                    options.mutationAuthority,
+                  );
+                  await ensureDatabaseConnectAcl(admin, options.mutationAuthority);
+                  return {
+                    ownerRoleCreated,
+                    hostLeaseRoleCreated,
+                    runtimeRoleCreated,
+                    migrationRoleCreated,
+                    databaseCreated,
+                  };
+                },
               );
-              return {
-                ownerRoleCreated,
-                hostLeaseRoleCreated,
-                runtimeRoleCreated,
-                databaseCreated,
-              };
             },
           );
         },

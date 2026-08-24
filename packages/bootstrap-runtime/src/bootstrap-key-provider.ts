@@ -11,7 +11,8 @@ export interface BootstrapKeyRequestContext {
   readonly purpose:
     | "private-postgres-bootstrap-superuser"
     | "private-postgres-host-lease-role"
-    | "private-postgres-runtime-role";
+    | "private-postgres-runtime-role"
+    | "private-postgres-migration-role";
 }
 
 export interface BootstrapKeyProvider {
@@ -24,6 +25,10 @@ export interface BootstrapKeyProvider {
     use: (passwordUtf8: Uint8Array) => Promise<T>,
   ): Promise<T>;
   withPrivatePostgresRuntimePassword<T>(
+    context: BootstrapKeyRequestContext,
+    use: (passwordUtf8: Uint8Array) => Promise<T>,
+  ): Promise<T>;
+  withPrivatePostgresMigrationPassword<T>(
     context: BootstrapKeyRequestContext,
     use: (passwordUtf8: Uint8Array) => Promise<T>,
   ): Promise<T>;

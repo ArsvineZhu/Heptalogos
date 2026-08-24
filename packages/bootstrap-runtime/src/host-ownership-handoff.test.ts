@@ -108,7 +108,17 @@ function makeContext(
     assertOwnership: () => {
       if (authority.compromised) throw new Error("bootstrap ownership compromised");
     },
-    state: {} as never,
+    state: {
+      load: vi.fn(async () => ({
+        status: "CURRENT",
+        value: {
+          state: {
+            continuityEpochId: "0197cfe0-0000-7000-8000-000000000001" as never,
+          },
+          digest: {},
+        },
+      })),
+    } as never,
     journal: {
       checkpoint: vi.fn(async (entry: { readonly stage: string }) => {
         stages.push(entry.stage);
@@ -133,6 +143,9 @@ function makeContext(
 
 function makeOptions(): HostOwnershipHandoffOptions {
   return {
+    initializeCanonicalHost: async ({ authority }) => {
+      authority.assertCurrent();
+    },
     keyProvider: {
       async withPrivatePostgresBootstrapPassword<T>(
         _context: BootstrapKeyRequestContext,
@@ -151,6 +164,12 @@ function makeOptions(): HostOwnershipHandoffOptions {
         use: (passwordUtf8: Uint8Array) => Promise<T>,
       ): Promise<T> {
         return use(new TextEncoder().encode("R".repeat(32)));
+      },
+      async withPrivatePostgresMigrationPassword<T>(
+        _context: BootstrapKeyRequestContext,
+        use: (passwordUtf8: Uint8Array) => Promise<T>,
+      ): Promise<T> {
+        return use(new TextEncoder().encode("M".repeat(32)));
       },
     },
     timing: {
@@ -284,7 +303,48 @@ describe("bootstrap to Host ownership handoff", () => {
       "bootstrap.host.fence_validated",
       "bootstrap.host.lease_acquired",
       "bootstrap.host.token_published",
+      "bootstrap.host.state_authoritative_reloaded",
+      "bootstrap.host.canonical_initialization_started",
+      "bootstrap.host.canonical_initialization_succeeded",
       "bootstrap.host.forward_handoff_completed",
+    ]);
+  });
+
+  it("initializes the canonical Host before bootstrap release and managed exposure", async () => {
+    const fixture = makeContext("STARTED_BY_THIS_BOOTSTRAP");
+    installSuccessMocks();
+    const events: string[] = [];
+    hostOwnershipMocks.publish.mockImplementation(
+      async ({
+        mutationAuthority,
+      }: {
+        readonly mutationAuthority: { assertCurrent(): void };
+      }) => {
+        mutationAuthority.assertCurrent();
+        events.push("token_published");
+      },
+    );
+    fixture.ownership.release.mockImplementation(() => {
+      events.push("bootstrap_release");
+      fixture.ownership.state = "RELEASED";
+    });
+
+    await handoffPrivatePostgresToHostForOwnedPrelude(fixture.context, fixture.ready, {
+      ...makeOptions(),
+      initializeCanonicalHost: async ({ authority }) => {
+        events.push("canonical_initializer_enter");
+        authority.assertCurrent();
+        events.push("canonical_initializer_exit");
+      },
+    });
+    events.push("managed_host_return");
+
+    expect(events).toEqual([
+      "token_published",
+      "canonical_initializer_enter",
+      "canonical_initializer_exit",
+      "bootstrap_release",
+      "managed_host_return",
     ]);
   });
 
@@ -317,6 +377,47 @@ describe("bootstrap to Host ownership handoff", () => {
     expect(hostOwnershipMocks.publish).not.toHaveBeenCalled();
     expect(fixture.ready.stopSpy).not.toHaveBeenCalled();
   });
+
+  it.each(["EMPTY", "CORRUPT", "RECOVERED_PREVIOUS"] as const)(
+    "fails closed when authoritative BootstrapState is %s",
+    async (status) => {
+      const fixture = makeContext("STARTED_BY_THIS_BOOTSTRAP");
+      const { closeLease } = installSuccessMocks();
+      const stateLoad = fixture.context.state.load as unknown as {
+        mockResolvedValue(value: unknown): void;
+      };
+      stateLoad.mockResolvedValue(
+        status === "CORRUPT"
+          ? {
+              status,
+              problem: {
+                schemaVersion: 1,
+                problemCode: "bootstrap.state.current_corrupt",
+                category: "integrity",
+                retryClass: "manual",
+                title: "Current BootstrapState is corrupt",
+                detail: "test corruption",
+              },
+            }
+          : { status },
+      );
+      const initializeCanonicalHost = vi.fn(async () => undefined);
+
+      await expect(
+        handoffPrivatePostgresToHostForOwnedPrelude(fixture.context, fixture.ready, {
+          ...makeOptions(),
+          initializeCanonicalHost,
+        }),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "bootstrap.host.current_state_required" },
+      });
+      expect(initializeCanonicalHost).not.toHaveBeenCalled();
+      expect(closeLease).toHaveBeenCalledOnce();
+      expect(fixture.ready.stopSpy).toHaveBeenCalledOnce();
+      expect(fixture.session.state).toBe("QUIESCENT");
+      expect(fixture.ownership.state).toBe("HELD");
+    },
+  );
 
   it("rejects a stale or foreign Ready handle before touching Host ownership", async () => {
     const fixture = makeContext("STARTED_BY_THIS_BOOTSTRAP");
@@ -539,5 +640,76 @@ describe("bootstrap to Host ownership handoff", () => {
     expect(fixture.session.state).toBe("READY");
     expect(fixture.ownership.state).toBe("HELD");
     expect(fixture.ready.stopSpy).not.toHaveBeenCalled();
+  });
+
+  it("keeps the provisional lease and bootstrap authority fenced when canonical initialization fails", async () => {
+    const fixture = makeContext("STARTED_BY_THIS_BOOTSTRAP");
+    const { closeLease } = installSuccessMocks();
+    const options: HostOwnershipHandoffOptions = {
+      ...makeOptions(),
+      initializeCanonicalHost: async () => {
+        throw new ProblemError({
+          schemaVersion: 1,
+          problemCode: "canonical-schema.migration_failed",
+          category: "unavailable",
+          retryClass: "manual",
+          title: "Canonical migration failed",
+          detail: "test failure",
+        });
+      },
+    };
+
+    await expect(
+      handoffPrivatePostgresToHostForOwnedPrelude(
+        fixture.context,
+        fixture.ready,
+        options,
+      ),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "canonical-schema.migration_failed" },
+    });
+    expect(fixture.session.state).toBe("QUIESCENT");
+    expect(fixture.ownership.state).toBe("HELD");
+    expect(closeLease).toHaveBeenCalledOnce();
+    expect(fixture.ready.stopSpy).toHaveBeenCalledOnce();
+    expect(fixture.stages).toContain("bootstrap.host.canonical_initialization_failed");
+    expect(fixture.stages).toContain("bootstrap.host.handoff_failed");
+  });
+
+  it("fences migration credential use when bootstrap authority is lost during the callback", async () => {
+    const fixture = makeContext("STARTED_BY_THIS_BOOTSTRAP");
+    const { closeLease } = installSuccessMocks();
+    const baseOptions = makeOptions();
+    let migrationResolutionCount = 0;
+    const options: HostOwnershipHandoffOptions = {
+      ...baseOptions,
+      keyProvider: {
+        ...baseOptions.keyProvider,
+        async withPrivatePostgresMigrationPassword<T>(
+          _context: BootstrapKeyRequestContext,
+          use: (passwordUtf8: Uint8Array) => Promise<T>,
+        ) {
+          migrationResolutionCount += 1;
+          return use(new TextEncoder().encode("M".repeat(32)));
+        },
+      },
+      initializeCanonicalHost: async ({ authority }) => {
+        await authority.withMigrationDatabasePassword(async () => {
+          fixture.authority.compromised = true;
+        });
+      },
+    };
+
+    await expect(
+      handoffPrivatePostgresToHostForOwnedPrelude(
+        fixture.context,
+        fixture.ready,
+        options,
+      ),
+    ).rejects.toThrow("bootstrap ownership compromised");
+    expect(migrationResolutionCount).toBe(1);
+    expect(closeLease).toHaveBeenCalledOnce();
+    expect(fixture.session.state).toBe("READY");
+    expect(fixture.ownership.state).toBe("HELD");
   });
 });

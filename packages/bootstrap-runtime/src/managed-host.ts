@@ -1,6 +1,7 @@
 import {
   ProblemError,
   type BootId,
+  type ContinuityEpochId,
   type HostOwnershipToken,
   type InstallationId,
   type InstanceId,
@@ -54,6 +55,7 @@ export interface BootstrapManagedHostContext {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
   readonly bootId: BootId;
+  readonly continuityEpochId: ContinuityEpochId;
   readonly token: HostOwnershipToken;
   readonly state: HostOwnershipState;
   readonly signal: AbortSignal;
@@ -66,6 +68,7 @@ export interface BootstrapManagedHostContext {
 }
 
 export interface ManagedHostPersistenceOptions {
+  readonly continuityEpochId: ContinuityEpochId;
   readonly target: HostRuntimeDatabaseTarget;
   readonly withRuntimeDatabasePassword: HostPersistenceAuthority["withRuntimeDatabasePassword"];
 }
@@ -136,6 +139,7 @@ export function createManagedHostContext(
     installationId: raw.installationId,
     instanceId: raw.instanceId,
     bootId: raw.bootId,
+    continuityEpochId: persistenceOptions.continuityEpochId,
     token: raw.token,
     target: persistenceOptions.target,
     signal: raw.signal,
@@ -155,6 +159,7 @@ export function createManagedHostContext(
     installationId: raw.installationId,
     instanceId: raw.instanceId,
     bootId: raw.bootId,
+    continuityEpochId: persistenceOptions.continuityEpochId,
     token: raw.token,
     get state() {
       return record.terminal ? "CLOSED" : raw.state;

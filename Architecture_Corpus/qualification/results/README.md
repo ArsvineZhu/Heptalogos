@@ -27,6 +27,7 @@ Product qualification deferred to implementation
   Q-POLICY-01
   Q-BOOT-01
   Q-PRIVATE-POSTGRES-01
+  Q-PERSISTENCE-01
 ```
 
 Machine-readable property ledger: `qualification-status.json`。
@@ -48,6 +49,7 @@ evidence; they must not be self-recorded by a post-review repository commit.
 | Q-POLICY-01 | [Q-POLICY-01.md](Q-POLICY-01.md) |
 | Q-BOOT-01 | [Q-BOOT-01.md](Q-BOOT-01.md) |
 | Q-PRIVATE-POSTGRES-01 | [Q-PRIVATE-POSTGRES-01.md](Q-PRIVATE-POSTGRES-01.md) |
+| Q-PERSISTENCE-01 | [Q-PERSISTENCE-01.md](Q-PERSISTENCE-01.md) |
 | C-SCHEMA-01 | [C-SCHEMA-01.md](C-SCHEMA-01.md) |
 | C-MGMT-01 | [C-MGMT-01.md](C-MGMT-01.md) |
 | C-CLI-01 | [C-CLI-01.md](C-CLI-01.md) |

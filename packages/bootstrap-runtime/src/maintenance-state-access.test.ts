@@ -41,6 +41,8 @@ function makeStateV1(revision = 1): BootstrapStateBodyV1 {
       "ProductGenerationId",
       digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
     ),
+    continuityEpochId:
+      "0197cfe0-0000-7000-8000-000000000001" as BootstrapStateBodyV1["continuityEpochId"],
   };
 }
 

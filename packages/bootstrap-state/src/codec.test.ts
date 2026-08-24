@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   asContentDigest,
+  createContinuityEpochId,
   createInstallationId,
   createInstanceId,
   digestCanonicalJson,
+  type CanonicalJsonValue,
 } from "@heptalogos/foundation-contracts";
 import {
   BOOTSTRAP_STATE_DIGEST_DOMAIN,
@@ -24,6 +26,7 @@ function makeState(): BootstrapStateBodyV1 {
       "ProductGenerationId",
       digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
     ),
+    continuityEpochId: createContinuityEpochId(),
   };
 }
 
@@ -39,6 +42,8 @@ function makeStateWithPrivatePostgres(): BootstrapStateBodyV1 {
       "ProductGenerationId",
       digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
     ),
+    continuityEpochId:
+      "0197cfe0-0000-7000-8000-000000000001" as BootstrapStateBodyV1["continuityEpochId"],
     privatePostgres: {
       schemaVersion: 1,
       postgresMajor: 18,
@@ -70,6 +75,26 @@ describe("BootstrapState codec", () => {
 
     expect(result).toEqual({ ok: true, value: sealed });
     expect(sealed.digest.domain).toBe(BOOTSTRAP_STATE_DIGEST_DOMAIN);
+  });
+
+  it("rejects obsolete development V1 that lacks continuityEpochId", () => {
+    const sealed = sealBootstrapState(makeState());
+    const { continuityEpochId: _drop, ...obsoleteState } = sealed.state;
+
+    const result = parseBootstrapState(
+      JSON.stringify({
+        state: obsoleteState,
+        digest: digestCanonicalJson(
+          BOOTSTRAP_STATE_DIGEST_DOMAIN,
+          obsoleteState as unknown as CanonicalJsonValue,
+        ),
+      }),
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      problem: { problemCode: "bootstrap.state.invalid_schema" },
+    });
   });
 
   it("seals and parses canonical V1 with private PostgreSQL", () => {

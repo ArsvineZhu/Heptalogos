@@ -83,6 +83,10 @@ export class BootstrapStateStore {
       return { status: "EMPTY" };
     }
 
+    if (current.kind === "INVALID" && previous.kind === "MISSING") {
+      return { status: "CORRUPT", problem: current.problem };
+    }
+
     return {
       status: "CORRUPT",
       problem: storeProblem(

@@ -40,8 +40,8 @@
     },
     {
       "path": ".agents/skills/heptalogos-architecture/SKILL.md",
-      "size": 2855,
-      "sha256": "9f4890477cfb07772ed6cd9256afb54a251b01f89beaa7a7f430909ed5bb6143"
+      "size": 3232,
+      "sha256": "5d526ea2faa3149302f08a9011f3b2204eb49307c3997e96e3c4e76e9fd19f3a"
     },
     {
       "path": ".agents/skills/heptalogos-config-data/SKILL.md",
@@ -70,8 +70,8 @@
     },
     {
       "path": ".agents/skills/heptalogos-runtime-durability/SKILL.md",
-      "size": 2796,
-      "sha256": "7e1ad7dbda851a14ca8618e164e0c3935434d8e6e16ce4d166aa7305e40bf702"
+      "size": 3048,
+      "sha256": "5958efa7ccadaa89938009f092a20acd566dc86b1b1688249bf7b67a344e7ca2"
     },
     {
       "path": ".agents/skills/heptalogos-verification/SKILL.md",
@@ -80,8 +80,8 @@
     },
     {
       "path": "AGENTS.md",
-      "size": 9328,
-      "sha256": "90fd955a19232da5af1bc9849df4d508b4b25e0f74dce83d28464b3cf80e35ad"
+      "size": 9562,
+      "sha256": "9f6cde697bd00e9a367574db912b12a362c63027eafa4bd42ea86a38e62a50a3"
     }
   ]
 }

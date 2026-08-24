@@ -23,6 +23,9 @@
     },
     {
       "path": "../host-ownership/tsconfig.build.json"
+    },
+    {
+      "path": "../canonical-schema/tsconfig.build.json"
     }
   ]
 }

@@ -16,6 +16,7 @@ import {
   parseHostOwnershipToken,
   ProblemError,
   type BootId,
+  type ContinuityEpochId,
   type HostOwnershipToken,
   type Problem,
 } from "@heptalogos/foundation-contracts";
@@ -54,6 +55,7 @@ import {
   type HostMaintenanceBootstrapContext,
   type HostMaintenanceOperationProvenance,
 } from "./host-maintenance.js";
+import { admitCanonicalHost } from "./canonical-host-admission.js";
 import type { HostOwnershipHandoffOptions } from "./host-ownership-handoff.js";
 import { createFreshHostOwnershipToken } from "./host-ownership-handoff.js";
 import { loadBootstrapLocator } from "./locator.js";
@@ -86,6 +88,7 @@ export interface HostMaintenanceRecoveryOptions {
   readonly principal: import("./local-installation-owner.js").LocalInstallationOwnerRecoveryPrincipal;
   readonly expectedOperationId?: MaintenanceOperationId;
   readonly keyProvider: BootstrapKeyProvider;
+  readonly initializeCanonicalHost: HostOwnershipHandoffOptions["initializeCanonicalHost"];
   readonly timing: HostOwnershipTimingOptions;
   readonly clientFactory?: unknown;
   readonly privatePostgres: PrivatePostgresMaintenanceDescriptor;
@@ -336,6 +339,17 @@ function passwordProvider(
         use,
       );
     },
+    withMigrationPassword<T>(use: (password: Uint8Array) => Promise<T>) {
+      return options.keyProvider.withPrivatePostgresMigrationPassword(
+        {
+          installationId,
+          instanceId,
+          bootId,
+          purpose: "private-postgres-migration-role",
+        },
+        use,
+      );
+    },
   };
 }
 
@@ -390,6 +404,7 @@ function createRecoveredManagedHost(
   bootstrap: HostMaintenanceBootstrapContext,
   handoff: HostOwnershipHandoffOptions,
   privatePostgres: PrivatePostgresMaintenanceDescriptor,
+  continuityEpochId: ContinuityEpochId,
 ): BootstrapManagedHostContext {
   const createManagedHost = (
     host: HostOwnershipContext,
@@ -413,11 +428,11 @@ function createRecoveredManagedHost(
       privatePostgres,
       beginOldHostRetirement,
       createHostToken: createFreshHostOwnershipToken,
-      createHostContext: (connection, token) =>
+      createHostContext: (connection, token, bootId = host.bootId) =>
         createHostContext(
           bootstrap.installationId,
           bootstrap.instanceId,
-          bootstrap.bootId,
+          bootId,
           connection,
           token,
         ),
@@ -435,6 +450,7 @@ function createRecoveredManagedHost(
         },
       }),
       {
+        continuityEpochId,
         target: {
           host: "127.0.0.1",
           port: privatePostgres.expectedIdentity.persistedPort,
@@ -446,7 +462,7 @@ function createRecoveredManagedHost(
             {
               installationId: bootstrap.installationId,
               instanceId: bootstrap.instanceId,
-              bootId: bootstrap.bootId,
+              bootId: host.bootId,
               purpose: "private-postgres-runtime-role",
             },
             use,
@@ -774,6 +790,7 @@ export async function recoverInterruptedHostMaintenance(
     );
     const handoff: HostOwnershipHandoffOptions = {
       keyProvider: options.keyProvider,
+      initializeCanonicalHost: options.initializeCanonicalHost,
       timing: options.timing,
       clientFactory: options.clientFactory,
       bootstrapHeartbeatMs: options.bootstrapHeartbeatMs,
@@ -1023,6 +1040,33 @@ export async function recoverInterruptedHostMaintenance(
     if (!hasReached(progress, "HOST_TOKEN_PUBLISHED")) {
       await advance("HOST_TOKEN_PUBLISHED", { target });
     }
+    const activeHostLeaseConnection = hostLeaseConnection;
+    if (activeHostLeaseConnection === undefined) {
+      throw recoveryProblem(
+        "bootstrap.recovery.host_lease_required",
+        "A fresh Host lease is required for canonical admission",
+        "Interrupted maintenance recovery cannot expose a managed Host without the recovered Host lease",
+      );
+    }
+    const admission = await admitCanonicalHost({
+      installationId: locator.installationId,
+      instanceId: locator.instanceId,
+      bootId: publicationBootId,
+      token: freshToken,
+      port: options.privatePostgres.expectedIdentity.persistedPort,
+      bootstrapOwnership: lease,
+      hostLeaseConnection: activeHostLeaseConnection,
+      keyProvider: options.keyProvider,
+      loadCurrentContinuityEpochId: async () => {
+        const currentState = requireBootstrapState(
+          await access.state.load(),
+          profile,
+          options.privatePostgres,
+        );
+        return currentState.state.continuityEpochId;
+      },
+      initializeCanonicalHost: options.initializeCanonicalHost,
+    });
     if (!hasReached(progress, "BOOTSTRAP_RELEASE_ARMED")) {
       await advance("BOOTSTRAP_RELEASE_ARMED", {
         target,
@@ -1034,12 +1078,13 @@ export async function recoverInterruptedHostMaintenance(
       bootstrap,
       handoff,
       options.privatePostgres,
+      admission.continuityEpochId,
     );
     try {
       await lease.release();
+      rawHost.assertActive();
     } catch (error) {
       markManagedHostTerminal(managedHost);
-      await rawHost.close().catch(() => undefined);
       throw error;
     }
     hostLeaseConnection = undefined;
@@ -1060,9 +1105,8 @@ export async function recoverInterruptedHostMaintenance(
     await hostLeaseConnection?.close().catch(() => undefined);
     if (managedHost !== undefined) {
       markManagedHostTerminal(managedHost);
-    } else {
-      await rawHost?.close().catch(() => undefined);
     }
+    await rawHost?.close().catch(() => undefined);
     if (mutationStarted && lease.state === "HELD") {
       try {
         const access = openMaintenanceStateAccess(profile, lease);

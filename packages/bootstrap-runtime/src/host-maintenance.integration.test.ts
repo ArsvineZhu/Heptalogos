@@ -63,6 +63,14 @@ const HOST_TIMING = {
   keepAliveInitialDelayMs: 1_000,
 } as const;
 
+async function initializeCanonicalHost({
+  authority,
+}: {
+  readonly authority: { readonly assertCurrent: () => void };
+}): Promise<void> {
+  authority.assertCurrent();
+}
+
 interface Fixture {
   readonly anchorRoot: string;
   readonly roots: Readonly<Record<LifecycleRootId, string>>;
@@ -80,6 +88,8 @@ function makeState(): BootstrapStateBodyV1 {
       "ProductGenerationId",
       digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
     ),
+    continuityEpochId:
+      "0197cfe0-0000-7000-8000-000000000001" as BootstrapStateBodyV1["continuityEpochId"],
   };
 }
 
@@ -109,12 +119,15 @@ async function makeFixture(): Promise<Fixture> {
   return { anchorRoot, roots };
 }
 
-function makeKeyProvider(): BootstrapKeyProvider {
+function makeKeyProvider(
+  onRequest?: (context: BootstrapKeyRequestContext) => void,
+): BootstrapKeyProvider {
   return {
     async withPrivatePostgresBootstrapPassword<T>(
       _context: BootstrapKeyRequestContext,
       use: (password: Uint8Array) => Promise<T>,
     ): Promise<T> {
+      onRequest?.(_context);
       const password = new TextEncoder().encode(
         "M5A_TEST_BOOTSTRAP_PASSWORD_0123456789",
       );
@@ -128,6 +141,7 @@ function makeKeyProvider(): BootstrapKeyProvider {
       _context: BootstrapKeyRequestContext,
       use: (password: Uint8Array) => Promise<T>,
     ): Promise<T> {
+      onRequest?.(_context);
       const password = new TextEncoder().encode(
         "M5A_TEST_HOST_LEASE_PASSWORD_0123456789",
       );
@@ -141,7 +155,22 @@ function makeKeyProvider(): BootstrapKeyProvider {
       _context: BootstrapKeyRequestContext,
       use: (password: Uint8Array) => Promise<T>,
     ): Promise<T> {
+      onRequest?.(_context);
       const password = new TextEncoder().encode("M5A_TEST_RUNTIME_PASSWORD_0123456789");
+      try {
+        return await use(password);
+      } finally {
+        password.fill(0);
+      }
+    },
+    async withPrivatePostgresMigrationPassword<T>(
+      _context: BootstrapKeyRequestContext,
+      use: (password: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      onRequest?.(_context);
+      const password = new TextEncoder().encode(
+        "M5A_TEST_MIGRATION_PASSWORD_0123456789",
+      );
       try {
         return await use(password);
       } finally {
@@ -194,6 +223,17 @@ async function hostOwnershipSnapshot(
           instanceId: host.instanceId,
           bootId: host.bootId,
           purpose: "private-postgres-runtime-role",
+        },
+        use,
+      );
+    },
+    withMigrationPassword(use) {
+      return keyProvider.withPrivatePostgresMigrationPassword(
+        {
+          installationId: host.installationId,
+          instanceId: host.instanceId,
+          bootId: host.bootId,
+          purpose: "private-postgres-migration-role",
         },
         use,
       );
@@ -350,7 +390,12 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
     const fixture = await makeFixture();
     const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
     const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
-    const keyProvider = makeKeyProvider();
+    const runtimeRequests: BootstrapKeyRequestContext[] = [];
+    const keyProvider = makeKeyProvider((context) => {
+      if (context.purpose === "private-postgres-runtime-role") {
+        runtimeRequests.push(context);
+      }
+    });
     const toolchain = await getToolchain();
     const port = 55520;
     let ready: ReadyPrivatePostgres | undefined;
@@ -365,6 +410,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
         keyProvider,
       });
       const activeHostA = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });
@@ -383,7 +429,15 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
       expect(activeHostA.state).toBe("CLOSED");
       expect(() => activeHostA.assertActive()).toThrow();
       expect(activeHostB.state).toBe("ACTIVE");
+      expect(activeHostB.bootId).not.toBe(activeHostA.bootId);
       expect(activeHostB.token).not.toBe(activeHostA.token);
+      expect(activeHostB.continuityEpochId).toBe(activeHostA.continuityEpochId);
+      expect(activeHostB.persistence.continuityEpochId).toBe(
+        activeHostA.persistence.continuityEpochId,
+      );
+      await activeHostB.persistence.withRuntimeDatabasePassword(async () => undefined);
+      expect(runtimeRequests.at(-1)?.bootId).toBe(activeHostB.bootId);
+      expect(runtimeRequests.at(-1)?.bootId).not.toBe(activeHostA.bootId);
       await expect(assertReady(toolchain, ready.port)).resolves.toBeUndefined();
 
       const persisted = await new BootstrapStateStore(
@@ -490,6 +544,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
       });
       const expectedClusterSystemIdentifier = ready.clusterSystemIdentifier;
       hostA = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });
@@ -534,6 +589,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
       await expect(assertReady(toolchain, port)).resolves.toBeUndefined();
 
       hostC = await secondOwned.handoffPrivatePostgresToHost(secondReady, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });
@@ -593,6 +649,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
       });
       const expectedClusterSystemIdentifier = ready.clusterSystemIdentifier;
       host = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });
@@ -675,6 +732,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
         keyProvider,
       });
       host = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });
@@ -702,6 +760,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
       expect(postReady.startupDisposition).toBe("ALREADY_RUNNING");
       await expect(
         postOwned.handoffPrivatePostgresToHost(postReady, {
+          initializeCanonicalHost,
           keyProvider,
           timing: HOST_TIMING,
         }),
@@ -749,6 +808,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
         keyProvider,
       });
       hostA = await firstOwned.handoffPrivatePostgresToHost(firstReady, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });
@@ -771,6 +831,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
       });
       expect(secondReady.startupDisposition).toBe("ALREADY_RUNNING");
       hostB = await secondOwned.handoffPrivatePostgresToHost(secondReady, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });
@@ -822,6 +883,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
         keyProvider,
       });
       host = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });
@@ -909,6 +971,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
         keyProvider,
       });
       host = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });

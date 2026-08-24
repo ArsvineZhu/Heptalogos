@@ -45,6 +45,12 @@ Stop and surface the conflict instead of implementing when:
 - Foundation work would require choosing an advanced-cognition algorithm/backend not explicitly scoped;
 - the task cannot be classified without changing architecture.
 
+While `CompatibilityEpoch=PRE_PRODUCTION`, do not infer a compatibility
+obligation from merged commits, retained developer databases, local fixtures,
+or previous development builds. Keep one canonical V1 and reject/reset obsolete
+development shapes; never add V2/V3, legacy readers, upcasters, bridge
+migrations, aliases, shims, or dual formats solely for repository history.
+
 ## Completion
 
 The design must preserve constitution invariants, use one canonical authority per fact, keep framework mechanics below Heptalogos contracts, and leave no contradictory Corpus projection behind.

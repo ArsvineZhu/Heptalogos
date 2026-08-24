@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseInstanceId } from "@heptalogos/foundation-contracts";
 import {
   HOST_LEASE_ROLE,
+  HOST_MIGRATION_ROLE,
   HOST_OWNERSHIP_CANONICAL_DATABASE,
   HOST_OWNERSHIP_OWNER_ROLE,
   HOST_OWNERSHIP_SCHEMA,
@@ -288,9 +289,11 @@ class FakeSchemaClient implements BootstrapAdminClient {
         );
       }
       if (normalized.startsWith("GRANT CONNECT ON DATABASE")) {
-        const grantee = normalized.includes(`\"${HOST_RUNTIME_ROLE}\"`)
-          ? HOST_RUNTIME_ROLE
-          : HOST_LEASE_ROLE;
+        const grantee = normalized.includes(`\"${HOST_MIGRATION_ROLE}\"`)
+          ? HOST_MIGRATION_ROLE
+          : normalized.includes(`\"${HOST_RUNTIME_ROLE}\"`)
+            ? HOST_RUNTIME_ROLE
+            : HOST_LEASE_ROLE;
         this.state.databaseAcl = [
           ...this.state.databaseAcl.filter(
             (row) => !(row.grantee === grantee && row.privilege_type === "CONNECT"),
@@ -417,6 +420,11 @@ function makeOptions(
       use: (passwordUtf8: Uint8Array) => Promise<T>,
     ): Promise<T> {
       return use(new TextEncoder().encode("R".repeat(32)));
+    },
+    async withMigrationPassword<T>(
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      return use(new TextEncoder().encode("M".repeat(32)));
     },
   };
   const parsedInstanceId = parseInstanceId(instanceId);

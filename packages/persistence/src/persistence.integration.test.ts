@@ -8,6 +8,7 @@ import { CompiledQuery } from "kysely";
 import { Client } from "pg";
 import {
   createBootId,
+  createContinuityEpochId,
   createHostOwnershipToken,
   createInstallationId,
   createInstanceId,
@@ -51,6 +52,7 @@ const execFileAsync = promisify(execFile);
 const BOOTSTRAP_PASSWORD = "H2A1_TEST_BOOTSTRAP_PASSWORD_0123456789";
 const HOST_LEASE_PASSWORD = "H2A1_TEST_HOST_LEASE_PASSWORD_0123456789";
 const RUNTIME_PASSWORD = "H2A1_TEST_RUNTIME_PASSWORD_0123456789";
+const MIGRATION_PASSWORD = "H2A1_TEST_MIGRATION_PASSWORD_0123456789";
 const QUALIFICATION_TABLE = "h2a1_persistence_qualification";
 const TIMING: HostOwnershipTimingOptions = {
   connectionTimeoutMs: 10_000,
@@ -68,6 +70,7 @@ interface Fixture {
   readonly port: number;
   readonly installationId: ReturnType<typeof createInstallationId>;
   readonly instanceId: InstanceId;
+  readonly continuityEpochId: ReturnType<typeof createContinuityEpochId>;
   readonly provider: BootstrapAdminPasswordProvider;
   readonly stop: () => Promise<void>;
 }
@@ -117,6 +120,14 @@ function makeProvider(): BootstrapAdminPasswordProvider {
     },
     async withRuntimePassword<T>(use: (password: Uint8Array) => Promise<T>) {
       const password = new TextEncoder().encode(RUNTIME_PASSWORD);
+      try {
+        return await use(password);
+      } finally {
+        password.fill(0);
+      }
+    },
+    async withMigrationPassword<T>(use: (password: Uint8Array) => Promise<T>) {
+      const password = new TextEncoder().encode(MIGRATION_PASSWORD);
       try {
         return await use(password);
       } finally {
@@ -191,6 +202,7 @@ async function createCluster(): Promise<Fixture> {
   const port = await freePort();
   const installationId = createInstallationId();
   const instanceId = createInstanceId();
+  const continuityEpochId = createContinuityEpochId();
   const provider = makeProvider();
   await Promise.all(
     [dataDirectory, tempDirectory, logDirectory].map((directory) =>
@@ -235,6 +247,7 @@ async function createCluster(): Promise<Fixture> {
     port,
     installationId,
     instanceId,
+    continuityEpochId,
     provider,
     stop: async () => {
       await runPgCtl([
@@ -353,6 +366,7 @@ function makeAuthority(
     installationId: fixture.installationId,
     instanceId: fixture.instanceId,
     bootId: published.bootId,
+    continuityEpochId: fixture.continuityEpochId,
     token: published.token,
     target: {
       host: "127.0.0.1",

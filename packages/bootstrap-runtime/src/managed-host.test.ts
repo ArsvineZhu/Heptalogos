@@ -20,6 +20,8 @@ import {
 } from "./managed-host.js";
 
 const persistenceOptions: ManagedHostPersistenceOptions = {
+  continuityEpochId:
+    "0197cfe0-0000-7000-8000-000000000001" as ManagedHostPersistenceOptions["continuityEpochId"],
   target: {
     host: "127.0.0.1",
     port: 55436,
@@ -117,6 +119,8 @@ describe("managed Host capability", () => {
         async shutdownKeepingPrivatePostgres() {},
       },
       {
+        continuityEpochId:
+          "0197cfe0-0000-7000-8000-000000000001" as ManagedHostPersistenceOptions["continuityEpochId"],
         target: {
           host: "127.0.0.1",
           port: 55436,

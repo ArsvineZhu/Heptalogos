@@ -4,12 +4,14 @@ import { digestCanonicalJson } from "./digest.js";
 import {
   asContentDigest,
   createBootId,
+  createContinuityEpochId,
   createHostOwnershipToken,
   createInstallationId,
   createInstanceId,
   createUuidV7Id,
   parseContentDigest,
   parseBootId,
+  parseContinuityEpochId,
   parseHostOwnershipToken,
   parseInstallationId,
   parseInstanceId,
@@ -47,6 +49,14 @@ describe("identity primitives", () => {
     expect(parseHostOwnershipToken("00000000-0000-4000-8000-000000000000")).toBe(
       undefined,
     );
+  });
+
+  it("creates and parses ContinuityEpochId as UUIDv7", () => {
+    const value = createContinuityEpochId();
+
+    expect(uuidVersion(value)).toBe(7);
+    expect(parseContinuityEpochId(value)).toBe(value);
+    expect(parseContinuityEpochId("not-a-uuid")).toBeUndefined();
   });
 
   it("parses only lowercase SHA-256 content digest values", () => {

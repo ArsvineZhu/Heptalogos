@@ -42,6 +42,9 @@ describe("BootstrapKeyProvider", () => {
       async withPrivatePostgresRuntimePassword(_context, use) {
         return use(new Uint8Array());
       },
+      async withPrivatePostgresMigrationPassword(_context, use) {
+        return use(new TextEncoder().encode("M".repeat(32)));
+      },
     };
 
     await provider.withPrivatePostgresBootstrapPassword(context, async (password) => {
@@ -81,6 +84,9 @@ describe("BootstrapKeyProvider", () => {
       async withPrivatePostgresRuntimePassword(_context, use) {
         return use(new Uint8Array());
       },
+      async withPrivatePostgresMigrationPassword(_context, use) {
+        return use(new TextEncoder().encode("M".repeat(32)));
+      },
     };
     let observedPurpose: BootstrapKeyRequestContext["purpose"] | undefined;
     let observedLength = 0;
@@ -117,6 +123,9 @@ describe("BootstrapKeyProvider", () => {
           password.fill(0);
         }
       },
+      async withPrivatePostgresMigrationPassword(_context, use) {
+        return use(new TextEncoder().encode("M".repeat(32)));
+      },
     };
     let observedPurpose: BootstrapKeyRequestContext["purpose"] | undefined;
     let observedPassword = "";
@@ -129,5 +138,19 @@ describe("BootstrapKeyProvider", () => {
 
     expect(observedPurpose).toBe("private-postgres-runtime-role");
     expect(observedPassword).toBe("R".repeat(32));
+
+    const migrationContext: BootstrapKeyRequestContext = {
+      ...context,
+      purpose: "private-postgres-migration-role",
+    };
+    let observedMigrationPassword = "";
+    await provider.withPrivatePostgresMigrationPassword(
+      migrationContext,
+      async (password) => {
+        observedMigrationPassword = new TextDecoder().decode(password);
+        return undefined;
+      },
+    );
+    expect(observedMigrationPassword).toBe("M".repeat(32));
   });
 });

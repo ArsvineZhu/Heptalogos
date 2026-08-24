@@ -3,6 +3,7 @@ export { digestCanonicalJson, type Sha256Digest } from "./digest.js";
 export {
   asContentDigest,
   createBootId,
+  createContinuityEpochId,
   createHostOwnershipToken,
   createInstallationId,
   createInstanceId,
@@ -11,6 +12,7 @@ export {
   isUuidV7,
   parseContentDigest,
   parseBootId,
+  parseContinuityEpochId,
   parseHostOwnershipToken,
   parseInstallationId,
   parseInstanceId,
@@ -20,6 +22,7 @@ export {
   type Branded,
   type BootId,
   type ContentDigest,
+  type ContinuityEpochId,
   type InstallationId,
   type InstanceId,
   type HostOwnershipToken,

@@ -124,6 +124,8 @@ function makeState(revision: number): BootstrapStateBodyV1 {
       "ProductGenerationId",
       digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
     ),
+    continuityEpochId:
+      "0197cfe0-0000-7000-8000-000000000001" as BootstrapStateBodyV1["continuityEpochId"],
   };
 }
 
@@ -177,6 +179,12 @@ function makeOptions(
       use: (passwordUtf8: Uint8Array) => Promise<T>,
     ): Promise<T> {
       return use(new TextEncoder().encode("R".repeat(32)));
+    },
+    async withPrivatePostgresMigrationPassword<T>(
+      _context: BootstrapKeyRequestContext,
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      return use(new TextEncoder().encode("M".repeat(32)));
     },
   };
   return {

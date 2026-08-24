@@ -8,7 +8,7 @@ import {
   createInstanceId,
   digestCanonicalJson,
 } from "@heptalogos/foundation-contracts";
-import { parseBootstrapState } from "./codec.js";
+import { parseBootstrapState, sealBootstrapState } from "./codec.js";
 import { BootstrapStateStore } from "./store.js";
 import type { BootstrapStateBodyV1 } from "./model.js";
 
@@ -32,6 +32,8 @@ function makeState(revision: number): BootstrapStateBodyV1 {
       "ProductGenerationId",
       digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
     ),
+    continuityEpochId:
+      "0197cfe0-0000-7000-8000-000000000001" as BootstrapStateBodyV1["continuityEpochId"],
   };
 }
 
@@ -143,6 +145,20 @@ describe("BootstrapStateStore", () => {
     await expect(store.load()).resolves.toMatchObject({
       status: "CORRUPT",
       problem: { problemCode: "bootstrap.state.no_valid_revision" },
+    });
+  });
+
+  it("preserves the current schema problem when no previous revision exists", async () => {
+    const directory = await makeDirectory();
+    const { continuityEpochId: _continuityEpochId, ...obsolete } = makeState(1);
+    await writeFile(
+      join(directory, "bootstrap-state.json"),
+      JSON.stringify(sealBootstrapState(obsolete as never)),
+    );
+
+    await expect(new BootstrapStateStore(directory).load()).resolves.toMatchObject({
+      status: "CORRUPT",
+      problem: { problemCode: "bootstrap.state.invalid_schema" },
     });
   });
 

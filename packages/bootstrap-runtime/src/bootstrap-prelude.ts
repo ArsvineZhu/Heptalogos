@@ -3,12 +3,16 @@ import {
   BootstrapJournal,
   BootstrapStateStore,
   type BootstrapActivityId,
+  type BootstrapRuntimeGenerationId,
   type BootstrapJournalCheckpointV1,
+  type BootstrapStateEnvelope,
   type BootstrapStateLoadResult,
   type BootstrapStageOutcome,
+  type ProductGenerationId,
 } from "@heptalogos/bootstrap-state";
 import {
   createBootId,
+  createContinuityEpochId,
   createUuidV7Id,
   ProblemError,
   type BootId,
@@ -64,6 +68,9 @@ export interface OwnedBootstrapPrelude {
   readonly ownershipSignal: AbortSignal;
   readonly state: OwnedBootstrapStateStore;
   readonly authoritativeState: BootstrapStateLoadResult;
+  ensureBootstrapStateInitialized(
+    selection: BootstrapStateGenesisSelection,
+  ): Promise<BootstrapStateEnvelope>;
   preparePrivatePostgres(
     options: PreparePrivatePostgresOptions,
   ): Promise<ReadyPrivatePostgres>;
@@ -72,6 +79,12 @@ export interface OwnedBootstrapPrelude {
     options: HostOwnershipHandoffOptions,
   ): Promise<BootstrapManagedHostContext>;
   close(): Promise<void>;
+}
+
+export interface BootstrapStateGenesisSelection {
+  readonly activeBootstrapRuntimeGeneration: BootstrapRuntimeGenerationId;
+  readonly activeProductGeneration: ProductGenerationId;
+  readonly lastKnownGoodProductGeneration?: ProductGenerationId;
 }
 
 const BOOTSTRAP_STATE_DIRECTORY = "bootstrap-state";
@@ -203,7 +216,7 @@ async function materializeOwnedBootstrapPrelude(
 ): Promise<OwnedBootstrapPrelude> {
   try {
     const access = openBootstrapStateAccess(context.paths, ownership);
-    const authoritativeState = await access.state.load();
+    let authoritativeState = await access.state.load();
     if (authoritativeState.status === "RECOVERED_PREVIOUS") {
       throw currentBootstrapStateAuthorityRequired();
     }
@@ -247,7 +260,48 @@ async function materializeOwnedBootstrapPrelude(
         return ownership.signal;
       },
       state: access.state,
-      authoritativeState,
+      get authoritativeState() {
+        return authoritativeState;
+      },
+      async ensureBootstrapStateInitialized(
+        selection: BootstrapStateGenesisSelection,
+      ): Promise<BootstrapStateEnvelope> {
+        assertBootstrapOwnershipFor(
+          ownership,
+          context.paths.resolve("INSTANCE").canonicalPath,
+        );
+        const current = await access.state.load();
+        if (current.status === "CORRUPT") {
+          throw new ProblemError(current.problem);
+        }
+        if (current.status === "RECOVERED_PREVIOUS") {
+          throw currentBootstrapStateAuthorityRequired();
+        }
+        if (current.status === "CURRENT") {
+          authoritativeState = current;
+          return current.value;
+        }
+
+        assertBootstrapOwnershipFor(
+          ownership,
+          context.paths.resolve("INSTANCE").canonicalPath,
+        );
+        const committed = await access.state.commit({
+          schemaVersion: 1,
+          revision: 1,
+          activeBootstrapRuntimeGeneration: selection.activeBootstrapRuntimeGeneration,
+          activeProductGeneration: selection.activeProductGeneration,
+          ...(selection.lastKnownGoodProductGeneration === undefined
+            ? {}
+            : {
+                lastKnownGoodProductGeneration:
+                  selection.lastKnownGoodProductGeneration,
+              }),
+          continuityEpochId: createContinuityEpochId(),
+        });
+        authoritativeState = { status: "CURRENT", value: committed };
+        return committed;
+      },
       preparePrivatePostgres(options: PreparePrivatePostgresOptions) {
         return preparePrivatePostgresForOwnedPrelude(
           {

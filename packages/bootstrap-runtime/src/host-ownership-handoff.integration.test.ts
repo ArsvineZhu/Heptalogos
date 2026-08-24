@@ -77,6 +77,8 @@ function makeState(): BootstrapStateBodyV1 {
       "ProductGenerationId",
       digestCanonicalJson("test.product-generation/v1", { generation: "product" }),
     ),
+    continuityEpochId:
+      "0197cfe0-0000-7000-8000-000000000001" as BootstrapStateBodyV1["continuityEpochId"],
   };
 }
 
@@ -141,6 +143,19 @@ function makeKeyProvider(): BootstrapKeyProvider {
         password.fill(0);
       }
     },
+    async withPrivatePostgresMigrationPassword<T>(
+      _context: BootstrapKeyRequestContext,
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      const password = new TextEncoder().encode(
+        "M5A_TEST_MIGRATION_PASSWORD_0123456789",
+      );
+      try {
+        return await use(password);
+      } finally {
+        password.fill(0);
+      }
+    },
   };
 }
 
@@ -178,6 +193,17 @@ async function hostOwnershipSnapshot(
           instanceId: ready.instanceId,
           bootId: ready.bootId,
           purpose: "private-postgres-runtime-role",
+        },
+        use,
+      );
+    },
+    withMigrationPassword(use) {
+      return keyProvider.withPrivatePostgresMigrationPassword(
+        {
+          installationId: ready.installationId,
+          instanceId: ready.instanceId,
+          bootId: ready.bootId,
+          purpose: "private-postgres-migration-role",
         },
         use,
       );
@@ -256,6 +282,9 @@ describe("bootstrap to Host ownership real PostgreSQL 18.6 qualification", () =>
     try {
       ready = await owned.preparePrivatePostgres(options);
       host = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost: async ({ authority }) => {
+          authority.assertCurrent();
+        },
         keyProvider,
         timing: {
           connectionTimeoutMs: 10_000,
@@ -314,6 +343,9 @@ describe("bootstrap to Host ownership real PostgreSQL 18.6 qualification", () =>
     try {
       firstReady = await firstOwned.preparePrivatePostgres(options);
       hostA = await firstOwned.handoffPrivatePostgresToHost(firstReady, {
+        initializeCanonicalHost: async ({ authority }) => {
+          authority.assertCurrent();
+        },
         keyProvider,
         timing: {
           connectionTimeoutMs: 10_000,
@@ -338,6 +370,9 @@ describe("bootstrap to Host ownership real PostgreSQL 18.6 qualification", () =>
 
         await expect(
           secondOwned.handoffPrivatePostgresToHost(secondReady, {
+            initializeCanonicalHost: async ({ authority }) => {
+              authority.assertCurrent();
+            },
             keyProvider,
             timing: {
               connectionTimeoutMs: 10_000,
