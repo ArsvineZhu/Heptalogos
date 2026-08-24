@@ -2,7 +2,7 @@
 
 **Status:** LIVING ROADMAP / planning guidance<br>
 **Date:** 2026-08-24<br>
-**Repository baseline:** `master@b306975bba3592a0d8c2e2e6d1649f2523af27bc` (H2A-1 post-merge truth reconciliation)<br>
+**Repository baseline:** `master@446d0f6bce449f177c66fb569341020757b44c9b` (H2A-2 post-merge truth reconciliation)<br>
 **Architecture baseline:** `Architecture_Corpus` design state 2026-08-20
 
 > This document is a roadmap, not an Architecture Corpus authority and not an Implementation Plan. It guides future plan decomposition, sequencing, risk retirement, and acceptance. If it conflicts with the Architecture Corpus, the Corpus wins. If implementation evidence invalidates roadmap assumptions without invalidating architecture semantics, update the roadmap rather than silently changing the Corpus.
@@ -139,6 +139,7 @@ H1_STABILIZATION: CLOSED
 H1: CLOSED
 H2A_1: CLOSED
 H2A_2: CLOSED
+H2A_3: ACTIVE
 H2A: OPEN
 H2B: ELIGIBLE_BY_H1_BUT_IMPLEMENTATION_DEFERRED_PENDING_EXECUTION_CONTEXT_SPINE
 H2: OPEN
@@ -278,7 +279,7 @@ Do not pull RuntimeReconciler, DBOS, Subject, Messaging, AI or full Management i
 - ExecutionContext / Activity identity core;
 - AsyncLocalStorage + OTel Context propagation boundary;
 - minimum retained Activity/Evidence semantics for authoritative transitions;
-- scoped storage primitives needed by core Foundation code, without prematurely completing the entire DataLifecycle stack.
+- scoped storage primitives are pulled into H2A only if a concrete H2A Foundation owner requires them; otherwise StorageWorkspace implementation waits for its first real consumer.
 
 ### Exit scenarios
 
