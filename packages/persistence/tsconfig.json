@@ -1,0 +1,30 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "rootDir": "src",
+    "outDir": "./dist/types",
+    "tsBuildInfoFile": "./dist/types/tsconfig.tsbuildinfo",
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../host-ownership"
+    },
+    {
+      "path": "../foundation-contracts"
+    },
+    {
+      "path": "../private-postgres"
+    },
+    {
+      "path": "../bootstrap-state"
+    },
+    {
+      "path": "../bootstrap-runtime"
+    }
+  ]
+}

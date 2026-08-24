@@ -3,6 +3,7 @@ import {
   HOST_LEASE_ROLE,
   HOST_OWNERSHIP_CANONICAL_DATABASE,
   HOST_OWNERSHIP_OWNER_ROLE,
+  HOST_RUNTIME_ROLE,
 } from "./contracts.js";
 import {
   type BootstrapAdminClient,
@@ -18,6 +19,12 @@ const HOST_SALT = new TextEncoder().encode("salt-for-test-16");
 const EXACT_HOST_VERIFIER = encodePostgresScramSha256Verifier(HOST_PASSWORD, {
   iterations: 4096,
   salt: HOST_SALT,
+});
+const RUNTIME_PASSWORD = new TextEncoder().encode("R".repeat(32));
+const RUNTIME_SALT = new TextEncoder().encode("runtime-salt-016");
+const EXACT_RUNTIME_VERIFIER = encodePostgresScramSha256Verifier(RUNTIME_PASSWORD, {
+  iterations: 4096,
+  salt: RUNTIME_SALT,
 });
 const mutationAuthority = { assertCurrent(): void {} };
 
@@ -70,7 +77,11 @@ function exactRole(name: string, login: boolean, connectionLimit: number): RoleR
     rolbypassrls: false,
     rolconnlimit: connectionLimit,
     rolinherit: false,
-    rolpassword: login ? EXACT_HOST_VERIFIER : null,
+    rolpassword: login
+      ? name === HOST_RUNTIME_ROLE
+        ? EXACT_RUNTIME_VERIFIER
+        : EXACT_HOST_VERIFIER
+      : null,
   };
 }
 
@@ -119,12 +130,17 @@ class FakeClient implements BootstrapAdminClient {
     }
     if (normalized.startsWith("CREATE ROLE")) {
       const host = normalized.includes(`\"${HOST_LEASE_ROLE}\"`);
+      const runtime = normalized.includes(`\"${HOST_RUNTIME_ROLE}\"`);
       if (host && this.fault === "before-host-role-create") {
         this.fault = undefined;
         throw new Error("injected before host role create");
       }
-      const name = host ? HOST_LEASE_ROLE : HOST_OWNERSHIP_OWNER_ROLE;
-      this.state.roles.set(name, exactRole(name, host, host ? 1 : -1));
+      const name = host
+        ? HOST_LEASE_ROLE
+        : runtime
+          ? HOST_RUNTIME_ROLE
+          : HOST_OWNERSHIP_OWNER_ROLE;
+      this.state.roles.set(name, exactRole(name, host || runtime, host ? 1 : -1));
       if (
         (!host && this.fault === "after-owner-role-create") ||
         (host && this.fault === "after-host-role-create")
@@ -183,6 +199,11 @@ function makeFixture(
       ): Promise<T> {
         return use(new TextEncoder().encode("H".repeat(32)));
       },
+      async withRuntimePassword<T>(
+        use: (passwordUtf8: Uint8Array) => Promise<T>,
+      ): Promise<T> {
+        return use(RUNTIME_PASSWORD);
+      },
     },
   };
   return { client, factory, options };
@@ -217,6 +238,11 @@ function makeFaultFixture(
       ): Promise<T> {
         return use(HOST_PASSWORD);
       },
+      async withRuntimePassword<T>(
+        use: (passwordUtf8: Uint8Array) => Promise<T>,
+      ): Promise<T> {
+        return use(RUNTIME_PASSWORD);
+      },
     },
   };
   return { client, options };
@@ -247,6 +273,7 @@ describe("bootstrap host ownership database provisioning", () => {
     ).resolves.toMatchObject({
       ownerRoleCreated: true,
       hostLeaseRoleCreated: true,
+      runtimeRoleCreated: true,
       databaseCreated: true,
     });
 
@@ -265,11 +292,23 @@ describe("bootstrap host ownership database provisioning", () => {
     expect(sql).not.toContain("H".repeat(32));
   });
 
+  it("creates a distinct least-privilege runtime role", async () => {
+    const fixture = makeFixture({ roles: new Map(), databases: new Map() });
+
+    await provisionHostOwnershipDatabase(fixture.options);
+
+    const sql = fixture.client.calls.map((call) => call.text).join("\n");
+    expect(sql).toContain(
+      'CREATE ROLE "heptalogos_runtime" LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT CONNECTION LIMIT -1',
+    );
+  });
+
   it("accepts exact existing objects without ALTER or password reset", async () => {
     const fixture = makeFixture({
       roles: new Map([
         [HOST_OWNERSHIP_OWNER_ROLE, exactRole(HOST_OWNERSHIP_OWNER_ROLE, false, -1)],
         [HOST_LEASE_ROLE, exactRole(HOST_LEASE_ROLE, true, 1)],
+        [HOST_RUNTIME_ROLE, exactRole(HOST_RUNTIME_ROLE, true, -1)],
       ]),
       databases: new Map([[HOST_OWNERSHIP_CANONICAL_DATABASE, exactDatabase()]]),
     });
@@ -279,6 +318,7 @@ describe("bootstrap host ownership database provisioning", () => {
     ).resolves.toMatchObject({
       ownerRoleCreated: false,
       hostLeaseRoleCreated: false,
+      runtimeRoleCreated: false,
       databaseCreated: false,
     });
 

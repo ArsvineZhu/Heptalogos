@@ -5,6 +5,7 @@ import {
   HOST_OWNERSHIP_CANONICAL_DATABASE,
   HOST_OWNERSHIP_OWNER_ROLE,
   HOST_OWNERSHIP_SCHEMA,
+  HOST_RUNTIME_ROLE,
 } from "./contracts.js";
 import {
   type BootstrapAdminClient,
@@ -18,8 +19,15 @@ const mutationAuthority = { assertCurrent(): void {} };
 interface SchemaState {
   schemaExists: boolean;
   tableExists: boolean;
+  functionExists?: boolean;
   schemaOwner?: string;
   tableOwner?: string;
+  functionOwner?: string;
+  functionSecurityDefiner?: boolean;
+  functionLanguage?: string;
+  functionResult?: string;
+  functionSource?: string;
+  functionConfig?: readonly string[] | null;
   readonly columns?: readonly {
     readonly column_name: string;
     readonly data_type: string;
@@ -35,6 +43,7 @@ interface SchemaState {
   publicSchemaAcl: AclFixtureRow[];
   schemaAcl: AclFixtureRow[];
   tableAcl: AclFixtureRow[];
+  functionAcl?: AclFixtureRow[];
   readonly columnAcl?: AclFixtureRow[];
 }
 
@@ -67,6 +76,7 @@ function existingSchemaState(overrides: Partial<SchemaState> = {}): SchemaState 
   return {
     schemaExists: true,
     tableExists: true,
+    functionExists: true,
     fenceRows: [
       {
         singleton: true,
@@ -83,6 +93,7 @@ function existingSchemaState(overrides: Partial<SchemaState> = {}): SchemaState 
       { grantee: HOST_LEASE_ROLE, privilege_type: "SELECT" },
       { grantee: HOST_LEASE_ROLE, privilege_type: "UPDATE" },
     ],
+    functionAcl: [{ grantee: HOST_RUNTIME_ROLE, privilege_type: "EXECUTE" }],
     ...overrides,
   };
 }
@@ -119,6 +130,17 @@ const exactConstraints = [
   },
 ];
 
+const exactFunctionSource = `
+SELECT f.singleton,
+       f.instance_id,
+       f.ownership_revision,
+       f.host_ownership_token,
+       f.boot_id
+FROM "heptalogos"."host_ownership_fence" AS f
+WHERE f.singleton = true
+FOR SHARE
+`.trim();
+
 class FakeSchemaClient implements BootstrapAdminClient {
   readonly calls: Array<{
     readonly text: string;
@@ -151,6 +173,36 @@ class FakeSchemaClient implements BootstrapAdminClient {
         rows: (String(values[0]) === "public"
           ? normalizeAclRows(this.state.publicSchemaAcl)
           : normalizeAclRows(this.state.schemaAcl)) as Row[],
+      };
+    }
+    if (
+      normalized.includes("FROM pg_catalog.pg_proc") &&
+      normalized.includes("aclexplode")
+    ) {
+      return {
+        rows: normalizeAclRows(
+          this.state.functionAcl ?? [
+            { grantee: HOST_RUNTIME_ROLE, privilege_type: "EXECUTE" },
+          ],
+        ) as Row[],
+      };
+    }
+    if (normalized.includes("FROM pg_catalog.pg_proc")) {
+      return {
+        rows: this.state.functionExists
+          ? ([
+              {
+                owner_name: this.state.functionOwner ?? HOST_OWNERSHIP_OWNER_ROLE,
+                security_definer: this.state.functionSecurityDefiner ?? true,
+                language_name: this.state.functionLanguage ?? "sql",
+                result_definition:
+                  this.state.functionResult ??
+                  "TABLE(singleton boolean, instance_id uuid, ownership_revision bigint, host_ownership_token uuid, boot_id uuid)",
+                source: this.state.functionSource ?? exactFunctionSource,
+                config: this.state.functionConfig ?? ["search_path=pg_catalog"],
+              },
+            ] as Row[])
+          : [],
       };
     }
     if (normalized.includes("FROM pg_catalog.pg_namespace")) {
@@ -201,7 +253,9 @@ class FakeSchemaClient implements BootstrapAdminClient {
     if (
       normalized.startsWith("CREATE SCHEMA") ||
       normalized.startsWith("CREATE TABLE") ||
+      normalized.startsWith("CREATE FUNCTION") ||
       normalized.startsWith("ALTER TABLE") ||
+      normalized.startsWith("ALTER FUNCTION") ||
       normalized.startsWith("REVOKE") ||
       normalized.startsWith("GRANT")
     ) {
@@ -221,18 +275,27 @@ class FakeSchemaClient implements BootstrapAdminClient {
         this.state.tableExists = true;
         this.state.tableOwner = HOST_OWNERSHIP_OWNER_ROLE;
       }
+      if (normalized.startsWith("CREATE FUNCTION")) {
+        this.state.functionExists = true;
+        this.state.functionOwner = HOST_OWNERSHIP_OWNER_ROLE;
+      }
+      if (normalized.startsWith("ALTER FUNCTION")) {
+        this.state.functionOwner = HOST_OWNERSHIP_OWNER_ROLE;
+      }
       if (normalized.startsWith("REVOKE ALL ON DATABASE")) {
         this.state.databaseAcl = this.state.databaseAcl.filter(
           (row) => row.grantee !== "PUBLIC",
         );
       }
       if (normalized.startsWith("GRANT CONNECT ON DATABASE")) {
+        const grantee = normalized.includes(`\"${HOST_RUNTIME_ROLE}\"`)
+          ? HOST_RUNTIME_ROLE
+          : HOST_LEASE_ROLE;
         this.state.databaseAcl = [
           ...this.state.databaseAcl.filter(
-            (row) =>
-              !(row.grantee === HOST_LEASE_ROLE && row.privilege_type === "CONNECT"),
+            (row) => !(row.grantee === grantee && row.privilege_type === "CONNECT"),
           ),
-          { grantee: HOST_LEASE_ROLE, privilege_type: "CONNECT" },
+          { grantee, privilege_type: "CONNECT" },
         ];
       }
       if (normalized === "REVOKE CREATE ON SCHEMA public FROM PUBLIC") {
@@ -249,12 +312,14 @@ class FakeSchemaClient implements BootstrapAdminClient {
         );
       }
       if (normalized.startsWith("GRANT USAGE ON SCHEMA")) {
+        const grantee = normalized.includes(`\"${HOST_RUNTIME_ROLE}\"`)
+          ? HOST_RUNTIME_ROLE
+          : HOST_LEASE_ROLE;
         this.state.schemaAcl = [
           ...this.state.schemaAcl.filter(
-            (row) =>
-              !(row.grantee === HOST_LEASE_ROLE && row.privilege_type === "USAGE"),
+            (row) => !(row.grantee === grantee && row.privilege_type === "USAGE"),
           ),
-          { grantee: HOST_LEASE_ROLE, privilege_type: "USAGE" },
+          { grantee, privilege_type: "USAGE" },
         ];
       }
       if (
@@ -270,6 +335,28 @@ class FakeSchemaClient implements BootstrapAdminClient {
           ...this.state.tableAcl.filter((row) => row.grantee !== HOST_LEASE_ROLE),
           { grantee: HOST_LEASE_ROLE, privilege_type: "SELECT" },
           { grantee: HOST_LEASE_ROLE, privilege_type: "UPDATE" },
+        ];
+      }
+      if (normalized.startsWith("GRANT SELECT ON TABLE")) {
+        this.state.tableAcl = [
+          ...this.state.tableAcl.filter((row) => row.grantee !== HOST_RUNTIME_ROLE),
+          { grantee: HOST_RUNTIME_ROLE, privilege_type: "SELECT" },
+        ];
+      }
+      if (
+        normalized.startsWith("REVOKE ALL ON FUNCTION") &&
+        normalized.includes("FROM PUBLIC")
+      ) {
+        this.state.functionAcl = (this.state.functionAcl ?? []).filter(
+          (row) => row.grantee !== "PUBLIC",
+        );
+      }
+      if (normalized.startsWith("GRANT EXECUTE ON FUNCTION")) {
+        this.state.functionAcl = [
+          ...(this.state.functionAcl ?? []).filter(
+            (row) => row.grantee !== HOST_RUNTIME_ROLE,
+          ),
+          { grantee: HOST_RUNTIME_ROLE, privilege_type: "EXECUTE" },
         ];
       }
       return { rows: [] };
@@ -326,6 +413,11 @@ function makeOptions(
     ): Promise<T> {
       return use(new TextEncoder().encode("H".repeat(32)));
     },
+    async withRuntimePassword<T>(
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      return use(new TextEncoder().encode("R".repeat(32)));
+    },
   };
   const parsedInstanceId = parseInstanceId(instanceId);
   if (parsedInstanceId === undefined) throw new Error("invalid test InstanceId");
@@ -377,8 +469,26 @@ describe("HostOwnershipFence schema", () => {
     expect(sql).toContain(
       `GRANT CONNECT ON DATABASE \"${HOST_OWNERSHIP_CANONICAL_DATABASE}\"`,
     );
+    expect(sql).toContain(
+      `GRANT CONNECT ON DATABASE \"${HOST_OWNERSHIP_CANONICAL_DATABASE}\" TO \"heptalogos_runtime\"`,
+    );
     expect(sql).toContain(`GRANT USAGE ON SCHEMA \"${HOST_OWNERSHIP_SCHEMA}\"`);
+    expect(sql).toContain(
+      `GRANT USAGE ON SCHEMA \"${HOST_OWNERSHIP_SCHEMA}\" TO \"heptalogos_runtime\"`,
+    );
     expect(sql).toContain("GRANT SELECT, UPDATE ON");
+    expect(sql).toContain(
+      'GRANT SELECT ON TABLE "heptalogos"."host_ownership_fence" TO "heptalogos_runtime"',
+    );
+    expect(sql).toContain('CREATE FUNCTION "heptalogos"."lock_host_ownership_fence"()');
+    expect(sql).toContain("SECURITY DEFINER");
+    expect(sql).toContain("FOR SHARE");
+    expect(sql).toContain(
+      'REVOKE ALL ON FUNCTION "heptalogos"."lock_host_ownership_fence"() FROM PUBLIC',
+    );
+    expect(sql).toContain(
+      'GRANT EXECUTE ON FUNCTION "heptalogos"."lock_host_ownership_fence"() TO "heptalogos_runtime"',
+    );
     expect(sql).toContain("INSERT INTO");
   });
 

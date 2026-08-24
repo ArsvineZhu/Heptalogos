@@ -261,6 +261,17 @@ function passwordProvider(
         use,
       );
     },
+    withRuntimePassword<T>(use: (password: Uint8Array) => Promise<T>) {
+      return handoff.keyProvider.withPrivatePostgresRuntimePassword(
+        {
+          installationId: context.installationId,
+          instanceId: context.instanceId,
+          bootId: context.bootId,
+          purpose: "private-postgres-runtime-role",
+        },
+        use,
+      );
+    },
   };
 }
 

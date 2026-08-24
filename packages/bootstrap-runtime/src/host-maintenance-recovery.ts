@@ -23,6 +23,7 @@ import {
   acquireHostLeaseConnection,
   deriveHostAdvisoryKey,
   HOST_OWNERSHIP_CANONICAL_DATABASE,
+  HOST_RUNTIME_ROLE,
   inspectHostAdvisoryLease,
   inspectHostOwnershipCanonicalSnapshot,
   publishHostOwnershipToken,
@@ -324,6 +325,17 @@ function passwordProvider(
         use,
       );
     },
+    withRuntimePassword<T>(use: (password: Uint8Array) => Promise<T>) {
+      return options.keyProvider.withPrivatePostgresRuntimePassword(
+        {
+          installationId,
+          instanceId,
+          bootId,
+          purpose: "private-postgres-runtime-role",
+        },
+        use,
+      );
+    },
   };
 }
 
@@ -422,6 +434,25 @@ function createRecoveredManagedHost(
           return createRestartPrivatePostgresEnteredWindowExecutor(provenance)(window);
         },
       }),
+      {
+        target: {
+          host: "127.0.0.1",
+          port: privatePostgres.expectedIdentity.persistedPort,
+          database: HOST_OWNERSHIP_CANONICAL_DATABASE,
+          user: HOST_RUNTIME_ROLE,
+        },
+        withRuntimeDatabasePassword(use) {
+          return handoff.keyProvider.withPrivatePostgresRuntimePassword(
+            {
+              installationId: bootstrap.installationId,
+              instanceId: bootstrap.instanceId,
+              bootId: bootstrap.bootId,
+              purpose: "private-postgres-runtime-role",
+            },
+            use,
+          );
+        },
+      },
     );
     return managed;
   };

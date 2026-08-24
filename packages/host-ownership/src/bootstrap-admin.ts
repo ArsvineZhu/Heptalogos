@@ -7,6 +7,7 @@ import {
   HOST_LEASE_SCRAM_SALT_BYTES,
   HOST_OWNERSHIP_CANONICAL_DATABASE,
   HOST_OWNERSHIP_OWNER_ROLE,
+  HOST_RUNTIME_ROLE,
 } from "./contracts.js";
 import type { HostAdvisoryKey } from "./advisory-key.js";
 import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
@@ -42,6 +43,7 @@ export interface BootstrapAdminClientFactory {
 export interface BootstrapAdminPasswordProvider {
   withBootstrapPassword<T>(use: (passwordUtf8: Uint8Array) => Promise<T>): Promise<T>;
   withHostLeasePassword<T>(use: (passwordUtf8: Uint8Array) => Promise<T>): Promise<T>;
+  withRuntimePassword<T>(use: (passwordUtf8: Uint8Array) => Promise<T>): Promise<T>;
 }
 
 export interface BootstrapAdminProvisioningOptions {
@@ -55,6 +57,7 @@ export interface BootstrapAdminProvisioningOptions {
 export interface BootstrapAdminProvisioningResult {
   readonly ownerRoleCreated: boolean;
   readonly hostLeaseRoleCreated: boolean;
+  readonly runtimeRoleCreated: boolean;
   readonly databaseCreated: boolean;
 }
 
@@ -180,8 +183,8 @@ SELECT member.rolname AS member_role,
 FROM pg_catalog.pg_auth_members AS memberships
 JOIN pg_catalog.pg_roles AS member ON member.oid = memberships.member
 JOIN pg_catalog.pg_roles AS granted_role ON granted_role.oid = memberships.roleid
-WHERE member.rolname IN ($1, $2)
-   OR granted_role.rolname IN ($1, $2)
+ WHERE member.rolname IN ($1, $2, $3)
+   OR granted_role.rolname IN ($1, $2, $3)
 `;
 
 const DATABASE_QUERY = `
@@ -303,6 +306,7 @@ async function ensureRole(
     const memberships = await client.query(MEMBERSHIP_QUERY, [
       HOST_OWNERSHIP_OWNER_ROLE,
       HOST_LEASE_ROLE,
+      HOST_RUNTIME_ROLE,
     ]);
     if (
       !roleIsExact(existing, expectedLogin, expectedConnectionLimit) ||
@@ -329,7 +333,7 @@ async function ensureRole(
     "NOBYPASSRLS",
     "NOINHERIT",
   ];
-  const connectionClause = expectedLogin ? " CONNECTION LIMIT 1" : "";
+  const connectionClause = ` CONNECTION LIMIT ${expectedConnectionLimit}`;
   const passwordClause =
     verifier === undefined ? "" : ` PASSWORD ${quoteLiteral(verifier)}`;
   await authorizedMutation(
@@ -564,10 +568,10 @@ export async function inspectHostOwnershipCanonicalSnapshot(
 SELECT rolname, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole,
        rolreplication, rolbypassrls, rolconnlimit, rolinherit
 FROM pg_catalog.pg_roles
-WHERE rolname IN ($1, $2)
+WHERE rolname IN ($1, $2, $3)
 ORDER BY rolname
 `,
-        [HOST_OWNERSHIP_OWNER_ROLE, HOST_LEASE_ROLE],
+        [HOST_OWNERSHIP_OWNER_ROLE, HOST_LEASE_ROLE, HOST_RUNTIME_ROLE],
       );
       const database = await admin.query<
         HostOwnershipCanonicalSnapshot["database"][number]
@@ -664,11 +668,36 @@ export async function provisionHostOwnershipDatabase(
             verifier,
             hostLeasePasswordUtf8,
           );
-          const databaseCreated = await ensureDatabase(
-            admin,
-            options.mutationAuthority,
+          return options.passwordProvider.withRuntimePassword(
+            async (runtimePasswordUtf8) => {
+              const runtimeVerifier = encodePostgresScramSha256Verifier(
+                runtimePasswordUtf8,
+                {
+                  iterations: HOST_LEASE_SCRAM_ITERATIONS,
+                  salt: randomBytes(HOST_LEASE_SCRAM_SALT_BYTES),
+                },
+              );
+              const runtimeRoleCreated = await ensureRole(
+                admin,
+                options.mutationAuthority,
+                HOST_RUNTIME_ROLE,
+                true,
+                -1,
+                runtimeVerifier,
+                runtimePasswordUtf8,
+              );
+              const databaseCreated = await ensureDatabase(
+                admin,
+                options.mutationAuthority,
+              );
+              return {
+                ownerRoleCreated,
+                hostLeaseRoleCreated,
+                runtimeRoleCreated,
+                databaseCreated,
+              };
+            },
           );
-          return { ownerRoleCreated, hostLeaseRoleCreated, databaseCreated };
         },
       );
     },

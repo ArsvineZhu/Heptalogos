@@ -15,9 +15,7 @@ surface the ambiguity rather than guessing.
 
 ## Active
 
-No H2 implementation plan is active yet. H1 is `CLOSED` and H2 is `ELIGIBLE`
-after the merged H1 closure tuple and its separate post-merge truth
-reconciliation. The next H2 plan must be activated on the reconciled master.
+No active implementation plan.
 
 ## Completed
 
@@ -34,3 +32,4 @@ reconciliation. The next H2 plan must be activated on the reconciled master.
 - [H1-S2 Clean-State Qualification & Closure](completed/foundation/h1s-s2-clean-state-qualification-closure.md) — `COMPLETED` (exact candidate local qualification is complete; external closure gates remain pending)
 - [H1-S review correction](completed/foundation/h1s-review-correction.md) — `COMPLETED` (RC-1..RC-6 and current-host qualification complete; historical implementation phase)
 - [H1-S Stabilization Control Record](completed/foundation/h1s-control-record.md) — `COMPLETED` (H1 is `CLOSED`; H2 is `ELIGIBLE`)
+- [H2A-1 Host-Fenced Persistence Authority](completed/foundation/h2a1-host-fenced-persistence-authority.md) — `COMPLETED` (local implementation/evidence closure PASS; review/CI/merge remain governance steps)

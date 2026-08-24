@@ -39,6 +39,9 @@ describe("BootstrapKeyProvider", () => {
           hostPassword.fill(0);
         }
       },
+      async withPrivatePostgresRuntimePassword(_context, use) {
+        return use(new Uint8Array());
+      },
     };
 
     await provider.withPrivatePostgresBootstrapPassword(context, async (password) => {
@@ -75,6 +78,9 @@ describe("BootstrapKeyProvider", () => {
           password.fill(0);
         }
       },
+      async withPrivatePostgresRuntimePassword(_context, use) {
+        return use(new Uint8Array());
+      },
     };
     let observedPurpose: BootstrapKeyRequestContext["purpose"] | undefined;
     let observedLength = 0;
@@ -87,5 +93,41 @@ describe("BootstrapKeyProvider", () => {
 
     expect(observedPurpose).toBe("private-postgres-host-lease-role");
     expect(observedLength).toBe(32);
+  });
+
+  it("keeps the runtime credential as a distinct callback purpose", async () => {
+    const context: BootstrapKeyRequestContext = {
+      installationId: createInstallationId(),
+      instanceId: createInstanceId(),
+      bootId: createBootId(),
+      purpose: "private-postgres-runtime-role",
+    };
+    const provider: BootstrapKeyProvider = {
+      async withPrivatePostgresBootstrapPassword(_context, use) {
+        return use(new Uint8Array());
+      },
+      async withPrivatePostgresHostLeasePassword(_context, use) {
+        return use(new Uint8Array());
+      },
+      async withPrivatePostgresRuntimePassword(_context, use) {
+        const password = new TextEncoder().encode("R".repeat(32));
+        try {
+          return await use(password);
+        } finally {
+          password.fill(0);
+        }
+      },
+    };
+    let observedPurpose: BootstrapKeyRequestContext["purpose"] | undefined;
+    let observedPassword = "";
+
+    await provider.withPrivatePostgresRuntimePassword(context, async (password) => {
+      observedPurpose = context.purpose;
+      observedPassword = new TextDecoder().decode(password);
+      return undefined;
+    });
+
+    expect(observedPurpose).toBe("private-postgres-runtime-role");
+    expect(observedPassword).toBe("R".repeat(32));
   });
 });
