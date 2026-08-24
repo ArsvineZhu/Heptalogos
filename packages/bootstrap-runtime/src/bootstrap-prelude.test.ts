@@ -97,7 +97,10 @@ function makeState(revision: number): BootstrapStateBodyV1 {
   };
 }
 
-async function makeFixture(anchorRoot?: string): Promise<{
+async function makeFixture(
+  anchorRoot?: string,
+  seedState = true,
+): Promise<{
   readonly anchorRoot: string;
   readonly instanceRoot: string;
   readonly locator: BootstrapLocatorV1;
@@ -117,9 +120,11 @@ async function makeFixture(anchorRoot?: string): Promise<{
     roots,
   };
   await writeFile(join(anchor, "heptalogos.bootstrap.json"), JSON.stringify(locator));
-  await new BootstrapStateStore(join(roots.INSTANCE, "bootstrap-state")).commit(
-    makeState(1),
-  );
+  if (seedState) {
+    await new BootstrapStateStore(join(roots.INSTANCE, "bootstrap-state")).commit(
+      makeState(1),
+    );
+  }
   return { anchorRoot: anchor, instanceRoot: roots.INSTANCE, locator };
 }
 
@@ -191,6 +196,118 @@ afterEach(async () => {
 });
 
 describe("pre-PostgreSQL bootstrap prelude", () => {
+  it("creates exactly one continuity epoch for an empty logical Instance", async () => {
+    const fixture = await makeFixture(undefined, false);
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1000 });
+    const seed = makeState(1);
+
+    const initialized = await owned.ensureBootstrapStateInitialized({
+      activeBootstrapRuntimeGeneration: seed.activeBootstrapRuntimeGeneration,
+      activeProductGeneration: seed.activeProductGeneration,
+    });
+
+    expect(initialized.state.schemaVersion).toBe(1);
+    expect(initialized.state.revision).toBe(1);
+    expect(initialized.state.continuityEpochId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+    await expect(owned.state.load()).resolves.toMatchObject({
+      status: "CURRENT",
+      value: { state: { continuityEpochId: initialized.state.continuityEpochId } },
+    });
+    await owned.close();
+  });
+
+  it("reuses the committed continuity epoch on an ensure retry", async () => {
+    const fixture = await makeFixture(undefined, false);
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1000 });
+    const commit = vi.spyOn(owned.state, "commit");
+    const seed = makeState(1);
+
+    const first = await owned.ensureBootstrapStateInitialized({
+      activeBootstrapRuntimeGeneration: seed.activeBootstrapRuntimeGeneration,
+      activeProductGeneration: seed.activeProductGeneration,
+    });
+    const differentSelection = makeState(2);
+    const second = await owned.ensureBootstrapStateInitialized({
+      activeBootstrapRuntimeGeneration:
+        differentSelection.activeBootstrapRuntimeGeneration,
+      activeProductGeneration: differentSelection.activeProductGeneration,
+    });
+
+    expect(second.state.continuityEpochId).toBe(first.state.continuityEpochId);
+    expect(second.state.activeProductGeneration).toBe(
+      first.state.activeProductGeneration,
+    );
+    expect(second.state.revision).toBe(1);
+    expect(commit).toHaveBeenCalledTimes(1);
+    await owned.close();
+  });
+
+  it("reuses the committed continuity epoch after a later boot", async () => {
+    const fixture = await makeFixture(undefined, false);
+    const firstPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const firstOwned = await firstPrepared.acquireOwnership({ heartbeatMs: 1000 });
+    const seed = makeState(1);
+    const first = await firstOwned.ensureBootstrapStateInitialized({
+      activeBootstrapRuntimeGeneration: seed.activeBootstrapRuntimeGeneration,
+      activeProductGeneration: seed.activeProductGeneration,
+    });
+    const firstBootId = firstOwned.bootId;
+    await firstOwned.close();
+
+    const secondPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const secondOwned = await secondPrepared.acquireOwnership({ heartbeatMs: 1000 });
+    const second = await secondOwned.ensureBootstrapStateInitialized({
+      activeBootstrapRuntimeGeneration: seed.activeBootstrapRuntimeGeneration,
+      activeProductGeneration: seed.activeProductGeneration,
+    });
+
+    expect(secondOwned.bootId).not.toBe(firstBootId);
+    expect(second.state.continuityEpochId).toBe(first.state.continuityEpochId);
+    await secondOwned.close();
+  });
+
+  it("does not genesis a new epoch from recovered previous state", async () => {
+    const fixture = await makeFixture();
+    const stateStore = new BootstrapStateStore(
+      join(fixture.instanceRoot, "bootstrap-state"),
+    );
+    await stateStore.commit(makeState(2));
+    await writeFile(
+      join(fixture.instanceRoot, "bootstrap-state", "bootstrap-state.json"),
+      "corrupt",
+    );
+
+    await expect(prepareBootstrapPrelude(fixture.anchorRoot)).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.state.current_authority_required" },
+    });
+    await expect(stateStore.load()).resolves.toMatchObject({
+      status: "RECOVERED_PREVIOUS",
+      value: { state: { revision: 1 } },
+    });
+  });
+
+  it("does not genesis a new epoch from corrupt BootstrapState", async () => {
+    const fixture = await makeFixture(undefined, false);
+    const stateDirectory = join(fixture.instanceRoot, "bootstrap-state");
+    await mkdir(stateDirectory, { recursive: true });
+    await writeFile(join(stateDirectory, "bootstrap-state.json"), "bad-current");
+    await writeFile(
+      join(stateDirectory, "bootstrap-state.previous.json"),
+      "bad-previous",
+    );
+
+    await expect(prepareBootstrapPrelude(fixture.anchorRoot)).rejects.toMatchObject({
+      problem: { problemCode: "bootstrap.state.no_valid_revision" },
+    });
+    await expect(
+      readFile(join(stateDirectory, "bootstrap-state.json"), "utf8"),
+    ).resolves.toBe("bad-current");
+  });
+
   it("records ordered early stages and reloads authoritative state after ownership", async () => {
     const fixture = await makeFixture();
     const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);

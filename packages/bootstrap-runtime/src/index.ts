@@ -33,6 +33,7 @@ export {
 export type { OwnedBootstrapStateStore } from "./bootstrap-state-access.js";
 export {
   prepareBootstrapPrelude,
+  type BootstrapStateGenesisSelection,
   type OwnedBootstrapPrelude,
   type PreparedBootstrapPrelude,
 } from "./bootstrap-prelude.js";
