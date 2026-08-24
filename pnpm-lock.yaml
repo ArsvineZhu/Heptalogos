@@ -9,6 +9,9 @@ catalogs:
     '@bybrave/proper-lockfile2':
       specifier: 5.0.0
       version: 5.0.0
+    '@dagrejs/graphlib':
+      specifier: 4.0.5
+      version: 4.0.5
     '@nx/js':
       specifier: 23.1.1
       version: 23.1.1
@@ -159,6 +162,12 @@ importers:
       '@heptalogos/persistence':
         specifier: workspace:*
         version: link:../persistence
+      '@heptalogos/runtime-kernel':
+        specifier: workspace:*
+        version: link:../runtime-kernel
+      '@heptalogos/runtime-substrate':
+        specifier: workspace:*
+        version: link:../runtime-substrate
       '@heptalogos/time-service':
         specifier: workspace:*
         version: link:../time-service
@@ -344,6 +353,31 @@ importers:
       fast-check:
         specifier: 'catalog:'
         version: 4.9.0
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(yaml@2.9.0))
+
+  packages/runtime-kernel:
+    dependencies:
+      '@dagrejs/graphlib':
+        specifier: 'catalog:'
+        version: 4.0.5
+      '@heptalogos/execution-lineage':
+        specifier: workspace:*
+        version: link:../execution-lineage
+      '@heptalogos/foundation-contracts':
+        specifier: workspace:*
+        version: link:../foundation-contracts
+      '@heptalogos/persistence':
+        specifier: workspace:*
+        version: link:../persistence
+      '@heptalogos/runtime-substrate':
+        specifier: workspace:*
+        version: link:../runtime-substrate
+      '@heptalogos/time-service':
+        specifier: workspace:*
+        version: link:../time-service
+    devDependencies:
       vitest:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(yaml@2.9.0))
@@ -939,6 +973,9 @@ packages:
   '@bybrave/proper-lockfile2@5.0.0':
     resolution: {integrity: sha512-oeebmWF78nnEw/v3B93dOsuqpGFseDoab9YdSDXSNGfksh5n9KIabFo9lzleEdiPygbpm6btCj6O58k0z1xaEw==}
     engines: {node: '>=18'}
+
+  '@dagrejs/graphlib@4.0.5':
+    resolution: {integrity: sha512-7xrBTqIts3o+PMUZX97wSc+7TUbW+/rULzGNCTP6yooNVDXbzw4Wutg/H/xOutTB/c/k0YqOAavgPh4/Zk9PFA==}
 
   '@emnapi/core@1.4.5':
     resolution: {integrity: sha512-XsLw1dEOpkSX/WucdqUhPWP7hDxSvZiY+fsUC14h+FtQ2Ifni4znbBt8punRX+Uj2JG/uDb8nEHVKvrVlvdZ5Q==}
@@ -3539,6 +3576,8 @@ snapshots:
       graceful-fs: 4.2.11
       retry: 0.13.1
       signal-exit: 3.0.7
+
+  '@dagrejs/graphlib@4.0.5': {}
 
   '@emnapi/core@1.4.5':
     dependencies:

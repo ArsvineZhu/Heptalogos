@@ -4,12 +4,13 @@ import type {
   InstallationId,
   InstanceId,
   Problem,
+  ProductGenerationId,
   Sha256Digest,
 } from "@heptalogos/foundation-contracts";
 
 export type BootstrapRuntimeGenerationId =
   ContentDigest<"BootstrapRuntimeGenerationId">;
-export type ProductGenerationId = ContentDigest<"ProductGenerationId">;
+export type { ProductGenerationId } from "@heptalogos/foundation-contracts";
 
 export interface BootstrapStateBodyV1 {
   readonly schemaVersion: 1;

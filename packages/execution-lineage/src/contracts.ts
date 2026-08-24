@@ -6,10 +6,21 @@ import type {
   InstallationId,
   Instant,
   InstanceId,
+  MicroSystemId,
+  MicroSystemInstanceId,
+  PackageGenerationId,
+  ProductGenerationId,
   RetentionClass,
   Sensitivity,
 } from "@heptalogos/foundation-contracts";
 import type { PersistenceMutationTransactionContext } from "@heptalogos/persistence";
+
+export interface RuntimeExecutionOrigin {
+  readonly productGenerationId: ProductGenerationId;
+  readonly packageGenerationId?: PackageGenerationId;
+  readonly microSystemId?: MicroSystemId;
+  readonly microSystemInstanceId?: MicroSystemInstanceId;
+}
 
 export interface HostExecutionOrigin {
   readonly installationId: InstallationId;
@@ -17,6 +28,7 @@ export interface HostExecutionOrigin {
   readonly bootId: BootId;
   readonly continuityEpochId: ContinuityEpochId;
   readonly hostOwnershipToken: HostOwnershipToken;
+  readonly runtime?: RuntimeExecutionOrigin;
 }
 
 export type ActivityImportance = "diagnostic" | "routine" | "significant" | "critical";
@@ -64,6 +76,12 @@ export interface ActivityRequest {
   readonly sensitivity: Sensitivity;
 }
 
+export interface ActivityCompletion {
+  readonly endedAt: Instant;
+  readonly outcome: "SUCCEEDED" | "FAILED" | "CANCELLED";
+  readonly outcomeRef?: string;
+}
+
 export interface LineageContextRefV1 {
   readonly schemaVersion: 1;
   readonly sourceActivityId: ActivityId;
@@ -90,6 +108,11 @@ export interface ExecutionLineageService {
   retainCurrent(
     transaction: PersistenceMutationTransactionContext,
     context: ExecutionContext,
+  ): Promise<void>;
+  completeCurrent(
+    transaction: PersistenceMutationTransactionContext,
+    context: ExecutionContext,
+    completion: ActivityCompletion,
   ): Promise<void>;
   retainBootstrapReference(
     transaction: PersistenceMutationTransactionContext,

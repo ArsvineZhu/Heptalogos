@@ -367,6 +367,24 @@ for (const path of sourcePaths) {
       );
     }
   }
+  if (relativePath.startsWith("packages/runtime-kernel/")) {
+    if (
+      /(?:from|import\s*\(|require\s*\()(?:\s*["'])(?:@heptalogos\/(?:bootstrap-state|host-ownership|canonical-schema)|pg|kysely)(?:["'])/u.test(
+        source,
+      )
+    ) {
+      errors.push(
+        `${relativePath}: runtime-kernel must not import Bootstrap/Host ownership, canonical-schema, pg, or Kysely directly`,
+      );
+    }
+    if (relativePath === "packages/runtime-kernel/src/index.ts") {
+      if (/\b(?:Cordis|Context|Fiber|Kysely|Pool|Client|PostgresDialect)\b/u.test(source)) {
+        errors.push(
+          "packages/runtime-kernel/src/index.ts: runtime-kernel package root must not leak framework or database objects",
+        );
+      }
+    }
+  }
   if (relativePath.startsWith(hostOwnershipSourcePrefix)) {
     for (const forbidden of ["Kysely", "DBOS", "PersistenceService"]) {
       if (new RegExp(`\\b${forbidden}\\b`, "u").test(source)) {

@@ -36,6 +36,9 @@
     },
     {
       "path": "./packages/runtime-substrate"
+    },
+    {
+      "path": "./packages/runtime-kernel"
     }
   ]
 }
