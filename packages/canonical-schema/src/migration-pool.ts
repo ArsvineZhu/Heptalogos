@@ -14,6 +14,47 @@ export interface CanonicalDatabase {
     readonly instance_id: string;
     readonly continuity_epoch_id: string;
   };
+  readonly activity_record: {
+    readonly activity_id: string;
+    readonly kind: string;
+    readonly started_at: Date | string;
+    readonly ended_at: Date | string | null;
+    readonly parent_activity_id: string | null;
+    readonly causation_activity_id: string | null;
+    readonly installation_id: string;
+    readonly instance_id: string;
+    readonly boot_id: string;
+    readonly continuity_epoch_id: string;
+    readonly host_ownership_token: string | null;
+    readonly importance: string;
+    readonly retention_class: string;
+    readonly sensitivity: string;
+    readonly operation_id: string | null;
+    readonly feature_id: string | null;
+    readonly service_id: string | null;
+    readonly capability_id: string | null;
+    readonly provider_id: string | null;
+    readonly contract_version: string | null;
+    readonly outcome: string | null;
+    readonly outcome_ref: string | null;
+  };
+  readonly activity_link: {
+    readonly source_activity_id: string;
+    readonly link_kind: string;
+    readonly target_activity_id: string;
+  };
+  readonly evidence_record: {
+    readonly evidence_id: string;
+    readonly activity_id: string;
+    readonly evidence_kind: string;
+    readonly evidence_contract_version: string;
+    readonly recorded_at: Date | string;
+    readonly subject_ref: string | null;
+    readonly object_ref: string | null;
+    readonly fact_ref: string | null;
+    readonly retention_class: string;
+    readonly sensitivity: string;
+  };
 }
 
 export interface MigrationDatabase {

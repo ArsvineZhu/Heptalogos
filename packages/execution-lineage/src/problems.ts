@@ -54,3 +54,51 @@ export function invalidOriginProblem(): ProblemError {
     "ExecutionContextRuntime requires valid typed Host origin identities",
   );
 }
+
+export function currentActivityMismatchProblem(): ProblemError {
+  return lineageProblem(
+    "lineage.persistence.current_activity_mismatch",
+    "Current Activity does not match the mutation transaction",
+    "Retained Activity identity must be the Activity admitted by the current mutation transaction",
+  );
+}
+
+export function originMismatchProblem(): ProblemError {
+  return lineageProblem(
+    "lineage.persistence.origin_mismatch",
+    "Activity origin does not match the mutation transaction",
+    "Retained Activity Host origin must match the current persistence authority snapshot",
+  );
+}
+
+export function retentionNotDurableProblem(): ProblemError {
+  return lineageProblem(
+    "lineage.persistence.retention_not_durable",
+    "Activity retention is not durable",
+    "Ephemeral Activities cannot be retained in canonical PostgreSQL",
+  );
+}
+
+export function activityAlreadyRetainedProblem(): ProblemError {
+  return lineageProblem(
+    "lineage.persistence.activity_already_retained",
+    "Activity is already retained",
+    "retainCurrent is not an Activity upsert or completion mutation",
+  );
+}
+
+export function bootstrapReferenceDiscontinuityProblem(): ProblemError {
+  return lineageProblem(
+    "lineage.bootstrap_reference.discontinuity",
+    "Bootstrap Activity reference is discontinuous",
+    "Bootstrap InstanceId and ContinuityEpochId must match the current mutation timeline",
+  );
+}
+
+export function bootstrapReferenceConflictProblem(): ProblemError {
+  return lineageProblem(
+    "lineage.bootstrap_reference.conflict",
+    "Bootstrap Activity reference conflicts with retained history",
+    "The same Bootstrap ActivityId was previously retained with different summary fields",
+  );
+}

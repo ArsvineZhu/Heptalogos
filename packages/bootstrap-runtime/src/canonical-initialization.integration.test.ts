@@ -313,6 +313,129 @@ describeRealPostgres.sequential(
       ).resolves.toMatchObject({
         rows: [{ instance_id: fixture.instanceId, continuity_epoch_id: result.epoch }],
       });
+      await expect(
+        queryAs(
+          fixture,
+          "heptalogos_bootstrap",
+          BOOTSTRAP_PASSWORD,
+          `SELECT name FROM "heptalogos"."foundation_schema_migration"`,
+        ),
+      ).resolves.toMatchObject({ rows: [{ name: "0001_foundation_baseline" }] });
+      await expect(
+        queryAs(
+          fixture,
+          "heptalogos_bootstrap",
+          BOOTSTRAP_PASSWORD,
+          `SELECT table_name FROM information_schema.tables
+           WHERE table_schema = 'heptalogos'
+             AND table_name IN ('instance_continuity', 'activity_record', 'activity_link', 'evidence_record')
+           ORDER BY table_name`,
+        ),
+      ).resolves.toMatchObject({
+        rows: [
+          { table_name: "activity_link" },
+          { table_name: "activity_record" },
+          { table_name: "evidence_record" },
+          { table_name: "instance_continuity" },
+        ],
+      });
+      await expect(
+        queryAs(
+          fixture,
+          "heptalogos_bootstrap",
+          BOOTSTRAP_PASSWORD,
+          `SELECT column_name FROM information_schema.columns
+           WHERE table_schema = 'heptalogos' AND table_name = 'activity_record'
+           ORDER BY ordinal_position`,
+        ),
+      ).resolves.toMatchObject({
+        rows: [
+          { column_name: "activity_id" },
+          { column_name: "kind" },
+          { column_name: "started_at" },
+          { column_name: "ended_at" },
+          { column_name: "parent_activity_id" },
+          { column_name: "causation_activity_id" },
+          { column_name: "installation_id" },
+          { column_name: "instance_id" },
+          { column_name: "boot_id" },
+          { column_name: "continuity_epoch_id" },
+          { column_name: "host_ownership_token" },
+          { column_name: "importance" },
+          { column_name: "retention_class" },
+          { column_name: "sensitivity" },
+          { column_name: "operation_id" },
+          { column_name: "feature_id" },
+          { column_name: "service_id" },
+          { column_name: "capability_id" },
+          { column_name: "provider_id" },
+          { column_name: "contract_version" },
+          { column_name: "outcome" },
+          { column_name: "outcome_ref" },
+        ],
+      });
+      await expect(
+        queryAs(
+          fixture,
+          "heptalogos_bootstrap",
+          BOOTSTRAP_PASSWORD,
+          `SELECT tc.table_name, kcu.column_name, ccu.table_name AS foreign_table_name,
+                  ccu.column_name AS foreign_column_name
+           FROM information_schema.table_constraints tc
+           JOIN information_schema.key_column_usage kcu
+             ON tc.constraint_name = kcu.constraint_name
+            AND tc.table_schema = kcu.table_schema
+           JOIN information_schema.constraint_column_usage ccu
+             ON ccu.constraint_name = tc.constraint_name
+            AND ccu.table_schema = tc.table_schema
+           WHERE tc.constraint_type = 'FOREIGN KEY'
+             AND tc.table_schema = 'heptalogos'
+           ORDER BY tc.table_name, kcu.column_name`,
+        ),
+      ).resolves.toMatchObject({
+        rows: [
+          {
+            table_name: "activity_link",
+            column_name: "source_activity_id",
+            foreign_table_name: "activity_record",
+            foreign_column_name: "activity_id",
+          },
+          {
+            table_name: "evidence_record",
+            column_name: "activity_id",
+            foreign_table_name: "activity_record",
+            foreign_column_name: "activity_id",
+          },
+        ],
+      });
+      await expect(
+        queryAs(
+          fixture,
+          HOST_RUNTIME_ROLE,
+          RUNTIME_PASSWORD,
+          `SELECT has_table_privilege(current_user, 'heptalogos.activity_record', 'SELECT') AS activity_select,
+                  has_table_privilege(current_user, 'heptalogos.activity_record', 'INSERT') AS activity_insert,
+                  has_table_privilege(current_user, 'heptalogos.activity_record', 'UPDATE') AS activity_update,
+                  has_table_privilege(current_user, 'heptalogos.activity_record', 'DELETE') AS activity_delete,
+                  has_table_privilege(current_user, 'heptalogos.evidence_record', 'SELECT') AS evidence_select,
+                  has_table_privilege(current_user, 'heptalogos.evidence_record', 'INSERT') AS evidence_insert,
+                  has_table_privilege(current_user, 'heptalogos.evidence_record', 'UPDATE') AS evidence_update,
+                  has_table_privilege(current_user, 'heptalogos.evidence_record', 'DELETE') AS evidence_delete`,
+        ),
+      ).resolves.toMatchObject({
+        rows: [
+          {
+            activity_select: true,
+            activity_insert: true,
+            activity_update: false,
+            activity_delete: false,
+            evidence_select: true,
+            evidence_insert: true,
+            evidence_update: false,
+            evidence_delete: false,
+          },
+        ],
+      });
       await stopManagedHost(result.host);
     }, 180_000);
 

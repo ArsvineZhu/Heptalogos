@@ -5,6 +5,8 @@ import {
 } from "./transaction-context.js";
 import { persistenceTransactionContextInvalidProblem } from "./problems.js";
 
+export type { PersistenceInternalTransaction } from "./transaction-context.js";
+
 export async function useFoundationMutationTransaction<T>(
   context: PersistenceMutationTransactionContext,
   operation: (transaction: PersistenceInternalTransaction) => Promise<T>,

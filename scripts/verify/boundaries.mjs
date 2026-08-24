@@ -86,7 +86,15 @@ const restrictedImports = new Map([
       "packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts",
     ],
   ],
-  ["kysely", ["packages/persistence/", "packages/canonical-schema/"]],
+  [
+    "kysely",
+    [
+      "packages/persistence/",
+      "packages/canonical-schema/",
+      "packages/execution-lineage/src/activity-repository.ts",
+      "packages/evidence/src/evidence-service.ts",
+    ],
+  ],
 ]);
 const restrictedSpecifiers = new Map([
   [

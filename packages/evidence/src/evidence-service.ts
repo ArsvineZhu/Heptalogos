@@ -1,0 +1,113 @@
+import { CompiledQuery } from "kysely";
+import { createEvidenceId, type Instant } from "@heptalogos/foundation-contracts";
+import type { PersistenceInternalTransaction } from "@heptalogos/persistence/foundation-repository";
+import { useFoundationMutationTransaction } from "@heptalogos/persistence/foundation-repository";
+import type { PersistenceMutationTransactionContext } from "@heptalogos/persistence";
+import type { EvidenceDraft, EvidenceRecord, EvidenceService } from "./contracts.js";
+import {
+  evidenceActivityRequiredProblem,
+  evidenceRetentionNotDurableProblem,
+  invalidEvidenceContractVersionProblem,
+  invalidEvidenceKindProblem,
+  invalidEvidenceReferenceProblem,
+  invalidEvidenceSensitivityProblem,
+} from "./problems.js";
+import type { TimeService } from "@heptalogos/time-service";
+
+const retentionValues = new Set(["operational", "retained", "audit"]);
+const sensitivityValues = new Set([
+  "public",
+  "operational",
+  "sensitive",
+  "pii",
+  "secret",
+]);
+
+function utf8Length(value: string): number {
+  return new TextEncoder().encode(value).byteLength;
+}
+
+function validBounded(value: string, maximumBytes: number): boolean {
+  return value.trim().length > 0 && utf8Length(value) <= maximumBytes;
+}
+
+function validateDraft(draft: EvidenceDraft): void {
+  if (!validBounded(draft.evidenceKind, 128)) {
+    throw invalidEvidenceKindProblem();
+  }
+  if (!validBounded(draft.evidenceContractVersion, 128)) {
+    throw invalidEvidenceContractVersionProblem();
+  }
+  for (const reference of [draft.subjectRef, draft.objectRef, draft.factRef]) {
+    if (reference !== undefined && !validBounded(reference, 1024)) {
+      throw invalidEvidenceReferenceProblem();
+    }
+  }
+  if (!retentionValues.has(draft.retentionClass)) {
+    throw evidenceRetentionNotDurableProblem();
+  }
+  if (!sensitivityValues.has(draft.sensitivity)) {
+    throw invalidEvidenceSensitivityProblem();
+  }
+}
+
+async function executeSql(
+  transaction: PersistenceInternalTransaction,
+  text: string,
+  parameters: readonly unknown[],
+): Promise<void> {
+  try {
+    await transaction.executeQuery(CompiledQuery.raw(text, [...parameters]));
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "23503"
+    ) {
+      throw evidenceActivityRequiredProblem();
+    }
+    throw error;
+  }
+}
+
+export function createEvidenceService(time: TimeService): EvidenceService {
+  return {
+    async recordRequired(transaction, draft): Promise<EvidenceRecord> {
+      validateDraft(draft);
+      const evidenceId = createEvidenceId();
+      const recordedAt = time.now();
+      await useFoundationMutationTransaction(
+        transaction,
+        async (databaseTransaction) => {
+          await executeSql(
+            databaseTransaction,
+            `INSERT INTO "heptalogos"."evidence_record" (
+            evidence_id, activity_id, evidence_kind, evidence_contract_version,
+            recorded_at, subject_ref, object_ref, fact_ref, retention_class,
+            sensitivity
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+            [
+              evidenceId,
+              transaction.execution.activityId,
+              draft.evidenceKind,
+              draft.evidenceContractVersion,
+              recordedAt,
+              draft.subjectRef ?? null,
+              draft.objectRef ?? null,
+              draft.factRef ?? null,
+              draft.retentionClass,
+              draft.sensitivity,
+            ],
+          );
+        },
+      );
+      return Object.freeze({
+        ...draft,
+        evidenceId,
+        activityId: transaction.execution.activityId,
+        recordedAt,
+      });
+    },
+  };
+}

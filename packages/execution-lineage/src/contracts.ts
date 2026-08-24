@@ -9,6 +9,7 @@ import type {
   RetentionClass,
   Sensitivity,
 } from "@heptalogos/foundation-contracts";
+import type { PersistenceMutationTransactionContext } from "@heptalogos/persistence";
 
 export interface HostExecutionOrigin {
   readonly installationId: InstallationId;
@@ -72,6 +73,29 @@ export interface LineageContextRefV1 {
 }
 
 export type LineageContextRef = LineageContextRefV1;
+
+export interface BootstrapRetainedActivityDraft {
+  readonly activityId: ActivityId;
+  readonly startedAt: Instant;
+  readonly endedAt: Instant;
+  readonly installationId: InstallationId;
+  readonly instanceId: InstanceId;
+  readonly bootId: BootId;
+  readonly continuityEpochId: ContinuityEpochId;
+  readonly outcome: "SUCCEEDED" | "FAILED";
+  readonly outcomeRef?: string;
+}
+
+export interface ExecutionLineageService {
+  retainCurrent(
+    transaction: PersistenceMutationTransactionContext,
+    context: ExecutionContext,
+  ): Promise<void>;
+  retainBootstrapReference(
+    transaction: PersistenceMutationTransactionContext,
+    draft: BootstrapRetainedActivityDraft,
+  ): Promise<void>;
+}
 
 export interface ExecutionContextRuntime {
   current(): ExecutionContext | undefined;

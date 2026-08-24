@@ -30,6 +30,9 @@
     },
     {
       "path": "./packages/execution-lineage"
+    },
+    {
+      "path": "./packages/evidence"
     }
   ]
 }

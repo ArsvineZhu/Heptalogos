@@ -15,3 +15,8 @@ export {
   encodeLineageContextRef,
 } from "./lineage-context-ref.js";
 export { createPersistenceExecutionContextProvider } from "./persistence-adapter.js";
+export { createExecutionLineageService } from "./activity-repository.js";
+export type {
+  BootstrapRetainedActivityDraft,
+  ExecutionLineageService,
+} from "./contracts.js";
