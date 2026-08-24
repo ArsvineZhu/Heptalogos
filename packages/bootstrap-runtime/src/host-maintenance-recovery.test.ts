@@ -469,6 +469,7 @@ function options(
   return {
     anchorRoot: fixture.anchorRoot,
     principal: {} as never,
+    initializeCanonicalHost: async () => undefined,
     keyProvider: {
       async withPrivatePostgresBootstrapPassword<T>(
         _context: unknown,

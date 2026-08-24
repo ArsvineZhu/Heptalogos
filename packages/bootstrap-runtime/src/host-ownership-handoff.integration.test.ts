@@ -282,6 +282,9 @@ describe("bootstrap to Host ownership real PostgreSQL 18.6 qualification", () =>
     try {
       ready = await owned.preparePrivatePostgres(options);
       host = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost: async ({ authority }) => {
+          authority.assertCurrent();
+        },
         keyProvider,
         timing: {
           connectionTimeoutMs: 10_000,
@@ -340,6 +343,9 @@ describe("bootstrap to Host ownership real PostgreSQL 18.6 qualification", () =>
     try {
       firstReady = await firstOwned.preparePrivatePostgres(options);
       hostA = await firstOwned.handoffPrivatePostgresToHost(firstReady, {
+        initializeCanonicalHost: async ({ authority }) => {
+          authority.assertCurrent();
+        },
         keyProvider,
         timing: {
           connectionTimeoutMs: 10_000,
@@ -364,6 +370,9 @@ describe("bootstrap to Host ownership real PostgreSQL 18.6 qualification", () =>
 
         await expect(
           secondOwned.handoffPrivatePostgresToHost(secondReady, {
+            initializeCanonicalHost: async ({ authority }) => {
+              authority.assertCurrent();
+            },
             keyProvider,
             timing: {
               connectionTimeoutMs: 10_000,

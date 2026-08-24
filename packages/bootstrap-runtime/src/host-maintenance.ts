@@ -21,6 +21,7 @@ import {
 } from "@heptalogos/host-ownership";
 import { openPrivatePostgresMaintenanceController } from "@heptalogos/private-postgres";
 import {
+  createBootId,
   parseBootId,
   parseHostOwnershipToken,
   ProblemError,
@@ -95,6 +96,7 @@ export interface HostMaintenanceOperationProvenance {
   readonly createHostContext?: (
     connection: Awaited<ReturnType<typeof acquireHostLeaseConnection>>,
     token: HostOwnershipToken,
+    bootId?: BootId,
   ) => HostOwnershipContext;
   readonly createManagedHost?: (
     raw: HostOwnershipContext,
@@ -502,23 +504,24 @@ export function createRestartPrivatePostgresEnteredWindowExecutor(
       await window.advance("HOST_LEASE_ACQUIRED");
 
       const token = provenance.createHostToken();
+      const freshBootId = createBootId();
       const publication = await publishHostOwnershipToken({
         connection: leaseConnection,
         instanceId: provenance.bootstrap.instanceId,
-        bootId: provenance.bootstrap.bootId,
+        bootId: freshBootId,
         token,
         fenceLockTimeoutMs: provenance.handoff.timing.fenceLockTimeoutMs,
         statementTimeoutMs: provenance.handoff.timing.statementTimeoutMs,
         mutationAuthority: { assertCurrent: () => window.lease.assertHeld() },
       });
       leaseConnection.assertActive();
-      rawHost = provenance.createHostContext(leaseConnection, token);
+      rawHost = provenance.createHostContext(leaseConnection, token, freshBootId);
       rawHost.assertActive();
       await window.advance("HOST_TOKEN_PUBLISHED", {
         target: {
           ...window.journal.target,
           hostOwnershipToken: token,
-          hostBootId: provenance.bootstrap.bootId,
+          hostBootId: freshBootId,
           hostOwnershipRevision: publication.publishedRevision,
         },
       });

@@ -451,6 +451,9 @@ async function makeInterruptedOperation(
     keyProvider,
   });
   const host = await owned.handoffPrivatePostgresToHost(ready, {
+    initializeCanonicalHost: async ({ authority }) => {
+      authority.assertCurrent();
+    },
     keyProvider,
     timing: HOST_TIMING,
   });
@@ -739,6 +742,9 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
       anchorRoot: fixture.anchorRoot,
       principal,
       expectedOperationId: interrupted.operationId,
+      initializeCanonicalHost: async ({ authority }) => {
+        authority.assertCurrent();
+      },
       keyProvider,
       timing: HOST_TIMING,
       privatePostgres: descriptor,
@@ -807,7 +813,13 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
             lifecycle: LIFECYCLE,
             keyProvider,
           },
-          handoff: { keyProvider, timing: HOST_TIMING },
+          handoff: {
+            initializeCanonicalHost: async ({ authority }) => {
+              authority.assertCurrent();
+            },
+            keyProvider,
+            timing: HOST_TIMING,
+          },
         },
       },
     );
@@ -958,7 +970,13 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
             lifecycle: LIFECYCLE,
             keyProvider,
           },
-          handoff: { keyProvider, timing: HOST_TIMING },
+          handoff: {
+            initializeCanonicalHost: async ({ authority }) => {
+              authority.assertCurrent();
+            },
+            keyProvider,
+            timing: HOST_TIMING,
+          },
         },
       },
     );
@@ -1033,6 +1051,9 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
       anchorRoot: fixture.anchorRoot,
       principal: await proveLocalInstallationOwner(fixture.anchorRoot),
       expectedOperationId: interrupted.operationId,
+      initializeCanonicalHost: async ({ authority }) => {
+        authority.assertCurrent();
+      },
       keyProvider: makeKeyProvider(),
       timing: HOST_TIMING,
       privatePostgres: descriptor,
@@ -1072,6 +1093,9 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
       anchorRoot: fixture.anchorRoot,
       principal: await proveLocalInstallationOwner(fixture.anchorRoot),
       expectedOperationId: interrupted.operationId,
+      initializeCanonicalHost: async ({ authority }) => {
+        authority.assertCurrent();
+      },
       keyProvider: makeKeyProvider(),
       timing: HOST_TIMING,
       privatePostgres: descriptor,
@@ -1116,6 +1140,9 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
       anchorRoot: fixture.anchorRoot,
       principal: await proveLocalInstallationOwner(fixture.anchorRoot),
       expectedOperationId: interrupted.operationId,
+      initializeCanonicalHost: async ({ authority }) => {
+        authority.assertCurrent();
+      },
       keyProvider,
       timing: HOST_TIMING,
       privatePostgres: descriptor,
@@ -1173,6 +1200,9 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
       anchorRoot: fixture.anchorRoot,
       principal: await proveLocalInstallationOwner(fixture.anchorRoot),
       expectedOperationId: interrupted.operationId,
+      initializeCanonicalHost: async ({ authority }) => {
+        authority.assertCurrent();
+      },
       keyProvider: makeKeyProvider(),
       timing: HOST_TIMING,
       privatePostgres: descriptor,
@@ -1223,6 +1253,9 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
       anchorRoot: fixture.anchorRoot,
       principal: await proveLocalInstallationOwner(fixture.anchorRoot),
       expectedOperationId: interrupted.operationId,
+      initializeCanonicalHost: async ({ authority }) => {
+        authority.assertCurrent();
+      },
       keyProvider: makeKeyProvider(),
       timing: HOST_TIMING,
       privatePostgres: descriptor,
@@ -1267,6 +1300,9 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
         anchorRoot: fixture.anchorRoot,
         principal,
         expectedOperationId: interrupted.operationId,
+        initializeCanonicalHost: async ({ authority }) => {
+          authority.assertCurrent();
+        },
         keyProvider,
         timing: HOST_TIMING,
         privatePostgres: descriptor,
@@ -1317,6 +1353,9 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
       anchorRoot: fixture.anchorRoot,
       principal: await proveLocalInstallationOwner(fixture.anchorRoot),
       expectedOperationId: interrupted.operationId,
+      initializeCanonicalHost: async ({ authority }) => {
+        authority.assertCurrent();
+      },
       keyProvider,
       timing: HOST_TIMING,
       privatePostgres: descriptor,
@@ -1369,6 +1408,9 @@ describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
         anchorRoot: fixture.anchorRoot,
         principal,
         expectedOperationId: interrupted.operationId,
+        initializeCanonicalHost: async ({ authority }) => {
+          authority.assertCurrent();
+        },
         keyProvider: makeKeyProvider(),
         timing: HOST_TIMING,
         privatePostgres: descriptor,

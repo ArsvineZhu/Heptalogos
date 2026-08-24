@@ -35,6 +35,8 @@ import {
 } from "./managed-host.js";
 
 const persistenceOptions: ManagedHostPersistenceOptions = {
+  continuityEpochId:
+    "0197cfe0-0000-7000-8000-000000000001" as ManagedHostPersistenceOptions["continuityEpochId"],
   target: {
     host: "127.0.0.1",
     port: 55432,
@@ -297,6 +299,7 @@ function makeFixture(): {
     },
   };
   const handoff: HostOwnershipHandoffOptions = {
+    initializeCanonicalHost: async () => undefined,
     keyProvider,
     timing: {
       connectionTimeoutMs: 1_000,
@@ -930,27 +933,28 @@ describe("reverse-handoff maintenance preparation and entry", () => {
       return { previousRevision: "8", publishedRevision: "9" };
     });
 
-    let nextToken = createHostOwnershipToken();
-    const nextRaw: HostOwnershipContext = {
-      installationId: fixture.rawHost.installationId,
-      instanceId: fixture.rawHost.instanceId,
-      bootId: fixture.rawHost.bootId,
-      get token() {
-        return nextToken;
-      },
-      get state() {
-        return connectionState;
-      },
-      signal: connection.signal,
-      assertActive() {
-        if (connectionState !== "ACTIVE") throw new Error("new Host is not active");
-      },
-      close: connection.close,
-    };
+    let nextRaw!: HostOwnershipContext;
     const managedHost = { state: "ACTIVE" } as never;
     const createHostContext = vi.fn(
-      (_connection: unknown, token: ReturnType<typeof createHostOwnershipToken>) => {
-        nextToken = token;
+      (
+        _connection: unknown,
+        token: ReturnType<typeof createHostOwnershipToken>,
+        bootId = createBootId(),
+      ) => {
+        nextRaw = {
+          installationId: fixture.rawHost.installationId,
+          instanceId: fixture.rawHost.instanceId,
+          bootId,
+          token,
+          get state() {
+            return connectionState;
+          },
+          signal: connection.signal,
+          assertActive() {
+            if (connectionState !== "ACTIVE") throw new Error("new Host is not active");
+          },
+          close: connection.close,
+        };
         return nextRaw;
       },
     );
@@ -1021,11 +1025,12 @@ describe("reverse-handoff maintenance preparation and entry", () => {
     expect(start).toHaveBeenCalledOnce();
     expect(createHostContext).toHaveBeenCalledOnce();
     expect(createManagedHost).toHaveBeenCalledWith(nextRaw);
+    expect(nextRaw.bootId).not.toBe(fixture.rawHost.bootId);
     expect(nextRaw.token).not.toBe(fixture.rawHost.token);
     expect(journal.target).toMatchObject({
       privatePostgres: "RUNNING_SAME_IDENTITY",
       hostOwnershipToken: nextRaw.token,
-      hostBootId: fixture.context.bootId,
+      hostBootId: nextRaw.bootId,
       hostOwnershipRevision: "9",
     });
     expect(connectionState).toBe("ACTIVE");

@@ -8,6 +8,7 @@ import { CompiledQuery } from "kysely";
 import { Client } from "pg";
 import {
   createBootId,
+  createContinuityEpochId,
   createHostOwnershipToken,
   createInstallationId,
   createInstanceId,
@@ -69,6 +70,7 @@ interface Fixture {
   readonly port: number;
   readonly installationId: ReturnType<typeof createInstallationId>;
   readonly instanceId: InstanceId;
+  readonly continuityEpochId: ReturnType<typeof createContinuityEpochId>;
   readonly provider: BootstrapAdminPasswordProvider;
   readonly stop: () => Promise<void>;
 }
@@ -200,6 +202,7 @@ async function createCluster(): Promise<Fixture> {
   const port = await freePort();
   const installationId = createInstallationId();
   const instanceId = createInstanceId();
+  const continuityEpochId = createContinuityEpochId();
   const provider = makeProvider();
   await Promise.all(
     [dataDirectory, tempDirectory, logDirectory].map((directory) =>
@@ -244,6 +247,7 @@ async function createCluster(): Promise<Fixture> {
     port,
     installationId,
     instanceId,
+    continuityEpochId,
     provider,
     stop: async () => {
       await runPgCtl([
@@ -362,6 +366,7 @@ function makeAuthority(
     installationId: fixture.installationId,
     instanceId: fixture.instanceId,
     bootId: published.bootId,
+    continuityEpochId: fixture.continuityEpochId,
     token: published.token,
     target: {
       host: "127.0.0.1",

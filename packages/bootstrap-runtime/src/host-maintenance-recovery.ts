@@ -16,6 +16,7 @@ import {
   parseHostOwnershipToken,
   ProblemError,
   type BootId,
+  type ContinuityEpochId,
   type HostOwnershipToken,
   type Problem,
 } from "@heptalogos/foundation-contracts";
@@ -86,6 +87,7 @@ export interface HostMaintenanceRecoveryOptions {
   readonly principal: import("./local-installation-owner.js").LocalInstallationOwnerRecoveryPrincipal;
   readonly expectedOperationId?: MaintenanceOperationId;
   readonly keyProvider: BootstrapKeyProvider;
+  readonly initializeCanonicalHost: HostOwnershipHandoffOptions["initializeCanonicalHost"];
   readonly timing: HostOwnershipTimingOptions;
   readonly clientFactory?: unknown;
   readonly privatePostgres: PrivatePostgresMaintenanceDescriptor;
@@ -401,6 +403,7 @@ function createRecoveredManagedHost(
   bootstrap: HostMaintenanceBootstrapContext,
   handoff: HostOwnershipHandoffOptions,
   privatePostgres: PrivatePostgresMaintenanceDescriptor,
+  continuityEpochId: ContinuityEpochId,
 ): BootstrapManagedHostContext {
   const createManagedHost = (
     host: HostOwnershipContext,
@@ -424,11 +427,11 @@ function createRecoveredManagedHost(
       privatePostgres,
       beginOldHostRetirement,
       createHostToken: createFreshHostOwnershipToken,
-      createHostContext: (connection, token) =>
+      createHostContext: (connection, token, bootId = host.bootId) =>
         createHostContext(
           bootstrap.installationId,
           bootstrap.instanceId,
-          bootstrap.bootId,
+          bootId,
           connection,
           token,
         ),
@@ -446,6 +449,7 @@ function createRecoveredManagedHost(
         },
       }),
       {
+        continuityEpochId,
         target: {
           host: "127.0.0.1",
           port: privatePostgres.expectedIdentity.persistedPort,
@@ -457,7 +461,7 @@ function createRecoveredManagedHost(
             {
               installationId: bootstrap.installationId,
               instanceId: bootstrap.instanceId,
-              bootId: bootstrap.bootId,
+              bootId: host.bootId,
               purpose: "private-postgres-runtime-role",
             },
             use,
@@ -785,6 +789,7 @@ export async function recoverInterruptedHostMaintenance(
     );
     const handoff: HostOwnershipHandoffOptions = {
       keyProvider: options.keyProvider,
+      initializeCanonicalHost: options.initializeCanonicalHost,
       timing: options.timing,
       clientFactory: options.clientFactory,
       bootstrapHeartbeatMs: options.bootstrapHeartbeatMs,
@@ -1045,6 +1050,7 @@ export async function recoverInterruptedHostMaintenance(
       bootstrap,
       handoff,
       options.privatePostgres,
+      state.state.continuityEpochId,
     );
     try {
       await lease.release();

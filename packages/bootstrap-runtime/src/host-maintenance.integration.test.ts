@@ -63,6 +63,14 @@ const HOST_TIMING = {
   keepAliveInitialDelayMs: 1_000,
 } as const;
 
+async function initializeCanonicalHost({
+  authority,
+}: {
+  readonly authority: { readonly assertCurrent: () => void };
+}): Promise<void> {
+  authority.assertCurrent();
+}
+
 interface Fixture {
   readonly anchorRoot: string;
   readonly roots: Readonly<Record<LifecycleRootId, string>>;
@@ -391,6 +399,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
         keyProvider,
       });
       const activeHostA = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });
@@ -409,7 +418,12 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
       expect(activeHostA.state).toBe("CLOSED");
       expect(() => activeHostA.assertActive()).toThrow();
       expect(activeHostB.state).toBe("ACTIVE");
+      expect(activeHostB.bootId).not.toBe(activeHostA.bootId);
       expect(activeHostB.token).not.toBe(activeHostA.token);
+      expect(activeHostB.continuityEpochId).toBe(activeHostA.continuityEpochId);
+      expect(activeHostB.persistence.continuityEpochId).toBe(
+        activeHostA.persistence.continuityEpochId,
+      );
       await expect(assertReady(toolchain, ready.port)).resolves.toBeUndefined();
 
       const persisted = await new BootstrapStateStore(
@@ -516,6 +530,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
       });
       const expectedClusterSystemIdentifier = ready.clusterSystemIdentifier;
       hostA = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });
@@ -560,6 +575,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
       await expect(assertReady(toolchain, port)).resolves.toBeUndefined();
 
       hostC = await secondOwned.handoffPrivatePostgresToHost(secondReady, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });
@@ -619,6 +635,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
       });
       const expectedClusterSystemIdentifier = ready.clusterSystemIdentifier;
       host = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });
@@ -701,6 +718,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
         keyProvider,
       });
       host = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });
@@ -728,6 +746,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
       expect(postReady.startupDisposition).toBe("ALREADY_RUNNING");
       await expect(
         postOwned.handoffPrivatePostgresToHost(postReady, {
+          initializeCanonicalHost,
           keyProvider,
           timing: HOST_TIMING,
         }),
@@ -775,6 +794,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
         keyProvider,
       });
       hostA = await firstOwned.handoffPrivatePostgresToHost(firstReady, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });
@@ -797,6 +817,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
       });
       expect(secondReady.startupDisposition).toBe("ALREADY_RUNNING");
       hostB = await secondOwned.handoffPrivatePostgresToHost(secondReady, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });
@@ -848,6 +869,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
         keyProvider,
       });
       host = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });
@@ -935,6 +957,7 @@ describe("M5A reverse-handoff PostgreSQL qualification", () => {
         keyProvider,
       });
       host = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost,
         keyProvider,
         timing: HOST_TIMING,
       });

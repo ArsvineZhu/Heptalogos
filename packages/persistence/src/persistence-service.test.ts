@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createBootId,
+  createContinuityEpochId,
   createHostOwnershipToken,
   createInstallationId,
   createInstanceId,
@@ -43,6 +44,7 @@ function authority(
     installationId: createInstallationId(),
     instanceId: createInstanceId(),
     bootId: createBootId(),
+    continuityEpochId: createContinuityEpochId(),
     token: createHostOwnershipToken(),
     target: {
       host: "127.0.0.1",

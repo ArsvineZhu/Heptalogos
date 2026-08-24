@@ -458,6 +458,9 @@ describe("M5B real maintenance/recovery process qualification", () => {
       principal: await proveLocalInstallationOwner(fixture.anchorRoot),
       expectedOperationId:
         prepared.operationId as MaintenanceJournalBodyV1["operationId"],
+      initializeCanonicalHost: async ({ authority }) => {
+        authority.assertCurrent();
+      },
       keyProvider: makeKeyProvider(),
       timing: HOST_TIMING,
       privatePostgres: descriptor,

@@ -1,6 +1,7 @@
 import {
   createHostOwnershipToken,
   ProblemError,
+  type ContinuityEpochId,
   type HostOwnershipToken,
 } from "@heptalogos/foundation-contracts";
 import {
@@ -9,6 +10,7 @@ import {
   deriveHostAdvisoryKey,
   ensureHostOwnershipSchema,
   HOST_OWNERSHIP_CANONICAL_DATABASE,
+  HOST_MIGRATION_ROLE,
   HOST_RUNTIME_ROLE,
   inspectCanonicalHostDatabase,
   provisionHostOwnershipDatabase,
@@ -16,6 +18,7 @@ import {
   type BootstrapAdminPasswordProvider,
   type BootstrapMutationAuthority,
   type HostOwnershipContext,
+  type HostCanonicalMigrationAuthority,
   type HostOwnershipState,
   type HostOwnershipTimingOptions,
 } from "@heptalogos/host-ownership";
@@ -49,9 +52,19 @@ import {
 export interface HostOwnershipHandoffOptions {
   readonly keyProvider: BootstrapKeyProvider;
   readonly timing: HostOwnershipTimingOptions;
+  readonly initializeCanonicalHost: CanonicalHostInitializer;
   readonly clientFactory?: unknown;
   readonly bootstrapHeartbeatMs?: number;
 }
+
+export interface CanonicalHostInitializationContext {
+  readonly authority: HostCanonicalMigrationAuthority;
+  readonly expectedContinuityEpochId: ContinuityEpochId;
+}
+
+export type CanonicalHostInitializer = (
+  context: CanonicalHostInitializationContext,
+) => Promise<void>;
 
 export interface OwnedBootstrapPreludeHandoffContext {
   readonly installationId: ReadyPrivatePostgres["installationId"];
@@ -78,6 +91,14 @@ const STAGE_RESERVATION_ACQUIRED = "bootstrap.host.reservation_acquired";
 const STAGE_LEASE_ACQUIRED = "bootstrap.host.lease_acquired";
 const STAGE_FENCE_VALIDATED = "bootstrap.host.fence_validated";
 const STAGE_TOKEN_PUBLISHED = "bootstrap.host.token_published";
+const STAGE_STATE_AUTHORITATIVE_RELOADED =
+  "bootstrap.host.state_authoritative_reloaded";
+const STAGE_CANONICAL_INITIALIZATION_STARTED =
+  "bootstrap.host.canonical_initialization_started";
+const STAGE_CANONICAL_INITIALIZATION_SUCCEEDED =
+  "bootstrap.host.canonical_initialization_succeeded";
+const STAGE_CANONICAL_INITIALIZATION_FAILED =
+  "bootstrap.host.canonical_initialization_failed";
 const STAGE_FORWARD_HANDOFF_COMPLETED = "bootstrap.host.forward_handoff_completed";
 const STAGE_EXISTING_OWNER_DETECTED = "bootstrap.host.existing_owner_detected";
 const STAGE_HANDOFF_FAILED = "bootstrap.host.handoff_failed";
@@ -136,6 +157,15 @@ function ownershipLostDuringHandoffProblem(): ProblemError {
     "bootstrap.host.ownership_lost_during_handoff",
     "Host ownership was lost during handoff",
     "The Host lease was not active after bootstrap ownership release",
+    "integrity",
+  );
+}
+
+function currentBootstrapStateRequiredProblem(): ProblemError {
+  return handoffProblem(
+    "bootstrap.host.current_state_required",
+    "Current BootstrapState is required for Host handoff",
+    "Canonical Host initialization requires the current committed BootstrapState; empty, corrupt, or recovered state cannot authorize normal Host exposure",
     "integrity",
   );
 }
@@ -221,11 +251,12 @@ function createContext(
   context: OwnedBootstrapPreludeHandoffContext,
   connection: Awaited<ReturnType<typeof acquireHostLeaseConnection>>,
   token: ReturnType<typeof createHostOwnershipToken>,
+  bootId: ReadyPrivatePostgres["bootId"] = context.bootId,
 ): HostOwnershipContext {
   return Object.freeze({
     installationId: context.installationId,
     instanceId: context.instanceId,
-    bootId: context.bootId,
+    bootId,
     token,
     get state() {
       return stateOf(connection);
@@ -240,11 +271,16 @@ function createContext(
   });
 }
 
-export async function handoffPrivatePostgresToHostForOwnedPrelude(
+interface HostHandoffResult {
+  readonly host: HostOwnershipContext;
+  readonly continuityEpochId: ContinuityEpochId;
+}
+
+async function handoffPrivatePostgresToHostForOwnedPreludeInternal(
   context: OwnedBootstrapPreludeHandoffContext,
   ready: ReadyPrivatePostgres,
   options: HostOwnershipHandoffOptions,
-): Promise<HostOwnershipContext> {
+): Promise<HostHandoffResult> {
   const sessionToken = context.assertReady(ready);
   if (
     ready.installationId !== context.installationId ||
@@ -270,6 +306,9 @@ export async function handoffPrivatePostgresToHostForOwnedPrelude(
   let leaseConnection:
     Awaited<ReturnType<typeof acquireHostLeaseConnection>> | undefined;
   let token: ReturnType<typeof createHostOwnershipToken> | undefined;
+  let continuityEpochId: ContinuityEpochId | undefined;
+  let canonicalInitializationStarted = false;
+  let canonicalInitializationSucceeded = false;
   let terminalHandoff = false;
 
   try {
@@ -345,7 +384,7 @@ export async function handoffPrivatePostgresToHostForOwnedPrelude(
 
     leaseConnection = await acquireHostLeaseConnection({
       target: {
-        host: "127.0.0.1",
+        host: "127.0.0.1" as const,
         port: ready.port,
         database: HOST_OWNERSHIP_CANONICAL_DATABASE,
       },
@@ -371,6 +410,73 @@ export async function handoffPrivatePostgresToHostForOwnedPrelude(
     context.assertOwnership();
     await recordStage(context, STAGE_TOKEN_PUBLISHED, "SUCCEEDED");
 
+    const currentState = await context.state.load();
+    if (currentState.status !== "CURRENT") {
+      throw currentBootstrapStateRequiredProblem();
+    }
+    continuityEpochId = currentState.value.state.continuityEpochId;
+    context.assertOwnership();
+    await recordStage(context, STAGE_STATE_AUTHORITATIVE_RELOADED, "SUCCEEDED");
+
+    const activeLeaseConnection = leaseConnection;
+    const activeToken = token;
+    if (activeLeaseConnection === undefined || activeToken === undefined) {
+      throw handoffProblem(
+        "bootstrap.host.migration_authority_unavailable",
+        "Canonical migration authority is unavailable",
+        "Host token and lease must both be present before canonical initialization",
+        "integrity",
+      );
+    }
+    const assertMigrationCurrent = (): void => {
+      context.assertOwnership();
+      activeLeaseConnection.assertActive();
+    };
+    const migrationAuthority: HostCanonicalMigrationAuthority = Object.freeze({
+      installationId: context.installationId,
+      instanceId: context.instanceId,
+      bootId: context.bootId,
+      token: activeToken,
+      continuityEpochId,
+      target: {
+        host: "127.0.0.1" as const,
+        port: ready.port,
+        database: HOST_OWNERSHIP_CANONICAL_DATABASE,
+        user: HOST_MIGRATION_ROLE,
+      },
+      signal: activeLeaseConnection.signal,
+      assertCurrent: assertMigrationCurrent,
+      async withMigrationDatabasePassword<T>(
+        use: (passwordUtf8: Uint8Array) => Promise<T>,
+      ): Promise<T> {
+        assertMigrationCurrent();
+        return options.keyProvider.withPrivatePostgresMigrationPassword(
+          {
+            installationId: context.installationId,
+            instanceId: context.instanceId,
+            bootId: context.bootId,
+            purpose: "private-postgres-migration-role",
+          },
+          async (passwordUtf8) => {
+            assertMigrationCurrent();
+            const result = await use(passwordUtf8);
+            assertMigrationCurrent();
+            return result;
+          },
+        );
+      },
+    });
+
+    canonicalInitializationStarted = true;
+    await recordStage(context, STAGE_CANONICAL_INITIALIZATION_STARTED, "STARTED");
+    await options.initializeCanonicalHost({
+      authority: migrationAuthority,
+      expectedContinuityEpochId: continuityEpochId,
+    });
+    migrationAuthority.assertCurrent();
+    canonicalInitializationSucceeded = true;
+    await recordStage(context, STAGE_CANONICAL_INITIALIZATION_SUCCEEDED, "SUCCEEDED");
+
     context.assertOwnership();
     context.privatePostgresSession.markHandedOff(sessionToken);
     terminalHandoff = true;
@@ -386,7 +492,10 @@ export async function handoffPrivatePostgresToHostForOwnedPrelude(
     } catch {
       throw ownershipLostDuringHandoffProblem();
     }
-    return createContext(context, leaseConnection, token);
+    return {
+      host: createContext(context, activeLeaseConnection, activeToken),
+      continuityEpochId,
+    };
   } catch (error) {
     if (reservation !== undefined && !reservationReleased) {
       await reservation.release().catch(() => undefined);
@@ -410,6 +519,14 @@ export async function handoffPrivatePostgresToHostForOwnedPrelude(
     }
 
     if (!terminalHandoff) {
+      if (canonicalInitializationStarted && !canonicalInitializationSucceeded) {
+        await recordStage(
+          context,
+          STAGE_CANONICAL_INITIALIZATION_FAILED,
+          "FAILED",
+          problemCodeOf(error) ?? "bootstrap.host.canonical_initialization_failed",
+        ).catch(() => undefined);
+      }
       await recordStage(
         context,
         STAGE_HANDOFF_FAILED,
@@ -421,17 +538,28 @@ export async function handoffPrivatePostgresToHostForOwnedPrelude(
   }
 }
 
+export async function handoffPrivatePostgresToHostForOwnedPrelude(
+  context: OwnedBootstrapPreludeHandoffContext,
+  ready: ReadyPrivatePostgres,
+  options: HostOwnershipHandoffOptions,
+): Promise<HostOwnershipContext> {
+  return (
+    await handoffPrivatePostgresToHostForOwnedPreludeInternal(context, ready, options)
+  ).host;
+}
+
 export async function handoffPrivatePostgresToManagedHostForOwnedPrelude(
   context: OwnedBootstrapPreludeHandoffContext,
   ready: ReadyPrivatePostgres,
   options: HostOwnershipHandoffOptions,
 ): Promise<BootstrapManagedHostContext> {
   const privatePostgres = getPrivatePostgresMaintenanceDescriptor(ready);
-  const raw = await handoffPrivatePostgresToHostForOwnedPrelude(
+  const handoff = await handoffPrivatePostgresToHostForOwnedPreludeInternal(
     context,
     ready,
     options,
   );
+  const raw = handoff.host;
   const createManagedHost = (
     host: HostOwnershipContext,
   ): BootstrapManagedHostContext => {
@@ -456,8 +584,8 @@ export async function handoffPrivatePostgresToManagedHostForOwnedPrelude(
       privatePostgres,
       beginOldHostRetirement,
       createHostToken: createHostOwnershipToken,
-      createHostContext: (connection, token) =>
-        createContext(context, connection, token),
+      createHostContext: (connection, token, bootId = context.bootId) =>
+        createContext(context, connection, token, bootId),
       createManagedHost,
     };
     managed = createManagedHostContext(
@@ -472,6 +600,7 @@ export async function handoffPrivatePostgresToManagedHostForOwnedPrelude(
         },
       }),
       {
+        continuityEpochId: handoff.continuityEpochId,
         target: {
           host: "127.0.0.1",
           port: ready.port,
@@ -483,7 +612,7 @@ export async function handoffPrivatePostgresToManagedHostForOwnedPrelude(
             {
               installationId: context.installationId,
               instanceId: context.instanceId,
-              bootId: context.bootId,
+              bootId: raw.bootId,
               purpose: "private-postgres-runtime-role",
             },
             use,

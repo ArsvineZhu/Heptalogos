@@ -73,6 +73,7 @@ export interface HostPersistenceAuthority {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
   readonly bootId: BootId;
+  readonly continuityEpochId: ContinuityEpochId;
   readonly token: HostOwnershipToken;
   readonly target: HostRuntimeDatabaseTarget;
   readonly signal: AbortSignal;
