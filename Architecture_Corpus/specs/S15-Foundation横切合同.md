@@ -252,6 +252,13 @@ COMPATIBILITY REQUIRES A DECLARED OBLIGATION.
 CompatibilityEpoch = PRE_PRODUCTION.
 ```
 
+`ContractVersion` / `SchemaVersion` express durable contract identity; they do
+not count internal development iterations. While `PRE_PRODUCTION`, the current
+best durable shape remains canonical V1 and project-owned development history
+does not create a backward-compatibility obligation. Obsolete development
+shapes are rejected/reset unless a later explicit compatibility-epoch decision
+declares a retained-state or external-consumer obligation.
+
 任何满足以下任一条件的 contract 都必须显式版本化：
 
 ```text
@@ -1028,8 +1035,10 @@ Bootstrap/Recovery 对 global state 的 mutation 使用 open/rename/replace 时�
 对于新 logical Instance，Bootstrap Closure 在 bootstrap ownership 下 exactly
 once 创建初始 epoch，并先将其提交为 BootstrapState 的 recovery anchor；canonical
 PostgreSQL 随后 materialize/verify 同一 ID，正常 Runtime 暴露不得早于这一步。
-当前保留的 H2A-1 `BootstrapStateBodyV1` 只承担一次、一步的 V1→V2
-upgrade obligation；V2 committed value 是所有 crash/retry 的唯一复用值，未知
+当前 canonical `BootstrapStateBodyV1` 本身要求 `ContinuityEpochId`。新
+logical Instance 在 bootstrap ownership 下 exactly once 创建并提交该 V1
+epoch；obsolete PRE_PRODUCTION BootstrapState bytes that lack the required
+field are unsupported and require clean-state reset，不是 upgrade input。未知
 或其他旧 shape 不获得兼容承诺。
 
 正常 restart、Host crash recovery、ProductGeneration code-only update 不改变

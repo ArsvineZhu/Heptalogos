@@ -95,7 +95,7 @@ Before a consequential change:
 - classify behavior-affecting literals;
 - define failure, restart, recovery, pressure, and external-effect uncertainty where relevant;
 - preserve explicit contract versions across durable/cross-generation boundaries;
-- explicit contract versions do not imply undeclared PRE_PRODUCTION backward compatibility; preserve historical readers only for a declared retained-state or external-consumer obligation;
+- explicit contract versions do not imply undeclared PRE_PRODUCTION backward compatibility. While `CompatibilityEpoch=PRE_PRODUCTION`, project-owned development formats have no backward-compatibility obligation: keep one current canonical V1, rewrite it in place, and reset obsolete development state. Do not add V2/V3, legacy readers, upcasters, bridge migrations, aliases, shims, or dual formats for repository history;
 - define required Evidence / Execution Lineage and the verification level needed for the claim.
 
 Do not create parallel authority paths for CLI, Web, Operator Assistant, extensions, or background workers. Do not use arbitrary shell/SQL/filesystem mutation as a shortcut around owning services.

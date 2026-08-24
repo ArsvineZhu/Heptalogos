@@ -40,6 +40,10 @@ Load S14 for full-flow changes, S16 for lineage, S17 for storage lifecycle, and 
 - Advisory lease alone does not authorize mutation.
 - Lease loss is not an invitation to reacquire in-place.
 - Restore does not roll external reality backward.
+- While `CompatibilityEpoch=PRE_PRODUCTION`, development history is not a
+  compatibility obligation: keep one canonical V1, reset/reject obsolete
+  state, and never infer a V2/upcaster/bridge migration/legacy reader path from
+  old development bytes.
 
 ## Verification
 

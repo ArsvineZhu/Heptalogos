@@ -66,6 +66,7 @@
     "dependencySelection": "Use L0 direct evidence, then minimal L1/L2 probes only for unresolved properties; L3 product qualification follows implementation.",
     "dependencyRouting": "ADOPTED roles must use references/dependency-routing.json through the designated adapter; conservative no-dependency/custom fallbacks are not permitted without reopening the role.",
     "dependencyMaterialization": "Adopted npm routes are materialized in pnpm-workspace.yaml Catalogs with catalogMode=strict; Nx/ESLint/dependency-route gates restrict imports to approved adapter boundaries.",
-    "toolchain": "TypeScript 7 is the primary compiler with ESNext/NodeNext/ESM-first; TS6 is an isolated compiler-API compatibility lane only. Exact versions come from current registry/upstream evidence and are pinned in Catalog/lockfile; prerelease labels are evidence, not automatic rejection."
+    "toolchain": "TypeScript 7 is the primary compiler with ESNext/NodeNext/ESM-first; TS6 is an isolated compiler-API compatibility lane only. Exact versions come from current registry/upstream evidence and are pinned in Catalog/lockfile; prerelease labels are evidence, not automatic rejection.",
+    "preProductionCompatibility": "CompatibilityEpoch=PRE_PRODUCTION: project-owned development formats have no backward-compatibility obligation; keep one current canonical V1 and reject/reset obsolete development shapes. A production compatibility obligation requires an explicit architecture transition."
   }
 }

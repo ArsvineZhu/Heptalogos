@@ -2,7 +2,7 @@
 
 **Status:** LIVING ROADMAP / planning guidance<br>
 **Date:** 2026-08-24<br>
-**Repository baseline:** `master@900a7b876ed4be7506beacead9f3285d1f4a5577` (H2A-1 squash merge)<br>
+**Repository baseline:** `master@b306975bba3592a0d8c2e2e6d1649f2523af27bc` (H2A-1 post-merge truth reconciliation)<br>
 **Architecture baseline:** `Architecture_Corpus` design state 2026-08-20
 
 > This document is a roadmap, not an Architecture Corpus authority and not an Implementation Plan. It guides future plan decomposition, sequencing, risk retirement, and acceptance. If it conflicts with the Architecture Corpus, the Corpus wins. If implementation evidence invalidates roadmap assumptions without invalidating architecture semantics, update the roadmap rather than silently changing the Corpus.
@@ -138,6 +138,7 @@ H1_FUNCTIONAL: COMPLETE
 H1_STABILIZATION: CLOSED
 H1: CLOSED
 H2A_1: CLOSED
+H2A_2: ACTIVE
 H2A: OPEN
 H2B: ELIGIBLE_BY_H1_BUT_IMPLEMENTATION_DEFERRED_PENDING_EXECUTION_CONTEXT_SPINE
 H2: OPEN
@@ -183,8 +184,11 @@ The initial `ContinuityEpochId` authority is now explicit in the Corpus: new
 Instances create one epoch under Bootstrap Closure before normal runtime,
 ordinary restart/crash retry reuses the committed value, and destructive
 restore/rollback rotates it inside the bootstrap-owned recovery window. H2A-2
-must preserve this ordering while adding canonical migration/materialization;
-epoch mismatch outside that window is fail-closed.
+is ACTIVE to establish canonical BootstrapState V1 with that required epoch,
+the distinct migration authority, the current canonical schema baseline, and
+normal materialization/verification. PRE_PRODUCTION development shapes are
+migration compatibility bridges are not part of H2A-2. Epoch
+mismatch outside the authorized restore window is fail-closed.
 
 Historical milestone context:
 
