@@ -10,6 +10,7 @@ import {
   verifyMigrationSchemaPrecondition,
   type MigrationDatabase,
 } from "./migration-pool.js";
+import { materializeContinuity } from "./continuity.js";
 import { canonicalMigrationProvider } from "./migration-provider.js";
 import { canonicalSchemaProblem } from "./problems.js";
 
@@ -82,6 +83,13 @@ export function createCanonicalSchemaInitializer(
           "unavailable",
         );
       }
+      assertCanonicalAuthority(authority);
+      await materializeContinuity(
+        database.db,
+        authority,
+        authority.instanceId,
+        expectedContinuityEpochId,
+      );
       assertCanonicalAuthority(authority);
     } catch (error) {
       failure = normalizedFailure(error, authority);
