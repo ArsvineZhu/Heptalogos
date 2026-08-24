@@ -88,6 +88,12 @@ const restrictedImports = new Map([
   ],
   ["kysely", ["packages/persistence/", "packages/canonical-schema/"]],
 ]);
+const restrictedSpecifiers = new Map([
+  [
+    "@heptalogos/persistence/foundation-repository",
+    ["packages/execution-lineage/", "packages/evidence/", "packages/persistence/"],
+  ],
+]);
 
 const hostOwnershipSourcePrefix = "packages/host-ownership/src/";
 const hostOwnershipAdapterSourcePaths = new Set([
@@ -206,6 +212,17 @@ if (
 
 export function isRestrictedImportAllowed(specifier, relativePath) {
   const allowedPaths = restrictedImports.get(specifier);
+  if (!allowedPaths) return true;
+  const normalizedPath = relativePath.replaceAll("\\", "/");
+  return allowedPaths.some((allowedPath) =>
+    allowedPath.endsWith("/")
+      ? normalizedPath.startsWith(allowedPath)
+      : normalizedPath === allowedPath,
+  );
+}
+
+export function isRestrictedSpecifierAllowed(specifier, relativePath) {
+  const allowedPaths = restrictedSpecifiers.get(specifier);
   if (!allowedPaths) return true;
   const normalizedPath = relativePath.replaceAll("\\", "/");
   return allowedPaths.some((allowedPath) =>
@@ -359,6 +376,13 @@ for (const path of sourcePaths) {
       if (!builtins.has(specifier)) {
         errors.push(`${relativePath}: unknown Node builtin import: ${specifier}`);
       }
+      continue;
+    }
+
+    if (!isRestrictedSpecifierAllowed(specifier, relativePath)) {
+      errors.push(
+        `${relativePath}: restricted full import is not allowed here: ${specifier}`,
+      );
       continue;
     }
 

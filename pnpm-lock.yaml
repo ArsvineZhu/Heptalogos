@@ -206,6 +206,9 @@ importers:
       '@heptalogos/foundation-contracts':
         specifier: workspace:*
         version: link:../foundation-contracts
+      '@heptalogos/persistence':
+        specifier: workspace:*
+        version: link:../persistence
       '@heptalogos/schema-runtime':
         specifier: workspace:*
         version: link:../schema-runtime

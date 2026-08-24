@@ -14,3 +14,4 @@ export {
   decodeLineageContextRef,
   encodeLineageContextRef,
 } from "./lineage-context-ref.js";
+export { createPersistenceExecutionContextProvider } from "./persistence-adapter.js";

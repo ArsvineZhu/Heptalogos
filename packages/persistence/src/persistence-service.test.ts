@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createBootId,
+  createActivityId,
   createContinuityEpochId,
   createHostOwnershipToken,
   createInstallationId,
@@ -10,13 +11,17 @@ import {
 import type { HostPersistenceAuthority } from "@heptalogos/host-ownership";
 import * as persistence from "./index.js";
 import type {
+  PersistenceExecutionMetadata,
+  PersistenceExecutionContextProvider,
   PersistenceRuntimeOptions,
+  PersistenceMutationTransactionContext,
+  PersistenceReadTransactionContext,
   PersistenceService,
   PersistenceServiceState,
-  PersistenceTransactionContext,
   PersistenceTransactionMode,
 } from "./index.js";
 import { createPersistenceServiceForTests } from "./persistence-service.js";
+import { useFoundationMutationTransaction } from "./foundation-repository.js";
 import {
   issueTransactionContext,
   releaseTransactionContext,
@@ -60,6 +65,31 @@ function authority(
       return use(new TextEncoder().encode("R".repeat(32)));
     },
   };
+}
+
+function executionMetadataFor(
+  value: HostPersistenceAuthority,
+): PersistenceExecutionMetadata {
+  return {
+    activityId: createActivityId(),
+    installationId: value.installationId,
+    instanceId: value.instanceId,
+    bootId: value.bootId,
+    continuityEpochId: value.continuityEpochId,
+    hostOwnershipToken: value.token,
+  };
+}
+
+function provider(
+  current: PersistenceExecutionMetadata | undefined,
+): PersistenceExecutionContextProvider {
+  return { current: () => current };
+}
+
+function currentProvider(
+  value: HostPersistenceAuthority,
+): PersistenceExecutionContextProvider {
+  return provider(executionMetadataFor(value));
 }
 
 function fakeDatabase(
@@ -129,7 +159,10 @@ describe("persistence package root", () => {
 
   it("keeps the public transaction and resource contracts Heptalogos-owned", () => {
     const mode: PersistenceTransactionMode = "READ";
-    const context: PersistenceTransactionContext = { mode };
+    const context: PersistenceReadTransactionContext = { mode };
+    const mutationExecution = executionMetadataFor(
+      authority(new AbortController().signal),
+    );
     const state: PersistenceServiceState = "OPEN";
     const options: PersistenceRuntimeOptions = {
       maxConnections: 1,
@@ -142,13 +175,15 @@ describe("persistence package root", () => {
     };
     const service: PersistenceService = {
       state,
-      async read<T>(operation: (context: PersistenceTransactionContext) => Promise<T>) {
+      async read<T>(
+        operation: (context: PersistenceReadTransactionContext) => Promise<T>,
+      ) {
         return operation({ mode: "READ" });
       },
       async mutate<T>(
-        operation: (context: PersistenceTransactionContext) => Promise<T>,
+        operation: (context: PersistenceMutationTransactionContext) => Promise<T>,
       ) {
-        return operation({ mode: "MUTATION" });
+        return operation({ mode: "MUTATION", execution: mutationExecution });
       },
       async close() {},
     };
@@ -171,6 +206,45 @@ describe("persistence package root", () => {
     );
   });
 
+  it("allows only a genuine live mutation context to reach Foundation repositories", async () => {
+    const transaction = {} as PersistenceInternalTransaction;
+    const currentAuthority = authority(new AbortController().signal);
+    const execution = executionMetadataFor(currentAuthority);
+    const context = issueTransactionContext("MUTATION", transaction, execution);
+
+    await expect(
+      useFoundationMutationTransaction(context, async (resolved) => resolved),
+    ).resolves.toBe(transaction);
+
+    releaseTransactionContext(context);
+    await expect(
+      useFoundationMutationTransaction(context, async () => transaction),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "persistence.transaction.context_invalid" },
+    });
+  });
+
+  it("rejects read, fake, and released contexts at the Foundation repository seam", async () => {
+    const transaction = {} as PersistenceInternalTransaction;
+    const currentAuthority = authority(new AbortController().signal);
+    const execution = executionMetadataFor(currentAuthority);
+    const readContext = issueTransactionContext("READ", transaction, execution);
+    const fakeContext = { mode: "MUTATION", execution } as const;
+
+    await expect(
+      useFoundationMutationTransaction(readContext as never, async () => transaction),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "persistence.transaction.context_invalid" },
+    });
+    await expect(
+      useFoundationMutationTransaction(fakeContext, async () => transaction),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "persistence.transaction.context_invalid" },
+    });
+
+    releaseTransactionContext(readContext);
+  });
+
   it("stops admission synchronously on Host abort and closes resources once", async () => {
     const controller = new AbortController();
     let destroyCount = 0;
@@ -190,6 +264,7 @@ describe("persistence package root", () => {
     const service = createPersistenceServiceForTests(
       authority(controller.signal),
       runtimeOptions(),
+      provider(undefined),
       database,
     );
 
@@ -225,6 +300,7 @@ describe("persistence package root", () => {
     const service = createPersistenceServiceForTests(
       hostAuthority,
       runtimeOptions(),
+      currentProvider(hostAuthority),
       database,
       { onFenceVerified: database.onFenceVerified },
     );
@@ -260,6 +336,7 @@ describe("persistence package root", () => {
     const service = createPersistenceServiceForTests(
       hostAuthority,
       runtimeOptions(),
+      provider(undefined),
       database,
     );
 
@@ -295,6 +372,7 @@ describe("persistence package root", () => {
     const service = createPersistenceServiceForTests(
       hostAuthority,
       runtimeOptions(),
+      currentProvider(hostAuthority),
       database,
       { onFenceVerified: database.onFenceVerified },
     );
@@ -338,6 +416,7 @@ describe("persistence package root", () => {
     const service = createPersistenceServiceForTests(
       hostAuthority,
       runtimeOptions(),
+      currentProvider(hostAuthority),
       database,
     );
     let invoked = 0;
@@ -360,6 +439,7 @@ describe("persistence package root", () => {
     const service = createPersistenceServiceForTests(
       hostAuthority,
       runtimeOptions(),
+      currentProvider(hostAuthority),
       database,
     );
 
@@ -375,6 +455,7 @@ describe("persistence package root", () => {
     const service = createPersistenceServiceForTests(
       hostAuthority,
       runtimeOptions(),
+      currentProvider(hostAuthority),
       database,
     );
     const expected = new ProblemError({
@@ -410,6 +491,7 @@ describe("persistence package root", () => {
     const service = createPersistenceServiceForTests(
       hostAuthority,
       runtimeOptions(),
+      currentProvider(hostAuthority),
       database,
     );
 
@@ -434,6 +516,7 @@ describe("persistence package root", () => {
     const service = createPersistenceServiceForTests(
       hostAuthority,
       runtimeOptions(),
+      currentProvider(hostAuthority),
       database,
     );
     let operationCount = 0;
@@ -469,6 +552,7 @@ describe("persistence package root", () => {
     const service = createPersistenceServiceForTests(
       hostAuthority,
       runtimeOptions(),
+      currentProvider(hostAuthority),
       database,
     );
 
@@ -480,5 +564,76 @@ describe("persistence package root", () => {
       }),
     ).resolves.toBe("entered mutation completed");
     expect(destroyCount).toBe(1);
+  });
+
+  it("rejects mutation without ambient execution metadata", async () => {
+    const controller = new AbortController();
+    const currentAuthority = authority(controller.signal);
+    const database = fakeDatabase(currentAuthority, []);
+    const service = createPersistenceServiceForTests(
+      currentAuthority,
+      runtimeOptions(),
+      provider(undefined),
+      database,
+    );
+
+    await expect(service.mutate(async () => undefined)).rejects.toMatchObject({
+      problem: { problemCode: "persistence.execution_context.required" },
+    });
+  });
+
+  it("rejects stale execution origin before domain mutation", async () => {
+    const controller = new AbortController();
+    const currentAuthority = authority(controller.signal);
+    const stale = {
+      ...executionMetadataFor(currentAuthority),
+      bootId: createBootId(),
+    };
+    const database = fakeDatabase(currentAuthority, []);
+    const service = createPersistenceServiceForTests(
+      currentAuthority,
+      runtimeOptions(),
+      provider(stale),
+      database,
+    );
+
+    await expect(service.mutate(async () => undefined)).rejects.toMatchObject({
+      problem: { problemCode: "persistence.execution_context.stale_origin" },
+    });
+  });
+
+  it("issues a mutation context containing the admitted execution snapshot", async () => {
+    const controller = new AbortController();
+    const currentAuthority = authority(controller.signal);
+    const current = executionMetadataFor(currentAuthority);
+    const database = fakeDatabase(currentAuthority, []);
+    const service = createPersistenceServiceForTests(
+      currentAuthority,
+      runtimeOptions(),
+      provider(current),
+      database,
+    );
+
+    await service.mutate(async (context) => {
+      expect(context.mode).toBe("MUTATION");
+      expect(context.execution).toEqual(current);
+      expect(context.execution).not.toBe(current);
+    });
+  });
+
+  it("keeps read usable without ambient execution metadata", async () => {
+    const controller = new AbortController();
+    const currentAuthority = authority(controller.signal);
+    const database = fakeDatabase(currentAuthority, []);
+    const service = createPersistenceServiceForTests(
+      currentAuthority,
+      runtimeOptions(),
+      provider(undefined),
+      database,
+    );
+
+    await expect(
+      service.read(async (context: PersistenceReadTransactionContext) => context.mode),
+    ).resolves.toBe("READ");
   });
 });

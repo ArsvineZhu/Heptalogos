@@ -8,6 +8,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./foundation-repository": {
+      "types": "./dist/foundation-repository.d.ts",
+      "import": "./dist/foundation-repository.js",
+      "default": "./dist/foundation-repository.js"
     }
   },
   "dependencies": {

@@ -12,6 +12,7 @@
   "include": ["src/**/*.ts"],
   "references": [
     { "path": "../foundation-contracts" },
+    { "path": "../persistence" },
     { "path": "../schema-runtime" },
     { "path": "../time-service" }
   ]

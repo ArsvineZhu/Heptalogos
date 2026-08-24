@@ -1,7 +1,9 @@
 import type { Transaction } from "kysely";
 import type {
+  PersistenceExecutionMetadata,
+  PersistenceMutationTransactionContext,
+  PersistenceReadTransactionContext,
   PersistenceTransactionContext,
-  PersistenceTransactionMode,
 } from "./contracts.js";
 import { persistenceTransactionContextInvalidProblem } from "./problems.js";
 
@@ -14,10 +16,24 @@ const transactions = new WeakMap<
 >();
 
 export function issueTransactionContext(
-  mode: PersistenceTransactionMode,
+  mode: "READ",
   transaction: PersistenceInternalTransaction,
+  execution?: PersistenceExecutionMetadata,
+): PersistenceReadTransactionContext;
+export function issueTransactionContext(
+  mode: "MUTATION",
+  transaction: PersistenceInternalTransaction,
+  execution: PersistenceExecutionMetadata,
+): PersistenceMutationTransactionContext;
+export function issueTransactionContext(
+  mode: "READ" | "MUTATION",
+  transaction: PersistenceInternalTransaction,
+  execution?: PersistenceExecutionMetadata,
 ): PersistenceTransactionContext {
-  const context = Object.freeze({ mode });
+  const context = Object.freeze({
+    mode,
+    ...(execution ? { execution } : {}),
+  }) as PersistenceTransactionContext;
   transactions.set(context, transaction);
   return context;
 }

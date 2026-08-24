@@ -1,5 +1,9 @@
 export type {
   PersistenceRuntimeOptions,
+  PersistenceExecutionContextProvider,
+  PersistenceExecutionMetadata,
+  PersistenceMutationTransactionContext,
+  PersistenceReadTransactionContext,
   PersistenceService,
   PersistenceServiceState,
   PersistenceTransactionContext,

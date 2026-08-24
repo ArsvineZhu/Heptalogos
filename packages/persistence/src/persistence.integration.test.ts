@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { CompiledQuery } from "kysely";
 import { Client } from "pg";
 import {
+  createActivityId,
   createBootId,
   createContinuityEpochId,
   createHostOwnershipToken,
@@ -36,6 +37,7 @@ import {
 } from "@heptalogos/private-postgres";
 import {
   createPersistenceService,
+  type PersistenceExecutionContextProvider,
   type PersistenceRuntimeOptions,
   type PersistenceTransactionContext,
 } from "./index.js";
@@ -395,6 +397,20 @@ function makeAuthority(
   };
 }
 
+function executionProviderFor(
+  authority: HostPersistenceAuthority,
+): PersistenceExecutionContextProvider {
+  const execution = Object.freeze({
+    activityId: createActivityId(),
+    installationId: authority.installationId,
+    instanceId: authority.instanceId,
+    bootId: authority.bootId,
+    continuityEpochId: authority.continuityEpochId,
+    hostOwnershipToken: authority.token,
+  });
+  return { current: () => execution };
+}
+
 async function internalQuery<Row = Record<string, unknown>>(
   context: PersistenceTransactionContext,
   text: string,
@@ -448,7 +464,11 @@ describe("H2A-1 host-fenced persistence PostgreSQL 18.6 qualification", () => {
     const lease = await prepareHostLease(fixture);
     const published = await publish(fixture, lease);
     const handle = makeAuthority(fixture, lease, published);
-    const service = createPersistenceService(handle.authority, runtimeOptions());
+    const service = createPersistenceService(
+      handle.authority,
+      runtimeOptions(),
+      executionProviderFor(handle.authority),
+    );
     try {
       await service.mutate(async (context) => {
         await internalQuery(
@@ -480,7 +500,11 @@ describe("H2A-1 host-fenced persistence PostgreSQL 18.6 qualification", () => {
       leaseB = await prepareHostLease(fixture);
       const publishedB = await publish(fixture, leaseB);
       const stale = makeAuthority(fixture, leaseB, publishedA, false);
-      const service = createPersistenceService(stale.authority, runtimeOptions());
+      const service = createPersistenceService(
+        stale.authority,
+        runtimeOptions(),
+        executionProviderFor(stale.authority),
+      );
       let invoked = 0;
       try {
         await expect(
@@ -511,7 +535,11 @@ describe("H2A-1 host-fenced persistence PostgreSQL 18.6 qualification", () => {
     const leaseA = await prepareHostLease(fixture);
     const publishedA = await publish(fixture, leaseA);
     const handleA = makeAuthority(fixture, leaseA, publishedA);
-    const serviceA = createPersistenceService(handleA.authority, runtimeOptions());
+    const serviceA = createPersistenceService(
+      handleA.authority,
+      runtimeOptions(),
+      executionProviderFor(handleA.authority),
+    );
     const entered = deferred<void>();
     const release = deferred<void>();
     let leaseB: Awaited<ReturnType<typeof acquireHostLeaseConnection>> | undefined;
@@ -558,7 +586,11 @@ describe("H2A-1 host-fenced persistence PostgreSQL 18.6 qualification", () => {
     const lease = await prepareHostLease(fixture);
     const published = await publish(fixture, lease);
     const handle = makeAuthority(fixture, lease, published);
-    const service = createPersistenceService(handle.authority, runtimeOptions());
+    const service = createPersistenceService(
+      handle.authority,
+      runtimeOptions(),
+      executionProviderFor(handle.authority),
+    );
     try {
       await lease.close();
       handle.setActive(false);
@@ -583,7 +615,11 @@ describe("H2A-1 host-fenced persistence PostgreSQL 18.6 qualification", () => {
     const lease = await prepareHostLease(fixture);
     const published = await publish(fixture, lease);
     const handle = makeAuthority(fixture, lease, published);
-    const service = createPersistenceService(handle.authority, runtimeOptions());
+    const service = createPersistenceService(
+      handle.authority,
+      runtimeOptions(),
+      executionProviderFor(handle.authority),
+    );
     try {
       await expect(
         service.read(async (context) =>
@@ -607,7 +643,11 @@ describe("H2A-1 host-fenced persistence PostgreSQL 18.6 qualification", () => {
     const leaseA = await prepareHostLease(fixture);
     const publishedA = await publish(fixture, leaseA);
     const handleA = makeAuthority(fixture, leaseA, publishedA);
-    const serviceA = createPersistenceService(handleA.authority, runtimeOptions());
+    const serviceA = createPersistenceService(
+      handleA.authority,
+      runtimeOptions(),
+      executionProviderFor(handleA.authority),
+    );
     const entered = deferred<void>();
     const release = deferred<void>();
     let leaseB: Awaited<ReturnType<typeof acquireHostLeaseConnection>> | undefined;
@@ -644,7 +684,11 @@ describe("H2A-1 host-fenced persistence PostgreSQL 18.6 qualification", () => {
     const lease = await prepareHostLease(fixture);
     const published = await publish(fixture, lease);
     const handle = makeAuthority(fixture, lease, published);
-    const service = createPersistenceService(handle.authority, runtimeOptions());
+    const service = createPersistenceService(
+      handle.authority,
+      runtimeOptions(),
+      executionProviderFor(handle.authority),
+    );
     const admin = await bootstrapClient(fixture, HOST_OWNERSHIP_CANONICAL_DATABASE);
     try {
       await expect(
@@ -730,6 +774,40 @@ describe("H2A-1 host-fenced persistence PostgreSQL 18.6 qualification", () => {
     } finally {
       await runtime.end().catch(() => undefined);
       await lease.close().catch(() => undefined);
+    }
+  }, 120_000);
+
+  it("P9: rejects an old Host execution callback after ownership transfer", async () => {
+    const fixture = await createCluster();
+    const leaseA = await prepareHostLease(fixture);
+    const publishedA = await publish(fixture, leaseA);
+    const handleA = makeAuthority(fixture, leaseA, publishedA, false);
+    const serviceA = createPersistenceService(
+      handleA.authority,
+      runtimeOptions(),
+      executionProviderFor(handleA.authority),
+    );
+    let leaseB: Awaited<ReturnType<typeof acquireHostLeaseConnection>> | undefined;
+    try {
+      await leaseA.close();
+      leaseB = await prepareHostLease(fixture);
+      const publishedB = await publish(fixture, leaseB);
+      let invoked = 0;
+
+      await expect(
+        serviceA.mutate(async () => {
+          invoked += 1;
+          return undefined;
+        }),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "persistence.host_fence.stale_owner" },
+      });
+      expect(invoked).toBe(0);
+      expect(publishedB.token).not.toBe(publishedA.token);
+    } finally {
+      await serviceA.close().catch(() => undefined);
+      await leaseB?.close().catch(() => undefined);
+      await leaseA.close().catch(() => undefined);
     }
   }, 120_000);
 });

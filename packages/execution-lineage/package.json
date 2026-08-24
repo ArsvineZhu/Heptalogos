@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@heptalogos/foundation-contracts": "workspace:*",
+    "@heptalogos/persistence": "workspace:*",
     "@heptalogos/schema-runtime": "workspace:*",
     "@heptalogos/time-service": "workspace:*",
     "@opentelemetry/api": "catalog:"
