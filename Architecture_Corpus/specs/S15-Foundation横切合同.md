@@ -1024,7 +1024,33 @@ Bootstrap/Recovery 对 global state 的 mutation 使用 open/rename/replace 时�
 
 # 13.2 Continuity Epoch
 
-`ContinuityEpochId` 标识同一逻辑 Instance 的一段连续 canonical execution timeline。正常 restart、Host crash recovery、ProductGeneration code-only update 不改变 epoch；destructive local-state restore/rollback 创建新 epoch。
+`ContinuityEpochId` 标识同一逻辑 Instance 的一段连续 canonical execution timeline。
+对于新 logical Instance，Bootstrap Closure 在 bootstrap ownership 下 exactly
+once 创建初始 epoch，并先将其提交为 BootstrapState 的 recovery anchor；canonical
+PostgreSQL 随后 materialize/verify 同一 ID，正常 Runtime 暴露不得早于这一步。
+当前保留的 H2A-1 `BootstrapStateBodyV1` 只承担一次、一步的 V1→V2
+upgrade obligation；V2 committed value 是所有 crash/retry 的唯一复用值，未知
+或其他旧 shape 不获得兼容承诺。
+
+正常 restart、Host crash recovery、ProductGeneration code-only update 不改变
+epoch；destructive local-state restore/rollback 在恢复状态进入正常 Runtime 之前
+创建并 materialize 新 epoch。
+
+```text
+ordinary restart
+  InstanceId same / InstallationId same / BootId new
+  ContinuityEpochId same / HostOwnershipToken new
+
+destructive restore or rollback
+  new ContinuityEpochId committed by Bootstrap/Recovery
+  restored canonical store materialized before normal DBOS/Runtime/Management
+```
+
+在显式 restore materialization window 之外，Bootstrap expected epoch 与 canonical
+store 不一致时 normal runtime admission = `BLOCKED`，结果是结构化
+integrity/recovery `Problem`；禁止自动 pick-one、覆盖或重新随机生成。若 epoch
+已在 BootstrapState durable commit 而 canonical materialization 尚未完成，后续
+授权 bootstrap attempt 必须复用该 epoch。
 
 旧 epoch 中的 session、Approval、in-flight ManagementOperation 与可能导致 external effect 的非 terminal durable work不能被新 epoch无条件继承。Restore reconciliation 规则见 `S11`/`S03`。Execution Lineage 必须记录 epoch，查询时明确展示 discontinuity。
 

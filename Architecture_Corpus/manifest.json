@@ -250,8 +250,8 @@
     },
     {
       "path": "qualification/results/qualification-status.json",
-      "size": 27915,
-      "sha256": "38da4e3cfe9878d31599b819f8e8df942e0ebdbc24a8bf72d3e6be1a4863b25f"
+      "size": 28471,
+      "sha256": "678423264d0adec9a38ad1054727835bb9e5837496c739b6582a5d38de39e7a7"
     },
     {
       "path": "qualification/依赖资格矩阵.md",
@@ -295,8 +295,8 @@
     },
     {
       "path": "specs/S01-启动-恢复-运行时监督.md",
-      "size": 20490,
-      "sha256": "d08577c0bfd4b50e69b508a014de1f8188bb9ff7e618dd2aa7598099d4bdfb02"
+      "size": 22790,
+      "sha256": "0b5f42fe415a84c0ba04f3ff95d156cc8a52790747ae6a66a9e73e9ae2fedb2f"
     },
     {
       "path": "specs/S02-异步-WorkQueue-Durable-Time.md",
@@ -345,8 +345,8 @@
     },
     {
       "path": "specs/S11-备份-更新-分发-平台.md",
-      "size": 12353,
-      "sha256": "55e56d30a544ac049a584d3a43774fb99991ff22b4e877c07b86caede35f62fb"
+      "size": 12836,
+      "sha256": "372d1a3eb258abd264ee133059d96a0c3f8de8d08798079e7e677403932b041c"
     },
     {
       "path": "specs/S12-验证-Research-Evaluation.md",
@@ -360,18 +360,18 @@
     },
     {
       "path": "specs/S14-Canonical-End-to-End-Flows.md",
-      "size": 12532,
-      "sha256": "e299ca2f9a4fb6f5f0458ce1a94b1fbddc4605153bbc117af541e74e9691d0db"
+      "size": 12771,
+      "sha256": "2b78d6c18a99fc720522b102bda24949cfa8b5829234372b0ca7e33c7e482a95"
     },
     {
       "path": "specs/S15-Foundation横切合同.md",
-      "size": 27321,
-      "sha256": "342bd86416664b9256e7e0a95c26606f2b9363db194320eb9f8721878425d385"
+      "size": 28571,
+      "sha256": "2f4d66764cf0fafb3f38fe05f9b5077b35b7d0384d53bf08c69d0ee2ecb9fbe4"
     },
     {
       "path": "specs/S16-Execution-Lineage-Observability.md",
-      "size": 19929,
-      "sha256": "9b772bfdd01978785c0d5180e44af5169fde47719c3a1a669f1f9c0607fa9e24"
+      "size": 20535,
+      "sha256": "34719d355f91eeae6b9b989fce199047f595a66e0079f76b42d2e51c18ddbc69"
     },
     {
       "path": "specs/S17-Storage-Workspace-DataLifecycle.md",
