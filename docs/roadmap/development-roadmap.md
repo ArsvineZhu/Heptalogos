@@ -2,7 +2,7 @@
 
 **Status:** LIVING ROADMAP / planning guidance<br>
 **Date:** 2026-08-25<br>
-**Repository baseline:** `master@446d0f6bce449f177c66fb569341020757b44c9b` (H2A-2 post-merge truth reconciliation)<br>
+**Repository baseline:** `master@7b51468c2c41895bde7091868d688d98dfc6c957` (PR #19 H2A-3 squash merge; final cross-platform CI intentionally deferred until the H2-wide run)<br>
 **Architecture baseline:** `Architecture_Corpus` design state 2026-08-20
 
 > This document is a roadmap, not an Architecture Corpus authority and not an Implementation Plan. It guides future plan decomposition, sequencing, risk retirement, and acceptance. If it conflicts with the Architecture Corpus, the Corpus wins. If implementation evidence invalidates roadmap assumptions without invalidating architecture semantics, update the roadmap rather than silently changing the Corpus.
@@ -139,13 +139,15 @@ H1_STABILIZATION: CLOSED
 H1: CLOSED
 H2A_1: CLOSED
 H2A_2: CLOSED
-H2A_3: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
-H2A: FUNCTIONALLY_COMPLETE_PENDING_STABILIZATION_AND_CLOSURE
-H2B: ELIGIBLE_AFTER_H2A3_MERGE
+H2A_3: CLOSED
+H2A: FUNCTIONALLY_COMPLETE
+H2B: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+H2_FUNCTIONAL: COMPLETE_PENDING_H2B_CLOSURE
+H2_STABILIZATION: NOT_STARTED
 H2: OPEN
 ```
 
-H2A-3 implementation and Windows PostgreSQL 18.6 local qualification are complete on branch `dev/h2a3-canonical-execution-context-time-lineage`; the exact external review, manual cross-platform CI, and squash-merge closure tuple remain pending. H2A remains open until the bounded stabilization/closure plan completes.
+H2A-3 implementation and Windows PostgreSQL 18.6 local qualification are complete. The final reviewed pair is `446d0f6bce449f177c66fb569341020757b44c9b` → `2482b6e380cbad37407e99b0ce7c7560ccc709c6`; independent review is `PASS`, PR #19 squash merge is `PASS` at `7b51468c2c41895bde7091868d688d98dfc6c957`, and final cross-platform CI remains `NOT_RUN` by explicit operator direction pending the H2-wide run. H2A is functionally complete; its stabilization/closure CI projection is recorded separately from the merged behavior candidate.
 
 H1 functional implementation: COMPLETE.
 

@@ -1,5 +1,37 @@
 # Q-PERSISTENCE-01 资格证据
 
+## H2B current addendum (2026-08-25)
+
+```yaml
+qualificationId: Q-PERSISTENCE-01
+testedProperty: "H2B runtime-origin persistence projection and narrow current-Activity completion authority"
+evidenceStatus: PASS
+qualificationState: PARTIAL
+implementationQualification: REQUIRED
+behavior_candidate_sha: 88533f97f4b803f6c5660d78fa0318fbb3fa952
+runtime_origin_columns: PASS (product/package/MicroSystem provenance columns in current V1 baseline)
+activity_completion_function: PASS (owner-owned SECURITY DEFINER function)
+runtime_table_update_denied: PASS (Windows PostgreSQL 18.6)
+completion_idempotency_and_conflict: PASS (L9-L16 real PostgreSQL)
+completion_origin_match: PASS (L15 real PostgreSQL)
+wall_clock_backward_completion: PASS (L16 real PostgreSQL)
+runtime_lifecycle_real_postgres: PASS (I1-I10)
+real_postgres_version: PostgreSQL 18.6
+real_postgres_platform: Windows
+real_postgres_linux: NOT_RUN
+real_postgres_macos: NOT_RUN
+source_less_persistence: NOT_RUN
+service_headless_persistence: NOT_RUN
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+This addendum extends the existing H2A persistence evidence; it does not
+replace historical H2A-1/H2A-2/H2A-3 candidate tuples. Runtime provenance is
+stored as lineage projection and does not create Persistence Authority; Host
+installation/instance/boot/epoch/token admission remains the mutation fence.
+
 ## H2A-3 current addendum (2026-08-25)
 
 ```yaml
@@ -8,9 +40,9 @@ testedProperty: "H2A-3 canonical ExecutionContext, retained Activity/Evidence at
 evidenceStatus: PASS
 qualificationState: PARTIAL
 implementationQualification: REQUIRED
-behavior_candidate_sha: 76589ade468ccb7a4a9ecf830f6200fdd729917c
+behavior_candidate_sha: 2482b6e380cbad37407e99b0ce7c7560ccc709c6
 reviewed_base_sha: 446d0f6bce449f177c66fb569341020757b44c9b
-reviewed_head_sha: NOT_RUN
+reviewed_head_sha: 2482b6e380cbad37407e99b0ce7c7560ccc709c6
 current_execution_context_required_for_mutation: PASS
 stale_execution_origin_unit: PASS
 stale_execution_origin_real_postgres: PASS
@@ -41,15 +73,15 @@ service_headless_persistence: NOT_RUN
 check_dependencies: PASS
 check_boundaries: PASS
 pnpm_verify: PASS
-independent_review: NOT_RUN
+independent_review: PASS
 final_cross_platform_ci: NOT_RUN
-squash_merge: NOT_RUN
+squash_merge: PASS (PR #19 merge `7b51468c2c41895bde7091868d688d98dfc6c957`)
 ```
 
 The real PostgreSQL evidence used the extracted EDB PostgreSQL 18.6 toolchain
 at `C:\Users\Arsvine\AppData\Local\Temp\heptalogos-pg18.6-correction-20260823\extracted\pgsql\bin`.
-The behavior candidate is locally qualified only; no H2A-3 independent review,
-manual final CI, or squash merge is claimed by this addendum. Linux/macOS,
+The corrected candidate received out-of-band independent review `PASS` and
+was squash-merged as PR #19 at `7b51468c2c41895bde7091868d688d98dfc6c957`. Final cross-platform CI remains `NOT_RUN` by explicit operator direction pending the H2-wide run. Linux/macOS,
 source-less, and service/headless product qualification remain `NOT_RUN`.
 
 本记录保留 H2A-1 Host-scoped Persistence 的历史/current ledger 语义，并以独立
@@ -146,9 +178,12 @@ The next reviewed pair
 `c889eae74093fdf86ef713f024587e75f3b098c7` returned
 `Independent Review REQUEST_CHANGES` for RC-1 append-order lineage,
 RC-2 real PostgreSQL stale-origin proof, and RC-3 Roadmap current truth.
-Those corrections are implemented in behavior candidate
-`76589ade468ccb7a4a9ecf830f6200fdd729917c`; its new exact-pair review,
-final CI, and squash merge remain `NOT_RUN`.
+Those corrections were implemented in behavior candidate
+`76589ade468ccb7a4a9ecf830f6200fdd729917c`; the resulting final candidate
+`2482b6e380cbad37407e99b0ce7c7560ccc709c6` received independent review
+`PASS` and was squash-merged as PR #19 at
+`7b51468c2c41895bde7091868d688d98dfc6c957`; final cross-platform CI remains
+`NOT_RUN` by operator direction.
 
 The real-PG qualification used the extracted EDB PostgreSQL 18.6 Windows
 toolchain at:
