@@ -1,5 +1,6 @@
 import type {
   ContentDigest,
+  ContinuityEpochId,
   InstallationId,
   InstanceId,
   Problem,
@@ -16,6 +17,7 @@ export interface BootstrapStateBodyV1 {
   readonly activeBootstrapRuntimeGeneration: BootstrapRuntimeGenerationId;
   readonly previousBootstrapRuntimeGeneration?: BootstrapRuntimeGenerationId;
   readonly activeProductGeneration: ProductGenerationId;
+  readonly continuityEpochId: ContinuityEpochId;
   readonly lastKnownGoodProductGeneration?: ProductGenerationId;
   readonly lastCommittedOperationRef?: string;
   readonly lastCompletedStageRef?: string;
