@@ -27,6 +27,9 @@
     },
     {
       "path": "./packages/time-service"
+    },
+    {
+      "path": "./packages/execution-lineage"
     }
   ]
 }

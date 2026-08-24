@@ -56,6 +56,7 @@ const restrictedImports = new Map([
     "@heptalogos/canonical-schema",
     ["packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts"],
   ],
+  ["@opentelemetry/api", ["packages/execution-lineage/"]],
   [
     "@heptalogos/bootstrap-state",
     ["packages/bootstrap-runtime/", "packages/bootstrap-state/"],
@@ -141,6 +142,21 @@ const persistenceMechanicsPattern =
 if (persistenceMechanicsPattern.test(persistencePublicSource)) {
   errors.push(
     "packages/persistence/src/index.ts: concrete pg/Kysely mechanics must not leak through the persistence package root",
+  );
+}
+const executionLineagePublicSourcePath = resolve(
+  root,
+  "packages/execution-lineage/src/index.ts",
+);
+const executionLineagePublicSource = readFileSync(
+  executionLineagePublicSourcePath,
+  "utf8",
+);
+const executionLineageMechanicsPattern =
+  /\b(?:AsyncLocalStorage|OTelContext|SpanContext|TracerProvider|ContextManager|Kysely|Pool|Client|PersistenceInternalTransaction|runWithLineageSuppressed)\b/u;
+if (executionLineageMechanicsPattern.test(executionLineagePublicSource)) {
+  errors.push(
+    "packages/execution-lineage/src/index.ts: ALS/OTel provider/raw persistence/suppression mechanics must not leak through the execution-lineage package root",
   );
 }
 
