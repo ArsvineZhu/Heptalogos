@@ -88,20 +88,6 @@ function validateCheckpoint(
   return Object.freeze({ ...checkpoint, at });
 }
 
-function latest(checkpoints: readonly ValidatedCheckpoint[]): ValidatedCheckpoint {
-  const result = checkpoints.reduce((current, candidate) =>
-    Date.parse(candidate.at) >= Date.parse(current.at) ? candidate : current,
-  );
-  return result;
-}
-
-function earliest(checkpoints: readonly ValidatedCheckpoint[]): ValidatedCheckpoint {
-  const result = checkpoints.reduce((current, candidate) =>
-    Date.parse(candidate.at) <= Date.parse(current.at) ? candidate : current,
-  );
-  return result;
-}
-
 function assertSameIdentity(checkpoints: readonly ValidatedCheckpoint[]): void {
   const first = checkpoints[0];
   if (first === undefined) return invalid("Bootstrap journal is empty");
@@ -138,7 +124,6 @@ export function projectBootstrapHandoff(
   const checkpoints = input.checkpoints.map(validateCheckpoint);
   assertSameIdentity(checkpoints);
   const first = checkpoints[0]!;
-  const initial = earliest(checkpoints);
   const successfulHandoffs = checkpoints.filter(
     (checkpoint) =>
       checkpoint.stage === BOOTSTRAP_HANDOFF_COMPLETED_STAGE &&
@@ -146,23 +131,19 @@ export function projectBootstrapHandoff(
   );
   const failed = checkpoints
     .filter((checkpoint) => checkpoint.outcome === "FAILED")
-    .sort((left, right) => Date.parse(left.at) - Date.parse(right.at))
     .at(-1);
-  const successfulHandoff = successfulHandoffs
-    .slice()
-    .sort((left, right) => Date.parse(left.at) - Date.parse(right.at))
-    .at(-1);
+  const successfulHandoff = successfulHandoffs.at(-1);
   const status: BootstrapHandoffStatus =
     successfulHandoff !== undefined
       ? "SUCCEEDED"
       : failed !== undefined
         ? "FAILED"
         : "INCOMPLETE";
-  const terminal = successfulHandoff ?? failed ?? latest(checkpoints);
+  const terminal = successfulHandoff ?? failed ?? checkpoints.at(-1)!;
   const outcomeRef = outcomeRefFor(status, failed);
   const draft: BootstrapRetainedActivityDraft = Object.freeze({
     activityId: first.bootstrapActivityId,
-    startedAt: initial.at,
+    startedAt: first.at,
     endedAt: terminal.at,
     installationId: first.installationId,
     instanceId: first.instanceId,

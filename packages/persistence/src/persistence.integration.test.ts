@@ -38,6 +38,7 @@ import {
 import {
   createPersistenceService,
   type PersistenceExecutionContextProvider,
+  type PersistenceExecutionMetadata,
   type PersistenceRuntimeOptions,
   type PersistenceTransactionContext,
 } from "./index.js";
@@ -400,7 +401,7 @@ function makeAuthority(
 function executionProviderFor(
   authority: HostPersistenceAuthority,
 ): PersistenceExecutionContextProvider {
-  const execution = Object.freeze({
+  const execution: PersistenceExecutionMetadata = Object.freeze({
     activityId: createActivityId(),
     installationId: authority.installationId,
     instanceId: authority.instanceId,
@@ -777,34 +778,54 @@ describe("H2A-1 host-fenced persistence PostgreSQL 18.6 qualification", () => {
     }
   }, 120_000);
 
-  it("P9: rejects an old Host execution callback after ownership transfer", async () => {
+  it("P9: rejects stale execution origin before the database fence, then rejects stale Host ownership", async () => {
     const fixture = await createCluster();
     const leaseA = await prepareHostLease(fixture);
     const publishedA = await publish(fixture, leaseA);
     const handleA = makeAuthority(fixture, leaseA, publishedA, false);
+    const capturedExecutionA = executionProviderFor(handleA.authority);
     const serviceA = createPersistenceService(
       handleA.authority,
       runtimeOptions(),
-      executionProviderFor(handleA.authority),
+      capturedExecutionA,
     );
     let leaseB: Awaited<ReturnType<typeof acquireHostLeaseConnection>> | undefined;
+    let serviceB: ReturnType<typeof createPersistenceService> | undefined;
     try {
       await leaseA.close();
       leaseB = await prepareHostLease(fixture);
       const publishedB = await publish(fixture, leaseB);
-      let invoked = 0;
+      const handleB = makeAuthority(fixture, leaseB, publishedB);
+      serviceB = createPersistenceService(
+        handleB.authority,
+        runtimeOptions(),
+        capturedExecutionA,
+      );
 
+      let staleOriginInvoked = 0;
+      await expect(
+        serviceB.mutate(async () => {
+          staleOriginInvoked += 1;
+          return undefined;
+        }),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "persistence.execution_context.stale_origin" },
+      });
+      expect(staleOriginInvoked).toBe(0);
+
+      let staleFenceInvoked = 0;
       await expect(
         serviceA.mutate(async () => {
-          invoked += 1;
+          staleFenceInvoked += 1;
           return undefined;
         }),
       ).rejects.toMatchObject({
         problem: { problemCode: "persistence.host_fence.stale_owner" },
       });
-      expect(invoked).toBe(0);
+      expect(staleFenceInvoked).toBe(0);
       expect(publishedB.token).not.toBe(publishedA.token);
     } finally {
+      await serviceB?.close().catch(() => undefined);
       await serviceA.close().catch(() => undefined);
       await leaseB?.close().catch(() => undefined);
       await leaseA.close().catch(() => undefined);

@@ -1,7 +1,7 @@
 # Heptalogos Development Roadmap
 
 **Status:** LIVING ROADMAP / planning guidance<br>
-**Date:** 2026-08-24<br>
+**Date:** 2026-08-25<br>
 **Repository baseline:** `master@446d0f6bce449f177c66fb569341020757b44c9b` (H2A-2 post-merge truth reconciliation)<br>
 **Architecture baseline:** `Architecture_Corpus` design state 2026-08-20
 
@@ -128,7 +128,7 @@ It does not prove private PostgreSQL, runtime supervision, durable work, system 
 
 > Can a Heptalogos installation reliably identify itself, locate its independent lifecycle roots, obtain exclusive bootstrap ownership, start/validate its private PostgreSQL, and hand ownership to exactly one normal Host without an authority gap?
 
-### Current progress (2026-08-24)
+### Current progress (2026-08-25)
 
 Current H-stage truth:
 
@@ -146,10 +146,6 @@ H2: OPEN
 ```
 
 H2A-3 implementation and Windows PostgreSQL 18.6 local qualification are complete on branch `dev/h2a3-canonical-execution-context-time-lineage`; the exact external review, manual cross-platform CI, and squash-merge closure tuple remain pending. H2A remains open until the bounded stabilization/closure plan completes.
-
-```yaml
-
-```
 
 H1 functional implementation: COMPLETE.
 
@@ -184,8 +180,8 @@ Linux/macOS PostgreSQL, source-less persistence, and installed
 service/headless runtime claims remain `NOT_RUN`. PostgreSQL's requirement for
 `UPDATE` privilege on direct `FOR SHARE` is handled by an owner-owned
 `SECURITY DEFINER` lock function; the runtime table ACL remains without
-`UPDATE`. H2A and H2 remain open; Schema/Time/ExecutionContext/minimal
-Lineage work remains.
+`UPDATE`. At H2A-1 closure, Schema/Time/ExecutionContext/minimal
+Lineage remained outstanding; H2A-3 now implements that execution spine.
 
 The initial `ContinuityEpochId` authority is now explicit in the Corpus: new
 Instances create one epoch under Bootstrap Closure before normal runtime,

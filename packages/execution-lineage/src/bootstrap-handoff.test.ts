@@ -88,6 +88,63 @@ describe("projectBootstrapHandoff", () => {
     });
   });
 
+  it("uses append order when wall time moves backwards", () => {
+    const result = projectBootstrapHandoff({
+      continuityEpochId,
+      checkpoints: [
+        checkpoint("2026-08-25T01:00:00.000Z", "bootstrap.prelude.started", "STARTED"),
+        checkpoint(
+          "2026-08-25T01:00:01.000Z",
+          "bootstrap.host.token_published",
+          "SUCCEEDED",
+        ),
+        checkpoint(
+          "2026-08-25T00:59:58.000Z",
+          "bootstrap.host.forward_handoff_completed",
+          "SUCCEEDED",
+        ),
+      ],
+    });
+
+    expect(result).toMatchObject({
+      status: "SUCCEEDED",
+      draft: {
+        startedAt: "2026-08-25T01:00:00.000Z",
+        endedAt: "2026-08-25T00:59:58.000Z",
+      },
+    });
+  });
+
+  it("selects the last appended failure even when its wall time is earlier", () => {
+    const result = projectBootstrapHandoff({
+      continuityEpochId,
+      checkpoints: [
+        checkpoint("2026-08-25T01:00:00.000Z", "bootstrap.prelude.started", "STARTED"),
+        checkpoint(
+          "2026-08-25T01:00:05.000Z",
+          "bootstrap.host.canonical_initialization_failed",
+          "FAILED",
+          "canonical.schema.first_failure",
+        ),
+        checkpoint(
+          "2026-08-25T00:59:59.000Z",
+          "bootstrap.host.forward_handoff_failed",
+          "FAILED",
+          "canonical.schema.last_failure",
+        ),
+      ],
+    });
+
+    expect(result).toMatchObject({
+      status: "FAILED",
+      draft: {
+        startedAt: "2026-08-25T01:00:00.000Z",
+        endedAt: "2026-08-25T00:59:59.000Z",
+        outcomeRef: "canonical.schema.last_failure",
+      },
+    });
+  });
+
   it("marks incomplete input explicitly and never silently projects success", () => {
     const result = projectBootstrapHandoff({
       continuityEpochId,
