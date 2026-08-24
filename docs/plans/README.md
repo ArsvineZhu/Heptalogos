@@ -15,7 +15,7 @@ surface the ambiguity rather than guessing.
 
 ## Active
 
-- [H2A-2 Canonical Schema & Continuity Authority](active/foundation/h2a2-canonical-schema-continuity-authority.md) — `ACTIVE`
+No active H2A-2 implementation plan.
 
 ## Completed
 
@@ -33,3 +33,4 @@ surface the ambiguity rather than guessing.
 - [H1-S review correction](completed/foundation/h1s-review-correction.md) — `COMPLETED` (RC-1..RC-6 and current-host qualification complete; historical implementation phase)
 - [H1-S Stabilization Control Record](completed/foundation/h1s-control-record.md) — `COMPLETED` (H1 is `CLOSED`; H2 is `ELIGIBLE`)
 - [H2A-1 Host-Fenced Persistence Authority](completed/foundation/h2a1-host-fenced-persistence-authority.md) — `COMPLETED` (implementation/evidence PASS; external review, final CI, and squash merge PASS; qualification remains PARTIAL)
+- [H2A-2 Canonical Schema & Continuity Authority](completed/foundation/h2a2-canonical-schema-continuity-authority.md) — `COMPLETED` (local implementation/evidence PASS; external review, final CI, and squash merge remain `NOT_RUN`; qualification remains PARTIAL)

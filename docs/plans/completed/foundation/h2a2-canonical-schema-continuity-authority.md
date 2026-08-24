@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use the repository’s Heptalogos architecture/runtime/verification skills first, then execute this plan task-by-task with TDD. Do not reinterpret milestone boundaries during implementation. Do not query GitHub review objects to discover Independent Review; the user/operator supplies that external out-of-band result for the exact candidate pair.
 
-**State:** `ACTIVE` once copied into `docs/plans/active/foundation/h2a2-canonical-schema-continuity-authority.md`  
+**State:** `COMPLETED` for local implementation/evidence; external review, final CI, and merge remain `NOT_RUN`  
 **Baseline:** `master@b306975bba3592a0d8c2e2e6d1649f2523af27bc`  
 **Target branch:** `dev/h2a2-canonical-schema-continuity-authority`  
 **Integration unit:** one branch → one Draft PR → local qualification → external independent review on exact pair → manual exact-pair final CI → squash merge  
@@ -2277,7 +2277,7 @@ squash merge = NOT_RUN
 
 Do not pre-record future PASS.
 
-- [ ] **Step 12.1 — move plan**
+- [x] **Step 12.1 — move plan**
 
 ```bash
 mkdir -p docs/plans/completed/foundation
@@ -2288,7 +2288,7 @@ git mv \
 
 Update README Active/Completed sections.
 
-- [ ] **Step 12.2 — final local verify**
+- [x] **Step 12.2 — final local verify**
 
 ```bash
 pnpm verify
@@ -2296,7 +2296,7 @@ pnpm verify
 
 Expected: PASS.
 
-- [ ] **Step 12.3 — commit**
+- [x] **Step 12.3 — commit**
 
 ```bash
 git add docs/plans docs/roadmap Architecture_Corpus
