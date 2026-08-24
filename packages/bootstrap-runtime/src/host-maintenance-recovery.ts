@@ -1048,7 +1048,7 @@ export async function recoverInterruptedHostMaintenance(
         "Interrupted maintenance recovery cannot expose a managed Host without the recovered Host lease",
       );
     }
-    await admitCanonicalHost({
+    const admission = await admitCanonicalHost({
       installationId: locator.installationId,
       instanceId: locator.instanceId,
       bootId: publicationBootId,
@@ -1078,13 +1078,13 @@ export async function recoverInterruptedHostMaintenance(
       bootstrap,
       handoff,
       options.privatePostgres,
-      state.state.continuityEpochId,
+      admission.continuityEpochId,
     );
     try {
       await lease.release();
+      rawHost.assertActive();
     } catch (error) {
       markManagedHostTerminal(managedHost);
-      await rawHost.close().catch(() => undefined);
       throw error;
     }
     hostLeaseConnection = undefined;
@@ -1105,9 +1105,8 @@ export async function recoverInterruptedHostMaintenance(
     await hostLeaseConnection?.close().catch(() => undefined);
     if (managedHost !== undefined) {
       markManagedHostTerminal(managedHost);
-    } else {
-      await rawHost?.close().catch(() => undefined);
     }
+    await rawHost?.close().catch(() => undefined);
     if (mutationStarted && lease.state === "HELD") {
       try {
         const access = openMaintenanceStateAccess(profile, lease);

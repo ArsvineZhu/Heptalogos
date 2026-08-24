@@ -555,6 +555,7 @@ export function createRestartPrivatePostgresEnteredWindowExecutor(
       });
 
       await window.lease.release();
+      rawHost.assertActive();
       await Promise.resolve()
         .then(() =>
           provenance.bootstrap.journal.checkpoint({

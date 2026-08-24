@@ -1212,4 +1212,102 @@ describe("reverse-handoff maintenance preparation and entry", () => {
     expect(fixture.trace).toContain("journal.advance:BOOTSTRAP_RELEASE_ARMED");
     expect(fixture.trace).not.toContain("journal.advance:RECOVERY_REQUIRED");
   });
+
+  it("does not announce maintenance success when the Host lease dies during bootstrap release", async () => {
+    const fixture = makeFixture();
+    mocks.openMaintenanceControllerMock.mockResolvedValue({
+      state: "READY",
+      stop: vi.fn(async () => fixture.trace.push("postgres.stop")),
+      start: vi.fn(async () => fixture.trace.push("postgres.start")),
+    });
+    let leaseState: BootstrapOwnershipLease["state"] = "HELD";
+    let connectionState: "ACTIVE" | "CLOSED" = "ACTIVE";
+    let closed = false;
+    const releaseLease: BootstrapOwnershipLease = {
+      get state() {
+        return leaseState;
+      },
+      signal: new AbortController().signal,
+      assertHeld() {
+        if (leaseState !== "HELD") throw new Error(`lease ${leaseState}`);
+      },
+      async release() {
+        fixture.trace.push("bootstrap.release");
+        connectionState = "CLOSED";
+        leaseState = "RELEASED";
+      },
+    };
+    const connection = {
+      state: "ACTIVE" as const,
+      signal: new AbortController().signal,
+      assertActive() {
+        if (connectionState !== "ACTIVE") throw new Error("connection closed");
+      },
+      async close() {
+        closed = true;
+        connectionState = "CLOSED";
+      },
+    };
+    mocks.acquireHostLeaseConnectionMock.mockResolvedValue(connection);
+    mocks.publishHostOwnershipTokenMock.mockResolvedValue({
+      previousRevision: "8",
+      publishedRevision: "9",
+    });
+    const managedHost = { state: "ACTIVE" } as never;
+    let rawHost!: HostOwnershipContext;
+    const provenance = {
+      host: fixture.rawHost,
+      bootstrap: fixture.context,
+      handoff: fixture.handoff,
+      privatePostgres: fixture.descriptor,
+      createHostToken: createHostOwnershipToken,
+      createHostContext: vi.fn(
+        (
+          _connection: unknown,
+          token: ReturnType<typeof createHostOwnershipToken>,
+          bootId = createBootId(),
+        ) => {
+          rawHost = {
+            installationId: fixture.rawHost.installationId,
+            instanceId: fixture.rawHost.instanceId,
+            bootId,
+            token,
+            get state() {
+              return connectionState === "ACTIVE" ? "ACTIVE" : "CLOSED";
+            },
+            signal: connection.signal,
+            assertActive: connection.assertActive,
+            close: connection.close,
+          };
+          return rawHost;
+        },
+      ),
+      createManagedHost: vi.fn(() => managedHost),
+    };
+    const advance = vi.fn(async (stage: string) => {
+      fixture.trace.push(`entered.advance:${stage}`);
+    });
+    const complete = vi.fn();
+
+    await expect(
+      createRestartPrivatePostgresEnteredWindowExecutor(provenance)({
+        operationId: "01a0289d-3af4-734a-bf68-f6dedf9fd50b" as never,
+        request: { kind: "RESTART_PRIVATE_POSTGRES" },
+        lease: releaseLease,
+        access: fixture.access as never,
+        journal: {
+          target: { privatePostgres: "RUNNING_SAME_IDENTITY" },
+        } as MaintenanceJournalBodyV1,
+        advance,
+        complete,
+      }),
+    ).rejects.toThrow("connection closed");
+
+    expect(leaseState).toBe("RELEASED");
+    expect(closed).toBe(true);
+    expect(complete).not.toHaveBeenCalled();
+    expect(provenance.createManagedHost).not.toHaveBeenCalled();
+    expect(fixture.trace).toContain("entered.advance:BOOTSTRAP_RELEASE_ARMED");
+    expect(fixture.trace).toContain("bootstrap.release");
+  });
 });

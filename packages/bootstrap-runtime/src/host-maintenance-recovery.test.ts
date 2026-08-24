@@ -205,7 +205,7 @@ async function makeFixture() {
   return { anchorRoot, locator, roots, descriptor };
 }
 
-function makeLease(trace: string[]) {
+function makeLease(trace: string[], onRelease: () => void = () => undefined) {
   let state: BootstrapOwnershipLease["state"] = "HELD";
   return {
     get state() {
@@ -217,18 +217,28 @@ function makeLease(trace: string[]) {
     },
     async release() {
       trace.push("bootstrap.release");
+      onRelease();
       state = "RELEASED";
     },
   } satisfies BootstrapOwnershipLease;
 }
 
 function makeHostConnection(trace: string[]) {
+  let state: "ACTIVE" | "CLOSED" = "ACTIVE";
   return {
-    state: "ACTIVE" as const,
+    get state() {
+      return state;
+    },
     signal: new AbortController().signal,
-    assertActive() {},
+    assertActive() {
+      if (state !== "ACTIVE") throw new Error("Host lease closed");
+    },
+    fence() {
+      state = "CLOSED";
+    },
     async close() {
       trace.push("host-lease.close");
+      state = "CLOSED";
     },
   };
 }
@@ -292,9 +302,11 @@ function configure(
   let currentBody = body;
   let recoveredPrevious = false;
   let stateLoadCount = 0;
+  let reloadedContinuityEpochId: BootstrapStateBodyV1["continuityEpochId"] | undefined;
   let finalizationStateMode: FinalizationStateMode = "CURRENT";
   let beforeAdvance: ((next: MaintenanceJournalBodyV1) => Promise<void>) | undefined;
-  const lease = makeLease(trace);
+  let releaseHook: () => void = () => undefined;
+  const lease = makeLease(trace, () => releaseHook());
   const connection = makeHostConnection(trace);
   let currentPostgres = actualPostgres;
   const stop = vi.fn().mockImplementation(async () => trace.push("postgres.stop"));
@@ -361,6 +373,15 @@ function configure(
                   ...state.state.privatePostgres!,
                   clusterSystemIdentifier: "99999999999999999999",
                 },
+              }),
+            } as const;
+          }
+          if (reloadedContinuityEpochId !== undefined) {
+            return {
+              status: "CURRENT",
+              value: sealBootstrapState({
+                ...state.state,
+                continuityEpochId: reloadedContinuityEpochId,
               }),
             } as const;
           }
@@ -459,6 +480,12 @@ function configure(
     },
     setFinalizationState(mode: FinalizationStateMode) {
       finalizationStateMode = mode;
+    },
+    setReloadedContinuityEpoch(epoch: BootstrapStateBodyV1["continuityEpochId"]) {
+      reloadedContinuityEpochId = epoch;
+    },
+    setReleaseHook(hook: () => void) {
+      releaseHook = hook;
     },
   };
 }
@@ -681,6 +708,9 @@ describe("fixed M5B host-maintenance recovery", () => {
       "STOPPED",
       null,
     );
+    const reloadedEpoch =
+      "0197cfe0-0000-7000-8000-000000000002" as BootstrapStateBodyV1["continuityEpochId"];
+    configured.setReloadedContinuityEpoch(reloadedEpoch);
     const initializeCanonicalHost = vi.fn(
       async ({
         authority,
@@ -695,6 +725,8 @@ describe("fixed M5B host-maintenance recovery", () => {
     );
 
     expect(result.kind).toBe("RESTARTED");
+    if (result.kind !== "RESTARTED") throw new Error("recovery result was not a Host");
+    expect(result.host.continuityEpochId).toBe(reloadedEpoch);
     expect(initializeCanonicalHost).toHaveBeenCalledOnce();
     const publishIndex = configured.trace.indexOf("fence.publish");
     const initializeIndex = configured.trace.indexOf("canonical.initialize");
@@ -730,6 +762,28 @@ describe("fixed M5B host-maintenance recovery", () => {
     expect(configured.trace).toContain("host-lease.close");
     expect(configured.advancedBodies.at(-1)?.lastCompletedStage).toBe(
       "RECOVERY_REQUIRED",
+    );
+  });
+
+  it("does not announce recovery success when the Host lease dies during bootstrap release", async () => {
+    const fixture = await makeFixture();
+    const configured = configure(
+      fixture,
+      "POSTGRES_STOPPED",
+      "PRIVATE_POSTGRES_RESTART",
+      "STOPPED",
+      null,
+    );
+    configured.setReleaseHook(() => configured.connection.fence());
+
+    await expect(recoverInterruptedHostMaintenance(options(fixture))).rejects.toThrow(
+      "Host lease closed",
+    );
+
+    expect(configured.trace).toContain("bootstrap.release");
+    expect(configured.trace).toContain("host-lease.close");
+    expect(configured.advancedBodies.at(-1)?.lastCompletedStage).toBe(
+      "BOOTSTRAP_RELEASE_ARMED",
     );
   });
 
