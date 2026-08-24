@@ -2035,7 +2035,9 @@ Add only these genuinely persistence-coupled observed properties, using exact fi
 
 ```text
 current_execution_context_required_for_mutation = PASS
-stale_execution_origin_rejected = PASS
+stale_execution_origin_unit = PASS
+stale_execution_origin_real_postgres = PASS
+stale_database_host_fence_real_postgres = PASS
 required_lineage_evidence_atomicity = PASS
 read_context_cannot_obtain_mutation_repository = PASS
 ```
@@ -2253,7 +2255,7 @@ Do not pre-fill PASS. The implementing Agent records only observed results.
 h2a3:
  baseline: 446d0f6bce449f177c66fb569341020757b44c9b
  branch: dev/h2a3-canonical-execution-context-time-lineage
- behaviorCandidate: 2d63af9aea2b919bf8a29e0fe4a144cfee2c04ee
+ behaviorCandidate: 76589ade468ccb7a4a9ecf830f6200fdd729917c
  reviewPair:
  base: NOT_RUN
  head: NOT_RUN
@@ -2261,16 +2263,19 @@ h2a3:
  foundation_contracts: PASS (19/19)
  schema_runtime: PASS (2/2)
  time_service: PASS (4/4)
- execution_context: PASS (21/21)
- lineage_context_ref: PASS (included in execution-lineage 21/21)
+ execution_context: PASS (23/23)
+ lineage_context_ref: PASS (included in execution-lineage 23/23)
  persistence_execution_admission: PASS (19/19 unit; 9/9 real PostgreSQL)
  canonical_schema_clean_baseline: PASS (3/3 unit; bootstrap-runtime integration)
- retained_activity_repository: PASS (execution-lineage 21/21; real PostgreSQL)
+ retained_activity_repository: PASS (execution-lineage 23/23; real PostgreSQL)
  evidence_repository: PASS (4/4)
  required_atomicity_real_postgres: PASS (A1-A5, 5/5)
  bootstrap_lineage_handoff: PASS (B1-B6, 9/9 test cases)
  h1_regression: PASS (bootstrap-runtime existing scenarios included)
- h2a1_persistence_regression: PASS (9/9)
+ stale_execution_origin_unit: PASS (19/19)
+ stale_execution_origin_real_postgres: PASS (P9)
+ stale_database_host_fence_real_postgres: PASS (P9)
+ h2a1_persistence_regression: PASS (9/9; P9 covers both stale-origin and stale-fence layers)
  h2a2_canonical_regression: PASS (bootstrap-runtime target 47/47)
  check_dependencies: PASS
  check_boundaries: PASS
