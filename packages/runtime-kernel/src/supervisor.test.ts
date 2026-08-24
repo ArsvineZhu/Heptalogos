@@ -181,9 +181,9 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
         desired(
           [b, d],
           "NORMAL",
-      new Map([[serviceId, createProviderId("provider.d")]]),
-    ),
-  );
+          new Map([[serviceId, createProviderId("provider.d")]]),
+        ),
+      );
       expect(replacementPlan.actions).toContainEqual({
         kind: "START",
         microSystemId: b.microSystemId,

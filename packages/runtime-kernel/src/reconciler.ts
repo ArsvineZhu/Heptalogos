@@ -129,9 +129,9 @@ export class RuntimeReconciler {
           kind: "STOP",
           microSystemId: definition.microSystemId,
           reason: "hard-service-rebind",
-      });
-      stopped.add(definition.microSystemId);
-      restartRequired.add(definition.microSystemId);
+        });
+        stopped.add(definition.microSystemId);
+        restartRequired.add(definition.microSystemId);
       }
     }
     for (const [serviceId, providerId] of input.desired.serviceBindings) {
@@ -202,10 +202,7 @@ export class RuntimeReconciler {
     }
     for (const definition of graphPlan.startOrder) {
       const actual = input.actual.get(definition.microSystemId) ?? "STOPPED";
-      if (
-        actual !== "RUNNING" ||
-        restartRequired.has(definition.microSystemId)
-      ) {
+      if (actual !== "RUNNING" || restartRequired.has(definition.microSystemId)) {
         actions.push({
           kind: "START",
           microSystemId: definition.microSystemId,

@@ -46,7 +46,9 @@ function createFixture() {
     async read() {
       throw new Error("read is not part of this fixture");
     },
-    async mutate<T>(operation: (context: PersistenceMutationTransactionContext) => Promise<T>) {
+    async mutate<T>(
+      operation: (context: PersistenceMutationTransactionContext) => Promise<T>,
+    ) {
       const context = runtime.current();
       if (context === undefined) throw new Error("missing current Activity");
       return operation({

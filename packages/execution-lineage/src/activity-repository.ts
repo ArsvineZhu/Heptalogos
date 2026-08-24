@@ -237,7 +237,7 @@ async function retainBootstrap(
       sensitivity, operation_id, feature_id, service_id, capability_id,
       provider_id, contract_version, outcome, outcome_ref
     ) VALUES ($1, 'bootstrap.handoff', $2, $3, NULL, NULL, $4, $5, $6, $7,
-      NULL, NULL, NULL, NULL, 'significant', 'retained', 'operational',
+      NULL, NULL, NULL, NULL, NULL, 'significant', 'retained', 'operational',
       NULL, NULL, NULL, NULL, NULL, NULL, $8, $9)
       ON CONFLICT (activity_id) DO NOTHING`,
     [
@@ -312,7 +312,9 @@ async function completeActivity(
   if (result === "NOT_FOUND") throw activityNotRetainedProblem();
   if (result === "ORIGIN_MISMATCH") throw originMismatchProblem();
   if (result === "CONFLICT") throw completionConflictProblem();
-  throw invalidCompletionProblem("Canonical completion function returned an unknown result");
+  throw invalidCompletionProblem(
+    "Canonical completion function returned an unknown result",
+  );
 }
 
 export function createExecutionLineageService(): ExecutionLineageService {

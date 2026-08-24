@@ -114,9 +114,7 @@ function assertActivityRequest(request: ActivityRequest): void {
   }
 }
 
-function freezeRuntimeOrigin(
-  origin: RuntimeExecutionOrigin,
-): RuntimeExecutionOrigin {
+function freezeRuntimeOrigin(origin: RuntimeExecutionOrigin): RuntimeExecutionOrigin {
   const productGenerationId = parseContentDigest(
     "ProductGenerationId",
     origin.productGenerationId,
@@ -136,8 +134,7 @@ function freezeRuntimeOrigin(
 
   if (
     productGenerationId === undefined ||
-    (origin.packageGenerationId !== undefined &&
-      packageGenerationId === undefined) ||
+    (origin.packageGenerationId !== undefined && packageGenerationId === undefined) ||
     (origin.microSystemId !== undefined && microSystemId === undefined) ||
     (origin.microSystemInstanceId !== undefined &&
       microSystemInstanceId === undefined) ||
@@ -165,9 +162,7 @@ function freezeOrigin(origin: HostExecutionOrigin): HostExecutionOrigin {
     throw invalidOriginProblem();
   }
   const runtime =
-    origin.runtime === undefined
-      ? undefined
-      : freezeRuntimeOrigin(origin.runtime);
+    origin.runtime === undefined ? undefined : freezeRuntimeOrigin(origin.runtime);
   return Object.freeze({
     ...origin,
     ...(runtime ? { runtime } : {}),

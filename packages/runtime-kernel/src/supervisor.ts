@@ -221,10 +221,7 @@ export class MicroSystemSupervisor {
         {
           const running = this.running.get(action.microSystemId);
           const stop = () => this.stop(action.microSystemId);
-          if (
-            running !== undefined &&
-            this.options.lifecycleLineage !== undefined
-          ) {
+          if (running !== undefined && this.options.lifecycleLineage !== undefined) {
             await this.options.lifecycleLineage.runRetained(
               this.runtimeOrigin(running.definition, running.instanceId),
               {

@@ -378,7 +378,9 @@ for (const path of sourcePaths) {
       );
     }
     if (relativePath === "packages/runtime-kernel/src/index.ts") {
-      if (/\b(?:Cordis|Context|Fiber|Kysely|Pool|Client|PostgresDialect)\b/u.test(source)) {
+      if (
+        /\b(?:Cordis|Context|Fiber|Kysely|Pool|Client|PostgresDialect)\b/u.test(source)
+      ) {
         errors.push(
           "packages/runtime-kernel/src/index.ts: runtime-kernel package root must not leak framework or database objects",
         );

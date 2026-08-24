@@ -72,7 +72,9 @@ function desired(
   return {
     revision: 1,
     operatingMode,
-    desired: new Map(systems.map((system) => [system.microSystemId, "RUNNING" as const])),
+    desired: new Map(
+      systems.map((system) => [system.microSystemId, "RUNNING" as const]),
+    ),
     serviceBindings,
     capabilityBindings: new Map(),
   };
@@ -218,7 +220,11 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
         .invoke("read", (service) => service.read());
     });
     const c = independent("c", productGenerationId);
-    const composition = await createComposition(fixture, productGenerationId, [a, b, c]);
+    const composition = await createComposition(fixture, productGenerationId, [
+      a,
+      b,
+      c,
+    ]);
 
     try {
       await composition.supervisor.reconcile(desired([a, b, c]));
@@ -275,20 +281,32 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
     const d = provider("d", productGenerationId, serviceId);
     const b = consumer("b", productGenerationId, serviceId, async (context) => {
       activations += 1;
-      const lease = context.requireService<{ read(): string }>(serviceRequirement(serviceId));
+      const lease = context.requireService<{ read(): string }>(
+        serviceRequirement(serviceId),
+      );
       if (oldLease === undefined) oldLease = lease;
       await lease.invoke("read", (service) => service.read());
     });
-    const composition = await createComposition(fixture, productGenerationId, [a, b, d]);
+    const composition = await createComposition(fixture, productGenerationId, [
+      a,
+      b,
+      d,
+    ]);
 
     try {
       await composition.supervisor.reconcile(desired([a, b]));
       await composition.supervisor.reconcile(
-        desired([d, b], "NORMAL", new Map([[serviceId, createProviderId("provider.d")]])),
+        desired(
+          [d, b],
+          "NORMAL",
+          new Map([[serviceId, createProviderId("provider.d")]]),
+        ),
       );
       expect(composition.supervisor.getActualState(b.microSystemId)).toBe("RUNNING");
       expect(activations).toBe(2);
-      await expect(oldLease!.invoke("read", (service) => service.read())).rejects.toMatchObject({
+      await expect(
+        oldLease!.invoke("read", (service) => service.read()),
+      ).rejects.toMatchObject({
         problemCode: "runtime.generation.retired",
       });
     } finally {
@@ -300,11 +318,9 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
     const fixture = await makeFixture();
     const productGenerationId = testProductGenerationId();
     const serviceId = createServiceId("h2b.integration.completion");
-    const composition = await createComposition(
-      fixture,
-      productGenerationId,
-      [provider("completion-provider", productGenerationId, serviceId)],
-    );
+    const composition = await createComposition(fixture, productGenerationId, [
+      provider("completion-provider", productGenerationId, serviceId),
+    ]);
 
     try {
       await composition.runtime.runActivity(
@@ -341,10 +357,14 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
           };
           await expect(
             composition.persistence.mutate((transaction) =>
-              composition.lineage.completeCurrent(transaction, mismatchedOriginActivity, {
-                endedAt,
-                outcome: "SUCCEEDED",
-              }),
+              composition.lineage.completeCurrent(
+                transaction,
+                mismatchedOriginActivity,
+                {
+                  endedAt,
+                  outcome: "SUCCEEDED",
+                },
+              ),
             ),
           ).rejects.toMatchObject({
             problem: { problemCode: "lineage.persistence.origin_mismatch" },
@@ -376,9 +396,7 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
            FROM "heptalogos"."activity_record"
           WHERE kind = 'runtime.completion.test'`,
       );
-      expect(row.rows).toEqual([
-        expect.objectContaining({ outcome: "SUCCEEDED" }),
-      ]);
+      expect(row.rows).toEqual([expect.objectContaining({ outcome: "SUCCEEDED" })]);
     } finally {
       await closeComposition(fixture, composition);
     }
@@ -403,7 +421,12 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
       );
       context.scope.track("worker", worker);
     });
-    const b = consumer("dependent", productGenerationId, serviceId, async () => undefined);
+    const b = consumer(
+      "dependent",
+      productGenerationId,
+      serviceId,
+      async () => undefined,
+    );
     const safeOnly = independent("safe-only", productGenerationId, ["NORMAL"]);
     const shutdownEvents: string[] = [];
     const c = independent(
@@ -416,11 +439,12 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
         });
       },
     );
-    const composition = await createComposition(
-      fixture,
-      productGenerationId,
-      [a, b, safeOnly, c],
-    );
+    const composition = await createComposition(fixture, productGenerationId, [
+      a,
+      b,
+      safeOnly,
+      c,
+    ]);
 
     try {
       const initialDesired = desired([a, b, safeOnly, c]);
@@ -451,12 +475,16 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
         { read: () => "low" },
         1,
       );
-      const independentBeforeCapabilityRebind =
-        composition.supervisor.getActualState(c.microSystemId);
+      const independentBeforeCapabilityRebind = composition.supervisor.getActualState(
+        c.microSystemId,
+      );
       expect(
         composition.supervisor.capabilities.resolve(capabilityRequirement)?.providerId,
       ).toBe(capabilityHigh);
-      await composition.supervisor.capabilities.retireProvider(capabilityHigh, settleTimeoutMs);
+      await composition.supervisor.capabilities.retireProvider(
+        capabilityHigh,
+        settleTimeoutMs,
+      );
       expect(
         composition.supervisor.capabilities.resolve(capabilityRequirement)?.providerId,
       ).toBe(capabilityLow);
@@ -464,7 +492,9 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
         independentBeforeCapabilityRebind,
       );
       await composition.supervisor.reconcile(desired([a, b, safeOnly, c], "SAFE"));
-      expect(composition.supervisor.getActualState(safeOnly.microSystemId)).toBe("STOPPED");
+      expect(composition.supervisor.getActualState(safeOnly.microSystemId)).toBe(
+        "STOPPED",
+      );
       expect(initialDesired.desired.get(safeOnly.microSystemId)).toBe("RUNNING");
       expect(composition.supervisor.getActualState(c.microSystemId)).toBe("RUNNING");
 
@@ -477,7 +507,9 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
       expect(composition.supervisor.getActualState(c.microSystemId)).toBe("RUNNING");
 
       await composition.supervisor.reconcile(desired([a, b, safeOnly, c], "NORMAL"));
-      expect(composition.supervisor.getActualState(safeOnly.microSystemId)).toBe("RUNNING");
+      expect(composition.supervisor.getActualState(safeOnly.microSystemId)).toBe(
+        "RUNNING",
+      );
       await composition.supervisor.close();
       expect(shutdownEvents).toEqual(["independent"]);
     } finally {
