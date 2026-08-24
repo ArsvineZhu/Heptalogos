@@ -324,7 +324,7 @@ describe("bootstrap to Host ownership handoff", () => {
         events.push("token_published");
       },
     );
-    fixture.ownership.release.mockImplementation(async () => {
+    fixture.ownership.release.mockImplementation(() => {
       events.push("bootstrap_release");
       fixture.ownership.state = "RELEASED";
     });

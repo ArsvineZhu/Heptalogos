@@ -57,9 +57,8 @@ export const parseInstanceId = (value: unknown): InstanceId | undefined =>
   parseUuidV7Id("InstanceId", value);
 export const parseBootId = (value: unknown): BootId | undefined =>
   parseUuidV7Id("BootId", value);
-export const parseContinuityEpochId = (
-  value: unknown,
-): ContinuityEpochId | undefined => parseUuidV7Id("ContinuityEpochId", value);
+export const parseContinuityEpochId = (value: unknown): ContinuityEpochId | undefined =>
+  parseUuidV7Id("ContinuityEpochId", value);
 export const parseHostOwnershipToken = (
   value: unknown,
 ): HostOwnershipToken | undefined => parseUuidV7Id("HostOwnershipToken", value);
