@@ -148,6 +148,7 @@ H2: OPEN
 H2A-3 implementation and Windows PostgreSQL 18.6 local qualification are complete on branch `dev/h2a3-canonical-execution-context-time-lineage`; the exact external review, manual cross-platform CI, and squash-merge closure tuple remain pending. H2A remains open until the bounded stabilization/closure plan completes.
 
 ```yaml
+
 ```
 
 H1 functional implementation: COMPLETE.
