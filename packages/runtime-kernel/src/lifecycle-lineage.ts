@@ -50,7 +50,11 @@ export function createRuntimeLifecycleLineage(
     outcome: ActivityCompletion["outcome"],
   ): Promise<void> => {
     await options.persistence.mutate((transaction) =>
-      options.lineage.completeCurrent(transaction, context, completion(options.time, outcome)),
+      options.lineage.completeCurrent(
+        transaction,
+        context,
+        completion(options.time, outcome),
+      ),
     );
   };
 

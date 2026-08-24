@@ -38,10 +38,7 @@ const request: ActivityRequest = {
   sensitivity: "operational",
 };
 
-const productGenerationId = parseContentDigest(
-  "ProductGenerationId",
-  "a".repeat(64),
-)!;
+const productGenerationId = parseContentDigest("ProductGenerationId", "a".repeat(64))!;
 
 function runtimeOrigin(): RuntimeExecutionOrigin {
   return {
