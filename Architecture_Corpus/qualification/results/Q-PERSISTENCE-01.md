@@ -33,13 +33,13 @@ testedProperty: "H2A-2 canonical BootstrapState V1 continuity, migration authori
 evidenceStatus: PASS
 qualificationState: PARTIAL
 implementationQualification: REQUIRED
-behavior_candidate_sha: de6c00516ae5fd604ee614a743f3cd6f95dd8e6f
+behavior_candidate_sha: 5a5c221af967a224b4585e644dfa18b2f476ed62
 local_implementation_closure: PASS
 repository_verification: PASS
 canonical_schema_unit: PASS (3 passed)
 bootstrap_state_unit: PASS (113 passed, 3 skipped)
-bootstrap_runtime_unit: PASS (208 passed, 2 skipped)
-host_ownership_unit: PASS (80 passed)
+bootstrap_runtime_unit: PASS (211 passed, 2 skipped)
+host_ownership_unit: PASS (81 passed)
 persistence_unit: PASS (13 passed)
 ts7_typecheck: PASS
 ts6_compatibility_lane: PASS
@@ -67,6 +67,15 @@ independent_review: NOT_RUN
 final_cross_platform_ci: NOT_RUN
 squash_merge: NOT_RUN
 ```
+
+The previous reviewed pair
+`b306975bba3592a0d8c2e2e6d1649f2523af27bc` →
+`adc22feaf91a9307838ebbfa5a89840b04bc86f1` returned
+`Independent Review = REQUEST_CHANGES`. This corrected behavior candidate
+closes the reported Host reacquisition, credential provenance, Corpus status,
+canonical snapshot, and joint-authority signal findings. A new independent
+review for the corrected exact pair is still `NOT_RUN`; final CI and merge
+remain unauthorized.
 
 The real-PG qualification used the extracted EDB PostgreSQL 18.6 Windows
 toolchain at:

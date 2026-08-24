@@ -2341,6 +2341,37 @@ merge = forbidden
 
 ---
 
+## Review correction cycle (2026-08-24)
+
+The external review of the first frozen candidate returned
+`REQUEST_CHANGES` for the exact pair
+`b306975bba3592a0d8c2e2e6d1649f2523af27bc` →
+`adc22feaf91a9307838ebbfa5a89840b04bc86f1`. The correction stayed within the
+bounded H2A-2 authority scope:
+
+- [x] Extract one package-private canonical Host admission step and use it for
+  normal bootstrap handoff, `RESTART_PRIVATE_POSTGRES`, and interrupted
+  maintenance recovery.
+- [x] Close fresh Host lease/token admission until CURRENT BootstrapState epoch
+  loading, canonical initialization, and joint authority revalidation succeed.
+- [x] Bind maintenance runtime credential requests to the returned Host's
+  current `BootId` and add a real-PG regression assertion.
+- [x] Remove the stale current milestone table from Corpus 26 and refresh its
+  manifest/SHA records.
+- [x] Include `heptalogos_migration` in `HostOwnershipCanonicalSnapshot` and
+  project both bootstrap and Host lease signals through the migration authority.
+- [x] Run the local repository gates and Windows PostgreSQL 18.6 qualification
+  again.
+
+The corrected behavior candidate is
+`5a5c221af967a224b4585e644dfa18b2f476ed62`; the later evidence-only commit
+updates the current qualification and roadmap records without changing
+production behavior. The new exact candidate still requires an external
+independent review. Final CI and squash merge remain forbidden until that
+review returns `PASS` for the new `(base_sha, head_sha)` pair.
+
+---
+
 # Task 13 — Final CI and squash merge only after external review PASS
 
 Execute only after the user/operator explicitly reports:
