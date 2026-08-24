@@ -17,6 +17,7 @@ export type ContentDigest<TBrand extends string> = Branded<string, `sha256:${TBr
 export type InstallationId = UuidV7Id<"InstallationId">;
 export type InstanceId = UuidV7Id<"InstanceId">;
 export type BootId = UuidV7Id<"BootId">;
+export type ContinuityEpochId = UuidV7Id<"ContinuityEpochId">;
 export type HostOwnershipToken = UuidV7Id<"HostOwnershipToken">;
 
 export function createUuidV7Id<TBrand extends string>(brand: TBrand): UuidV7Id<TBrand> {
@@ -28,6 +29,8 @@ export const createInstallationId = (): InstallationId =>
   createUuidV7Id("InstallationId");
 export const createInstanceId = (): InstanceId => createUuidV7Id("InstanceId");
 export const createBootId = (): BootId => createUuidV7Id("BootId");
+export const createContinuityEpochId = (): ContinuityEpochId =>
+  createUuidV7Id("ContinuityEpochId");
 export const createHostOwnershipToken = (): HostOwnershipToken =>
   createUuidV7Id("HostOwnershipToken");
 
@@ -54,6 +57,9 @@ export const parseInstanceId = (value: unknown): InstanceId | undefined =>
   parseUuidV7Id("InstanceId", value);
 export const parseBootId = (value: unknown): BootId | undefined =>
   parseUuidV7Id("BootId", value);
+export const parseContinuityEpochId = (
+  value: unknown,
+): ContinuityEpochId | undefined => parseUuidV7Id("ContinuityEpochId", value);
 export const parseHostOwnershipToken = (
   value: unknown,
 ): HostOwnershipToken | undefined => parseUuidV7Id("HostOwnershipToken", value);
