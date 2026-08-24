@@ -47,6 +47,26 @@ export function persistenceTransactionContextInvalidProblem(): ProblemError {
   );
 }
 
+export function persistenceExecutionContextRequiredProblem(): ProblemError {
+  return persistenceProblem(
+    "persistence.execution_context.required",
+    "conflict",
+    "after-change",
+    "Persistence mutation requires an execution context",
+    "A canonical mutation must be admitted from a current Activity execution identity",
+  );
+}
+
+export function persistenceExecutionContextStaleOriginProblem(): ProblemError {
+  return persistenceProblem(
+    "persistence.execution_context.stale_origin",
+    "conflict",
+    "after-change",
+    "Persistence execution origin is stale",
+    "The current execution origin does not match the active Host persistence authority",
+  );
+}
+
 export function persistenceTransactionFailedProblem(): ProblemError {
   return persistenceProblem(
     "persistence.transaction.failed",

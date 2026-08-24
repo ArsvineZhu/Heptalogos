@@ -1,5 +1,57 @@
 # Q-PERSISTENCE-01 资格证据
 
+## H2A-3 current addendum (2026-08-25)
+
+```yaml
+qualificationId: Q-PERSISTENCE-01
+testedProperty: "H2A-3 canonical ExecutionContext, retained Activity/Evidence atomicity, and Bootstrap-to-Host lineage handoff"
+evidenceStatus: PASS
+qualificationState: PARTIAL
+implementationQualification: REQUIRED
+behavior_candidate_sha: 76589ade468ccb7a4a9ecf830f6200fdd729917c
+reviewed_base_sha: 446d0f6bce449f177c66fb569341020757b44c9b
+reviewed_head_sha: NOT_RUN
+current_execution_context_required_for_mutation: PASS
+stale_execution_origin_unit: PASS
+stale_execution_origin_real_postgres: PASS
+stale_database_host_fence_real_postgres: PASS
+required_lineage_evidence_atomicity: PASS
+read_context_cannot_obtain_mutation_repository: PASS
+foundation_contracts_unit: PASS (19/19)
+schema_runtime_unit: PASS (2/2)
+time_service_unit: PASS (4/4)
+execution_lineage_unit: PASS (23/23)
+persistence_unit: PASS (19/19)
+canonical_schema_unit: PASS (3/3)
+evidence_unit: PASS (4/4)
+bootstrap_state_unit: PASS (113 passed, 3 skipped)
+host_ownership_unit: PASS (81 passed)
+bootstrap_runtime_unit: PASS (213 passed, 2 skipped)
+required_atomicity_real_postgres: PASS (A1-A5, 5/5)
+bootstrap_lineage_handoff_real_postgres: PASS (B1-B6, 9/9 test cases)
+persistence_regression_integration: PASS (9/9; P9 proves both stale-origin admission and stale database Host fence)
+host_ownership_regression_integration: PASS (10/10)
+bootstrap_runtime_regression_integration: PASS (47/47)
+real_postgres_version: PostgreSQL 18.6
+real_postgres_platform: Windows
+real_postgres_linux: NOT_RUN
+real_postgres_macos: NOT_RUN
+source_less_persistence: NOT_RUN
+service_headless_persistence: NOT_RUN
+check_dependencies: PASS
+check_boundaries: PASS
+pnpm_verify: PASS
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The real PostgreSQL evidence used the extracted EDB PostgreSQL 18.6 toolchain
+at `C:\Users\Arsvine\AppData\Local\Temp\heptalogos-pg18.6-correction-20260823\extracted\pgsql\bin`.
+The behavior candidate is locally qualified only; no H2A-3 independent review,
+manual final CI, or squash merge is claimed by this addendum. Linux/macOS,
+source-less, and service/headless product qualification remain `NOT_RUN`.
+
 本记录保留 H2A-1 Host-scoped Persistence 的历史/current ledger 语义，并以独立
 addendum 记录 H2A-2 canonical schema continuity 证据。H2A-1 的 exact
 review/CI/merge tuple 不被 H2A-2 改写；两组证据的 `PASS` 只表示已执行的
@@ -86,8 +138,17 @@ The subsequent reviewed pair
 `20082b28f31408beb7ed7aa573417bffb4bd2912` also returned
 `Independent Review = REQUEST_CHANGES`, identifying the post-bootstrap-release
 Host liveness proof and recovery admission-epoch projection. Those findings
-were addressed by the current behavior candidate above; the resulting pair
-was then independently reviewed and closed by the final tuple below.
+were addressed by the prior behavior candidate; the resulting pair
+was not the current candidate after the next independent review.
+
+The next reviewed pair
+`446d0f6bce449f177c66fb569341020757b44c9b` →
+`c889eae74093fdf86ef713f024587e75f3b098c7` returned
+`Independent Review REQUEST_CHANGES` for RC-1 append-order lineage,
+RC-2 real PostgreSQL stale-origin proof, and RC-3 Roadmap current truth.
+Those corrections are implemented in behavior candidate
+`76589ade468ccb7a4a9ecf830f6200fdd729917c`; its new exact-pair review,
+final CI, and squash merge remain `NOT_RUN`.
 
 The real-PG qualification used the extracted EDB PostgreSQL 18.6 Windows
 toolchain at:

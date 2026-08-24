@@ -21,6 +21,18 @@
     },
     {
       "path": "./packages/canonical-schema"
+    },
+    {
+      "path": "./packages/schema-runtime"
+    },
+    {
+      "path": "./packages/time-service"
+    },
+    {
+      "path": "./packages/execution-lineage"
+    },
+    {
+      "path": "./packages/evidence"
     }
   ]
 }

@@ -31,8 +31,40 @@ const builtins = new Set([
 
 const restrictedImports = new Map([
   [
+    "ajv",
+    [
+      "packages/schema-runtime/",
+      "packages/bootstrap-state/src/codec.ts",
+      "packages/bootstrap-state/src/journal.ts",
+      "packages/bootstrap-state/src/bootstrap-owner-witness-codec.ts",
+      "packages/bootstrap-state/src/maintenance-codec.ts",
+      "packages/bootstrap-runtime/src/locator.ts",
+    ],
+  ],
+  [
+    "typebox",
+    [
+      "packages/schema-runtime/",
+      "packages/bootstrap-state/src/codec.ts",
+      "packages/bootstrap-state/src/journal.ts",
+      "packages/bootstrap-state/src/bootstrap-owner-witness-codec.ts",
+      "packages/bootstrap-state/src/maintenance-codec.ts",
+      "packages/bootstrap-runtime/src/locator.ts",
+    ],
+  ],
+  [
     "@heptalogos/canonical-schema",
-    ["packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts"],
+    [
+      "packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts",
+      "packages/bootstrap-runtime/src/test-support/canonical-postgres.ts",
+    ],
+  ],
+  [
+    "@opentelemetry/api",
+    [
+      "packages/execution-lineage/src/observability-adapter.ts",
+      "packages/execution-lineage/src/execution-context-runtime.test.ts",
+    ],
   ],
   [
     "@heptalogos/bootstrap-state",
@@ -61,9 +93,30 @@ const restrictedImports = new Map([
       "packages/bootstrap-runtime/src/host-maintenance.integration.test.ts",
       "packages/bootstrap-runtime/src/bootstrap-recovery.integration.test.ts",
       "packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts",
+      "packages/bootstrap-runtime/src/test-support/canonical-postgres.ts",
     ],
   ],
-  ["kysely", ["packages/persistence/", "packages/canonical-schema/"]],
+  [
+    "kysely",
+    [
+      "packages/persistence/",
+      "packages/canonical-schema/",
+      "packages/execution-lineage/src/activity-repository.ts",
+      "packages/evidence/src/evidence-service.ts",
+      "packages/bootstrap-runtime/src/h2a3-execution-foundation.integration.test.ts",
+    ],
+  ],
+]);
+const restrictedSpecifiers = new Map([
+  [
+    "@heptalogos/persistence/foundation-repository",
+    [
+      "packages/execution-lineage/",
+      "packages/evidence/",
+      "packages/persistence/",
+      "packages/bootstrap-runtime/src/h2a3-execution-foundation.integration.test.ts",
+    ],
+  ],
 ]);
 
 const hostOwnershipSourcePrefix = "packages/host-ownership/src/";
@@ -121,6 +174,38 @@ if (persistenceMechanicsPattern.test(persistencePublicSource)) {
     "packages/persistence/src/index.ts: concrete pg/Kysely mechanics must not leak through the persistence package root",
   );
 }
+const executionLineagePublicSourcePath = resolve(
+  root,
+  "packages/execution-lineage/src/index.ts",
+);
+const executionLineagePublicSource = readFileSync(
+  executionLineagePublicSourcePath,
+  "utf8",
+);
+const executionLineageMechanicsPattern =
+  /\b(?:AsyncLocalStorage|OTelContext|SpanContext|TracerProvider|ContextManager|Kysely|Pool|Client|PersistenceInternalTransaction|runWithLineageSuppressed)\b/u;
+if (executionLineageMechanicsPattern.test(executionLineagePublicSource)) {
+  errors.push(
+    "packages/execution-lineage/src/index.ts: ALS/OTel provider/raw persistence/suppression mechanics must not leak through the execution-lineage package root",
+  );
+}
+
+const evidencePublicSourcePath = resolve(root, "packages/evidence/src/index.ts");
+const evidencePublicSource = readFileSync(evidencePublicSourcePath, "utf8");
+const evidenceMechanicsPattern =
+  /\b(?:Pool|PoolClient|Client|Kysely|PostgresDialect|CompiledQuery|PersistenceInternalTransaction)\b/u;
+const evidenceGenericPayloadPattern =
+  /\b(?:metadata|payload)\s*[?:]|Record\s*<\s*string\s*,\s*unknown\s*>/u;
+if (evidenceMechanicsPattern.test(evidencePublicSource)) {
+  errors.push(
+    "packages/evidence/src/index.ts: concrete pg/Kysely/persistence mechanics must not leak through the evidence package root",
+  );
+}
+if (evidenceGenericPayloadPattern.test(evidencePublicSource)) {
+  errors.push(
+    "packages/evidence/src/index.ts: generic evidence payload/metadata must not leak through the evidence package root",
+  );
+}
 
 const canonicalSchemaPublicSourcePath = resolve(
   root,
@@ -168,6 +253,17 @@ if (
 
 export function isRestrictedImportAllowed(specifier, relativePath) {
   const allowedPaths = restrictedImports.get(specifier);
+  if (!allowedPaths) return true;
+  const normalizedPath = relativePath.replaceAll("\\", "/");
+  return allowedPaths.some((allowedPath) =>
+    allowedPath.endsWith("/")
+      ? normalizedPath.startsWith(allowedPath)
+      : normalizedPath === allowedPath,
+  );
+}
+
+export function isRestrictedSpecifierAllowed(specifier, relativePath) {
+  const allowedPaths = restrictedSpecifiers.get(specifier);
   if (!allowedPaths) return true;
   const normalizedPath = relativePath.replaceAll("\\", "/");
   return allowedPaths.some((allowedPath) =>
@@ -321,6 +417,13 @@ for (const path of sourcePaths) {
       if (!builtins.has(specifier)) {
         errors.push(`${relativePath}: unknown Node builtin import: ${specifier}`);
       }
+      continue;
+    }
+
+    if (!isRestrictedSpecifierAllowed(specifier, relativePath)) {
+      errors.push(
+        `${relativePath}: restricted full import is not allowed here: ${specifier}`,
+      );
       continue;
     }
 

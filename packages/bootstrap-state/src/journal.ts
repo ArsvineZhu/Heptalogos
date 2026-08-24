@@ -14,13 +14,13 @@ import {
   parseBootId,
   parseInstallationId,
   parseInstanceId,
-  type UuidV7Id,
+  type ActivityId,
   UUID_V7_PATTERN,
 } from "@heptalogos/foundation-contracts";
 import type { BootstrapRuntimeGenerationId, ProductGenerationId } from "./model.js";
 import { writeAtomicPublishedFile } from "./atomic-file.js";
 
-export type BootstrapActivityId = UuidV7Id<"ActivityId">;
+export type BootstrapActivityId = ActivityId;
 export type BootstrapStageOutcome = "STARTED" | "SUCCEEDED" | "FAILED";
 
 export interface BootstrapJournalCheckpointV1 {

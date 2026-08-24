@@ -224,6 +224,11 @@
       "sha256": "0fe0f7ba1c3f3261e9ab5908e078392fcf3451fc794c491c132210850e36efc2"
     },
     {
+      "path": "qualification/results/Q-PERSISTENCE-01.md",
+      "size": 7421,
+      "sha256": "25e884f568a1ccd2cc2d695ac1d96cb1b7b83312c5563acde18343b192cac0d7"
+    },
+    {
       "path": "qualification/results/Q-POLICY-01.md",
       "size": 1263,
       "sha256": "78ddb44d296b4b0ee8dfbe928431dd930f8098183f2690bcdd6d26caa829a6f9"
@@ -250,8 +255,8 @@
     },
     {
       "path": "qualification/results/qualification-status.json",
-      "size": 31147,
-      "sha256": "4fef2b153c70ea7734b9ba6b67be03171c1d183f48f98e1202f7ed2e603c618d"
+      "size": 34106,
+      "sha256": "e157bcae5b9263d3a39a37b4b60915d4092e92344b932341040fdc86b32e1e1f"
     },
     {
       "path": "qualification/依赖资格矩阵.md",
@@ -377,11 +382,6 @@
       "path": "specs/S17-Storage-Workspace-DataLifecycle.md",
       "size": 13827,
       "sha256": "e09af17f6d6777b527c1bf379e74d2347a6de3f5e3b73cd723cc294d8ce2cc88"
-    },
-    {
-      "path": "qualification/results/Q-PERSISTENCE-01.md",
-      "size": 4798,
-      "sha256": "2db26983a64109563a92cac0602a693d35938b3b2184be6742400e741adcb6c1"
     }
   ]
 }

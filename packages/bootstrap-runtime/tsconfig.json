@@ -25,6 +25,18 @@
     },
     {
       "path": "../canonical-schema"
+    },
+    {
+      "path": "../evidence"
+    },
+    {
+      "path": "../execution-lineage"
+    },
+    {
+      "path": "../persistence"
+    },
+    {
+      "path": "../time-service"
     }
   ]
 }

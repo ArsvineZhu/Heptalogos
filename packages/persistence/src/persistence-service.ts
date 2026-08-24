@@ -11,6 +11,10 @@ import {
 } from "@heptalogos/host-ownership";
 import {
   type PersistenceRuntimeOptions,
+  type PersistenceExecutionContextProvider,
+  type PersistenceExecutionMetadata,
+  type PersistenceMutationTransactionContext,
+  type PersistenceReadTransactionContext,
   type PersistenceService,
   type PersistenceServiceState,
   type PersistenceTransactionContext,
@@ -22,6 +26,8 @@ import {
   persistenceServiceCloseFailedProblem,
   persistenceServiceClosedProblem,
   persistenceServiceFencedProblem,
+  persistenceExecutionContextRequiredProblem,
+  persistenceExecutionContextStaleOriginProblem,
   persistenceTransactionCommitUncertainProblem,
   persistenceTransactionFailedProblem,
 } from "./problems.js";
@@ -154,9 +160,49 @@ function serviceErrorForState(state: PersistenceServiceState): ProblemError {
     : persistenceServiceClosedProblem();
 }
 
+function copyExecutionMetadata(
+  metadata: PersistenceExecutionMetadata,
+): PersistenceExecutionMetadata {
+  return Object.freeze({ ...metadata });
+}
+
+function executionMatchesAuthority(
+  metadata: PersistenceExecutionMetadata,
+  authority: HostPersistenceAuthority,
+): boolean {
+  return (
+    metadata.installationId === authority.installationId &&
+    metadata.instanceId === authority.instanceId &&
+    metadata.bootId === authority.bootId &&
+    metadata.continuityEpochId === authority.continuityEpochId &&
+    metadata.hostOwnershipToken === authority.token
+  );
+}
+
+function admitExecutionMetadata(
+  mode: PersistenceTransactionMode,
+  provider: PersistenceExecutionContextProvider,
+  authority: HostPersistenceAuthority,
+): PersistenceExecutionMetadata | undefined {
+  const current = provider.current();
+  if (current === undefined) {
+    if (mode === "MUTATION") {
+      throw persistenceExecutionContextRequiredProblem();
+    }
+    return undefined;
+  }
+
+  const snapshot = copyExecutionMetadata(current);
+  if (!executionMatchesAuthority(snapshot, authority)) {
+    throw persistenceExecutionContextStaleOriginProblem();
+  }
+  return snapshot;
+}
+
 function createPersistenceServiceFromDatabase(
   authority: HostPersistenceAuthority,
   options: PersistenceRuntimeOptions,
+  executionContextProvider: PersistenceExecutionContextProvider,
   database: PersistenceDatabaseLike,
   hooks: PersistenceServiceTestHooks = {},
 ): PersistenceService {
@@ -223,6 +269,7 @@ function createPersistenceServiceFromDatabase(
     operation: (context: PersistenceTransactionContext) => Promise<T>,
   ): Promise<T> => {
     assertOpen();
+    const execution = admitExecutionMetadata(mode, executionContextProvider, authority);
     let operationCompleted = false;
     activeTransactions += 1;
     try {
@@ -235,7 +282,10 @@ function createPersistenceServiceFromDatabase(
           verifyHostFence(rows, authority, hooks);
           assertAuthorityActive();
         }
-        const context = issueTransactionContext(mode, transaction);
+        const context =
+          mode === "READ"
+            ? issueTransactionContext("READ", transaction, execution)
+            : issueTransactionContext("MUTATION", transaction, execution!);
         try {
           const result = await operation(context);
           operationCompleted = true;
@@ -260,11 +310,19 @@ function createPersistenceServiceFromDatabase(
     get state() {
       return state;
     },
-    read<T>(operation: (context: PersistenceTransactionContext) => Promise<T>) {
-      return execute("READ", operation);
+    read<T>(operation: (context: PersistenceReadTransactionContext) => Promise<T>) {
+      return execute(
+        "READ",
+        operation as (context: PersistenceTransactionContext) => Promise<T>,
+      );
     },
-    mutate<T>(operation: (context: PersistenceTransactionContext) => Promise<T>) {
-      return execute("MUTATION", operation);
+    mutate<T>(
+      operation: (context: PersistenceMutationTransactionContext) => Promise<T>,
+    ) {
+      return execute(
+        "MUTATION",
+        operation as (context: PersistenceTransactionContext) => Promise<T>,
+      );
     },
     close() {
       if (state === "CLOSED") return drainPromise ?? Promise.resolve();
@@ -277,17 +335,30 @@ function createPersistenceServiceFromDatabase(
 export function createPersistenceService(
   authority: HostPersistenceAuthority,
   options: PersistenceRuntimeOptions,
+  executionContextProvider: PersistenceExecutionContextProvider,
 ): PersistenceService {
   const pool = createPersistencePool(authority, options);
   const database = createKyselyAdapter(pool);
-  return createPersistenceServiceFromDatabase(authority, options, database);
+  return createPersistenceServiceFromDatabase(
+    authority,
+    options,
+    executionContextProvider,
+    database,
+  );
 }
 
 export function createPersistenceServiceForTests(
   authority: HostPersistenceAuthority,
   options: PersistenceRuntimeOptions,
+  executionContextProvider: PersistenceExecutionContextProvider,
   database: PersistenceDatabaseLike,
   hooks: PersistenceServiceTestHooks = {},
 ): PersistenceService {
-  return createPersistenceServiceFromDatabase(authority, options, database, hooks);
+  return createPersistenceServiceFromDatabase(
+    authority,
+    options,
+    executionContextProvider,
+    database,
+    hooks,
+  );
 }

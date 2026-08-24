@@ -26,6 +26,18 @@
     },
     {
       "path": "../canonical-schema/tsconfig.build.json"
+    },
+    {
+      "path": "../evidence/tsconfig.build.json"
+    },
+    {
+      "path": "../execution-lineage/tsconfig.build.json"
+    },
+    {
+      "path": "../persistence/tsconfig.build.json"
+    },
+    {
+      "path": "../time-service/tsconfig.build.json"
     }
   ]
 }

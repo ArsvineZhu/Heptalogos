@@ -15,7 +15,7 @@ surface the ambiguity rather than guessing.
 
 ## Active
 
-No active H2A-2 implementation plan.
+- [H2A-3 Canonical Execution Context, Time & Lineage Foundation](active/foundation/h2a3-canonical-execution-context-time-lineage.md) — `ACTIVE`
 
 ## Completed
 

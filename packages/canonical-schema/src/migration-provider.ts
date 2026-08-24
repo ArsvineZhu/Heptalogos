@@ -1,8 +1,8 @@
 import type { Migration, MigrationProvider } from "kysely/migration";
-import { foundationContinuityMigration } from "./migrations/0001-foundation-continuity.js";
+import { foundationBaselineMigration } from "./migrations/0001-foundation-baseline.js";
 
 const migrations: Readonly<Record<string, Migration>> = Object.freeze({
-  "0001_foundation_continuity": foundationContinuityMigration,
+  "0001_foundation_baseline": foundationBaselineMigration,
 });
 
 export const canonicalMigrationProvider: MigrationProvider = {
@@ -12,5 +12,5 @@ export const canonicalMigrationProvider: MigrationProvider = {
 };
 
 export const canonicalMigrationNames = Object.freeze([
-  "0001_foundation_continuity",
+  "0001_foundation_baseline",
 ] as const);

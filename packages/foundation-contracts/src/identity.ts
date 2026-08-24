@@ -19,6 +19,11 @@ export type InstanceId = UuidV7Id<"InstanceId">;
 export type BootId = UuidV7Id<"BootId">;
 export type ContinuityEpochId = UuidV7Id<"ContinuityEpochId">;
 export type HostOwnershipToken = UuidV7Id<"HostOwnershipToken">;
+export type ActivityId = UuidV7Id<"ActivityId">;
+export type EvidenceId = UuidV7Id<"EvidenceId">;
+export type Instant = Branded<string, "Instant">;
+
+const canonicalInstantShape = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
 export function createUuidV7Id<TBrand extends string>(brand: TBrand): UuidV7Id<TBrand> {
   void brand;
@@ -33,6 +38,8 @@ export const createContinuityEpochId = (): ContinuityEpochId =>
   createUuidV7Id("ContinuityEpochId");
 export const createHostOwnershipToken = (): HostOwnershipToken =>
   createUuidV7Id("HostOwnershipToken");
+export const createActivityId = (): ActivityId => createUuidV7Id("ActivityId");
+export const createEvidenceId = (): EvidenceId => createUuidV7Id("EvidenceId");
 
 export function isUuidV7(value: unknown): value is UuidV7Id<string> {
   return (
@@ -62,6 +69,27 @@ export const parseContinuityEpochId = (value: unknown): ContinuityEpochId | unde
 export const parseHostOwnershipToken = (
   value: unknown,
 ): HostOwnershipToken | undefined => parseUuidV7Id("HostOwnershipToken", value);
+export const parseActivityId = (value: unknown): ActivityId | undefined =>
+  parseUuidV7Id("ActivityId", value);
+export const parseEvidenceId = (value: unknown): EvidenceId | undefined =>
+  parseUuidV7Id("EvidenceId", value);
+
+export const parseInstant = (value: unknown): Instant | undefined => {
+  if (typeof value !== "string" || !canonicalInstantShape.test(value)) {
+    return undefined;
+  }
+
+  const milliseconds = Date.parse(value);
+  if (!Number.isFinite(milliseconds)) return undefined;
+
+  const normalized = new Date(milliseconds).toISOString();
+  return normalized === value ? (value as Instant) : undefined;
+};
+
+export const formatInstant = (value: Date): Instant => {
+  const formatted = value.toISOString();
+  return formatted as Instant;
+};
 
 export function isSha256Hex(value: unknown): value is string {
   return typeof value === "string" && sha256HexShape.test(value);

@@ -23,7 +23,12 @@
   },
   "devDependencies": {
     "@heptalogos/canonical-schema": "workspace:*",
+    "@heptalogos/evidence": "workspace:*",
+    "@heptalogos/execution-lineage": "workspace:*",
+    "@heptalogos/persistence": "workspace:*",
+    "@heptalogos/time-service": "workspace:*",
     "@types/pg": "catalog:",
+    "kysely": "catalog:",
     "@types/pidusage": "catalog:",
     "pg": "catalog:",
     "vitest": "catalog:"

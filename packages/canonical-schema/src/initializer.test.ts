@@ -12,10 +12,10 @@ import {
 
 describe("canonical schema adapter", () => {
   it("publishes exactly one static migration without a filesystem provider", async () => {
-    expect(canonicalMigrationNames).toEqual(["0001_foundation_continuity"]);
+    expect(canonicalMigrationNames).toEqual(["0001_foundation_baseline"]);
     await expect(canonicalMigrationProvider.getMigrations()).resolves.toEqual(
       expect.objectContaining({
-        "0001_foundation_continuity": expect.objectContaining({
+        "0001_foundation_baseline": expect.objectContaining({
           up: expect.any(Function),
         }),
       }),

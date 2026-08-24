@@ -1,0 +1,24 @@
+{
+  "name": "@heptalogos/execution-lineage",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@heptalogos/foundation-contracts": "workspace:*",
+    "@heptalogos/persistence": "workspace:*",
+    "@heptalogos/schema-runtime": "workspace:*",
+    "@heptalogos/time-service": "workspace:*",
+    "@opentelemetry/api": "catalog:",
+    "kysely": "catalog:"
+  },
+  "devDependencies": {
+    "vitest": "catalog:"
+  }
+}
