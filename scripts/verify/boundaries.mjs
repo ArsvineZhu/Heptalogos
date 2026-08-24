@@ -54,9 +54,18 @@ const restrictedImports = new Map([
   ],
   [
     "@heptalogos/canonical-schema",
-    ["packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts"],
+    [
+      "packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts",
+      "packages/bootstrap-runtime/src/test-support/canonical-postgres.ts",
+    ],
   ],
-  ["@opentelemetry/api", ["packages/execution-lineage/"]],
+  [
+    "@opentelemetry/api",
+    [
+      "packages/execution-lineage/src/observability-adapter.ts",
+      "packages/execution-lineage/src/execution-context-runtime.test.ts",
+    ],
+  ],
   [
     "@heptalogos/bootstrap-state",
     ["packages/bootstrap-runtime/", "packages/bootstrap-state/"],
@@ -84,6 +93,7 @@ const restrictedImports = new Map([
       "packages/bootstrap-runtime/src/host-maintenance.integration.test.ts",
       "packages/bootstrap-runtime/src/bootstrap-recovery.integration.test.ts",
       "packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts",
+      "packages/bootstrap-runtime/src/test-support/canonical-postgres.ts",
     ],
   ],
   [
@@ -177,6 +187,23 @@ const executionLineageMechanicsPattern =
 if (executionLineageMechanicsPattern.test(executionLineagePublicSource)) {
   errors.push(
     "packages/execution-lineage/src/index.ts: ALS/OTel provider/raw persistence/suppression mechanics must not leak through the execution-lineage package root",
+  );
+}
+
+const evidencePublicSourcePath = resolve(root, "packages/evidence/src/index.ts");
+const evidencePublicSource = readFileSync(evidencePublicSourcePath, "utf8");
+const evidenceMechanicsPattern =
+  /\b(?:Pool|PoolClient|Client|Kysely|PostgresDialect|CompiledQuery|PersistenceInternalTransaction)\b/u;
+const evidenceGenericPayloadPattern =
+  /\b(?:metadata|payload)\s*[?:]|Record\s*<\s*string\s*,\s*unknown\s*>/u;
+if (evidenceMechanicsPattern.test(evidencePublicSource)) {
+  errors.push(
+    "packages/evidence/src/index.ts: concrete pg/Kysely/persistence mechanics must not leak through the evidence package root",
+  );
+}
+if (evidenceGenericPayloadPattern.test(evidencePublicSource)) {
+  errors.push(
+    "packages/evidence/src/index.ts: generic evidence payload/metadata must not leak through the evidence package root",
   );
 }
 

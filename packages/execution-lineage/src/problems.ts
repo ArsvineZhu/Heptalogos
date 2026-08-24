@@ -102,3 +102,11 @@ export function bootstrapReferenceConflictProblem(): ProblemError {
     "The same Bootstrap ActivityId was previously retained with different summary fields",
   );
 }
+
+export function invalidBootstrapHandoffProblem(detail: string): ProblemError {
+  return lineageProblem(
+    "lineage.bootstrap_handoff.invalid",
+    "Bootstrap handoff journal cannot be projected",
+    detail,
+  );
+}

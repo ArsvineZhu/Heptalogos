@@ -1,10 +1,13 @@
 import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { CompiledQuery } from "kysely";
 import { afterEach, describe, expect, it } from "vitest";
+import { BootstrapJournal } from "@heptalogos/bootstrap-state";
 import {
   createExecutionContextRuntime,
   createExecutionLineageService,
   createPersistenceExecutionContextProvider,
+  projectBootstrapHandoff,
 } from "@heptalogos/execution-lineage";
 import { createEvidenceService } from "@heptalogos/evidence";
 import { createFakeTimeService } from "@heptalogos/time-service";
@@ -13,7 +16,11 @@ import {
   type PersistenceMutationTransactionContext,
 } from "@heptalogos/persistence";
 import { useFoundationMutationTransaction } from "@heptalogos/persistence/foundation-repository";
-import { createUuidV7Id, parseInstant } from "@heptalogos/foundation-contracts";
+import {
+  createUuidV7Id,
+  parseActivityId,
+  parseInstant,
+} from "@heptalogos/foundation-contracts";
 import type { BootstrapManagedHostContext } from "./managed-host.js";
 import {
   BOOTSTRAP_PASSWORD,
@@ -87,7 +94,8 @@ async function readActivityRows(
     fixture,
     "heptalogos_bootstrap",
     BOOTSTRAP_PASSWORD,
-    `SELECT activity_id, kind, instance_id, boot_id, continuity_epoch_id,
+    `SELECT activity_id, kind, started_at, ended_at, causation_activity_id,
+            instance_id, boot_id, continuity_epoch_id,
             host_ownership_token, retention_class, outcome
        FROM "heptalogos"."activity_record"
       ORDER BY started_at, activity_id`,
@@ -313,7 +321,10 @@ describePostgres.sequential(
     it("A5 keeps the required transaction body limited to local SQL and retained records", async () => {
       const source = await Promise.all([
         readFile(
-          new URL("../../execution-lineage/src/activity-repository.ts", import.meta.url),
+          new URL(
+            "../../execution-lineage/src/activity-repository.ts",
+            import.meta.url,
+          ),
           "utf8",
         ),
         readFile(
@@ -323,5 +334,175 @@ describePostgres.sequential(
       ]).then((values) => values.join("\n"));
       expect(source).not.toMatch(/setTimeout|fetch\(|execFile|spawn\(/u);
     });
+
+    it("B1/B2 projects the real BootstrapJournal identity and retains one bounded summary", async () => {
+      const fixture = await makeFixture();
+      const bootResult = await boot(fixture);
+      const composition = createComposition(bootResult.host);
+      try {
+        const journal = await new BootstrapJournal(fixture.roots.INSTANCE).read(
+          bootResult.host.bootId,
+        );
+        expect(parseActivityId(bootResult.owned.bootstrapActivityId)).toBe(
+          bootResult.owned.bootstrapActivityId,
+        );
+        const projection = projectBootstrapHandoff({
+          checkpoints: journal,
+          continuityEpochId: bootResult.epoch,
+        });
+        expect(projection.status).toBe("SUCCEEDED");
+        expect(projection.draft.activityId).toBe(bootResult.owned.bootstrapActivityId);
+
+        await composition.runtime.runActivity(
+          {
+            kind: "test.h2a3.bootstrap-import",
+            importance: "significant",
+            retentionClass: "retained",
+            sensitivity: "operational",
+          },
+          async () =>
+            composition.persistence.mutate(async (transaction) => {
+              await composition.lineage.retainBootstrapReference(
+                transaction,
+                projection.draft,
+              );
+            }),
+        );
+
+        await expect(readActivityRows(fixture)).resolves.toMatchObject([
+          {
+            activity_id: bootResult.owned.bootstrapActivityId,
+            kind: "bootstrap.handoff",
+            host_ownership_token: null,
+            outcome: "SUCCEEDED",
+          },
+        ]);
+      } finally {
+        await closeComposition(fixture, composition);
+      }
+    }, 180_000);
+
+    it("B3/B4 links the first current Host Activity to Bootstrap and leaves journal bytes unchanged", async () => {
+      const fixture = await makeFixture();
+      const bootResult = await boot(fixture);
+      const composition = createComposition(bootResult.host);
+      const journalPath = join(
+        fixture.roots.INSTANCE,
+        "bootstrap-journal",
+        `${bootResult.host.bootId}.json`,
+      );
+      try {
+        const journalBytesBefore = await readFile(journalPath, "utf8");
+        const journal = await new BootstrapJournal(fixture.roots.INSTANCE).read(
+          bootResult.host.bootId,
+        );
+        const projection = projectBootstrapHandoff({
+          checkpoints: journal,
+          continuityEpochId: bootResult.epoch,
+        });
+        const firstHostActivity = await composition.runtime.runActivity(
+          {
+            kind: "test.h2a3.first-host-activity",
+            causationActivityId: projection.draft.activityId,
+            importance: "significant",
+            retentionClass: "retained",
+            sensitivity: "operational",
+          },
+          async (activity) => {
+            await composition.persistence.mutate(async (transaction) => {
+              await composition.lineage.retainBootstrapReference(
+                transaction,
+                projection.draft,
+              );
+              await composition.lineage.retainCurrent(transaction, activity);
+            });
+            return activity;
+          },
+        );
+
+        const activities = await readActivityRows(fixture);
+        expect(activities).toHaveLength(2);
+        const bootstrapActivity = activities.find(
+          (activity) => activity.activity_id === projection.draft.activityId,
+        );
+        const currentActivity = activities.find(
+          (activity) => activity.activity_id === firstHostActivity.activityId,
+        );
+        expect(bootstrapActivity).toMatchObject({
+          activity_id: projection.draft.activityId,
+          kind: "bootstrap.handoff",
+          host_ownership_token: null,
+        });
+        expect(currentActivity).toMatchObject({
+          activity_id: firstHostActivity.activityId,
+          kind: "test.h2a3.first-host-activity",
+          causation_activity_id: projection.draft.activityId,
+          instance_id: bootResult.host.instanceId,
+          boot_id: bootResult.host.bootId,
+          continuity_epoch_id: bootResult.host.continuityEpochId,
+          host_ownership_token: bootResult.host.token,
+        });
+        await expect(readFile(journalPath, "utf8")).resolves.toBe(journalBytesBefore);
+      } finally {
+        await closeComposition(fixture, composition);
+      }
+    }, 180_000);
+
+    it("B5 represents failed and incomplete journal input without silently marking success", async () => {
+      const fixture = await makeFixture();
+      const bootResult = await boot(fixture);
+      try {
+        const journal = await new BootstrapJournal(fixture.roots.INSTANCE).read(
+          bootResult.host.bootId,
+        );
+        const incomplete = projectBootstrapHandoff({
+          checkpoints: journal.slice(0, 1),
+          continuityEpochId: bootResult.epoch,
+        });
+        const failed = projectBootstrapHandoff({
+          checkpoints: [
+            journal[0]!,
+            {
+              ...journal[0]!,
+              stage: "bootstrap.test.failed",
+              at: "2026-08-25T01:00:00.999Z",
+              outcome: "FAILED",
+              problemCode: "bootstrap.test.failure",
+            },
+          ],
+          continuityEpochId: bootResult.epoch,
+        });
+        expect(incomplete.status).toBe("INCOMPLETE");
+        expect(incomplete.draft.outcome).toBe("FAILED");
+        expect(failed.status).toBe("FAILED");
+        expect(failed.draft.outcome).toBe("FAILED");
+        expect(failed.draft.outcomeRef).toBe("bootstrap.test.failure");
+      } finally {
+        await stopManagedHost(bootResult.host).catch(() => undefined);
+      }
+    }, 180_000);
+
+    it("B6 keeps BootstrapJournal readable without normal lineage composition", async () => {
+      const fixture = await makeFixture();
+      const bootResult = await boot(fixture);
+      const journalPath = join(
+        fixture.roots.INSTANCE,
+        "bootstrap-journal",
+        `${bootResult.host.bootId}.json`,
+      );
+      try {
+        const bytesBefore = await readFile(journalPath, "utf8");
+        const journal = await new BootstrapJournal(fixture.roots.INSTANCE).read(
+          bootResult.host.bootId,
+        );
+        expect(journal.length).toBeGreaterThan(0);
+        expect(journal[0]?.bootstrapActivityId).toBe(
+          bootResult.owned.bootstrapActivityId,
+        );
+        await expect(readFile(journalPath, "utf8")).resolves.toBe(bytesBefore);
+      } finally {
+        await stopManagedHost(bootResult.host).catch(() => undefined);
+      }
+    }, 180_000);
   },
 );

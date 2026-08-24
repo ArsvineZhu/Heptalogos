@@ -16,6 +16,13 @@ export {
 } from "./lineage-context-ref.js";
 export { createPersistenceExecutionContextProvider } from "./persistence-adapter.js";
 export { createExecutionLineageService } from "./activity-repository.js";
+export {
+  projectBootstrapHandoff,
+  type BootstrapHandoffProjection,
+  type BootstrapHandoffProjectionInput,
+  type BootstrapHandoffStatus,
+  type BootstrapJournalCheckpointLike,
+} from "./bootstrap-handoff.js";
 export type {
   BootstrapRetainedActivityDraft,
   ExecutionLineageService,

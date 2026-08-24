@@ -19,7 +19,7 @@ import {
   type ActivityRequest,
   type HostExecutionOrigin,
 } from "./index.js";
-import { projectTelemetryCorrelation } from "./execution-context-runtime.js";
+import { projectTelemetryCorrelation } from "./observability-adapter.js";
 
 const origin: HostExecutionOrigin = {
   installationId: createInstallationId(),

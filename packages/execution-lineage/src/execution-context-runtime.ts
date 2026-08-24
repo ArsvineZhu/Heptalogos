@@ -1,11 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import {
-  context as otelContext,
-  isSpanContextValid,
-  trace,
-  type Context as OTelContext,
-} from "@opentelemetry/api";
-import {
   createActivityId,
   parseBootId,
   parseContinuityEpochId,
@@ -19,7 +13,6 @@ import type {
   ActivityImportance,
   ActivityLink,
   ActivityRequest,
-  ActivityTelemetryCorrelation,
   ExecutionContext,
   ExecutionContextRuntime,
   HostExecutionOrigin,
@@ -32,10 +25,16 @@ import {
   invalidOriginProblem,
   requiredContextRefProblem,
 } from "./problems.js";
+import {
+  activeTelemetryContext,
+  projectTelemetryCorrelation,
+  withTelemetryContext,
+  type LineageTelemetryContext,
+} from "./observability-adapter.js";
 
 interface ExecutionStore {
   readonly execution: ExecutionContext;
-  readonly otelContext: OTelContext;
+  readonly otelContext: LineageTelemetryContext;
 }
 
 const importanceValues = new Set<ActivityImportance>([
@@ -111,18 +110,6 @@ function freezeOrigin(origin: HostExecutionOrigin): HostExecutionOrigin {
   return Object.freeze({ ...origin });
 }
 
-export function projectTelemetryCorrelation(
-  otel: OTelContext,
-): ActivityTelemetryCorrelation | undefined {
-  const spanContext = trace.getSpanContext(otel);
-  if (!spanContext || !isSpanContextValid(spanContext)) return undefined;
-  return Object.freeze({
-    traceId: spanContext.traceId,
-    spanId: spanContext.spanId,
-    traceFlags: spanContext.traceFlags,
-  });
-}
-
 function freezeLinks(links: readonly ActivityLink[]): readonly ActivityLink[] {
   return Object.freeze(links.map((link) => Object.freeze({ ...link })));
 }
@@ -133,7 +120,7 @@ function createExecutionContext(
   time: TimeService,
   parentActivityId: ActivityId | undefined,
   causationActivityId: ActivityId | undefined,
-  otel: OTelContext,
+  otel: LineageTelemetryContext,
 ): ExecutionContext {
   assertActivityRequest(request);
   const semantic = Object.freeze({ ...(request.semantic ?? {}) });
@@ -178,7 +165,7 @@ export function createExecutionContextRuntime(
       parentOtel,
     );
     const store: ExecutionStore = { execution, otelContext: parentOtel };
-    return otelContext.with(parentOtel, () =>
+    return withTelemetryContext(parentOtel, () =>
       storage.run(store, () => operation(execution)),
     );
   };
@@ -190,7 +177,7 @@ export function createExecutionContextRuntime(
       operation: (context: ExecutionContext) => Promise<T>,
     ): Promise<T> {
       const parent = storage.getStore();
-      const parentOtel = parent?.otelContext ?? otelContext.active();
+      const parentOtel = parent?.otelContext ?? activeTelemetryContext();
       return runScope(
         request,
         operation,
@@ -203,9 +190,9 @@ export function createExecutionContextRuntime(
       callback: (...args: TArgs) => TResult,
     ): (...args: TArgs) => TResult {
       const captured = storage.getStore();
-      const capturedOtel = captured?.otelContext ?? otelContext.active();
+      const capturedOtel = captured?.otelContext ?? activeTelemetryContext();
       return (...args: TArgs) =>
-        otelContext.with(capturedOtel, () =>
+        withTelemetryContext(capturedOtel, () =>
           storage.run(captured, () => callback(...args)),
         );
     },
@@ -233,7 +220,7 @@ export function createExecutionContextRuntime(
         throw discontinuousContextRefProblem();
       }
       const parent = storage.getStore();
-      const parentOtel = parent?.otelContext ?? otelContext.active();
+      const parentOtel = parent?.otelContext ?? activeTelemetryContext();
       return runScope(
         request,
         operation,

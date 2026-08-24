@@ -1,5 +1,9 @@
 import { CompiledQuery } from "kysely";
-import { parseActivityId } from "@heptalogos/foundation-contracts";
+import {
+  formatInstant,
+  parseActivityId,
+  parseInstant,
+} from "@heptalogos/foundation-contracts";
 import type { PersistenceMutationTransactionContext } from "@heptalogos/persistence";
 import type { PersistenceInternalTransaction } from "@heptalogos/persistence/foundation-repository";
 import { useFoundationMutationTransaction } from "@heptalogos/persistence/foundation-repository";
@@ -166,8 +170,8 @@ function assertBootstrapDraft(
 interface BootstrapRow {
   readonly activity_id: string;
   readonly kind: string;
-  readonly started_at: string;
-  readonly ended_at: string | null;
+  readonly started_at: unknown;
+  readonly ended_at: unknown;
   readonly installation_id: string;
   readonly instance_id: string;
   readonly boot_id: string;
@@ -180,6 +184,12 @@ interface BootstrapRow {
   readonly outcome_ref: string | null;
 }
 
+function persistedInstant(value: unknown): string | undefined {
+  if (value instanceof Date) return formatInstant(value);
+  if (typeof value === "string") return parseInstant(value);
+  return undefined;
+}
+
 function bootstrapRowMatches(
   row: BootstrapRow,
   draft: BootstrapRetainedActivityDraft,
@@ -187,8 +197,8 @@ function bootstrapRowMatches(
   return (
     row.activity_id === draft.activityId &&
     row.kind === "bootstrap.handoff" &&
-    row.started_at === draft.startedAt &&
-    row.ended_at === draft.endedAt &&
+    persistedInstant(row.started_at) === draft.startedAt &&
+    persistedInstant(row.ended_at) === draft.endedAt &&
     row.installation_id === draft.installationId &&
     row.instance_id === draft.instanceId &&
     row.boot_id === draft.bootId &&
