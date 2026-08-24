@@ -197,6 +197,17 @@ function passwordProvider(
         use,
       );
     },
+    withMigrationPassword(use) {
+      return keyProvider.withPrivatePostgresMigrationPassword(
+        {
+          installationId: context.installationId,
+          instanceId: context.instanceId,
+          bootId: context.bootId,
+          purpose: "private-postgres-migration-role",
+        },
+        use,
+      );
+    },
   };
 }
 

@@ -51,6 +51,7 @@ const execFileAsync = promisify(execFile);
 const BOOTSTRAP_PASSWORD = "H2A1_TEST_BOOTSTRAP_PASSWORD_0123456789";
 const HOST_LEASE_PASSWORD = "H2A1_TEST_HOST_LEASE_PASSWORD_0123456789";
 const RUNTIME_PASSWORD = "H2A1_TEST_RUNTIME_PASSWORD_0123456789";
+const MIGRATION_PASSWORD = "H2A1_TEST_MIGRATION_PASSWORD_0123456789";
 const QUALIFICATION_TABLE = "h2a1_persistence_qualification";
 const TIMING: HostOwnershipTimingOptions = {
   connectionTimeoutMs: 10_000,
@@ -117,6 +118,14 @@ function makeProvider(): BootstrapAdminPasswordProvider {
     },
     async withRuntimePassword<T>(use: (password: Uint8Array) => Promise<T>) {
       const password = new TextEncoder().encode(RUNTIME_PASSWORD);
+      try {
+        return await use(password);
+      } finally {
+        password.fill(0);
+      }
+    },
+    async withMigrationPassword<T>(use: (password: Uint8Array) => Promise<T>) {
+      const password = new TextEncoder().encode(MIGRATION_PASSWORD);
       try {
         return await use(password);
       } finally {

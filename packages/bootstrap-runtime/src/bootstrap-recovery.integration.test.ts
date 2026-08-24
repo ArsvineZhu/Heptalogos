@@ -267,6 +267,19 @@ function makeKeyProvider(): BootstrapKeyProvider {
         password.fill(0);
       }
     },
+    async withPrivatePostgresMigrationPassword<T>(
+      _context: BootstrapKeyRequestContext,
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      const password = new TextEncoder().encode(
+        "M5A_TEST_MIGRATION_PASSWORD_0123456789",
+      );
+      try {
+        return await use(password);
+      } finally {
+        password.fill(0);
+      }
+    },
   };
 }
 
@@ -306,6 +319,17 @@ function passwordProvider(
           instanceId,
           bootId,
           purpose: "private-postgres-runtime-role",
+        },
+        use,
+      );
+    },
+    withMigrationPassword(use) {
+      return keyProvider.withPrivatePostgresMigrationPassword(
+        {
+          installationId,
+          instanceId,
+          bootId,
+          purpose: "private-postgres-migration-role",
         },
         use,
       );

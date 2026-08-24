@@ -336,6 +336,17 @@ function passwordProvider(
         use,
       );
     },
+    withMigrationPassword<T>(use: (password: Uint8Array) => Promise<T>) {
+      return options.keyProvider.withPrivatePostgresMigrationPassword(
+        {
+          installationId,
+          instanceId,
+          bootId,
+          purpose: "private-postgres-migration-role",
+        },
+        use,
+      );
+    },
   };
 }
 

@@ -272,6 +272,17 @@ function passwordProvider(
         use,
       );
     },
+    withMigrationPassword<T>(use: (password: Uint8Array) => Promise<T>) {
+      return handoff.keyProvider.withPrivatePostgresMigrationPassword(
+        {
+          installationId: context.installationId,
+          instanceId: context.instanceId,
+          bootId: context.bootId,
+          purpose: "private-postgres-migration-role",
+        },
+        use,
+      );
+    },
   };
 }
 

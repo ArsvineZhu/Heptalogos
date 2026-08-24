@@ -7,6 +7,7 @@ import {
 } from "@heptalogos/foundation-contracts";
 import {
   HOST_LEASE_ROLE,
+  HOST_MIGRATION_ROLE,
   HOST_OWNERSHIP_CANONICAL_DATABASE,
   HOST_OWNERSHIP_FENCE_TABLE,
   HOST_OWNERSHIP_FENCE_LOCK_FUNCTION,
@@ -424,6 +425,7 @@ async function ensureDatabasePrivileges(
       "PUBLIC:CONNECT:false",
       "PUBLIC:TEMPORARY:false",
       `${HOST_LEASE_ROLE}:CONNECT:false`,
+      `${HOST_MIGRATION_ROLE}:CONNECT:false`,
       `${HOST_RUNTIME_ROLE}:CONNECT:false`,
     ]),
     "Unexpected explicit database privilege exists on the canonical database",
@@ -443,12 +445,21 @@ async function ensureDatabasePrivileges(
     authority,
     `GRANT CONNECT ON DATABASE ${quoteIdentifier(HOST_OWNERSHIP_CANONICAL_DATABASE)} TO ${quoteIdentifier(HOST_RUNTIME_ROLE)}`,
   );
+  await authorizedMutation(
+    client,
+    authority,
+    `GRANT CONNECT ON DATABASE ${quoteIdentifier(HOST_OWNERSHIP_CANONICAL_DATABASE)} TO ${quoteIdentifier(HOST_MIGRATION_ROLE)}`,
+  );
   const verified = await client.query<AclRow>(DATABASE_ACL_QUERY, [
     HOST_OWNERSHIP_CANONICAL_DATABASE,
   ]);
   assertAclExact(
     verified.rows,
-    new Set([`${HOST_LEASE_ROLE}:CONNECT:false`, `${HOST_RUNTIME_ROLE}:CONNECT:false`]),
+    new Set([
+      `${HOST_LEASE_ROLE}:CONNECT:false`,
+      `${HOST_RUNTIME_ROLE}:CONNECT:false`,
+      `${HOST_MIGRATION_ROLE}:CONNECT:false`,
+    ]),
     "Canonical database privileges do not match the closed-world contract",
   );
 }

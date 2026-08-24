@@ -217,6 +217,12 @@ function makeKeyProvider() {
         password.fill(0);
       }
     },
+    async withPrivatePostgresMigrationPassword<T>(
+      _context: unknown,
+      use: (password: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      return use(new TextEncoder().encode("M5A_TEST_MIGRATION_PASSWORD_0123456789"));
+    },
   };
 }
 
@@ -255,6 +261,17 @@ function passwordProvider(
           instanceId: fixture.instanceId,
           bootId,
           purpose: "private-postgres-runtime-role",
+        },
+        use,
+      );
+    },
+    withMigrationPassword(use) {
+      return keyProvider.withPrivatePostgresMigrationPassword(
+        {
+          installationId: fixture.installationId,
+          instanceId: fixture.instanceId,
+          bootId,
+          purpose: "private-postgres-migration-role",
         },
         use,
       );

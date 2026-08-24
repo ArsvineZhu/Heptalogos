@@ -180,6 +180,12 @@ function makeOptions(
     ): Promise<T> {
       return use(new TextEncoder().encode("R".repeat(32)));
     },
+    async withPrivatePostgresMigrationPassword<T>(
+      _context: BootstrapKeyRequestContext,
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      return use(new TextEncoder().encode("M".repeat(32)));
+    },
   };
   return {
     toolchainBinDirectory,

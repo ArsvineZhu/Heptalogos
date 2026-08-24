@@ -19,6 +19,7 @@ import {
   deriveHostAdvisoryKey,
   ensureHostOwnershipSchema,
   HOST_LEASE_ROLE,
+  HOST_MIGRATION_ROLE,
   HOST_OWNERSHIP_OWNER_ROLE,
   HOST_RUNTIME_ROLE,
   provisionHostOwnershipDatabase,
@@ -45,6 +46,7 @@ const execFileAsync = promisify(execFile);
 const BOOTSTRAP_PASSWORD = "M4_TEST_BOOTSTRAP_PASSWORD_0123456789";
 const HOST_LEASE_PASSWORD = "M4_TEST_HOST_LEASE_PASSWORD_0123456789";
 const RUNTIME_PASSWORD = "M4_TEST_RUNTIME_PASSWORD_0123456789";
+const MIGRATION_PASSWORD = "M4_TEST_MIGRATION_PASSWORD_0123456789";
 const TIMING: HostOwnershipTimingOptions = {
   connectionTimeoutMs: 10_000,
   statementTimeoutMs: 10_000,
@@ -132,6 +134,16 @@ function makeProvider(): BootstrapAdminPasswordProvider {
       use: (passwordUtf8: Uint8Array) => Promise<T>,
     ): Promise<T> {
       const password = new TextEncoder().encode(RUNTIME_PASSWORD);
+      try {
+        return await use(password);
+      } finally {
+        password.fill(0);
+      }
+    },
+    async withMigrationPassword<T>(
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      const password = new TextEncoder().encode(MIGRATION_PASSWORD);
       try {
         return await use(password);
       } finally {
@@ -396,6 +408,85 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
       await runtime.end().catch(() => undefined);
       await admin.end().catch(() => undefined);
       await lease.close().catch(() => undefined);
+    }
+  }, 120_000);
+
+  it("proves migration can assume owner while runtime cannot", async () => {
+    const fixture = await createCluster();
+    await provisionHostOwnershipDatabase({
+      port: fixture.port,
+      passwordProvider: fixture.provider,
+      mutationAuthority,
+    });
+    const admin = await bootstrapClient(fixture);
+    const migration = new Client({
+      host: "127.0.0.1",
+      port: fixture.port,
+      database: "heptalogos",
+      user: HOST_MIGRATION_ROLE,
+      password: MIGRATION_PASSWORD,
+      connectionTimeoutMillis: 10_000,
+    });
+    const runtime = new Client({
+      host: "127.0.0.1",
+      port: fixture.port,
+      database: "heptalogos",
+      user: HOST_RUNTIME_ROLE,
+      password: RUNTIME_PASSWORD,
+      connectionTimeoutMillis: 10_000,
+    });
+    try {
+      await migration.connect();
+      await runtime.connect();
+      await expect(
+        migration.query("SELECT session_user, current_user"),
+      ).resolves.toMatchObject({
+        rows: [
+          { session_user: HOST_MIGRATION_ROLE, current_user: HOST_MIGRATION_ROLE },
+        ],
+      });
+      await migration.query(`SET ROLE "${HOST_OWNERSHIP_OWNER_ROLE}"`);
+      await expect(migration.query("SELECT current_user")).resolves.toMatchObject({
+        rows: [{ current_user: HOST_OWNERSHIP_OWNER_ROLE }],
+      });
+      await expect(
+        runtime.query(`SET ROLE "${HOST_OWNERSHIP_OWNER_ROLE}"`),
+      ).rejects.toThrow();
+      await expect(
+        runtime.query(`SET ROLE "${HOST_MIGRATION_ROLE}"`),
+      ).rejects.toThrow();
+
+      const memberships = await admin.query<{
+        readonly member_role: string;
+        readonly granted_role: string;
+        readonly admin_option: boolean;
+        readonly inherit_option: boolean;
+        readonly set_option: boolean;
+      }>(
+        `SELECT member.rolname AS member_role,
+                granted_role.rolname AS granted_role,
+                memberships.admin_option,
+                memberships.inherit_option,
+                memberships.set_option
+         FROM pg_catalog.pg_auth_members AS memberships
+         JOIN pg_catalog.pg_roles AS member ON member.oid = memberships.member
+         JOIN pg_catalog.pg_roles AS granted_role ON granted_role.oid = memberships.roleid
+         WHERE member.rolname = $1`,
+        [HOST_MIGRATION_ROLE],
+      );
+      expect(memberships.rows).toEqual([
+        {
+          member_role: HOST_MIGRATION_ROLE,
+          granted_role: HOST_OWNERSHIP_OWNER_ROLE,
+          admin_option: false,
+          inherit_option: false,
+          set_option: true,
+        },
+      ]);
+    } finally {
+      await migration.end().catch(() => undefined);
+      await runtime.end().catch(() => undefined);
+      await admin.end().catch(() => undefined);
     }
   }, 120_000);
 
