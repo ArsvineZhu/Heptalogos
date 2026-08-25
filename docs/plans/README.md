@@ -26,7 +26,8 @@ An unresolved non-trivial choice is `PLAN_GAP` and stops execution.
 
 ## Active
 
-[H2-S Stabilization Closure](active/foundation/h2-stabilization-closure.md) — `ACTIVE / IMPLEMENTATION`
+No active H2-S plan remains; the implementation/qualification record is completed
+with external closure gates still pending.
 
 ## Completed
 
@@ -48,3 +49,4 @@ An unresolved non-trivial choice is `PLAN_GAP` and stops execution.
 - [H2A-1 Host-Fenced Persistence Authority](completed/foundation/h2a1-host-fenced-persistence-authority.md) — `COMPLETED` (implementation/evidence PASS; external review, final CI, and squash merge PASS; qualification remains PARTIAL)
 - [H2A-2 Canonical Schema & Continuity Authority](completed/foundation/h2a2-canonical-schema-continuity-authority.md) — `COMPLETED` (implementation/evidence PASS; external review, final CI, and squash merge PASS; qualification remains PARTIAL)
 - [H2B Runtime Composition & Kernel](completed/foundation/h2b-runtime-composition-kernel.md) — `COMPLETED` (PR #22 merged; H2B closure reconciled in PR #23; final-head PostgreSQL rerun remains `NOT_RUN`)
+- [H2-S Stabilization Closure](completed/foundation/h2-stabilization-closure.md) — `COMPLETED` (local implementation and Windows PostgreSQL 18.6 qualification complete; Independent Review, final cross-platform CI, and squash merge remain `NOT_RUN`)

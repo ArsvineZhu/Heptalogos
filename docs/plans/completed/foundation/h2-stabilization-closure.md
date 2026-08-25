@@ -1819,16 +1819,16 @@ Recommended commit:
 test: prove managed host and runtime lifecycle closure
 ```
 
-S7 implementation evidence (2026-08-26, commit `6f9cd4d`):
+S7 implementation evidence (2026-08-26, commits `6f9cd4d` and `bbea4ae`):
 `runtime-host-lifecycle.integration.test.ts` covers PG1-PG6, including the
 structural `HostMaintenanceQuiescence` seam, authentic Host lease-backend
 termination, planned STOP/RESTART ordering, fresh Runtime generations, and
-shutdown-keeping-PostgreSQL. The integration file transforms and typechecks;
-`bootstrap-runtime:test`, `check:boundaries`, `check:dependencies`,
-`check:repository`, and `check:corpus` are `PASS`. Live PG1-PG6 execution is
-`NOT_RUN` because `HEPTALOGOS_TEST_PG_BIN`, `pg_config`, and `postgres` are
-absent on this host; the aggregate integration target is consequently
-`BLOCKED` by its pre-existing PostgreSQL qualification guards.
+shutdown-keeping-PostgreSQL. With the process-local
+`HEPTALOGOS_TEST_PG_BIN=C:\dev\Heptalogos\tmp\pg\extracted\pgsql\bin`, all
+required scenarios execute on PostgreSQL 18.6: PG1-PG6 are `PASS`, and the
+aggregate `bootstrap-runtime:test:integration` is `PASS` (8 suites, 58 tests).
+The supporting private-postgres, Host ownership, persistence, and recovery
+targets are recorded in S9.
 
 ## Task S8 — Full H2 current-tree re-audit
 
@@ -1904,8 +1904,8 @@ S8 re-audit evidence (2026-08-26): `check:hygiene`, compatibility register
 agent-resource, and TS6 gates are `PASS`. Runtime Substrate (16 tests), Runtime
 Kernel (121 tests), Persistence (19 tests), Execution Lineage (29 tests),
 Canonical Schema (3 tests), Evidence (4 tests), Time Service (4 tests), and
-repo-kit (27 tests) are `PASS`. Persistence PostgreSQL integration remains
-`NOT_RUN`/`BLOCKED` because the qualified PostgreSQL toolchain is absent.
+repo-kit (27 tests) are `PASS`. Persistence PostgreSQL integration is `PASS`
+(9/9) on Windows PostgreSQL 18.6.
 
 ## Task S9 — Fresh H2-S local qualification matrix
 
@@ -1972,17 +1972,16 @@ pnpm verify
 
 Every reported PASS must correspond to an actually executed command.
 
-S9 qualification evidence (2026-08-26): toolchain identity is `BLOCKED` with
-`HEPTALOGOS_TEST_PG_BIN=<unset>` and no `postgres`, `initdb`, `pg_ctl`,
-`pg_controldata`, or `pg_isready` available. Focused package targets are
-`PASS`: Runtime Substrate, Runtime Kernel, Persistence unit, Execution Lineage,
-Canonical Schema, Evidence, Time Service, and repo-kit. The individual
-PostgreSQL targets are recorded as `BLOCKED/NOT_RUN`: private-postgres
-integration, host-ownership integration, bootstrap-runtime integration,
-bootstrap-runtime recovery-process:postgres, and persistence integration.
-`bootstrap-runtime:test:recovery-process` is `PASS`. Candidate freeze remains
-blocked until a qualified PostgreSQL 18.6 toolchain is supplied; no PG gate is
-reported as a skipped PASS.
+S9 qualification evidence (2026-08-26): the process-local toolchain identity
+check reports PostgreSQL 18.6 for `postgres`, `initdb`, `pg_ctl`,
+`pg_controldata`, `pg_isready`, and `pg_config`. Focused package targets are
+`PASS`: Runtime Substrate (16/16), Runtime Kernel (121/121), Persistence unit
+(19/19), Execution Lineage (29/29), Canonical Schema (3/3), Evidence (4/4),
+Time Service (4/4), and repo-kit (27/27). Real PostgreSQL targets are all
+`PASS`: private-postgres integration (20/20), host-ownership integration
+(10/10), bootstrap-runtime integration (8 suites, 58 tests),
+bootstrap-runtime recovery-process (4/4), bootstrap-runtime
+recovery-process:postgres (2/2), and persistence integration (9/9).
 
 ## Task S10 — Candidate-time evidence and plan completion
 
@@ -2290,7 +2289,7 @@ Before candidate freeze, fill this with concrete results only:
 ```yaml
 stage: H2-S
 base_sha: 4e2dead8bbc413e31dfff1751663780ed8dc688a
-head_sha: <final candidate head>
+head_sha: bbea4ae685d17462c1e9770c284de742a820f073
 compatibility_epoch: PRE_PRODUCTION
 compatibility_obligations: []
 
@@ -2337,6 +2336,14 @@ product_residuals:
   service_headless: NOT_RUN
   hardware_power_loss: NOT_RUN
 ```
+
+S10 completion evidence (2026-08-26): all required H2-S local evidence is
+`PASS` on the Windows PostgreSQL 18.6 toolchain. The behavior candidate is
+based on `4e2dead8bbc413e31dfff1751663780ed8dc688a4` with implementation head
+`bbea4ae685d17462c1e9770c284de742a820f073`; `Q-RUNTIME-01` and
+`Q-PERSISTENCE-01` retain `PARTIAL` product qualification for unrun
+Linux/macOS, source-less, service/headless, and hardware claims. Independent
+Review, final cross-platform CI, and squash merge remain `NOT_RUN`.
 
 After candidate freeze only externally observed review/CI/merge fields change, and those changes occur in PR-C after merge—not by mutating the reviewed behavior candidate.
 

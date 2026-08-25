@@ -2,7 +2,7 @@
 
 **Status:** LIVING ROADMAP / planning guidance<br>
 **Date:** 2026-08-25<br>
-**Repository baseline:** `master@d7f32427398d2309c1732cdbce98f590e14a8249` (H2B squash merge / current reconciliation base)<br>
+**Repository baseline:** `master@4e2dead8bbc413e31dfff1751663780ed8dc688a` (H2B reconciliation merge / H2-S branch base)<br>
 **Architecture baseline:** `Architecture_Corpus` design state 2026-08-20
 
 > This document is a roadmap, not an Architecture Corpus authority and not an Implementation Plan. It guides future plan decomposition, sequencing, risk retirement, and acceptance. If it conflicts with the Architecture Corpus, the Corpus wins. If implementation evidence invalidates roadmap assumptions without invalidating architecture semantics, update the roadmap rather than silently changing the Corpus.
@@ -143,7 +143,7 @@ H2A_3: CLOSED
 H2A: FUNCTIONALLY_COMPLETE
 H2B: CLOSED
 H2_FUNCTIONAL: COMPLETE
-H2_STABILIZATION: ELIGIBLE
+H2_STABILIZATION: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
 H2: OPEN
 H3: NOT_ELIGIBLE
 ```
@@ -155,10 +155,10 @@ was `(19ebef1c62a737ad077414a6817ffdf8ac3ad2a4,
 86c01ee90d6d1f6c953be39375ccddb0458a189a)`; operator-supplied Independent
 Review is `PASS`, and manual final cross-platform workflow run `32862042074`
 is `PASS` on Ubuntu/macOS/Windows for the reviewed head. H2B is therefore
-closed and H2 is functionally complete. The final-head real PostgreSQL rerun
-was `NOT_RUN`; the qualified Windows PostgreSQL property evidence is carried
-forward because the final corrective cycle did not change persistence,
-lineage, or database behavior. H2-S is eligible but has not started, and H2
+closed and H2 is functionally complete. Fresh H2-S Windows PostgreSQL 18.6
+PG1-PG6 and the persistence/Host/bootstrap integration matrix are `PASS` on
+behavior candidate `bbea4ae685d17462c1e9770c284de742a820f073`; H2-S is
+implementation-complete and awaiting the independent exact-pair review. H2
 remains open.
 
 H1 functional implementation: COMPLETE.

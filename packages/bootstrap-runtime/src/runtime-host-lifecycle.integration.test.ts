@@ -409,12 +409,8 @@ describePostgres.sequential("Runtime and authentic Host lifecycle", () => {
       expect(composition.bootResult.host.state).toBe("CLOSED");
       events.push("host-terminal-observed");
       expect(events.indexOf("runtime-quiesce-requested")).toBeGreaterThanOrEqual(0);
-      expect(
-        composition.supervisor.getActualState(a.microSystemId),
-      ).toBe("STOPPED");
-      expect(
-        composition.supervisor.getActualState(b.microSystemId),
-      ).toBe("STOPPED");
+      expect(composition.supervisor.getActualState(a.microSystemId)).toBe("STOPPED");
+      expect(composition.supervisor.getActualState(b.microSystemId)).toBe("STOPPED");
       expect(events.indexOf("runtime-quiesced")).toBeLessThan(
         events.indexOf("host-terminal-observed"),
       );
