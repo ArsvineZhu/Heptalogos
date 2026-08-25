@@ -225,8 +225,8 @@
     },
     {
       "path": "qualification/results/Q-PERSISTENCE-01.md",
-      "size": 9188,
-      "sha256": "c6bf1b8e1005308a55e29226c52e8acdb6df7c882713531d670239a60fa9c4a1"
+      "size": 9189,
+      "sha256": "df2139d7a97f8ea952dcfd2cd77045e6841b4973a48c035c79a4e02774e07345"
     },
     {
       "path": "qualification/results/Q-POLICY-01.md",
@@ -240,8 +240,8 @@
     },
     {
       "path": "qualification/results/Q-RUNTIME-01.md",
-      "size": 4757,
-      "sha256": "563be3464f19b2f9554eae0e44625d30eda20122c4b1c710247da9f7fab6c7d5"
+      "size": 4758,
+      "sha256": "28a8675b029676bb0ccedbb0365f6784d5de4fe69fb905a73564ea01e0417635"
     },
     {
       "path": "qualification/results/Q-SECRET-01.md",
@@ -255,8 +255,8 @@
     },
     {
       "path": "qualification/results/qualification-status.json",
-      "size": 37070,
-      "sha256": "196369724c75ec909f0c70d59ae4bc827773387a732244a03c41a46b4d7b152d"
+      "size": 37107,
+      "sha256": "5fa55c259c2787f3b397586c22df0093be6c39d00787ec7f9472fd5fe7b22dd8"
     },
     {
       "path": "qualification/依赖资格矩阵.md",
