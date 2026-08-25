@@ -374,6 +374,30 @@ describe("Capability registry and readiness", () => {
     await expect(retirement).resolves.toBeUndefined();
   });
 
+  it("K8 fences retained nested Capability objects after retirement", async () => {
+    const registry = new CapabilityRegistry();
+    const capabilityId = createCapabilityId("test.nested-object-proxy");
+    const providerId = createProviderId("provider.nested-object-proxy");
+    registry.register(capabilityProvision(capabilityId, providerId), {
+      nested: {
+        read() {
+          return "nested";
+        },
+      },
+    });
+    const lease = registry.resolve<{
+      nested: { read(): string };
+    }>(capabilityRequirement(capabilityId, true));
+    let retained: { read(): string } | undefined;
+    await lease!.invoke("capture", (capability) => {
+      retained = capability.nested;
+    });
+    await registry.retireProvider(providerId, 50);
+    expect(() => retained!.read()).toThrow(
+      expect.objectContaining({ problemCode: "runtime.generation.retired" }),
+    );
+  });
+
   it("computes BLOCKED, DEGRADED, and READY independently of Actual State", () => {
     const services = new ServiceRegistry();
     const capabilities = new CapabilityRegistry();
