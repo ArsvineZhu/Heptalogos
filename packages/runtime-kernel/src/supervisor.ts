@@ -20,7 +20,7 @@ import type {
   ServiceProvisionDescriptor,
   ServiceRequirement,
 } from "./contracts.js";
-import { RuntimeKernelProblem } from "./problems.js";
+import { runtimeKernelProblem } from "./problems.js";
 import type { ReconcileAction, ReconcilePlan } from "./reconciler.js";
 import { RuntimeReconciler } from "./reconciler.js";
 import { RuntimeGraph } from "./runtime-graph.js";
@@ -44,6 +44,24 @@ export interface MicroSystemSupervisorOptions {
   readonly definitions?: readonly MicroSystemDefinition[];
   readonly lifecycleLineage?: RuntimeLifecycleLineage;
   readonly rootRuntimeOrigin?: RuntimeExecutionOrigin;
+}
+
+function captureDesiredRuntimeSnapshot(
+  input: DesiredRuntimeSnapshot,
+): DesiredRuntimeSnapshot {
+  if (!Number.isSafeInteger(input.revision) || input.revision < 0) {
+    throw runtimeKernelProblem(
+      "runtime.supervisor.invalid_revision",
+      "DesiredRuntimeSnapshot revision must be a non-negative safe integer",
+    );
+  }
+  return Object.freeze({
+    revision: input.revision,
+    operatingMode: input.operatingMode,
+    desired: new Map(input.desired),
+    serviceBindings: new Map(input.serviceBindings),
+    capabilityBindings: new Map(input.capabilityBindings),
+  });
 }
 
 export class MicroSystemSupervisor {
@@ -72,7 +90,7 @@ export class MicroSystemSupervisor {
 
   register(definition: MicroSystemDefinition): void {
     if (this.definitions.has(definition.microSystemId)) {
-      throw new RuntimeKernelProblem(
+      throw runtimeKernelProblem(
         "runtime.supervisor.duplicate_definition",
         `MicroSystem '${definition.microSystemId}' is already registered`,
       );
@@ -92,7 +110,7 @@ export class MicroSystemSupervisor {
   getDefinition(microSystemId: MicroSystemId): MicroSystemDefinition {
     const definition = this.definitions.get(microSystemId);
     if (definition === undefined) {
-      throw new RuntimeKernelProblem(
+      throw runtimeKernelProblem(
         "runtime.supervisor.unknown_system",
         `Unknown MicroSystem '${microSystemId}'`,
       );
@@ -100,11 +118,11 @@ export class MicroSystemSupervisor {
     return definition;
   }
 
-  async reconcile(desired: DesiredRuntimeSnapshot): Promise<ReconcilePlan> {
+  async reconcile(input: DesiredRuntimeSnapshot): Promise<ReconcilePlan> {
+    const desired = captureDesiredRuntimeSnapshot(input);
     let result!: ReconcilePlan;
     const run = this.reconcileChain.then(async () => {
       const previousOperatingMode = this.operatingMode;
-      this.operatingMode = desired.operatingMode;
       result = this.reconciler.plan({
         definitions: [...this.definitions.values()],
         desired,
@@ -114,27 +132,31 @@ export class MicroSystemSupervisor {
         currentServiceBindings: this.serviceBindings,
         currentCapabilityBindings: this.capabilityBindings,
       });
+      this.operatingMode = desired.operatingMode;
       const changesState =
         previousOperatingMode !== desired.operatingMode ||
         result.actions.length > 0 ||
         result.blocked.size > 0;
       const execute = async (): Promise<void> => {
-        await this.executePlan(result);
-        for (const serviceId of this.serviceBindings.keys()) {
-          if (!desired.serviceBindings.has(serviceId)) {
-            this.serviceBindings.delete(serviceId);
+        try {
+          await this.executePlan(result);
+        } finally {
+          for (const serviceId of this.serviceBindings.keys()) {
+            if (!result.serviceBindings.has(serviceId)) {
+              this.serviceBindings.delete(serviceId);
+            }
           }
-        }
-        for (const [serviceId, providerId] of desired.serviceBindings) {
-          this.serviceBindings.set(serviceId, providerId);
-        }
-        for (const capabilityId of this.capabilityBindings.keys()) {
-          if (!desired.capabilityBindings.has(capabilityId)) {
-            this.capabilityBindings.delete(capabilityId);
+          for (const [serviceId, providerId] of result.serviceBindings) {
+            this.serviceBindings.set(serviceId, providerId);
           }
-        }
-        for (const [capabilityId, providerId] of desired.capabilityBindings) {
-          this.capabilityBindings.set(capabilityId, providerId);
+          for (const capabilityId of this.capabilityBindings.keys()) {
+            if (!result.capabilityBindings.has(capabilityId)) {
+              this.capabilityBindings.delete(capabilityId);
+            }
+          }
+          for (const [capabilityId, providerId] of result.capabilityBindings) {
+            this.capabilityBindings.set(capabilityId, providerId);
+          }
         }
       };
 
@@ -166,24 +188,70 @@ export class MicroSystemSupervisor {
   }
 
   async executePlan(plan: ReconcilePlan): Promise<void> {
+    let firstError: unknown;
     for (const action of plan.actions) {
+      if (action.kind === "START") {
+        const blockedReason = this.hardPrerequisiteBlockReason(action, plan);
+        if (blockedReason !== undefined) {
+          this.actual.set(action.microSystemId, "BLOCKED");
+          continue;
+        }
+      }
       try {
         await this.executeAction(action);
-      } catch {
-        if ("microSystemId" in action) {
+      } catch (error) {
+        firstError ??= error;
+        if (action.kind === "START") {
+          await this.stop(action.microSystemId, "FAILED").catch(() => undefined);
+          this.actual.set(action.microSystemId, "FAILED");
+        } else if (action.kind === "STOP") {
+          if (
+            this.getActualState(action.microSystemId) !== "STOPPED" &&
+            this.running.has(action.microSystemId)
+          ) {
+            this.actual.set(action.microSystemId, "FAILED");
+          }
+        } else if ("microSystemId" in action) {
           this.actual.set(action.microSystemId, "FAILED");
         }
       }
     }
     for (const [microSystemId, reason] of plan.blocked) {
-      if (
-        reason !== "runtime.operating_mode.ineligible" &&
-        this.getActualState(microSystemId) !== "RUNNING"
-      ) {
+      if (this.getActualState(microSystemId) !== "RUNNING") {
         this.actual.set(microSystemId, "BLOCKED");
       }
       void reason;
     }
+    if (firstError !== undefined) throw firstError;
+  }
+
+  private hardPrerequisiteBlockReason(
+    action: Extract<ReconcileAction, { kind: "START" }>,
+    plan: ReconcilePlan,
+  ): string | undefined {
+    const definition = this.getDefinition(action.microSystemId);
+    for (const requirement of definition.serviceRequirements) {
+      const providerId = plan.serviceBindings.get(requirement.serviceId);
+      if (providerId === undefined) {
+        return "runtime.service.missing";
+      }
+
+      const provider = [...this.definitions.values()].find((candidate) =>
+        candidate.serviceProvisions.some(
+          (provision) =>
+            provision.serviceId === requirement.serviceId &&
+            provision.providerId === providerId &&
+            provision.contractVersion === requirement.contract.version,
+        ),
+      );
+      if (
+        provider === undefined ||
+        this.getActualState(provider.microSystemId) !== "RUNNING"
+      ) {
+        return "runtime.service.blocked_dependency";
+      }
+    }
+    return undefined;
   }
 
   async close(): Promise<void> {
@@ -196,7 +264,9 @@ export class MicroSystemSupervisor {
         .plan()
         .shutdownOrder.map((definition) => definition.microSystemId);
     } catch {
-      ids = [...this.running.keys()].sort().reverse();
+      // The Map preserves activation order; reversing it is the last-resort
+      // acquisition-order projection, not a lexical ordering claim.
+      ids = [...this.running.keys()].reverse();
     }
     for (const microSystemId of ids) {
       await this.stop(microSystemId).catch(() => undefined);
@@ -276,6 +346,8 @@ export class MicroSystemSupervisor {
     const fence = new GenerationFence();
     const serviceProviderIds: ProviderId[] = [];
     const capabilityProviderIds: ProviderId[] = [];
+    const publishedServiceBindings = new Set<string>();
+    const publishedCapabilityBindings = new Set<string>();
     let backgroundFailure = false;
     let handle: SubstrateActivationHandle | undefined;
 
@@ -290,19 +362,29 @@ export class MicroSystemSupervisor {
             scope,
             serviceProviderIds,
             capabilityProviderIds,
+            publishedServiceBindings,
+            publishedCapabilityBindings,
           );
           await definition.activate(context);
           for (const provision of definition.serviceProvisions) {
-            if (!serviceProviderIds.includes(provision.providerId)) {
-              throw new RuntimeKernelProblem(
+            if (
+              !publishedServiceBindings.has(
+                `${provision.serviceId}\u0000${provision.providerId}`,
+              )
+            ) {
+              throw runtimeKernelProblem(
                 "runtime.activation.missing_service_publication",
                 `MicroSystem '${definition.microSystemId}' did not publish declared Service '${provision.serviceId}'`,
               );
             }
           }
           for (const provision of definition.capabilityProvisions) {
-            if (!capabilityProviderIds.includes(provision.providerId)) {
-              throw new RuntimeKernelProblem(
+            if (
+              !publishedCapabilityBindings.has(
+                `${provision.capabilityId}\u0000${provision.providerId}`,
+              )
+            ) {
+              throw runtimeKernelProblem(
                 "runtime.activation.missing_capability_publication",
                 `MicroSystem '${definition.microSystemId}' did not publish declared Capability '${provision.capabilityId}'`,
               );
@@ -440,6 +522,8 @@ export class MicroSystemSupervisor {
     scope: import("@heptalogos/runtime-substrate").ActivationResourceScope,
     serviceProviderIds: ProviderId[],
     capabilityProviderIds: ProviderId[],
+    publishedServiceBindings: Set<string>,
+    publishedCapabilityBindings: Set<string>,
   ): MicroSystemActivationContext {
     const runtimeActivity = this.options.lifecycleLineage?.runner(
       this.runtimeOrigin(definition, instanceId),
@@ -456,7 +540,8 @@ export class MicroSystemSupervisor {
         (candidate) =>
           candidate.capabilityId === descriptor.capabilityId &&
           candidate.providerId === descriptor.providerId &&
-          candidate.contractVersion === descriptor.contractVersion,
+          candidate.contractVersion === descriptor.contractVersion &&
+          candidate.priority === descriptor.priority,
       );
     return {
       microSystemId: definition.microSystemId,
@@ -466,7 +551,7 @@ export class MicroSystemSupervisor {
       scope,
       signal: scope.signal,
       runtimeActivity,
-      requireService: (requirement, explicitProviderId) => {
+      requireService: (requirement) => {
         if (
           !definition.serviceRequirements.some(
             (candidate) =>
@@ -474,14 +559,17 @@ export class MicroSystemSupervisor {
               candidate.contract.version === requirement.contract.version,
           )
         ) {
-          throw new RuntimeKernelProblem(
+          throw runtimeKernelProblem(
             "runtime.activation.undeclared_service_access",
             `MicroSystem '${definition.microSystemId}' requested an undeclared Service`,
           );
         }
-        return this.services.resolve(requirement, explicitProviderId);
+        return this.services.resolve(
+          requirement,
+          this.serviceBindings.get(requirement.serviceId),
+        );
       },
-      resolveCapability: (requirement, explicitProviderId) => {
+      resolveCapability: (requirement) => {
         if (
           !definition.capabilityRequirements.some(
             (candidate) =>
@@ -489,49 +577,50 @@ export class MicroSystemSupervisor {
               candidate.contract.version === requirement.contract.version,
           )
         ) {
-          throw new RuntimeKernelProblem(
+          throw runtimeKernelProblem(
             "runtime.activation.undeclared_capability_access",
             `MicroSystem '${definition.microSystemId}' requested an undeclared Capability`,
           );
         }
-        return this.capabilities.resolve(requirement, explicitProviderId);
+        return this.capabilities.resolve(
+          requirement,
+          this.capabilityBindings.get(requirement.capabilityId),
+        );
       },
       publishService: (descriptor, implementation) => {
         if (!declaredService(descriptor)) {
-          throw new RuntimeKernelProblem(
+          throw runtimeKernelProblem(
             "runtime.activation.undeclared_service_publication",
             `MicroSystem '${definition.microSystemId}' published an undeclared Service`,
           );
         }
-        if (serviceProviderIds.includes(descriptor.providerId)) {
-          throw new RuntimeKernelProblem(
+        const bindingKey = `${descriptor.serviceId}\u0000${descriptor.providerId}`;
+        if (publishedServiceBindings.has(bindingKey)) {
+          throw runtimeKernelProblem(
             "runtime.activation.duplicate_service_publication",
             `MicroSystem '${definition.microSystemId}' published a Service twice`,
           );
         }
         this.services.register(descriptor, implementation, fence, runtimeActivity);
+        publishedServiceBindings.add(bindingKey);
         serviceProviderIds.push(descriptor.providerId);
       },
-      publishCapability: (descriptor, implementation, priority = 0) => {
+      publishCapability: (descriptor, implementation) => {
         if (!declaredCapability(descriptor)) {
-          throw new RuntimeKernelProblem(
+          throw runtimeKernelProblem(
             "runtime.activation.undeclared_capability_publication",
             `MicroSystem '${definition.microSystemId}' published an undeclared Capability`,
           );
         }
-        if (capabilityProviderIds.includes(descriptor.providerId)) {
-          throw new RuntimeKernelProblem(
+        const bindingKey = `${descriptor.capabilityId}\u0000${descriptor.providerId}`;
+        if (publishedCapabilityBindings.has(bindingKey)) {
+          throw runtimeKernelProblem(
             "runtime.activation.duplicate_capability_publication",
             `MicroSystem '${definition.microSystemId}' published a Capability twice`,
           );
         }
-        this.capabilities.register(
-          descriptor,
-          implementation,
-          priority,
-          fence,
-          runtimeActivity,
-        );
+        this.capabilities.register(descriptor, implementation, fence, runtimeActivity);
+        publishedCapabilityBindings.add(bindingKey);
         capabilityProviderIds.push(descriptor.providerId);
       },
     };

@@ -51,13 +51,35 @@
       "qualificationId": "Q-RUNTIME-01",
       "testedProperty": "Cordis lifecycle cleanup, disposer behavior, scope/generation isolation, and thin RuntimeSubstrate adapter fit",
       "evidenceStatus": "PASS",
-      "qualificationState": "OPEN",
+      "qualificationState": "PARTIAL",
       "evidence": {
         "P1_dependency_lifecycle": "PASS",
         "P2_partial_activation_failure": "PASS",
         "P3_disposer_failure": "PASS",
         "P4_scope_generation_isolation": "PASS",
-        "L2_adapter_fit": "PASS"
+        "L2_adapter_fit": "PASS",
+        "h2b_runtime_substrate_unit": "PASS (16/16; C1-C14 plus package-root surface assertion)",
+        "h2b_runtime_kernel_unit": "PASS (64/64 focused tests)",
+        "h2b_generation_fence": "PASS",
+        "h2b_service_provider_replacement": "PASS",
+        "h2b_capability_rebind": "PASS",
+        "h2b_operating_mode_reconcile": "PASS",
+        "h2b_readiness_recompute": "PASS",
+        "h2b_runtime_lifecycle_lineage_unit": "PASS (3/3 runtime-kernel lifecycle + 9/9 execution-lineage focused)",
+        "h2b_canonical_problem_error_unit": "PASS",
+        "h2b_runtime_substrate_late_disposal": "PASS (C11-C14)",
+        "h2b_runtime_lifecycle_real_postgres": "NOT_RUN",
+        "h2b_canonical_runtime_origin_constraints_real_postgres": "NOT_RUN",
+        "h2b_check_agents": "PASS",
+        "h2b_check_corpus": "PASS",
+        "h2b_check_repository": "PASS",
+        "h2b_check_dependencies": "PASS",
+        "h2b_check_boundaries": "PASS",
+        "h2b_toolchain_check": "PASS",
+        "h2b_ts7_build": "PASS",
+        "h2b_ts6_compatibility_lane": "PASS",
+        "h2b_changed_scope_eslint": "PASS",
+        "h2b_pnpm_verify": "PASS (full repository verify; one unrelated flaky lock test retried successfully)"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
@@ -65,7 +87,12 @@
         "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
       },
       "notRunReasons": {
-        "product_runtime_start_stop": "Pilot remains synthetic L1/L2; no complete RuntimeSubstrate or product runtime is implemented."
+        "product_runtime_start_stop": "Managed-Host PostgreSQL integration was skipped because the current host has no configured qualification toolchain.",
+        "h2b_runtime_lifecycle_real_postgres": "The managed-Host H2B integration file had five skipped tests because the PostgreSQL qualification toolchain was unavailable.",
+        "h2b_canonical_runtime_origin_constraints_real_postgres": "Runtime-origin database constraints were added to the current PRE_PRODUCTION baseline but not exercised without the real PostgreSQL fixture.",
+        "h2b_independent_review": "The corrective working tree has not been frozen or independently reviewed.",
+        "h2b_final_cross_platform_ci": "Final CI remains not run for the current corrective candidate.",
+        "h2b_squash_merge": "The corrective candidate has not been merged."
       },
       "preImplementationDecisionState": "CLOSED",
       "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification unless explicitly promoted by a future blocker."
@@ -615,7 +642,16 @@
         "h2a3BootstrapRuntimeIntegration": "47/47 PASS",
         "h2a3PostgresBinDirectory": "C:\\Users\\Arsvine\\AppData\\Local\\Temp\\heptalogos-pg18.6-correction-20260823\\extracted\\pgsql\\bin",
         "h2a3StaticGates": "pnpm check:agents, check:corpus, check:repository, check:dependencies, check:boundaries, toolchain:check PASS",
-        "h2a3RepositoryVerification": "pnpm verify PASS"
+        "h2a3RepositoryVerification": "pnpm verify PASS",
+        "h2b_persistence_relevant_behavior_sha": "NOT_FROZEN",
+        "h2b_canonical_runtime_origin_constraints": "NOT_RUN",
+        "h2b_completion_function_fail_closed_validation": "NOT_RUN",
+        "h2b_repository_schema_compile": "PASS",
+        "h2b_pnpm_verify": "PASS (full repository verify; one unrelated flaky lock test retried successfully)",
+        "h2b_real_postgres": "NOT_RUN",
+        "h2b_independent_review": "NOT_RUN",
+        "h2b_final_cross_platform_ci": "NOT_RUN",
+        "h2b_squash_merge": "NOT_RUN"
       },
       "notRunReasons": {
         "real_postgres_linux": "No Linux PostgreSQL 18.6 runtime was executed on this Windows host.",
@@ -630,7 +666,13 @@
         "h2a3_real_postgres_macos": "No macOS PostgreSQL 18.6 runtime was executed on this Windows host.",
         "h2a3_source_less": "The H2A-3 qualification runtime used an extracted EDB Windows package set, not a source-less shipping artifact.",
         "h2a3_service_headless": "No installed service-account/headless H2A-3 runtime was executed.",
-        "h2a3_review_and_closure": "H2A-3 exact-pair independent review, final cross-platform CI, and squash merge are not yet run."
+        "h2a3_review_and_closure": "H2A-3 exact-pair independent review, final cross-platform CI, and squash merge are not yet run.",
+        "h2b_canonical_runtime_origin_constraints": "The H2B corrective cycle added the constraints to the PRE_PRODUCTION baseline but did not execute the real PostgreSQL fixture.",
+        "h2b_completion_function_fail_closed_validation": "The H2B narrow completion function input checks were not exercised without the real PostgreSQL fixture.",
+        "h2b_real_postgres": "The managed-Host H2B integration file had five skipped tests because the PostgreSQL qualification toolchain was unavailable.",
+        "h2b_independent_review": "The H2B corrective working tree has not been frozen or independently reviewed.",
+        "h2b_final_cross_platform_ci": "Final CI remains not run for the H2B corrective candidate.",
+        "h2b_squash_merge": "The H2B corrective candidate has not been merged."
       }
     }
   ],

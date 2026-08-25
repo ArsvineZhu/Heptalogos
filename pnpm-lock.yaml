@@ -384,6 +384,9 @@ importers:
 
   packages/runtime-substrate:
     dependencies:
+      '@heptalogos/foundation-contracts':
+        specifier: workspace:*
+        version: link:../foundation-contracts
       cordis:
         specifier: 'catalog:'
         version: 4.0.0-rc.8

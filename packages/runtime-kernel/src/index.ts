@@ -33,7 +33,7 @@ export {
   type GenerationFenceState,
 } from "./generation-fence.js";
 export { evaluateReadiness } from "./readiness.js";
-export { RuntimeKernelProblem } from "./problems.js";
+export { runtimeKernelProblem } from "./problems.js";
 export { RuntimeGraph, type RuntimeGraphPlan } from "./runtime-graph.js";
 export {
   RuntimeReconciler,

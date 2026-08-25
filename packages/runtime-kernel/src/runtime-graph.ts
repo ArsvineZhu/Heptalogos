@@ -1,7 +1,7 @@
 import { alg, Graph } from "@dagrejs/graphlib";
 import type { MicroSystemDefinition, ProviderId, ServiceId } from "./contracts.js";
 import { ContractCompatibilityRegistry } from "./contract-compatibility.js";
-import { RuntimeKernelProblem } from "./problems.js";
+import { runtimeKernelProblem } from "./problems.js";
 
 export interface RuntimeGraphPlan {
   readonly startOrder: readonly MicroSystemDefinition[];
@@ -30,7 +30,7 @@ export class RuntimeGraph {
     );
     for (const definition of ordered) {
       if (this.definitions.has(definition.microSystemId)) {
-        throw new RuntimeKernelProblem(
+        throw runtimeKernelProblem(
           "runtime.graph.duplicate_node",
           `MicroSystem '${definition.microSystemId}' is registered more than once`,
         );
@@ -62,7 +62,7 @@ export class RuntimeGraph {
         let provider: MicroSystemDefinition | undefined;
         if (candidates.length === 1) provider = candidates[0];
         if (candidates.length === 0) {
-          throw new RuntimeKernelProblem(
+          throw runtimeKernelProblem(
             explicitProviderId === undefined
               ? "runtime.service.missing"
               : "runtime.service.explicit_unavailable",
@@ -70,7 +70,7 @@ export class RuntimeGraph {
           );
         }
         if (candidates.length > 1) {
-          throw new RuntimeKernelProblem(
+          throw runtimeKernelProblem(
             "runtime.service.ambiguous_provider",
             `More than one eligible provider exists for Service '${requirement.serviceId}'`,
           );
@@ -92,7 +92,7 @@ export class RuntimeGraph {
     try {
       orderedIds = alg.topsort(this.graph);
     } catch (cause) {
-      throw new RuntimeKernelProblem(
+      throw runtimeKernelProblem(
         "runtime.graph.hard_service_cycle",
         "RuntimeGraph contains a hard Service dependency cycle",
         cause,

@@ -63,14 +63,17 @@ export function createRuntimeLifecycleLineage(
       return bindRuntimeExecutionOrigin(options.execution, origin);
     },
 
-    async runRetained(origin, request, operation) {
+    async runRetained<T>(
+      origin: RuntimeExecutionOrigin,
+      request: ActivityRequest,
+      operation: (context: ExecutionContext) => Promise<T>,
+    ): Promise<T> {
       const runner = bindRuntimeExecutionOrigin(options.execution, origin);
       return runner.runActivity(request, async (context) => {
         await retain(context);
+        let result: T;
         try {
-          const result = await operation(context);
-          await complete(context, "SUCCEEDED");
-          return result;
+          result = await operation(context);
         } catch (error) {
           try {
             await complete(context, "FAILED");
@@ -82,6 +85,9 @@ export function createRuntimeLifecycleLineage(
           }
           throw error;
         }
+
+        await complete(context, "SUCCEEDED");
+        return result;
       });
     },
   };

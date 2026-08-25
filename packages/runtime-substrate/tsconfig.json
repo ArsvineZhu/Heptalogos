@@ -11,5 +11,10 @@
     "tsBuildInfoFile": "./dist/types/tsconfig.tsbuildinfo",
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../foundation-contracts"
+    }
+  ]
 }

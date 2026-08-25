@@ -13,7 +13,17 @@ import type { MicroSystemSupervisor } from "./supervisor.js";
 
 export type ReconcileAction =
   | {
-      readonly kind: "QUIESCE" | "STOP" | "START";
+      readonly kind: "QUIESCE";
+      readonly microSystemId: MicroSystemId;
+      readonly reason: string;
+    }
+  | {
+      readonly kind: "STOP";
+      readonly microSystemId: MicroSystemId;
+      readonly reason: string;
+    }
+  | {
+      readonly kind: "START";
       readonly microSystemId: MicroSystemId;
       readonly reason: string;
     }
@@ -32,6 +42,11 @@ export interface ReconcilePlan {
   readonly revision: number;
   readonly actions: readonly ReconcileAction[];
   readonly blocked: ReadonlyMap<MicroSystemId, string>;
+  readonly serviceBindings: ReadonlyMap<ServiceId, ProviderId>;
+  readonly capabilityBindings: ReadonlyMap<
+    import("@heptalogos/foundation-contracts").CapabilityId,
+    ProviderId
+  >;
 }
 
 export interface ReconcileInput {
@@ -105,20 +120,52 @@ export class RuntimeReconciler {
     const actions: ReconcileAction[] = [];
     const currentServices = input.currentServiceBindings ?? new Map();
     const currentCapabilities = input.currentCapabilityBindings ?? new Map();
+    const currentDefinitions = definitions.filter(
+      (definition) =>
+        (input.actual.get(definition.microSystemId) ?? "STOPPED") === "RUNNING" ||
+        [...currentServices.values()].some((providerId) =>
+          definition.serviceProvisions.some(
+            (provision) => provision.providerId === providerId,
+          ),
+        ),
+    );
+    const currentGraphPlan =
+      currentDefinitions.length > 0
+        ? new RuntimeGraph(currentDefinitions, currentServices).plan()
+        : { startOrder: [], shutdownOrder: [], edges: [] };
+    const selectedServices = new Map<ServiceId, ProviderId>();
+    for (const edge of graphPlan.edges) {
+      const previous = selectedServices.get(edge.serviceId);
+      if (
+        previous !== undefined &&
+        previous !==
+          edge.provider.serviceProvisions.find(
+            (provision) => provision.serviceId === edge.serviceId,
+          )?.providerId
+      ) {
+        blocked.set(edge.consumer.microSystemId, "runtime.service.binding_conflict");
+        continue;
+      }
+      const providerId = edge.provider.serviceProvisions.find(
+        (provision) => provision.serviceId === edge.serviceId,
+      )?.providerId;
+      if (providerId !== undefined) selectedServices.set(edge.serviceId, providerId);
+    }
+    const selectedCapabilities = new Map(input.desired.capabilityBindings);
     const stopped = new Set<MicroSystemId>();
     const restartRequired = new Set<MicroSystemId>();
     const changedServices = new Set<ServiceId>();
     for (const serviceId of currentServices.keys()) {
-      if (!input.desired.serviceBindings.has(serviceId)) {
+      if (!selectedServices.has(serviceId)) {
         changedServices.add(serviceId);
       }
     }
-    for (const [serviceId, providerId] of input.desired.serviceBindings) {
+    for (const [serviceId, providerId] of selectedServices) {
       if (currentServices.get(serviceId) !== providerId) {
         changedServices.add(serviceId);
       }
     }
-    for (const definition of definitions) {
+    for (const definition of currentGraphPlan.shutdownOrder) {
       if (
         (input.actual.get(definition.microSystemId) ?? "STOPPED") === "RUNNING" &&
         definition.serviceRequirements.some((requirement) =>
@@ -139,7 +186,7 @@ export class RuntimeReconciler {
         restartRequired.add(definition.microSystemId);
       }
     }
-    for (const [serviceId, providerId] of input.desired.serviceBindings) {
+    for (const [serviceId, providerId] of selectedServices) {
       if (changedServices.has(serviceId)) {
         actions.push({ kind: "REBIND_SERVICE", serviceId, providerId });
       }
@@ -150,7 +197,7 @@ export class RuntimeReconciler {
       }
     }
 
-    for (const definition of graphPlan.shutdownOrder) {
+    for (const definition of currentGraphPlan.shutdownOrder) {
       const actual = input.actual.get(definition.microSystemId) ?? "STOPPED";
       if (
         actual === "RUNNING" &&
@@ -171,9 +218,7 @@ export class RuntimeReconciler {
         stopped.add(definition.microSystemId);
       }
     }
-    for (const definition of [...definitions].sort((left, right) =>
-      right.microSystemId.localeCompare(left.microSystemId),
-    )) {
+    for (const definition of currentGraphPlan.shutdownOrder) {
       const actual = input.actual.get(definition.microSystemId) ?? "STOPPED";
       if (
         actual === "RUNNING" &&
@@ -219,6 +264,8 @@ export class RuntimeReconciler {
       revision: input.desired.revision,
       actions: Object.freeze(actions),
       blocked: new Map(blocked),
+      serviceBindings: new Map(selectedServices),
+      capabilityBindings: new Map(selectedCapabilities),
     });
   }
 

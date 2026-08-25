@@ -5,80 +5,51 @@ import type {
 } from "./contracts.js";
 import { ContractCompatibilityRegistry } from "./contract-compatibility.js";
 import { GenerationFence } from "./generation-fence.js";
-import { RuntimeKernelProblem } from "./problems.js";
+import { createFencedProxy } from "./fenced-proxy.js";
+import { runtimeKernelProblem } from "./problems.js";
 import type { ProviderId } from "@heptalogos/foundation-contracts";
 import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
 
 interface CapabilityBinding {
   readonly descriptor: CapabilityProvisionDescriptor;
   readonly implementation: object;
-  readonly priority: number;
   readonly fence: GenerationFence;
   readonly runtimeActivity?: RuntimeActivityRunner;
 }
 
-function operationIdFor(providerId: ProviderId, property: PropertyKey): string {
-  return `${providerId}.${String(property)}`.slice(0, 256);
-}
-
-function createFencedProxy<TContract extends object>(
-  implementation: TContract,
-  fence: GenerationFence,
+function bindingKey(
+  capabilityId: CapabilityProvisionDescriptor["capabilityId"],
   providerId: ProviderId,
-): TContract {
-  const proxies = new WeakMap<object, object>();
-  const wrap = <T extends object>(value: T): T => {
-    const previous = proxies.get(value);
-    if (previous !== undefined) return previous as T;
-    const proxy = new Proxy(value, {
-      get(target, property, receiver) {
-        fence.assertActive();
-        const member = Reflect.get(target, property, receiver);
-        if (typeof member !== "function") {
-          if (member !== null && typeof member === "object") {
-            return wrap(member as object);
-          }
-          return member;
-        }
-        return (...args: readonly unknown[]) =>
-          fence.invoke(operationIdFor(providerId, property), () =>
-            Reflect.apply(member, proxy, args),
-          );
-      },
-    });
-    proxies.set(value, proxy);
-    return proxy;
-  };
-  return wrap(implementation);
+): string {
+  return `${capabilityId}\u0000${providerId}`;
 }
 
 export class CapabilityRegistry {
-  private readonly bindings = new Map<ProviderId, CapabilityBinding>();
+  private readonly bindings = new Map<string, CapabilityBinding>();
   private readonly compatibility = new ContractCompatibilityRegistry();
 
   register<TContract extends object>(
     descriptor: CapabilityProvisionDescriptor,
     implementation: TContract,
-    priority = 0,
     fence = new GenerationFence(),
     runtimeActivity?: RuntimeActivityRunner,
   ): GenerationFence {
-    if (!Number.isSafeInteger(priority)) {
-      throw new RuntimeKernelProblem(
+    if (!Number.isSafeInteger(descriptor.priority)) {
+      throw runtimeKernelProblem(
         "runtime.capability.invalid_priority",
         "Capability provider priority must be a safe integer",
       );
     }
-    if (this.bindings.has(descriptor.providerId)) {
-      throw new RuntimeKernelProblem(
+    const key = bindingKey(descriptor.capabilityId, descriptor.providerId);
+    if (this.bindings.has(key)) {
+      throw runtimeKernelProblem(
         "runtime.capability.duplicate_provider",
         `Capability provider '${descriptor.providerId}' is already registered`,
       );
     }
-    this.bindings.set(descriptor.providerId, {
+    this.bindings.set(key, {
       descriptor,
       implementation,
-      priority,
       fence,
       runtimeActivity,
     });
@@ -143,10 +114,14 @@ export class CapabilityRegistry {
   }
 
   async retireProvider(providerId: ProviderId, settleTimeoutMs: number): Promise<void> {
-    const binding = this.bindings.get(providerId);
-    if (binding === undefined) return;
-    this.bindings.delete(providerId);
-    await binding.fence.retire(settleTimeoutMs);
+    const bindings = [...this.bindings.entries()].filter(
+      ([, binding]) => binding.descriptor.providerId === providerId,
+    );
+    if (bindings.length === 0) return;
+    for (const [key] of bindings) this.bindings.delete(key);
+    await Promise.all(
+      bindings.map(([, binding]) => binding.fence.retire(settleTimeoutMs)),
+    );
   }
 
   private selectBinding(
@@ -169,7 +144,7 @@ export class CapabilityRegistry {
       );
       if (explicit !== undefined) return explicit;
       if (throwOnFailure) {
-        throw new RuntimeKernelProblem(
+        throw runtimeKernelProblem(
           "runtime.capability.explicit_unavailable",
           `Explicit Capability provider '${explicitProviderId}' is unavailable or incompatible`,
         );
@@ -177,12 +152,14 @@ export class CapabilityRegistry {
       return undefined;
     }
     const selected = candidates.sort((left, right) => {
-      if (left.priority !== right.priority) return right.priority - left.priority;
+      if (left.descriptor.priority !== right.descriptor.priority) {
+        return right.descriptor.priority - left.descriptor.priority;
+      }
       return left.descriptor.providerId.localeCompare(right.descriptor.providerId);
     })[0];
     if (selected !== undefined) return selected;
     if (requirement.required && throwOnFailure) {
-      throw new RuntimeKernelProblem(
+      throw runtimeKernelProblem(
         "runtime.capability.missing",
         `No eligible provider exists for Capability '${requirement.capabilityId}'`,
       );

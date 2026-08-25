@@ -312,6 +312,11 @@ async function completeActivity(
   if (result === "NOT_FOUND") throw activityNotRetainedProblem();
   if (result === "ORIGIN_MISMATCH") throw originMismatchProblem();
   if (result === "CONFLICT") throw completionConflictProblem();
+  if (result === "INVALID_COMPLETION") {
+    throw invalidCompletionProblem(
+      "Canonical completion function rejected the completion payload",
+    );
+  }
   throw invalidCompletionProblem(
     "Canonical completion function returned an unknown result",
   );

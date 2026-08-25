@@ -20,7 +20,7 @@ import {
   exactContract,
   evaluateReadiness,
   RuntimeGraph,
-  RuntimeKernelProblem,
+  runtimeKernelProblem,
   ServiceRegistry,
   type CapabilityProvisionDescriptor,
   type CapabilityRequirement,
@@ -28,6 +28,7 @@ import {
   type ServiceProvisionDescriptor,
   type ServiceRequirement,
 } from "./index.js";
+import { ProblemError } from "@heptalogos/foundation-contracts";
 
 const contractV1 = createContractVersion("v1");
 const generation = {
@@ -58,8 +59,9 @@ function serviceProvision(
 function capabilityProvision(
   capabilityId: CapabilityId,
   providerId: ProviderId,
+  priority = 0,
 ): CapabilityProvisionDescriptor {
-  return { capabilityId, providerId, contractVersion: contractV1 };
+  return { capabilityId, providerId, contractVersion: contractV1, priority };
 }
 
 function recordingActivityRunner(requests: ActivityRequest[]): RuntimeActivityRunner {
@@ -112,6 +114,22 @@ function deferred<T>(): {
 }
 
 describe("RuntimeKernel contract compatibility and Service registry", () => {
+  it("uses the canonical ProblemError contract for stable runtime failures", () => {
+    const error = runtimeKernelProblem(
+      "runtime.generation.retired",
+      "provider retired",
+    );
+    expect(error).toBeInstanceOf(ProblemError);
+    expect(error.constructor).toBe(ProblemError);
+    expect(error.name).toBe("ProblemError");
+    expect(error.problem).toMatchObject({
+      schemaVersion: 1,
+      problemCode: "runtime.generation.retired",
+      category: "conflict",
+      retryClass: "after-change",
+    });
+  });
+
   it("S1 binds one eligible Service provider", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.service");
@@ -128,7 +146,9 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     const registry = new ServiceRegistry();
     const requirement = serviceRequirement(createServiceId("test.missing"));
     expect(() => registry.resolve(requirement)).toThrow(
-      expect.objectContaining({ problemCode: "runtime.service.missing" }),
+      expect.objectContaining({
+        problem: expect.objectContaining({ problemCode: "runtime.service.missing" }),
+      }),
     );
   });
 
@@ -138,7 +158,11 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     registry.register(serviceProvision(serviceId, createProviderId("provider.b")), {});
     registry.register(serviceProvision(serviceId, createProviderId("provider.a")), {});
     expect(() => registry.resolve(serviceRequirement(serviceId))).toThrow(
-      expect.objectContaining({ problemCode: "runtime.service.ambiguous_provider" }),
+      expect.objectContaining({
+        problem: expect.objectContaining({
+          problemCode: "runtime.service.ambiguous_provider",
+        }),
+      }),
     );
   });
 
@@ -164,7 +188,11 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
         createProviderId("provider.missing"),
       ),
     ).toThrow(
-      expect.objectContaining({ problemCode: "runtime.service.explicit_unavailable" }),
+      expect.objectContaining({
+        problem: expect.objectContaining({
+          problemCode: "runtime.service.explicit_unavailable",
+        }),
+      }),
     );
   });
 
@@ -180,7 +208,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     await expect(
       lease.invoke("read", (service) => service.read()),
     ).rejects.toMatchObject({
-      problemCode: "runtime.generation.retired",
+      problem: { problemCode: "runtime.generation.retired" },
     });
   });
 
@@ -223,7 +251,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     const call = lease.invoke("read", (service) => service.read());
     await Promise.resolve();
     await expect(registry.retireProvider(providerId, 5)).rejects.toMatchObject({
-      problemCode: "runtime.generation.settlement_timeout",
+      problem: { problemCode: "runtime.generation.settlement_timeout" },
     });
     released.resolve("late");
     await call;
@@ -245,7 +273,9 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     });
     await registry.retireProvider(providerId, 50);
     expect(() => retained!.read()).toThrow(
-      expect.objectContaining({ problemCode: "runtime.generation.retired" }),
+      expect.objectContaining({
+        problem: expect.objectContaining({ problemCode: "runtime.generation.retired" }),
+      }),
     );
   });
 
@@ -273,9 +303,87 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     const retirement = registry.retireProvider(providerId, 50);
     released.resolve();
     await expect(call).rejects.toMatchObject({
-      problemCode: "runtime.generation.retired",
+      problem: { problemCode: "runtime.generation.retired" },
     });
     await expect(retirement).resolves.toBeUndefined();
+  });
+
+  it("F1 preserves synchronous Service method return semantics", async () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.sync-service");
+    const providerId = createProviderId("provider.sync-service");
+    registry.register(serviceProvision(serviceId, providerId), {
+      now: () => "sync",
+    });
+    const lease = registry.resolve<{ now(): string }>(serviceRequirement(serviceId));
+    let observed: unknown;
+    await lease.invoke("capture", (service) => {
+      observed = service.now();
+      return service.now().toUpperCase();
+    });
+    expect(observed).toBe("sync");
+  });
+
+  it("F2 preserves synchronous Capability method return semantics", async () => {
+    const registry = new CapabilityRegistry();
+    const capabilityId = createCapabilityId("test.sync-capability");
+    const providerId = createProviderId("provider.sync-capability");
+    registry.register(capabilityProvision(capabilityId, providerId), {
+      now: () => "sync",
+    });
+    const lease = registry.resolve<{ now(): string }>(
+      capabilityRequirement(capabilityId, true),
+    );
+    let observed: unknown;
+    await lease!.invoke("capture", (capability) => {
+      observed = capability.now();
+      return capability.now().toUpperCase();
+    });
+    expect(observed).toBe("sync");
+  });
+
+  it("F3 fences objects returned by provider methods after retirement", async () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.returned-object");
+    const providerId = createProviderId("provider.returned-object");
+    registry.register(serviceProvision(serviceId, providerId), {
+      getSession: () => ({ read: () => "session" }),
+    });
+    const lease = registry.resolve<{
+      getSession(): { read(): string };
+    }>(serviceRequirement(serviceId));
+    let session!: { read(): string };
+    await lease.invoke("capture", (service) => {
+      session = service.getSession();
+    });
+    await registry.retireProvider(providerId, 50);
+    expect(() => session.read()).toThrow(
+      expect.objectContaining({
+        problem: expect.objectContaining({ problemCode: "runtime.generation.retired" }),
+      }),
+    );
+  });
+
+  it("F4 fences retained nested Service objects after retirement", async () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.retained-nested-object");
+    const providerId = createProviderId("provider.retained-nested-object");
+    registry.register(serviceProvision(serviceId, providerId), {
+      session: { read: () => "session" },
+    });
+    const lease = registry.resolve<{
+      readonly session: { read(): string };
+    }>(serviceRequirement(serviceId));
+    let session!: { read(): string };
+    await lease.invoke("capture", (service) => {
+      session = service.session;
+    });
+    await registry.retireProvider(providerId, 50);
+    expect(() => session.read()).toThrow(
+      expect.objectContaining({
+        problem: expect.objectContaining({ problemCode: "runtime.generation.retired" }),
+      }),
+    );
   });
 
   it("S11 records transient Service call Activity semantics", async () => {
@@ -310,13 +418,68 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
 });
 
 describe("Capability registry and readiness", () => {
+  it("allows one provider to expose multiple Service bindings", () => {
+    const registry = new ServiceRegistry();
+    const providerId = createProviderId("provider.multi-service");
+    const serviceA = createServiceId("test.multi-service.a");
+    const serviceB = createServiceId("test.multi-service.b");
+    registry.register(serviceProvision(serviceA, providerId), { read: () => "a" });
+    registry.register(serviceProvision(serviceB, providerId), { read: () => "b" });
+    expect(registry.providerIds(serviceA)).toEqual([providerId]);
+    expect(registry.providerIds(serviceB)).toEqual([providerId]);
+  });
+
+  it("allows one provider to expose multiple Capability bindings", () => {
+    const registry = new CapabilityRegistry();
+    const providerId = createProviderId("provider.multi-capability");
+    const capabilityA = createCapabilityId("test.multi-capability.a");
+    const capabilityB = createCapabilityId("test.multi-capability.b");
+    registry.register(capabilityProvision(capabilityA, providerId), {});
+    registry.register(capabilityProvision(capabilityB, providerId), {});
+    expect(registry.providerIds(capabilityA)).toEqual([providerId]);
+    expect(registry.providerIds(capabilityB)).toEqual([providerId]);
+  });
+
+  it("retires every Service and Capability binding owned by one provider", async () => {
+    const providerId = createProviderId("provider.multi-binding-retire");
+    const serviceRegistry = new ServiceRegistry();
+    const serviceA = createServiceId("test.retire.service.a");
+    const serviceB = createServiceId("test.retire.service.b");
+    serviceRegistry.register(serviceProvision(serviceA, providerId), {});
+    serviceRegistry.register(serviceProvision(serviceB, providerId), {});
+    await serviceRegistry.retireProvider(providerId, 50);
+    expect(serviceRegistry.providerIds(serviceA)).toEqual([]);
+    expect(serviceRegistry.providerIds(serviceB)).toEqual([]);
+
+    const capabilityRegistry = new CapabilityRegistry();
+    const capabilityA = createCapabilityId("test.retire.capability.a");
+    const capabilityB = createCapabilityId("test.retire.capability.b");
+    capabilityRegistry.register(capabilityProvision(capabilityA, providerId), {});
+    capabilityRegistry.register(capabilityProvision(capabilityB, providerId), {});
+    await capabilityRegistry.retireProvider(providerId, 50);
+    expect(capabilityRegistry.providerIds(capabilityA)).toEqual([]);
+    expect(capabilityRegistry.providerIds(capabilityB)).toEqual([]);
+  });
+
+  it("uses static descriptor priority for Capability selection", () => {
+    const registry = new CapabilityRegistry();
+    const capabilityId = createCapabilityId("test.static-priority");
+    const low = createProviderId("provider.a");
+    const high = createProviderId("provider.z");
+    registry.register(capabilityProvision(capabilityId, low, 1), {});
+    registry.register(capabilityProvision(capabilityId, high, 10), {});
+    expect(
+      registry.resolve(capabilityRequirement(capabilityId, true))?.providerId,
+    ).toBe(high);
+  });
+
   it("K1 selects the highest-priority eligible Capability provider", () => {
     const registry = new CapabilityRegistry();
     const capabilityId = createCapabilityId("test.capability");
     const low = createProviderId("provider.low");
     const high = createProviderId("provider.high");
-    registry.register(capabilityProvision(capabilityId, low), {}, 1);
-    registry.register(capabilityProvision(capabilityId, high), {}, 10);
+    registry.register(capabilityProvision(capabilityId, low, 1), {});
+    registry.register(capabilityProvision(capabilityId, high, 10), {});
     expect(
       registry.resolve(capabilityRequirement(capabilityId, true))?.providerId,
     ).toBe(high);
@@ -327,8 +490,8 @@ describe("Capability registry and readiness", () => {
     const capabilityId = createCapabilityId("test.tie");
     const providerA = createProviderId("provider.a");
     const providerB = createProviderId("provider.b");
-    registry.register(capabilityProvision(capabilityId, providerB), {}, 1);
-    registry.register(capabilityProvision(capabilityId, providerA), {}, 1);
+    registry.register(capabilityProvision(capabilityId, providerB, 1), {});
+    registry.register(capabilityProvision(capabilityId, providerA, 1), {});
     expect(
       registry.resolve(capabilityRequirement(capabilityId, true))?.providerId,
     ).toBe(providerA);
@@ -339,8 +502,8 @@ describe("Capability registry and readiness", () => {
     const capabilityId = createCapabilityId("test.explicit");
     const providerA = createProviderId("provider.a");
     const providerB = createProviderId("provider.b");
-    registry.register(capabilityProvision(capabilityId, providerA), {}, 10);
-    registry.register(capabilityProvision(capabilityId, providerB), {}, 1);
+    registry.register(capabilityProvision(capabilityId, providerA, 10), {});
+    registry.register(capabilityProvision(capabilityId, providerB, 1), {});
     expect(
       registry.resolve(capabilityRequirement(capabilityId, true), providerB)
         ?.providerId,
@@ -351,9 +514,8 @@ describe("Capability registry and readiness", () => {
     const registry = new CapabilityRegistry();
     const capabilityId = createCapabilityId("test.explicit-unavailable");
     registry.register(
-      capabilityProvision(capabilityId, createProviderId("provider.available")),
+      capabilityProvision(capabilityId, createProviderId("provider.available"), 10),
       {},
-      10,
     );
     expect(() =>
       registry.resolve(
@@ -362,7 +524,9 @@ describe("Capability registry and readiness", () => {
       ),
     ).toThrow(
       expect.objectContaining({
-        problemCode: "runtime.capability.explicit_unavailable",
+        problem: expect.objectContaining({
+          problemCode: "runtime.capability.explicit_unavailable",
+        }),
       }),
     );
   });
@@ -372,8 +536,8 @@ describe("Capability registry and readiness", () => {
     const capabilityId = createCapabilityId("test.withdrawal");
     const high = createProviderId("provider.high");
     const low = createProviderId("provider.low");
-    registry.register(capabilityProvision(capabilityId, high), {}, 10);
-    registry.register(capabilityProvision(capabilityId, low), {}, 1);
+    registry.register(capabilityProvision(capabilityId, high, 10), {});
+    registry.register(capabilityProvision(capabilityId, low, 1), {});
     await registry.retireProvider(high, 50);
     expect(
       registry.resolve(capabilityRequirement(capabilityId, true))?.providerId,
@@ -415,7 +579,7 @@ describe("Capability registry and readiness", () => {
     const retirement = registry.retireProvider(providerId, 50);
     released.resolve();
     await expect(call).rejects.toMatchObject({
-      problemCode: "runtime.generation.retired",
+      problem: { problemCode: "runtime.generation.retired" },
     });
     await expect(retirement).resolves.toBeUndefined();
   });
@@ -440,7 +604,9 @@ describe("Capability registry and readiness", () => {
     });
     await registry.retireProvider(providerId, 50);
     expect(() => retained!.read()).toThrow(
-      expect.objectContaining({ problemCode: "runtime.generation.retired" }),
+      expect.objectContaining({
+        problem: expect.objectContaining({ problemCode: "runtime.generation.retired" }),
+      }),
     );
   });
 
@@ -450,9 +616,8 @@ describe("Capability registry and readiness", () => {
     const providerId = createProviderId("provider.activity-capability");
     const requests: ActivityRequest[] = [];
     registry.register(
-      capabilityProvision(capabilityId, providerId),
+      capabilityProvision(capabilityId, providerId, 0),
       { read: () => "activity" },
-      0,
       createGenerationFence(),
       recordingActivityRunner(requests),
     );
@@ -542,7 +707,11 @@ describe("RuntimeGraph", () => {
       serviceProvisions: [serviceProvision(y, createProviderId("provider.b"))],
     });
     expect(() => new RuntimeGraph([a, b]).plan()).toThrow(
-      expect.objectContaining({ problemCode: "runtime.graph.hard_service_cycle" }),
+      expect.objectContaining({
+        problem: expect.objectContaining({
+          problemCode: "runtime.graph.hard_service_cycle",
+        }),
+      }),
     );
   });
 });

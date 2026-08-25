@@ -7,5 +7,5 @@ export type {
   SubstrateActivationHandle,
   SubstrateActivationRequest,
 } from "./contracts.js";
-export { RuntimeSubstrateProblem } from "./problems.js";
+export { runtimeSubstrateProblem } from "./problems.js";
 export { createRuntimeSubstrate } from "./cordis-adapter.js";

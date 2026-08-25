@@ -18,6 +18,7 @@ import {
   exactContract,
   MicroSystemSupervisor,
   type RuntimeLifecycleLineage,
+  type MicroSystemDesiredState,
   type MicroSystemDefinition,
   type ServiceProvisionDescriptor,
 } from "./index.js";
@@ -50,7 +51,7 @@ function desired(
   return {
     revision: 1,
     operatingMode,
-    desired: new Map(
+    desired: new Map<MicroSystemDefinition["microSystemId"], MicroSystemDesiredState>(
       systems.map((system) => [system.microSystemId, "RUNNING" as const]),
     ),
     serviceBindings,
@@ -245,6 +246,62 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
+  it("uses the Desired Service binding during consumer activation", async () => {
+    const serviceId = createServiceId("test.desired-service-binding");
+    const reads: string[] = [];
+    const a = provider("a", serviceId);
+    const d = provider("d", serviceId);
+    const b = consumer("b", serviceId, async (context) => {
+      const value = await context
+        .requireService<{ read(): string }>(serviceRequirement(serviceId))
+        .invoke("read", (service) => service.read());
+      reads.push(value);
+    });
+    const supervisor = createSupervisor([a, b, d]);
+    try {
+      await supervisor.reconcile(
+        desired(
+          [a, b, d],
+          "NORMAL",
+          new Map([[serviceId, createProviderId("provider.d")]]),
+        ),
+      );
+
+      expect(supervisor.getActualState(b.microSystemId)).toBe("RUNNING");
+      expect(reads).toEqual(["d"]);
+    } finally {
+      await supervisor.close();
+    }
+  });
+
+  it("restarts a dependent when an implicit Service provider is replaced", async () => {
+    const serviceId = createServiceId("test.implicit-service-replacement");
+    let bActivations = 0;
+    const reads: string[] = [];
+    const a = provider("a", serviceId);
+    const d = provider("d", serviceId);
+    const b = consumer("b", serviceId, async (context) => {
+      bActivations += 1;
+      const value = await context
+        .requireService<{ read(): string }>(serviceRequirement(serviceId))
+        .invoke("read", (service) => service.read());
+      reads.push(value);
+    });
+    const supervisor = createSupervisor([a, b, d]);
+    try {
+      await supervisor.reconcile(desired([a, b]));
+      await supervisor.reconcile(desired([b, d]));
+
+      expect(supervisor.getActualState(a.microSystemId)).toBe("STOPPED");
+      expect(supervisor.getActualState(d.microSystemId)).toBe("RUNNING");
+      expect(supervisor.getActualState(b.microSystemId)).toBe("RUNNING");
+      expect(bActivations).toBe(2);
+      expect(reads).toEqual(["a", "d"]);
+    } finally {
+      await supervisor.close();
+    }
+  });
+
   it("forgets a removed explicit Capability binding before reintroducing it", async () => {
     const capabilityId = createCapabilityId("test.binding-removal");
     const providerId = createProviderId("provider.capability");
@@ -270,18 +327,23 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
 
   it("R5 isolates a provider activation failure from an independent branch", async () => {
     const serviceId = createServiceId("test.failure");
+    let bActivations = 0;
     const a = provider("a", serviceId, async () => {
       throw new Error("provider activation failed");
     });
-    const b = consumer("b", serviceId);
+    const b = consumer("b", serviceId, async (context) => {
+      bActivations += 1;
+      await context
+        .requireService<{ read(): string }>(serviceRequirement(serviceId))
+        .invoke("read", (service) => service.read());
+    });
     const c = system("system.c", async () => undefined);
     const supervisor = createSupervisor([a, b, c]);
     try {
-      await supervisor.reconcile(desired([a, b, c]));
+      await expect(supervisor.reconcile(desired([a, b, c]))).rejects.toBeDefined();
       expect(supervisor.getActualState(a.microSystemId)).toBe("FAILED");
-      expect(["FAILED", "BLOCKED"]).toContain(
-        supervisor.getActualState(b.microSystemId),
-      );
+      expect(supervisor.getActualState(b.microSystemId)).toBe("BLOCKED");
+      expect(bActivations).toBe(0);
       expect(supervisor.getActualState(c.microSystemId)).toBe("RUNNING");
     } finally {
       await supervisor.close();
@@ -318,8 +380,114 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     });
 
     try {
-      await supervisor.reconcile(desired([failing]));
+      await expect(supervisor.reconcile(desired([failing]))).rejects.toBeDefined();
       expect(events).toContain("runtime.lifecycle.failure");
+    } finally {
+      await supervisor.close();
+    }
+  });
+
+  it("compensates an activated system when lifecycle success completion fails", async () => {
+    let activations = 0;
+    let disposals = 0;
+    const lifecycleLineage = {
+      runner: () => ({
+        current: () => undefined,
+        runActivity: async <T>(
+          _request: never,
+          operation: (context: never) => Promise<T>,
+        ) => operation(undefined as never),
+      }),
+      runRetained: async <T>(
+        _origin: never,
+        request: { kind: string },
+        operation: (context: never) => Promise<T>,
+      ) => {
+        const result = await operation(undefined as never);
+        if (request.kind === "runtime.lifecycle.activate") {
+          throw new Error("activation completion persistence failed");
+        }
+        return result;
+      },
+    } as unknown as RuntimeLifecycleLineage;
+    const systemDefinition = system(
+      "system.activation-completion-failure",
+      async (context) => {
+        activations += 1;
+        context.scope.defer("resource", () => {
+          disposals += 1;
+        });
+      },
+    );
+    const supervisor = new MicroSystemSupervisor({
+      substrate: createRuntimeSubstrate({ settleTimeoutMs: 50 }),
+      settleTimeoutMs: 50,
+      definitions: [systemDefinition],
+      lifecycleLineage,
+    });
+    try {
+      await expect(supervisor.reconcile(desired([systemDefinition]))).rejects.toThrow(
+        "activation completion persistence failed",
+      );
+      expect(supervisor.getActualState(systemDefinition.microSystemId)).toBe("FAILED");
+      expect(activations).toBe(1);
+      expect(disposals).toBe(1);
+
+      await expect(supervisor.reconcile(desired([systemDefinition]))).rejects.toThrow(
+        "activation completion persistence failed",
+      );
+      expect(activations).toBe(2);
+    } finally {
+      await supervisor.close();
+    }
+  });
+
+  it("preserves STOPPED when deactivation success completion persistence fails", async () => {
+    let disposals = 0;
+    const lifecycleLineage = {
+      runner: () => ({
+        current: () => undefined,
+        runActivity: async <T>(
+          _request: never,
+          operation: (context: never) => Promise<T>,
+        ) => operation(undefined as never),
+      }),
+      runRetained: async <T>(
+        _origin: never,
+        request: { kind: string },
+        operation: (context: never) => Promise<T>,
+      ) => {
+        const result = await operation(undefined as never);
+        if (request.kind === "runtime.lifecycle.deactivate") {
+          throw new Error("deactivation completion persistence failed");
+        }
+        return result;
+      },
+    } as unknown as RuntimeLifecycleLineage;
+    const systemDefinition = system(
+      "system.deactivation-completion-failure",
+      async (context) => {
+        context.scope.defer("resource", () => {
+          disposals += 1;
+        });
+      },
+    );
+    const supervisor = new MicroSystemSupervisor({
+      substrate: createRuntimeSubstrate({ settleTimeoutMs: 50 }),
+      settleTimeoutMs: 50,
+      definitions: [systemDefinition],
+      lifecycleLineage,
+    });
+    try {
+      await supervisor.reconcile(desired([systemDefinition]));
+      await expect(
+        supervisor.reconcile({
+          ...desired([systemDefinition]),
+          desired: new Map([[systemDefinition.microSystemId, "STOPPED" as const]]),
+        }),
+      ).rejects.toThrow("deactivation completion persistence failed");
+      expect(supervisor.getActualState(systemDefinition.microSystemId)).toBe("STOPPED");
+      expect(disposals).toBe(1);
     } finally {
       await supervisor.close();
     }
@@ -348,7 +516,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
       rejectBackground(new Error("worker failed"));
       await new Promise((resolve) => setTimeout(resolve, 5));
       expect(supervisor.getActualState(a.microSystemId)).toBe("FAILED");
-      await supervisor.reconcile(desired([a, b, c]));
+      await expect(supervisor.reconcile(desired([a, b, c]))).rejects.toBeDefined();
       expect(["FAILED", "BLOCKED"]).toContain(
         supervisor.getActualState(b.microSystemId),
       );
@@ -368,12 +536,50 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
           capabilityId,
           providerId,
           contractVersion: contractV1,
+          priority: 0,
         },
         { read: () => "capability" },
       );
       expect(supervisor.capabilities.providerIds(capabilityId)).toEqual([providerId]);
       await supervisor.capabilities.retireProvider(providerId, 50);
       expect(supervisor.capabilities.providerIds(capabilityId)).toEqual([]);
+    } finally {
+      await supervisor.close();
+    }
+  });
+
+  it("allows one MicroSystem to publish multiple bindings for one provider", async () => {
+    const serviceA = createServiceId("test.multi-provider.service.a");
+    const serviceB = createServiceId("test.multi-provider.service.b");
+    const providerId = createProviderId("provider.multi-binding");
+    const definition = system(
+      "system.multi-binding",
+      async (context) => {
+        context.publishService(serviceProvision(serviceA, providerId), {
+          read: () => "a",
+        });
+        context.publishService(serviceProvision(serviceB, providerId), {
+          read: () => "b",
+        });
+      },
+      {
+        serviceProvisions: [
+          serviceProvision(serviceA, providerId),
+          serviceProvision(serviceB, providerId),
+        ],
+      },
+    );
+    const supervisor = createSupervisor([definition]);
+    try {
+      await supervisor.reconcile(desired([definition]));
+      expect(supervisor.services.providerIds(serviceA)).toEqual([providerId]);
+      expect(supervisor.services.providerIds(serviceB)).toEqual([providerId]);
+      await supervisor.reconcile({
+        ...desired([definition]),
+        desired: new Map([[definition.microSystemId, "STOPPED" as const]]),
+      });
+      expect(supervisor.services.providerIds(serviceA)).toEqual([]);
+      expect(supervisor.services.providerIds(serviceB)).toEqual([]);
     } finally {
       await supervisor.close();
     }
@@ -388,7 +594,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     try {
       await supervisor.reconcile(normalDesired);
       await supervisor.reconcile(desired([safeOnly], "SAFE"));
-      expect(supervisor.getActualState(safeOnly.microSystemId)).toBe("STOPPED");
+      expect(supervisor.getActualState(safeOnly.microSystemId)).toBe("BLOCKED");
       expect(normalDesired.desired.get(safeOnly.microSystemId)).toBe("RUNNING");
     } finally {
       await supervisor.close();
@@ -404,6 +610,134 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
       await supervisor.reconcile(desired([systemDefinition], "SAFE"));
       await supervisor.reconcile(desired([systemDefinition], "NORMAL"));
       expect(supervisor.getActualState(systemDefinition.microSystemId)).toBe("RUNNING");
+    } finally {
+      await supervisor.close();
+    }
+  });
+
+  it("does not commit OperatingMode when planning fails", async () => {
+    const serviceA = createServiceId("test.mode-cycle.a");
+    const serviceB = createServiceId("test.mode-cycle.b");
+    const a = system("system.mode-cycle-a", async () => undefined, {
+      serviceRequirements: [serviceRequirement(serviceB)],
+      serviceProvisions: [
+        serviceProvision(serviceA, createProviderId("provider.mode-cycle-a")),
+      ],
+    });
+    const b = system("system.mode-cycle-b", async () => undefined, {
+      serviceRequirements: [serviceRequirement(serviceA)],
+      serviceProvisions: [
+        serviceProvision(serviceB, createProviderId("provider.mode-cycle-b")),
+      ],
+    });
+    const supervisor = createSupervisor([a, b]);
+    try {
+      await expect(supervisor.reconcile(desired([a, b], "SAFE"))).rejects.toMatchObject(
+        {
+          problem: { problemCode: "runtime.graph.hard_service_cycle" },
+        },
+      );
+      expect((supervisor as unknown as { operatingMode: string }).operatingMode).toBe(
+        "NORMAL",
+      );
+    } finally {
+      await supervisor.close();
+    }
+  });
+
+  it("uses current hard dependency topology when desired state removes all systems", async () => {
+    const serviceId = createServiceId("test.current-shutdown");
+    const order: string[] = [];
+    const providerDefinition = provider("a", serviceId, async (context) => {
+      context.publishService(
+        serviceProvision(serviceId, createProviderId("provider.a")),
+        { read: () => "a" },
+      );
+      context.scope.defer("provider-dispose", () => {
+        order.push("provider");
+      });
+    });
+    const consumerDefinition = consumer("z", serviceId, async (context) => {
+      context.scope.defer("consumer-dispose", () => {
+        order.push("consumer");
+      });
+      await context
+        .requireService<{ read(): string }>(serviceRequirement(serviceId))
+        .invoke("read", (service) => service.read());
+    });
+    const supervisor = createSupervisor([providerDefinition, consumerDefinition]);
+    try {
+      await supervisor.reconcile(desired([providerDefinition, consumerDefinition]));
+      expect(supervisor.getActualState(providerDefinition.microSystemId)).toBe(
+        "RUNNING",
+      );
+      expect(supervisor.getActualState(consumerDefinition.microSystemId)).toBe(
+        "RUNNING",
+      );
+      await supervisor.reconcile({
+        ...desired([providerDefinition, consumerDefinition]),
+        desired: new Map([
+          [providerDefinition.microSystemId, "STOPPED" as const],
+          [consumerDefinition.microSystemId, "STOPPED" as const],
+        ]),
+      });
+      expect(order).toEqual(["consumer", "provider"]);
+    } finally {
+      await supervisor.close();
+    }
+  });
+
+  it("uses current topology for multi-level shutdown when target graph is empty", async () => {
+    const serviceX = createServiceId("test.current-shutdown.x");
+    const serviceY = createServiceId("test.current-shutdown.y");
+    const order: string[] = [];
+    const providerA = provider("a", serviceX, async (context) => {
+      context.publishService(
+        serviceProvision(serviceX, createProviderId("provider.a")),
+        { read: () => "a" },
+      );
+      context.scope.defer("a-dispose", () => {
+        order.push("a");
+      });
+    });
+    const providerB = system(
+      "system.b",
+      async (context) => {
+        await context
+          .requireService<{ read(): string }>(serviceRequirement(serviceX))
+          .invoke("read", (service) => service.read());
+        context.publishService(
+          serviceProvision(serviceY, createProviderId("provider.b")),
+          { read: () => "b" },
+        );
+        context.scope.defer("b-dispose", () => {
+          order.push("b");
+        });
+      },
+      {
+        serviceRequirements: [serviceRequirement(serviceX)],
+        serviceProvisions: [serviceProvision(serviceY, createProviderId("provider.b"))],
+      },
+    );
+    const consumerC = consumer("c", serviceY, async (context) => {
+      await context
+        .requireService<{ read(): string }>(serviceRequirement(serviceY))
+        .invoke("read", (service) => service.read());
+      context.scope.defer("c-dispose", () => {
+        order.push("c");
+      });
+    });
+    const systems = [providerA, providerB, consumerC];
+    const supervisor = createSupervisor(systems);
+    try {
+      await supervisor.reconcile(desired(systems));
+      await supervisor.reconcile({
+        ...desired(systems),
+        desired: new Map(
+          systems.map((definition) => [definition.microSystemId, "STOPPED" as const]),
+        ),
+      });
+      expect(order).toEqual(["c", "b", "a"]);
     } finally {
       await supervisor.close();
     }
@@ -445,7 +779,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     });
     const supervisor = createSupervisor([failing]);
     try {
-      await supervisor.reconcile(desired([failing]));
+      await expect(supervisor.reconcile(desired([failing]))).rejects.toBeDefined();
       expect(attempts).toBe(1);
     } finally {
       await supervisor.close();
@@ -503,6 +837,34 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
       await Promise.resolve();
       await Promise.resolve();
       expect(supervisor.getActualState(failing.microSystemId)).toBe("FAILED");
+    } finally {
+      await supervisor.close();
+    }
+  });
+
+  it("captures DesiredRuntimeSnapshot before queued reconciliation reads it", async () => {
+    const systemDefinition = system("system.snapshot", async () => undefined);
+    const supervisor = createSupervisor([systemDefinition]);
+    const snapshot = desired([systemDefinition]);
+    try {
+      const reconcile = supervisor.reconcile(snapshot);
+      snapshot.desired.set(systemDefinition.microSystemId, "STOPPED");
+      await reconcile;
+      expect(supervisor.getActualState(systemDefinition.microSystemId)).toBe("RUNNING");
+    } finally {
+      await supervisor.close();
+    }
+  });
+
+  it("rejects negative or unsafe DesiredRuntimeSnapshot revisions", async () => {
+    const systemDefinition = system("system.invalid-revision", async () => undefined);
+    const supervisor = createSupervisor([systemDefinition]);
+    try {
+      await expect(
+        supervisor.reconcile({ ...desired([systemDefinition]), revision: -1 }),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "runtime.supervisor.invalid_revision" },
+      });
     } finally {
       await supervisor.close();
     }

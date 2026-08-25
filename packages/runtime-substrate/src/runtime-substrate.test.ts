@@ -2,10 +2,12 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import {
   createRuntimeSubstrate,
+  runtimeSubstrateProblem,
   type ActivationResourceScope,
   type RuntimeSubstrateFailure,
   type SubstrateActivationRequest,
 } from "./index.js";
+import { ProblemError } from "@heptalogos/foundation-contracts";
 
 function deferred<T>(): {
   readonly promise: Promise<T>;
@@ -47,6 +49,22 @@ function request(
 }
 
 describe("RuntimeSubstrate", () => {
+  it("uses the canonical ProblemError contract for stable substrate failures", () => {
+    const error = runtimeSubstrateProblem(
+      "runtime.substrate.closed",
+      "substrate closed",
+    );
+    expect(error).toBeInstanceOf(ProblemError);
+    expect(error.constructor).toBe(ProblemError);
+    expect(error.name).toBe("ProblemError");
+    expect(error.problem).toMatchObject({
+      schemaVersion: 1,
+      problemCode: "runtime.substrate.closed",
+      category: "conflict",
+      retryClass: "manual",
+    });
+  });
+
   it("C1 activates one Cordis-backed scope and disposes its resource", async () => {
     const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
     const failures: RuntimeSubstrateFailure[] = [];
@@ -92,7 +110,9 @@ describe("RuntimeSubstrate", () => {
           failures,
         ),
       ),
-    ).rejects.toMatchObject({ problemCode: "runtime.substrate.activation_failed" });
+    ).rejects.toMatchObject({
+      problem: { problemCode: "runtime.substrate.activation_failed" },
+    });
     expect(order).toEqual(["second", "first"]);
     await substrate.close();
   });
@@ -180,7 +200,7 @@ describe("RuntimeSubstrate", () => {
     await started.promise;
     await expect(substrate.close()).resolves.toBeUndefined();
     await expect(activation).rejects.toMatchObject({
-      problemCode: "runtime.substrate.activation_cancelled",
+      problem: { problemCode: "runtime.substrate.activation_cancelled" },
     });
     expect(disposed).toBe(true);
     expect(failures).toEqual([]);
@@ -230,7 +250,7 @@ describe("RuntimeSubstrate", () => {
     );
 
     await expect(handle.dispose()).rejects.toMatchObject({
-      problemCode: "runtime.substrate.disposal_failed",
+      problem: { problemCode: "runtime.substrate.disposal_failed" },
     });
     expect(failures).toMatchObject([
       { phase: "DISPOSAL", label: "bad-disposer", cause: new Error("dispose failed") },
@@ -279,7 +299,7 @@ describe("RuntimeSubstrate", () => {
     );
 
     await expect(handle.dispose()).rejects.toMatchObject({
-      problemCode: "runtime.substrate.settlement_timeout",
+      problem: { problemCode: "runtime.substrate.settlement_timeout" },
     });
     expect(failures).toMatchObject([{ phase: "SETTLEMENT_TIMEOUT", label: "c9" }]);
     expect(handle.state).toBe("DISPOSED");
@@ -316,6 +336,121 @@ describe("RuntimeSubstrate", () => {
     expect(order).toEqual(["second", "first"]);
     expect(first.state).toBe("DISPOSED");
     expect(second.state).toBe("DISPOSED");
+  });
+
+  it("C11 drains a late disposer admitted while disposal is in progress", async () => {
+    const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
+    const failures: RuntimeSubstrateFailure[] = [];
+    const disposalGate = deferred<void>();
+    const lateDisposer = deferred<void>();
+    let capturedScope!: ActivationResourceScope;
+    const handle = await substrate.activate(
+      request(
+        "c11",
+        (scope) => {
+          capturedScope = scope;
+          scope.defer("blocking", () => disposalGate.promise);
+        },
+        failures,
+      ),
+    );
+
+    const disposal = handle.dispose();
+    capturedScope.defer("late", () => lateDisposer.promise);
+    let completed = false;
+    void disposal.then(() => {
+      completed = true;
+    });
+    await flush();
+    expect(completed).toBe(false);
+    lateDisposer.resolve();
+    disposalGate.resolve();
+
+    await expect(disposal).resolves.toBeUndefined();
+    expect(failures).toEqual([]);
+    await substrate.close();
+  });
+
+  it("C12 reports a late disposer failure through dispose", async () => {
+    const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
+    const failures: RuntimeSubstrateFailure[] = [];
+    const disposalGate = deferred<void>();
+    const lateDisposer = deferred<void>();
+    let capturedScope!: ActivationResourceScope;
+    const handle = await substrate.activate(
+      request(
+        "c12",
+        (scope) => {
+          capturedScope = scope;
+          scope.defer("blocking", () => disposalGate.promise);
+        },
+        failures,
+      ),
+    );
+
+    const disposal = handle.dispose();
+    capturedScope.defer("late", () => lateDisposer.promise);
+    lateDisposer.reject(new Error("late disposer failed"));
+    disposalGate.resolve();
+
+    await expect(disposal).rejects.toMatchObject({
+      problem: { problemCode: "runtime.substrate.disposal_failed" },
+    });
+    expect(failures).toMatchObject([
+      { phase: "DISPOSAL", label: "late", cause: new Error("late disposer failed") },
+    ]);
+    await substrate.close().catch(() => undefined);
+  });
+
+  it("C13 rejects new tracked work after disposal begins", async () => {
+    const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
+    const failures: RuntimeSubstrateFailure[] = [];
+    let capturedScope!: ActivationResourceScope;
+    const handle = await substrate.activate(
+      request(
+        "c13",
+        (scope) => {
+          capturedScope = scope;
+        },
+        failures,
+      ),
+    );
+
+    const disposal = handle.dispose();
+    expect(() => capturedScope.track("late-task", Promise.resolve())).toThrow(
+      expect.objectContaining({
+        problem: expect.objectContaining({
+          problemCode: "runtime.substrate.scope_closed",
+        }),
+      }),
+    );
+    await disposal;
+    await substrate.close();
+  });
+
+  it("C14 removes settled tracked work from the activation drain set", async () => {
+    const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
+    const failures: RuntimeSubstrateFailure[] = [];
+    let capturedHandle!: object;
+    const handle = await substrate.activate(
+      request(
+        "c14",
+        (scope) => {
+          for (let index = 0; index < 100; index += 1) {
+            scope.track(`settled-${index}`, Promise.resolve());
+          }
+        },
+        failures,
+      ),
+    );
+    capturedHandle = handle as unknown as object;
+
+    await flush();
+    expect(
+      (capturedHandle as { readonly trackedTasks: Set<unknown> }).trackedTasks.size,
+    ).toBe(0);
+    await handle.dispose();
+    await substrate.close();
   });
 
   it("keeps the production adapter on the public Cordis package-root surface", async () => {

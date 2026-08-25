@@ -58,6 +58,32 @@ addendum 记录 H2A-2 canonical schema continuity 证据。H2A-1 的 exact
 review/CI/merge tuple 不被 H2A-2 改写；两组证据的 `PASS` 只表示已执行的
 evidence gate，不等同于 qualification closure。
 
+## H2B corrective-cycle persistence addendum (2026-08-25)
+
+```yaml
+qualificationId: Q-PERSISTENCE-01
+testedProperty: "H2B canonical runtime-origin constraints and narrow Activity completion function validation"
+evidenceStatus: NOT_RUN
+qualificationState: PARTIAL
+implementationQualification: REQUIRED
+h2b_persistence_relevant_behavior_sha: NOT_FROZEN
+canonical_runtime_origin_constraints: NOT_RUN
+completion_function_fail_closed_input_validation: NOT_RUN
+real_postgres_platform: NOT_RUN
+repository_schema_compile: PASS
+pnpm_verify: PASS (full repository verify; one unrelated flaky lock test retried successfully)
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+This addendum deliberately uses `h2b_persistence_relevant_behavior_sha`, not
+`behavior_candidate_sha`: the corrective working tree has not been frozen into
+an H2B candidate. The current PRE_PRODUCTION baseline was edited in place as
+required; no compatibility migration was added. Real PostgreSQL constraint and
+SECURITY DEFINER execution evidence remains `NOT_RUN` because the local
+qualification toolchain was unavailable.
+
 ## H2A-1 historical/current ledger
 
 H2A-1 已在历史候选上完成外部独立 review、exact-pair final CI 和 squash merge：

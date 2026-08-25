@@ -73,13 +73,36 @@ export const foundationBaselineMigration: Migration = {
         "activity_record_runtime_identity_check",
         sql`
           product_generation_id IS NULL OR
-          (btrim(product_generation_id) <> '' AND octet_length(product_generation_id) = 64)
+          product_generation_id ~ '^[0-9a-f]{64}$'
         `,
+      )
+      .addCheckConstraint(
+        "activity_record_package_generation_check",
+        sql`
+          package_generation_id IS NULL OR
+          package_generation_id ~ '^[0-9a-f]{64}$'
+        `,
+      )
+      .addCheckConstraint(
+        "activity_record_package_requires_product_check",
+        sql`package_generation_id IS NULL OR product_generation_id IS NOT NULL`,
+      )
+      .addCheckConstraint(
+        "activity_record_micro_system_requires_product_check",
+        sql`micro_system_id IS NULL OR product_generation_id IS NOT NULL`,
       )
       .addCheckConstraint(
         "activity_record_runtime_pair_check",
         sql`(micro_system_id IS NULL AND micro_system_instance_id IS NULL)
           OR (micro_system_id IS NOT NULL AND micro_system_instance_id IS NOT NULL)`,
+      )
+      .addCheckConstraint(
+        "activity_record_micro_system_id_shape_check",
+        sql`
+          micro_system_id IS NULL OR
+          (octet_length(micro_system_id) BETWEEN 1 AND 128 AND
+            micro_system_id ~ '^[a-z][a-z0-9]*(\\.[a-z0-9]+|-[a-z0-9]+)*$')
+        `,
       )
       .addCheckConstraint(
         "activity_record_operation_id_check",
@@ -218,6 +241,17 @@ export const foundationBaselineMigration: Migration = {
       DECLARE
         retained RECORD;
       BEGIN
+        IF p_ended_at IS NULL
+          OR p_outcome IS NULL
+          OR p_outcome NOT IN ('SUCCEEDED', 'FAILED', 'CANCELLED')
+          OR (
+            p_outcome_ref IS NOT NULL AND
+            (btrim(p_outcome_ref) = '' OR octet_length(p_outcome_ref) > 1024)
+          )
+        THEN
+          RETURN 'INVALID_COMPLETION';
+        END IF;
+
         SELECT
           installation_id,
           instance_id,

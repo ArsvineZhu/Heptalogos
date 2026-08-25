@@ -21,9 +21,47 @@ evidence:
   L2_adapter_fit: PASS
 ```
 
+## H2B corrective-cycle addendum (2026-08-25)
+
+```yaml
+candidate_status: NOT_FROZEN
+exact_cordis_version: 4.0.0-rc.8
+exact_graphlib_version: 4.0.5
+runtime_substrate_unit: PASS (16/16; C1-C14 plus package-root surface assertion)
+runtime_kernel_unit: PASS (64/64 focused tests)
+generation_fence: PASS (sync/async return shape, in-flight settlement, retained nested proxies)
+service_provider_replacement: PASS (focused supervisor regressions)
+capability_rebind: PASS (focused registry/readiness unit evidence)
+operating_mode_reconcile: PASS (focused supervisor regressions)
+readiness_recompute: PASS (focused evaluator/registry unit evidence)
+runtime_lifecycle_lineage_unit: PASS (3/3 runtime-kernel lifecycle + 9/9 execution-lineage focused tests)
+canonical_problem_error_unit: PASS (runtime-kernel and runtime-substrate emit native ProblemError)
+runtime_substrate_late_disposal: PASS (C11-C14)
+runtime_lifecycle_real_postgres: NOT_RUN
+canonical_runtime_origin_constraints_real_postgres: NOT_RUN
+repository_check_agents: PASS
+repository_check_corpus: PASS
+repository_check_repository: PASS
+repository_check_dependencies: PASS
+repository_check_boundaries: PASS
+toolchain_check: PASS
+ts7_build: PASS
+ts6_compatibility_lane: PASS
+changed_scope_eslint: PASS
+pnpm_verify: PASS (full repository verify; one unrelated flaky lock test retried successfully)
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The managed-Host PostgreSQL integration file was executed on the current host
+and all five cases were skipped because the qualification toolchain was not
+configured. This is `NOT_RUN`, not product/runtime qualification. Linux/macOS,
+source-less, and service/headless claims remain deferred.
+
 ## NOT_RUN / deferred properties
 
-- `product_runtime_start_stop`: Pilot remains synthetic L1/L2; no complete RuntimeSubstrate or product runtime is implemented.
+- `product_runtime_start_stop`: Pilot remains synthetic L1/L2; no complete managed-Host product runtime was executed.
 
 ## Architecture disposition
 

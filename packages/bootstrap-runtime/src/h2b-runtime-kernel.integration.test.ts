@@ -1,13 +1,16 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   asContentDigest,
+  createActivityId,
   createCapabilityId,
   createMicroSystemId,
+  createMicroSystemInstanceId,
   createProviderId,
   createServiceId,
   digestCanonicalJson,
   parseInstant,
   type ProductGenerationId,
+  type CapabilityId,
   type ProviderId,
   type ServiceId,
 } from "@heptalogos/foundation-contracts";
@@ -23,11 +26,14 @@ import { createRuntimeSubstrate } from "@heptalogos/runtime-substrate";
 import {
   createContractVersion,
   createRuntimeLifecycleLineage,
+  evaluateReadiness,
   exactContract,
   MicroSystemSupervisor,
   type ServiceLease,
   type MicroSystemDefinition,
   type ServiceRequirement,
+  type CapabilityProvisionDescriptor,
+  type CapabilityRequirement,
 } from "@heptalogos/runtime-kernel";
 import {
   BOOTSTRAP_PASSWORD,
@@ -64,10 +70,18 @@ function serviceRequirement(serviceId: ServiceId): ServiceRequirement {
   return { serviceId, contract: exactContract(contractV1) };
 }
 
+function capabilityRequirement(
+  capabilityId: CapabilityId,
+  required = true,
+): CapabilityRequirement {
+  return { capabilityId, contract: exactContract(contractV1), required };
+}
+
 function desired(
   systems: readonly MicroSystemDefinition[],
   operatingMode: "NORMAL" | "SAFE" = "NORMAL",
   serviceBindings: ReadonlyMap<ServiceId, ProviderId> = new Map(),
+  capabilityBindings: ReadonlyMap<CapabilityId, ProviderId> = new Map(),
 ) {
   return {
     revision: 1,
@@ -76,7 +90,34 @@ function desired(
       systems.map((system) => [system.microSystemId, "RUNNING" as const]),
     ),
     serviceBindings,
-    capabilityBindings: new Map(),
+    capabilityBindings,
+  };
+}
+
+function capabilityProvider(
+  id: string,
+  productGenerationId: ProductGenerationId,
+  capabilityId: CapabilityId,
+  priority: number,
+): MicroSystemDefinition {
+  const descriptor: CapabilityProvisionDescriptor = {
+    capabilityId,
+    providerId: createProviderId(`provider.${id}`),
+    contractVersion: contractV1,
+    priority,
+  };
+  return {
+    microSystemId: createMicroSystemId(`system.${id}`),
+    role: "provider",
+    generation: generation(productGenerationId),
+    operatingModes: ["NORMAL", "SAFE", "MAINTENANCE", "EMERGENCY_READ_ONLY"],
+    serviceRequirements: [],
+    capabilityRequirements: [],
+    serviceProvisions: [],
+    capabilityProvisions: [descriptor],
+    activate: async (context) => {
+      context.publishCapability(descriptor, { read: () => id });
+    },
   };
 }
 
@@ -266,6 +307,68 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
             SET ended_at = clock_timestamp(), outcome = 'FAILED'
           WHERE activity_id = (SELECT activity_id FROM "heptalogos"."activity_record" LIMIT 1)`,
       );
+
+      const host = composition.bootResult.host;
+      const insertConstraintProbe = (values: readonly unknown[]) =>
+        queryAs(
+          fixture,
+          "heptalogos_bootstrap",
+          BOOTSTRAP_PASSWORD,
+          `INSERT INTO "heptalogos"."activity_record" (
+             activity_id, kind, started_at, installation_id, instance_id,
+             boot_id, continuity_epoch_id, importance, retention_class,
+             sensitivity, product_generation_id, package_generation_id,
+             micro_system_id, micro_system_instance_id
+           ) VALUES ($1, 'runtime.constraint.test', $2, $3, $4, $5, $6,
+                     'routine', 'retained', 'operational', $7, $8, $9, $10)`,
+          [
+            createActivityId(),
+            "2026-08-25T15:00:00.000Z",
+            host.installationId,
+            host.instanceId,
+            host.bootId,
+            host.continuityEpochId,
+            ...values,
+          ],
+        );
+      await expect(
+        insertConstraintProbe(["A".repeat(64), null, null, null]),
+      ).rejects.toBeDefined();
+      await expect(
+        insertConstraintProbe([null, "b".repeat(64), null, null]),
+      ).rejects.toBeDefined();
+      await expect(
+        insertConstraintProbe([
+          productGenerationId,
+          null,
+          "Bad.System",
+          createMicroSystemInstanceId(),
+        ]),
+      ).rejects.toBeDefined();
+      const invalidCompletion = await queryAs(
+        fixture,
+        "heptalogos_bootstrap",
+        BOOTSTRAP_PASSWORD,
+        `SELECT "heptalogos"."complete_activity_record"(
+           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+         ) AS result`,
+        [
+          createActivityId(),
+          host.installationId,
+          host.instanceId,
+          host.bootId,
+          host.continuityEpochId,
+          host.token,
+          productGenerationId,
+          null,
+          null,
+          null,
+          null,
+          "SUCCEEDED",
+          null,
+        ],
+      );
+      expect(invalidCompletion.rows).toEqual([{ result: "INVALID_COMPLETION" }]);
     } finally {
       await closeComposition(fixture, composition);
     }
@@ -307,8 +410,135 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
       await expect(
         oldLease!.invoke("read", (service) => service.read()),
       ).rejects.toMatchObject({
-        problemCode: "runtime.generation.retired",
+        problem: { problemCode: "runtime.generation.retired" },
       });
+    } finally {
+      await closeComposition(fixture, composition);
+    }
+  }, 180_000);
+
+  it("I7 proves Capability provider activation, rebind, readiness, and fail-closed explicit binding", async () => {
+    const fixture = await makeFixture();
+    const productGenerationId = testProductGenerationId();
+    const capabilityId = createCapabilityId("h2b.integration.capability");
+    const highProvider = capabilityProvider(
+      "capability-high",
+      productGenerationId,
+      capabilityId,
+      10,
+    );
+    const lowProvider = capabilityProvider(
+      "capability-low",
+      productGenerationId,
+      capabilityId,
+      1,
+    );
+    const requirement = capabilityRequirement(capabilityId, true);
+    let consumerActivations = 0;
+    const selectedProviders: ProviderId[] = [];
+    const consumerDefinition: MicroSystemDefinition = {
+      microSystemId: createMicroSystemId("system.capability-consumer"),
+      role: "feature",
+      generation: generation(productGenerationId),
+      operatingModes: ["NORMAL", "SAFE", "MAINTENANCE", "EMERGENCY_READ_ONLY"],
+      serviceRequirements: [],
+      capabilityRequirements: [requirement],
+      serviceProvisions: [],
+      capabilityProvisions: [],
+      activate: async (context) => {
+        consumerActivations += 1;
+        const lease = context.resolveCapability<{ read(): string }>(requirement);
+        if (lease === undefined) throw new Error("Capability was not resolved");
+        selectedProviders.push(lease.providerId);
+        await lease.invoke("read", (capability) => capability.read());
+      },
+    };
+    const profile = {
+      profileId: "h2b.integration.capability-profile",
+      requiredServices: [],
+      requiredCapabilities: [requirement],
+      optionalCapabilities: [],
+    };
+    const composition = await createComposition(fixture, productGenerationId, [
+      highProvider,
+      lowProvider,
+      consumerDefinition,
+    ]);
+
+    try {
+      await composition.supervisor.reconcile(
+        desired([highProvider, lowProvider, consumerDefinition]),
+      );
+      expect(selectedProviders).toEqual([createProviderId("provider.capability-high")]);
+      expect(consumerActivations).toBe(1);
+      expect(
+        evaluateReadiness(
+          profile,
+          composition.supervisor.services,
+          composition.supervisor.capabilities,
+        ).state,
+      ).toBe("READY");
+
+      await composition.supervisor.reconcile(
+        desired([lowProvider, consumerDefinition]),
+      );
+      expect(
+        composition.supervisor.getActualState(consumerDefinition.microSystemId),
+      ).toBe("RUNNING");
+      expect(consumerActivations).toBe(1);
+      expect(composition.supervisor.capabilities.resolve(requirement)?.providerId).toBe(
+        createProviderId("provider.capability-low"),
+      );
+      expect(
+        evaluateReadiness(
+          profile,
+          composition.supervisor.services,
+          composition.supervisor.capabilities,
+        ).state,
+      ).toBe("READY");
+
+      await composition.supervisor.reconcile(desired([consumerDefinition]));
+      expect(
+        composition.supervisor.getActualState(consumerDefinition.microSystemId),
+      ).toBe("RUNNING");
+      expect(consumerActivations).toBe(1);
+      expect(
+        evaluateReadiness(
+          profile,
+          composition.supervisor.services,
+          composition.supervisor.capabilities,
+        ).state,
+      ).toBe("BLOCKED");
+
+      await composition.supervisor.reconcile(
+        desired(
+          [lowProvider, consumerDefinition],
+          "NORMAL",
+          new Map(),
+          new Map([[capabilityId, createProviderId("provider.capability-high")]]),
+        ),
+      );
+      expect(
+        evaluateReadiness(
+          profile,
+          composition.supervisor.services,
+          composition.supervisor.capabilities,
+          new Map(),
+          new Map([[capabilityId, createProviderId("provider.capability-high")]]),
+        ).state,
+      ).toBe("BLOCKED");
+      expect(() =>
+        composition.supervisor.capabilities.resolve(
+          requirement,
+          createProviderId("provider.capability-high"),
+        ),
+      ).toThrow(
+        expect.objectContaining({
+          problem: expect.objectContaining({
+            problemCode: "runtime.capability.explicit_unavailable",
+          }),
+        }),
+      );
     } finally {
       await closeComposition(fixture, composition);
     }
@@ -449,64 +679,26 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
     try {
       const initialDesired = desired([a, b, safeOnly, c]);
       await composition.supervisor.reconcile(initialDesired);
-      const capabilityId = createCapabilityId("h2b.integration.dynamic");
-      const capabilityRequirement = {
-        capabilityId,
-        contract: exactContract(contractV1),
-        required: true,
-      };
-      const capabilityHigh = createProviderId("provider.capability-high");
-      const capabilityLow = createProviderId("provider.capability-low");
-      composition.supervisor.capabilities.register(
-        {
-          capabilityId,
-          providerId: capabilityHigh,
-          contractVersion: contractV1,
-        },
-        { read: () => "high" },
-        10,
-      );
-      composition.supervisor.capabilities.register(
-        {
-          capabilityId,
-          providerId: capabilityLow,
-          contractVersion: contractV1,
-        },
-        { read: () => "low" },
-        1,
-      );
-      const independentBeforeCapabilityRebind = composition.supervisor.getActualState(
-        c.microSystemId,
-      );
-      expect(
-        composition.supervisor.capabilities.resolve(capabilityRequirement)?.providerId,
-      ).toBe(capabilityHigh);
-      await composition.supervisor.capabilities.retireProvider(
-        capabilityHigh,
-        settleTimeoutMs,
-      );
-      expect(
-        composition.supervisor.capabilities.resolve(capabilityRequirement)?.providerId,
-      ).toBe(capabilityLow);
-      expect(composition.supervisor.getActualState(c.microSystemId)).toBe(
-        independentBeforeCapabilityRebind,
-      );
       await composition.supervisor.reconcile(desired([a, b, safeOnly, c], "SAFE"));
       expect(composition.supervisor.getActualState(safeOnly.microSystemId)).toBe(
-        "STOPPED",
+        "BLOCKED",
       );
       expect(initialDesired.desired.get(safeOnly.microSystemId)).toBe("RUNNING");
       expect(composition.supervisor.getActualState(c.microSystemId)).toBe("RUNNING");
 
       rejectWorker(new Error("background failure"));
       await new Promise((resolve) => setTimeout(resolve, 20));
-      await composition.supervisor.reconcile(desired([a, b, safeOnly, c], "SAFE"));
+      await expect(
+        composition.supervisor.reconcile(desired([a, b, safeOnly, c], "SAFE")),
+      ).rejects.toBeDefined();
       expect(["FAILED", "BLOCKED"]).toContain(
         composition.supervisor.getActualState(b.microSystemId),
       );
       expect(composition.supervisor.getActualState(c.microSystemId)).toBe("RUNNING");
 
-      await composition.supervisor.reconcile(desired([a, b, safeOnly, c], "NORMAL"));
+      await expect(
+        composition.supervisor.reconcile(desired([a, b, safeOnly, c], "NORMAL")),
+      ).rejects.toBeDefined();
       expect(composition.supervisor.getActualState(safeOnly.microSystemId)).toBe(
         "RUNNING",
       );

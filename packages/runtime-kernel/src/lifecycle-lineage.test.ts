@@ -38,7 +38,7 @@ const runtimeOrigin: RuntimeExecutionOrigin = {
 };
 const time = createFakeTimeService("2026-08-25T15:00:00.123Z" as Instant);
 
-function createFixture() {
+function createFixture(failCompletion?: "SUCCEEDED" | "FAILED") {
   const runtime = createExecutionContextRuntime(hostOrigin, time);
   const events: string[] = [];
   const persistence: PersistenceService = {
@@ -72,6 +72,9 @@ function createFixture() {
     async retainBootstrapReference() {},
     async completeCurrent(_transaction, context, completion) {
       events.push(`complete:${context.kind}:${completion.outcome}`);
+      if (completion.outcome === failCompletion) {
+        throw new Error(`completion persistence failed: ${completion.outcome}`);
+      }
     },
   };
   return {
@@ -135,6 +138,28 @@ describe("RuntimeLifecycleLineage", () => {
     expect(fixture.events).toEqual([
       "retain:runtime.lifecycle.failure",
       "complete:runtime.lifecycle.failure:FAILED",
+    ]);
+  });
+
+  it("does not record a failure completion after success completion persistence fails", async () => {
+    const fixture = createFixture("SUCCEEDED");
+
+    await expect(
+      fixture.recorder.runRetained(
+        runtimeOrigin,
+        {
+          kind: "runtime.lifecycle.activate",
+          importance: "significant",
+          retentionClass: "retained",
+          sensitivity: "operational",
+        },
+        async () => "started",
+      ),
+    ).rejects.toThrow("completion persistence failed: SUCCEEDED");
+
+    expect(fixture.events).toEqual([
+      "retain:runtime.lifecycle.activate",
+      "complete:runtime.lifecycle.activate:SUCCEEDED",
     ]);
   });
 });

@@ -6,7 +6,8 @@ import type {
 } from "./contracts.js";
 import { ContractCompatibilityRegistry } from "./contract-compatibility.js";
 import { GenerationFence } from "./generation-fence.js";
-import { RuntimeKernelProblem } from "./problems.js";
+import { createFencedProxy } from "./fenced-proxy.js";
+import { runtimeKernelProblem } from "./problems.js";
 import type { ProviderId } from "@heptalogos/foundation-contracts";
 import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
 
@@ -17,43 +18,15 @@ interface ServiceBinding {
   readonly runtimeActivity?: RuntimeActivityRunner;
 }
 
-function operationIdFor(providerId: ProviderId, property: PropertyKey): string {
-  return `${providerId}.${String(property)}`.slice(0, 256);
-}
-
-function createFencedProxy<TContract extends object>(
-  implementation: TContract,
-  fence: GenerationFence,
+function bindingKey(
+  serviceId: ServiceProvisionDescriptor["serviceId"],
   providerId: ProviderId,
-): TContract {
-  const proxies = new WeakMap<object, object>();
-  const wrap = <T extends object>(value: T): T => {
-    const previous = proxies.get(value);
-    if (previous !== undefined) return previous as T;
-    const proxy = new Proxy(value, {
-      get(target, property, receiver) {
-        fence.assertActive();
-        const member = Reflect.get(target, property, receiver);
-        if (typeof member !== "function") {
-          if (member !== null && typeof member === "object") {
-            return wrap(member as object);
-          }
-          return member;
-        }
-        return (...args: readonly unknown[]) =>
-          fence.invoke(operationIdFor(providerId, property), () =>
-            Reflect.apply(member, proxy, args),
-          );
-      },
-    });
-    proxies.set(value, proxy);
-    return proxy;
-  };
-  return wrap(implementation);
+): string {
+  return `${serviceId}\u0000${providerId}`;
 }
 
 export class ServiceRegistry {
-  private readonly bindings = new Map<ProviderId, ServiceBinding>();
+  private readonly bindings = new Map<string, ServiceBinding>();
   private readonly compatibility = new ContractCompatibilityRegistry();
 
   register<TContract extends object>(
@@ -62,13 +35,14 @@ export class ServiceRegistry {
     fence = new GenerationFence(),
     runtimeActivity?: RuntimeActivityRunner,
   ): GenerationFence {
-    if (this.bindings.has(descriptor.providerId)) {
-      throw new RuntimeKernelProblem(
+    const key = bindingKey(descriptor.serviceId, descriptor.providerId);
+    if (this.bindings.has(key)) {
+      throw runtimeKernelProblem(
         "runtime.service.duplicate_provider",
-        `Service provider '${descriptor.providerId}' is already registered`,
+        `Service provider '${descriptor.providerId}' is already registered for Service '${descriptor.serviceId}'`,
       );
     }
-    this.bindings.set(descriptor.providerId, {
+    this.bindings.set(key, {
       descriptor,
       implementation,
       fence,
@@ -134,10 +108,14 @@ export class ServiceRegistry {
   }
 
   async retireProvider(providerId: ProviderId, settleTimeoutMs: number): Promise<void> {
-    const binding = this.bindings.get(providerId);
-    if (binding === undefined) return;
-    this.bindings.delete(providerId);
-    await binding.fence.retire(settleTimeoutMs);
+    const bindings = [...this.bindings.entries()].filter(
+      ([, binding]) => binding.descriptor.providerId === providerId,
+    );
+    if (bindings.length === 0) return;
+    for (const [key] of bindings) this.bindings.delete(key);
+    await Promise.all(
+      bindings.map(([, binding]) => binding.fence.retire(settleTimeoutMs)),
+    );
   }
 
   private selectBinding(
@@ -160,7 +138,7 @@ export class ServiceRegistry {
       );
       if (explicit !== undefined) return explicit;
       if (throwOnFailure) {
-        throw new RuntimeKernelProblem(
+        throw runtimeKernelProblem(
           "runtime.service.explicit_unavailable",
           `Explicit Service provider '${explicitProviderId}' is unavailable or incompatible`,
         );
@@ -170,7 +148,7 @@ export class ServiceRegistry {
     if (candidates.length === 1) return candidates[0];
     if (candidates.length === 0) {
       if (throwOnFailure) {
-        throw new RuntimeKernelProblem(
+        throw runtimeKernelProblem(
           "runtime.service.missing",
           `No eligible provider exists for Service '${requirement.serviceId}'`,
         );
@@ -178,7 +156,7 @@ export class ServiceRegistry {
       return undefined;
     }
     if (throwOnFailure) {
-      throw new RuntimeKernelProblem(
+      throw runtimeKernelProblem(
         "runtime.service.ambiguous_provider",
         `More than one eligible provider exists for Service '${requirement.serviceId}'`,
       );

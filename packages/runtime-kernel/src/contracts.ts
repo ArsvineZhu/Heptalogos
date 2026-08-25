@@ -62,6 +62,7 @@ export interface CapabilityProvisionDescriptor {
   readonly capabilityId: CapabilityId;
   readonly contractVersion: ContractVersion;
   readonly providerId: ProviderId;
+  readonly priority: number;
 }
 
 export interface ServiceLease<TContract extends object> {
@@ -94,11 +95,9 @@ export interface MicroSystemActivationContext {
   readonly runtimeActivity?: RuntimeActivityRunner;
   requireService<TContract extends object>(
     requirement: ServiceRequirement,
-    explicitProviderId?: ProviderId,
   ): ServiceLease<TContract>;
   resolveCapability<TContract extends object>(
     requirement: CapabilityRequirement,
-    explicitProviderId?: ProviderId,
   ): CapabilityLease<TContract> | undefined;
   publishService<TContract extends object>(
     descriptor: ServiceProvisionDescriptor,
@@ -107,7 +106,6 @@ export interface MicroSystemActivationContext {
   publishCapability<TContract extends object>(
     descriptor: CapabilityProvisionDescriptor,
     implementation: TContract,
-    priority?: number,
   ): void;
 }
 

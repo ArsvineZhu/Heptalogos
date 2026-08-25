@@ -1,5 +1,6 @@
 import { Context, type Fiber } from "cordis";
-import { RuntimeSubstrateProblem } from "./problems.js";
+import { ProblemError } from "@heptalogos/foundation-contracts";
+import { runtimeSubstrateProblem } from "./problems.js";
 import type {
   ActivationResourceScope,
   RuntimeDisposer,
@@ -25,7 +26,7 @@ interface PendingDisposer {
 
 function validateOptions(options: RuntimeSubstrateOptions): void {
   if (!Number.isSafeInteger(options.settleTimeoutMs) || options.settleTimeoutMs < 0) {
-    throw new RuntimeSubstrateProblem(
+    throw runtimeSubstrateProblem(
       "runtime.substrate.invalid_options",
       "settleTimeoutMs must be a non-negative safe integer",
     );
@@ -36,7 +37,7 @@ function timeout<T>(promise: Promise<T>, milliseconds: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(
-        new RuntimeSubstrateProblem(
+        runtimeSubstrateProblem(
           "runtime.substrate.settlement_timeout",
           `Runtime substrate task did not settle within ${milliseconds}ms`,
         ),
@@ -65,6 +66,7 @@ class Activation implements SubstrateActivationHandle {
   private readonly activationController = new AbortController();
   private readonly pendingDisposers: PendingDisposer[] = [];
   private readonly trackedTasks = new Set<TrackedTask>();
+  private readonly lateDisposers = new Set<Promise<void>>();
   private disposalPromise: Promise<void> | undefined;
   private disposalCause: unknown;
   private disposedCallbackCalled = false;
@@ -120,7 +122,7 @@ class Activation implements SubstrateActivationHandle {
       await (this.activationPromise ?? Promise.resolve());
       this.flushPendingDisposers();
       if (this.currentState !== "ACTIVATING") {
-        throw new RuntimeSubstrateProblem(
+        throw runtimeSubstrateProblem(
           "runtime.substrate.activation_cancelled",
           `Activation '${this.request.label}' was cancelled before becoming active`,
         );
@@ -130,8 +132,8 @@ class Activation implements SubstrateActivationHandle {
     } catch (error) {
       this.currentState = "FAILED";
       await this.dispose().catch(() => undefined);
-      if (error instanceof RuntimeSubstrateProblem) throw error;
-      throw new RuntimeSubstrateProblem(
+      if (error instanceof ProblemError) throw error;
+      throw runtimeSubstrateProblem(
         "runtime.substrate.activation_failed",
         `Activation '${this.request.label}' failed`,
         error,
@@ -158,6 +160,7 @@ class Activation implements SubstrateActivationHandle {
     }
 
     this.flushPendingDisposers();
+    await this.drainLateDisposers();
     const pendingTasks = [...this.trackedTasks]
       .filter((tracked) => !tracked.settled)
       .map((tracked) => tracked.task);
@@ -168,7 +171,7 @@ class Activation implements SubstrateActivationHandle {
           this.options.settleTimeoutMs,
         );
       } catch (cause) {
-        const timeoutProblem = new RuntimeSubstrateProblem(
+        const timeoutProblem = runtimeSubstrateProblem(
           "runtime.substrate.settlement_timeout",
           `Activation '${this.request.label}' has tracked work that did not settle`,
           cause,
@@ -181,6 +184,7 @@ class Activation implements SubstrateActivationHandle {
         this.disposalCause ??= timeoutProblem;
       }
     }
+    await this.drainLateDisposers();
 
     this.currentState = "DISPOSED";
     if (!this.disposedCallbackCalled) {
@@ -200,7 +204,7 @@ class Activation implements SubstrateActivationHandle {
 
   private defer(label: string, disposer: RuntimeDisposer): void {
     if (this.currentState === "DISPOSED") {
-      throw new RuntimeSubstrateProblem(
+      throw runtimeSubstrateProblem(
         "runtime.substrate.scope_closed",
         `Activation '${this.request.label}' scope is already disposed`,
       );
@@ -209,15 +213,15 @@ class Activation implements SubstrateActivationHandle {
       this.pendingDisposers.push({ label, disposer });
       return;
     }
+    if (this.currentState === "DISPOSING") {
+      this.scheduleLateDisposer(label, disposer);
+      return;
+    }
     try {
       this.registerDisposer(this.activationFiber, label, disposer);
     } catch (cause) {
-      if (this.currentState === "DISPOSING") {
-        void this.runLateDisposer(label, disposer);
-      } else {
-        this.pendingDisposers.push({ label, disposer });
-      }
-      if (cause instanceof RuntimeSubstrateProblem) throw cause;
+      this.pendingDisposers.push({ label, disposer });
+      if (cause instanceof ProblemError) throw cause;
     }
   }
 
@@ -243,7 +247,11 @@ class Activation implements SubstrateActivationHandle {
     if (this.pendingDisposers.length === 0) return;
     const pending = this.pendingDisposers.splice(0);
     for (const { label, disposer } of pending) {
-      if (this.activationFiber !== undefined && this.currentState !== "DISPOSED") {
+      if (
+        this.activationFiber !== undefined &&
+        this.currentState !== "DISPOSED" &&
+        this.currentState !== "DISPOSING"
+      ) {
         try {
           this.registerDisposer(this.activationFiber, label, disposer);
           continue;
@@ -251,7 +259,19 @@ class Activation implements SubstrateActivationHandle {
           // A Fiber can already be unloading. Run the disposer directly below.
         }
       }
-      void this.runLateDisposer(label, disposer);
+      this.scheduleLateDisposer(label, disposer);
+    }
+  }
+
+  private scheduleLateDisposer(label: string, disposer: RuntimeDisposer): void {
+    const pending = this.runLateDisposer(label, disposer);
+    this.lateDisposers.add(pending);
+    void pending.finally(() => this.lateDisposers.delete(pending));
+  }
+
+  private async drainLateDisposers(): Promise<void> {
+    while (this.lateDisposers.size > 0) {
+      await Promise.all([...this.lateDisposers]);
     }
   }
 
@@ -267,8 +287,8 @@ class Activation implements SubstrateActivationHandle {
   }
 
   private track(label: string, task: Promise<unknown>): void {
-    if (this.currentState === "DISPOSED") {
-      throw new RuntimeSubstrateProblem(
+    if (this.currentState === "DISPOSING" || this.currentState === "DISPOSED") {
+      throw runtimeSubstrateProblem(
         "runtime.substrate.scope_closed",
         `Activation '${this.request.label}' scope is already disposed`,
       );
@@ -282,9 +302,11 @@ class Activation implements SubstrateActivationHandle {
     void tracked.task.then(
       () => {
         tracked.settled = true;
+        this.trackedTasks.delete(tracked);
       },
       (cause: unknown) => {
         tracked.settled = true;
+        this.trackedTasks.delete(tracked);
         if (this.currentState === "ACTIVE" || this.currentState === "ACTIVATING") {
           this.currentState = "FAILED";
           this.notifyFailure({ phase: "BACKGROUND", label, cause });
@@ -294,7 +316,7 @@ class Activation implements SubstrateActivationHandle {
   }
 
   private recordDisposalFailure(cause: unknown, label = this.request.label): void {
-    this.disposalCause ??= new RuntimeSubstrateProblem(
+    this.disposalCause ??= runtimeSubstrateProblem(
       "runtime.substrate.disposal_failed",
       `Activation '${this.request.label}' disposer '${label}' failed`,
       cause,
@@ -323,7 +345,7 @@ export function createRuntimeSubstrate(
   const substrate: RuntimeSubstrate = {
     async activate(request) {
       if (closed) {
-        throw new RuntimeSubstrateProblem(
+        throw runtimeSubstrateProblem(
           "runtime.substrate.closed",
           "Runtime substrate is already closed",
         );
