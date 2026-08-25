@@ -19,6 +19,8 @@ import type {
   MicroSystemId,
   ReadinessProfileDefinition,
   ReadinessResult,
+  RuntimeOwnerLifecycle,
+  RuntimeQuiescenceLease,
   ServiceId,
   ServiceProvisionDescriptor,
   ServiceRequirement,
@@ -60,7 +62,11 @@ export interface MicroSystemSupervisorOptions {
   readonly definitions?: readonly MicroSystemDefinition[];
   readonly lifecycleLineage?: RuntimeLifecycleLineage;
   readonly rootRuntimeOrigin?: RuntimeExecutionOrigin;
+  readonly ownerLifecycle?: RuntimeOwnerLifecycle;
 }
+
+type SupervisorLifecycleState =
+  "ACTIVE" | "QUIESCING" | "QUIESCED" | "RESUMING" | "CLOSING" | "CLOSED";
 
 function captureDesiredRuntimeSnapshot(
   input: DesiredRuntimeSnapshot,
@@ -102,11 +108,33 @@ export class MicroSystemSupervisor {
   >();
   private operatingMode: import("./contracts.js").OperatingMode = "NORMAL";
   private mutationChain: Promise<void> = Promise.resolve();
+  private lifecycleState: SupervisorLifecycleState = "ACTIVE";
+  private capturedDesired: DesiredRuntimeSnapshot | undefined;
+  private readonly startingFences = new Set<GenerationFence>();
+  private terminalClosePromise: Promise<void> | undefined;
+  private readonly ownerAbortListener: (() => void) | undefined;
+  private ownerTerminalFailureReported = false;
 
   constructor(private readonly options: MicroSystemSupervisorOptions) {
     this.services = options.serviceRegistry ?? new ServiceRegistry();
     this.capabilities = options.capabilityRegistry ?? new CapabilityRegistry();
     for (const definition of options.definitions ?? []) this.register(definition);
+    if (options.ownerLifecycle !== undefined) {
+      if (options.ownerLifecycle.signal.aborted) {
+        this.ownerAbortListener = undefined;
+        void this.beginTerminalClose(true).catch(() => undefined);
+      } else {
+        const listener = () => {
+          void this.beginTerminalClose(true).catch(() => undefined);
+        };
+        this.ownerAbortListener = listener;
+        options.ownerLifecycle.signal.addEventListener("abort", listener, {
+          once: true,
+        });
+      }
+    } else {
+      this.ownerAbortListener = undefined;
+    }
   }
 
   register(definition: MicroSystemDefinition): void {
@@ -150,87 +178,115 @@ export class MicroSystemSupervisor {
   }
 
   async reconcile(input: DesiredRuntimeSnapshot): Promise<ReconcilePlan> {
+    this.assertActive();
     const desired = captureDesiredRuntimeSnapshot(input);
-    return this.enqueueMutation(async () => {
-      const previousOperatingMode = this.operatingMode;
-      const result = this.reconciler.plan({
-        definitions: [...this.definitions.values()],
-        desired,
-        actual: this.actual,
-        services: this.services,
-        capabilities: this.capabilities,
-        currentServiceBindings: this.serviceBindings,
-        currentCapabilityBindings: this.capabilityBindings,
-      });
-      this.operatingMode = desired.operatingMode;
-      const blockedTransition = [...result.blocked.keys()].some(
-        (microSystemId) => this.getActualState(microSystemId) !== "BLOCKED",
-      );
-      const changesState =
-        previousOperatingMode !== desired.operatingMode ||
-        result.actions.length > 0 ||
-        blockedTransition;
-      const execute = async (): Promise<void> => {
-        try {
-          await this.executePlanInternal(result);
-        } finally {
-          for (const serviceId of this.serviceBindings.keys()) {
-            if (!result.serviceBindings.has(serviceId)) {
-              this.serviceBindings.delete(serviceId);
-            }
-          }
-          for (const [serviceId, providerId] of result.serviceBindings) {
-            this.serviceBindings.set(serviceId, providerId);
-          }
-          for (const serviceId of this.desiredServiceBindings.keys()) {
-            if (!result.desiredServiceBindings.has(serviceId)) {
-              this.desiredServiceBindings.delete(serviceId);
-            }
-          }
-          for (const [serviceId, providerId] of result.desiredServiceBindings) {
-            this.desiredServiceBindings.set(serviceId, providerId);
-          }
-          for (const capabilityId of this.capabilityBindings.keys()) {
-            if (!result.capabilityBindings.has(capabilityId)) {
-              this.capabilityBindings.delete(capabilityId);
-            }
-          }
-          for (const [capabilityId, providerId] of result.capabilityBindings) {
-            this.capabilityBindings.set(capabilityId, providerId);
-          }
-        }
-      };
-
-      if (
-        changesState &&
-        this.options.lifecycleLineage !== undefined &&
-        this.options.rootRuntimeOrigin !== undefined
-      ) {
-        await this.options.lifecycleLineage.runRetained(
-          this.options.rootRuntimeOrigin,
-          {
-            kind: "runtime.reconcile",
-            importance: "significant",
-            retentionClass: "retained",
-            sensitivity: "operational",
-          },
-          async () => execute(),
-        );
-      } else {
-        await execute();
-      }
-      return result;
-    });
+    return this.enqueueMutation(() =>
+      this.reconcileAcceptedSnapshot(desired, "ACTIVE"),
+    );
   }
 
   async executePlan(plan: ReconcilePlan): Promise<void> {
-    return this.enqueueMutation(() => this.executePlanInternal(plan));
+    this.assertActive();
+    return this.enqueueMutation(async () => {
+      this.assertActive();
+      await this.executePlanInternal(plan);
+    });
+  }
+
+  private async reconcileAcceptedSnapshot(
+    desired: DesiredRuntimeSnapshot,
+    phase: "ACTIVE" | "RESUMING",
+  ): Promise<ReconcilePlan> {
+    if (
+      (phase === "ACTIVE" && this.lifecycleState !== "ACTIVE") ||
+      (phase === "RESUMING" && this.lifecycleState !== "RESUMING")
+    ) {
+      throw runtimeKernelProblem(
+        "runtime.supervisor.not_active",
+        "Runtime supervisor does not admit reconciliation in its current lifecycle state",
+      );
+    }
+    const previousOperatingMode = this.operatingMode;
+    const result = this.reconciler.plan({
+      definitions: [...this.definitions.values()],
+      desired,
+      actual: this.actual,
+      services: this.services,
+      capabilities: this.capabilities,
+      currentServiceBindings: this.serviceBindings,
+      currentCapabilityBindings: this.capabilityBindings,
+    });
+    this.capturedDesired = desired;
+    this.operatingMode = desired.operatingMode;
+    const blockedTransition = [...result.blocked.keys()].some(
+      (microSystemId) => this.getActualState(microSystemId) !== "BLOCKED",
+    );
+    const changesState =
+      previousOperatingMode !== desired.operatingMode ||
+      result.actions.length > 0 ||
+      blockedTransition;
+    const execute = async (): Promise<void> => {
+      try {
+        await this.executePlanInternal(result);
+      } finally {
+        for (const serviceId of this.serviceBindings.keys()) {
+          if (!result.serviceBindings.has(serviceId)) {
+            this.serviceBindings.delete(serviceId);
+          }
+        }
+        for (const [serviceId, providerId] of result.serviceBindings) {
+          this.serviceBindings.set(serviceId, providerId);
+        }
+        for (const serviceId of this.desiredServiceBindings.keys()) {
+          if (!result.desiredServiceBindings.has(serviceId)) {
+            this.desiredServiceBindings.delete(serviceId);
+          }
+        }
+        for (const [serviceId, providerId] of result.desiredServiceBindings) {
+          this.desiredServiceBindings.set(serviceId, providerId);
+        }
+        for (const capabilityId of this.capabilityBindings.keys()) {
+          if (!result.capabilityBindings.has(capabilityId)) {
+            this.capabilityBindings.delete(capabilityId);
+          }
+        }
+        for (const [capabilityId, providerId] of result.capabilityBindings) {
+          this.capabilityBindings.set(capabilityId, providerId);
+        }
+      }
+    };
+
+    if (
+      changesState &&
+      this.options.lifecycleLineage !== undefined &&
+      this.options.rootRuntimeOrigin !== undefined
+    ) {
+      await this.options.lifecycleLineage.runRetained(
+        this.options.rootRuntimeOrigin,
+        {
+          kind: "runtime.reconcile",
+          importance: "significant",
+          retentionClass: "retained",
+          sensitivity: "operational",
+        },
+        async () => execute(),
+      );
+    } else {
+      await execute();
+    }
+    return result;
   }
 
   private async executePlanInternal(plan: ReconcilePlan): Promise<void> {
     let firstError: unknown;
     const blockedServiceIds = this.collectUnsettledServiceIds();
     for (const action of plan.actions) {
+      if (action.kind === "START" && !this.acceptsStartAdmission()) {
+        throw runtimeKernelProblem(
+          "runtime.supervisor.not_active",
+          "Runtime supervisor admission closed before a planned MicroSystem start",
+        );
+      }
       if (action.kind === "START") {
         const blockedReason =
           this.generationRetirementBlockReason(action) ??
@@ -336,53 +392,243 @@ export class MicroSystemSupervisor {
     return serviceIds;
   }
 
-  async close(): Promise<void> {
+  quiesce(): Promise<RuntimeQuiescenceLease> {
+    if (this.lifecycleState !== "ACTIVE") {
+      return Promise.reject(
+        runtimeKernelProblem(
+          "runtime.supervisor.not_active",
+          "Runtime supervisor can only quiesce from ACTIVE",
+        ),
+      );
+    }
+    this.lifecycleState = "QUIESCING";
+    this.closeGenerationAdmission();
     return this.enqueueMutation(async () => {
-      let ids: readonly MicroSystemId[];
-      const failures: unknown[] = [];
-      try {
-        ids = new RuntimeGraph(
-          [...this.running.values()].map((running) => running.definition),
-          this.serviceBindings,
-        )
-          .plan()
-          .shutdownOrder.map((definition) => definition.microSystemId);
-      } catch {
-        // The Map preserves activation order; reversing it is the last-resort
-        // acquisition-order projection, not a lexical ordering claim.
-        ids = [...this.running.keys()].reverse();
+      if (this.lifecycleState !== "QUIESCING") {
+        throw runtimeKernelProblem(
+          "runtime.supervisor.not_active",
+          "Runtime supervisor quiescence was superseded by terminal close",
+        );
       }
-      for (const microSystemId of ids) {
+      const failures: unknown[] = [];
+      for (const microSystemId of this.currentShutdownOrder()) {
         try {
           await this.stop(microSystemId);
         } catch (error) {
           failures.push(error);
         }
       }
+      if (this.lifecycleState !== "QUIESCING") {
+        throw runtimeKernelProblem(
+          "runtime.supervisor.not_active",
+          "Runtime supervisor quiescence was superseded by terminal close",
+        );
+      }
+      const unresolved = [...this.unsettledRetirements.values()].filter(
+        (retirement) => retirement.fence.state !== "RETIRED",
+      );
+      if (failures.length > 0 || unresolved.length > 0) {
+        if (failures.length === 1) {
+          throw failures[0];
+        }
+        throw runtimeKernelProblem(
+          "runtime.supervisor.close_failed",
+          `${unresolved.length} runtime generation retirement(s) remain unresolved during quiescence`,
+          new AggregateError(failures, "Runtime supervisor quiescence failed"),
+        );
+      }
+      this.lifecycleState = "QUIESCED";
+      let used = false;
+      return Object.freeze({
+        resumeAfterAbort: (): Promise<void> => {
+          if (used) {
+            return Promise.reject(
+              runtimeKernelProblem(
+                "runtime.supervisor.resume_invalid",
+                "Runtime quiescence lease has already been consumed",
+              ),
+            );
+          }
+          used = true;
+          return this.resumeAfterAbort();
+        },
+      });
+    });
+  }
+
+  close(): Promise<void> {
+    return this.beginTerminalClose(false);
+  }
+
+  private resumeAfterAbort(): Promise<void> {
+    if (this.lifecycleState !== "QUIESCED") {
+      return Promise.reject(
+        runtimeKernelProblem(
+          "runtime.supervisor.resume_invalid",
+          "Runtime supervisor can only resume from QUIESCED",
+        ),
+      );
+    }
+    this.lifecycleState = "RESUMING";
+    return this.enqueueMutation(async () => {
+      if (this.lifecycleState !== "RESUMING") {
+        throw runtimeKernelProblem(
+          "runtime.supervisor.resume_invalid",
+          "Runtime supervisor resume was superseded by terminal close",
+        );
+      }
       try {
-        await this.options.substrate.close();
+        if (this.capturedDesired === undefined) {
+          if (this.running.size !== 0) {
+            throw runtimeKernelProblem(
+              "runtime.supervisor.resume_invalid",
+              "Runtime supervisor cannot resume an unexpectedly non-empty graph",
+            );
+          }
+        } else {
+          await this.reconcileAcceptedSnapshot(this.capturedDesired, "RESUMING");
+        }
+        if (this.lifecycleState !== "RESUMING") {
+          throw runtimeKernelProblem(
+            "runtime.supervisor.resume_invalid",
+            "Runtime supervisor resume was superseded by terminal close",
+          );
+        }
+        this.lifecycleState = "ACTIVE";
+      } catch (error) {
+        const closePromise = this.beginTerminalClose(false);
+        void closePromise.catch(() => undefined);
+        throw error;
+      }
+    });
+  }
+
+  private beginTerminalClose(reportOwnerFailure: boolean): Promise<void> {
+    if (this.terminalClosePromise !== undefined) {
+      if (reportOwnerFailure) {
+        void this.terminalClosePromise.catch((error) =>
+          this.reportOwnerTerminalFailure(error),
+        );
+      }
+      return this.terminalClosePromise;
+    }
+    this.lifecycleState = "CLOSING";
+    this.closeGenerationAdmission();
+    const cleanup = this.enqueueMutation(() => this.performClose());
+    this.terminalClosePromise = cleanup.then(
+      () => {
+        this.lifecycleState = "CLOSED";
+        this.removeOwnerAbortListener();
+      },
+      (error) => {
+        this.lifecycleState = "CLOSED";
+        this.removeOwnerAbortListener();
+        throw error;
+      },
+    );
+    if (reportOwnerFailure) {
+      void this.terminalClosePromise.catch((error) =>
+        this.reportOwnerTerminalFailure(error),
+      );
+    }
+    return this.terminalClosePromise;
+  }
+
+  private async performClose(): Promise<void> {
+    const failures: unknown[] = [];
+    for (const microSystemId of this.currentShutdownOrder()) {
+      try {
+        await this.stop(microSystemId);
       } catch (error) {
         failures.push(error);
       }
-      const unresolved = [...this.unsettledRetirements.entries()].filter(
-        ([, retirement]) => retirement.fence.state !== "RETIRED",
-      );
-      if (unresolved.length > 0) {
-        failures.push(
-          runtimeKernelProblem(
-            "runtime.supervisor.close_failed",
-            `${unresolved.length} runtime generation retirement(s) remain unresolved`,
-          ),
-        );
-      }
-      if (failures.length > 0) {
-        throw runtimeKernelProblem(
+    }
+    try {
+      await this.options.substrate.close();
+    } catch (error) {
+      failures.push(error);
+    }
+    const unresolved = [...this.unsettledRetirements.entries()].filter(
+      ([, retirement]) => retirement.fence.state !== "RETIRED",
+    );
+    if (unresolved.length > 0) {
+      failures.push(
+        runtimeKernelProblem(
           "runtime.supervisor.close_failed",
-          "Runtime supervisor close failed",
-          new AggregateError(failures, "Runtime supervisor close failed"),
-        );
-      }
-    });
+          `${unresolved.length} runtime generation retirement(s) remain unresolved`,
+        ),
+      );
+    }
+    if (failures.length > 0) {
+      throw runtimeKernelProblem(
+        "runtime.supervisor.close_failed",
+        "Runtime supervisor close failed",
+        new AggregateError(failures, "Runtime supervisor close failed"),
+      );
+    }
+  }
+
+  private currentShutdownOrder(): readonly MicroSystemId[] {
+    let ids: readonly MicroSystemId[];
+    try {
+      ids = new RuntimeGraph(
+        [...this.running.values()].map((running) => running.definition),
+        this.serviceBindings,
+      )
+        .plan()
+        .shutdownOrder.map((definition) => definition.microSystemId);
+    } catch {
+      // The Map preserves activation order; reversing it is the last-resort
+      // acquisition-order projection, not a lexical ordering claim.
+      ids = [...this.running.keys()].reverse();
+    }
+    const seen = new Set(ids);
+    return [
+      ...ids,
+      ...[...this.running.keys()].reverse().filter((id) => !seen.has(id)),
+    ];
+  }
+
+  private closeGenerationAdmission(): void {
+    for (const running of this.running.values()) {
+      running.fence.beginRetirement();
+    }
+    for (const fence of this.startingFences) fence.beginRetirement();
+  }
+
+  private acceptsStartAdmission(): boolean {
+    return this.lifecycleState === "ACTIVE" || this.lifecycleState === "RESUMING";
+  }
+
+  private assertActive(): void {
+    if (this.lifecycleState !== "ACTIVE") {
+      throw runtimeKernelProblem(
+        "runtime.supervisor.not_active",
+        "Runtime supervisor does not admit this operation in its current lifecycle state",
+      );
+    }
+  }
+
+  private removeOwnerAbortListener(): void {
+    if (
+      this.options.ownerLifecycle !== undefined &&
+      this.ownerAbortListener !== undefined
+    ) {
+      this.options.ownerLifecycle.signal.removeEventListener(
+        "abort",
+        this.ownerAbortListener,
+      );
+    }
+  }
+
+  private reportOwnerTerminalFailure(error: unknown): void {
+    if (this.ownerTerminalFailureReported) return;
+    this.ownerTerminalFailureReported = true;
+    try {
+      this.options.ownerLifecycle?.onTerminalFailure(error);
+    } catch {
+      // Terminal failure reporting cannot replace the cleanup outcome.
+    }
   }
 
   private async executeAction(action: ReconcileAction): Promise<void> {
@@ -474,6 +720,7 @@ export class MicroSystemSupervisor {
     let backgroundFailureCause: unknown;
     let activationCommitted = false;
     let handle: SubstrateActivationHandle | undefined;
+    this.startingFences.add(fence);
 
     try {
       handle = await this.options.substrate.activate({
@@ -535,6 +782,12 @@ export class MicroSystemSupervisor {
           }
         },
       });
+      if (!this.acceptsStartAdmission() || fence.state !== "ACTIVE") {
+        throw runtimeKernelProblem(
+          "runtime.supervisor.not_active",
+          `MicroSystem '${definition.microSystemId}' activation was not admitted by the Runtime supervisor`,
+        );
+      }
       if (backgroundFailure) {
         throw runtimeKernelProblem(
           "runtime.activation.background_failure",
@@ -576,6 +829,8 @@ export class MicroSystemSupervisor {
           .catch(() => undefined);
       }
       throw error;
+    } finally {
+      this.startingFences.delete(fence);
     }
   }
 
@@ -823,6 +1078,7 @@ export class MicroSystemSupervisor {
         );
       },
       publishService: (descriptor, implementation) => {
+        fence.assertActive();
         if (!declaredService(descriptor)) {
           throw runtimeKernelProblem(
             "runtime.activation.undeclared_service_publication",
@@ -841,6 +1097,7 @@ export class MicroSystemSupervisor {
         serviceProviderIds.push(descriptor.providerId);
       },
       publishCapability: (descriptor, implementation) => {
+        fence.assertActive();
         if (!declaredCapability(descriptor)) {
           throw runtimeKernelProblem(
             "runtime.activation.undeclared_capability_publication",

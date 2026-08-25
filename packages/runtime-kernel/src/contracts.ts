@@ -163,6 +163,15 @@ export interface DesiredRuntimeSnapshot {
   readonly capabilityBindings: ReadonlyMap<CapabilityId, ProviderId>;
 }
 
+export interface RuntimeOwnerLifecycle {
+  readonly signal: AbortSignal;
+  onTerminalFailure(error: unknown): void;
+}
+
+export interface RuntimeQuiescenceLease {
+  resumeAfterAbort(): Promise<void>;
+}
+
 export type MicroSystemActualState =
   "STOPPED" | "BLOCKED" | "STARTING" | "RUNNING" | "QUIESCING" | "FAILED";
 

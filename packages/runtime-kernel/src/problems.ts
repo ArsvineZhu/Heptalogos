@@ -211,6 +211,16 @@ const runtimeProblemSpecs: Readonly<Record<string, RuntimeProblemSpec>> = {
     retryClass: "never",
     title: "Runtime desired-state revision is invalid",
   },
+  "runtime.supervisor.not_active": {
+    category: "conflict",
+    retryClass: "after-change",
+    title: "Runtime supervisor is not active",
+  },
+  "runtime.supervisor.resume_invalid": {
+    category: "conflict",
+    retryClass: "after-change",
+    title: "Runtime supervisor resume is invalid",
+  },
   "runtime.supervisor.unknown_system": {
     category: "validation",
     retryClass: "never",

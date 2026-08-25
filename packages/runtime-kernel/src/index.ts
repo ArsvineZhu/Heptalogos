@@ -18,6 +18,8 @@ export type {
   ReadinessResult,
   ReadinessState,
   RuntimeGenerationRef,
+  RuntimeOwnerLifecycle,
+  RuntimeQuiescenceLease,
   ServiceLease,
   ServiceProvisionDescriptor,
   ServiceRequirement,

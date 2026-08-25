@@ -1996,4 +1996,452 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
       await supervisor.close();
     }
   });
+
+  it("Q1 closes Service admission synchronously while an admitted call drains", async () => {
+    const serviceId = createServiceId("test.q1-service");
+    const providerId = createProviderId("provider.q1-service");
+    const capabilityId = createCapabilityId("test.q1-capability");
+    const capabilityProviderId = createProviderId("provider.q1-capability");
+    const entered = deferred<void>();
+    const released = deferred<string>();
+    const definition = system(
+      "system.q1-service",
+      async (context) => {
+        context.publishService(serviceProvision(serviceId, providerId), {
+          async read() {
+            entered.resolve();
+            return released.promise;
+          },
+        });
+        context.publishCapability(
+          capabilityProvision(capabilityId, capabilityProviderId),
+          { read: () => "q1-capability" },
+        );
+      },
+      {
+        serviceProvisions: [serviceProvision(serviceId, providerId)],
+        capabilityProvisions: [capabilityProvision(capabilityId, capabilityProviderId)],
+      },
+    );
+    const supervisor = createSupervisor([definition]);
+    try {
+      await supervisor.reconcile(desired([definition]));
+      const lease = supervisor.services.resolve<{ read(): Promise<string> }>(
+        serviceRequirement(serviceId),
+      );
+      const capabilityLease = supervisor.capabilities.resolve<{ read(): string }>(
+        capabilityRequirement(capabilityId),
+      );
+      expect(capabilityLease).toBeDefined();
+      const admittedCall = lease.invoke("q1-held", (service) => service.read());
+      await entered.promise;
+
+      const quiesce = supervisor.quiesce();
+      await expect(
+        lease.invoke("q1-rejected", (service) => service.read()),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "runtime.generation.retired" },
+      });
+      await expect(
+        capabilityLease!.invoke("q1-capability-rejected", (capability) =>
+          capability.read(),
+        ),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "runtime.generation.retired" },
+      });
+
+      released.resolve("drained");
+      await expect(admittedCall).resolves.toBe("drained");
+      await expect(quiesce).resolves.toBeDefined();
+    } finally {
+      released.resolve("cleanup");
+      await supervisor.close().catch(() => undefined);
+    }
+  });
+
+  it("Q2 quiesces hard dependents before providers with deterministic independent ordering", async () => {
+    const serviceId = createServiceId("test.q2-service");
+    const providerId = createProviderId("provider.q2-service");
+    const order: string[] = [];
+    const providerDefinition = system(
+      "system.q2-provider",
+      async (context) => {
+        context.publishService(serviceProvision(serviceId, providerId), {
+          read: () => "q2",
+        });
+        context.scope.defer("q2-provider-dispose", () => {
+          order.push("provider");
+        });
+      },
+      { serviceProvisions: [serviceProvision(serviceId, providerId)] },
+    );
+    const dependentDefinition = consumer("q2-dependent", serviceId, async (context) => {
+      context.scope.defer("q2-dependent-dispose", () => {
+        order.push("dependent");
+      });
+      await context
+        .requireService<{ read(): string }>(serviceRequirement(serviceId))
+        .invoke("q2-read", (service) => service.read());
+    });
+    const independentDefinition = system("system.q2-independent", async (context) => {
+      context.scope.defer("q2-independent-dispose", () => {
+        order.push("independent");
+      });
+    });
+    const supervisor = createSupervisor([
+      providerDefinition,
+      dependentDefinition,
+      independentDefinition,
+    ]);
+    try {
+      await supervisor.reconcile(
+        desired([providerDefinition, dependentDefinition, independentDefinition]),
+      );
+      await supervisor.quiesce();
+      expect(order).toEqual(["independent", "dependent", "provider"]);
+    } finally {
+      await supervisor.close().catch(() => undefined);
+    }
+  });
+
+  it("Q3 restores captured Desired with fresh MicroSystemInstanceIds and fences", async () => {
+    const serviceId = createServiceId("test.q3-service");
+    const providerId = createProviderId("provider.q3-service");
+    const instanceIds: string[] = [];
+    const definition = system(
+      "system.q3-service",
+      async (context) => {
+        instanceIds.push(context.microSystemInstanceId);
+        const instanceId = context.microSystemInstanceId;
+        context.publishService(serviceProvision(serviceId, providerId), {
+          read: () => instanceId,
+        });
+      },
+      { serviceProvisions: [serviceProvision(serviceId, providerId)] },
+    );
+    const supervisor = createSupervisor([definition]);
+    try {
+      const snapshot = desired(
+        [definition],
+        "NORMAL",
+        new Map([[serviceId, providerId]]),
+      );
+      await supervisor.reconcile(snapshot);
+      const oldLease = supervisor.services.resolve<{ read(): string }>(
+        serviceRequirement(serviceId),
+      );
+      expect(await oldLease.invoke("q3-old", (service) => service.read())).toBe(
+        instanceIds[0],
+      );
+
+      const resumeLease = await supervisor.quiesce();
+      await resumeLease.resumeAfterAbort();
+
+      const newLease = supervisor.services.resolve<{ read(): string }>(
+        serviceRequirement(serviceId),
+      );
+      expect(instanceIds).toHaveLength(2);
+      expect(instanceIds[1]).not.toBe(instanceIds[0]);
+      expect(await newLease.invoke("q3-new", (service) => service.read())).toBe(
+        instanceIds[1],
+      );
+      await expect(
+        oldLease.invoke("q3-retired", (service) => service.read()),
+      ).rejects.toMatchObject({
+        problem: { problemCode: "runtime.generation.retired" },
+      });
+    } finally {
+      await supervisor.close().catch(() => undefined);
+    }
+  });
+
+  it("Q5 makes the resume lease one-shot", async () => {
+    const definition = system("system.q5-one-shot", async () => undefined);
+    const supervisor = createSupervisor([definition]);
+    try {
+      await supervisor.reconcile(desired([definition]));
+      const resumeLease = await supervisor.quiesce();
+      await expect(resumeLease.resumeAfterAbort()).resolves.toBeUndefined();
+      await expect(resumeLease.resumeAfterAbort()).rejects.toMatchObject({
+        problem: { problemCode: "runtime.supervisor.resume_invalid" },
+      });
+    } finally {
+      await supervisor.close().catch(() => undefined);
+    }
+  });
+
+  it("Q6 leaves the accepted Desired snapshot unchanged through quiescence", async () => {
+    const serviceId = createServiceId("test.q6-service");
+    const providerId = createProviderId("provider.q6-service");
+    const definition = provider("q6-service", serviceId);
+    const snapshot = desired([definition], "SAFE", new Map([[serviceId, providerId]]));
+    const expectedDesired = new Map(snapshot.desired);
+    const expectedServices = new Map(snapshot.serviceBindings);
+    const expectedCapabilities = new Map(snapshot.capabilityBindings);
+    const supervisor = createSupervisor([definition]);
+    try {
+      await supervisor.reconcile(snapshot);
+      const resumeLease = await supervisor.quiesce();
+      expect(snapshot.revision).toBe(1);
+      expect(snapshot.operatingMode).toBe("SAFE");
+      expect([...snapshot.desired]).toEqual([...expectedDesired]);
+      expect([...snapshot.serviceBindings]).toEqual([...expectedServices]);
+      expect([...snapshot.capabilityBindings]).toEqual([...expectedCapabilities]);
+      await resumeLease.resumeAfterAbort();
+    } finally {
+      await supervisor.close().catch(() => undefined);
+    }
+  });
+
+  it("Q7 can resume an empty supervisor before any Desired snapshot is accepted", async () => {
+    let activations = 0;
+    const definition = system("system.q7-empty", async () => {
+      activations += 1;
+    });
+    const supervisor = createSupervisor([definition]);
+    try {
+      const resumeLease = await supervisor.quiesce();
+      await resumeLease.resumeAfterAbort();
+      expect(activations).toBe(0);
+      await supervisor.reconcile(desired([definition]));
+      expect(activations).toBe(1);
+    } finally {
+      await supervisor.close().catch(() => undefined);
+    }
+  });
+
+  it("Q8 terminalizes the supervisor when its owner signal aborts", async () => {
+    const owner = new AbortController();
+    const terminalFailures: unknown[] = [];
+    const definition = system("system.q8-owner-abort", async () => undefined);
+    const supervisor = new MicroSystemSupervisor({
+      substrate: createRuntimeSubstrate({ settleTimeoutMs: 50 }),
+      settleTimeoutMs: 50,
+      definitions: [definition],
+      ownerLifecycle: {
+        signal: owner.signal,
+        onTerminalFailure: (error) => terminalFailures.push(error),
+      },
+    });
+    await supervisor.reconcile(desired([definition]));
+    owner.abort();
+    await expect(supervisor.close()).resolves.toBeUndefined();
+    await expect(supervisor.reconcile(desired([definition]))).rejects.toMatchObject({
+      problem: { problemCode: "runtime.supervisor.not_active" },
+    });
+    expect(terminalFailures).toEqual([]);
+  });
+
+  it("Q9 does not double-retire or resurrect during an owner/background-failure race", async () => {
+    const owner = new AbortController();
+    let activationRequest!: Parameters<RuntimeSubstrate["activate"]>[0];
+    let disposeCount = 0;
+    let closeCount = 0;
+    const definition = system("system.q9-race", async () => undefined);
+    const substrate: RuntimeSubstrate = {
+      async activate(request) {
+        activationRequest = request;
+        return {
+          state: "ACTIVE",
+          dispose: async () => {
+            disposeCount += 1;
+          },
+        };
+      },
+      async close() {
+        closeCount += 1;
+      },
+    };
+    const supervisor = new MicroSystemSupervisor({
+      substrate,
+      settleTimeoutMs: 50,
+      definitions: [definition],
+      ownerLifecycle: {
+        signal: owner.signal,
+        onTerminalFailure: () => undefined,
+      },
+    });
+    try {
+      await supervisor.reconcile(desired([definition]));
+      activationRequest.onFailure({
+        phase: "BACKGROUND",
+        label: "q9-background",
+        cause: new Error("q9 background failure"),
+      });
+      owner.abort();
+      await expect(supervisor.close()).resolves.toBeUndefined();
+      expect(disposeCount).toBe(1);
+      expect(closeCount).toBe(1);
+      await expect(supervisor.reconcile(desired([definition]))).rejects.toMatchObject({
+        problem: { problemCode: "runtime.supervisor.not_active" },
+      });
+    } finally {
+      await supervisor.close().catch(() => undefined);
+    }
+  });
+
+  it("Q10 closes the substrate after quiescence without resuming", async () => {
+    let closeCount = 0;
+    const definition = system("system.q10-close-after-quiesce", async () => undefined);
+    const substrate: RuntimeSubstrate = {
+      async activate() {
+        return { state: "ACTIVE", dispose: async () => undefined };
+      },
+      async close() {
+        closeCount += 1;
+      },
+    };
+    const supervisor = createSupervisorWithSubstrate([definition], substrate);
+    const resumeLease = await (async () => {
+      await supervisor.reconcile(desired([definition]));
+      return supervisor.quiesce();
+    })();
+    const firstClose = supervisor.close();
+    const secondClose = supervisor.close();
+    expect(secondClose).toBe(firstClose);
+    await firstClose;
+    expect(closeCount).toBe(1);
+    await expect(resumeLease.resumeAfterAbort()).rejects.toMatchObject({
+      problem: { problemCode: "runtime.supervisor.resume_invalid" },
+    });
+  });
+
+  it("Q11 keeps admission closed when quiescence settlement times out", async () => {
+    const serviceId = createServiceId("test.q11-service");
+    const providerId = createProviderId("provider.q11-service");
+    const entered = deferred<void>();
+    const released = deferred<string>();
+    const definition = system(
+      "system.q11-timeout",
+      async (context) => {
+        context.publishService(serviceProvision(serviceId, providerId), {
+          async read() {
+            entered.resolve();
+            return released.promise;
+          },
+        });
+      },
+      { serviceProvisions: [serviceProvision(serviceId, providerId)] },
+    );
+    const supervisor = new MicroSystemSupervisor({
+      substrate: createRuntimeSubstrate({ settleTimeoutMs: 50 }),
+      settleTimeoutMs: 5,
+      definitions: [definition],
+    });
+    try {
+      await supervisor.reconcile(desired([definition]));
+      const lease = supervisor.services.resolve<{ read(): Promise<string> }>(
+        serviceRequirement(serviceId),
+      );
+      const admittedCall = lease.invoke("q11-held", (service) => service.read());
+      await entered.promise;
+      const quiesce = supervisor.quiesce();
+      await expect(quiesce).rejects.toMatchObject({
+        problem: { problemCode: "runtime.generation.settlement_timeout" },
+      });
+      await expect(supervisor.reconcile(desired([definition]))).rejects.toMatchObject({
+        problem: { problemCode: "runtime.supervisor.not_active" },
+      });
+      released.resolve("late");
+      await expect(admittedCall).resolves.toBe("late");
+    } finally {
+      released.resolve("cleanup");
+      await supervisor.close().catch(() => undefined);
+    }
+  });
+
+  it("Q12 prevents a queued later start after quiescence is requested", async () => {
+    const started = deferred<void>();
+    const released = deferred<void>();
+    let laterActivations = 0;
+    const first = system("system.q12-first", async () => {
+      started.resolve();
+      await released.promise;
+    });
+    const later = system("system.q12-later", async () => {
+      laterActivations += 1;
+    });
+    const supervisor = createSupervisor([first, later]);
+    try {
+      const reconcile = supervisor.reconcile(desired([first, later]));
+      await started.promise;
+      const quiesce = supervisor.quiesce();
+      released.resolve();
+      await expect(reconcile).rejects.toMatchObject({
+        problem: { problemCode: "runtime.supervisor.not_active" },
+      });
+      await expect(quiesce).resolves.toBeDefined();
+      expect(laterActivations).toBe(0);
+    } finally {
+      released.resolve();
+      await supervisor.close().catch(() => undefined);
+    }
+  });
+
+  it("Q13 admits no work when the owner signal is already aborted", async () => {
+    const owner = new AbortController();
+    owner.abort();
+    let activations = 0;
+    let closeCount = 0;
+    const definition = system("system.q13-pre-aborted", async () => {
+      activations += 1;
+    });
+    const supervisor = new MicroSystemSupervisor({
+      substrate: {
+        async activate() {
+          throw new Error("activation must not be admitted");
+        },
+        async close() {
+          closeCount += 1;
+        },
+      },
+      settleTimeoutMs: 50,
+      definitions: [definition],
+      ownerLifecycle: { signal: owner.signal, onTerminalFailure: () => undefined },
+    });
+    await expect(supervisor.reconcile(desired([definition]))).rejects.toMatchObject({
+      problem: { problemCode: "runtime.supervisor.not_active" },
+    });
+    await expect(supervisor.close()).resolves.toBeUndefined();
+    expect(activations).toBe(0);
+    expect(closeCount).toBe(1);
+  });
+
+  it("Q14 returns the same idempotent terminal close outcome", async () => {
+    let closeCount = 0;
+    const supervisor = createSupervisorWithSubstrate([], {
+      async activate() {
+        throw new Error("no activation expected");
+      },
+      async close() {
+        closeCount += 1;
+      },
+    });
+    const firstClose = supervisor.close();
+    const secondClose = supervisor.close();
+    expect(secondClose).toBe(firstClose);
+    await firstClose;
+    await expect(supervisor.close()).resolves.toBeUndefined();
+    expect(closeCount).toBe(1);
+  });
+
+  it("Q15 fails closed when resume encounters a structural activation failure", async () => {
+    let activations = 0;
+    const definition = system("system.q15-structural-resume", async () => {
+      activations += 1;
+      if (activations > 1) throw new Error("q15 structural resume failure");
+    });
+    const supervisor = createSupervisor([definition]);
+    try {
+      await supervisor.reconcile(desired([definition]));
+      const resumeLease = await supervisor.quiesce();
+      await expect(resumeLease.resumeAfterAbort()).rejects.toBeDefined();
+      await expect(supervisor.reconcile(desired([definition]))).rejects.toMatchObject({
+        problem: { problemCode: "runtime.supervisor.not_active" },
+      });
+      await expect(supervisor.close()).resolves.toBeUndefined();
+    } finally {
+      await supervisor.close().catch(() => undefined);
+    }
+  });
 });
