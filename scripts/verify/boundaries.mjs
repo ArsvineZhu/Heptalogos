@@ -272,6 +272,25 @@ export function isRestrictedImportAllowed(specifier, relativePath) {
   );
 }
 
+const bootstrapRuntimeProductionForbiddenImports = new Set([
+  "@heptalogos/runtime-kernel",
+  "@heptalogos/runtime-substrate",
+  "cordis",
+]);
+
+export function isBootstrapRuntimeProductionImportAllowed(specifier, relativePath) {
+  const normalizedPath = relativePath.replaceAll("\\", "/");
+  const isBootstrapProductionSource =
+    normalizedPath.startsWith("packages/bootstrap-runtime/src/") &&
+    !normalizedPath.endsWith(".test.ts") &&
+    !normalizedPath.endsWith(".test.tsx") &&
+    !normalizedPath.endsWith(".test.mjs");
+  return (
+    !isBootstrapProductionSource ||
+    !bootstrapRuntimeProductionForbiddenImports.has(specifier)
+  );
+}
+
 export function isRestrictedSpecifierAllowed(specifier, relativePath) {
   const allowedPaths = restrictedSpecifiers.get(specifier);
   if (!allowedPaths) return true;
@@ -464,6 +483,13 @@ for (const path of sourcePaths) {
     if (!isRestrictedSpecifierAllowed(specifier, relativePath)) {
       errors.push(
         `${relativePath}: restricted full import is not allowed here: ${specifier}`,
+      );
+      continue;
+    }
+
+    if (!isBootstrapRuntimeProductionImportAllowed(specifier, relativePath)) {
+      errors.push(
+        `${relativePath}: bootstrap-runtime production source must not import ${specifier}`,
       );
       continue;
     }
