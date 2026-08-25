@@ -237,6 +237,19 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     await expect(retirement).resolves.toBeUndefined();
   });
 
+  it("begins retirement without starting a settlement timer", async () => {
+    const fence = createGenerationFence();
+    fence.beginRetirement();
+    expect(fence.state).toBe("RETIRING");
+    expect(() => fence.invoke("closed", () => "not admitted")).toThrow(
+      expect.objectContaining({
+        problem: expect.objectContaining({ problemCode: "runtime.generation.retired" }),
+      }),
+    );
+    await expect(fence.retire(50)).resolves.toBeUndefined();
+    expect(fence.state).toBe("RETIRED");
+  });
+
   it("S8 reports GenerationFence settlement timeout", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.timeout");
@@ -473,6 +486,31 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     });
 
     expect(reflected).not.toBe(implementation.read);
+  });
+
+  it("does not expose Object.prototype legacy mutation methods", async () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.object-prototype-legacy");
+    const providerId = createProviderId("provider.object-prototype-legacy");
+    const implementation = { read: () => "ok" };
+    const fence = registry.register(
+      serviceProvision(serviceId, providerId),
+      implementation,
+    );
+    const lease = registry.resolve<{ read(): string }>(serviceRequirement(serviceId));
+
+    await lease.invoke("legacy", (service) => {
+      expect(Reflect.get(service, "__defineGetter__")).toBeUndefined();
+      expect(Reflect.get(service, "__defineSetter__")).toBeUndefined();
+      expect(Reflect.has(service, "__defineGetter__")).toBe(false);
+      expect(Reflect.has(service, "__defineSetter__")).toBe(false);
+      expect(Object.getOwnPropertyDescriptor(service, "read")).toMatchObject({
+        writable: false,
+      });
+    });
+
+    expect(Object.prototype.hasOwnProperty.call(implementation, "leak")).toBe(false);
+    await registry.retireGeneration(fence, 50);
   });
 
   it("keeps consumer function assignment out of the raw provider", async () => {

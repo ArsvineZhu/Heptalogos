@@ -25,6 +25,20 @@ function createShadowTarget(implementation: object): object {
   return Object.create(null) as object;
 }
 
+function findProviderMemberOwner(
+  implementation: object,
+  property: PropertyKey,
+): object | undefined {
+  let current: object | null = implementation;
+  while (current !== null) {
+    if (Object.prototype.hasOwnProperty.call(current, property)) {
+      return current === Object.prototype ? undefined : current;
+    }
+    current = Object.getPrototypeOf(current) as object | null;
+  }
+  return undefined;
+}
+
 export function createFencedProxy<TContract extends object>(
   implementation: TContract,
   fence: GenerationFence,
@@ -89,7 +103,7 @@ export function createFencedProxy<TContract extends object>(
       return {
         configurable: true,
         enumerable: descriptor.enumerable,
-        writable: descriptor.writable,
+        writable: false,
         value:
           typeof descriptor.value === "function"
             ? wrapMember(owner, property, "method", descriptor.value as Callable)
@@ -124,6 +138,9 @@ export function createFencedProxy<TContract extends object>(
         if (Object.prototype.hasOwnProperty.call(shadow, property)) {
           return Reflect.get(shadow, property, shadow);
         }
+        if (findProviderMemberOwner(rawValue, property) === undefined) {
+          return undefined;
+        }
         const member = Reflect.get(rawValue, property, rawValue);
         return typeof member === "function"
           ? wrapMember(rawValue, property, "method", member as Callable)
@@ -153,7 +170,10 @@ export function createFencedProxy<TContract extends object>(
       },
       has(shadow, property) {
         fence.assertActive();
-        return Reflect.has(shadow, property) || Reflect.has(rawValue, property);
+        return (
+          Reflect.has(shadow, property) ||
+          findProviderMemberOwner(rawValue, property) !== undefined
+        );
       },
       getPrototypeOf(shadow) {
         fence.assertActive();

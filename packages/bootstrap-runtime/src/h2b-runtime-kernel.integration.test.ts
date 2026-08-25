@@ -465,6 +465,7 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
     ]);
 
     try {
+      await composition.supervisor.reconcile(desired([highProvider, lowProvider]));
       await composition.supervisor.reconcile(
         desired([highProvider, lowProvider, consumerDefinition]),
       );

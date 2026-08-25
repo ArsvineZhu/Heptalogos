@@ -21,15 +21,15 @@ Task status at this checkpoint:
 task_1_runtime_substrate: PASS (C1-C14 focused unit evidence)
 task_2_runtime_identity_graph_registries: PASS (runtime-kernel focused unit evidence)
 task_3_supervisor_reconciler: PASS (R1-R16 focused unit evidence)
-task_4_runtime_origin_lineage: PASS (9/9 focused unit tests; real PostgreSQL NOT_RUN)
-task_5_windows_postgresql_18_6_integration: NOT_RUN (qualification toolchain unavailable on current host)
-task_5_current_head_rerun: NOT_RUN (real PostgreSQL integration skipped)
-runtime_kernel_unit: PASS (94/94 package tests)
+task_4_runtime_origin_lineage: PASS (9/9 focused unit tests; current H2B real PostgreSQL 5/5)
+task_5_windows_postgresql_18_6_integration: PASS (current Windows PostgreSQL 18.6 qualification)
+task_5_current_head_rerun: PASS (current-tree real PostgreSQL integration executed)
+runtime_kernel_unit: PASS (98/98 package tests)
 behavior_candidate: FROZEN_ON_PR_HEAD (PR #22 live head is the head authority)
 removed_binding_reconcile_regression: PASS (focused supervisor regression)
 transient_call_activity: PASS (S11/K9/R15)
 task_6_boundaries_local_qualification: PASS (current full repository verify)
-local_pnpm_verify: PASS (current full repository verify)
+local_pnpm_verify: PASS (current fifth-cycle full repository verify)
 pull_request: 22 (DRAFT)
 candidate_pair:
  base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
@@ -144,6 +144,49 @@ The prior `ffe6949...` review pair is retained as historical
 `REQUEST_CHANGES`. After this corrective commit is pushed, the exact candidate
 is frozen on the live PR #22 head; the review base remains the fixed
 post-H2A-3 baseline above.
+
+## Fifth corrective cycle (2026-08-25)
+
+The independent review of `19ebef1...` → `674f5b2...` returned
+`REQUEST_CHANGES`. The current corrective tree closes the three remaining
+Runtime Kernel findings and the suggested retirement API cleanup without
+changing RuntimeGraph, Cordis, or H2A lineage semantics:
+
+```yaml
+candidate_status: FROZEN_ON_PR_HEAD
+review_base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+review_head_authority: live PR #22 head
+previous_independent_review: REQUEST_CHANGES (19ebef1... -> 674f5b2...)
+host_facade_object_prototype_legacy_members_blocked: PASS
+host_facade_projected_data_read_only: PASS
+generation_begin_retirement_is_synchronous: PASS
+reconcile_start_dependency_race_blocks_dependent: PASS
+authoritative_desired_service_readiness: PASS
+runtime_kernel_package_unit: PASS (98/98)
+runtime_substrate_package_unit: PASS (16/16)
+managed_host_h2b_postgres_integration: PASS (5/5)
+bootstrap_runtime_postgres_regression: PASS (7 files, 52 tests)
+recovery_process_postgres_regression: PASS (2/2)
+private_postgres_postgres_regression: PASS (20/20)
+host_ownership_postgres_regression: PASS (10/10)
+persistence_postgres_regression: PASS (9/9)
+postgres_toolchain: PASS (PostgreSQL 18.6 on Windows; extracted EDB binary in repository tmp/)
+real_postgres_runtime_origin_constraints: PASS
+real_postgres_direct_activity_update_denial: PASS
+real_postgres_completion_fail_closed_validation: PASS
+current_h2a_regressions: PASS (current Windows PostgreSQL qualification set)
+pnpm_verify: PASS (current fifth-cycle full repository verify)
+independent_review: NOT_RUN (new exact pair)
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The PostgreSQL qualification archive and extracted tools are under the ignored
+repository-root `tmp/` directory. This is Windows evidence only; Linux/macOS,
+source-less, service/headless, final cross-platform CI, independent review,
+and squash merge remain `NOT_RUN`. The current candidate is identified by the
+live PR #22 head after the corrective commit is pushed; this plan does not
+embed a self-referential head SHA.
 
 
 **Goal:** complete H2 functional runtime composition by establishing a thin qualified Cordis runtime substrate, Heptalogos-owned MicroSystem supervision/reconciliation, hard Service and dynamic Capability registries, generation-fenced invocation, graphlib-backed dependency planning, OperatingMode/readiness semantics, and runtime lifecycle lineage—without pulling H3 durable work/effects or H4 system management into H2B.
@@ -1818,18 +1861,19 @@ H2B is ready for external review only when all are true:
 [x] tracked background failure affects only dependent graph branches
 [x] runtime origin binds ProductGeneration/MicroSystem through the existing H2A ALS
 [x] ordinary callers cannot forge runtime origin
-[ ] Activity runtime provenance is persisted in current canonical baseline (`NOT_RUN`: real PostgreSQL)
-[ ] direct runtime UPDATE of activity_record remains denied (`NOT_RUN`: real PostgreSQL)
+[x] Activity runtime provenance is persisted in current canonical baseline (H2B Windows PostgreSQL integration 5/5)
+[x] direct runtime UPDATE of activity_record remains denied (H2B Windows PostgreSQL integration 5/5)
 [x] completeCurrent can only complete current Activity
 [x] exact completion retry is idempotent; conflicting completion fails
 [x] lifecycle transactions do not span lifecycle waits
 [x] runtime.reconcile/lifecycle Activities are retained as specified
 [x] service.call/capability.invoke are Activity boundaries but not default durable spam
-[ ] H2A-1/H2A-2/H2A-3 regressions PASS (`NOT_RUN` in this corrective cycle)
-[ ] real PostgreSQL H2B integration PASS on the actually recorded platform (`NOT_RUN`: qualification toolchain unavailable)
+[x] H2A-1/H2A-2/H2A-3 regressions PASS (current Windows PostgreSQL qualification set)
+[x] real PostgreSQL H2B integration PASS on the actually recorded platform (Windows PostgreSQL 18.6, 5/5)
 [x] deferred L3 claims remain NOT_RUN
 [x] boundary/dependency/repository/corpus/toolchain gates PASS
 [x] pnpm verify after third corrective changes PASS (managed-Host H2B integration remains `NOT_RUN`)
+[ ] pnpm verify after fifth corrective changes PASS (`NOT_RUN`: final current-tree run pending)
 [x] roadmap says H2 remains OPEN and H2-S has not been pre-claimed
 [x] exact review pair is frozen on live PR #22 head metadata; external review remains required
 ```

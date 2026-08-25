@@ -755,6 +755,63 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
+  it("retains explicit Service Readiness authority without a hard graph edge", async () => {
+    const serviceId = createServiceId("test.authoritative-service-readiness");
+    const providerA = createProviderId("provider.authoritative-service-a");
+    const providerD = createProviderId("provider.authoritative-service-d");
+    const missingProvider = createProviderId("provider.authoritative-service-missing");
+    const providerDefinitionA = system(
+      "system.authoritative-service-a",
+      async (context) => {
+        context.publishService(serviceProvision(serviceId, providerA), {
+          read: () => "a",
+        });
+      },
+      { serviceProvisions: [serviceProvision(serviceId, providerA)] },
+    );
+    const providerDefinitionD = system(
+      "system.authoritative-service-d",
+      async (context) => {
+        context.publishService(serviceProvision(serviceId, providerD), {
+          read: () => "d",
+        });
+      },
+      { serviceProvisions: [serviceProvision(serviceId, providerD)] },
+    );
+    const profile = {
+      profileId: "authoritative-service-readiness",
+      requiredServices: [serviceRequirement(serviceId)],
+      requiredCapabilities: [],
+      optionalCapabilities: [],
+    };
+    const supervisor = createSupervisor([providerDefinitionA, providerDefinitionD]);
+
+    try {
+      await supervisor.reconcile(
+        desired(
+          [providerDefinitionA, providerDefinitionD],
+          "NORMAL",
+          new Map([[serviceId, providerA]]),
+        ),
+      );
+      expect(supervisor.evaluateReadiness(profile).state).toBe("READY");
+
+      await supervisor.reconcile(desired([providerDefinitionA, providerDefinitionD]));
+      expect(supervisor.evaluateReadiness(profile).state).toBe("BLOCKED");
+
+      await supervisor.reconcile(
+        desired(
+          [providerDefinitionA, providerDefinitionD],
+          "NORMAL",
+          new Map([[serviceId, missingProvider]]),
+        ),
+      );
+      expect(supervisor.evaluateReadiness(profile).state).toBe("BLOCKED");
+    } finally {
+      await supervisor.close();
+    }
+  });
+
   it("R5 isolates a provider activation failure from an independent branch", async () => {
     const serviceId = createServiceId("test.failure");
     let bActivations = 0;
@@ -1683,6 +1740,72 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
       });
     } finally {
       releaseFailure.resolve();
+      await supervisor.close().catch(() => undefined);
+    }
+  });
+
+  it("blocks a hard dependent when its provider fails during START", async () => {
+    const serviceId = createServiceId("test.background-start-race");
+    const providerId = createProviderId("provider.background-start-race");
+    let rejectWorker!: (reason: unknown) => void;
+    const worker = new Promise<void>((_resolve, reject) => {
+      rejectWorker = reject;
+    });
+    const providerDefinition = system(
+      "system.background-start-race-provider",
+      async (context) => {
+        context.scope.track("worker", worker);
+        context.publishService(serviceProvision(serviceId, providerId), {
+          read: () => "provider",
+        });
+      },
+      { serviceProvisions: [serviceProvision(serviceId, providerId)] },
+    );
+    const dependentEntered = deferred<void>();
+    const releaseDependent = deferred<void>();
+    const dependentDefinition = system(
+      "system.background-start-race-dependent",
+      async (context) => {
+        dependentEntered.resolve();
+        await releaseDependent.promise;
+        await context
+          .requireService<{ read(): string }>(serviceRequirement(serviceId))
+          .invoke("read", (service) => service.read());
+      },
+      { serviceRequirements: [serviceRequirement(serviceId)] },
+    );
+    const independentDefinition = system(
+      "system.background-start-race-independent",
+      async () => undefined,
+    );
+    const supervisor = createSupervisor([
+      providerDefinition,
+      dependentDefinition,
+      independentDefinition,
+    ]);
+
+    try {
+      const reconciliation = supervisor.reconcile(
+        desired([providerDefinition, dependentDefinition, independentDefinition]),
+      );
+      await dependentEntered.promise;
+      rejectWorker(new Error("provider background failure"));
+      await Promise.resolve();
+      releaseDependent.resolve();
+
+      await expect(reconciliation).rejects.toBeDefined();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(supervisor.getActualState(providerDefinition.microSystemId)).toBe(
+        "FAILED",
+      );
+      expect(supervisor.getActualState(dependentDefinition.microSystemId)).toBe(
+        "BLOCKED",
+      );
+      expect(supervisor.getActualState(independentDefinition.microSystemId)).toBe(
+        "RUNNING",
+      );
+    } finally {
+      releaseDependent.resolve();
       await supervisor.close().catch(() => undefined);
     }
   });

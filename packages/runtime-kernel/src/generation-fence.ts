@@ -80,6 +80,10 @@ export class GenerationFence {
     if (this.inFlight === 0) this.resolveIdle?.();
   }
 
+  beginRetirement(): void {
+    if (this.currentState === "ACTIVE") this.currentState = "RETIRING";
+  }
+
   retire(settleTimeoutMs: number): Promise<void> {
     if (this.currentState === "RETIRED") return Promise.resolve();
     if (this.retirementPromise !== undefined) return this.retirementPromise;
@@ -91,7 +95,7 @@ export class GenerationFence {
         ),
       );
     }
-    this.currentState = "RETIRING";
+    this.beginRetirement();
     this.retirementPromise = new Promise<void>((resolve, reject) => {
       let timer: ReturnType<typeof setTimeout> | undefined;
       const complete = () => {

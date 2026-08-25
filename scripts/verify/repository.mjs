@@ -36,6 +36,7 @@ const ignoredDirectories = new Set([
   "dist",
   "node_modules",
   "test-results",
+  "tmp",
 ]);
 const forbiddenLockfiles = new Set([
   "package-lock.json",

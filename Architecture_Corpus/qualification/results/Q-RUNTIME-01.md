@@ -151,6 +151,50 @@ This addendum records candidate-boundary authority without embedding the live
 head SHA in the candidate itself: PR #22 metadata is the exact head authority.
 The previous `ffe6949...` review result remains historical `REQUEST_CHANGES`.
 
+## H2B fifth corrective-cycle addendum (2026-08-25)
+
+The independent review of `19ebef1...` → `674f5b2...` returned
+`REQUEST_CHANGES`. The current tree addresses the remaining Object.prototype
+facade escape path, the reconcile-time dependency race, and the lost explicit
+Service Readiness authority. It also separates synchronous admission revocation
+from bounded retirement settlement.
+
+```yaml
+candidate_status: FROZEN_ON_PR_HEAD
+review_base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+review_head_authority: live PR #22 head
+previous_independent_review: REQUEST_CHANGES (19ebef1... -> 674f5b2...)
+host_facade_object_prototype_legacy_members_blocked: PASS
+host_facade_projected_data_read_only: PASS
+generation_begin_retirement_is_synchronous: PASS
+reconcile_start_dependency_race_blocks_dependent: PASS
+authoritative_desired_service_readiness: PASS
+runtime_kernel_unit: PASS (98/98)
+runtime_substrate_unit: PASS (16/16)
+runtime_lifecycle_real_postgres: PASS (H2B integration 5/5)
+canonical_runtime_origin_constraints_real_postgres: PASS
+direct_runtime_activity_update_denial_real_postgres: PASS
+completion_function_fail_closed_validation_real_postgres: PASS
+bootstrap_runtime_postgres_regression: PASS (7 files, 52 tests)
+recovery_process_postgres_regression: PASS (2/2)
+private_postgres_regression: PASS (20/20)
+host_ownership_regression: PASS (10/10)
+persistence_regression: PASS (9/9)
+postgres_version: PostgreSQL 18.6
+postgres_platform: Windows
+postgres_bin_directory: C:\dev\Heptalogos\tmp\heptalogos-pg18.6-correction-20260825\extracted\pgsql\bin
+pnpm_verify: PASS (current fifth-cycle full repository verify)
+independent_review: NOT_RUN (new exact pair)
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The extracted PostgreSQL qualification toolchain is retained under the ignored
+repository-root `tmp/` directory. Linux/macOS, source-less, service/headless,
+final cross-platform CI, independent review, and squash merge remain
+`NOT_RUN`. The candidate head is authoritative only through live PR #22
+metadata; this record does not embed a self-referential SHA.
+
 ## NOT_RUN / deferred properties
 
 - `product_runtime_start_stop`: Pilot remains synthetic L1/L2; no complete managed-Host product runtime was executed.

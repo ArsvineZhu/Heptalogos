@@ -21,6 +21,7 @@ const ignoredDirectories = new Set([
   "dist",
   "node_modules",
   "test-results",
+  "tmp",
 ]);
 const builtins = new Set([
   ...builtinModules,

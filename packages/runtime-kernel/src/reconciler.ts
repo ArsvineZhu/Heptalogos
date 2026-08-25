@@ -43,6 +43,7 @@ export interface ReconcilePlan {
   readonly actions: readonly ReconcileAction[];
   readonly blocked: ReadonlyMap<MicroSystemId, string>;
   readonly serviceBindings: ReadonlyMap<ServiceId, ProviderId>;
+  readonly desiredServiceBindings: ReadonlyMap<ServiceId, ProviderId>;
   readonly capabilityBindings: ReadonlyMap<
     import("@heptalogos/foundation-contracts").CapabilityId,
     ProviderId
@@ -264,6 +265,7 @@ export class RuntimeReconciler {
       actions: Object.freeze(actions),
       blocked: new Map(blocked),
       serviceBindings: new Map(selectedServices),
+      desiredServiceBindings: new Map(input.desired.serviceBindings),
       capabilityBindings: new Map(selectedCapabilities),
     });
   }

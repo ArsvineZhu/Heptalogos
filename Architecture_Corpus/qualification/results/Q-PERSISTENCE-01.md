@@ -141,6 +141,39 @@ final_cross_platform_ci: NOT_RUN
 squash_merge: NOT_RUN
 ```
 
+## H2B fifth corrective-cycle persistence status (2026-08-25)
+
+The current corrective tree was reviewed as
+`19ebef1c62a737ad077414a6817ffdf8ac3ad2a4` → `674f5b241ba564ed6ee7b279b10908ffd5adc168`
+with `REQUEST_CHANGES`. The subsequent tree keeps the candidate boundary on
+live PR #22 metadata and records the real PostgreSQL evidence separately from
+the still-pending external gates.
+
+```yaml
+h2b_persistence_relevant_behavior_sha: FROZEN_ON_PR_HEAD
+h2b_review_base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+h2b_review_head_authority: live PR #22 head
+canonical_runtime_origin_constraints: PASS (H2B integration 5/5)
+direct_runtime_activity_update_denial: PASS (H2B integration 5/5)
+completion_function_fail_closed_input_validation: PASS (H2B integration 5/5)
+real_postgres_version: PostgreSQL 18.6
+real_postgres_platform: Windows
+real_postgres_bin_directory: C:\dev\Heptalogos\tmp\heptalogos-pg18.6-correction-20260825\extracted\pgsql\bin
+private_postgres_regression: PASS (20/20)
+host_ownership_regression: PASS (10/10)
+persistence_regression: PASS (9/9)
+bootstrap_runtime_regression: PASS (7 files, 52 tests)
+recovery_process_regression: PASS (2/2)
+pnpm_verify: PASS (current fifth-cycle full repository verify)
+independent_review: NOT_RUN (new exact pair)
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The PostgreSQL tools are retained only under the ignored repository-root
+`tmp/` directory. Linux/macOS, source-less, service/headless, independent
+review, final cross-platform CI, and squash merge remain `NOT_RUN`.
+
 ## H2A-2 current addendum (2026-08-24)
 
 ```yaml

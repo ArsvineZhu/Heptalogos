@@ -92,6 +92,10 @@ export class MicroSystemSupervisor {
     import("@heptalogos/foundation-contracts").ServiceId,
     ProviderId
   >();
+  private readonly desiredServiceBindings = new Map<
+    import("@heptalogos/foundation-contracts").ServiceId,
+    ProviderId
+  >();
   private readonly capabilityBindings = new Map<
     import("@heptalogos/foundation-contracts").CapabilityId,
     ProviderId
@@ -129,7 +133,7 @@ export class MicroSystemSupervisor {
       profile,
       this.services,
       this.capabilities,
-      this.serviceBindings,
+      this.desiredServiceBindings,
       this.capabilityBindings,
     );
   }
@@ -177,6 +181,14 @@ export class MicroSystemSupervisor {
           }
           for (const [serviceId, providerId] of result.serviceBindings) {
             this.serviceBindings.set(serviceId, providerId);
+          }
+          for (const serviceId of this.desiredServiceBindings.keys()) {
+            if (!result.desiredServiceBindings.has(serviceId)) {
+              this.desiredServiceBindings.delete(serviceId);
+            }
+          }
+          for (const [serviceId, providerId] of result.desiredServiceBindings) {
+            this.desiredServiceBindings.set(serviceId, providerId);
           }
           for (const capabilityId of this.capabilityBindings.keys()) {
             if (!result.capabilityBindings.has(capabilityId)) {
@@ -233,8 +245,14 @@ export class MicroSystemSupervisor {
       } catch (error) {
         firstError ??= error;
         if (action.kind === "START") {
-          await this.stop(action.microSystemId, "FAILED").catch(() => undefined);
-          this.actual.set(action.microSystemId, "FAILED");
+          const blockedReason = this.hardPrerequisiteBlockReason(
+            action,
+            plan,
+            blockedServiceIds,
+          );
+          const terminalState = blockedReason === undefined ? "FAILED" : "BLOCKED";
+          await this.stop(action.microSystemId, terminalState).catch(() => undefined);
+          this.actual.set(action.microSystemId, terminalState);
         } else if (action.kind === "STOP") {
           if (
             this.getActualState(action.microSystemId) !== "STOPPED" &&
@@ -285,7 +303,8 @@ export class MicroSystemSupervisor {
       );
       if (
         provider === undefined ||
-        this.getActualState(provider.microSystemId) !== "RUNNING"
+        this.getActualState(provider.microSystemId) !== "RUNNING" ||
+        !this.services.hasEligible(requirement, providerId)
       ) {
         return "runtime.service.blocked_dependency";
       }
@@ -685,7 +704,7 @@ export class MicroSystemSupervisor {
   }
 
   private revokeGenerationAdmission(fence: GenerationFence): void {
-    void fence.retire(this.options.settleTimeoutMs).catch(() => undefined);
+    fence.beginRetirement();
   }
 
   private enqueueMutation<TResult>(
