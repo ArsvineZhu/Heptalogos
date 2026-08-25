@@ -425,6 +425,9 @@ export class MicroSystemSupervisor {
     serviceProviderIds: ProviderId[],
     capabilityProviderIds: ProviderId[],
   ): MicroSystemActivationContext {
+    const runtimeActivity = this.options.lifecycleLineage?.runner(
+      this.runtimeOrigin(definition, instanceId),
+    );
     const declaredService = (descriptor: ServiceProvisionDescriptor): boolean =>
       definition.serviceProvisions.some(
         (candidate) =>
@@ -446,9 +449,7 @@ export class MicroSystemSupervisor {
       operatingMode: this.operatingMode,
       scope,
       signal: scope.signal,
-      runtimeActivity: this.options.lifecycleLineage?.runner(
-        this.runtimeOrigin(definition, instanceId),
-      ),
+      runtimeActivity,
       requireService: (requirement, explicitProviderId) => {
         if (
           !definition.serviceRequirements.some(
@@ -492,7 +493,7 @@ export class MicroSystemSupervisor {
             `MicroSystem '${definition.microSystemId}' published a Service twice`,
           );
         }
-        this.services.register(descriptor, implementation, fence);
+        this.services.register(descriptor, implementation, fence, runtimeActivity);
         serviceProviderIds.push(descriptor.providerId);
       },
       publishCapability: (descriptor, implementation, priority = 0) => {
@@ -508,7 +509,13 @@ export class MicroSystemSupervisor {
             `MicroSystem '${definition.microSystemId}' published a Capability twice`,
           );
         }
-        this.capabilities.register(descriptor, implementation, priority, fence);
+        this.capabilities.register(
+          descriptor,
+          implementation,
+          priority,
+          fence,
+          runtimeActivity,
+        );
         capabilityProviderIds.push(descriptor.providerId);
       },
     };

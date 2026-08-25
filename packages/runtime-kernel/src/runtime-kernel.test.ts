@@ -11,9 +11,12 @@ import {
   type ProviderId,
   type ServiceId,
 } from "@heptalogos/foundation-contracts";
+import type { ActivityRequest } from "@heptalogos/execution-lineage";
+import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
 import {
   CapabilityRegistry,
   createContractVersion,
+  createGenerationFence,
   exactContract,
   evaluateReadiness,
   RuntimeGraph,
@@ -57,6 +60,19 @@ function capabilityProvision(
   providerId: ProviderId,
 ): CapabilityProvisionDescriptor {
   return { capabilityId, providerId, contractVersion: contractV1 };
+}
+
+function recordingActivityRunner(requests: ActivityRequest[]): RuntimeActivityRunner {
+  return {
+    current: () => undefined,
+    runActivity: async <T>(
+      request: ActivityRequest,
+      operation: (context: never) => Promise<T>,
+    ) => {
+      requests.push(request);
+      return operation(undefined as never);
+    },
+  };
 }
 
 function definition(
@@ -261,6 +277,36 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     });
     await expect(retirement).resolves.toBeUndefined();
   });
+
+  it("S11 records transient Service call Activity semantics", async () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.activity-service");
+    const providerId = createProviderId("provider.activity-service");
+    const requests: ActivityRequest[] = [];
+    registry.register(
+      serviceProvision(serviceId, providerId),
+      { read: () => "activity" },
+      createGenerationFence(),
+      recordingActivityRunner(requests),
+    );
+    const lease = registry.resolve<{ read(): string }>(serviceRequirement(serviceId));
+    await expect(lease.invoke("read", (service) => service.read())).resolves.toBe(
+      "activity",
+    );
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      kind: "service.call",
+      importance: "routine",
+      retentionClass: "ephemeral",
+      sensitivity: "operational",
+      semantic: {
+        operationId: "read",
+        serviceId,
+        providerId,
+        contractVersion: contractV1,
+      },
+    });
+  });
 });
 
 describe("Capability registry and readiness", () => {
@@ -396,6 +442,39 @@ describe("Capability registry and readiness", () => {
     expect(() => retained!.read()).toThrow(
       expect.objectContaining({ problemCode: "runtime.generation.retired" }),
     );
+  });
+
+  it("K9 records transient Capability invoke Activity semantics", async () => {
+    const registry = new CapabilityRegistry();
+    const capabilityId = createCapabilityId("test.activity-capability");
+    const providerId = createProviderId("provider.activity-capability");
+    const requests: ActivityRequest[] = [];
+    registry.register(
+      capabilityProvision(capabilityId, providerId),
+      { read: () => "activity" },
+      0,
+      createGenerationFence(),
+      recordingActivityRunner(requests),
+    );
+    const lease = registry.resolve<{ read(): string }>(
+      capabilityRequirement(capabilityId, true),
+    );
+    await expect(
+      lease!.invoke("read", (capability) => capability.read()),
+    ).resolves.toBe("activity");
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      kind: "capability.invoke",
+      importance: "routine",
+      retentionClass: "ephemeral",
+      sensitivity: "operational",
+      semantic: {
+        operationId: "read",
+        capabilityId,
+        providerId,
+        contractVersion: contractV1,
+      },
+    });
   });
 
   it("computes BLOCKED, DEGRADED, and READY independently of Actual State", () => {

@@ -485,4 +485,48 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
       await supervisor.close();
     }
   });
+
+  it("R15 binds Service call Activities to the provider runtime origin", async () => {
+    const serviceId = createServiceId("test.provider-origin-activity");
+    const a = provider("activity-a", serviceId);
+    const b = consumer("activity-b", serviceId);
+    const events: Array<{
+      request: { kind: string; semantic?: Record<string, unknown> };
+      origin: { microSystemId?: unknown };
+    }> = [];
+    const lifecycleLineage = {
+      runner: (origin: { microSystemId: unknown }) => ({
+        current: () => undefined,
+        runActivity: async <T>(
+          request: { kind: string; semantic?: Record<string, unknown> },
+          operation: (context: never) => Promise<T>,
+        ) => {
+          events.push({ request, origin });
+          return operation(undefined as never);
+        },
+      }),
+      runRetained: async <T>(
+        _origin: unknown,
+        _request: unknown,
+        operation: (context: never) => Promise<T>,
+      ) => operation(undefined as never),
+    } as unknown as RuntimeLifecycleLineage;
+    const supervisor = new MicroSystemSupervisor({
+      substrate: createRuntimeSubstrate({ settleTimeoutMs: 50 }),
+      settleTimeoutMs: 50,
+      definitions: [a, b],
+      lifecycleLineage,
+    });
+    try {
+      await supervisor.reconcile(desired([a, b]));
+      const event = events.find((entry) => entry.request.kind === "service.call");
+      expect(event?.request.semantic).toMatchObject({
+        serviceId,
+        providerId: createProviderId("provider.activity-a"),
+      });
+      expect(event?.origin.microSystemId).toBe(a.microSystemId);
+    } finally {
+      await supervisor.close();
+    }
+  });
 });
