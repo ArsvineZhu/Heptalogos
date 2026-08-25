@@ -529,4 +529,42 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
       await supervisor.close();
     }
   });
+
+  it("R16 does not retain a no-op reconcile Activity", async () => {
+    const systemDefinition = system("system.no-op-reconcile", async () => undefined);
+    const reconcileKinds: string[] = [];
+    const lifecycleLineage = {
+      runner: () => ({
+        current: () => undefined,
+        runActivity: async <T>(
+          _request: unknown,
+          operation: (context: never) => Promise<T>,
+        ) => operation(undefined as never),
+      }),
+      runRetained: async <T>(
+        _origin: unknown,
+        request: { kind: string },
+        operation: (context: never) => Promise<T>,
+      ) => {
+        reconcileKinds.push(request.kind);
+        return operation(undefined as never);
+      },
+    } as unknown as RuntimeLifecycleLineage;
+    const supervisor = new MicroSystemSupervisor({
+      substrate: createRuntimeSubstrate({ settleTimeoutMs: 50 }),
+      settleTimeoutMs: 50,
+      definitions: [systemDefinition],
+      lifecycleLineage,
+      rootRuntimeOrigin: { productGenerationId: generation.productGenerationId },
+    });
+    try {
+      await supervisor.reconcile(desired([systemDefinition]));
+      await supervisor.reconcile(desired([systemDefinition]));
+      expect(
+        reconcileKinds.filter((kind) => kind === "runtime.reconcile"),
+      ).toHaveLength(1);
+    } finally {
+      await supervisor.close();
+    }
+  });
 });

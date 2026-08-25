@@ -103,17 +103,22 @@ export class MicroSystemSupervisor {
   async reconcile(desired: DesiredRuntimeSnapshot): Promise<ReconcilePlan> {
     let result!: ReconcilePlan;
     const run = this.reconcileChain.then(async () => {
+      const previousOperatingMode = this.operatingMode;
+      this.operatingMode = desired.operatingMode;
+      result = this.reconciler.plan({
+        definitions: [...this.definitions.values()],
+        desired,
+        actual: this.actual,
+        services: this.services,
+        capabilities: this.capabilities,
+        currentServiceBindings: this.serviceBindings,
+        currentCapabilityBindings: this.capabilityBindings,
+      });
+      const changesState =
+        previousOperatingMode !== desired.operatingMode ||
+        result.actions.length > 0 ||
+        result.blocked.size > 0;
       const execute = async (): Promise<void> => {
-        this.operatingMode = desired.operatingMode;
-        result = this.reconciler.plan({
-          definitions: [...this.definitions.values()],
-          desired,
-          actual: this.actual,
-          services: this.services,
-          capabilities: this.capabilities,
-          currentServiceBindings: this.serviceBindings,
-          currentCapabilityBindings: this.capabilityBindings,
-        });
         await this.executePlan(result);
         for (const [serviceId, providerId] of desired.serviceBindings) {
           this.serviceBindings.set(serviceId, providerId);
@@ -124,6 +129,7 @@ export class MicroSystemSupervisor {
       };
 
       if (
+        changesState &&
         this.options.lifecycleLineage !== undefined &&
         this.options.rootRuntimeOrigin !== undefined
       ) {
