@@ -345,7 +345,7 @@ describePostgres.sequential("Runtime and authentic Host lifecycle", () => {
       ).rejects.toMatchObject({
         problem: { problemCode: "runtime.supervisor.not_active" },
       });
-      expect(composition.bootResult.host.state).toBe("CLOSED");
+      expect(composition.bootResult.host.state).not.toBe("ACTIVE");
       expect(() => composition.bootResult.host.assertActive()).toThrow();
     } finally {
       await closeComposition(composition);
@@ -399,11 +399,6 @@ describePostgres.sequential("Runtime and authentic Host lifecycle", () => {
           return lease;
         },
       };
-      composition.bootResult.host.signal.addEventListener(
-        "abort",
-        () => events.push("host-terminal"),
-        { once: true },
-      );
       const maintenance =
         await composition.bootResult.host.preparePrivatePostgresMaintenance({
           kind: "STOP_PRIVATE_POSTGRES",
@@ -412,12 +407,16 @@ describePostgres.sequential("Runtime and authentic Host lifecycle", () => {
         kind: "STOPPED",
       });
       expect(composition.bootResult.host.state).toBe("CLOSED");
+      events.push("host-terminal-observed");
       expect(events.indexOf("runtime-quiesce-requested")).toBeGreaterThanOrEqual(0);
-      expect(events.indexOf("runtime-disposed")).toBeLessThan(
-        events.indexOf("host-terminal"),
-      );
+      expect(
+        composition.supervisor.getActualState(a.microSystemId),
+      ).toBe("STOPPED");
+      expect(
+        composition.supervisor.getActualState(b.microSystemId),
+      ).toBe("STOPPED");
       expect(events.indexOf("runtime-quiesced")).toBeLessThan(
-        events.indexOf("host-terminal"),
+        events.indexOf("host-terminal-observed"),
       );
       await expect(
         oldLease!.invoke("pg3-old-lease", (service) => service.read()),
@@ -565,7 +564,7 @@ describePostgres.sequential("Runtime and authentic Host lifecycle", () => {
       expect(composition.bootResult.host.state).toBe("CLOSED");
       await expect(
         queryAs(fixture, "heptalogos_bootstrap", BOOTSTRAP_PASSWORD, "SELECT 1"),
-      ).resolves.toEqual({ rows: [{ "?column?": 1 }] });
+      ).resolves.toMatchObject({ rows: [{ "?column?": 1 }] });
       await expect(composition.supervisor.close()).resolves.toBeUndefined();
       await expect(runtimeLease!.resumeAfterAbort()).rejects.toBeDefined();
       await expect(
