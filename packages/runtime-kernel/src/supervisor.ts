@@ -120,8 +120,18 @@ export class MicroSystemSupervisor {
         result.blocked.size > 0;
       const execute = async (): Promise<void> => {
         await this.executePlan(result);
+        for (const serviceId of this.serviceBindings.keys()) {
+          if (!desired.serviceBindings.has(serviceId)) {
+            this.serviceBindings.delete(serviceId);
+          }
+        }
         for (const [serviceId, providerId] of desired.serviceBindings) {
           this.serviceBindings.set(serviceId, providerId);
+        }
+        for (const capabilityId of this.capabilityBindings.keys()) {
+          if (!desired.capabilityBindings.has(capabilityId)) {
+            this.capabilityBindings.delete(capabilityId);
+          }
         }
         for (const [capabilityId, providerId] of desired.capabilityBindings) {
           this.capabilityBindings.set(capabilityId, providerId);

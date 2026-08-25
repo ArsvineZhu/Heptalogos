@@ -45,6 +45,7 @@ function desired(
   systems: readonly MicroSystemDefinition[],
   operatingMode: "NORMAL" | "SAFE" = "NORMAL",
   serviceBindings = new Map<ServiceId, ProviderId>(),
+  capabilityBindings = new Map(),
 ) {
   return {
     revision: 1,
@@ -53,7 +54,7 @@ function desired(
       systems.map((system) => [system.microSystemId, "RUNNING" as const]),
     ),
     serviceBindings,
-    capabilityBindings: new Map(),
+    capabilityBindings,
   };
 }
 
@@ -206,6 +207,62 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
       expect(supervisor.getActualState(d.microSystemId)).toBe("RUNNING");
       expect(supervisor.getActualState(b.microSystemId)).toBe("RUNNING");
       expect(bActivations).toBe(2);
+    } finally {
+      await supervisor.close();
+    }
+  });
+
+  it("releases an explicit Service binding when the desired snapshot removes it", async () => {
+    const serviceId = createServiceId("test.binding-removal");
+    let bActivations = 0;
+    const reads: string[] = [];
+    const a = provider("a", serviceId);
+    const b = consumer("b", serviceId, async (context) => {
+      bActivations += 1;
+      const value = await context
+        .requireService<{ read(): string }>(serviceRequirement(serviceId))
+        .invoke("read", (service) => service.read());
+      reads.push(value);
+    });
+    const d = provider("d", serviceId);
+    const supervisor = createSupervisor([a, b, d]);
+    try {
+      await supervisor.reconcile(
+        desired(
+          [a, b],
+          "NORMAL",
+          new Map([[serviceId, createProviderId("provider.a")]]),
+        ),
+      );
+      await supervisor.reconcile(desired([b, d]));
+
+      expect(supervisor.getActualState(d.microSystemId)).toBe("RUNNING");
+      expect(supervisor.getActualState(b.microSystemId)).toBe("RUNNING");
+      expect(bActivations).toBe(2);
+      expect(reads.at(-1)).toBe("d");
+    } finally {
+      await supervisor.close();
+    }
+  });
+
+  it("forgets a removed explicit Capability binding before reintroducing it", async () => {
+    const capabilityId = createCapabilityId("test.binding-removal");
+    const providerId = createProviderId("provider.capability");
+    const definition = system("system.capability-binding", async () => undefined);
+    const supervisor = createSupervisor([definition]);
+    const binding = new Map([[capabilityId, providerId]]);
+    try {
+      await supervisor.reconcile(desired([definition], "NORMAL", new Map(), binding));
+      await supervisor.reconcile(desired([definition]));
+      const reintroduced = await supervisor.reconcile(
+        desired([definition], "NORMAL", new Map(), binding),
+      );
+
+      expect(reintroduced.actions).toContainEqual({
+        kind: "REBIND_CAPABILITY",
+        capabilityId,
+        providerId,
+      });
     } finally {
       await supervisor.close();
     }

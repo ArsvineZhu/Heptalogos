@@ -108,6 +108,11 @@ export class RuntimeReconciler {
     const stopped = new Set<MicroSystemId>();
     const restartRequired = new Set<MicroSystemId>();
     const changedServices = new Set<ServiceId>();
+    for (const serviceId of currentServices.keys()) {
+      if (!input.desired.serviceBindings.has(serviceId)) {
+        changedServices.add(serviceId);
+      }
+    }
     for (const [serviceId, providerId] of input.desired.serviceBindings) {
       if (currentServices.get(serviceId) !== providerId) {
         changedServices.add(serviceId);
