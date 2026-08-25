@@ -7,28 +7,31 @@ import {
 
 describe("restricted repository imports", () => {
   it("rejects Runtime Kernel, Runtime Substrate, and Cordis from Bootstrap production source", () => {
-    expect(
-      isBootstrapRuntimeProductionImportAllowed(
-        "@heptalogos/runtime-kernel",
-        "packages/bootstrap-runtime/src/managed-host.ts",
-      ),
-    ).toBe(false);
-    expect(
-      isBootstrapRuntimeProductionImportAllowed(
-        "@heptalogos/runtime-substrate",
-        "packages/bootstrap-runtime/src/managed-host.ts",
-      ),
-    ).toBe(false);
-    expect(
-      isBootstrapRuntimeProductionImportAllowed(
-        "cordis",
-        "packages/bootstrap-runtime/src/managed-host.ts",
-      ),
-    ).toBe(false);
+    for (const specifier of [
+      "@heptalogos/runtime-kernel",
+      "@heptalogos/runtime-kernel/internal",
+      "@heptalogos/runtime-substrate",
+      "@heptalogos/runtime-substrate/internal",
+      "cordis",
+      "cordis/foo",
+    ]) {
+      expect(
+        isBootstrapRuntimeProductionImportAllowed(
+          specifier,
+          "packages/bootstrap-runtime/src/managed-host.ts",
+        ),
+      ).toBe(false);
+    }
     expect(
       isBootstrapRuntimeProductionImportAllowed(
         "@heptalogos/runtime-kernel",
         "packages/bootstrap-runtime/src/runtime-kernel-managed-host.integration.test.ts",
+      ),
+    ).toBe(true);
+    expect(
+      isBootstrapRuntimeProductionImportAllowed(
+        "@heptalogos/runtime-kernelish",
+        "packages/bootstrap-runtime/src/managed-host.ts",
       ),
     ).toBe(true);
   });

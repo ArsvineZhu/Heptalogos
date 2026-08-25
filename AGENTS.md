@@ -103,10 +103,26 @@ development tree does not prove a source-less artifact.
 Run the plan's focused tests while editing and all required permanent gates
 before claiming completion. `pnpm verify` must remain locally runnable.
 
-Do not dispatch ordinary CI. Follow the repository closure playbook for exact
-`(base_sha, head_sha)` Independent Review, manual final CI, and squash merge.
-After a candidate is under Independent Review, any repository mutation
-invalidates that review/final-CI candidate.
+Do not dispatch ordinary CI. Follow the repository closure playbook for live
+PR lifecycle, Independent Review, manual final CI, and squash merge.
+
+PR candidate integrity is governed by PR lifecycle, not commit hashes in
+documents.
+
+Draft = mutable.
+Ready = review candidate.
+
+Independent Review evaluates the current live Ready PR. Any repository mutation
+after Review PASS makes that review stale; return the PR to Draft before
+continuing. Final manual CI runs only after Review PASS. Any PR-branch mutation
+after final CI makes review and CI stale.
+
+Do not copy commit SHAs into plans, qualification records, PR bodies, or Agent
+instructions. Git/GitHub/CI may use revision identity internally.
+
+When working under a workspace package, read its nearest AGENTS.md and README.md.
+The local AGENTS.md refines this repository contract for that package; it does
+not replace Corpus Authority.
 
 ## 6. Stop conditions
 

@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
@@ -8,6 +8,10 @@ const errors = [];
 
 function fail(message) {
   errors.push(message);
+}
+
+function normalizePath(path) {
+  return relative(root, path).replaceAll("\\", "/");
 }
 
 try {
@@ -58,6 +62,61 @@ function walk(directory) {
 }
 walk(root);
 
+function wordCount(text) {
+  return text.trim().split(/\s+/u).filter(Boolean).length;
+}
+
+function requireHeadings(file, headings, label) {
+  if (!existsSync(file)) return;
+  const source = readFileSync(file, "utf8");
+  for (const heading of headings) {
+    if (
+      !new RegExp(`^## ${heading.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}$`, "mu").test(
+        source,
+      )
+    ) {
+      fail(`${label}: missing heading "${heading}"`);
+    }
+  }
+}
+
+for (const workspaceRootName of ["packages", "tools"]) {
+  const workspaceRoot = join(root, workspaceRootName);
+  if (!existsSync(workspaceRoot)) continue;
+  for (const entry of readdirSync(workspaceRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const directory = join(workspaceRoot, entry.name);
+    if (!existsSync(join(directory, "package.json"))) continue;
+
+    const readme = join(directory, "README.md");
+    const agents = join(directory, "AGENTS.md");
+    if (!existsSync(readme)) fail(`${normalizePath(directory)}: README.md is missing`);
+    if (!existsSync(agents)) fail(`${normalizePath(directory)}: AGENTS.md is missing`);
+
+    requireHeadings(
+      readme,
+      [
+        "Purpose",
+        "Owns",
+        "Does not own",
+        "Public surface",
+        "Dependencies and boundaries",
+        "Verification",
+        "Architecture references",
+      ],
+      `${normalizePath(readme)}`,
+    );
+    requireHeadings(
+      agents,
+      ["Scope", "Read first", "Local rules", "Verification", "Stop"],
+      `${normalizePath(agents)}`,
+    );
+    if (existsSync(agents) && wordCount(readFileSync(agents, "utf8")) > 300) {
+      fail(`${normalizePath(agents)}: AGENTS.md exceeds 300 words`);
+    }
+  }
+}
+
 const implementationFiles = ["package.json", "pnpm-workspace.yaml"];
 for (const relativePath of implementationFiles) {
   const source = readFileSync(join(root, relativePath), "utf8");
@@ -95,9 +154,14 @@ if (!existsSync(verifyWorkflowPath)) {
     }
   }
 
-  for (const input of ["target_sha:", "reason:"]) {
+  for (const input of ["pr_number:", "reason:"]) {
     if (!workflow.includes(input)) {
       fail(`verify workflow missing manual input: ${input}`);
+    }
+  }
+  for (const input of ["base_sha:", "target_sha:"]) {
+    if (workflow.includes(input)) {
+      fail(`verify workflow must not expose revision input: ${input}`);
     }
   }
 

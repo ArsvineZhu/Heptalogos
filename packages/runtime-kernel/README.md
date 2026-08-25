@@ -1,0 +1,53 @@
+# @heptalogos/runtime-kernel
+
+## Purpose
+
+`runtime-kernel` owns the Heptalogos Runtime semantics that compose
+MicroSystems, Services, Capabilities, generations, readiness, and lifecycle.
+It turns desired state into a deterministic runtime graph, supervises activation
+and retirement, fences stale generations, and exposes quiescence for Host
+shutdown. The package is the semantic layer above the generic substrate; it is
+not the Bootstrap or PostgreSQL owner.
+
+## Owns
+
+- `MicroSystemSupervisor` and owner/quiescence lifecycle.
+- Runtime graph planning and reconciliation.
+- Service and Capability registries and lease contracts.
+- Generation fences, readiness evaluation, and lifecycle lineage.
+- Runtime contract compatibility registration.
+
+## Does not own
+
+- Bootstrap state, Host lease, private PostgreSQL, or process control.
+- Cordis-specific resource mechanics.
+- Product durable work, WorkQueue, or external-effect semantics from later
+  stages.
+- A second persistence or recovery Authority.
+
+## Public surface
+
+The entry point exports runtime contracts, compatibility helpers, registries,
+generation fences, readiness evaluation, graph/reconciler types,
+`MicroSystemSupervisor`, and lifecycle-lineage helpers. Activation contexts carry
+cooperative cancellation and owner scope; callers must respect quiescence and
+retirement rather than retaining private supervisor state.
+
+## Dependencies and boundaries
+
+It depends on `foundation-contracts`, `execution-lineage`, `persistence`,
+`runtime-substrate`, `time-service`, and Graphlib. The substrate supplies
+mechanics while this package owns runtime meaning. Bootstrap production source
+must remain outside this dependency path; integration composition belongs at
+the higher Host/product boundary.
+
+## Verification
+
+Run `pnpm nx run runtime-kernel:test`, lint, `pnpm typecheck`, `pnpm tsc6`, and
+focused lifecycle, quiescence, generation, readiness, and cancellation tests.
+Use real PostgreSQL only for claims that cross the runtime/Host integration.
+
+## Architecture references
+
+Read Corpus S01, S06, S13, S15, S16, and the Runtime qualification record before
+changing supervisor, generation, reconciliation, or shutdown semantics.

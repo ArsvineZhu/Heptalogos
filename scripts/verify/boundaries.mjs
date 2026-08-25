@@ -287,7 +287,7 @@ export function isBootstrapRuntimeProductionImportAllowed(specifier, relativePat
     !normalizedPath.endsWith(".test.mjs");
   return (
     !isBootstrapProductionSource ||
-    !bootstrapRuntimeProductionForbiddenImports.has(specifier)
+    !bootstrapRuntimeProductionForbiddenImports.has(packageName(specifier))
   );
 }
 

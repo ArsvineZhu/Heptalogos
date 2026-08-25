@@ -9,10 +9,10 @@
 ```yaml
 stage: H2-S
 branch: dev/h2-stabilization
-base_sha: 4e2dead8bbc413e31dfff1751663780ed8dc688a
 worktree: C:\dev\Heptalogos
-gate_r: PASS (PR #23 merged at 4e2dead8bbc413e31dfff1751663780ed8dc688a)
+gate_r: PASS (H2B reconciliation complete)
 draft_pr: 24 (DRAFT)
+candidate_state: CORRECTIVE_DRAFT
 ```
 
 ## S4 compatibility audit record (2026-08-26)
@@ -33,7 +33,7 @@ that implies a real external consumer or retained production state is a
 
 **Architecture:** H2-S remains a bounded stabilization pass, not a second H2 development cycle. One final H2-S candidate must contain the complete stabilized current tree so Independent Review and final CI see the same aggregate result: governance hardening, history-neutral current-tree cleanup, PRE_PRODUCTION compatibility enforcement, and the bounded Runtime/Host lifecycle correction. Historical provenance remains in Git, completed plans, and qualification history; it must not remain as canonical/executable identity or compatibility behavior.
 
-**Observed repository baseline:** `master@d7f32427398d2309c1732cdbce98f590e14a8249` (`H2B Runtime Composition & Kernel corrected candidate (#22)`).
+**Observed repository baseline:** H2B Runtime Composition & Kernel corrected candidate; revision identity remains in Git history and GitHub metadata.
 
 **Supersedes:** `Heptalogos_H2_Closure_Agent_Execution_Plan_2026-08-25.md`. Do not execute the superseded plan after this document is approved.
 
@@ -2288,10 +2288,18 @@ Before candidate freeze, fill this with concrete results only:
 
 ```yaml
 stage: H2-S
-base_sha: 4e2dead8bbc413e31dfff1751663780ed8dc688a
-head_sha: bbea4ae685d17462c1e9770c284de742a820f073
 compatibility_epoch: PRE_PRODUCTION
 compatibility_obligations: []
+
+candidate:
+  pullRequest: 24
+  state: CORRECTIVE_DRAFT
+  branch: dev/h2-stabilization
+
+localQualification:
+  status: NOT_RUN
+  environment: Windows / Node 24.19.0 / pnpm 11.22.0
+  completedAfterLastRepositoryMutation: false
 
 governance:
   root_agents_rewritten: PASS
@@ -2324,10 +2332,10 @@ postgres_18_6:
   PG6_shutdown_keep_postgres_ordering: PASS
 
 repository:
-  pnpm_verify: PASS
+  pnpm_verify: NOT_RUN
   independent_review: NOT_RUN
   final_cross_platform_ci: NOT_RUN
-  squash_merge: NOT_RUN
+  merge: NOT_RUN
 
 product_residuals:
   linux_real_postgres: NOT_RUN_or_existing_truth
@@ -2337,13 +2345,10 @@ product_residuals:
   hardware_power_loss: NOT_RUN
 ```
 
-S10 completion evidence (2026-08-26): all required H2-S local evidence is
-`PASS` on the Windows PostgreSQL 18.6 toolchain. The behavior candidate is
-based on `4e2dead8bbc413e31dfff1751663780ed8dc688a4` with implementation head
-`bbea4ae685d17462c1e9770c284de742a820f073`; `Q-RUNTIME-01` and
-`Q-PERSISTENCE-01` retain `PARTIAL` product qualification for unrun
-Linux/macOS, source-less, service/headless, and hardware claims. Independent
-Review, final cross-platform CI, and squash merge remain `NOT_RUN`.
+The earlier H2-S implementation evidence is historical. The current corrective
+candidate must rerun local gates and fresh PostgreSQL qualification after its
+repository mutations; no historical revision identity is current candidate
+identity.
 
 After candidate freeze only externally observed review/CI/merge fields change, and those changes occur in PR-C after merge—not by mutating the reviewed behavior candidate.
 

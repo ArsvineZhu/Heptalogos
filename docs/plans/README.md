@@ -26,8 +26,10 @@ An unresolved non-trivial choice is `PLAN_GAP` and stops execution.
 
 ## Active
 
-No active H2-S plan remains; the implementation/qualification record is completed
-with external closure gates still pending.
+- [H2-S review correction and governance simplification](active/foundation/h2s-review-correction-governance-simplification.md) — `ACTIVE` (corrective implementation cycle; H2 remains `OPEN`)
+
+The original H2-S implementation/qualification record remains completed; its
+external closure gates are superseded by the active corrective cycle above.
 
 ## Completed
 

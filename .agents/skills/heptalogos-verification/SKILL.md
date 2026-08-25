@@ -44,6 +44,7 @@ Use the weakest test that actually proves the claim, never a weaker surrogate:
 5. Dependency `RoleDecision` and implementation/product qualification are separate dimensions.
 6. Keep required gates locally runnable and reproducible. CI may automate them but is not their sole authority.
 7. Hn-S closure requires `pnpm check:hygiene` and a zero-residue current-tree sweep; preserve Current Evidence versus Historical Evidence as separate claims.
+8. Review the current live Ready PR. A PR-branch mutation after review makes review and final CI stale; base movement alone requires a new integration CI run.
 
 Verification status is exactly:
 

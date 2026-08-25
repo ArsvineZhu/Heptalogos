@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { scanCurrentTree } from "../src/current-tree-hygiene.mjs";
@@ -63,6 +63,31 @@ describe("current-tree hygiene scanner", () => {
     });
 
     expect(hasCode(result, "development-provenance")).toBe(true);
+  });
+
+  it("rejects bare stage-family and numbered PR provenance", async () => {
+    const result = await fixtureTree(async (root) => {
+      await mkdir(join(root, "packages/example"), { recursive: true });
+      await writeFile(
+        join(root, "packages/example/test.ts"),
+        "const stage = 'H2A'; const review = 'PR #24';\n",
+      );
+    });
+
+    expect(hasCode(result, "development-provenance")).toBe(true);
+  });
+
+  it("rejects scanned symbolic-link residue without following it", async () => {
+    const result = await fixtureTree(async (root) => {
+      await mkdir(join(root, "packages/example"), { recursive: true });
+      await writeFile(join(root, "packages/example/real.ts"), "export {};\n");
+      await symlink("real.ts", join(root, "packages/example/link.ts"), "file");
+    });
+
+    expect(hasCode(result, "symbolic-link-residue")).toBe(true);
+    expect(result.findings.some((finding) => finding.path.endsWith("real.ts"))).toBe(
+      false,
+    );
   });
 
   it("rejects high-signal legacy or obsolete wording in implementation tests", async () => {

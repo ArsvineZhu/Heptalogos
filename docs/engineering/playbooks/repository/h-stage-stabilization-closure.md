@@ -1,104 +1,69 @@
 # H-stage Stabilization Closure
 
 This playbook governs the short, bounded stabilization pass required before an
-Hn functional milestone can close. It is the operational companion to the
-approved Hn-S plan and the repository-wide branch/PR policy.
+Hn functional milestone can close.
 
 ## Scope and invariants
 
-- Use a short-lived `dev/h<n>-stabilization` branch and one Draft PR.
-- Default to one bounded stabilization plan. Use a control record and serial
-  phase plans only when ordered independent phases are genuinely required.
-- When a control record exists, execute only the plan named by its
-  `governingPlan`; do not run a later phase early.
-- Complete every repository mutation before Independent Review begins.
-- Treat `Hn-S` as short and bounded; defer new subsystem, architecture
-  expansion, and next-milestone capability work.
-- `ReviewCandidate` is the complete exact pair `(base_sha, head_sha)`, not head
-  SHA alone.
+- Use one short-lived stabilization branch, one bounded plan, and one Draft PR.
+- Complete every planned repository mutation before Independent Review.
+- Keep Hn-S bounded; defer new subsystem, architecture expansion, and
+  next-milestone capability work.
+- Treat the current live Ready PR as the review candidate. Git revision
+  identity remains machine-internal to Git/GitHub/CI.
 
 ## Procedure
 
-1. Confirm the exact baseline and clean worktree, then create or verify the
-   stabilization branch.
-2. Install the approved plan, establish the activation record, and open one
-   Draft PR without ordinary CI.
-3. Execute the governing plan task-by-task. Use TDD for behavior changes,
-   focused tests, static gates, and claim-matched qualification.
-4. At each transition, move completed plans to `docs/plans/completed/`, update
-   navigation and evidence, and open only the next phase gate.
-5. Before candidate freeze, complete the mandatory sweeps below. A finding
-   cannot be waived by a generic allowlist, baseline, suppression comment, or
-   executor preference. An unresolved semantic choice is `PLAN_GAP` and stops
-   execution.
-6. Mark every implementation and evidence mutation complete before freeze. Run
-   the final local gates and record deferred product boundaries as `NOT_RUN` or
-   `BLOCKED`, never as inferred `PASS`.
-7. Freeze `ReviewCandidate = (base_sha, head_sha)` and request Independent
-   Review of the full Hn-S diff on that exact pair. Implementing-agent
-   self-review is not sufficient.
-8. After Independent Review `PASS`, manually run final CI with the same
-   `base_sha` and `target_sha`; dispatch `verify.yml` from the reviewed head
-   branch/tag, never from `master`. Require Ubuntu, macOS and Windows jobs to
-   pass, verify `headSha`, and record the run ID. Use
-   `milestone-pr-closure.md` for provenance checks.
-9. Immediately before squash merge, verify that the reviewed base and branch
-   head still equal the exact pair and re-read PR metadata:
+1. Confirm the current baseline and clean worktree, then verify the stabilization
+   branch and install the approved plan.
+2. Open a Draft PR without ordinary CI.
+3. Execute the plan task-by-task with TDD, focused tests, static gates, and
+   claim-matched qualification.
+4. Complete the provenance, compatibility, archaeology, architecture-seam,
+   and current-evidence sweeps before freezing the candidate.
+5. Record only observed verification states: `PASS`, `FAIL`, `NOT_RUN`, or
+   `BLOCKED`.
+6. Mark the PR Ready and request Independent Review of the complete live PR.
+7. On `REQUEST_CHANGES`, return to Draft, make bounded corrections, rerun the
+   affected qualification and local gates, and request a new review.
+8. On Review `PASS`, run manual final CI on the current PR plus current `master`
+   integration. Require Ubuntu, macOS, and Windows to pass.
+9. Merge immediately if the PR remains current, Ready, open, and conflict-free.
+   Squash merge and delete the branch after success.
+10. Reconcile Hn truth through a separate docs/evidence-only PR without changing
+    behavior, production code, or tests.
 
-   ```text
-   origin/master == REVIEWED_BASE_SHA
-   PR base SHA == REVIEWED_BASE_SHA
-   branch HEAD == REVIEWED_HEAD_SHA
-   PR head SHA == REVIEWED_HEAD_SHA
-   ```
+## Candidate invalidation
 
-   Any move or mismatch invalidates review and CI; update the candidate, rerun
-   local gates, obtain new Independent Review, and rerun final CI.
-
-10. Squash merge the single PR through the normal repository action, then delete
-    the stabilization branch.
-11. After merge, keep the behavior candidate immutable. Perform truth
-    reconciliation only through a separate docs/evidence-only PR that changes
-    no production code, tests, or behavior contract; cites external
-    review/CI/merge evidence; runs repository/corpus/document gates; and
-    changes Hn from OPEN to CLOSED only when the closure tuple actually
-    occurred.
+```text
+PR branch mutation after Review PASS -> review stale; return to Draft
+PR branch mutation after final CI -> review and CI stale; return to Draft
+Base movement with unchanged reviewed diff -> review remains valid
+Base movement -> final integration CI stale; rerun against current base
+```
 
 ## Mandatory pre-freeze sweeps
 
-These six steps are required before the final ReviewCandidate is frozen:
+1. Development-provenance neutrality in current executable identities.
+2. Removal or rejection of undeclared project-history compatibility.
+3. Removal of ownerless closed-phase/current-tree artifacts.
+4. Hn cross-domain ownership, lifecycle, generation, and dependency audit.
+5. Claim-matched current qualification with historical evidence kept separate.
+6. `pnpm check:hygiene` PASS with no generic waiver mechanism.
 
-1. **Development-Provenance Residue Sweep** — current executable/canonical
-   identities are semantic and contain no milestone/PR/session chronology.
-2. **Undeclared-Compatibility Residue Sweep** — every compatibility-like path
-   maps to a declared obligation; with an empty PRE_PRODUCTION register,
-   project-history compatibility is removed/rejected.
-3. **Closed-Phase / Dead Current-Tree Artifact Sweep** — one-time evidence,
-   phase scripts, and ownerless archaeology are removed, not archived in the
-   current tree.
-4. **Hn cross-milestone architecture seam audit** — ownership, lifecycle,
-   generation, dependency direction, and framework leakage remain within the
-   approved Corpus/plan boundaries.
-5. **Current-candidate claim-matched qualification** — current evidence names
-   the candidate and environment; Historical Evidence remains separate.
-6. **`pnpm check:hygiene` PASS** — the permanent zero-residue gate runs as part
-   of `pnpm verify` and has no generic waiver mechanism.
+An unresolved semantic choice is `PLAN_GAP` and stops execution. Do not create
+an allowlist or local exception to make a gate pass.
 
-The executor may not classify a new semantic ambiguity by preference. Stop as
-`PLAN_GAP` and report the path, current behavior, references, and smallest
-required decision.
-
-## Final closure tuple
-
-Hn closes only at the squash-merge event after all of these are externally
-verified:
+## Closure conditions
 
 ```text
-implementation plans complete
+implementation plan complete
 + local qualification complete
 + mandatory Hn-S sweeps complete
-+ Independent Review PASS on exact (base_sha, head_sha)
-+ manual final CI PASS on Ubuntu/macOS/Windows for the same pair
-+ base_sha and head_sha unchanged immediately before merge
++ PR Ready
++ Independent Review PASS on the current live PR
++ no PR-branch mutation after Review PASS
++ final manual CI PASS on Ubuntu/macOS/Windows for current-base integration
++ no PR-branch mutation after final CI
 + squash merge succeeds
 ```

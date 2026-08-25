@@ -17,7 +17,7 @@
     "build": "nx run-many -t build --all",
     "nx:check": "nx --version",
     "check:agents": "node .agents/heptalogos/validate-skill-resources.mjs",
-    "check:corpus": "node scripts/verify/corpus-integrity.mjs",
+    "check:corpus": "node scripts/verify/corpus-structure.mjs",
     "check:repository": "node scripts/verify/repository.mjs",
     "check:hygiene": "node scripts/verify/current-tree-hygiene.mjs",
     "check:dependencies": "node scripts/verify/dependencies.mjs",

@@ -6,57 +6,57 @@
 
 | 文件 | 内容 |
 |---|---|
-| `00-项目宪法与工程宪法.md` | 项目宪法、工程宪法、原则优先级与架构约束 |
+| [`00-项目宪法与工程宪法.md`](00-项目宪法与工程宪法.md) | 项目宪法、工程宪法、原则优先级与架构约束 |
 | repository root `AGENTS.md` | 给代码 Agent 的持续实现约束；Corpus-local duplicate projection is intentionally absent |
 | `README.md` | Corpus 定位、阅读顺序、Foundation 边界与证据化依赖决策方法 |
-| `01-产品目标与差异化.md` | 项目研究目标与区别于 chatbot/agent 的核心特征 |
-| `02-架构原则与反NIH约束.md` | Library-first、adapter-first、依赖决策和自研批准条件 |
-| `03-核心概念与Authority.md` | Subject、MicroSystem、Service、Capability、Authority |
-| `04-总体系统架构.md` | Role/Layer 与 Plane 两套系统视图 |
-| `05-整机执行模型.md` | boot、reconcile、failure、pressure、maintenance、shutdown |
-| `06-MicroSystem与Extension架构.md` | Extension Runtime、Package、Generation、Execution Domain |
-| `07-Foundation系统服务目录.md` | Foundation 服务合同、横切责任与高级子系统保留接入点 |
-| `08-Subject与认知系统.md` | Subject、Reaction、Context、Prompt、行为提交链与高级认知接入边界 |
-| `09-Messaging与Subject-Chat.md` | IM domain、Subject Chat、Driver、协议复用与 Effect |
-| `10-AI-Runtime-Capability-MCP.md` | AI Runtime、ModelProfile、Capability、现代 MCP 协议边界 |
-| `11-System-Authority与Operator-Assistant.md` | Management Action、Policy、Approval、Operator、认证边界 |
-| `12-数据-证据-内容与持久化.md` | PostgreSQL、durable state、Evidence、CAS、数据生命周期与可观测性治理 |
-| `13-备份-Subject可移植性-更新与恢复.md` | Backup、Subject Bundle、数据清除、信任根、产品更新与恢复 |
-| `14-跨平台产品运行与分发.md` | private runtime、source-less、native dependency closure、OS service |
-| `15-技术与依赖决策账本.md` | 依赖角色决策、实现资格状态与当前技术责任边界 |
-| `16-验证与资格认定体系.md` | correctness、依赖选型证据、product qualification 与 release evidence |
-| `17-高级研究子系统接入地图.md` | 高级认知子系统未来接入合同；不构成 Foundation 实现义务 |
-| `18-接口-CLI-Web与Presentation.md` | Canonical Management Contract、完整 CLI、HTTP/API 与 Presentation 边界 |
-| `19-术语表.md` | 核心术语与状态词汇 |
-| `20-架构审查清单.md` | 后续架构与依赖决策审查规则 |
-| `21-配置治理与Configuration-Surface.md` | Configure First、类型、visibility/manageability、activation、consumer 与配置审计 |
-| `22-Execution-Lineage与可观测执行.md` | Activity、ExecutionContext、因果血缘、自动 instrumentation、查询与 telemetry/Evidence 映射 |
-| `23-存储拓扑-生命周期根与DataOwner.md` | 生命周期根、PathProfile、Storage Workspace、配置载体、DataOwner、多存储后端与 Backup Participant |
-| `24-依赖使用与实现路由.md` | 已采用依赖的强制实现路由、adapter/import 边界与 Agent 使用规则 |
-| `25-TypeScript与仓库工具链.md` | TypeScript 7 主编译器、TS6 API compatibility lane、ESNext/NodeNext、Node types、版本与 prerelease 采用规则 |
-| `26-开发阶段闭包-稳定化与兼容性治理.md` | H-stage stabilization、PRE_PRODUCTION canonical-only / no historical development compatibility boundary、候选闭环与 H1/H2 阶段治理 |
+| [`01-产品目标与差异化.md`](01-产品目标与差异化.md) | 项目研究目标与区别于 chatbot/agent 的核心特征 |
+| [`02-架构原则与反NIH约束.md`](02-架构原则与反NIH约束.md) | Library-first、adapter-first、依赖决策和自研批准条件 |
+| [`03-核心概念与Authority.md`](03-核心概念与Authority.md) | Subject、MicroSystem、Service、Capability、Authority |
+| [`04-总体系统架构.md`](04-总体系统架构.md) | Role/Layer 与 Plane 两套系统视图 |
+| [`05-整机执行模型.md`](05-整机执行模型.md) | boot、reconcile、failure、pressure、maintenance、shutdown |
+| [`06-MicroSystem与Extension架构.md`](06-MicroSystem与Extension架构.md) | Extension Runtime、Package、Generation、Execution Domain |
+| [`07-Foundation系统服务目录.md`](07-Foundation系统服务目录.md) | Foundation 服务合同、横切责任与高级子系统保留接入点 |
+| [`08-Subject与认知系统.md`](08-Subject与认知系统.md) | Subject、Reaction、Context、Prompt、行为提交链与高级认知接入边界 |
+| [`09-Messaging与Subject-Chat.md`](09-Messaging与Subject-Chat.md) | IM domain、Subject Chat、Driver、协议复用与 Effect |
+| [`10-AI-Runtime-Capability-MCP.md`](10-AI-Runtime-Capability-MCP.md) | AI Runtime、ModelProfile、Capability、现代 MCP 协议边界 |
+| [`11-System-Authority与Operator-Assistant.md`](11-System-Authority与Operator-Assistant.md) | Management Action、Policy、Approval、Operator、认证边界 |
+| [`12-数据-证据-内容与持久化.md`](12-数据-证据-内容与持久化.md) | PostgreSQL、durable state、Evidence、CAS、数据生命周期与可观测性治理 |
+| [`13-备份-Subject可移植性-更新与恢复.md`](13-备份-Subject可移植性-更新与恢复.md) | Backup、Subject Bundle、数据清除、信任根、产品更新与恢复 |
+| [`14-跨平台产品运行与分发.md`](14-跨平台产品运行与分发.md) | private runtime、source-less、native dependency closure、OS service |
+| [`15-技术与依赖决策账本.md`](15-技术与依赖决策账本.md) | 依赖角色决策、实现资格状态与当前技术责任边界 |
+| [`16-验证与资格认定体系.md`](16-验证与资格认定体系.md) | correctness、依赖选型证据、product qualification 与 release evidence |
+| [`17-高级研究子系统接入地图.md`](17-高级研究子系统接入地图.md) | 高级认知子系统未来接入合同；不构成 Foundation 实现义务 |
+| [`18-接口-CLI-Web与Presentation.md`](18-接口-CLI-Web与Presentation.md) | Canonical Management Contract、完整 CLI、HTTP/API 与 Presentation 边界 |
+| [`19-术语表.md`](19-术语表.md) | 核心术语与状态词汇 |
+| [`20-架构审查清单.md`](20-架构审查清单.md) | 后续架构与依赖决策审查规则 |
+| [`21-配置治理与Configuration-Surface.md`](21-配置治理与Configuration-Surface.md) | Configure First、类型、visibility/manageability、activation、consumer 与配置审计 |
+| [`22-Execution-Lineage与可观测执行.md`](22-Execution-Lineage与可观测执行.md) | Activity、ExecutionContext、因果血缘、自动 instrumentation、查询与 telemetry/Evidence 映射 |
+| [`23-存储拓扑-生命周期根与DataOwner.md`](23-存储拓扑-生命周期根与DataOwner.md) | 生命周期根、PathProfile、Storage Workspace、配置载体、DataOwner、多存储后端与 Backup Participant |
+| [`24-依赖使用与实现路由.md`](24-依赖使用与实现路由.md) | 已采用依赖的强制实现路由、adapter/import 边界与 Agent 使用规则 |
+| [`25-TypeScript与仓库工具链.md`](25-TypeScript与仓库工具链.md) | TypeScript 7 主编译器、TS6 API compatibility lane、ESNext/NodeNext、Node types、版本与 prerelease 采用规则 |
+| [`26-开发阶段闭包-稳定化与兼容性治理.md`](26-开发阶段闭包-稳定化与兼容性治理.md) | H-stage stabilization、PRE_PRODUCTION canonical-only / no historical development compatibility boundary、候选闭环与 H1/H2 阶段治理 |
 
 ## 详细规格
 
 `specs/`：
 
-- `specs/S01-启动-恢复-运行时监督.md`
-- `specs/S02-异步-WorkQueue-Durable-Time.md`
-- `specs/S03-持久化-事务-EffectFence.md`
-- `specs/S04-配置-Secret-管理Surface.md`
-- `specs/S05-Policy-Approval-Management-Operator.md`
-- `specs/S06-Extension-Package-Trust-ExecutionDomain.md`
-- `specs/S07-Messaging-SubjectChat-Drivers.md`
-- `specs/S08-AI-Capability-MCP.md`
-- `specs/S09-Reactor-Context-Prompt与高级认知接入.md`
-- `specs/S10-Evidence-Replay-Observability-Content.md`
-- `specs/S11-备份-更新-分发-平台.md`
-- `specs/S12-验证-Research-Evaluation.md`
-- `specs/S13-Foundation-Service-Capability-Readiness-Catalog.md`
-- `specs/S14-Canonical-End-to-End-Flows.md`
-- `specs/S15-Foundation横切合同.md`
-- `specs/S16-Execution-Lineage-Observability.md`
-- `specs/S17-Storage-Workspace-DataLifecycle.md`
+- [`specs/S01-启动-恢复-运行时监督.md`](specs/S01-启动-恢复-运行时监督.md)
+- [`specs/S02-异步-WorkQueue-Durable-Time.md`](specs/S02-异步-WorkQueue-Durable-Time.md)
+- [`specs/S03-持久化-事务-EffectFence.md`](specs/S03-持久化-事务-EffectFence.md)
+- [`specs/S04-配置-Secret-管理Surface.md`](specs/S04-配置-Secret-管理Surface.md)
+- [`specs/S05-Policy-Approval-Management-Operator.md`](specs/S05-Policy-Approval-Management-Operator.md)
+- [`specs/S06-Extension-Package-Trust-ExecutionDomain.md`](specs/S06-Extension-Package-Trust-ExecutionDomain.md)
+- [`specs/S07-Messaging-SubjectChat-Drivers.md`](specs/S07-Messaging-SubjectChat-Drivers.md)
+- [`specs/S08-AI-Capability-MCP.md`](specs/S08-AI-Capability-MCP.md)
+- [`specs/S09-Reactor-Context-Prompt与高级认知接入.md`](specs/S09-Reactor-Context-Prompt与高级认知接入.md)
+- [`specs/S10-Evidence-Replay-Observability-Content.md`](specs/S10-Evidence-Replay-Observability-Content.md)
+- [`specs/S11-备份-更新-分发-平台.md`](specs/S11-备份-更新-分发-平台.md)
+- [`specs/S12-验证-Research-Evaluation.md`](specs/S12-验证-Research-Evaluation.md)
+- [`specs/S13-Foundation-Service-Capability-Readiness-Catalog.md`](specs/S13-Foundation-Service-Capability-Readiness-Catalog.md)
+- [`specs/S14-Canonical-End-to-End-Flows.md`](specs/S14-Canonical-End-to-End-Flows.md)
+- [`specs/S15-Foundation横切合同.md`](specs/S15-Foundation横切合同.md)
+- [`specs/S16-Execution-Lineage-Observability.md`](specs/S16-Execution-Lineage-Observability.md)
+- [`specs/S17-Storage-Workspace-DataLifecycle.md`](specs/S17-Storage-Workspace-DataLifecycle.md)
 
 详细规格描述具体合同和执行语义，但必须服从顶层 Scope Guard：高级认知只保留接入点；Web/GUI 实现不属于 Foundation；管理能力必须首先由 Canonical Management Contract 与完整 CLI 表达。
 

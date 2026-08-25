@@ -35,6 +35,7 @@ Load conditional references from the route index only when the change crosses th
 6. If generic mechanics are needed, use `heptalogos-dependencies` before choosing or implementing them.
 7. If the proposal changes architecture, update every affected normative projection in the same change; do not leave a local code-only architecture decision.
 8. Define claim-matched verification with `heptalogos-verification` when the change alters failure, recovery, protocol, platform, or release behavior.
+9. For stabilization closure, treat the current Ready PR as the review candidate; keep Git revision identity inside Git/GitHub/CI rather than copying it into project records.
 
 ## Stop conditions
 

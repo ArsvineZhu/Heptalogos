@@ -263,36 +263,43 @@ start/stop claims remain `NOT_RUN` or `PARTIAL` as previously recorded.
 ## H2-S current candidate qualification (2026-08-26)
 
 ```yaml
-candidate_status: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
-candidate_base_sha: 4e2dead8bbc413e31dfff1751663780ed8dc688a4
-behavior_candidate_head_sha: bbea4ae685d17462c1e9770c284de742a820f073
-runtime_owner_quiescence_unit: PASS (121/121 runtime-kernel tests; Q1-Q15)
-runtime_substrate_unit: PASS (16/16)
-bootstrap_production_boundary: PASS (check:boundaries + check:dependencies)
-current_tree_hygiene: PASS
-fresh_postgres_version: PostgreSQL 18.6
-fresh_postgres_platform: Windows
-pg1_identity_coherence: PASS
-pg2_host_terminality_propagation: PASS
-pg3_planned_stop_real_quiescence: PASS
-pg4_restart_continuity_rotation: PASS
-pg5_structural_safe_abort_fit: PASS
-pg6_shutdown_keep_postgres_ordering: PASS
-bootstrap_runtime_integration: PASS (8 suites, 58 tests)
-private_postgres_integration: PASS (20/20)
-host_ownership_integration: PASS (10/10)
-persistence_integration: PASS (9/9)
-recovery_process: PASS (4/4)
-recovery_process_postgres: PASS (2/2)
-repository_verify: PASS
-independent_review: NOT_RUN
-final_cross_platform_ci: NOT_RUN
-squash_merge: NOT_RUN
+candidate:
+  pullRequest: 24
+  state: CORRECTIVE_DRAFT
+  branch: dev/h2-stabilization
+localQualification:
+  status: NOT_RUN
+  environment: Windows / Node 24.19.0 / pnpm 11.22.0
+  completedAfterLastRepositoryMutation: false
+freshPostgreSQL18_6: NOT_RUN
+runtimeKernelScenarios:
+  status: NOT_RUN
+  namedScenarios:
+    - Q1 closes Service admission synchronously while an admitted call drains
+    - Q2 quiesces hard dependents before providers with deterministic independent ordering
+    - Q3 restores captured Desired with fresh MicroSystemInstanceIds and fences
+    - Q5 makes the resume lease one-shot
+    - Q6 leaves the accepted Desired snapshot unchanged through quiescence
+    - Q7 can resume an empty supervisor before any Desired snapshot is accepted
+    - Q8 terminalizes the supervisor when its owner signal aborts
+    - Q9 does not double-retire or resurrect during an owner/background-failure race
+    - Q10 closes the substrate after quiescence without resuming
+    - Q11 keeps admission closed when quiescence settlement times out
+    - Q12 prevents a queued later start after quiescence is requested
+    - Q-start-quiesce-cancel aborts STARTING activation without manual release
+    - Q-start-owner-abort-cancel aborts STARTING activation and cannot reopen
+    - Q13 admits no work when the owner signal is already aborted
+    - Q14 returns the same idempotent terminal close outcome
+    - Q15 fails closed when resume encounters a structural activation failure
+  note: Q4 is intentionally absent; the ledger does not claim a contiguous Q1-Q15 range.
+runtimeSubstrateUnit: NOT_RUN
+bootstrapProductionBoundary: NOT_RUN
+currentTreeHygiene: NOT_RUN
+independentReview: NOT_RUN
+finalCrossPlatformCI: NOT_RUN
+merge: NOT_RUN
 ```
 
-The fresh Windows PostgreSQL 18.6 evidence used the complete toolchain at
-`C:\dev\Heptalogos\tmp\pg\extracted\pgsql\bin`; `postgres`, `initdb`,
-`pg_ctl`, `pg_controldata`, and `pg_isready` all reported 18.6. The current
-candidate adds generic Runtime owner lifecycle/quiescence semantics and the
-real Host/Runtime integration proof. Linux/macOS, source-less, service/headless,
-and hardware power-loss claims remain `NOT_RUN` or `PARTIAL`.
+This is the current mutable corrective candidate. The earlier Windows
+PostgreSQL property evidence remains historical and cannot qualify this tree
+until the fresh PostgreSQL 18.6 suite and final local gates are rerun.

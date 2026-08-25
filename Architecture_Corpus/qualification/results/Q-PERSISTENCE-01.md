@@ -309,27 +309,25 @@ service/headless product claims remain `NOT_RUN`.
 ## H2-S current candidate qualification (2026-08-26)
 
 ```yaml
-candidate_status: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
-candidate_base_sha: 4e2dead8bbc413e31dfff1751663780ed8dc688a4
-behavior_candidate_head_sha: bbea4ae685d17462c1e9770c284de742a820f073
-fresh_postgres_version: PostgreSQL 18.6
-fresh_postgres_platform: Windows
-persistence_unit: PASS (19/19)
-execution_lineage_unit: PASS (29/29)
-canonical_schema_unit: PASS (3/3)
-persistence_integration: PASS (9/9)
-host_ownership_integration: PASS (10/10)
-bootstrap_runtime_integration: PASS (8 suites, 58 tests)
-recovery_process: PASS (4/4)
-recovery_process_postgres: PASS (2/2)
-runtime_owner_quiescence_integration: PASS (PG1-PG6)
-repository_verify: PASS
-independent_review: NOT_RUN
-final_cross_platform_ci: NOT_RUN
-squash_merge: NOT_RUN
+candidate:
+  pullRequest: 24
+  state: CORRECTIVE_DRAFT
+  branch: dev/h2-stabilization
+localQualification:
+  status: NOT_RUN
+  environment: Windows / Node 24.19.0 / pnpm 11.22.0
+  completedAfterLastRepositoryMutation: false
+freshPostgreSQL18_6: NOT_RUN
+persistenceUnit: NOT_RUN
+executionLineageUnit: NOT_RUN
+canonicalSchemaUnit: NOT_RUN
+bootstrapRuntimeIntegration: NOT_RUN
+hostOwnershipIntegration: NOT_RUN
+independentReview: NOT_RUN
+finalCrossPlatformCI: NOT_RUN
+merge: NOT_RUN
 ```
 
-This addendum records fresh current-candidate Windows PostgreSQL evidence and
-does not rewrite the historical H2A/H2B review or merge tuples above. Linux/
-macOS, source-less, service/headless, and other product residuals remain
-`NOT_RUN` or `PARTIAL`.
+This current record is mutable corrective-cycle evidence. Historical H2A/H2B
+review, CI, and merge records above remain historical and do not qualify the
+current tree.

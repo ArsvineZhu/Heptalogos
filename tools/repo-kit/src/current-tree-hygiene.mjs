@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 
 const EXCLUDED_DIRECTORIES = new Set([
@@ -23,8 +23,8 @@ const SELF_EXEMPTIONS = new Set([
 ]);
 
 const DEVELOPMENT_IDENTITY_PATTERN =
-  /(?<![a-z0-9])(?:m\d+[a-z]?|h\d+(?:a[-_]?\d+|b|s)?(?:[-_]s)?)(?![a-z0-9])/iu;
-const PR_ID_PATTERN = /(?<![a-z0-9])pr[-_]?\d+(?![a-z0-9])/iu;
+  /(?<![a-z0-9])(?:m\d+[a-z]?|h\d+(?:[-_]?s|[a-z](?:[-_]?\d+)?))(?![a-z0-9])/iu;
+const PR_ID_PATTERN = /(?<![a-z0-9])pr\s*#?\s*\d+(?![a-z0-9])/iu;
 const CORRECTIVE_CYCLE_PATTERN =
   /\b(?:corrective[-_ ]?cycle[-_ ]?\d+|session[-_ ]?(?:id[-_ ]?)?\d+)\b/iu;
 const HISTORICAL_COMPATIBILITY_PATTERN =
@@ -55,9 +55,18 @@ function isDirectoryExcluded(name) {
   return EXCLUDED_DIRECTORIES.has(name);
 }
 
-function collectFiles(root, candidate, output) {
+function collectFiles(root, candidate, output, findings) {
   if (!existsSync(candidate)) return;
-  const stats = statSync(candidate);
+  const stats = lstatSync(candidate);
+  if (stats.isSymbolicLink()) {
+    addFinding(
+      findings,
+      "symbolic-link-residue",
+      normalize(root, candidate),
+      "symbolic links are not allowed in scanned canonical or executable surfaces",
+    );
+    return;
+  }
   if (stats.isFile()) {
     output.add(normalize(root, candidate));
     return;
@@ -65,8 +74,17 @@ function collectFiles(root, candidate, output) {
   if (!stats.isDirectory()) return;
   for (const entry of readdirSync(candidate, { withFileTypes: true })) {
     if (entry.isDirectory() && isDirectoryExcluded(entry.name)) continue;
-    if (entry.isSymbolicLink()) continue;
-    collectFiles(root, join(candidate, entry.name), output);
+    const child = join(candidate, entry.name);
+    if (entry.isSymbolicLink()) {
+      addFinding(
+        findings,
+        "symbolic-link-residue",
+        normalize(root, child),
+        "symbolic links are not allowed in scanned canonical or executable surfaces",
+      );
+      continue;
+    }
+    collectFiles(root, child, output, findings);
   }
 }
 
@@ -126,11 +144,23 @@ export function scanCurrentTree({ root = process.cwd() } = {}) {
   const files = new Set();
 
   for (const relativePath of SCAN_ROOTS) {
-    collectFiles(repositoryRoot, join(repositoryRoot, relativePath), files);
+    collectFiles(repositoryRoot, join(repositoryRoot, relativePath), files, findings);
   }
   for (const entry of readdirSync(repositoryRoot, { withFileTypes: true })) {
-    if (/^tsconfig.*\.json$/iu.test(entry.name) && entry.isFile()) {
-      files.add(entry.name);
+    if (
+      /^tsconfig.*\.json$/iu.test(entry.name) &&
+      (entry.isFile() || entry.isSymbolicLink())
+    ) {
+      if (entry.isSymbolicLink()) {
+        addFinding(
+          findings,
+          "symbolic-link-residue",
+          entry.name,
+          "symbolic links are not allowed in scanned canonical or executable surfaces",
+        );
+      } else {
+        files.add(entry.name);
+      }
     }
   }
 

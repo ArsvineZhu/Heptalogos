@@ -3,12 +3,8 @@ name: verify-manual
 on:
   workflow_dispatch:
     inputs:
-      base_sha:
-        description: Full reviewed base-branch commit SHA
-        required: true
-        type: string
-      target_sha:
-        description: Full commit SHA to verify
+      pr_number:
+        description: Open pull request number to verify
         required: true
         type: string
       reason:
@@ -22,9 +18,10 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
-  group: manual-verify-${{ inputs.target_sha }}
+  group: manual-verify-${{ inputs.pr_number }}-${{ inputs.reason }}
   cancel-in-progress: false
 
 jobs:
@@ -40,7 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.target_sha }}
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -51,38 +48,35 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
 
-      - name: Fetch reviewed base branch
+      - name: Validate live PR candidate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          DISPATCHED_REF: ${{ github.ref_name }}
+          VERIFY_REASON: ${{ inputs.reason }}
+        run: |
+          set -euo pipefail
+          pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
+          PR_JSON="$pr_json" node --input-type=module -e
+          "const pr=JSON.parse(process.env.PR_JSON);
+          if(pr.state!=='open') throw new Error('PR is not open');
+          if(pr.base?.ref!=='master') throw new Error('PR base is not master');
+          if(pr.head?.ref!==process.env.DISPATCHED_REF) throw new Error('dispatched ref is not the PR head branch');
+          if(process.env.VERIFY_REASON==='final-pre-merge' && pr.draft) throw new Error('final-pre-merge requires a Ready PR');
+          if(!pr.head?.sha) throw new Error('PR head revision is unavailable');
+          console.log('PASS live PR metadata: '+pr.number+' '+pr.head.ref+' '+pr.head.sha);"
+          checked_head="$(git rev-parse HEAD)"
+          expected_head="$(PR_JSON="$pr_json" node --input-type=module -e "console.log(JSON.parse(process.env.PR_JSON).head.sha)")"
+          test "$checked_head" = "$expected_head"
+
+      - name: Fetch current base branch
+        shell: bash
         run: git fetch --no-tags origin master:refs/remotes/origin/master
 
-      - name: Verify reviewed candidate pair
-        env:
-          BASE_SHA: ${{ inputs.base_sha }}
-          TARGET_SHA: ${{ inputs.target_sha }}
-        run: >-
-          node --input-type=module -e
-          "import { execFileSync } from 'node:child_process';
-          const workflowSha=process.env.GITHUB_SHA;
-          if(workflowSha!==process.env.TARGET_SHA){
-            console.error('workflow definition '+workflowSha+' does not match reviewed target '+process.env.TARGET_SHA);
-            process.exit(1);
-          }
-          const head=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
-          if(head!==process.env.TARGET_SHA){
-            console.error('expected '+process.env.TARGET_SHA+' but checked out '+head);
-            process.exit(1);
-          }
-          const currentBase=execFileSync('git',['rev-parse','refs/remotes/origin/master'],{encoding:'utf8'}).trim();
-          if(currentBase!==process.env.BASE_SHA){
-            console.error('reviewed base '+process.env.BASE_SHA+' moved to '+currentBase);
-            process.exit(1);
-          }
-          execFileSync('git',['cat-file','-e',process.env.BASE_SHA+'^{commit}']);
-          const mergeBase=execFileSync('git',['merge-base',process.env.BASE_SHA,process.env.TARGET_SHA],{encoding:'utf8'}).trim();
-          if(mergeBase!==process.env.BASE_SHA){
-            console.error('base '+process.env.BASE_SHA+' is not an ancestor of target '+process.env.TARGET_SHA);
-            process.exit(1);
-          }
-          console.log('PASS review candidate base='+process.env.BASE_SHA+' head='+head);"
+      - name: Create temporary current-base integration
+        shell: bash
+        run: git merge --no-commit --no-ff origin/master
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm verify

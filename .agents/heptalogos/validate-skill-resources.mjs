@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,7 +11,6 @@ const repoRoot = path.dirname(agentsDir);                  // repo root
 const skillsDir = path.join(agentsDir, 'skills');
 const routesPath = path.join(scriptDir, 'corpus-routes.json');
 const casesPath = path.join(scriptDir, 'tests', 'skill-routing-cases.json');
-const packageManifestPath = path.join(scriptDir, 'package-manifest.json');
 const rootAgentsPath = path.join(repoRoot, 'AGENTS.md');
 
 const errors = [];
@@ -37,36 +35,6 @@ function requireFile(file, label = path.relative(repoRoot, file)) {
     return false;
   }
   return true;
-}
-
-function sha256(file) {
-  return createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-}
-
-function validatePackageManifest(manifest) {
-  if (!Array.isArray(manifest?.files)) {
-    fail('package-manifest.json: files must be an array');
-    return;
-  }
-
-  const seen = new Set();
-  for (const entry of manifest.files) {
-    if (!entry?.path || seen.has(entry.path)) {
-      fail(`package-manifest.json: invalid or duplicate entry: ${entry?.path ?? '<missing>'}`);
-      continue;
-    }
-    seen.add(entry.path);
-    const file = path.resolve(repoRoot, entry.path);
-    if (!requireFile(file, `package-manifest.json -> ${entry.path}`)) continue;
-    const size = fs.statSync(file).size;
-    const hash = sha256(file);
-    if (size !== entry.size) {
-      fail(`Package manifest size mismatch: ${entry.path} (expected ${entry.size}, got ${size})`);
-    }
-    if (hash !== entry.sha256) {
-      fail(`Package manifest hash mismatch: ${entry.path}`);
-    }
-  }
 }
 
 function walkRouteValues(value, visit) {
@@ -108,13 +76,10 @@ function wordCount(text) {
 requireFile(routesPath);
 requireFile(rootAgentsPath);
 requireFile(casesPath);
-requireFile(packageManifestPath);
 
 const routesDoc = readJson(routesPath);
 const casesDoc = readJson(casesPath);
-const packageManifestDoc = readJson(packageManifestPath);
 if (!routesDoc) process.exitCode = 1;
-if (packageManifestDoc) validatePackageManifest(packageManifestDoc);
 
 const corpusRoot = routesDoc
   ? path.resolve(repoRoot, routesDoc.corpusRoot ?? 'Architecture_Corpus')

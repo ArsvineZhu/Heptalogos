@@ -111,6 +111,7 @@ export class MicroSystemSupervisor {
   private lifecycleState: SupervisorLifecycleState = "ACTIVE";
   private capturedDesired: DesiredRuntimeSnapshot | undefined;
   private readonly startingFences = new Set<GenerationFence>();
+  private readonly startingActivationControllers = new Set<AbortController>();
   private terminalClosePromise: Promise<void> | undefined;
   private readonly ownerAbortListener: (() => void) | undefined;
   private ownerTerminalFailureReported = false;
@@ -594,6 +595,7 @@ export class MicroSystemSupervisor {
       running.fence.beginRetirement();
     }
     for (const fence of this.startingFences) fence.beginRetirement();
+    for (const controller of this.startingActivationControllers) controller.abort();
   }
 
   private acceptsStartAdmission(): boolean {
@@ -720,6 +722,8 @@ export class MicroSystemSupervisor {
     let backgroundFailureCause: unknown;
     let activationCommitted = false;
     let handle: SubstrateActivationHandle | undefined;
+    const activationController = new AbortController();
+    this.startingActivationControllers.add(activationController);
     this.startingFences.add(fence);
 
     try {
@@ -735,6 +739,7 @@ export class MicroSystemSupervisor {
             capabilityProviderIds,
             publishedServiceBindings,
             publishedCapabilityBindings,
+            AbortSignal.any([scope.signal, activationController.signal]),
           );
           await definition.activate(context);
           for (const provision of definition.serviceProvisions) {
@@ -830,6 +835,7 @@ export class MicroSystemSupervisor {
       }
       throw error;
     } finally {
+      this.startingActivationControllers.delete(activationController);
       this.startingFences.delete(fence);
     }
   }
@@ -1014,6 +1020,7 @@ export class MicroSystemSupervisor {
     capabilityProviderIds: ProviderId[],
     publishedServiceBindings: Set<string>,
     publishedCapabilityBindings: Set<string>,
+    signal: AbortSignal,
   ): MicroSystemActivationContext {
     const runtimeActivity = this.options.lifecycleLineage?.runner(
       this.runtimeOrigin(definition, instanceId),
@@ -1039,7 +1046,7 @@ export class MicroSystemSupervisor {
       generation: definition.generation,
       operatingMode: this.operatingMode,
       scope,
-      signal: scope.signal,
+      signal,
       runtimeActivity,
       requireService: (requirement) => {
         if (

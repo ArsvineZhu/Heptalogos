@@ -2378,6 +2378,92 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
+  it("Q-start-quiesce-cancel aborts STARTING activation without manual release", async () => {
+    const activationStarted = deferred<void>();
+    const activationAborted = deferred<void>();
+    let laterActivations = 0;
+    const first = system("system.start-quiesce-cancel", async (context) => {
+      activationStarted.resolve();
+      await new Promise<void>((resolve) => {
+        if (context.signal.aborted) {
+          activationAborted.resolve();
+          resolve();
+          return;
+        }
+        context.signal.addEventListener(
+          "abort",
+          () => {
+            activationAborted.resolve();
+            resolve();
+          },
+          { once: true },
+        );
+      });
+    });
+    const later = system("system.start-quiesce-queued", async () => {
+      laterActivations += 1;
+    });
+    const supervisor = createSupervisor([first, later]);
+    try {
+      const reconcile = supervisor.reconcile(desired([first, later]));
+      await activationStarted.promise;
+      const quiesce = supervisor.quiesce();
+      await activationAborted.promise;
+      await expect(reconcile).rejects.toMatchObject({
+        problem: { problemCode: "runtime.supervisor.not_active" },
+      });
+      await expect(quiesce).resolves.toBeDefined();
+      expect(laterActivations).toBe(0);
+    } finally {
+      await supervisor.close().catch(() => undefined);
+    }
+  });
+
+  it("Q-start-owner-abort-cancel aborts STARTING activation and cannot reopen", async () => {
+    const owner = new AbortController();
+    const activationStarted = deferred<void>();
+    const activationAborted = deferred<void>();
+    const definition = system("system.start-owner-abort-cancel", async (context) => {
+      activationStarted.resolve();
+      await new Promise<void>((resolve) => {
+        if (context.signal.aborted) {
+          activationAborted.resolve();
+          resolve();
+          return;
+        }
+        context.signal.addEventListener(
+          "abort",
+          () => {
+            activationAborted.resolve();
+            resolve();
+          },
+          { once: true },
+        );
+      });
+    });
+    const supervisor = new MicroSystemSupervisor({
+      substrate: createRuntimeSubstrate({ settleTimeoutMs: 50 }),
+      settleTimeoutMs: 50,
+      definitions: [definition],
+      ownerLifecycle: { signal: owner.signal, onTerminalFailure: () => undefined },
+    });
+    try {
+      const reconcile = supervisor.reconcile(desired([definition]));
+      await activationStarted.promise;
+      owner.abort();
+      await activationAborted.promise;
+      await expect(reconcile).rejects.toMatchObject({
+        problem: { problemCode: "runtime.supervisor.not_active" },
+      });
+      await expect(supervisor.close()).resolves.toBeUndefined();
+      await expect(supervisor.reconcile(desired([definition]))).rejects.toMatchObject({
+        problem: { problemCode: "runtime.supervisor.not_active" },
+      });
+    } finally {
+      await supervisor.close().catch(() => undefined);
+    }
+  });
+
   it("Q13 admits no work when the owner signal is already aborted", async () => {
     const owner = new AbortController();
     owner.abort();

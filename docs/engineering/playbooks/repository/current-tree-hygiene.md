@@ -87,7 +87,9 @@ allowlist, baseline, inline suppression, or history-ignore mechanism. The three
 gate implementation files are the only exact self-exemptions.
 
 The gate is one permanent repository check and is wired into `pnpm verify` after
-`check:repository`. A skipped or blocked gate is not `PASS`.
+`check:repository`. A symlink or junction in a scanned canonical/executable
+surface is reported as `symbolic-link-residue`; the scanner does not follow it
+and provides no symlink allowlist. A skipped or blocked gate is not `PASS`.
 
 ## Hn-S zero-residue checklist
 

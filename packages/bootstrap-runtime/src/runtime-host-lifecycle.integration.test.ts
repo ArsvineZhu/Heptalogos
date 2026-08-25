@@ -17,6 +17,7 @@ import {
 import { createPersistenceService } from "@heptalogos/persistence";
 import { createFakeTimeService } from "@heptalogos/time-service";
 import { createRuntimeSubstrate } from "@heptalogos/runtime-substrate";
+import { openPrivatePostgresMaintenanceController } from "@heptalogos/private-postgres";
 import {
   createContractVersion,
   createRuntimeLifecycleLineage,
@@ -38,6 +39,9 @@ import {
   type BootResult,
 } from "./test-support/canonical-postgres.js";
 import type { HostMaintenanceQuiescence } from "./managed-host.js";
+import { acquireBootstrapOwnership } from "./bootstrap-ownership.js";
+import { prepareBootstrapPrelude } from "./bootstrap-prelude.js";
+import { getPrivatePostgresMaintenanceDescriptor } from "./private-postgres-bootstrap.js";
 
 const describePostgres = describeRealPostgres === undefined ? describe.skip : describe;
 const contractV1 = createContractVersion("v1");
@@ -566,6 +570,27 @@ describePostgres.sequential("Runtime and authentic Host lifecycle", () => {
       await expect(
         oldLease!.invoke("pg6-old-lease", (service) => service.read()),
       ).rejects.toBeDefined();
+
+      const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+      const bootstrapOwnership = await acquireBootstrapOwnership(
+        prepared.paths.resolve("INSTANCE"),
+        { heartbeatMs: 1_000, bootId: prepared.bootId },
+      );
+      try {
+        expect(bootstrapOwnership.state).toBe("HELD");
+        const controller = await openPrivatePostgresMaintenanceController({
+          ...getPrivatePostgresMaintenanceDescriptor(composition.bootResult.ready),
+          assertControlAuthority: () => bootstrapOwnership.assertHeld(),
+        });
+        expect(controller.state).toBe("READY");
+        await expect(controller.stop()).resolves.toBeUndefined();
+        expect(controller.state).toBe("STOPPED");
+        await expect(
+          queryAs(fixture, "heptalogos_bootstrap", BOOTSTRAP_PASSWORD, "SELECT 1"),
+        ).rejects.toBeDefined();
+      } finally {
+        await bootstrapOwnership.release();
+      }
     } finally {
       await closeComposition(composition);
     }
