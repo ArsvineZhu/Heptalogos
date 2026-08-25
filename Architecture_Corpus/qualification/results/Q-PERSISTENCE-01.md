@@ -8,9 +8,9 @@ testedProperty: "H2A-3 canonical ExecutionContext, retained Activity/Evidence at
 evidenceStatus: PASS
 qualificationState: PARTIAL
 implementationQualification: REQUIRED
-behavior_candidate_sha: 76589ade468ccb7a4a9ecf830f6200fdd729917c
+behavior_candidate_sha: 2482b6e380cbad37407e99b0ce7c7560ccc709c6
 reviewed_base_sha: 446d0f6bce449f177c66fb569341020757b44c9b
-reviewed_head_sha: NOT_RUN
+reviewed_head_sha: 2482b6e380cbad37407e99b0ce7c7560ccc709c6
 current_execution_context_required_for_mutation: PASS
 stale_execution_origin_unit: PASS
 stale_execution_origin_real_postgres: PASS
@@ -41,15 +41,16 @@ service_headless_persistence: NOT_RUN
 check_dependencies: PASS
 check_boundaries: PASS
 pnpm_verify: PASS
-independent_review: NOT_RUN
+independent_review: PASS
 final_cross_platform_ci: NOT_RUN
-squash_merge: NOT_RUN
+squash_merge: PASS (PR #19 merge `7b51468c2c41895bde7091868d688d98dfc6c957`)
 ```
 
 The real PostgreSQL evidence used the extracted EDB PostgreSQL 18.6 toolchain
 at `C:\Users\Arsvine\AppData\Local\Temp\heptalogos-pg18.6-correction-20260823\extracted\pgsql\bin`.
-The behavior candidate is locally qualified only; no H2A-3 independent review,
-manual final CI, or squash merge is claimed by this addendum. Linux/macOS,
+The corrected candidate received out-of-band independent review `PASS` and was
+squash-merged as PR #19 at `7b51468c2c41895bde7091868d688d98dfc6c957`. Final
+cross-platform CI remains `NOT_RUN` by explicit operator direction pending the H2-wide run. Linux/macOS,
 source-less, and service/headless product qualification remain `NOT_RUN`.
 
 本记录保留 H2A-1 Host-scoped Persistence 的历史/current ledger 语义，并以独立

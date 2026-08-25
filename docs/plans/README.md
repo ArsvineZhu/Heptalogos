@@ -15,11 +15,8 @@ surface the ambiguity rather than guessing.
 
 ## Active
 
-H2B runtime composition is governed by the operator-designated plan
-`.superpowers/Heptalogos-H2B-Runtime-Composition-Kernel-Implementation-Plan.md`
-and its candidate branch/PR; the plan is intentionally kept outside the
-tracked `docs/plans/active/` registry until its H2B implementation record is
-ready for repository documentation reconciliation.
+H2B is eligible after H2A-3 reconciliation; its implementation plan will be
+registered in `docs/plans/active/foundation/` with the H2B candidate.
 
 ## Completed
 
