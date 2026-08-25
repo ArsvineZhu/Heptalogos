@@ -8,7 +8,7 @@ testedProperty: "H2B runtime-origin persistence projection and narrow current-Ac
 evidenceStatus: PASS
 qualificationState: PARTIAL
 implementationQualification: REQUIRED
-behavior_candidate_sha: 47b253de1f49821b8eacd6efbeef4268271e4a7d
+behavior_candidate_sha: 5d1d8ae36d27a29c4a1ce4d827c732ea94bef4c8
 runtime_origin_columns: PASS (product/package/MicroSystem provenance columns in current V1 baseline)
 activity_completion_function: PASS (owner-owned SECURITY DEFINER function)
 runtime_table_update_denied: PASS (Windows PostgreSQL 18.6)

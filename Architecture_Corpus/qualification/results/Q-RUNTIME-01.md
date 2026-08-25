@@ -83,11 +83,11 @@ testedProperty: "H2B Heptalogos-owned RuntimeKernel composition, generation-fenc
 evidenceStatus: PASS
 qualificationState: PARTIAL
 implementationQualification: REQUIRED
-behavior_candidate_sha: 47b253de1f49821b8eacd6efbeef4268271e4a7d
+behavior_candidate_sha: 5d1d8ae36d27a29c4a1ce4d827c732ea94bef4c8
 runtime_identity_unit: PASS (22/22)
 bootstrap_state_unit: PASS (113 passed, 3 skipped)
 runtime_substrate_unit: PASS (11/11)
-runtime_kernel_unit: PASS (38/38)
+runtime_kernel_unit: PASS (41/41)
 execution_lineage_unit: PASS (29/29)
 canonical_schema_unit: PASS (3/3)
 persistence_unit: PASS (19/19)
