@@ -89,6 +89,17 @@ describe("current-tree hygiene scanner", () => {
     expect(result.findings).toEqual([]);
   });
 
+  it("allows generic governance prose about corrective cycles without an identity", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFile(
+        join(root, "AGENTS.md"),
+        "Do not leave corrective-cycle names in executable identities.\n",
+      );
+    });
+
+    expect(result.findings).toEqual([]);
+  });
+
   it("ignores completed-plan and provenance paths", async () => {
     const result = await fixtureTree(async (root) => {
       await writeFile(

@@ -26,7 +26,7 @@ const DEVELOPMENT_IDENTITY_PATTERN =
   /(?<![a-z0-9])(?:m\d+[a-z]?|h\d+(?:a[-_]?\d+|b|s)?(?:[-_]s)?)(?![a-z0-9])/iu;
 const PR_ID_PATTERN = /(?<![a-z0-9])pr[-_]?\d+(?![a-z0-9])/iu;
 const CORRECTIVE_CYCLE_PATTERN =
-  /\b(?:corrective[-_ ]?cycle(?:[-_ ]?\d+)?|session[-_ ]?(?:id|\d+))\b/iu;
+  /\b(?:corrective[-_ ]?cycle[-_ ]?\d+|session[-_ ]?(?:id[-_ ]?)?\d+)\b/iu;
 const HISTORICAL_COMPATIBILITY_PATTERN =
   /\b(?:legacy|obsolete|deprecated|upcast|downcast)\b|\bbackward[- ]compat(?:ibility)?\b|\b(?:compatibility\s+(?:shim|bridge|alias)|(?:shim|bridge|alias)\s+compatibility)\b|\b(?:old|previous)\s+(?:schema|format|payload|field|api)\b/iu;
 
