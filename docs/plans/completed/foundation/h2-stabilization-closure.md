@@ -12,7 +12,7 @@ branch: dev/h2-stabilization
 worktree: C:\dev\Heptalogos
 gate_r: PASS (H2B reconciliation complete)
 draft_pr: 24 (DRAFT)
-candidate_state: CORRECTIVE_DRAFT
+candidate_state: READY_FOR_REVIEW
 ```
 
 ## S4 compatibility audit record (2026-08-26)
@@ -2297,9 +2297,9 @@ candidate:
   branch: dev/h2-stabilization
 
 localQualification:
-  status: NOT_RUN
+  status: PASS
   environment: Windows / Node 24.19.0 / pnpm 11.22.0
-  completedAfterLastRepositoryMutation: false
+  completedAfterLastRepositoryMutation: true
 
 governance:
   root_agents_rewritten: PASS
@@ -2316,6 +2316,7 @@ current_tree_hygiene:
 
 runtime_lifecycle:
   owner_signal_terminalization: PASS
+  starting_activation_cancellation: PASS
   synchronous_admission_close: PASS
   reverse_dependency_quiescence: PASS
   one_shot_resume: PASS
@@ -2329,10 +2330,10 @@ postgres_18_6:
   PG3_planned_stop_real_quiescence: PASS
   PG4_restart_continuity_rotation: PASS
   PG5_structural_safe_abort_fit: PASS
-  PG6_shutdown_keep_postgres_ordering: PASS
+  PG6_shutdown_keep_postgres_and_bootstrap_cleanup: PASS
 
 repository:
-  pnpm_verify: NOT_RUN
+  pnpm_verify: PASS
   independent_review: NOT_RUN
   final_cross_platform_ci: NOT_RUN
   merge: NOT_RUN

@@ -97,17 +97,17 @@
         "h2b_squash_merge": "PASS (PR #22 merge d7f32427398d2309c1732cdbce98f590e14a8249)",
         "h2s_candidate": {
           "pullRequest": 24,
-          "state": "CORRECTIVE_DRAFT",
+          "state": "READY_FOR_REVIEW",
           "branch": "dev/h2-stabilization"
         },
         "h2s_localQualification": {
-          "status": "NOT_RUN",
+          "status": "PASS",
           "environment": "Windows / Node 24.19.0 / pnpm 11.22.0",
-          "completedAfterLastRepositoryMutation": false
+          "completedAfterLastRepositoryMutation": true
         },
-        "h2s_freshPostgres18_6": "NOT_RUN",
+        "h2s_freshPostgres18_6": "PASS",
         "h2s_runtimeKernelScenarios": {
-          "status": "NOT_RUN",
+          "status": "PASS (123/123)",
           "namedScenarios": [
             "Q1 closes Service admission synchronously while an admitted call drains",
             "Q2 quiesces hard dependents before providers with deterministic independent ordering",
@@ -128,9 +128,21 @@
           ],
           "missingNumber": "Q4 intentionally absent"
         },
-        "h2s_runtimeSubstrateUnit": "NOT_RUN",
-        "h2s_bootstrapProductionBoundary": "NOT_RUN",
-        "h2s_currentTreeHygiene": "NOT_RUN",
+        "h2s_runtimeSubstrateUnit": "PASS (16/16)",
+        "h2s_bootstrapProductionBoundary": "PASS",
+        "h2s_currentTreeHygiene": "PASS",
+        "h2s_pg1_identity_coherence": "PASS",
+        "h2s_pg2_host_terminality_propagation": "PASS",
+        "h2s_pg3_planned_stop_real_quiescence": "PASS",
+        "h2s_pg4_restart_continuity_rotation": "PASS",
+        "h2s_pg5_structural_safe_abort_fit": "PASS",
+        "h2s_pg6_shutdown_keep_postgres_and_bootstrap_cleanup": "PASS",
+        "h2s_bootstrapRuntimeIntegration": "PASS (8 suites, 58 tests)",
+        "h2s_privatePostgresIntegration": "PASS (20/20)",
+        "h2s_hostOwnershipIntegration": "PASS (10/10)",
+        "h2s_persistenceIntegration": "PASS (9/9)",
+        "h2s_recoveryProcess": "PASS (4/4)",
+        "h2s_recoveryProcessPostgres": "PASS (2/2)",
         "h2s_independentReview": "NOT_RUN",
         "h2s_finalCrossPlatformCI": "NOT_RUN",
         "h2s_merge": "NOT_RUN"
@@ -627,20 +639,23 @@
     "h2a3_squash_merge": "PASS (PR #19 merge 7b51468c2c41895bde7091868d688d98dfc6c957)",
         "h2s_candidate": {
           "pullRequest": 24,
-          "state": "CORRECTIVE_DRAFT",
+          "state": "READY_FOR_REVIEW",
           "branch": "dev/h2-stabilization"
         },
         "h2s_localQualification": {
-          "status": "NOT_RUN",
+          "status": "PASS",
           "environment": "Windows / Node 24.19.0 / pnpm 11.22.0",
-          "completedAfterLastRepositoryMutation": false
+          "completedAfterLastRepositoryMutation": true
         },
-        "h2s_freshPostgres18_6": "NOT_RUN",
-        "h2s_persistenceUnit": "NOT_RUN",
-        "h2s_executionLineageUnit": "NOT_RUN",
-        "h2s_canonicalSchemaUnit": "NOT_RUN",
-        "h2s_bootstrapRuntimeIntegration": "NOT_RUN",
-        "h2s_hostOwnershipIntegration": "NOT_RUN",
+        "h2s_freshPostgres18_6": "PASS",
+        "h2s_persistenceUnit": "PASS (19/19)",
+        "h2s_executionLineageUnit": "PASS (29/29)",
+        "h2s_canonicalSchemaUnit": "PASS (3/3)",
+        "h2s_bootstrapRuntimeIntegration": "PASS (8 suites, 58 tests)",
+        "h2s_hostOwnershipIntegration": "PASS (10/10)",
+        "h2s_persistenceIntegration": "PASS (9/9)",
+        "h2s_recoveryProcess": "PASS (4/4)",
+        "h2s_recoveryProcessPostgres": "PASS (2/2)",
         "h2s_independentReview": "NOT_RUN",
         "h2s_finalCrossPlatformCI": "NOT_RUN",
         "h2s_merge": "NOT_RUN"

@@ -311,23 +311,26 @@ service/headless product claims remain `NOT_RUN`.
 ```yaml
 candidate:
   pullRequest: 24
-  state: CORRECTIVE_DRAFT
+  state: READY_FOR_REVIEW
   branch: dev/h2-stabilization
 localQualification:
-  status: NOT_RUN
+  status: PASS
   environment: Windows / Node 24.19.0 / pnpm 11.22.0
-  completedAfterLastRepositoryMutation: false
-freshPostgreSQL18_6: NOT_RUN
-persistenceUnit: NOT_RUN
-executionLineageUnit: NOT_RUN
-canonicalSchemaUnit: NOT_RUN
-bootstrapRuntimeIntegration: NOT_RUN
-hostOwnershipIntegration: NOT_RUN
+  completedAfterLastRepositoryMutation: true
+freshPostgreSQL18_6: PASS
+persistenceUnit: PASS (19/19)
+executionLineageUnit: PASS (29/29)
+canonicalSchemaUnit: PASS (3/3)
+bootstrapRuntimeIntegration: PASS (8 suites, 58 tests)
+hostOwnershipIntegration: PASS (10/10)
+persistenceIntegration: PASS (9/9)
+recoveryProcess: PASS (4/4)
+recoveryProcessPostgres: PASS (2/2)
 independentReview: NOT_RUN
 finalCrossPlatformCI: NOT_RUN
 merge: NOT_RUN
 ```
 
-This current record is mutable corrective-cycle evidence. Historical H2A/H2B
-review, CI, and merge records above remain historical and do not qualify the
-current tree.
+This current record describes the Ready review candidate. Historical H2A/H2B
+review, CI, and merge records above remain historical; Independent Review,
+final cross-platform CI, and merge are still `NOT_RUN` for this candidate.

@@ -149,10 +149,10 @@ H3: NOT_ELIGIBLE
 ```
 
 H2B is closed and H2 is functionally complete. The current H2-S corrective
-candidate is PR #24 on `dev/h2-stabilization` in `CORRECTIVE_DRAFT`; its local
-qualification, fresh PostgreSQL 18.6 qualification, Independent Review, final
-cross-platform CI, and merge are `NOT_RUN` for this mutable tree. H2 remains
-open and H3 remains not eligible.
+candidate is PR #24 on `dev/h2-stabilization`, with local qualification and
+fresh PostgreSQL 18.6 qualification `PASS`. Independent Review, final
+cross-platform CI, and merge remain `NOT_RUN`; H2 remains open and H3 remains
+not eligible.
 
 H1 functional implementation: COMPLETE.
 

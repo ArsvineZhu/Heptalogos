@@ -265,15 +265,15 @@ start/stop claims remain `NOT_RUN` or `PARTIAL` as previously recorded.
 ```yaml
 candidate:
   pullRequest: 24
-  state: CORRECTIVE_DRAFT
+  state: READY_FOR_REVIEW
   branch: dev/h2-stabilization
 localQualification:
-  status: NOT_RUN
+  status: PASS
   environment: Windows / Node 24.19.0 / pnpm 11.22.0
-  completedAfterLastRepositoryMutation: false
-freshPostgreSQL18_6: NOT_RUN
+  completedAfterLastRepositoryMutation: true
+freshPostgreSQL18_6: PASS
 runtimeKernelScenarios:
-  status: NOT_RUN
+  status: PASS (123/123)
   namedScenarios:
     - Q1 closes Service admission synchronously while an admitted call drains
     - Q2 quiesces hard dependents before providers with deterministic independent ordering
@@ -292,14 +292,26 @@ runtimeKernelScenarios:
     - Q14 returns the same idempotent terminal close outcome
     - Q15 fails closed when resume encounters a structural activation failure
   note: Q4 is intentionally absent; the ledger does not claim a contiguous Q1-Q15 range.
-runtimeSubstrateUnit: NOT_RUN
-bootstrapProductionBoundary: NOT_RUN
-currentTreeHygiene: NOT_RUN
+runtimeSubstrateUnit: PASS (16/16)
+bootstrapProductionBoundary: PASS
+currentTreeHygiene: PASS
+pg1_identity_coherence: PASS
+pg2_host_terminality_propagation: PASS
+pg3_planned_stop_real_quiescence: PASS
+pg4_restart_continuity_rotation: PASS
+pg5_structural_safe_abort_fit: PASS
+pg6_shutdown_keep_postgres_and_bootstrap_cleanup: PASS
+bootstrapRuntimeIntegration: PASS (8 suites, 58 tests)
+privatePostgresIntegration: PASS (20/20)
+hostOwnershipIntegration: PASS (10/10)
+persistenceIntegration: PASS (9/9)
+recoveryProcess: PASS (4/4)
+recoveryProcessPostgres: PASS (2/2)
 independentReview: NOT_RUN
 finalCrossPlatformCI: NOT_RUN
 merge: NOT_RUN
 ```
 
-This is the current mutable corrective candidate. The earlier Windows
-PostgreSQL property evidence remains historical and cannot qualify this tree
-until the fresh PostgreSQL 18.6 suite and final local gates are rerun.
+This is the current Ready review candidate. The fresh Windows PostgreSQL 18.6
+suite and all required local gates completed after the implementation mutation;
+Independent Review, final cross-platform CI, and merge remain external gates.
