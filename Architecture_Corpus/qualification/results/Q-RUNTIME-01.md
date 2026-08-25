@@ -117,3 +117,29 @@ Host-fenced `PersistenceService`; no second PostgreSQL harness was introduced.
 Host-ownership internals, and its package root does not expose Cordis or
 Graphlib objects. The candidate remains Draft pending the operator-directed
 H2-wide CI/review phase.
+
+## H2B corrective binding-reconciliation addendum (2026-08-25)
+
+```yaml
+qualificationId: Q-RUNTIME-01
+testedProperty: "H2B explicit Service/Capability binding removal and re-selection"
+evidenceStatus: PASS
+qualificationState: PARTIAL
+implementationQualification: REQUIRED
+behavior_candidate_sha: 0916bf7fb04b2525c40fd660632fcc7a771b4d04
+removed_service_binding_reconcile_regression: PASS
+removed_capability_binding_reconcile_regression: PASS
+runtime_kernel_unit: PASS (44/44)
+repository_verification: PASS (pnpm verify)
+real_postgres_runtime_composition_after_correction: NOT_RUN
+reason_real_postgres_not_run: "HEPTALOGOS_TEST_PG_BIN was unset; discovered PostgreSQL 18.4 binaries were not used as the required PostgreSQL 18.6 qualification runtime."
+linux_real_postgres: NOT_RUN
+macos_real_postgres: NOT_RUN
+source_less_shipping: NOT_RUN
+service_headless: NOT_RUN
+cross_platform_ci: NOT_RUN
+independent_review: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The prior H2B managed-Host PostgreSQL PASS remains historical evidence for behavior candidate `5d162618a078bb1df3d8009c857c6d718155e28f`; it is not reused as the post-correction real-PostgreSQL result.
