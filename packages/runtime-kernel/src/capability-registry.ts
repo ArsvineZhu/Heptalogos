@@ -7,12 +7,14 @@ import { ContractCompatibilityRegistry } from "./contract-compatibility.js";
 import { GenerationFence } from "./generation-fence.js";
 import { RuntimeKernelProblem } from "./problems.js";
 import type { ProviderId } from "@heptalogos/foundation-contracts";
+import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
 
 interface CapabilityBinding {
   readonly descriptor: CapabilityProvisionDescriptor;
   readonly implementation: object;
   readonly priority: number;
   readonly fence: GenerationFence;
+  readonly runtimeActivity?: RuntimeActivityRunner;
 }
 
 function operationIdFor(providerId: ProviderId, property: PropertyKey): string {
@@ -59,6 +61,7 @@ export class CapabilityRegistry {
     implementation: TContract,
     priority = 0,
     fence = new GenerationFence(),
+    runtimeActivity?: RuntimeActivityRunner,
   ): GenerationFence {
     if (!Number.isSafeInteger(priority)) {
       throw new RuntimeKernelProblem(
@@ -77,6 +80,7 @@ export class CapabilityRegistry {
       implementation,
       priority,
       fence,
+      runtimeActivity,
     });
     return fence;
   }
@@ -107,7 +111,24 @@ export class CapabilityRegistry {
         operationId: string,
         call: (capability: TContract) => TResult | Promise<TResult>,
       ): Promise<TResult> {
-        return binding.fence.invoke(operationId, () => call(proxy));
+        const invoke = () => binding.fence.invoke(operationId, () => call(proxy));
+        binding.fence.assertActive();
+        if (binding.runtimeActivity === undefined) return invoke();
+        return binding.runtimeActivity.runActivity(
+          {
+            kind: "capability.invoke",
+            importance: "routine",
+            retentionClass: "ephemeral",
+            sensitivity: "operational",
+            semantic: {
+              operationId,
+              capabilityId: binding.descriptor.capabilityId,
+              providerId: binding.descriptor.providerId,
+              contractVersion: binding.descriptor.contractVersion,
+            },
+          },
+          async () => invoke(),
+        );
       },
     });
   }

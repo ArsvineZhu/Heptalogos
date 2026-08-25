@@ -8,11 +8,13 @@ import { ContractCompatibilityRegistry } from "./contract-compatibility.js";
 import { GenerationFence } from "./generation-fence.js";
 import { RuntimeKernelProblem } from "./problems.js";
 import type { ProviderId } from "@heptalogos/foundation-contracts";
+import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
 
 interface ServiceBinding {
   readonly descriptor: ServiceProvisionDescriptor;
   readonly implementation: object;
   readonly fence: GenerationFence;
+  readonly runtimeActivity?: RuntimeActivityRunner;
 }
 
 function operationIdFor(providerId: ProviderId, property: PropertyKey): string {
@@ -58,6 +60,7 @@ export class ServiceRegistry {
     descriptor: ServiceProvisionDescriptor,
     implementation: TContract,
     fence = new GenerationFence(),
+    runtimeActivity?: RuntimeActivityRunner,
   ): GenerationFence {
     if (this.bindings.has(descriptor.providerId)) {
       throw new RuntimeKernelProblem(
@@ -69,6 +72,7 @@ export class ServiceRegistry {
       descriptor,
       implementation,
       fence,
+      runtimeActivity,
     });
     return fence;
   }
@@ -98,7 +102,24 @@ export class ServiceRegistry {
         operationId: string,
         call: (service: TContract) => TResult | Promise<TResult>,
       ): Promise<TResult> {
-        return binding.fence.invoke(operationId, () => call(proxy));
+        const invoke = () => binding.fence.invoke(operationId, () => call(proxy));
+        binding.fence.assertActive();
+        if (binding.runtimeActivity === undefined) return invoke();
+        return binding.runtimeActivity.runActivity(
+          {
+            kind: "service.call",
+            importance: "routine",
+            retentionClass: "ephemeral",
+            sensitivity: "operational",
+            semantic: {
+              operationId,
+              serviceId: binding.descriptor.serviceId,
+              providerId: binding.descriptor.providerId,
+              contractVersion: binding.descriptor.contractVersion,
+            },
+          },
+          async () => invoke(),
+        );
       },
     });
   }
