@@ -25,23 +25,23 @@
     },
     {
       "path": ".agents/heptalogos/corpus-routes.json",
-      "size": 7262,
-      "sha256": "f06ec7b9a2566ccbe91d3b286f4b09af5dbe0c6a40a7b4b4a1a71eb6c9de4d04"
+      "size": 7390,
+      "sha256": "431e21bfccd5854d95efc502d6737f66ab8e8b515902d64c5279119b086733b7"
     },
     {
       "path": ".agents/heptalogos/tests/skill-routing-cases.json",
-      "size": 4519,
-      "sha256": "aac9b82983136344b896c34a68536c7ac958c58bafb30f81b80bf070e83b6aeb"
+      "size": 5026,
+      "sha256": "de94082178ac603c1cc116760c2e4f30b216ff54414439121971e1ca7c9d6837"
     },
     {
       "path": ".agents/heptalogos/validate-skill-resources.mjs",
-      "size": 7611,
-      "sha256": "993a16ec6f2bd2828a2a6da7a25f693e735cdbaf15c3a0108f980f03d3867eb1"
+      "size": 7344,
+      "sha256": "36a9cd741bf64eaa5a172ca07932154e7b02f46506fad2da81d4a315ad35066b"
     },
     {
       "path": ".agents/skills/heptalogos-architecture/SKILL.md",
-      "size": 3232,
-      "sha256": "5d526ea2faa3149302f08a9011f3b2204eb49307c3997e96e3c4e76e9fd19f3a"
+      "size": 3771,
+      "sha256": "b2bed563dadaed81e9b8cd7afd192c6087ceb285d9a7108d21e43ccc981a5f17"
     },
     {
       "path": ".agents/skills/heptalogos-config-data/SKILL.md",
@@ -75,13 +75,13 @@
     },
     {
       "path": ".agents/skills/heptalogos-verification/SKILL.md",
-      "size": 2968,
-      "sha256": "b59d26dd07863a64f89070c5f17e252811313cab6552c87cc2943bcf50d15e5d"
+      "size": 3360,
+      "sha256": "f6c4dcbbe7fe1e2b26de6315af6695d4624eadbce53874c64556d47ba9466cb2"
     },
     {
       "path": "AGENTS.md",
-      "size": 9562,
-      "sha256": "9f6cde697bd00e9a367574db912b12a362c63027eafa4bd42ea86a38e62a50a3"
+      "size": 5289,
+      "sha256": "ffa626ae3413bc3695c3f11222dc7761ccacecbe1b46d626af201dbdd6ebf2fd"
     }
   ]
 }

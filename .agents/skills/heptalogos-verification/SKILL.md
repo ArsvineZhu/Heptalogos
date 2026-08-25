@@ -43,6 +43,7 @@ Use the weakest test that actually proves the claim, never a weaker surrogate:
 4. Record observed result and environment; do not convert missing evidence into narrative confidence.
 5. Dependency `RoleDecision` and implementation/product qualification are separate dimensions.
 6. Keep required gates locally runnable and reproducible. CI may automate them but is not their sole authority.
+7. Hn-S closure requires `pnpm check:hygiene` and a zero-residue current-tree sweep; preserve Current Evidence versus Historical Evidence as separate claims.
 
 Verification status is exactly:
 
@@ -51,5 +52,9 @@ PASS | FAIL | NOT_RUN | BLOCKED
 ```
 
 Never report `PASS` for a gate that was skipped, mocked below the claim, run on the wrong platform, or blocked by unavailable credentials/runtime/artifact.
+
+For Hn-S closure, `pnpm check:hygiene` is a permanent required gate. A clean
+historical record does not prove a clean current executable tree, and historical
+qualification evidence must not be promoted to current-candidate evidence.
 
 Load domain skills for the system being tested; this skill defines proof quality, not the subsystem's product semantics.

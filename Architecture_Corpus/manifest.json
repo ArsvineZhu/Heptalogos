@@ -11,12 +11,12 @@
     "deferredCount": 2,
     "rejectedForRoleCount": 7
   },
-  "contentFileCount": 74,
+  "contentFileCount": 75,
   "files": [
     {
       "path": "00-项目宪法与工程宪法.md",
-      "size": 22669,
-      "sha256": "5641a0a62d8f9f69adab9aad5994ce8c804a48ff4a364ae0fc4878db0dffc7b8"
+      "size": 23533,
+      "sha256": "9772290013f27d4ca81f77ae7fd17a750369c33371e36b82ccd0415412ee17ff"
     },
     {
       "path": "01-产品目标与差异化.md",
@@ -115,8 +115,8 @@
     },
     {
       "path": "20-架构审查清单.md",
-      "size": 16782,
-      "sha256": "c463c314e1f1cfad02f4245872b4a8d06de35814aeb1a619e605d769df2cdf5f"
+      "size": 17600,
+      "sha256": "033143fdaf3c72e58d9f3a584d3aeb83831410ddcbd4c360d8854eabc05810a0"
     },
     {
       "path": "21-配置治理与Configuration-Surface.md",
@@ -145,8 +145,8 @@
     },
     {
       "path": "26-开发阶段闭包-稳定化与兼容性治理.md",
-      "size": 4880,
-      "sha256": "a6ad8a2459285fc738fcaac9d7adb39a78add33723277888d50a464d1a16e8f1"
+      "size": 7514,
+      "sha256": "7d9f69f9b352a77296b91057b635d1aac1b72ae366e0fa5aaae79e94c2ccab61"
     },
     {
       "path": "INDEX.md",
@@ -272,6 +272,11 @@
       "path": "references/Foundation依赖证据基线-2026-08-20.md",
       "size": 11023,
       "sha256": "a728b238225299b447667fada42b0e111eb0f3385988b0b306f85c12f2deacc4"
+    },
+    {
+      "path": "references/compatibility-obligations.json",
+      "size": 88,
+      "sha256": "e26da526de4e09b6a78455e5956b60fb756d80e623a06f62bdc77d2ba7676c33"
     },
     {
       "path": "references/configuration-governance.json",

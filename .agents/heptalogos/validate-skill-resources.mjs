@@ -189,15 +189,6 @@ for (const [skillName, route] of Object.entries(routesDoc?.routes ?? {})) {
   });
 }
 
-if (requireFile(rootAgentsPath)) {
-  const rootAgents = fs.readFileSync(rootAgentsPath, 'utf8');
-  for (const skillName of skillNames) {
-    if (!rootAgents.includes(`\`${skillName}\``)) {
-      fail(`Root AGENTS.md does not route skill: ${skillName}`);
-    }
-  }
-}
-
 if (casesDoc) {
   if (!Array.isArray(casesDoc.cases)) {
     fail('skill-routing-cases.json: cases must be an array');
