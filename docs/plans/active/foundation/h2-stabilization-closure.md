@@ -1641,28 +1641,28 @@ No H2A/H2B/H2S file names remain in the executable target.
 
 ## Task S0 — Activate H2-S
 
-- [ ] Confirm Gate R.
-- [ ] Create `dev/h2-stabilization` from exact PR-R merge SHA.
-- [ ] Create `docs/plans/active/foundation/h2-stabilization-closure.md` from this approved plan, replacing baseline placeholders with observed concrete PR-R SHA only; do not change design decisions.
-- [ ] Open one Draft PR; do not dispatch CI.
-- [ ] Record current worktree/base/branch state.
+- [x] Confirm Gate R.
+- [x] Create `dev/h2-stabilization` from exact PR-R merge SHA.
+- [x] Create `docs/plans/active/foundation/h2-stabilization-closure.md` from this approved plan, replacing baseline placeholders with observed concrete PR-R SHA only; do not change design decisions.
+- [x] Open one Draft PR; do not dispatch CI.
+- [x] Record current worktree/base/branch state.
 
 ## Task S1 — Governance reset first
 
 Implement §6-§7 exactly:
 
-- [ ] replace root AGENTS;
-- [ ] update Corpus E20 and add E43;
-- [ ] create empty compatibility obligation register;
-- [ ] rewrite Corpus 26;
-- [ ] update architecture review checklist;
-- [ ] update plan decision-completeness policy;
-- [ ] rewrite H-stage stabilization playbook;
-- [ ] create current-tree hygiene playbook;
-- [ ] create PRE_PRODUCTION maintenance-bias gotcha;
-- [ ] update PLAYBOOK/GOTCHAS/scripts indexes;
-- [ ] update architecture/verification Skills and routing resources;
-- [ ] regenerate agent package manifest hashes.
+- [x] replace root AGENTS;
+- [x] update Corpus E20 and add E43;
+- [x] create empty compatibility obligation register;
+- [x] rewrite Corpus 26;
+- [x] update architecture review checklist;
+- [x] update plan decision-completeness policy;
+- [x] rewrite H-stage stabilization playbook;
+- [x] create current-tree hygiene playbook;
+- [x] create PRE_PRODUCTION maintenance-bias gotcha;
+- [x] update PLAYBOOK/GOTCHAS/scripts indexes;
+- [x] update architecture/verification Skills and routing resources;
+- [x] regenerate agent package manifest hashes.
 
 Run:
 
@@ -1680,13 +1680,13 @@ docs: make stabilization and preproduction history erasure explicit
 
 ## Task S2 — TDD permanent current-tree hygiene gate
 
-- [ ] write repo-kit unit tests from §8.8;
-- [ ] observe RED;
-- [ ] implement repo-kit scanner;
-- [ ] add thin `scripts/verify/current-tree-hygiene.mjs` wrapper;
-- [ ] add `check:hygiene` and wire into `verify`;
-- [ ] run focused repo-kit tests;
-- [ ] run `pnpm check:hygiene` and record expected repository RED from existing residue.
+- [x] write repo-kit unit tests from §8.8;
+- [x] observe RED;
+- [x] implement repo-kit scanner;
+- [x] add thin `scripts/verify/current-tree-hygiene.mjs` wrapper;
+- [x] add `check:hygiene` and wire into `verify`;
+- [x] run focused repo-kit tests;
+- [x] run `pnpm check:hygiene` and record expected repository RED from existing residue.
 
 Do not “temporarily” allow current violations.
 
@@ -1727,15 +1727,21 @@ chore: retire closed repository genesis artifacts
 
 Do not exceed the commit budget in §17 without Stop Rule review.
 
+S3 completion evidence (2026-08-26): `GENESIS_EVIDENCE.json` and
+`scripts/phases/` are absent; the two stage-named integration files and known
+stage IDs are absent from current executable surfaces; historical-shape tests
+were reframed; affected package tests, typecheck, TS6, boundaries, and
+`pnpm check:hygiene` are `PASS`.
+
 ## Task S4 — Semantic compatibility audit
 
-- [ ] execute §10 semantic search;
-- [ ] inspect parser/read/write/alias/fallback branches, not just keyword hits;
-- [ ] remove any project-history compatibility behavior using the locked action matrix;
-- [ ] keep current contract-version matching and TS6 toolchain lane;
-- [ ] verify only one current canonical migration baseline remains;
-- [ ] run affected unit/integration tests;
-- [ ] run `pnpm check:hygiene`.
+- [x] execute §10 semantic search;
+- [x] inspect parser/read/write/alias/fallback branches, not just keyword hits;
+- [x] remove any project-history compatibility behavior using the locked action matrix;
+- [x] keep current contract-version matching and TS6 toolchain lane;
+- [x] verify only one current canonical migration baseline remains;
+- [x] run affected unit/integration tests;
+- [x] run `pnpm check:hygiene`.
 
 Record a short audit table in the active H2-S plan:
 
@@ -1746,6 +1752,10 @@ finding | current purpose | declared obligation | action | evidence
 Because obligations are empty, every historical compatibility behavior must end `REMOVED`, while current non-historical contract-version semantics may end `KEEP_CURRENT_SEMANTIC`.
 
 If a finding implies a real obligation, STOP `PLAN_GAP`.
+
+S4 result: `compatibilityEpoch = PRE_PRODUCTION`, obligations are empty,
+project-history compatibility residue is zero, and the audit table above records
+the current semantic mechanisms retained versus historical behaviors removed.
 
 ## Task S5 — Mechanically harden Bootstrap production boundary
 
