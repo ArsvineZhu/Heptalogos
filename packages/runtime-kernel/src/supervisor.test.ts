@@ -9,7 +9,10 @@ import {
   type ProviderId,
   type ServiceId,
 } from "@heptalogos/foundation-contracts";
-import { createRuntimeSubstrate } from "@heptalogos/runtime-substrate";
+import {
+  createRuntimeSubstrate,
+  type RuntimeSubstrate,
+} from "@heptalogos/runtime-substrate";
 import {
   createContractVersion,
   exactContract,
@@ -109,12 +112,22 @@ function consumer(
   });
 }
 
-function createSupervisor(definitions: readonly MicroSystemDefinition[]) {
+function createSupervisorWithSubstrate(
+  definitions: readonly MicroSystemDefinition[],
+  substrate: RuntimeSubstrate,
+) {
   return new MicroSystemSupervisor({
-    substrate: createRuntimeSubstrate({ settleTimeoutMs: 50 }),
+    substrate,
     settleTimeoutMs: 50,
     definitions,
   });
+}
+
+function createSupervisor(definitions: readonly MicroSystemDefinition[]) {
+  return createSupervisorWithSubstrate(
+    definitions,
+    createRuntimeSubstrate({ settleTimeoutMs: 50 }),
+  );
 }
 
 describe("MicroSystemSupervisor and RuntimeReconciler", () => {
@@ -404,6 +417,36 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
       expect(activations).toBe(1);
     } finally {
       release();
+      await supervisor.close();
+    }
+  });
+
+  it("R13 preserves a background failure that races activation registration", async () => {
+    const failing = system(
+      "system.immediate-background-failure",
+      async () => undefined,
+    );
+    const substrate: RuntimeSubstrate = {
+      async activate(request) {
+        request.onFailure({
+          phase: "BACKGROUND",
+          label: "immediate-background-failure",
+          cause: new Error("background boom"),
+        });
+        return {
+          state: "ACTIVE",
+          dispose: async () => undefined,
+        };
+      },
+      close: async () => undefined,
+    };
+    const supervisor = createSupervisorWithSubstrate([failing], substrate);
+    try {
+      await supervisor.reconcile(desired([failing]));
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(supervisor.getActualState(failing.microSystemId)).toBe("FAILED");
+    } finally {
       await supervisor.close();
     }
   });
