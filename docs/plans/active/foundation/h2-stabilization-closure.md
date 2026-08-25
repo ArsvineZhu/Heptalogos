@@ -1972,6 +1972,18 @@ pnpm verify
 
 Every reported PASS must correspond to an actually executed command.
 
+S9 qualification evidence (2026-08-26): toolchain identity is `BLOCKED` with
+`HEPTALOGOS_TEST_PG_BIN=<unset>` and no `postgres`, `initdb`, `pg_ctl`,
+`pg_controldata`, or `pg_isready` available. Focused package targets are
+`PASS`: Runtime Substrate, Runtime Kernel, Persistence unit, Execution Lineage,
+Canonical Schema, Evidence, Time Service, and repo-kit. The individual
+PostgreSQL targets are recorded as `BLOCKED/NOT_RUN`: private-postgres
+integration, host-ownership integration, bootstrap-runtime integration,
+bootstrap-runtime recovery-process:postgres, and persistence integration.
+`bootstrap-runtime:test:recovery-process` is `PASS`. Candidate freeze remains
+blocked until a qualified PostgreSQL 18.6 toolchain is supplied; no PG gate is
+reported as a skipped PASS.
+
 ## Task S10 — Candidate-time evidence and plan completion
 
 Before Independent Review, finish **all** repository mutation.
