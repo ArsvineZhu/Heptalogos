@@ -56,7 +56,7 @@ afterEach(async () => {
 function productGenerationId(label: string): ProductGenerationId {
   return asContentDigest(
     "ProductGenerationId",
-    digestCanonicalJson(`h2-s.runtime-host-lifecycle/${label}/v1`, { label }),
+    digestCanonicalJson(`runtime-host-lifecycle/${label}/v1`, { label }),
   );
 }
 
@@ -268,11 +268,11 @@ async function terminateAuthenticHost(
     throw new Error("Host signal did not abort after backend termination");
 }
 
-describePostgres.sequential("H2-S Runtime and authentic Host lifecycle", () => {
+describePostgres.sequential("Runtime and authentic Host lifecycle", () => {
   it("PG1 proves normal Runtime composition identity coherence", async () => {
     const fixture = await makeFixture();
     const productGeneration = productGenerationId("pg1");
-    const serviceId = createServiceId("h2s.pg1.service");
+    const serviceId = createServiceId("runtime.pg1.service");
     const a = provider("pg1-provider", productGeneration, serviceId);
     const b = consumer(
       "pg1-dependent",
@@ -321,7 +321,7 @@ describePostgres.sequential("H2-S Runtime and authentic Host lifecycle", () => {
   it("PG2 propagates authentic Host terminality to Persistence and Runtime", async () => {
     const fixture = await makeFixture();
     const productGeneration = productGenerationId("pg2");
-    const serviceId = createServiceId("h2s.pg2.service");
+    const serviceId = createServiceId("runtime.pg2.service");
     const definition = provider("pg2-provider", productGeneration, serviceId);
     const composition = await createComposition(fixture, productGeneration, [
       definition,
@@ -355,7 +355,7 @@ describePostgres.sequential("H2-S Runtime and authentic Host lifecycle", () => {
   it("PG3 uses real Runtime quiescence before planned Host STOP and PostgreSQL stop", async () => {
     const fixture = await makeFixture();
     const productGeneration = productGenerationId("pg3");
-    const serviceId = createServiceId("h2s.pg3.service");
+    const serviceId = createServiceId("runtime.pg3.service");
     const events: string[] = [];
     const providerId = createProviderId("provider.pg3-provider");
     const a = provider(
@@ -433,7 +433,7 @@ describePostgres.sequential("H2-S Runtime and authentic Host lifecycle", () => {
   it("PG4 restarts with continuity preserved and fresh Runtime generations", async () => {
     const fixture = await makeFixture();
     const productGeneration = productGenerationId("pg4");
-    const serviceId = createServiceId("h2s.pg4.service");
+    const serviceId = createServiceId("runtime.pg4.service");
     const instanceIds: string[] = [];
     const providerId = createProviderId("provider.pg4-provider");
     const definition = provider(
@@ -519,7 +519,7 @@ describePostgres.sequential("H2-S Runtime and authentic Host lifecycle", () => {
   it("PG5 proves HostMaintenanceQuiescence structural compatibility with Runtime lease", async () => {
     const fixture = await makeFixture();
     const productGeneration = productGenerationId("pg5");
-    const serviceId = createServiceId("h2s.pg5.service");
+    const serviceId = createServiceId("runtime.pg5.service");
     const definition = provider("pg5-provider", productGeneration, serviceId);
     const composition = await createComposition(fixture, productGeneration, [
       definition,
@@ -542,7 +542,7 @@ describePostgres.sequential("H2-S Runtime and authentic Host lifecycle", () => {
   it("PG6 keeps PostgreSQL running after Host terminal shutdown and forbids Runtime resume", async () => {
     const fixture = await makeFixture();
     const productGeneration = productGenerationId("pg6");
-    const serviceId = createServiceId("h2s.pg6.service");
+    const serviceId = createServiceId("runtime.pg6.service");
     const definition = provider("pg6-provider", productGeneration, serviceId);
     const composition = await createComposition(fixture, productGeneration, [
       definition,
