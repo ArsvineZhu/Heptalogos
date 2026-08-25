@@ -89,7 +89,10 @@
       "transient_capability_invoke_activity": "PASS (K9)",
       "no_op_reconcile_activity_suppression": "PASS (R16)",
       "background_failure_race_and_cleanup_containment": "PASS (R13/R14)",
-      "real_postgres_runtime_composition": "NOT_RUN (post-correction)",
+      "real_postgres_runtime_composition": "PASS (post-correction, Windows PostgreSQL 18.6, 4/4)",
+      "real_postgres_version": "PostgreSQL 18.6",
+      "real_postgres_platform": "Windows",
+      "real_postgres_provenance": "EDB PostgreSQL 18.6 Windows x86-64 extracted qualification toolchain",
       "real_postgres_runtime_composition_history": "PASS (behavior candidate 5d162618a078bb1df3d8009c857c6d718155e28f)",
       "source_less_shipping": "NOT_RUN",
       "service_headless": "NOT_RUN",
@@ -110,8 +113,7 @@
       "cordisDeclarationResolution": "Package-local moduleResolution Bundler required for Cordis extensionless declaration imports; skipLibCheck remains false"
     },
     "notRunReasons": {
-      "product_runtime_start_stop": "H2B local managed-Host composition PASS on prior behavior candidate; post-correction real PostgreSQL composition remains NOT_RUN.",
-      "real_postgres_runtime_composition_after_correction": "HEPTALOGOS_TEST_PG_BIN was unset; available PostgreSQL 18.4 binaries were not used as the required PostgreSQL 18.6 qualification runtime.",
+      "product_runtime_start_stop": "H2B managed-Host composition PASS on Windows PostgreSQL 18.6; source-less/service/headless product closure remains deferred.",
       "source_less_shipping": "Source-less product closure is deferred until H2B implementation completion.",
       "service_headless": "Installed service/headless runtime is not run yet.",
       "cross_platform_ci": "Final exact-pair CI is deferred until the H2 implementation candidate is complete by explicit operator direction.",

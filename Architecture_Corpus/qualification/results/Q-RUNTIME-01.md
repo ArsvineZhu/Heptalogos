@@ -131,8 +131,10 @@ removed_service_binding_reconcile_regression: PASS
 removed_capability_binding_reconcile_regression: PASS
 runtime_kernel_unit: PASS (44/44)
 repository_verification: PASS (pnpm verify)
-real_postgres_runtime_composition_after_correction: NOT_RUN
-reason_real_postgres_not_run: "HEPTALOGOS_TEST_PG_BIN was unset; discovered PostgreSQL 18.4 binaries were not used as the required PostgreSQL 18.6 qualification runtime."
+real_postgres_runtime_composition_after_correction: PASS (4/4)
+real_postgres_version: PostgreSQL 18.6
+real_postgres_platform: Windows
+real_postgres_provenance: "EDB PostgreSQL 18.6 Windows x86-64 extracted qualification toolchain"
 linux_real_postgres: NOT_RUN
 macos_real_postgres: NOT_RUN
 source_less_shipping: NOT_RUN
@@ -142,4 +144,4 @@ independent_review: NOT_RUN
 squash_merge: NOT_RUN
 ```
 
-The prior H2B managed-Host PostgreSQL PASS remains historical evidence for behavior candidate `5d162618a078bb1df3d8009c857c6d718155e28f`; it is not reused as the post-correction real-PostgreSQL result.
+The prior H2B managed-Host PostgreSQL PASS remains historical evidence for behavior candidate `5d162618a078bb1df3d8009c857c6d718155e28f`; the post-correction candidate independently passed the same managed-Host integration on Windows PostgreSQL 18.6 (4/4).
