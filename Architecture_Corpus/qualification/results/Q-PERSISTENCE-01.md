@@ -287,3 +287,21 @@ Linux/macOS, source-less, and service/headless claims remain `NOT_RUN` and are
 not upgraded by repository CI. The final exact closure tuple is recorded above:
 independent review `PASS`, final CI run `32731811379` `PASS` on all three
 platforms, and squash merge `2c8a68c7e76884d75fb3314ff18b1806a0625b3d` `PASS`.
+
+## H2B post-merge truth reconciliation (2026-08-26)
+
+```yaml
+h2b_review_candidate_base_sha: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+h2b_review_candidate_head_sha: 86c01ee90d6d1f6c953be39375ccddb0458a189a
+h2b_independent_review: PASS (operator-supplied exact pair)
+h2b_final_cross_platform_ci: PASS (run 32862042074; Ubuntu/macOS/Windows)
+h2b_squash_merge: PASS (PR #22 merge d7f32427398d2309c1732cdbce98f590e14a8249)
+h2b_final_head_real_postgres_rerun: NOT_RUN
+```
+
+The H2B persistence/lineage property evidence is carried forward from the
+qualified Windows PostgreSQL 18.6 run because the final corrective cycle did
+not change persistence, lineage, schema, migration, or database behavior.
+The H2A-3 historical final cross-platform CI remains `NOT_RUN`; H2B evidence
+does not rewrite it. Linux/macOS PostgreSQL, source-less persistence, and
+service/headless product claims remain `NOT_RUN`.

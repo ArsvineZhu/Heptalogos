@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use the repository Heptalogos architecture/runtime-durability/dependencies/verification skills first, then execute this plan task-by-task with TDD. If the execution harness provides `superpowers:subagent-driven-development` or `superpowers:executing-plans`, use one of those modes. This plan intentionally retains architectural decisions here. The implementing Agent may make local code-organization choices, but **must not reinterpret dependency roles, runtime ownership, package boundaries, identity shapes, graph semantics, generation fencing, lifecycle authority, lineage persistence, or H2 stage closure policy**.
 
-**Plan state:** `ACTIVE / CORRECTIVE_REVIEW_CYCLE`
+**Plan state:** `COMPLETED / POST_MERGE_RECONCILIATION`
 **Current candidate branch:** `dev/h2b-runtime-composition-kernel-corrected`
 **Integration unit:** one branch → one Draft PR → local qualification → external independent review on exact `(base_sha, head_sha)` → manual exact-pair Ubuntu/macOS/Windows final CI → squash merge → separate docs/evidence-only reconciliation.
 **Compatibility epoch:** `PRE_PRODUCTION`
@@ -23,24 +23,61 @@ task_2_runtime_identity_graph_registries: PASS (runtime-kernel focused unit evid
 task_3_supervisor_reconciler: PASS (R1-R16 focused unit evidence)
 task_4_runtime_origin_lineage: PASS (9/9 focused unit tests; current H2B real PostgreSQL 5/5)
 task_5_windows_postgresql_18_6_integration: PASS (current Windows PostgreSQL 18.6 qualification)
-task_5_current_head_rerun: PASS (current-tree real PostgreSQL integration executed)
+task_5_current_head_rerun: NOT_RUN (final head real PostgreSQL rerun was not executed)
 runtime_kernel_unit: PASS (107/107 package tests)
 behavior_candidate: FROZEN_ON_PR_HEAD (PR #22 live head is the head authority)
 removed_binding_reconcile_regression: PASS (focused supervisor regression)
 transient_call_activity: PASS (S11/K9/R15)
 task_6_boundaries_local_qualification: PASS (current sixth-cycle full repository verify)
 local_pnpm_verify: PASS (current sixth-cycle full repository verify)
-pull_request: 22 (DRAFT)
+pull_request: 22 (MERGED)
 candidate_pair:
  base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
- head: live PR #22 head
+ head: 86c01ee90d6d1f6c953be39375ccddb0458a189a
 review_base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
-review_head_authority: live PR #22 head
+review_head_authority: 86c01ee90d6d1f6c953be39375ccddb0458a189a
 pr_20: CLOSED_OBSOLETE_PAIR
-previous_independent_review: REQUEST_CHANGES (19ebef1... → ee256dd...) current_independent_review: NOT_RUN
-final_cross_platform_ci: NOT_RUN
-squash_merge: NOT_RUN
+previous_independent_review: REQUEST_CHANGES (19ebef1... → ee256dd...)
+current_independent_review: PASS (operator-supplied exact pair)
+final_cross_platform_ci: PASS (run 32862042074; Ubuntu/macOS/Windows)
+squash_merge: PASS (d7f32427398d2309c1732cdbce98f590e14a8249)
 ```
+
+## Post-merge closure reconciliation (2026-08-26)
+
+The H2B candidate described by this plan was squash-merged as PR #22 at
+`d7f32427398d2309c1732cdbce98f590e14a8249`. The exact behavior candidate was:
+
+```text
+base = 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+head = 86c01ee90d6d1f6c953be39375ccddb0458a189a
+merge = d7f32427398d2309c1732cdbce98f590e14a8249
+```
+
+The operator-supplied Independent Review for that exact pair was `PASS`.
+Manual final cross-platform workflow run `32862042074` was `PASS` on
+Ubuntu/macOS/Windows and checked out the reviewed head `86c01ee...`. Squash
+merge was `PASS`.
+
+The final-head real PostgreSQL rerun was `NOT_RUN`. The sixth corrective cycle
+changed Runtime Kernel contract validation/projection and documentation only;
+the Windows PostgreSQL property evidence is explicitly carried forward from
+the prior qualified H2B behavior, rather than claimed as a fresh final-head
+database rerun. Product residuals remain separately recorded as `NOT_RUN` or
+`PARTIAL` where applicable.
+
+The reconciled current stage truth is:
+
+```yaml
+H2B: CLOSED
+H2_FUNCTIONAL: COMPLETE
+H2_STABILIZATION: ELIGIBLE
+H2: OPEN
+H3: NOT_ELIGIBLE
+```
+
+This completed plan records the H2B historical implementation and external
+closure evidence; it does not activate H2-S or close H2.
 
 First corrective-cycle local evidence (2026-08-25): Runtime Kernel focused tests
 `64/64` PASS; RuntimeSubstrate focused tests `16/16` PASS; changed-scope
@@ -1985,42 +2022,47 @@ If the branch trends toward roughly fifteen or more unrelated behavior commits, 
 
 ---
 
-# 15. Evidence record template
-
-Fill only with observed results:
+# 15. Observed H2B closure evidence
 
 ```yaml
 h2b:
-  activationBaseline: <record exact post-H2A3 reconciliation master at activation>
-  branch: dev/h2b-runtime-composition-kernel
+  activationBaseline: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+  branch: dev/h2b-runtime-composition-kernel-corrected
+  behaviorCandidate:
+    base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+    head: 86c01ee90d6d1f6c953be39375ccddb0458a189a
+    merge: d7f32427398d2309c1732cdbce98f590e14a8249
   dependencyPins:
     cordis: 4.0.0-rc.8
     graphlib: 4.0.5
   local:
-    cordis_conformance: NOT_RUN
-    runtime_substrate_unit: NOT_RUN
-    runtime_kernel_unit: NOT_RUN
-    runtime_graph: NOT_RUN
-    service_registry: NOT_RUN
-    capability_registry: NOT_RUN
-    generation_fence: NOT_RUN
-    readiness: NOT_RUN
-    lineage_runtime_origin: NOT_RUN
-    lineage_completion: NOT_RUN
-    real_postgres_runtime_composition: NOT_RUN
-    h2a_regressions: NOT_RUN
-    check_dependencies: NOT_RUN
-    check_boundaries: NOT_RUN
-    pnpm_verify: NOT_RUN
+    cordis_conformance: PASS (C1-C14)
+    runtime_substrate_unit: PASS (16/16)
+    runtime_kernel_unit: PASS (107/107)
+    runtime_graph: PASS
+    service_registry: PASS
+    capability_registry: PASS
+    generation_fence: PASS
+    readiness: PASS
+    lineage_runtime_origin: PASS (9/9 focused tests)
+    lineage_completion: PASS
+    real_postgres_runtime_composition: PASS (Windows PostgreSQL 18.6; H2B integration 5/5; carried forward)
+    h2a_regressions: PASS (current Windows PostgreSQL qualification set)
+    check_dependencies: PASS
+    check_boundaries: PASS
+    pnpm_verify: PASS
   review:
-    base: NOT_RUN
-    head: NOT_RUN
-    independentReview: NOT_RUN
-  finalCrossPlatformCI: NOT_RUN
-  squashMerge: NOT_RUN
+    base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+    head: 86c01ee90d6d1f6c953be39375ccddb0458a189a
+    independentReview: PASS
+  finalCrossPlatformCI: PASS (run 32862042074; Ubuntu/macOS/Windows)
+  squashMerge: PASS
+  finalHeadRealPostgresRerun: NOT_RUN
 ```
 
-`activationBaseline` is filled mechanically when the Activation Gate occurs; it is not left to the Agent as a design decision.
+The final-head PostgreSQL rerun is `NOT_RUN`; prior Windows PostgreSQL property
+evidence is carried forward because the final corrective cycle did not change
+persistence, lineage, or database behavior.
 
 Executable gate vocabulary remains:
 
