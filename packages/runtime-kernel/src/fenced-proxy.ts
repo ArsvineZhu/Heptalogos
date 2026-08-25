@@ -14,6 +14,7 @@ function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
 }
 
 type Callable = (...args: readonly unknown[]) => unknown;
+type MemberKind = "method" | "get" | "set";
 
 function createShadowTarget(implementation: object): object {
   if (typeof implementation === "function") {
@@ -33,7 +34,7 @@ export function createFencedProxy<TContract extends object>(
   const rawValues = new WeakMap<object, object>();
   const methodWrappers = new WeakMap<
     object,
-    Map<PropertyKey, (...args: readonly unknown[]) => unknown>
+    Map<PropertyKey, Map<MemberKind, (...args: readonly unknown[]) => unknown>>
   >();
 
   const unwrap = (value: unknown): unknown => {
@@ -52,6 +53,7 @@ export function createFencedProxy<TContract extends object>(
   function wrapMember(
     owner: object,
     property: PropertyKey,
+    kind: MemberKind,
     member: Callable,
   ): (...args: readonly unknown[]) => unknown {
     let wrappers = methodWrappers.get(owner);
@@ -59,13 +61,18 @@ export function createFencedProxy<TContract extends object>(
       wrappers = new Map();
       methodWrappers.set(owner, wrappers);
     }
-    const previous = wrappers.get(property);
+    let members = wrappers.get(property);
+    if (members === undefined) {
+      members = new Map();
+      wrappers.set(property, members);
+    }
+    const previous = members.get(kind);
     if (previous !== undefined) return previous;
     const wrapper = (...args: readonly unknown[]) =>
       fence.invoke(operationIdFor(providerId, property), () =>
         wrapResult(Reflect.apply(member, owner, args.map(unwrap))),
       );
-    wrappers.set(property, wrapper);
+    members.set(kind, wrapper);
     return wrapper;
   }
 
@@ -85,7 +92,7 @@ export function createFencedProxy<TContract extends object>(
         writable: descriptor.writable,
         value:
           typeof descriptor.value === "function"
-            ? wrapMember(owner, property, descriptor.value as Callable)
+            ? wrapMember(owner, property, "method", descriptor.value as Callable)
             : wrapResult(descriptor.value),
       };
     }
@@ -95,26 +102,12 @@ export function createFencedProxy<TContract extends object>(
       get:
         descriptor.get === undefined
           ? undefined
-          : wrapMember(owner, property, descriptor.get as Callable),
-      set:
-        descriptor.set === undefined
-          ? undefined
-          : wrapMember(owner, property, descriptor.set as Callable),
+          : wrapMember(owner, property, "get", descriptor.get as Callable),
+      // Provider state is changed through typed contract methods. Exposing a
+      // setter from a projected descriptor would create a second mutation
+      // authority around the read-only facade.
+      set: undefined,
     };
-  }
-
-  function normalizeDescriptor(descriptor: PropertyDescriptor): PropertyDescriptor {
-    const normalized = { ...descriptor };
-    if (Object.prototype.hasOwnProperty.call(descriptor, "value")) {
-      normalized.value = unwrap(descriptor.value);
-    }
-    if (descriptor.get !== undefined) {
-      normalized.get = unwrap(descriptor.get) as () => unknown;
-    }
-    if (descriptor.set !== undefined) {
-      normalized.set = unwrap(descriptor.set) as (value: unknown) => void;
-    }
-    return normalized;
   }
 
   function wrap<T extends object>(value: T): T {
@@ -133,24 +126,20 @@ export function createFencedProxy<TContract extends object>(
         }
         const member = Reflect.get(rawValue, property, rawValue);
         return typeof member === "function"
-          ? wrapMember(rawValue, property, member as Callable)
+          ? wrapMember(rawValue, property, "method", member as Callable)
           : wrapResult(member);
       },
-      set(_shadow, property, nextValue) {
+      set(_shadow, _property, _nextValue) {
         fence.assertActive();
-        return Reflect.set(rawValue, property, unwrap(nextValue), rawValue);
+        return false;
       },
-      deleteProperty(_shadow, property) {
+      deleteProperty(_shadow, _property) {
         fence.assertActive();
-        return Reflect.deleteProperty(rawValue, property);
+        return false;
       },
-      defineProperty(_shadow, property, descriptor) {
+      defineProperty(_shadow, _property, _descriptor) {
         fence.assertActive();
-        return Reflect.defineProperty(
-          rawValue,
-          property,
-          normalizeDescriptor(descriptor),
-        );
+        return false;
       },
       getOwnPropertyDescriptor(shadow, property) {
         fence.assertActive();
@@ -170,9 +159,9 @@ export function createFencedProxy<TContract extends object>(
         fence.assertActive();
         return Reflect.getPrototypeOf(shadow);
       },
-      setPrototypeOf(shadow, prototype) {
+      setPrototypeOf(_shadow, _prototype) {
         fence.assertActive();
-        return Reflect.setPrototypeOf(shadow, prototype);
+        return false;
       },
       isExtensible(shadow) {
         fence.assertActive();

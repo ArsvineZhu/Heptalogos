@@ -712,6 +712,49 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
+  it("evaluates Readiness from the Supervisor's authoritative binding maps", async () => {
+    const capabilityId = createCapabilityId("test.authoritative-readiness");
+    const availableProviderId = createProviderId("provider.authoritative-available");
+    const unavailableProviderId = createProviderId(
+      "provider.authoritative-unavailable",
+    );
+    const providerDefinition = system(
+      "system.authoritative-readiness-provider",
+      async (context) => {
+        context.publishCapability(
+          capabilityProvision(capabilityId, availableProviderId),
+          { read: () => "available" },
+        );
+      },
+      {
+        capabilityProvisions: [capabilityProvision(capabilityId, availableProviderId)],
+      },
+    );
+    const supervisor = createSupervisor([providerDefinition]);
+
+    try {
+      await supervisor.reconcile(
+        desired(
+          [providerDefinition],
+          "NORMAL",
+          new Map(),
+          new Map([[capabilityId, unavailableProviderId]]),
+        ),
+      );
+
+      expect(
+        supervisor.evaluateReadiness({
+          profileId: "authoritative-readiness",
+          requiredServices: [],
+          requiredCapabilities: [capabilityRequirement(capabilityId, true)],
+          optionalCapabilities: [],
+        }).state,
+      ).toBe("BLOCKED");
+    } finally {
+      await supervisor.close();
+    }
+  });
+
   it("R5 isolates a provider activation failure from an independent branch", async () => {
     const serviceId = createServiceId("test.failure");
     let bActivations = 0;
@@ -1463,6 +1506,184 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
       ).toBe("FAILED");
     } finally {
       await supervisor.close();
+    }
+  });
+
+  it("serializes background failure transition ahead of a queued reconcile", async () => {
+    const definition = system(
+      "system.serialized-background-failure",
+      async () => undefined,
+    );
+    const substrateBase = createRuntimeSubstrate({ settleTimeoutMs: 50 });
+    let activationRequest!: Parameters<RuntimeSubstrate["activate"]>[0];
+    const substrate: RuntimeSubstrate = {
+      async activate(request) {
+        activationRequest = request;
+        return substrateBase.activate(request);
+      },
+      close: () => substrateBase.close(),
+    };
+    const failureStarted = deferred<void>();
+    const releaseFailure = deferred<void>();
+    const lifecycleLineage = {
+      runner: () => ({
+        current: () => undefined,
+        runActivity: async <T>(
+          _request: never,
+          operation: (context: never) => Promise<T>,
+        ) => operation(undefined as never),
+      }),
+      runRetained: async <T>(
+        _origin: never,
+        request: { kind: string },
+        operation: (context: never) => Promise<T>,
+      ) => {
+        if (request.kind === "runtime.lifecycle.failure") {
+          failureStarted.resolve();
+          await releaseFailure.promise;
+        }
+        return operation(undefined as never);
+      },
+    } as unknown as RuntimeLifecycleLineage;
+    const supervisor = new MicroSystemSupervisor({
+      substrate,
+      settleTimeoutMs: 50,
+      definitions: [definition],
+      lifecycleLineage,
+    });
+
+    try {
+      await supervisor.reconcile(desired([definition]));
+      activationRequest.onFailure({
+        phase: "BACKGROUND",
+        label: "serialized-background-failure",
+        cause: new Error("background boom"),
+      });
+      await failureStarted.promise;
+
+      let stopSettled = false;
+      const stopPromise = supervisor.reconcile({
+        ...desired([definition]),
+        desired: new Map([[definition.microSystemId, "STOPPED" as const]]),
+      });
+      void stopPromise.then(
+        () => {
+          stopSettled = true;
+        },
+        () => {
+          stopSettled = true;
+        },
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(stopSettled).toBe(false);
+
+      releaseFailure.resolve();
+      await stopPromise;
+    } finally {
+      releaseFailure.resolve();
+      await supervisor.close().catch(() => undefined);
+    }
+  });
+
+  it("ignores a background failure callback from a retired runtime generation", async () => {
+    const definition = system("system.stale-background-failure", async () => undefined);
+    const substrateBase = createRuntimeSubstrate({ settleTimeoutMs: 50 });
+    const activationRequests: Array<Parameters<RuntimeSubstrate["activate"]>[0]> = [];
+    const substrate: RuntimeSubstrate = {
+      async activate(request) {
+        activationRequests.push(request);
+        return substrateBase.activate(request);
+      },
+      close: () => substrateBase.close(),
+    };
+    const supervisor = createSupervisorWithSubstrate([definition], substrate);
+
+    try {
+      await supervisor.reconcile(desired([definition]));
+      await supervisor.reconcile({
+        ...desired([definition]),
+        desired: new Map([[definition.microSystemId, "STOPPED" as const]]),
+      });
+      await supervisor.reconcile(desired([definition]));
+      expect(activationRequests).toHaveLength(2);
+
+      activationRequests[0].onFailure({
+        phase: "BACKGROUND",
+        label: "stale-background-failure",
+        cause: new Error("stale background boom"),
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(supervisor.getActualState(definition.microSystemId)).toBe("RUNNING");
+    } finally {
+      await supervisor.close();
+    }
+  });
+
+  it("revokes provider admission before background failure lineage cleanup", async () => {
+    const serviceId = createServiceId("test.background-admission");
+    const providerId = createProviderId("provider.background-admission");
+    let rejectWorker!: (reason: unknown) => void;
+    const worker = new Promise<void>((_resolve, reject) => {
+      rejectWorker = reject;
+    });
+    const definition = system(
+      "system.background-admission",
+      async (context) => {
+        context.scope.track("worker", worker);
+        context.publishService(serviceProvision(serviceId, providerId), {
+          read: () => "active",
+        });
+      },
+      { serviceProvisions: [serviceProvision(serviceId, providerId)] },
+    );
+    const failureStarted = deferred<void>();
+    const releaseFailure = deferred<void>();
+    const lifecycleLineage = {
+      runner: () => ({
+        current: () => undefined,
+        runActivity: async <T>(
+          _request: never,
+          operation: (context: never) => Promise<T>,
+        ) => operation(undefined as never),
+      }),
+      runRetained: async <T>(
+        _origin: never,
+        request: { kind: string },
+        operation: (context: never) => Promise<T>,
+      ) => {
+        if (request.kind === "runtime.lifecycle.failure") {
+          failureStarted.resolve();
+          await releaseFailure.promise;
+        }
+        return operation(undefined as never);
+      },
+    } as unknown as RuntimeLifecycleLineage;
+    const supervisor = new MicroSystemSupervisor({
+      substrate: createRuntimeSubstrate({ settleTimeoutMs: 50 }),
+      settleTimeoutMs: 50,
+      definitions: [definition],
+      lifecycleLineage,
+    });
+
+    try {
+      await supervisor.reconcile(desired([definition]));
+      const lease = supervisor.services.resolve<{ read(): string }>(
+        serviceRequirement(serviceId),
+      );
+      rejectWorker(new Error("background boom"));
+      await failureStarted.promise;
+
+      await expect(
+        lease.invoke("read", (service) => service.read()),
+      ).rejects.toMatchObject({
+        problem: expect.objectContaining({
+          problemCode: "runtime.generation.retired",
+        }),
+      });
+    } finally {
+      releaseFailure.resolve();
+      await supervisor.close().catch(() => undefined);
     }
   });
 

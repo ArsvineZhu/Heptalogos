@@ -24,8 +24,8 @@ task_3_supervisor_reconciler: PASS (R1-R16 focused unit evidence)
 task_4_runtime_origin_lineage: PASS (9/9 focused unit tests; real PostgreSQL NOT_RUN)
 task_5_windows_postgresql_18_6_integration: NOT_RUN (qualification toolchain unavailable on current host)
 task_5_current_head_rerun: NOT_RUN (real PostgreSQL integration skipped)
-runtime_kernel_unit: PASS (88/88 package tests)
-behavior_candidate: NOT_FROZEN (PR #22 Draft; awaiting external independent review)
+runtime_kernel_unit: PASS (94/94 package tests)
+behavior_candidate: FROZEN_ON_PR_HEAD (PR #22 live head is the head authority)
 removed_binding_reconcile_regression: PASS (focused supervisor regression)
 transient_call_activity: PASS (S11/K9/R15)
 task_6_boundaries_local_qualification: PASS (current full repository verify)
@@ -33,7 +33,9 @@ local_pnpm_verify: PASS (current full repository verify)
 pull_request: 22 (DRAFT)
 candidate_pair:
  base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
- head: NOT_FROZEN (corrective cycle)
+ head: live PR #22 head
+review_base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+review_head_authority: live PR #22 head
 pr_20: CLOSED_OBSOLETE_PAIR
 previous_independent_review: REQUEST_CHANGES (old pair 7b51468c... → 06cc895b...) current_independent_review: NOT_RUN
 final_cross_platform_ci: NOT_RUN
@@ -106,8 +108,42 @@ final_cross_platform_ci: NOT_RUN
 squash_merge: NOT_RUN
 ```
 
-The current `4cad58d...` pair is invalidated by this corrective work. The next
-head must be pushed and independently reviewed as a new exact pair.
+The current `4cad58d...` pair was invalidated by the third-cycle corrective
+work. The fourth corrective cycle below supplies the next candidate head for
+new exact-pair independent review.
+
+## Fourth corrective cycle (2026-08-25)
+
+The independent review of `19ebef1...` → `ffe6949...` returned
+`REQUEST_CHANGES`. The current corrective change set closes the remaining
+hostile-boundary and race-condition findings without changing RuntimeGraph,
+GenerationFence state semantics, Cordis, or H2A lineage:
+
+```yaml
+host_facade_structural_read_only: PASS
+facade_function_assignment_blocked: PASS
+facade_accessor_projection_is_read_only: PASS
+supervisor_mutation_chain: PASS
+generation_bound_background_failure_event: PASS
+stale_generation_failure_is_noop: PASS
+immediate_failure_admission_revocation: PASS
+authoritative_supervisor_readiness: PASS
+h2b_postgres_expectation_alignment: PASS (real PostgreSQL NOT_RUN)
+runtime_kernel_package_unit: PASS (94/94)
+runtime_substrate_package_unit: PASS (16/16)
+managed_host_h2b_postgres_integration: NOT_RUN (5 skipped; qualification toolchain unavailable)
+h2a3_execution_foundation_integration: NOT_RUN (9 skipped; qualification toolchain unavailable)
+other_h2a_postgres_integrations: BLOCKED (HEPTALOGOS_TEST_PG_BIN unavailable)
+pnpm_verify_after_fourth_corrective_cycle: PASS (current full repository verify)
+independent_review: NOT_RUN (new exact pair)
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The prior `ffe6949...` review pair is retained as historical
+`REQUEST_CHANGES`. After this corrective commit is pushed, the exact candidate
+is frozen on the live PR #22 head; the review base remains the fixed
+post-H2A-3 baseline above.
 
 
 **Goal:** complete H2 functional runtime composition by establishing a thin qualified Cordis runtime substrate, Heptalogos-owned MicroSystem supervision/reconciliation, hard Service and dynamic Capability registries, generation-fenced invocation, graphlib-backed dependency planning, OperatingMode/readiness semantics, and runtime lifecycle lineage—without pulling H3 durable work/effects or H4 system management into H2B.
@@ -1760,8 +1796,9 @@ H2B is ready for external review only when all are true:
 [x] Capability rebind is deterministic and does not force Service-style restart
 [x] removed explicit Capability binding takes effect before dependent START
 [x] Service/Capability consumers never receive raw provider implementation
-[x] retained fenced Proxy preserves real class/native receiver identity and fences mutation
+[x] retained fenced Proxy preserves real class/native receiver identity and exposes a structural read-only facade
 [x] reflection, descriptor, prototype and extensibility operations remain Host-facade fenced
+[x] consumer function assignment and accessor descriptor mutation cannot reach the raw provider
 [x] generation retirement blocks new calls and settles in-flight calls
 [x] settlement timeout leaves a generation RETIRING and blocks replacement dependents
 [x] registry withdrawal is scoped to the activation GenerationFence owner
@@ -1769,11 +1806,14 @@ H2B is ready for external review only when all are true:
 [x] missing required Capability remains dynamic unavailable and is represented by Readiness
 [x] background hard-Service failure propagates transitively with dependents BLOCKED
 [x] background failure records retained runtime.lifecycle.failure and activation races fail activation
+[x] Supervisor mutations share one serial domain; background failures carry exact generation ownership
+[x] observed background failure revokes generation admission before lineage and cleanup
 [x] Supervisor.close is best-effort but rejects on cleanup, substrate, or unresolved-retirement failure
 [x] repeated already-BLOCKED reconcile does not retain a no-op Activity
 [x] no hidden automatic retry loop exists
 [x] RuntimeGraph uses graphlib and rejects hard cycles before activation
 [x] Readiness READY/DEGRADED/BLOCKED semantics pass
+[x] canonical Supervisor Readiness evaluation consumes authoritative current bindings
 [x] SAFE/NORMAL reconciliation does not mutate Desired State
 [x] tracked background failure affects only dependent graph branches
 [x] runtime origin binds ProductGeneration/MicroSystem through the existing H2A ALS
@@ -1791,7 +1831,7 @@ H2B is ready for external review only when all are true:
 [x] boundary/dependency/repository/corpus/toolchain gates PASS
 [x] pnpm verify after third corrective changes PASS (managed-Host H2B integration remains `NOT_RUN`)
 [x] roadmap says H2 remains OPEN and H2-S has not been pre-claimed
-[ ] exact review pair is frozen only after all candidate mutations (`NOT_RUN`: this corrective cycle is uncommitted)
+[x] exact review pair is frozen on live PR #22 head metadata; external review remains required
 ```
 
 ---

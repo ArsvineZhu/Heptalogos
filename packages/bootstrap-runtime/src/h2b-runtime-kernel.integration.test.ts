@@ -26,7 +26,6 @@ import { createRuntimeSubstrate } from "@heptalogos/runtime-substrate";
 import {
   createContractVersion,
   createRuntimeLifecycleLineage,
-  evaluateReadiness,
   exactContract,
   MicroSystemSupervisor,
   type ServiceLease,
@@ -471,13 +470,7 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
       );
       expect(selectedProviders).toEqual([createProviderId("provider.capability-high")]);
       expect(consumerActivations).toBe(1);
-      expect(
-        evaluateReadiness(
-          profile,
-          composition.supervisor.services,
-          composition.supervisor.capabilities,
-        ).state,
-      ).toBe("READY");
+      expect(composition.supervisor.evaluateReadiness(profile).state).toBe("READY");
 
       await composition.supervisor.reconcile(
         desired([lowProvider, consumerDefinition]),
@@ -489,26 +482,14 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
       expect(composition.supervisor.capabilities.resolve(requirement)?.providerId).toBe(
         createProviderId("provider.capability-low"),
       );
-      expect(
-        evaluateReadiness(
-          profile,
-          composition.supervisor.services,
-          composition.supervisor.capabilities,
-        ).state,
-      ).toBe("READY");
+      expect(composition.supervisor.evaluateReadiness(profile).state).toBe("READY");
 
       await composition.supervisor.reconcile(desired([consumerDefinition]));
       expect(
         composition.supervisor.getActualState(consumerDefinition.microSystemId),
       ).toBe("RUNNING");
       expect(consumerActivations).toBe(1);
-      expect(
-        evaluateReadiness(
-          profile,
-          composition.supervisor.services,
-          composition.supervisor.capabilities,
-        ).state,
-      ).toBe("BLOCKED");
+      expect(composition.supervisor.evaluateReadiness(profile).state).toBe("BLOCKED");
 
       await composition.supervisor.reconcile(
         desired(
@@ -518,27 +499,13 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
           new Map([[capabilityId, createProviderId("provider.capability-high")]]),
         ),
       );
+      expect(composition.supervisor.evaluateReadiness(profile).state).toBe("BLOCKED");
       expect(
-        evaluateReadiness(
-          profile,
-          composition.supervisor.services,
-          composition.supervisor.capabilities,
-          new Map(),
-          new Map([[capabilityId, createProviderId("provider.capability-high")]]),
-        ).state,
-      ).toBe("BLOCKED");
-      expect(() =>
         composition.supervisor.capabilities.resolve(
           requirement,
           createProviderId("provider.capability-high"),
         ),
-      ).toThrow(
-        expect.objectContaining({
-          problem: expect.objectContaining({
-            problemCode: "runtime.capability.explicit_unavailable",
-          }),
-        }),
-      );
+      ).toBeUndefined();
     } finally {
       await closeComposition(fixture, composition);
     }
@@ -691,9 +658,7 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
       await expect(
         composition.supervisor.reconcile(desired([a, b, safeOnly, c], "SAFE")),
       ).rejects.toBeDefined();
-      expect(["FAILED", "BLOCKED"]).toContain(
-        composition.supervisor.getActualState(b.microSystemId),
-      );
+      expect(composition.supervisor.getActualState(b.microSystemId)).toBe("BLOCKED");
       expect(composition.supervisor.getActualState(c.microSystemId)).toBe("RUNNING");
 
       await expect(

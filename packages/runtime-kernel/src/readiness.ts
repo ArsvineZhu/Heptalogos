@@ -11,8 +11,8 @@ export function evaluateReadiness(
   profile: ReadinessProfileDefinition,
   services: ServiceRegistry,
   capabilities: CapabilityRegistry,
-  serviceBindings: ReadonlyMap<ServiceId, ProviderId> = new Map(),
-  capabilityBindings: ReadonlyMap<CapabilityId, ProviderId> = new Map(),
+  serviceBindings: ReadonlyMap<ServiceId, ProviderId>,
+  capabilityBindings: ReadonlyMap<CapabilityId, ProviderId>,
 ): ReadinessResult {
   const missingServices = profile.requiredServices
     .filter(

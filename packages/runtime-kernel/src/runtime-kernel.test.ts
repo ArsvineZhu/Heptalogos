@@ -475,6 +475,82 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     expect(reflected).not.toBe(implementation.read);
   });
 
+  it("keeps consumer function assignment out of the raw provider", async () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.read-only-function-assignment");
+    const providerId = createProviderId("provider.read-only-function-assignment");
+    const implementation: { read(): string; capture?: () => void } = {
+      read: () => "raw",
+    };
+    const fence = registry.register(
+      serviceProvision(serviceId, providerId),
+      implementation,
+    );
+    const lease = registry.resolve<{
+      read(): string;
+      capture?: () => void;
+    }>(serviceRequirement(serviceId));
+    let leaked: unknown;
+
+    await lease.invoke("assignment", (service) => {
+      const consumerFunction = function (this: unknown): void {
+        leaked = this;
+      };
+      expect(Reflect.set(service, "capture", consumerFunction)).toBe(false);
+      expect(
+        Reflect.defineProperty(service, "capture", {
+          configurable: true,
+          value: consumerFunction,
+        }),
+      ).toBe(false);
+      expect(service.capture).toBeUndefined();
+    });
+
+    expect(implementation.capture).toBeUndefined();
+    expect(leaked).toBeUndefined();
+    await registry.retireGeneration(fence, 50);
+  });
+
+  it("projects accessor descriptors as read-only and keeps getter wrapping distinct", async () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.read-only-accessor");
+    const providerId = createProviderId("provider.read-only-accessor");
+    const implementation = {
+      get value(): object {
+        return this;
+      },
+      set value(_next: object) {
+        throw new Error("raw setter must not be exposed");
+      },
+    };
+    const fence = registry.register(
+      serviceProvision(serviceId, providerId),
+      implementation,
+    );
+    const lease = registry.resolve<{ readonly value: object }>(
+      serviceRequirement(serviceId),
+    );
+    let descriptor!: PropertyDescriptor;
+    let projected!: object;
+
+    await lease.invoke("accessor", (service) => {
+      descriptor = Object.getOwnPropertyDescriptor(service, "value")!;
+      projected = descriptor.get!.call(service);
+      expect(descriptor.set).toBeUndefined();
+      expect(Reflect.set(service, "value", {})).toBe(false);
+    });
+
+    expect(projected).not.toBe(implementation);
+    await registry.retireGeneration(fence, 50);
+    expect(() => descriptor.get!.call(projected)).toThrow(
+      expect.objectContaining({
+        problem: expect.objectContaining({
+          problemCode: "runtime.generation.retired",
+        }),
+      }),
+    );
+  });
+
   it("generation-fences a descriptor-obtained method after retirement", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.reflection-retirement");
@@ -877,17 +953,23 @@ describe("Capability registry and readiness", () => {
       requiredCapabilities: [],
       optionalCapabilities: [capabilityRequirement(capabilityId, false)],
     };
-    expect(evaluateReadiness(profile, services, capabilities).state).toBe("BLOCKED");
+    expect(
+      evaluateReadiness(profile, services, capabilities, new Map(), new Map()).state,
+    ).toBe("BLOCKED");
     services.register(
       serviceProvision(serviceId, createProviderId("provider.service")),
       {},
     );
-    expect(evaluateReadiness(profile, services, capabilities).state).toBe("DEGRADED");
+    expect(
+      evaluateReadiness(profile, services, capabilities, new Map(), new Map()).state,
+    ).toBe("DEGRADED");
     capabilities.register(
       capabilityProvision(capabilityId, createProviderId("provider.capability")),
       {},
     );
-    expect(evaluateReadiness(profile, services, capabilities).state).toBe("READY");
+    expect(
+      evaluateReadiness(profile, services, capabilities, new Map(), new Map()).state,
+    ).toBe("READY");
   });
 });
 

@@ -121,6 +121,26 @@ least-privilege runtime role、事务生命周期和 leakage gates 保持既有
 service/headless runtime 仍为 `NOT_RUN`。机器可读的完整历史 ledger 位于
 `qualification-status.json`，本节不改写其历史字段。
 
+## H2B fourth corrective-cycle persistence status (2026-08-25)
+
+The current Host-facade, Supervisor mutation-domain, generation-bound failure,
+and authoritative Readiness corrections do not change the canonical schema or
+completion function. The persistence-relevant candidate boundary is frozen on
+the live PR #22 head authority with review base
+`19ebef1c62a737ad077414a6817ffdf8ac3ad2a4`; no self-referential head SHA is
+stored in this record.
+
+```yaml
+h2b_persistence_relevant_behavior_sha: FROZEN_ON_PR_HEAD
+canonical_runtime_origin_constraints: NOT_RUN
+completion_function_fail_closed_input_validation: NOT_RUN
+real_postgres_platform: NOT_RUN
+pnpm_verify: PASS (current full repository verify)
+independent_review: NOT_RUN (new exact pair)
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
 ## H2A-2 current addendum (2026-08-24)
 
 ```yaml

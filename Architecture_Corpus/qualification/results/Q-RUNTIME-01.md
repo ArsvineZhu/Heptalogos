@@ -119,6 +119,38 @@ The previous `pnpm verify: PASS` and focused counts remain historical evidence
 for the prior corrective cycle. They are not reused as verification for this
 new working tree until the current code and documentation are rerun together.
 
+## H2B fourth corrective-cycle addendum (2026-08-25)
+
+```yaml
+candidate_status: FROZEN_ON_PR_HEAD
+review_base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+review_head_authority: live PR #22 head
+previous_independent_review: REQUEST_CHANGES (19ebef1... -> ffe6949...)
+host_facade_structural_read_only: PASS
+facade_function_assignment_blocked: PASS
+facade_accessor_projection_is_read_only: PASS
+supervisor_mutation_chain: PASS
+generation_bound_background_failure_event: PASS
+stale_generation_failure_is_noop: PASS
+immediate_failure_admission_revocation: PASS
+authoritative_supervisor_readiness: PASS
+h2b_postgres_expectation_alignment: PASS (source expectations updated; real PostgreSQL NOT_RUN)
+runtime_kernel_package_unit: PASS (94/94)
+runtime_substrate_package_unit: PASS (16/16)
+managed_host_h2b_postgres_integration: NOT_RUN (5 skipped; qualification toolchain unavailable)
+h2a3_execution_foundation_integration: NOT_RUN (9 skipped; qualification toolchain unavailable)
+canonical_initialization_postgres_integration: NOT_RUN (1 non-PG case passed, 7 PostgreSQL cases skipped)
+other_h2a_postgres_integrations: BLOCKED (HEPTALOGOS_TEST_PG_BIN unavailable)
+pnpm_verify: PASS (current full repository verify)
+independent_review: NOT_RUN (new exact pair)
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+This addendum records candidate-boundary authority without embedding the live
+head SHA in the candidate itself: PR #22 metadata is the exact head authority.
+The previous `ffe6949...` review result remains historical `REQUEST_CHANGES`.
+
 ## NOT_RUN / deferred properties
 
 - `product_runtime_start_stop`: Pilot remains synthetic L1/L2; no complete managed-Host product runtime was executed.

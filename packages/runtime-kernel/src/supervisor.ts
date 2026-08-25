@@ -17,6 +17,8 @@ import type {
   MicroSystemActualState,
   MicroSystemDefinition,
   MicroSystemId,
+  ReadinessProfileDefinition,
+  ReadinessResult,
   ServiceId,
   ServiceProvisionDescriptor,
   ServiceRequirement,
@@ -25,6 +27,7 @@ import { runtimeKernelProblem } from "./problems.js";
 import type { ReconcileAction, ReconcilePlan } from "./reconciler.js";
 import { RuntimeReconciler } from "./reconciler.js";
 import { RuntimeGraph } from "./runtime-graph.js";
+import { evaluateReadiness } from "./readiness.js";
 import { ServiceRegistry } from "./service-registry.js";
 import type { RuntimeLifecycleLineage } from "./lifecycle-lineage.js";
 
@@ -40,6 +43,13 @@ interface RunningSystem {
 interface UnsettledRetirement {
   readonly fence: GenerationFence;
   readonly serviceIds: readonly ServiceId[];
+}
+
+interface BackgroundFailureEvent {
+  readonly microSystemId: MicroSystemId;
+  readonly instanceId: ReturnType<typeof createMicroSystemInstanceId>;
+  readonly fence: GenerationFence;
+  readonly cause: unknown;
 }
 
 export interface MicroSystemSupervisorOptions {
@@ -87,7 +97,7 @@ export class MicroSystemSupervisor {
     ProviderId
   >();
   private operatingMode: import("./contracts.js").OperatingMode = "NORMAL";
-  private reconcileChain: Promise<void> = Promise.resolve();
+  private mutationChain: Promise<void> = Promise.resolve();
 
   constructor(private readonly options: MicroSystemSupervisorOptions) {
     this.services = options.serviceRegistry ?? new ServiceRegistry();
@@ -114,6 +124,16 @@ export class MicroSystemSupervisor {
     return new Map(this.actual);
   }
 
+  evaluateReadiness(profile: ReadinessProfileDefinition): ReadinessResult {
+    return evaluateReadiness(
+      profile,
+      this.services,
+      this.capabilities,
+      this.serviceBindings,
+      this.capabilityBindings,
+    );
+  }
+
   getDefinition(microSystemId: MicroSystemId): MicroSystemDefinition {
     const definition = this.definitions.get(microSystemId);
     if (definition === undefined) {
@@ -127,10 +147,9 @@ export class MicroSystemSupervisor {
 
   async reconcile(input: DesiredRuntimeSnapshot): Promise<ReconcilePlan> {
     const desired = captureDesiredRuntimeSnapshot(input);
-    let result!: ReconcilePlan;
-    const run = this.reconcileChain.then(async () => {
+    return this.enqueueMutation(async () => {
       const previousOperatingMode = this.operatingMode;
-      result = this.reconciler.plan({
+      const result = this.reconciler.plan({
         definitions: [...this.definitions.values()],
         desired,
         actual: this.actual,
@@ -149,7 +168,7 @@ export class MicroSystemSupervisor {
         blockedTransition;
       const execute = async (): Promise<void> => {
         try {
-          await this.executePlan(result);
+          await this.executePlanInternal(result);
         } finally {
           for (const serviceId of this.serviceBindings.keys()) {
             if (!result.serviceBindings.has(serviceId)) {
@@ -188,16 +207,15 @@ export class MicroSystemSupervisor {
       } else {
         await execute();
       }
+      return result;
     });
-    this.reconcileChain = run.then(
-      () => undefined,
-      () => undefined,
-    );
-    await run;
-    return result;
   }
 
   async executePlan(plan: ReconcilePlan): Promise<void> {
+    return this.enqueueMutation(() => this.executePlanInternal(plan));
+  }
+
+  private async executePlanInternal(plan: ReconcilePlan): Promise<void> {
     let firstError: unknown;
     const blockedServiceIds = this.collectUnsettledServiceIds();
     for (const action of plan.actions) {
@@ -300,50 +318,52 @@ export class MicroSystemSupervisor {
   }
 
   async close(): Promise<void> {
-    let ids: readonly MicroSystemId[];
-    const failures: unknown[] = [];
-    try {
-      ids = new RuntimeGraph(
-        [...this.running.values()].map((running) => running.definition),
-        this.serviceBindings,
-      )
-        .plan()
-        .shutdownOrder.map((definition) => definition.microSystemId);
-    } catch {
-      // The Map preserves activation order; reversing it is the last-resort
-      // acquisition-order projection, not a lexical ordering claim.
-      ids = [...this.running.keys()].reverse();
-    }
-    for (const microSystemId of ids) {
+    return this.enqueueMutation(async () => {
+      let ids: readonly MicroSystemId[];
+      const failures: unknown[] = [];
       try {
-        await this.stop(microSystemId);
+        ids = new RuntimeGraph(
+          [...this.running.values()].map((running) => running.definition),
+          this.serviceBindings,
+        )
+          .plan()
+          .shutdownOrder.map((definition) => definition.microSystemId);
+      } catch {
+        // The Map preserves activation order; reversing it is the last-resort
+        // acquisition-order projection, not a lexical ordering claim.
+        ids = [...this.running.keys()].reverse();
+      }
+      for (const microSystemId of ids) {
+        try {
+          await this.stop(microSystemId);
+        } catch (error) {
+          failures.push(error);
+        }
+      }
+      try {
+        await this.options.substrate.close();
       } catch (error) {
         failures.push(error);
       }
-    }
-    try {
-      await this.options.substrate.close();
-    } catch (error) {
-      failures.push(error);
-    }
-    const unresolved = [...this.unsettledRetirements.entries()].filter(
-      ([, retirement]) => retirement.fence.state !== "RETIRED",
-    );
-    if (unresolved.length > 0) {
-      failures.push(
-        runtimeKernelProblem(
+      const unresolved = [...this.unsettledRetirements.entries()].filter(
+        ([, retirement]) => retirement.fence.state !== "RETIRED",
+      );
+      if (unresolved.length > 0) {
+        failures.push(
+          runtimeKernelProblem(
+            "runtime.supervisor.close_failed",
+            `${unresolved.length} runtime generation retirement(s) remain unresolved`,
+          ),
+        );
+      }
+      if (failures.length > 0) {
+        throw runtimeKernelProblem(
           "runtime.supervisor.close_failed",
-          `${unresolved.length} runtime generation retirement(s) remain unresolved`,
-        ),
-      );
-    }
-    if (failures.length > 0) {
-      throw runtimeKernelProblem(
-        "runtime.supervisor.close_failed",
-        "Runtime supervisor close failed",
-        new AggregateError(failures, "Runtime supervisor close failed"),
-      );
-    }
+          "Runtime supervisor close failed",
+          new AggregateError(failures, "Runtime supervisor close failed"),
+        );
+      }
+    });
   }
 
   private async executeAction(action: ReconcileAction): Promise<void> {
@@ -413,7 +433,14 @@ export class MicroSystemSupervisor {
     microSystemId: MicroSystemId,
     instanceId = createMicroSystemInstanceId(),
   ): Promise<void> {
-    if (this.running.has(microSystemId)) {
+    const existing = this.running.get(microSystemId);
+    if (existing !== undefined) {
+      if (existing.fence.state !== "ACTIVE") {
+        throw runtimeKernelProblem(
+          "runtime.generation.retired",
+          `MicroSystem '${microSystemId}' generation no longer admits activation`,
+        );
+      }
       this.actual.set(microSystemId, "RUNNING");
       return;
     }
@@ -471,13 +498,21 @@ export class MicroSystemSupervisor {
         },
         onFailure: (failure) => {
           if (failure.phase === "BACKGROUND") {
+            this.revokeGenerationAdmission(fence);
             if (!activationCommitted) {
               backgroundFailure = true;
               backgroundFailureCause = failure.cause;
               return;
             }
-            this.actual.set(microSystemId, "FAILED");
-            void this.handleBackgroundFailure(microSystemId, failure.cause);
+            const event: BackgroundFailureEvent = {
+              microSystemId,
+              instanceId,
+              fence,
+              cause: failure.cause,
+            };
+            void this.enqueueMutation(() => this.handleBackgroundFailure(event)).catch(
+              () => undefined,
+            );
           }
         },
       });
@@ -577,16 +612,18 @@ export class MicroSystemSupervisor {
     if (firstError !== undefined) throw firstError;
   }
 
-  private async handleBackgroundFailure(
-    microSystemId: MicroSystemId,
-    cause: unknown,
-  ): Promise<void> {
-    const failed = this.definitions.get(microSystemId);
-    const failedRunning = this.running.get(microSystemId);
-    if (failed === undefined || failedRunning === undefined) {
-      await this.stop(microSystemId, "FAILED").catch(() => undefined);
+  private async handleBackgroundFailure(event: BackgroundFailureEvent): Promise<void> {
+    const failed = this.definitions.get(event.microSystemId);
+    const failedRunning = this.running.get(event.microSystemId);
+    if (
+      failed === undefined ||
+      failedRunning === undefined ||
+      failedRunning.instanceId !== event.instanceId ||
+      failedRunning.fence !== event.fence
+    ) {
       return;
     }
+    this.actual.set(event.microSystemId, "FAILED");
 
     if (this.options.lifecycleLineage !== undefined) {
       await this.options.lifecycleLineage
@@ -600,7 +637,7 @@ export class MicroSystemSupervisor {
             semantic: { featureId: failed.microSystemId },
           },
           async () => {
-            throw cause;
+            throw event.cause;
           },
         )
         .catch(() => undefined);
@@ -629,8 +666,8 @@ export class MicroSystemSupervisor {
       // order fallback still closes the known running owner set safely.
     }
 
-    const closure = new Set<MicroSystemId>([microSystemId]);
-    const pending = [microSystemId];
+    const closure = new Set<MicroSystemId>([event.microSystemId]);
+    const pending = [event.microSystemId];
     while (pending.length > 0) {
       const current = pending.shift()!;
       for (const dependent of dependents.get(current) ?? []) {
@@ -641,10 +678,25 @@ export class MicroSystemSupervisor {
     }
 
     for (const dependentId of shutdownOrder) {
-      if (dependentId === microSystemId || !closure.has(dependentId)) continue;
+      if (dependentId === event.microSystemId || !closure.has(dependentId)) continue;
       await this.stop(dependentId, "BLOCKED").catch(() => undefined);
     }
-    await this.stop(microSystemId, "FAILED").catch(() => undefined);
+    await this.stop(event.microSystemId, "FAILED").catch(() => undefined);
+  }
+
+  private revokeGenerationAdmission(fence: GenerationFence): void {
+    void fence.retire(this.options.settleTimeoutMs).catch(() => undefined);
+  }
+
+  private enqueueMutation<TResult>(
+    operation: () => TResult | Promise<TResult>,
+  ): Promise<TResult> {
+    const run = this.mutationChain.then(operation);
+    this.mutationChain = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
   }
 
   private async withdrawProviders(ownerFence: GenerationFence): Promise<void> {
