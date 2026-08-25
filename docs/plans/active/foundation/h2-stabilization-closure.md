@@ -1819,6 +1819,17 @@ Recommended commit:
 test: prove managed host and runtime lifecycle closure
 ```
 
+S7 implementation evidence (2026-08-26, commit `6f9cd4d`):
+`runtime-host-lifecycle.integration.test.ts` covers PG1-PG6, including the
+structural `HostMaintenanceQuiescence` seam, authentic Host lease-backend
+termination, planned STOP/RESTART ordering, fresh Runtime generations, and
+shutdown-keeping-PostgreSQL. The integration file transforms and typechecks;
+`bootstrap-runtime:test`, `check:boundaries`, `check:dependencies`,
+`check:repository`, and `check:corpus` are `PASS`. Live PG1-PG6 execution is
+`NOT_RUN` because `HEPTALOGOS_TEST_PG_BIN`, `pg_config`, and `postgres` are
+absent on this host; the aggregate integration target is consequently
+`BLOCKED` by its pre-existing PostgreSQL qualification guards.
+
 ## Task S8 — Full H2 current-tree re-audit
 
 Re-run all mandatory S sweeps after Runtime changes, because new code can reintroduce residue.
