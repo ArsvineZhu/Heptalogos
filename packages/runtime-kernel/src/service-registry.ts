@@ -40,7 +40,7 @@ function createFencedProxy<TContract extends object>(
         }
         return (...args: readonly unknown[]) =>
           fence.invoke(operationIdFor(providerId, property), () =>
-            Reflect.apply(member, target, args),
+            Reflect.apply(member, proxy, args),
           );
       },
     });
