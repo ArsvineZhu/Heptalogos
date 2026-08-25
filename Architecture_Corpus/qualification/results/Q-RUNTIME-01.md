@@ -115,8 +115,8 @@ The real PostgreSQL qualification used the existing managed-Host fixture and
 Host-fenced `PersistenceService`; no second PostgreSQL harness was introduced.
 `runtime-kernel` does not import raw `pg`, Kysely, BootstrapState, or
 Host-ownership internals, and its package root does not expose Cordis or
-Graphlib objects. The candidate remains Draft pending the operator-directed
-H2-wide CI/review phase.
+Graphlib objects. PR #20 is Ready for Review; the exact-pair independent review,
+final cross-platform CI, and squash merge remain NOT_RUN.
 
 ## H2B corrective binding-reconciliation addendum (2026-08-25)
 
