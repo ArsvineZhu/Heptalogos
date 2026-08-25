@@ -311,7 +311,7 @@ export class MicroSystemSupervisor {
       };
       this.running.set(microSystemId, running);
       if (backgroundFailure) {
-        await this.stop(microSystemId);
+        await this.stop(microSystemId, "FAILED");
         return;
       }
       this.actual.set(microSystemId, "RUNNING");
@@ -340,10 +340,13 @@ export class MicroSystemSupervisor {
     }
   }
 
-  private async stop(microSystemId: MicroSystemId): Promise<void> {
+  private async stop(
+    microSystemId: MicroSystemId,
+    terminalState: "STOPPED" | "FAILED" = "STOPPED",
+  ): Promise<void> {
     const running = this.running.get(microSystemId);
     if (running === undefined) {
-      this.actual.set(microSystemId, "STOPPED");
+      this.actual.set(microSystemId, terminalState);
       return;
     }
     this.actual.set(microSystemId, "QUIESCING");
@@ -367,20 +370,12 @@ export class MicroSystemSupervisor {
     } catch (error) {
       firstError ??= error;
     }
-    this.actual.set(microSystemId, "STOPPED");
+    this.actual.set(microSystemId, terminalState);
     if (firstError !== undefined) throw firstError;
   }
 
   private async handleBackgroundFailure(microSystemId: MicroSystemId): Promise<void> {
-    const running = this.running.get(microSystemId);
-    if (running === undefined) return;
-    this.running.delete(microSystemId);
-    await this.withdrawProviders(
-      running.serviceProviderIds,
-      running.capabilityProviderIds,
-    ).catch(() => undefined);
-    await running.handle.dispose().catch(() => undefined);
-    this.actual.set(microSystemId, "FAILED");
+    await this.stop(microSystemId, "FAILED");
   }
 
   private async withdrawProviders(
