@@ -232,6 +232,35 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
       expect.objectContaining({ problemCode: "runtime.generation.retired" }),
     );
   });
+
+  it("S10 fences nested provider method access during retirement", async () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.nested-proxy");
+    const providerId = createProviderId("provider.nested-proxy");
+    const started = deferred<void>();
+    const released = deferred<void>();
+    registry.register(serviceProvision(serviceId, providerId), {
+      async read() {
+        started.resolve();
+        await released.promise;
+        return this.nested();
+      },
+      nested() {
+        return "nested";
+      },
+    });
+    const lease = registry.resolve<{ read(): Promise<string> }>(
+      serviceRequirement(serviceId),
+    );
+    const call = lease.invoke("read", (service) => service.read());
+    await started.promise;
+    const retirement = registry.retireProvider(providerId, 50);
+    released.resolve();
+    await expect(call).rejects.toMatchObject({
+      problemCode: "runtime.generation.retired",
+    });
+    await expect(retirement).resolves.toBeUndefined();
+  });
 });
 
 describe("Capability registry and readiness", () => {
@@ -314,6 +343,35 @@ describe("Capability registry and readiness", () => {
     const plan = new RuntimeGraph([a, b]).plan();
     expect(plan.edges).toEqual([]);
     expect(plan.startOrder).toHaveLength(2);
+  });
+
+  it("K7 fences nested Capability method access during retirement", async () => {
+    const registry = new CapabilityRegistry();
+    const capabilityId = createCapabilityId("test.nested-proxy");
+    const providerId = createProviderId("provider.nested-proxy");
+    const started = deferred<void>();
+    const released = deferred<void>();
+    registry.register(capabilityProvision(capabilityId, providerId), {
+      async read() {
+        started.resolve();
+        await released.promise;
+        return this.nested();
+      },
+      nested() {
+        return "nested";
+      },
+    });
+    const lease = registry.resolve<{ read(): Promise<string> }>(
+      capabilityRequirement(capabilityId, true),
+    );
+    const call = lease!.invoke("read", (capability) => capability.read());
+    await started.promise;
+    const retirement = registry.retireProvider(providerId, 50);
+    released.resolve();
+    await expect(call).rejects.toMatchObject({
+      problemCode: "runtime.generation.retired",
+    });
+    await expect(retirement).resolves.toBeUndefined();
   });
 
   it("computes BLOCKED, DEGRADED, and READY independently of Actual State", () => {
