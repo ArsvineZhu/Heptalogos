@@ -25,16 +25,16 @@ task_4_runtime_origin_lineage: PASS (9/9 focused unit tests; real PostgreSQL NOT
 task_5_windows_postgresql_18_6_integration: NOT_RUN (qualification toolchain unavailable on current host)
 task_5_current_head_rerun: NOT_RUN (real PostgreSQL integration skipped)
 runtime_kernel_unit: PASS (75/75 package tests)
-behavior_candidate: NOT_FROZEN (corrective changes remain in the working tree)
+behavior_candidate: NOT_FROZEN (PR #22 Draft; awaiting external independent review)
 removed_binding_reconcile_regression: PASS (focused supervisor regression)
 transient_call_activity: PASS (S11/K9/R15)
 task_6_boundaries_local_qualification: PASS (current full repository verify)
 local_pnpm_verify: PASS (current full repository verify)
-pull_request: PENDING_NEW_DRAFT (PR #20 is the obsolete old pair)
+pull_request: 22 (DRAFT)
 candidate_pair:
  base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
  head: NOT_FROZEN (corrective cycle)
-pr_20: OPEN_OBSOLETE_PAIR
+pr_20: CLOSED_OBSOLETE_PAIR
 previous_independent_review: REQUEST_CHANGES (old pair 7b51468c... → 06cc895b...) current_independent_review: NOT_RUN
 final_cross_platform_ci: NOT_RUN
 squash_merge: NOT_RUN
@@ -59,8 +59,8 @@ post-H2A-3 baseline
 `--force-with-lease`. No H2B development continues on `master`.
 
 The corrected branch remains based on that baseline. The old PR #20 pair
-(`7b51468c...` → `06cc895b...`) is not reused; a new Draft PR is required
-after this corrective cycle is committed and pushed.
+(`7b51468c...` → `06cc895b...`) is not reused; PR #20 is closed as obsolete,
+and the new Draft PR #22 carries the corrected branch.
 
 The new review blockers and important findings are covered by focused tests:
 

@@ -657,6 +657,8 @@
         "h2b_i1_failed_blocked_and_safe_recovery": "PASS",
         "h2b_i2_required_capability_dynamic_unavailable": "PASS",
         "h2b_master_topology_repair": "PASS (origin/master restored to 19ebef1; 3ce96cf preserved in backup ref)",
+        "h2b_draft_pr": "22",
+        "h2b_obsolete_pr20": "CLOSED",
         "h2b_real_postgres": "NOT_RUN",
         "h2b_independent_review": "NOT_RUN",
         "h2b_final_cross_platform_ci": "NOT_RUN",

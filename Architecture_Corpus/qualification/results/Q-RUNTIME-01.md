@@ -65,6 +65,7 @@ source-less, and service/headless claims remain deferred.
 candidate_status: NOT_FROZEN
 candidate_base_sha: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
 candidate_branch: dev/h2b-runtime-composition-kernel-corrected
+draft_pr: 22
 runtime_kernel_package_unit: PASS (75/75)
 runtime_substrate_package_unit: PASS (16/16)
 B1_exact_service_binding_graph: PASS
