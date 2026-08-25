@@ -15,9 +15,15 @@ surface the ambiguity rather than guessing.
 
 ## Active
 
-- [H2A-3 Canonical Execution Context, Time & Lineage Foundation](active/foundation/h2a3-canonical-execution-context-time-lineage.md) — `ACTIVE`
+H2B runtime composition is governed by the operator-designated plan
+`.superpowers/Heptalogos-H2B-Runtime-Composition-Kernel-Implementation-Plan.md`
+and its candidate branch/PR; the plan is intentionally kept outside the
+tracked `docs/plans/active/` registry until its H2B implementation record is
+ready for repository documentation reconciliation.
 
 ## Completed
+
+- [H2A-3 Canonical Execution Context, Time & Lineage Foundation](completed/foundation/h2a3-canonical-execution-context-time-lineage.md) — `COMPLETED` (PR #19 merged; final cross-platform CI remains `NOT_RUN` by operator direction)
 
 - [Repository Genesis](completed/repository/repository-genesis.md) — `COMPLETED`
 - [Foundation M1 Development Spine](completed/foundation/m1-development-spine.md) — `COMPLETED`

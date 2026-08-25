@@ -2,11 +2,21 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: read the repository Heptalogos architecture/runtime-durability/dependencies/verification skills first, then execute this plan task-by-task with TDD. If the execution harness provides `superpowers:executing-plans` or `superpowers:subagent-driven-development`, use one of those execution modes rather than improvising a new workflow. This plan intentionally retains architectural decisions here. The implementing Agent may make ordinary local coding choices, but **must not reinterpret service ownership, package boundaries, durable shapes, dependency routes, transaction semantics, migration policy, or milestone scope**. If an implementation fact contradicts a Decision Lock below, stop and report the contradiction instead of inventing a new architecture.
 
-**State:** `ACTIVE` on registration  
-**Baseline:** `master@446d0f6bce449f177c66fb569341020757b44c9b`  
+**State:** `COMPLETED / MERGED_WITH_DEFERRED_FINAL_CI`
+**Baseline:** `master@446d0f6bce449f177c66fb569341020757b44c9b`
 **Target branch:** `dev/h2a3-canonical-execution-context-time-lineage`  
 **Integration unit:** one branch → one Draft PR → local qualification → external independent review on exact `(base_sha, head_sha)` → manual exact-pair final CI → squash merge → separate docs/evidence-only repository-truth reconciliation  
 **Compatibility epoch:** `PRE_PRODUCTION`
+
+**Closure record (2026-08-25):** The final reviewed candidate was
+`446d0f6bce449f177c66fb569341020757b44c9b` →
+`2482b6e380cbad37407e99b0ce7c7560ccc709c6`. Independent review was `PASS`.
+PR #19 was squash-merged at
+`7b51468c2c41895bde7091868d688d98dfc6c957`. Final cross-platform CI remains
+`NOT_RUN` by explicit operator direction pending the H2-wide run; this record
+does not promote that deferred gate to `PASS`. H2A-3 is closed as an
+implementation milestone, H2A is functionally complete, H2B is the active
+implementation milestone, and H2 remains open.
 
 **Goal:** complete the remaining functional core of H2A by establishing canonical `Instant`/monotonic time semantics, the normal-runtime SchemaRuntime boundary, Heptalogos-owned Activity/ExecutionContext propagation over Node AsyncLocalStorage plus OpenTelemetry Context, a durable `LineageContextRef V1`, minimum retained Activity/Evidence records, and same-transaction participation so a normal canonical mutation can be fenced by Host ownership and bound to trusted causal identity and required evidence without leaking raw persistence or telemetry mechanics.
 
@@ -2053,13 +2063,16 @@ After local implementation qualification passes, update current progress truth t
 ```text
 H2A_1: CLOSED
 H2A_2: CLOSED
-H2A_3: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
-H2A: FUNCTIONALLY_COMPLETE_PENDING_STABILIZATION_AND_CLOSURE
-H2B: ELIGIBLE_AFTER_H2A3_MERGE
+H2A_3: CLOSED
+H2A: FUNCTIONALLY_COMPLETE
+H2B: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+H2_FUNCTIONAL: COMPLETE_PENDING_H2B_CLOSURE
+H2_STABILIZATION: NOT_STARTED
 H2: OPEN
 ```
 
-Do not set H2A CLOSED.
+H2A-3 is closed as an implementation milestone; H2A stabilization/closure
+remains a later bounded joint review and is not pre-claimed here.
 
 ### Full local gate
 
@@ -2094,7 +2107,7 @@ git log --oneline --decorate origin/master..HEAD
 
 No untracked/generated accidental files.
 
-- [ ] **7.5 Commit final local evidence/truth only after tests actually passed**
+- [x] **7.5 Commit final local evidence/truth only after tests actually passed**
 
 Example commit:
 
@@ -2103,9 +2116,9 @@ git add Architecture_Corpus docs scripts packages pnpm-workspace.yaml pnpm-lock.
 git commit -m "docs: record H2A3 local qualification"
 ```
 
-- [ ] **7.6 Re-run `pnpm verify` after the evidence commit**.
+- [x] **7.6 Re-run `pnpm verify` after the evidence commit**.
 
-- [ ] **7.7 Freeze exact review candidate pair**
+- [x] **7.7 Freeze exact review candidate pair**
 
 ```bash
 BASE_SHA="$(git rev-parse origin/master)"
@@ -2255,10 +2268,10 @@ Do not pre-fill PASS. The implementing Agent records only observed results.
 h2a3:
  baseline: 446d0f6bce449f177c66fb569341020757b44c9b
  branch: dev/h2a3-canonical-execution-context-time-lineage
- behaviorCandidate: 76589ade468ccb7a4a9ecf830f6200fdd729917c
+behaviorCandidate: 2482b6e380cbad37407e99b0ce7c7560ccc709c6
  reviewPair:
- base: NOT_RUN
- head: NOT_RUN
+base: 446d0f6bce449f177c66fb569341020757b44c9b
+head: 2482b6e380cbad37407e99b0ce7c7560ccc709c6
  local:
  foundation_contracts: PASS (19/19)
  schema_runtime: PASS (2/2)
@@ -2280,9 +2293,9 @@ h2a3:
  check_dependencies: PASS
  check_boundaries: PASS
  pnpm_verify: PASS
- externalIndependentReview: NOT_RUN
+externalIndependentReview: PASS
  finalCrossPlatformCI: NOT_RUN
- squashMerge: NOT_RUN
+squashMerge: PASS (PR #19 merge 7b51468c2c41895bde7091868d688d98dfc6c957)
 ```
 
 Status vocabulary for executable gates remains exactly:
