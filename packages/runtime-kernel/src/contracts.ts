@@ -65,12 +65,39 @@ export interface CapabilityProvisionDescriptor {
   readonly priority: number;
 }
 
+/**
+ * H2B Service/Capability contracts are trusted semantic contracts, not a
+ * general JavaScript object-capability membrane. Provider operations are
+ * methods; their boundary values are plain data or nested contract objects.
+ * Runtime publication/invocation validation is authoritative because
+ * TypeScript interfaces are erased.
+ */
+export type H2BContractData =
+  | null
+  | undefined
+  | string
+  | number
+  | boolean
+  | bigint
+  | readonly H2BContractData[]
+  | { readonly [key: string]: H2BContractData };
+
+export type H2BContractMethod = (
+  ...args: readonly H2BContractData[]
+) => H2BContractData | H2BContractObject | Promise<H2BContractData | H2BContractObject>;
+
+export type H2BContractObject = {
+  readonly [key: string]: H2BContractData | H2BContractMethod;
+};
+
 export interface ServiceLease<TContract extends object> {
   readonly serviceId: ServiceId;
   readonly providerId: ProviderId;
   readonly contractVersion: ContractVersion;
   invoke<TResult>(
     operationId: string,
+    // This callback is the consumer-side operation selector. Functions do not
+    // cross into the provider contract as method arguments or results.
     call: (service: TContract) => TResult | Promise<TResult>,
   ): Promise<TResult>;
 }
@@ -81,6 +108,8 @@ export interface CapabilityLease<TContract extends object> {
   readonly contractVersion: ContractVersion;
   invoke<TResult>(
     operationId: string,
+    // This callback is the consumer-side operation selector. Functions do not
+    // cross into the provider contract as method arguments or results.
     call: (capability: TContract) => TResult | Promise<TResult>,
   ): Promise<TResult>;
 }

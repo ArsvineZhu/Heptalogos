@@ -56,6 +56,51 @@ const runtimeProblemSpecs: Readonly<Record<string, RuntimeProblemSpec>> = {
     retryClass: "never",
     title: "MicroSystem published an undeclared Service",
   },
+  "runtime.contract.invalid_shape": {
+    category: "validation",
+    retryClass: "never",
+    title: "Service or Capability contract shape is unsupported",
+  },
+  "runtime.contract.unsupported_accessor": {
+    category: "validation",
+    retryClass: "never",
+    title: "Service or Capability accessor operation is unsupported",
+  },
+  "runtime.contract.unsupported_function_argument": {
+    category: "validation",
+    retryClass: "never",
+    title: "Service or Capability function arguments are unsupported",
+  },
+  "runtime.contract.unsupported_function_result": {
+    category: "validation",
+    retryClass: "never",
+    title: "Service or Capability function results are unsupported",
+  },
+  "runtime.contract.unsupported_input": {
+    category: "validation",
+    retryClass: "never",
+    title: "Service or Capability input data is unsupported",
+  },
+  "runtime.contract.unsupported_provider_identity": {
+    category: "validation",
+    retryClass: "never",
+    title: "Provider identity cannot cross a Service or Capability boundary",
+  },
+  "runtime.contract.unsupported_result": {
+    category: "validation",
+    retryClass: "never",
+    title: "Service or Capability result data is unsupported",
+  },
+  "runtime.contract.unsupported_symbol": {
+    category: "validation",
+    retryClass: "never",
+    title: "Symbol-driven Service or Capability protocols are unsupported",
+  },
+  "runtime.contract.unsupported_writable_property": {
+    category: "validation",
+    retryClass: "never",
+    title: "Service or Capability data properties must be readonly",
+  },
   "runtime.capability.duplicate_provider": {
     category: "validation",
     retryClass: "never",
@@ -100,6 +145,11 @@ const runtimeProblemSpecs: Readonly<Record<string, RuntimeProblemSpec>> = {
     category: "unavailable",
     retryClass: "after-change",
     title: "Runtime generation did not settle in time",
+  },
+  "runtime.provider.invocation_failed": {
+    category: "unavailable",
+    retryClass: "after-change",
+    title: "Provider invocation failed",
   },
   "runtime.graph.duplicate_node": {
     category: "validation",

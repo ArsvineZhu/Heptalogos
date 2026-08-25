@@ -7,6 +7,7 @@ import type {
 import { ContractCompatibilityRegistry } from "./contract-compatibility.js";
 import { GenerationFence } from "./generation-fence.js";
 import { createFencedProxy } from "./fenced-proxy.js";
+import { validateSupportedContractShape } from "./contract-shape.js";
 import { runtimeKernelProblem } from "./problems.js";
 import type { ProviderId } from "@heptalogos/foundation-contracts";
 import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
@@ -42,6 +43,7 @@ export class ServiceRegistry {
         `Service provider '${descriptor.providerId}' is already registered for Service '${descriptor.serviceId}'`,
       );
     }
+    validateSupportedContractShape(implementation);
     this.bindings.set(key, {
       descriptor,
       implementation,

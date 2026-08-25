@@ -24,12 +24,12 @@ task_3_supervisor_reconciler: PASS (R1-R16 focused unit evidence)
 task_4_runtime_origin_lineage: PASS (9/9 focused unit tests; current H2B real PostgreSQL 5/5)
 task_5_windows_postgresql_18_6_integration: PASS (current Windows PostgreSQL 18.6 qualification)
 task_5_current_head_rerun: PASS (current-tree real PostgreSQL integration executed)
-runtime_kernel_unit: PASS (98/98 package tests)
+runtime_kernel_unit: PASS (107/107 package tests)
 behavior_candidate: FROZEN_ON_PR_HEAD (PR #22 live head is the head authority)
 removed_binding_reconcile_regression: PASS (focused supervisor regression)
 transient_call_activity: PASS (S11/K9/R15)
-task_6_boundaries_local_qualification: PASS (current full repository verify)
-local_pnpm_verify: PASS (current fifth-cycle full repository verify)
+task_6_boundaries_local_qualification: PASS (current sixth-cycle full repository verify)
+local_pnpm_verify: PASS (current sixth-cycle full repository verify)
 pull_request: 22 (DRAFT)
 candidate_pair:
  base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
@@ -37,7 +37,7 @@ candidate_pair:
 review_base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
 review_head_authority: live PR #22 head
 pr_20: CLOSED_OBSOLETE_PAIR
-previous_independent_review: REQUEST_CHANGES (old pair 7b51468c... → 06cc895b...) current_independent_review: NOT_RUN
+previous_independent_review: REQUEST_CHANGES (19ebef1... → ee256dd...) current_independent_review: NOT_RUN
 final_cross_platform_ci: NOT_RUN
 squash_merge: NOT_RUN
 ```
@@ -187,6 +187,44 @@ source-less, service/headless, final cross-platform CI, independent review,
 and squash merge remain `NOT_RUN`. The current candidate is identified by the
 live PR #22 head after the corrective commit is pushed; this plan does not
 embed a self-referential head SHA.
+
+## Sixth corrective cycle (2026-08-25)
+
+The independent review of `19ebef1...` → `ee256dd...` returned
+`REQUEST_CHANGES`. The current corrective tree deliberately narrows the H2B
+boundary instead of extending the Host facade into a general JavaScript
+membrane:
+
+```yaml
+candidate_status: FROZEN_ON_PR_HEAD
+review_base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+review_head_authority: live PR #22 head
+previous_independent_review: REQUEST_CHANGES (19ebef1... -> ee256dd...)
+h2b_supported_contract_shape: PASS
+registration_accessor_validation: PASS
+readonly_data_contract_validation: PASS
+function_argument_boundary_rejection: PASS
+function_result_boundary_rejection: PASS
+provider_failure_normalization: PASS
+start_hard_prerequisite_loss_is_BLOCKED: PASS (existing invariant)
+runtime_kernel_package_unit: PASS (107/107)
+runtime_substrate_package_unit: PASS (16/16)
+local_pnpm_verify: PASS (current sixth-cycle full repository verify)
+postgres_qualification: CARRIED_FORWARD_FROM_EE256 (no persistence, lineage, or DB path changed)
+independent_review: NOT_RUN (new exact pair)
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The H2B contract is now explicitly limited to method operations, readonly
+data, plain immutable boundary values, Promise results, and nested projected
+contract objects. Accessors, callback/function arguments, function results,
+symbol protocols, consumer mutation, provider identity, and arbitrary thrown
+values are unsupported until a later semantic port contract owns them.
+Existing Windows PostgreSQL 18.6 evidence remains valid as carried-forward
+property evidence because this cycle changes only runtime-kernel contract
+validation/projection and documentation; it does not modify persistence,
+execution-lineage, schema, migration, or database behavior.
 
 
 **Goal:** complete H2 functional runtime composition by establishing a thin qualified Cordis runtime substrate, Heptalogos-owned MicroSystem supervision/reconciliation, hard Service and dynamic Capability registries, generation-fenced invocation, graphlib-backed dependency planning, OperatingMode/readiness semantics, and runtime lifecycle lineage—without pulling H3 durable work/effects or H4 system management into H2B.
@@ -676,7 +714,8 @@ Examples:
 ```text
 Desired RUNNING + missing hard Service → BLOCKED
 Desired RUNNING + mode-ineligible      → BLOCKED
-activation exception                   → FAILED
+intrinsic activation exception         → FAILED
+START failure after hard prerequisite loss → BLOCKED
 Desired STOPPED                        → STOPPED
 ```
 
@@ -757,9 +796,54 @@ export interface CapabilityLease<TContract extends object> {
 ```
 
 The object passed into `call` must be a Host-owned facade/fenced Proxy, never
-the original implementation object. The Proxy target is also Host-owned; raw
-provider descriptors, prototypes, and returned objects are projected through
-the facade so reflection cannot escape the generation boundary.
+the original implementation object. The Proxy target is also Host-owned.
+
+### H2B supported semantic contract boundary
+
+H2B supports a bounded trusted in-process contract shape. It is not a general
+JavaScript object-capability membrane.
+
+Supported:
+
+```text
+method-based semantic operations
+plain immutable input data
+plain immutable result data
+Promise results
+nested Host-projected contract objects when explicitly needed
+readonly data properties
+```
+
+Unsupported until a later owner introduces a semantic port contract:
+
+```text
+accessor getter/setter operations
+function or callback arguments
+function results
+symbol-driven protocols
+consumer property mutation
+provider object identity semantics
+arbitrary thrown/rejected objects as boundary payloads
+```
+
+ServiceRegistry and CapabilityRegistry validate the published surface before
+binding it. Invocation validates boundary arguments, projects plain data, and
+rejects unsupported function results. Provider failures are normalized as
+follows: ProblemError remains canonical; Error becomes
+`runtime.provider.invocation_failed` with the Error as JavaScript `cause`; any
+other thrown/rejected value becomes the same ProblemError without exposing the
+raw value. Future callback/stream/subscription owners must add explicit
+semantic ports rather than extending this facade into a transparent membrane.
+
+Stable contract-boundary Problems include:
+
+```text
+runtime.contract.unsupported_accessor
+runtime.contract.unsupported_function_argument
+runtime.contract.unsupported_function_result
+runtime.contract.unsupported_writable_property
+runtime.provider.invocation_failed
+```
 
 `operationId` must be non-empty, <=256 UTF-8 bytes.
 
@@ -1833,11 +1917,16 @@ H2B is ready for external review only when all are true:
 [x] Desired State and OperatingMode remain distinct
 [x] Actual State is owned only by MicroSystemSupervisor
 [x] hard Service missing → BLOCKED
+[x] START failure caused by hard prerequisite loss → BLOCKED, not intrinsic FAILED
 [x] hard Service ambiguity does not resolve by load order
 [x] hard Service replacement quiesces dependents safely
 [x] RuntimeGraph resolves exact Service bindings and counts bindings rather than MicroSystems
 [x] Capability rebind is deterministic and does not force Service-style restart
 [x] removed explicit Capability binding takes effect before dependent START
+[x] H2B Service/Capability contracts are method-based with readonly data only
+[x] accessor operations fail at provider publication with a stable Problem
+[x] function/callback arguments and function results fail at the Host boundary
+[x] arbitrary provider thrown/rejected values are normalized without raw payload leakage
 [x] Service/Capability consumers never receive raw provider implementation
 [x] retained fenced Proxy preserves real class/native receiver identity and exposes a structural read-only facade
 [x] reflection, descriptor, prototype and extensibility operations remain Host-facade fenced
@@ -1872,8 +1961,7 @@ H2B is ready for external review only when all are true:
 [x] real PostgreSQL H2B integration PASS on the actually recorded platform (Windows PostgreSQL 18.6, 5/5)
 [x] deferred L3 claims remain NOT_RUN
 [x] boundary/dependency/repository/corpus/toolchain gates PASS
-[x] pnpm verify after third corrective changes PASS (managed-Host H2B integration remains `NOT_RUN`)
-[ ] pnpm verify after fifth corrective changes PASS (`NOT_RUN`: final current-tree run pending)
+[x] current candidate `pnpm verify` PASS (PostgreSQL evidence carried forward; current commit does not modify persistence/lineage/DB paths)
 [x] roadmap says H2 remains OPEN and H2-S has not been pre-claimed
 [x] exact review pair is frozen on live PR #22 head metadata; external review remains required
 ```

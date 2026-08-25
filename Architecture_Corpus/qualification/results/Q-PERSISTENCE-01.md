@@ -174,6 +174,28 @@ The PostgreSQL tools are retained only under the ignored repository-root
 `tmp/` directory. Linux/macOS, source-less, service/headless, independent
 review, final cross-platform CI, and squash merge remain `NOT_RUN`.
 
+## H2B sixth corrective-cycle persistence status (2026-08-25)
+
+The current corrective tree follows the `REQUEST_CHANGES` result for
+`19ebef1...` → `ee256dd...`. It changes only runtime-kernel contract shape,
+boundary projection, provider failure normalization, and governance text; no
+persistence, execution-lineage, schema, migration, or database path changed.
+
+```yaml
+h2b_persistence_relevant_behavior_sha: CARRIED_FORWARD_FROM_EE256
+h2b_review_base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+h2b_review_head_authority: live PR #22 head
+canonical_runtime_origin_constraints: CARRIED_FORWARD
+direct_runtime_activity_update_denial: CARRIED_FORWARD
+completion_function_fail_closed_input_validation: CARRIED_FORWARD
+real_postgres_platform: CARRIED_FORWARD (Windows PostgreSQL 18.6)
+current_head_real_postgres_rerun: NOT_RUN (no persistence/lineage/DB path changed)
+pnpm_verify: PASS (current sixth-cycle full repository verify)
+independent_review: NOT_RUN (new exact pair)
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
 ## H2A-2 current addendum (2026-08-24)
 
 ```yaml

@@ -1,42 +1,127 @@
-import type { ProviderId } from "@heptalogos/foundation-contracts";
+import { ProblemError, type ProviderId } from "@heptalogos/foundation-contracts";
 import { GenerationFence } from "./generation-fence.js";
+import {
+  findSupportedContractMember,
+  hasExecutableContractMember,
+  validateSupportedContractShape,
+} from "./contract-shape.js";
+import { runtimeKernelProblem } from "./problems.js";
 
 function operationIdFor(providerId: ProviderId, property: PropertyKey): string {
   return `${providerId}.${String(property)}`.slice(0, 256);
 }
 
-function isProxyable(value: unknown): value is object {
+function isObjectLike(value: unknown): value is object {
   return (typeof value === "object" && value !== null) || typeof value === "function";
 }
 
-function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
-  return isProxyable(value) && typeof (value as { then?: unknown }).then === "function";
+function isNativePromise(value: unknown): value is Promise<unknown> {
+  return value instanceof Promise;
+}
+
+function isPlainObject(value: object): boolean {
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
 }
 
 type Callable = (...args: readonly unknown[]) => unknown;
-type MemberKind = "method" | "get" | "set";
+type MemberKind = "method";
 
-function createShadowTarget(implementation: object): object {
-  if (typeof implementation === "function") {
-    return function shadowCallable(): undefined {
-      return undefined;
-    };
-  }
-  return Object.create(null) as object;
+const fencedProxies = new WeakSet<object>();
+
+function unsupportedInput(problemCode: string, detail: string): never {
+  throw runtimeKernelProblem(problemCode, detail);
 }
 
-function findProviderMemberOwner(
-  implementation: object,
-  property: PropertyKey,
-): object | undefined {
-  let current: object | null = implementation;
-  while (current !== null) {
-    if (Object.prototype.hasOwnProperty.call(current, property)) {
-      return current === Object.prototype ? undefined : current;
-    }
-    current = Object.getPrototypeOf(current) as object | null;
+function projectInputValue(
+  value: unknown,
+  path: string,
+  seen: WeakSet<object>,
+): unknown {
+  if (typeof value === "function") {
+    return unsupportedInput(
+      "runtime.contract.unsupported_function_argument",
+      `H2B provider argument '${path}' contains a function`,
+    );
   }
-  return undefined;
+  if (typeof value === "symbol") {
+    return unsupportedInput(
+      "runtime.contract.unsupported_symbol",
+      `H2B provider argument '${path}' contains a Symbol`,
+    );
+  }
+  if (value === null || typeof value !== "object") return value;
+  if (fencedProxies.has(value)) {
+    return unsupportedInput(
+      "runtime.contract.unsupported_provider_identity",
+      `H2B provider argument '${path}' contains a Host-owned contract facade`,
+    );
+  }
+  if (seen.has(value)) {
+    return unsupportedInput(
+      "runtime.contract.unsupported_input",
+      `H2B provider argument '${path}' contains a cyclic object`,
+    );
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    const projected = value.map((entry, index) =>
+      projectInputValue(entry, `${path}[${index}]`, seen),
+    );
+    seen.delete(value);
+    return Object.freeze(projected);
+  }
+  if (!isPlainObject(value)) {
+    return unsupportedInput(
+      "runtime.contract.unsupported_input",
+      `H2B provider argument '${path}' must be plain data`,
+    );
+  }
+
+  const projected = Object.create(Object.getPrototypeOf(value)) as Record<
+    string,
+    unknown
+  >;
+  for (const property of Reflect.ownKeys(value)) {
+    if (typeof property === "symbol") {
+      return unsupportedInput(
+        "runtime.contract.unsupported_symbol",
+        `H2B provider argument '${path}' contains a Symbol property`,
+      );
+    }
+    const descriptor = Reflect.getOwnPropertyDescriptor(value, property);
+    if (descriptor === undefined) continue;
+    if (!Object.prototype.hasOwnProperty.call(descriptor, "value")) {
+      return unsupportedInput(
+        "runtime.contract.unsupported_accessor",
+        `H2B provider argument '${path}.${property}' uses an accessor`,
+      );
+    }
+    Object.defineProperty(projected, property, {
+      configurable: false,
+      enumerable: descriptor.enumerable,
+      writable: false,
+      value: projectInputValue(descriptor.value, `${path}.${property}`, seen),
+    });
+  }
+  seen.delete(value);
+  return Object.freeze(projected);
+}
+
+function normalizeProviderFailure(cause: unknown, owner: object): ProblemError {
+  if (cause instanceof ProblemError) return cause;
+  if (cause instanceof Error && cause !== owner) {
+    return runtimeKernelProblem(
+      "runtime.provider.invocation_failed",
+      "Provider invocation failed",
+      cause,
+    );
+  }
+  return runtimeKernelProblem(
+    "runtime.provider.invocation_failed",
+    "Provider invocation failed",
+  );
 }
 
 export function createFencedProxy<TContract extends object>(
@@ -52,28 +137,128 @@ export function createFencedProxy<TContract extends object>(
   >();
 
   const unwrap = (value: unknown): unknown => {
-    if (!isProxyable(value)) return value;
+    if (!isObjectLike(value)) return value;
     return rawValues.get(value) ?? value;
   };
 
-  const wrapResult = (value: unknown): unknown => {
-    if (isPromiseLike(value)) {
-      return Promise.resolve(value).then((resolved) => wrapResult(resolved));
+  function projectResult(
+    value: unknown,
+    seen: WeakSet<object> = new WeakSet<object>(),
+  ): unknown {
+    if (isNativePromise(value)) {
+      return Promise.resolve(value).then(
+        (resolved) => projectResult(resolved, seen),
+        (cause) => {
+          throw normalizeProviderFailure(cause, implementation);
+        },
+      );
     }
+    if (typeof value === "function") {
+      return unsupportedInput(
+        "runtime.contract.unsupported_function_result",
+        "H2B provider methods cannot return functions",
+      );
+    }
+    if (typeof value === "symbol") {
+      return unsupportedInput(
+        "runtime.contract.unsupported_symbol",
+        "H2B provider methods cannot return Symbol values",
+      );
+    }
+    if (value === null || typeof value !== "object") return value;
     const rawValue = unwrap(value);
-    return isProxyable(rawValue) ? wrap(rawValue) : rawValue;
-  };
+    if (rawValue === null || typeof rawValue !== "object") return rawValue;
+    if (fencedProxies.has(rawValue)) return rawValue;
+    if (hasExecutableContractMember(rawValue)) {
+      validateSupportedContractShape(rawValue);
+      return wrap(rawValue);
+    }
+    return projectResultData(rawValue, seen);
+  }
+
+  function projectResultData(value: object, seen: WeakSet<object>): unknown {
+    if (fencedProxies.has(value)) return value;
+    if (seen.has(value)) {
+      return unsupportedInput(
+        "runtime.contract.unsupported_result",
+        "H2B provider result data cannot be cyclic",
+      );
+    }
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+      const projected = value.map((entry) => projectResult(entry, seen));
+      seen.delete(value);
+      return Object.freeze(projected);
+    }
+    if (!isPlainObject(value)) {
+      return unsupportedInput(
+        "runtime.contract.unsupported_result",
+        "H2B provider results must be plain data or nested contract objects",
+      );
+    }
+
+    const projected = Object.create(Object.getPrototypeOf(value)) as Record<
+      string,
+      unknown
+    >;
+    for (const property of Reflect.ownKeys(value)) {
+      if (typeof property === "symbol") {
+        return unsupportedInput(
+          "runtime.contract.unsupported_symbol",
+          "H2B provider result data cannot contain Symbol properties",
+        );
+      }
+      const descriptor = Reflect.getOwnPropertyDescriptor(value, property);
+      if (descriptor === undefined) continue;
+      if (!Object.prototype.hasOwnProperty.call(descriptor, "value")) {
+        return unsupportedInput(
+          "runtime.contract.unsupported_accessor",
+          `H2B provider result '${String(property)}' uses an accessor`,
+        );
+      }
+      Object.defineProperty(projected, property, {
+        configurable: false,
+        enumerable: descriptor.enumerable,
+        writable: false,
+        value: projectResult(descriptor.value, seen),
+      });
+    }
+    seen.delete(value);
+    return Object.freeze(projected);
+  }
+
+  function invokeProvider(
+    owner: object,
+    member: Callable,
+    args: readonly unknown[],
+  ): unknown {
+    try {
+      const result = Reflect.apply(member, owner, args as unknown[]);
+      if (isNativePromise(result)) {
+        return Promise.resolve(result).then(
+          (resolved) => projectResult(resolved),
+          (cause) => {
+            throw normalizeProviderFailure(cause, owner);
+          },
+        );
+      }
+      return projectResult(result);
+    } catch (cause) {
+      throw normalizeProviderFailure(cause, owner);
+    }
+  }
 
   function wrapMember(
-    owner: object,
+    receiver: object,
     property: PropertyKey,
     kind: MemberKind,
     member: Callable,
   ): (...args: readonly unknown[]) => unknown {
-    let wrappers = methodWrappers.get(owner);
+    let wrappers = methodWrappers.get(receiver);
     if (wrappers === undefined) {
       wrappers = new Map();
-      methodWrappers.set(owner, wrappers);
+      methodWrappers.set(receiver, wrappers);
     }
     let members = wrappers.get(property);
     if (members === undefined) {
@@ -82,10 +267,15 @@ export function createFencedProxy<TContract extends object>(
     }
     const previous = members.get(kind);
     if (previous !== undefined) return previous;
-    const wrapper = (...args: readonly unknown[]) =>
-      fence.invoke(operationIdFor(providerId, property), () =>
-        wrapResult(Reflect.apply(member, owner, args.map(unwrap))),
+    const wrapper = (...args: readonly unknown[]) => {
+      fence.assertActive();
+      const projectedArgs = args.map((value, index) =>
+        projectInputValue(value, `argument[${index}]`, new WeakSet<object>()),
       );
+      return fence.invoke(operationIdFor(providerId, property), () =>
+        invokeProvider(receiver, member, projectedArgs),
+      );
+    };
     members.set(kind, wrapper);
     return wrapper;
   }
@@ -99,38 +289,30 @@ export function createFencedProxy<TContract extends object>(
     if (shadowDescriptor !== undefined) return shadowDescriptor;
     const descriptor = Reflect.getOwnPropertyDescriptor(owner, property);
     if (descriptor === undefined) return undefined;
-    if ("value" in descriptor) {
-      return {
-        configurable: true,
-        enumerable: descriptor.enumerable,
-        writable: false,
-        value:
-          typeof descriptor.value === "function"
-            ? wrapMember(owner, property, "method", descriptor.value as Callable)
-            : wrapResult(descriptor.value),
-      };
+    if (descriptor.get !== undefined || descriptor.set !== undefined) {
+      throw runtimeKernelProblem(
+        "runtime.contract.unsupported_accessor",
+        `H2B contract member '${String(property)}' uses an accessor`,
+      );
     }
     return {
       configurable: true,
       enumerable: descriptor.enumerable,
-      get:
-        descriptor.get === undefined
-          ? undefined
-          : wrapMember(owner, property, "get", descriptor.get as Callable),
-      // Provider state is changed through typed contract methods. Exposing a
-      // setter from a projected descriptor would create a second mutation
-      // authority around the read-only facade.
-      set: undefined,
+      writable: false,
+      value:
+        typeof descriptor.value === "function"
+          ? wrapMember(owner, property, "method", descriptor.value as Callable)
+          : projectResult(descriptor.value),
     };
   }
 
   function wrap<T extends object>(value: T): T {
     const rawValue = unwrap(value);
-    if (!isProxyable(rawValue)) return rawValue as T;
+    if (!isObjectLike(rawValue)) return rawValue as T;
     const previous = facades.get(rawValue);
     if (previous !== undefined) return previous as T;
 
-    const target = createShadowTarget(rawValue);
+    const target = Object.create(null) as object;
     let proxy!: object;
     const handler: ProxyHandler<object> = {
       get(shadow, property) {
@@ -138,13 +320,18 @@ export function createFencedProxy<TContract extends object>(
         if (Object.prototype.hasOwnProperty.call(shadow, property)) {
           return Reflect.get(shadow, property, shadow);
         }
-        if (findProviderMemberOwner(rawValue, property) === undefined) {
-          return undefined;
+        const member = findSupportedContractMember(rawValue, property);
+        if (member === undefined) return undefined;
+        const descriptor = member.descriptor;
+        if (descriptor.get !== undefined || descriptor.set !== undefined) {
+          throw runtimeKernelProblem(
+            "runtime.contract.unsupported_accessor",
+            `H2B contract member '${String(property)}' uses an accessor`,
+          );
         }
-        const member = Reflect.get(rawValue, property, rawValue);
-        return typeof member === "function"
-          ? wrapMember(rawValue, property, "method", member as Callable)
-          : wrapResult(member);
+        return typeof descriptor.value === "function"
+          ? wrapMember(rawValue, property, "method", descriptor.value as Callable)
+          : projectResult(descriptor.value);
       },
       set(_shadow, _property, _nextValue) {
         fence.assertActive();
@@ -164,20 +351,25 @@ export function createFencedProxy<TContract extends object>(
       },
       ownKeys(shadow) {
         fence.assertActive();
-        const keys = new Set<string | symbol>(Reflect.ownKeys(shadow));
-        for (const key of Reflect.ownKeys(rawValue)) keys.add(key);
+        const keys = new Set<string>();
+        for (const key of Reflect.ownKeys(shadow)) {
+          if (typeof key === "string") keys.add(key);
+        }
+        for (const key of Reflect.ownKeys(rawValue)) {
+          if (typeof key === "string") keys.add(key);
+        }
         return [...keys];
       },
       has(shadow, property) {
         fence.assertActive();
         return (
           Reflect.has(shadow, property) ||
-          findProviderMemberOwner(rawValue, property) !== undefined
+          findSupportedContractMember(rawValue, property) !== undefined
         );
       },
       getPrototypeOf(shadow) {
         fence.assertActive();
-        return Reflect.getPrototypeOf(shadow);
+        return null;
       },
       setPrototypeOf(_shadow, _prototype) {
         fence.assertActive();
@@ -191,39 +383,14 @@ export function createFencedProxy<TContract extends object>(
         fence.assertActive();
         return false;
       },
-      ...(typeof rawValue === "function"
-        ? {
-            apply(_shadow: object, thisArg: unknown, args: readonly unknown[]) {
-              fence.assertActive();
-              const receiver = thisArg === proxy ? rawValue : unwrap(thisArg);
-              return fence.invoke(operationIdFor(providerId, "<call>"), () =>
-                wrapResult(
-                  Reflect.apply(rawValue as Callable, receiver, args.map(unwrap)),
-                ),
-              );
-            },
-            construct(shadow: object, args: unknown[], newTarget: Function): object {
-              fence.assertActive();
-              return fence.invoke(
-                operationIdFor(providerId, "<construct>"),
-                () =>
-                  wrapResult(
-                    Reflect.construct(
-                      rawValue as Function,
-                      args.map(unwrap),
-                      newTarget === proxy ? (shadow as Function) : newTarget,
-                    ),
-                  ) as object,
-              ) as object;
-            },
-          }
-        : {}),
     };
     proxy = new Proxy(target, handler);
     facades.set(rawValue, proxy);
     rawValues.set(proxy, rawValue);
+    fencedProxies.add(proxy);
     return proxy as T;
   }
 
+  validateSupportedContractShape(implementation);
   return wrap(implementation);
 }

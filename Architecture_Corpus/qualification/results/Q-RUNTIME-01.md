@@ -195,6 +195,40 @@ final cross-platform CI, independent review, and squash merge remain
 `NOT_RUN`. The candidate head is authoritative only through live PR #22
 metadata; this record does not embed a self-referential SHA.
 
+## H2B sixth corrective-cycle addendum (2026-08-25)
+
+The independent review of `19ebef1...` → `ee256dd...` returned
+`REQUEST_CHANGES`. The current tree narrows the H2B boundary to a supported
+trusted semantic contract rather than extending the Host facade into a general
+JavaScript membrane.
+
+```yaml
+candidate_status: FROZEN_ON_PR_HEAD
+review_base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+review_head_authority: live PR #22 head
+previous_independent_review: REQUEST_CHANGES (19ebef1... -> ee256dd...)
+h2b_supported_contract_shape: PASS
+registration_accessor_validation: PASS
+readonly_data_contract_validation: PASS
+function_argument_boundary_rejection: PASS
+function_result_boundary_rejection: PASS
+provider_failure_normalization: PASS
+runtime_kernel_unit: PASS (107/107)
+runtime_substrate_unit: PASS (16/16)
+pnpm_verify: PASS (current sixth-cycle full repository verify)
+postgres_qualification: CARRIED_FORWARD_FROM_EE256 (no persistence, lineage, or DB path changed)
+independent_review: NOT_RUN (new exact pair)
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The current change does not alter persistence, execution-lineage, schema,
+migration, or database behavior. The Windows PostgreSQL 18.6 H2B evidence
+therefore remains carried-forward property evidence rather than a newly run
+qualification claim for this exact head. Linux/macOS, source-less,
+service/headless, independent review, final cross-platform CI, and squash merge
+remain `NOT_RUN`.
+
 ## NOT_RUN / deferred properties
 
 - `product_runtime_start_stop`: Pilot remains synthetic L1/L2; no complete managed-Host product runtime was executed.

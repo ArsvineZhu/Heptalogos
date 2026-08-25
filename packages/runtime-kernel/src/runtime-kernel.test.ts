@@ -407,9 +407,10 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.retained-nested-object");
     const providerId = createProviderId("provider.retained-nested-object");
-    const fence = registry.register(serviceProvision(serviceId, providerId), {
-      session: { read: () => "session" },
-    });
+    const fence = registry.register(
+      serviceProvision(serviceId, providerId),
+      Object.freeze({ session: { read: () => "session" } }),
+    );
     const lease = registry.resolve<{
       readonly session: { read(): string };
     }>(serviceRequirement(serviceId));
@@ -421,6 +422,206 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     expect(() => session.read()).toThrow(
       expect.objectContaining({
         problem: expect.objectContaining({ problemCode: "runtime.generation.retired" }),
+      }),
+    );
+  });
+
+  it("F9 rejects function arguments at the supported contract boundary", async () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.function-argument");
+    const providerId = createProviderId("provider.function-argument");
+    const fence = registry.register(serviceProvision(serviceId, providerId), {
+      withSelf(callback: (value: object) => void): void {
+        callback(this);
+      },
+    });
+    const lease = registry.resolve<{
+      withSelf(callback: (value: object) => void): void;
+    }>(serviceRequirement(serviceId));
+
+    await expect(
+      lease.invoke("function-argument", (service) => service.withSelf(() => undefined)),
+    ).rejects.toMatchObject({
+      problem: expect.objectContaining({
+        problemCode: "runtime.contract.unsupported_function_argument",
+      }),
+    });
+    await registry.retireGeneration(fence, 50);
+  });
+
+  it("F10 normalizes a provider throw of its own identity", async () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.throw-self");
+    const providerId = createProviderId("provider.throw-self");
+    const implementation = {
+      explode(): never {
+        throw this;
+      },
+    };
+    const fence = registry.register(
+      serviceProvision(serviceId, providerId),
+      implementation,
+    );
+    const lease = registry.resolve<{ explode(): never }>(serviceRequirement(serviceId));
+
+    const error = await lease
+      .invoke("throw-self", (service) => service.explode())
+      .catch((cause: unknown) => cause);
+    expect(error).toMatchObject({
+      problem: expect.objectContaining({
+        problemCode: "runtime.provider.invocation_failed",
+      }),
+    });
+    expect(error).not.toBe(implementation);
+    expect((error as { cause?: unknown }).cause).toBeUndefined();
+    await registry.retireGeneration(fence, 50);
+  });
+
+  it("F11 normalizes a rejected Promise containing an arbitrary object", async () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.reject-object");
+    const providerId = createProviderId("provider.reject-object");
+    const implementation = {
+      async explode(): Promise<never> {
+        return Promise.reject(this);
+      },
+    };
+    const fence = registry.register(
+      serviceProvision(serviceId, providerId),
+      implementation,
+    );
+    const lease = registry.resolve<{ explode(): Promise<never> }>(
+      serviceRequirement(serviceId),
+    );
+
+    const error = await lease
+      .invoke("reject-object", (service) => service.explode())
+      .catch((cause: unknown) => cause);
+    expect(error).toMatchObject({
+      problem: expect.objectContaining({
+        problemCode: "runtime.provider.invocation_failed",
+      }),
+    });
+    expect(error).not.toBe(implementation);
+    expect((error as { cause?: unknown }).cause).toBeUndefined();
+    await registry.retireGeneration(fence, 50);
+  });
+
+  it("normalizes an Error while retaining it as the JavaScript cause", async () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.error-cause");
+    const providerId = createProviderId("provider.error-cause");
+    const cause = new Error("provider failure");
+    const fence = registry.register(serviceProvision(serviceId, providerId), {
+      explode(): never {
+        throw cause;
+      },
+    });
+    const lease = registry.resolve<{ explode(): never }>(serviceRequirement(serviceId));
+
+    const error = await lease
+      .invoke("error-cause", (service) => service.explode())
+      .catch((failure: unknown) => failure);
+    expect(error).toMatchObject({
+      problem: expect.objectContaining({
+        problemCode: "runtime.provider.invocation_failed",
+      }),
+    });
+    expect((error as { cause?: unknown }).cause).toBe(cause);
+    await registry.retireGeneration(fence, 50);
+  });
+
+  it("F12 rejects a function returned by a provider method", async () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.function-result");
+    const providerId = createProviderId("provider.function-result");
+    const fence = registry.register(serviceProvision(serviceId, providerId), {
+      read: () => () => "raw",
+    });
+    const lease = registry.resolve<{ read(): () => string }>(
+      serviceRequirement(serviceId),
+    );
+
+    await expect(
+      lease.invoke("function-result", (service) => service.read()),
+    ).rejects.toMatchObject({
+      problem: expect.objectContaining({
+        problemCode: "runtime.contract.unsupported_function_result",
+      }),
+    });
+    await registry.retireGeneration(fence, 50);
+  });
+
+  it("G1 rejects an executable getter at provider registration", () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.unsupported-getter");
+    const providerId = createProviderId("provider.unsupported-getter");
+
+    expect(() =>
+      registry.register(serviceProvision(serviceId, providerId), {
+        get value(): string {
+          return "unsupported";
+        },
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        problem: expect.objectContaining({
+          problemCode: "runtime.contract.unsupported_accessor",
+        }),
+      }),
+    );
+  });
+
+  it("G2 rejects a setter at provider registration", () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.unsupported-setter");
+    const providerId = createProviderId("provider.unsupported-setter");
+
+    expect(() =>
+      registry.register(serviceProvision(serviceId, providerId), {
+        set value(_next: string) {
+          // Deliberately empty: setter presence is the unsupported shape.
+        },
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        problem: expect.objectContaining({
+          problemCode: "runtime.contract.unsupported_accessor",
+        }),
+      }),
+    );
+  });
+
+  it("G3 accepts readonly plain data properties", async () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.readonly-data");
+    const providerId = createProviderId("provider.readonly-data");
+    const fence = registry.register(
+      serviceProvision(serviceId, providerId),
+      Object.freeze({ version: "1" }),
+    );
+    const lease = registry.resolve<{ readonly version: string }>(
+      serviceRequirement(serviceId),
+    );
+
+    await expect(
+      lease.invoke("readonly-data", (service) => service.version),
+    ).resolves.toBe("1");
+    await registry.retireGeneration(fence, 50);
+  });
+
+  it("RC6 rejects writable provider data properties at registration", () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.writable-data");
+    const providerId = createProviderId("provider.writable-data");
+
+    expect(() =>
+      registry.register(serviceProvision(serviceId, providerId), { value: 0 }),
+    ).toThrow(
+      expect.objectContaining({
+        problem: expect.objectContaining({
+          problemCode: "runtime.contract.unsupported_writable_property",
+        }),
       }),
     );
   });
@@ -450,9 +651,10 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.mutable-provider");
     const providerId = createProviderId("provider.mutable-provider");
-    const fence = registry.register(serviceProvision(serviceId, providerId), {
-      value: 0,
-    });
+    const fence = registry.register(
+      serviceProvision(serviceId, providerId),
+      Object.freeze({ value: 0 }),
+    );
     const lease = registry.resolve<{ value: number }>(serviceRequirement(serviceId));
     let retained!: { value: number };
     await lease.invoke("capture", (service) => {
@@ -549,44 +751,30 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     await registry.retireGeneration(fence, 50);
   });
 
-  it("projects accessor descriptors as read-only and keeps getter wrapping distinct", async () => {
+  it("G4 rejects an accessor without executing it", () => {
     const registry = new ServiceRegistry();
-    const serviceId = createServiceId("test.read-only-accessor");
-    const providerId = createProviderId("provider.read-only-accessor");
+    const serviceId = createServiceId("test.accessor-not-executed");
+    const providerId = createProviderId("provider.accessor-not-executed");
+    let getterRuns = 0;
     const implementation = {
-      get value(): object {
-        return this;
+      get value(): string {
+        getterRuns += 1;
+        return "unsupported";
       },
-      set value(_next: object) {
-        throw new Error("raw setter must not be exposed");
+      set value(_next: string) {
+        getterRuns += 1;
       },
     };
-    const fence = registry.register(
-      serviceProvision(serviceId, providerId),
-      implementation,
-    );
-    const lease = registry.resolve<{ readonly value: object }>(
-      serviceRequirement(serviceId),
-    );
-    let descriptor!: PropertyDescriptor;
-    let projected!: object;
-
-    await lease.invoke("accessor", (service) => {
-      descriptor = Object.getOwnPropertyDescriptor(service, "value")!;
-      projected = descriptor.get!.call(service);
-      expect(descriptor.set).toBeUndefined();
-      expect(Reflect.set(service, "value", {})).toBe(false);
-    });
-
-    expect(projected).not.toBe(implementation);
-    await registry.retireGeneration(fence, 50);
-    expect(() => descriptor.get!.call(projected)).toThrow(
+    expect(() =>
+      registry.register(serviceProvision(serviceId, providerId), implementation),
+    ).toThrow(
       expect.objectContaining({
         problem: expect.objectContaining({
-          problemCode: "runtime.generation.retired",
+          problemCode: "runtime.contract.unsupported_accessor",
         }),
       }),
     );
+    expect(getterRuns).toBe(0);
   });
 
   it("generation-fences a descriptor-obtained method after retirement", async () => {
@@ -926,13 +1114,16 @@ describe("Capability registry and readiness", () => {
     const registry = new CapabilityRegistry();
     const capabilityId = createCapabilityId("test.nested-object-proxy");
     const providerId = createProviderId("provider.nested-object-proxy");
-    const fence = registry.register(capabilityProvision(capabilityId, providerId), {
-      nested: {
-        read() {
-          return "nested";
+    const fence = registry.register(
+      capabilityProvision(capabilityId, providerId),
+      Object.freeze({
+        nested: {
+          read() {
+            return "nested";
+          },
         },
-      },
-    });
+      }),
+    );
     const lease = registry.resolve<{
       nested: { read(): string };
     }>(capabilityRequirement(capabilityId, true));
