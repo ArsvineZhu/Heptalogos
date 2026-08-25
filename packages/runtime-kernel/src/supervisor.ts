@@ -375,7 +375,7 @@ export class MicroSystemSupervisor {
   }
 
   private async handleBackgroundFailure(microSystemId: MicroSystemId): Promise<void> {
-    await this.stop(microSystemId, "FAILED");
+    await this.stop(microSystemId, "FAILED").catch(() => undefined);
   }
 
   private async withdrawProviders(

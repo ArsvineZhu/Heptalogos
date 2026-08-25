@@ -450,4 +450,39 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
       await supervisor.close();
     }
   });
+
+  it("R14 contains cleanup failures from asynchronous background failure handling", async () => {
+    const failing = system("system.background-cleanup-failure", async () => undefined);
+    const substrate: RuntimeSubstrate = {
+      async activate(request) {
+        setTimeout(() => {
+          request.onFailure({
+            phase: "BACKGROUND",
+            label: "background-cleanup-failure",
+            cause: new Error("background boom"),
+          });
+        }, 0);
+        return {
+          state: "ACTIVE",
+          dispose: async () => {
+            throw new Error("cleanup boom");
+          },
+        };
+      },
+      close: async () => undefined,
+    };
+    const supervisor = createSupervisorWithSubstrate([failing], substrate);
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => unhandled.push(reason);
+    process.on("unhandledRejection", onUnhandled);
+    try {
+      await supervisor.reconcile(desired([failing]));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(supervisor.getActualState(failing.microSystemId)).toBe("FAILED");
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off("unhandledRejection", onUnhandled);
+      await supervisor.close();
+    }
+  });
 });
