@@ -15,8 +15,8 @@ PR #19 was squash-merged at
 `7b51468c2c41895bde7091868d688d98dfc6c957`. Final cross-platform CI remains
 `NOT_RUN` by explicit operator direction pending the H2-wide run; this record
 does not promote that deferred gate to `PASS`. H2A-3 is closed as an
-implementation milestone, H2A is functionally complete, H2B is the active
-implementation milestone, and H2 remains open.
+implementation milestone, H2A is functionally complete, H2B is eligible for
+a separate implementation plan, and H2 remains open.
 
 **Goal:** complete the remaining functional core of H2A by establishing canonical `Instant`/monotonic time semantics, the normal-runtime SchemaRuntime boundary, Heptalogos-owned Activity/ExecutionContext propagation over Node AsyncLocalStorage plus OpenTelemetry Context, a durable `LineageContextRef V1`, minimum retained Activity/Evidence records, and same-transaction participation so a normal canonical mutation can be fenced by Host ownership and bound to trusted causal identity and required evidence without leaking raw persistence or telemetry mechanics.
 
@@ -2065,9 +2065,7 @@ H2A_1: CLOSED
 H2A_2: CLOSED
 H2A_3: CLOSED
 H2A: FUNCTIONALLY_COMPLETE
-H2B: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
-H2_FUNCTIONAL: COMPLETE_PENDING_H2B_CLOSURE
-H2_STABILIZATION: NOT_STARTED
+H2B: ELIGIBLE
 H2: OPEN
 ```
 

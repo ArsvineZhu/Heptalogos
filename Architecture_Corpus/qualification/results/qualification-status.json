@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-25T03:41:12+08:00",
+ "recordedAt": "2026-08-25T13:34:51+08:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": [
@@ -546,9 +546,9 @@
         "h2a3_real_postgres_macos": "NOT_RUN",
         "h2a3_source_less": "NOT_RUN",
         "h2a3_service_headless": "NOT_RUN",
-        "h2a3_independent_review": "NOT_RUN",
+    "h2a3_independent_review": "PASS",
         "h2a3_final_cross_platform_ci": "NOT_RUN",
-        "h2a3_squash_merge": "NOT_RUN"
+    "h2a3_squash_merge": "PASS (PR #19 merge 7b51468c2c41895bde7091868d688d98dfc6c957)"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
@@ -593,9 +593,9 @@
         "h2a2PostgresProvenance": "EDB PostgreSQL 18.6 Windows x86-64 binary archive extracted to a temporary qualification root; not a source-less shipping artifact",
         "h2a2PostgresBinDirectory": "C:\\Users\\Arsvine\\AppData\\Local\\Temp\\heptalogos-pg18.6-correction-20260823\\extracted\\pgsql\\bin",
         "h2a2RepositoryVerification": "pnpm verify PASS",
-        "h2a3BehaviorCandidateSha": "76589ade468ccb7a4a9ecf830f6200fdd729917c",
+    "h2a3BehaviorCandidateSha": "2482b6e380cbad37407e99b0ce7c7560ccc709c6",
         "h2a3ReviewCandidateBaseSha": "446d0f6bce449f177c66fb569341020757b44c9b",
-        "h2a3ReviewCandidateHeadSha": "NOT_RUN",
+    "h2a3ReviewCandidateHeadSha": "2482b6e380cbad37407e99b0ce7c7560ccc709c6",
         "h2a3PriorReviewCandidateHeadSha": "c889eae74093fdf86ef713f024587e75f3b098c7",
         "h2a3PriorIndependentReview": "REQUEST_CHANGES",
         "h2a3FoundationContractsUnit": "19/19 PASS",
