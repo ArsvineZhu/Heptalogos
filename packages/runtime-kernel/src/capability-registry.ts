@@ -32,7 +32,12 @@ function createFencedProxy<TContract extends object>(
       get(target, property, receiver) {
         fence.assertActive();
         const member = Reflect.get(target, property, receiver);
-        if (typeof member !== "function") return member;
+        if (typeof member !== "function") {
+          if (member !== null && typeof member === "object") {
+            return wrap(member as object);
+          }
+          return member;
+        }
         return (...args: readonly unknown[]) =>
           fence.invoke(operationIdFor(providerId, property), () =>
             Reflect.apply(member, proxy, args),
