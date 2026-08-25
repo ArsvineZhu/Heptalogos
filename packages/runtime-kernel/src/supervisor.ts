@@ -140,10 +140,13 @@ export class MicroSystemSupervisor {
         currentCapabilityBindings: this.capabilityBindings,
       });
       this.operatingMode = desired.operatingMode;
+      const blockedTransition = [...result.blocked.keys()].some(
+        (microSystemId) => this.getActualState(microSystemId) !== "BLOCKED",
+      );
       const changesState =
         previousOperatingMode !== desired.operatingMode ||
         result.actions.length > 0 ||
-        result.blocked.size > 0;
+        blockedTransition;
       const execute = async (): Promise<void> => {
         try {
           await this.executePlan(result);
@@ -298,6 +301,7 @@ export class MicroSystemSupervisor {
 
   async close(): Promise<void> {
     let ids: readonly MicroSystemId[];
+    const failures: unknown[] = [];
     try {
       ids = new RuntimeGraph(
         [...this.running.values()].map((running) => running.definition),
@@ -311,9 +315,35 @@ export class MicroSystemSupervisor {
       ids = [...this.running.keys()].reverse();
     }
     for (const microSystemId of ids) {
-      await this.stop(microSystemId).catch(() => undefined);
+      try {
+        await this.stop(microSystemId);
+      } catch (error) {
+        failures.push(error);
+      }
     }
-    await this.options.substrate.close().catch(() => undefined);
+    try {
+      await this.options.substrate.close();
+    } catch (error) {
+      failures.push(error);
+    }
+    const unresolved = [...this.unsettledRetirements.entries()].filter(
+      ([, retirement]) => retirement.fence.state !== "RETIRED",
+    );
+    if (unresolved.length > 0) {
+      failures.push(
+        runtimeKernelProblem(
+          "runtime.supervisor.close_failed",
+          `${unresolved.length} runtime generation retirement(s) remain unresolved`,
+        ),
+      );
+    }
+    if (failures.length > 0) {
+      throw runtimeKernelProblem(
+        "runtime.supervisor.close_failed",
+        "Runtime supervisor close failed",
+        new AggregateError(failures, "Runtime supervisor close failed"),
+      );
+    }
   }
 
   private async executeAction(action: ReconcileAction): Promise<void> {
@@ -395,6 +425,8 @@ export class MicroSystemSupervisor {
     const publishedServiceBindings = new Set<string>();
     const publishedCapabilityBindings = new Set<string>();
     let backgroundFailure = false;
+    let backgroundFailureCause: unknown;
+    let activationCommitted = false;
     let handle: SubstrateActivationHandle | undefined;
 
     try {
@@ -439,12 +471,23 @@ export class MicroSystemSupervisor {
         },
         onFailure: (failure) => {
           if (failure.phase === "BACKGROUND") {
-            backgroundFailure = true;
+            if (!activationCommitted) {
+              backgroundFailure = true;
+              backgroundFailureCause = failure.cause;
+              return;
+            }
             this.actual.set(microSystemId, "FAILED");
-            void this.handleBackgroundFailure(microSystemId);
+            void this.handleBackgroundFailure(microSystemId, failure.cause);
           }
         },
       });
+      if (backgroundFailure) {
+        throw runtimeKernelProblem(
+          "runtime.activation.background_failure",
+          `MicroSystem '${definition.microSystemId}' observed a background failure during activation`,
+          backgroundFailureCause,
+        );
+      }
       const running: RunningSystem = {
         definition,
         instanceId,
@@ -454,16 +497,14 @@ export class MicroSystemSupervisor {
         capabilityProviderIds,
       };
       this.running.set(microSystemId, running);
-      if (backgroundFailure) {
-        await this.stop(microSystemId, "FAILED");
-        return;
-      }
+      activationCommitted = true;
       this.actual.set(microSystemId, "RUNNING");
     } catch (error) {
-      await this.withdrawProviders(serviceProviderIds, capabilityProviderIds);
+      await this.withdrawProviders(fence).catch(() => undefined);
       if (handle !== undefined) {
         await handle.dispose().catch(() => undefined);
       }
+      await fence.retire(this.options.settleTimeoutMs).catch(() => undefined);
       this.actual.set(microSystemId, "FAILED");
       if (this.options.lifecycleLineage !== undefined) {
         await this.options.lifecycleLineage
@@ -486,7 +527,7 @@ export class MicroSystemSupervisor {
 
   private async stop(
     microSystemId: MicroSystemId,
-    terminalState: "STOPPED" | "FAILED" = "STOPPED",
+    terminalState: "STOPPED" | "FAILED" | "BLOCKED" = "STOPPED",
   ): Promise<void> {
     const running = this.running.get(microSystemId);
     if (running === undefined) {
@@ -512,10 +553,7 @@ export class MicroSystemSupervisor {
     ];
     let firstError: unknown;
     try {
-      await this.withdrawProviders(
-        running.serviceProviderIds,
-        running.capabilityProviderIds,
-      );
+      await this.withdrawProviders(running.fence);
     } catch (error) {
       firstError ??= error;
     }
@@ -539,58 +577,90 @@ export class MicroSystemSupervisor {
     if (firstError !== undefined) throw firstError;
   }
 
-  private async handleBackgroundFailure(microSystemId: MicroSystemId): Promise<void> {
+  private async handleBackgroundFailure(
+    microSystemId: MicroSystemId,
+    cause: unknown,
+  ): Promise<void> {
     const failed = this.definitions.get(microSystemId);
-    if (failed !== undefined) {
-      const failedProviderIds = new Set(
-        failed.serviceProvisions.map((provision) => provision.providerId),
+    const failedRunning = this.running.get(microSystemId);
+    if (failed === undefined || failedRunning === undefined) {
+      await this.stop(microSystemId, "FAILED").catch(() => undefined);
+      return;
+    }
+
+    if (this.options.lifecycleLineage !== undefined) {
+      await this.options.lifecycleLineage
+        .runRetained(
+          this.runtimeOrigin(failedRunning.definition, failedRunning.instanceId),
+          {
+            kind: "runtime.lifecycle.failure",
+            importance: "critical",
+            retentionClass: "retained",
+            sensitivity: "operational",
+            semantic: { featureId: failed.microSystemId },
+          },
+          async () => {
+            throw cause;
+          },
+        )
+        .catch(() => undefined);
+    }
+
+    let shutdownOrder = [...this.running.keys()].reverse();
+    const dependents = new Map<MicroSystemId, Set<MicroSystemId>>();
+    try {
+      const currentPlan = new RuntimeGraph(
+        [...this.running.values()].map((running) => running.definition),
+        this.serviceBindings,
+      ).plan();
+      shutdownOrder = currentPlan.shutdownOrder.map(
+        (definition) => definition.microSystemId,
       );
-      const affectedServices = new Set(
-        failed.serviceProvisions
-          .filter(
-            (provision) =>
-              this.serviceBindings.get(provision.serviceId) === provision.providerId,
-          )
-          .map((provision) => provision.serviceId),
-      );
-      const dependentIds = [...this.running.entries()]
-        .filter(([runningId, running]) => {
-          if (runningId === microSystemId) return false;
-          return running.definition.serviceRequirements.some(
-            (requirement) =>
-              affectedServices.has(requirement.serviceId) &&
-              failedProviderIds.has(this.serviceBindings.get(requirement.serviceId)!),
-          );
-        })
-        .map(([runningId]) => runningId);
-      for (const dependentId of dependentIds) {
-        await this.stop(dependentId, "FAILED").catch(() => undefined);
+      for (const edge of currentPlan.edges) {
+        let children = dependents.get(edge.provider.microSystemId);
+        if (children === undefined) {
+          children = new Set();
+          dependents.set(edge.provider.microSystemId, children);
+        }
+        children.add(edge.consumer.microSystemId);
       }
+    } catch {
+      // The current runtime graph is expected to be valid. The activation
+      // order fallback still closes the known running owner set safely.
+    }
+
+    const closure = new Set<MicroSystemId>([microSystemId]);
+    const pending = [microSystemId];
+    while (pending.length > 0) {
+      const current = pending.shift()!;
+      for (const dependent of dependents.get(current) ?? []) {
+        if (closure.has(dependent)) continue;
+        closure.add(dependent);
+        pending.push(dependent);
+      }
+    }
+
+    for (const dependentId of shutdownOrder) {
+      if (dependentId === microSystemId || !closure.has(dependentId)) continue;
+      await this.stop(dependentId, "BLOCKED").catch(() => undefined);
     }
     await this.stop(microSystemId, "FAILED").catch(() => undefined);
   }
 
-  private async withdrawProviders(
-    serviceProviderIds: readonly ProviderId[],
-    capabilityProviderIds: readonly ProviderId[],
-  ): Promise<void> {
+  private async withdrawProviders(ownerFence: GenerationFence): Promise<void> {
     let firstError: unknown;
-    for (const providerId of serviceProviderIds) {
-      try {
-        await this.services.retireProvider(providerId, this.options.settleTimeoutMs);
-      } catch (error) {
-        firstError ??= error;
-      }
+    try {
+      await this.services.retireGeneration(ownerFence, this.options.settleTimeoutMs);
+    } catch (error) {
+      firstError ??= error;
     }
-    for (const providerId of capabilityProviderIds) {
-      try {
-        await this.capabilities.retireProvider(
-          providerId,
-          this.options.settleTimeoutMs,
-        );
-      } catch (error) {
-        firstError ??= error;
-      }
+    try {
+      await this.capabilities.retireGeneration(
+        ownerFence,
+        this.options.settleTimeoutMs,
+      );
+    } catch (error) {
+      firstError ??= error;
     }
     if (firstError !== undefined) throw firstError;
   }

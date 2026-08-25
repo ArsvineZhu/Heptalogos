@@ -93,6 +93,14 @@ constraints and completion validation remains `NOT_RUN`. The current full
 repository `pnpm verify` is `PASS`; this does not upgrade the real PostgreSQL
 claim, independent review, final cross-platform CI, or squash merge.
 
+## H2B third corrective-cycle persistence status (2026-08-25)
+
+The current RC-1 to RC-7 runtime ownership corrections do not change the
+canonical schema or completion function. The prior local verification result
+is historical for `4cad58d...`; the current full `pnpm verify` is `PASS`.
+Runtime-origin constraint, completion-function,
+Independent Review, final CI, and merge evidence remain `NOT_RUN`.
+
 ## H2A-1 historical/current ledger
 
 H2A-1 已在历史候选上完成外部独立 review、exact-pair final CI 和 squash merge：

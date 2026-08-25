@@ -24,7 +24,7 @@ task_3_supervisor_reconciler: PASS (R1-R16 focused unit evidence)
 task_4_runtime_origin_lineage: PASS (9/9 focused unit tests; real PostgreSQL NOT_RUN)
 task_5_windows_postgresql_18_6_integration: NOT_RUN (qualification toolchain unavailable on current host)
 task_5_current_head_rerun: NOT_RUN (real PostgreSQL integration skipped)
-runtime_kernel_unit: PASS (75/75 package tests)
+runtime_kernel_unit: PASS (88/88 package tests)
 behavior_candidate: NOT_FROZEN (PR #22 Draft; awaiting external independent review)
 removed_binding_reconcile_regression: PASS (focused supervisor regression)
 transient_call_activity: PASS (S11/K9/R15)
@@ -79,6 +79,35 @@ independent_review: NOT_RUN
 final_cross_platform_ci: NOT_RUN
 squash_merge: NOT_RUN
 ```
+
+## Third corrective cycle (2026-08-25)
+
+The next exact-pair review found the remaining lifetime/fencing boundary gaps.
+The current working tree addresses them without changing the H2B scope:
+
+```yaml
+RC1_host_owned_reflection_facade: PASS
+RC2_explicit_unavailable_capability_dynamic: PASS
+RC3_generation_owner_registry_retirement: PASS
+RC4_transitive_background_blocked_closure: PASS
+RC5_background_failure_lifecycle_lineage: PASS
+RC6_close_failure_visible: PASS
+RC7_repeated_blocked_reconcile_noop: PASS
+RC8_DL15_admitted_call_drain_wording: RECORDED
+runtime_kernel_package_unit: PASS (88/88)
+runtime_substrate_package_unit: PASS (16/16)
+managed_host_h2b_postgres_integration: NOT_RUN (5 skipped; qualification toolchain unavailable)
+h2a3_execution_foundation_integration: NOT_RUN (9 skipped; qualification toolchain unavailable)
+canonical_initialization_postgres_integration: NOT_RUN (1 non-PG case passed, 7 PostgreSQL cases skipped)
+other_h2a_postgres_integrations: BLOCKED (HEPTALOGOS_TEST_PG_BIN unavailable)
+pnpm_verify_after_third_corrective_cycle: PASS
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The current `4cad58d...` pair is invalidated by this corrective work. The next
+head must be pushed and independently reviewed as a new exact pair.
 
 
 **Goal:** complete H2 functional runtime composition by establishing a thin qualified Cordis runtime substrate, Heptalogos-owned MicroSystem supervision/reconciliation, hard Service and dynamic Capability registries, generation-fenced invocation, graphlib-backed dependency planning, OperatingMode/readiness semantics, and runtime lifecycle lineage—without pulling H3 durable work/effects or H4 system management into H2B.
@@ -648,7 +677,10 @@ export interface CapabilityLease<TContract extends object> {
 }
 ```
 
-The object passed into `call` must be a Host-owned fenced Proxy, never the original implementation object. Retaining that Proxy is safe: every method access/invocation remains generation-gated.
+The object passed into `call` must be a Host-owned facade/fenced Proxy, never
+the original implementation object. The Proxy target is also Host-owned; raw
+provider descriptors, prototypes, and returned objects are projected through
+the facade so reflection cannot escape the generation boundary.
 
 `operationId` must be non-empty, <=256 UTF-8 bytes.
 
@@ -667,8 +699,8 @@ ACTIVE
 ```text
 assert ACTIVE
 → increment in-flight
-→ run provider call under provider runtime origin
-→ verify gate did not become invalid
+→ admit and run provider call under provider runtime origin
+→ retirement may begin while the admitted call drains
 → decrement in-flight
 ```
 
@@ -1729,10 +1761,16 @@ H2B is ready for external review only when all are true:
 [x] removed explicit Capability binding takes effect before dependent START
 [x] Service/Capability consumers never receive raw provider implementation
 [x] retained fenced Proxy preserves real class/native receiver identity and fences mutation
+[x] reflection, descriptor, prototype and extensibility operations remain Host-facade fenced
 [x] generation retirement blocks new calls and settles in-flight calls
 [x] settlement timeout leaves a generation RETIRING and blocks replacement dependents
+[x] registry withdrawal is scoped to the activation GenerationFence owner
 [x] failed/BLOCKED and SAFE dependency chains recover in one later reconcile
 [x] missing required Capability remains dynamic unavailable and is represented by Readiness
+[x] background hard-Service failure propagates transitively with dependents BLOCKED
+[x] background failure records retained runtime.lifecycle.failure and activation races fail activation
+[x] Supervisor.close is best-effort but rejects on cleanup, substrate, or unresolved-retirement failure
+[x] repeated already-BLOCKED reconcile does not retain a no-op Activity
 [x] no hidden automatic retry loop exists
 [x] RuntimeGraph uses graphlib and rejects hard cycles before activation
 [x] Readiness READY/DEGRADED/BLOCKED semantics pass
@@ -1751,9 +1789,9 @@ H2B is ready for external review only when all are true:
 [ ] real PostgreSQL H2B integration PASS on the actually recorded platform (`NOT_RUN`: qualification toolchain unavailable)
 [x] deferred L3 claims remain NOT_RUN
 [x] boundary/dependency/repository/corpus/toolchain gates PASS
-[x] pnpm verify PASS after B1-B4/I1/I2 corrective changes (managed-Host H2B integration remains `NOT_RUN`)
+[x] pnpm verify after third corrective changes PASS (managed-Host H2B integration remains `NOT_RUN`)
 [x] roadmap says H2 remains OPEN and H2-S has not been pre-claimed
-[ ] exact review pair is frozen only after all candidate mutations (`NOT_RUN`: working tree not frozen)
+[ ] exact review pair is frozen only after all candidate mutations (`NOT_RUN`: this corrective cycle is uncommitted)
 ```
 
 ---

@@ -21,6 +21,11 @@ const runtimeProblemSpecs: Readonly<Record<string, RuntimeProblemSpec>> = {
     retryClass: "never",
     title: "MicroSystem published a Service more than once",
   },
+  "runtime.activation.background_failure": {
+    category: "unavailable",
+    retryClass: "after-change",
+    title: "MicroSystem activation observed a background failure",
+  },
   "runtime.activation.missing_capability_publication": {
     category: "validation",
     retryClass: "never",
@@ -145,6 +150,11 @@ const runtimeProblemSpecs: Readonly<Record<string, RuntimeProblemSpec>> = {
     category: "validation",
     retryClass: "never",
     title: "MicroSystem definition is duplicated",
+  },
+  "runtime.supervisor.close_failed": {
+    category: "unavailable",
+    retryClass: "after-change",
+    title: "Runtime supervisor close failed",
   },
   "runtime.supervisor.invalid_revision": {
     category: "validation",

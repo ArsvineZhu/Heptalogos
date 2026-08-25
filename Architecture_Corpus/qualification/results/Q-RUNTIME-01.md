@@ -87,6 +87,38 @@ The previous `3ce96cf7...` H2B-on-master snapshot was preserved at
 independent review or final-CI evidence. The exact candidate pair remains
 unfrozen until the final documentation/qualification mutation is complete.
 
+## H2B third corrective-cycle addendum (2026-08-25)
+
+```yaml
+candidate_status: NOT_FROZEN
+candidate_base_sha: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+candidate_branch: dev/h2b-runtime-composition-kernel-corrected
+draft_pr: 22
+reviewed_pair_invalidated_by_new_changes: 19ebef1 -> 4cad58d
+runtime_kernel_package_unit: PASS (88/88)
+runtime_substrate_package_unit: PASS (16/16)
+RC1_host_owned_reflection_facade: PASS
+RC2_explicit_unavailable_capability_dynamic: PASS
+RC3_generation_owner_registry_retirement: PASS
+RC4_transitive_background_blocked_closure: PASS
+RC5_background_failure_lifecycle_lineage: PASS
+RC6_close_failure_visible: PASS
+RC7_repeated_blocked_reconcile_noop: PASS
+RC8_DL15_admitted_call_drain_wording: PASS (plan wording recorded)
+managed_host_h2b_postgres_integration: NOT_RUN (5 skipped; qualification toolchain unavailable)
+h2a3_execution_foundation_integration: NOT_RUN (9 skipped; qualification toolchain unavailable)
+canonical_initialization_postgres_integration: NOT_RUN (1 non-PG case passed, 7 PostgreSQL cases skipped)
+other_h2a_postgres_integrations: BLOCKED (HEPTALOGOS_TEST_PG_BIN unavailable)
+pnpm_verify: PASS (current full repository verify)
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The previous `pnpm verify: PASS` and focused counts remain historical evidence
+for the prior corrective cycle. They are not reused as verification for this
+new working tree until the current code and documentation are rerun together.
+
 ## NOT_RUN / deferred properties
 
 - `product_runtime_start_stop`: Pilot remains synthetic L1/L2; no complete managed-Host product runtime was executed.

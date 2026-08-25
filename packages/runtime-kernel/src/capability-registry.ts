@@ -113,15 +113,16 @@ export class CapabilityRegistry {
       .sort();
   }
 
-  async retireProvider(providerId: ProviderId, settleTimeoutMs: number): Promise<void> {
+  async retireGeneration(
+    ownerFence: GenerationFence,
+    settleTimeoutMs: number,
+  ): Promise<void> {
     const bindings = [...this.bindings.entries()].filter(
-      ([, binding]) => binding.descriptor.providerId === providerId,
+      ([, binding]) => binding.fence === ownerFence,
     );
     if (bindings.length === 0) return;
     for (const [key] of bindings) this.bindings.delete(key);
-    await Promise.all(
-      bindings.map(([, binding]) => binding.fence.retire(settleTimeoutMs)),
-    );
+    await ownerFence.retire(settleTimeoutMs);
   }
 
   private selectBinding(
@@ -143,12 +144,6 @@ export class CapabilityRegistry {
         (candidate) => candidate.descriptor.providerId === explicitProviderId,
       );
       if (explicit !== undefined) return explicit;
-      if (throwOnFailure) {
-        throw runtimeKernelProblem(
-          "runtime.capability.explicit_unavailable",
-          `Explicit Capability provider '${explicitProviderId}' is unavailable or incompatible`,
-        );
-      }
       return undefined;
     }
     const selected = candidates.sort((left, right) => {

@@ -107,15 +107,16 @@ export class ServiceRegistry {
       .sort();
   }
 
-  async retireProvider(providerId: ProviderId, settleTimeoutMs: number): Promise<void> {
+  async retireGeneration(
+    ownerFence: GenerationFence,
+    settleTimeoutMs: number,
+  ): Promise<void> {
     const bindings = [...this.bindings.entries()].filter(
-      ([, binding]) => binding.descriptor.providerId === providerId,
+      ([, binding]) => binding.fence === ownerFence,
     );
     if (bindings.length === 0) return;
     for (const [key] of bindings) this.bindings.delete(key);
-    await Promise.all(
-      bindings.map(([, binding]) => binding.fence.retire(settleTimeoutMs)),
-    );
+    await ownerFence.retire(settleTimeoutMs);
   }
 
   private selectBinding(
