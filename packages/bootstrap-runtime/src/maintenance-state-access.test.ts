@@ -70,7 +70,9 @@ function makeStateWithPrivatePostgres(
       clusterSystemIdentifier: "12345678901234567890",
       initializationProfileRevision: asContentDigest(
         "PrivatePostgresInitializationProfileRevision",
-        digestCanonicalJson("test.private-postgres-profile/v1", { profile: "m5a" }),
+        digestCanonicalJson("test.private-postgres-profile/v1", {
+          profile: "host-maintenance",
+        }),
       ),
     },
   };
@@ -101,7 +103,9 @@ function makeJournalBody(
       }),
       privatePostgresInitializationProfileRevision: asContentDigest(
         "PrivatePostgresInitializationProfileRevision",
-        digestCanonicalJson("test.private-postgres-profile/v1", { profile: "m5a" }),
+        digestCanonicalJson("test.private-postgres-profile/v1", {
+          profile: "host-maintenance",
+        }),
       ),
     },
     lastCompletedStage: "BOOTSTRAP_OWNERSHIP_ACQUIRED",

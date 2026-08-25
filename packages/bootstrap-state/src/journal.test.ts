@@ -223,14 +223,14 @@ describe("BootstrapJournal", () => {
     await expect(journal.read(entry.bootId)).resolves.toEqual([entry]);
   });
 
-  it("rejects a legacy checkpoint lacking installation and instance identity", async () => {
+  it("rejects a checkpoint missing required installation and instance identity", async () => {
     const directory = await makeDirectory();
     const journal = new BootstrapJournal(directory);
     const entry = {
       schemaVersion: 1,
       bootId: createBootId(),
       bootstrapActivityId: createUuidV7Id("ActivityId"),
-      stage: "bootstrap.legacy",
+      stage: "bootstrap.invalid",
       at: "2026-08-21T00:00:00.000Z",
       outcome: "STARTED",
     };

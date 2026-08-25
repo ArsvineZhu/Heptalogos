@@ -66,28 +66,31 @@ export interface CapabilityProvisionDescriptor {
 }
 
 /**
- * H2B Service/Capability contracts are trusted semantic contracts, not a
+ * Runtime Service/Capability contracts are trusted semantic contracts, not a
  * general JavaScript object-capability membrane. Provider operations are
  * methods; their boundary values are plain data or nested contract objects.
  * Runtime publication/invocation validation is authoritative because
  * TypeScript interfaces are erased.
  */
-export type H2BContractData =
+export type RuntimeContractData =
   | null
   | undefined
   | string
   | number
   | boolean
   | bigint
-  | readonly H2BContractData[]
-  | { readonly [key: string]: H2BContractData };
+  | readonly RuntimeContractData[]
+  | { readonly [key: string]: RuntimeContractData };
 
-export type H2BContractMethod = (
-  ...args: readonly H2BContractData[]
-) => H2BContractData | H2BContractObject | Promise<H2BContractData | H2BContractObject>;
+export type RuntimeContractMethod = (
+  ...args: readonly RuntimeContractData[]
+) =>
+  | RuntimeContractData
+  | RuntimeContractObject
+  | Promise<RuntimeContractData | RuntimeContractObject>;
 
-export type H2BContractObject = {
-  readonly [key: string]: H2BContractData | H2BContractMethod;
+export type RuntimeContractObject = {
+  readonly [key: string]: RuntimeContractData | RuntimeContractMethod;
 };
 
 export interface ServiceLease<TContract extends object> {

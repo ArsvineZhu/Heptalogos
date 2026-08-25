@@ -88,7 +88,7 @@ async function resolveRoot(
     );
   }
 
-  // M2 verifies the configured terminal entry only. Parent-component TOCTOU and
+  // Bootstrap state verifies the configured terminal entry only. Parent-component TOCTOU and
   // every Windows reparse-point class remain platform-qualification boundaries.
   return { id, configuredPath, canonicalPath };
 }

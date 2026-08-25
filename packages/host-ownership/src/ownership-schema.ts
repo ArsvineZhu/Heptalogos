@@ -697,9 +697,9 @@ RETURNS TABLE (
 LANGUAGE SQL
 SECURITY DEFINER
 SET search_path = pg_catalog
-AS $h2a1$
+AS $host_ownership$
 ${FENCE_LOCK_FUNCTION_SOURCE}
-$h2a1$`,
+$host_ownership$`,
     );
     await authorizedMutation(
       client,

@@ -24,7 +24,7 @@ describe("LineageContextRef V1", () => {
     expect(Object.isFrozen(encoded)).toBe(true);
   });
 
-  it("rejects future and obsolete PRE_PRODUCTION shapes", () => {
+  it("rejects unsupported versions and unknown fields", () => {
     expect(() => decodeLineageContextRef({ schemaVersion: 2 })).toThrow();
     expect(() =>
       decodeLineageContextRef({
@@ -32,7 +32,7 @@ describe("LineageContextRef V1", () => {
         sourceActivityId: createActivityId(),
         sourceInstanceId: createInstanceId(),
         sourceContinuityEpochId: createContinuityEpochId(),
-        legacyBootId: "x",
+        unexpectedBootId: "x",
       }),
     ).toThrow();
   });

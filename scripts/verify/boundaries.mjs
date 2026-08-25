@@ -113,7 +113,7 @@ const restrictedImports = new Map([
       "packages/canonical-schema/",
       "packages/execution-lineage/src/activity-repository.ts",
       "packages/evidence/src/evidence-service.ts",
-      "packages/bootstrap-runtime/src/h2a3-execution-foundation.integration.test.ts",
+      "packages/bootstrap-runtime/src/execution-foundation.integration.test.ts",
     ],
   ],
 ]);
@@ -124,7 +124,7 @@ const restrictedSpecifiers = new Map([
       "packages/execution-lineage/",
       "packages/evidence/",
       "packages/persistence/",
-      "packages/bootstrap-runtime/src/h2a3-execution-foundation.integration.test.ts",
+      "packages/bootstrap-runtime/src/execution-foundation.integration.test.ts",
     ],
   ],
 ]);

@@ -32,7 +32,7 @@ function keyProvider() {
   return {
     async withPrivatePostgresBootstrapPassword(_context, use) {
       const password = new TextEncoder().encode(
-        "M5A_TEST_BOOTSTRAP_PASSWORD_0123456789",
+        "BOOTSTRAP_RECOVERY_TEST_BOOTSTRAP_PASSWORD_0123456789",
       );
       try {
         return await use(password);
@@ -42,7 +42,7 @@ function keyProvider() {
     },
     async withPrivatePostgresHostLeasePassword(_context, use) {
       const password = new TextEncoder().encode(
-        "M5A_TEST_HOST_LEASE_PASSWORD_0123456789",
+        "BOOTSTRAP_RECOVERY_TEST_HOST_LEASE_PASSWORD_0123456789",
       );
       try {
         return await use(password);

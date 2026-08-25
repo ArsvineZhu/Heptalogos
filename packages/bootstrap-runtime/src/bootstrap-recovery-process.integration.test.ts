@@ -97,14 +97,21 @@ class ChildController {
 }
 
 async function makeFixture() {
-  const anchorRoot = await mkdtemp(join(tmpdir(), "heptalogos-m5b-process-anchor-"));
+  const anchorRoot = await mkdtemp(
+    join(tmpdir(), "heptalogos-bootstrap-recovery-process-anchor-"),
+  );
   directories.push(anchorRoot);
   const roots = {} as Record<LifecycleRootId, string>;
   for (const id of LIFECYCLE_ROOT_IDS) {
     roots[id] =
       id === "PROGRAM"
         ? anchorRoot
-        : await mkdtemp(join(tmpdir(), `heptalogos-m5b-process-${id.toLowerCase()}-`));
+        : await mkdtemp(
+            join(
+              tmpdir(),
+              `heptalogos-bootstrap-recovery-process-${id.toLowerCase()}-`,
+            ),
+          );
     if (id !== "PROGRAM") directories.push(roots[id]);
   }
   const locator: BootstrapLocatorV1 = {
@@ -149,7 +156,7 @@ afterEach(async () => {
   );
 });
 
-describe("M5B real process kill/restart qualification", () => {
+describe("Bootstrap Recovery real process kill/restart qualification", () => {
   it("K1 reclaims a killed bootstrap owner only after stale adjudication", async () => {
     const fixture = await makeFixture();
     const owner = new ChildController(OWNER_FIXTURE, fixture.anchorRoot, "hold");

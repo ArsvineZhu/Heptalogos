@@ -30,7 +30,7 @@ import {
   makeFixture,
   mutateAsBootstrap,
   queryAs,
-  stopManagedHost,
+  stopManagedHostWithoutRuntime,
 } from "./test-support/canonical-postgres.js";
 
 const PERSISTENCE_OPTIONS = {
@@ -42,7 +42,7 @@ const PERSISTENCE_OPTIONS = {
   idleInTransactionSessionTimeoutMs: 30_000,
   onBackgroundError() {},
 } as const;
-const FIXTURE_TABLE = "h2a3_atomicity_fixture";
+const FIXTURE_TABLE = "execution_atomicity_fixture";
 
 const describePostgres = describeRealPostgres === undefined ? describe.skip : describe;
 
@@ -157,7 +157,7 @@ async function closeComposition(
 ): Promise<void> {
   await composition.persistence.close().catch(() => undefined);
   await dropFixtureTable(fixture).catch(() => undefined);
-  await stopManagedHost(composition.host).catch(() => undefined);
+  await stopManagedHostWithoutRuntime(composition.host).catch(() => undefined);
 }
 
 async function insertFact(
@@ -175,18 +175,18 @@ async function insertFact(
 }
 
 describePostgres.sequential(
-  "H2A-3 required Activity/Evidence transaction atomicity",
+  "Execution Foundation required Activity/Evidence transaction atomicity",
   () => {
     it("A1 commits canonical fact, current Activity, and required Evidence atomically", async () => {
       const fixture = await makeFixture();
       const bootResult = await boot(fixture);
       await createFixtureTable(fixture);
       const composition = createComposition(bootResult.host);
-      const factId = createUuidV7Id("H2A3AtomicityFactId");
+      const factId = createUuidV7Id("ExecutionAtomicityFactId");
       try {
         await composition.runtime.runActivity(
           {
-            kind: "test.h2a3.atomicity",
+            kind: "test.execution.atomicity",
             importance: "significant",
             retentionClass: "retained",
             sensitivity: "operational",
@@ -224,12 +224,12 @@ describePostgres.sequential(
       const bootResult = await boot(fixture);
       await createFixtureTable(fixture);
       const composition = createComposition(bootResult.host);
-      const factId = createUuidV7Id("H2A3AtomicityFactId");
+      const factId = createUuidV7Id("ExecutionAtomicityFactId");
       try {
         await expect(
           composition.runtime.runActivity(
             {
-              kind: "test.h2a3.atomicity.rollback",
+              kind: "test.execution.atomicity.rollback",
               importance: "significant",
               retentionClass: "retained",
               sensitivity: "operational",
@@ -264,12 +264,12 @@ describePostgres.sequential(
       const bootResult = await boot(fixture);
       await createFixtureTable(fixture);
       const composition = createComposition(bootResult.host);
-      const factId = createUuidV7Id("H2A3AtomicityFactId");
+      const factId = createUuidV7Id("ExecutionAtomicityFactId");
       try {
         await expect(
           composition.runtime.runActivity(
             {
-              kind: "test.h2a3.atomicity.evidence-failure",
+              kind: "test.execution.atomicity.evidence-failure",
               importance: "significant",
               retentionClass: "retained",
               sensitivity: "operational",
@@ -355,7 +355,7 @@ describePostgres.sequential(
 
         await composition.runtime.runActivity(
           {
-            kind: "test.h2a3.bootstrap-import",
+            kind: "test.execution.bootstrap-import",
             importance: "significant",
             retentionClass: "retained",
             sensitivity: "operational",
@@ -402,7 +402,7 @@ describePostgres.sequential(
         });
         const firstHostActivity = await composition.runtime.runActivity(
           {
-            kind: "test.h2a3.first-host-activity",
+            kind: "test.execution.first-host-activity",
             causationActivityId: projection.draft.activityId,
             importance: "significant",
             retentionClass: "retained",
@@ -435,7 +435,7 @@ describePostgres.sequential(
         });
         expect(currentActivity).toMatchObject({
           activity_id: firstHostActivity.activityId,
-          kind: "test.h2a3.first-host-activity",
+          kind: "test.execution.first-host-activity",
           causation_activity_id: projection.draft.activityId,
           instance_id: bootResult.host.instanceId,
           boot_id: bootResult.host.bootId,
@@ -478,7 +478,7 @@ describePostgres.sequential(
         expect(failed.draft.outcome).toBe("FAILED");
         expect(failed.draft.outcomeRef).toBe("bootstrap.test.failure");
       } finally {
-        await stopManagedHost(bootResult.host).catch(() => undefined);
+        await stopManagedHostWithoutRuntime(bootResult.host).catch(() => undefined);
       }
     }, 180_000);
 
@@ -501,7 +501,7 @@ describePostgres.sequential(
         );
         await expect(readFile(journalPath, "utf8")).resolves.toBe(bytesBefore);
       } finally {
-        await stopManagedHost(bootResult.host).catch(() => undefined);
+        await stopManagedHostWithoutRuntime(bootResult.host).catch(() => undefined);
       }
     }, 180_000);
   },

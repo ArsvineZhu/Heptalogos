@@ -39,7 +39,7 @@ const qualifiedPgBin =
   process.env.HEPTALOGOS_TEST_PG_BIN ??
   (() => {
     throw new Error(
-      "BLOCKED: HEPTALOGOS_TEST_PG_BIN is required for real M5B process qualification",
+      "BLOCKED: HEPTALOGOS_TEST_PG_BIN is required for real Bootstrap Recovery process qualification",
     );
   })();
 const PROCESS_FIXTURE = fileURLToPath(
@@ -153,7 +153,7 @@ async function makeFixture(): Promise<{
   readonly instanceId: ReturnType<typeof createInstanceId>;
 }> {
   const anchorRoot = await mkdtemp(
-    join(tmpdir(), "heptalogos-m5b-real-process-anchor-"),
+    join(tmpdir(), "heptalogos-bootstrap-recovery-real-process-anchor-"),
   );
   directories.push(anchorRoot);
   const roots = {} as Record<LifecycleRootId, string>;
@@ -162,7 +162,10 @@ async function makeFixture(): Promise<{
       id === "PROGRAM"
         ? anchorRoot
         : await mkdtemp(
-            join(tmpdir(), `heptalogos-m5b-real-process-${id.toLowerCase()}-`),
+            join(
+              tmpdir(),
+              `heptalogos-bootstrap-recovery-real-process-${id.toLowerCase()}-`,
+            ),
           );
     if (id !== "PROGRAM") directories.push(roots[id]);
   }
@@ -185,7 +188,7 @@ function makeKeyProvider() {
       use: (password: Uint8Array) => Promise<T>,
     ): Promise<T> {
       const password = new TextEncoder().encode(
-        "M5A_TEST_BOOTSTRAP_PASSWORD_0123456789",
+        "BOOTSTRAP_RECOVERY_TEST_BOOTSTRAP_PASSWORD_0123456789",
       );
       try {
         return await use(password);
@@ -198,7 +201,7 @@ function makeKeyProvider() {
       use: (password: Uint8Array) => Promise<T>,
     ): Promise<T> {
       const password = new TextEncoder().encode(
-        "M5A_TEST_HOST_LEASE_PASSWORD_0123456789",
+        "BOOTSTRAP_RECOVERY_TEST_HOST_LEASE_PASSWORD_0123456789",
       );
       try {
         return await use(password);
@@ -210,7 +213,9 @@ function makeKeyProvider() {
       _context: unknown,
       use: (password: Uint8Array) => Promise<T>,
     ): Promise<T> {
-      const password = new TextEncoder().encode("M5A_TEST_RUNTIME_PASSWORD_0123456789");
+      const password = new TextEncoder().encode(
+        "BOOTSTRAP_RECOVERY_TEST_RUNTIME_PASSWORD_0123456789",
+      );
       try {
         return await use(password);
       } finally {
@@ -221,7 +226,11 @@ function makeKeyProvider() {
       _context: unknown,
       use: (password: Uint8Array) => Promise<T>,
     ): Promise<T> {
-      return use(new TextEncoder().encode("M5A_TEST_MIGRATION_PASSWORD_0123456789"));
+      return use(
+        new TextEncoder().encode(
+          "BOOTSTRAP_RECOVERY_TEST_MIGRATION_PASSWORD_0123456789",
+        ),
+      );
     },
   };
 }
@@ -422,8 +431,8 @@ afterEach(async () => {
   }
 });
 
-describe("M5B real maintenance/recovery process qualification", () => {
-  it("K4 kills real M5A maintenance after durable POSTGRES_STOPPED and recovers it", async () => {
+describe("Bootstrap Recovery real maintenance/recovery process qualification", () => {
+  it("K4 kills real Bootstrap Recovery maintenance after durable POSTGRES_STOPPED and recovers it", async () => {
     const fixture = await makeFixture();
     const port = 55620;
     const child = new RealProcessController(fixture.anchorRoot, "maintenance", [

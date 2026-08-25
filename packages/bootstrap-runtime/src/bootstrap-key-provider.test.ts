@@ -23,7 +23,9 @@ describe("BootstrapKeyProvider", () => {
 
     const provider: BootstrapKeyProvider = {
       async withPrivatePostgresBootstrapPassword(_context, use) {
-        providerBuffer = new TextEncoder().encode("M3_TEST_SCOPED_PASSWORD");
+        providerBuffer = new TextEncoder().encode(
+          "PRIVATE_POSTGRES_TEST_SCOPED_PASSWORD",
+        );
         try {
           return await use(providerBuffer);
         } finally {
@@ -50,7 +52,9 @@ describe("BootstrapKeyProvider", () => {
     await provider.withPrivatePostgresBootstrapPassword(context, async (password) => {
       callbackCount += 1;
       callbackPassword = password;
-      expect(new TextDecoder().decode(password)).toBe("M3_TEST_SCOPED_PASSWORD");
+      expect(new TextDecoder().decode(password)).toBe(
+        "PRIVATE_POSTGRES_TEST_SCOPED_PASSWORD",
+      );
       return "used";
     });
 

@@ -39,21 +39,21 @@ function validateObject(value: object, path: string, visited: WeakSet<object>): 
     if (typeof property === "symbol") {
       fail(
         "runtime.contract.unsupported_symbol",
-        `H2B contract member '${memberPath}' uses a Symbol property`,
+        `Runtime contract member '${memberPath}' uses a Symbol property`,
       );
     }
     const descriptor = member.descriptor;
     if (descriptor.get !== undefined || descriptor.set !== undefined) {
       fail(
         "runtime.contract.unsupported_accessor",
-        `H2B contract member '${memberPath}' uses an accessor`,
+        `Runtime contract member '${memberPath}' uses an accessor`,
       );
     }
     if (typeof descriptor.value === "function") continue;
     if (descriptor.writable === true) {
       fail(
         "runtime.contract.unsupported_writable_property",
-        `H2B contract data member '${memberPath}' must be readonly`,
+        `Runtime contract data member '${memberPath}' must be readonly`,
       );
     }
     if (descriptor.value !== null && typeof descriptor.value === "object") {
@@ -66,7 +66,7 @@ export function validateSupportedContractShape(implementation: object): void {
   if (typeof implementation === "function" || implementation === null) {
     fail(
       "runtime.contract.invalid_shape",
-      "H2B Service/Capability contracts must be object surfaces, not callable objects",
+      "Runtime Service/Capability contracts must be object surfaces, not callable objects",
     );
   }
   validateObject(implementation, "contract", new WeakSet<object>());

@@ -31,7 +31,7 @@ import {
   prepareOwned,
   qualifiedPgBin,
   queryAs,
-  stopManagedHost,
+  stopManagedHostWithoutRuntime,
 } from "./test-support/canonical-postgres.js";
 
 const describeRealPostgres = qualifiedPgBin === undefined ? describe.skip : describe;
@@ -41,7 +41,7 @@ afterEach(async () => {
 });
 
 describeRealPostgres.sequential(
-  "H2A-2 canonical continuity PostgreSQL qualification",
+  "Canonical canonical continuity PostgreSQL qualification",
   () => {
     it("C1 materializes the BootstrapState epoch before managed Host exposure", async () => {
       const fixture = await makeFixture();
@@ -185,7 +185,7 @@ describeRealPostgres.sequential(
           },
         ],
       });
-      await stopManagedHost(result.host);
+      await stopManagedHostWithoutRuntime(result.host);
     }, 180_000);
 
     it("C2 preserves the epoch across a second boot with a new Host identity", async () => {
@@ -203,7 +203,7 @@ describeRealPostgres.sequential(
       expect(second.host.token).not.toBe(firstToken);
       expect(second.epoch).toBe(first.epoch);
       expect(second.host.continuityEpochId).toBe(first.epoch);
-      await stopManagedHost(second.host);
+      await stopManagedHostWithoutRuntime(second.host);
     }, 240_000);
 
     it("C3 retries the committed epoch after authority loss between migration and materialization", async () => {
@@ -242,7 +242,7 @@ describeRealPostgres.sequential(
       await prepared.owned.close();
       const retry = await boot(fixture);
       expect(retry.epoch).toBe(prepared.epoch);
-      await stopManagedHost(retry.host);
+      await stopManagedHostWithoutRuntime(retry.host);
     }, 240_000);
 
     it.each([
@@ -259,7 +259,7 @@ describeRealPostgres.sequential(
           kind === "epoch"
             ? `UPDATE "heptalogos"."instance_continuity" SET continuity_epoch_id = $1`
             : `UPDATE "heptalogos"."instance_continuity" SET instance_id = $1`;
-        await stopManagedHost(first.host);
+        await stopManagedHostWithoutRuntime(first.host);
         const prepared = await prepareOwned(fixture);
         await mutateAsBootstrap(fixture, statement, [alternate]);
         await expect(
@@ -333,7 +333,7 @@ describeRealPostgres.sequential(
         `INSERT INTO "heptalogos"."instance_continuity" (singleton, instance_id, continuity_epoch_id) VALUES (false, $1, $2)`,
         `UPDATE "heptalogos"."instance_continuity" SET instance_id = $1`,
         `DELETE FROM "heptalogos"."instance_continuity"`,
-        `CREATE TABLE "heptalogos"."h2a2_runtime_denied" (id integer)`,
+        `CREATE TABLE "heptalogos"."canonical_runtime_denied" (id integer)`,
       ]) {
         await expectQueryDenied(
           fixture,
@@ -343,13 +343,13 @@ describeRealPostgres.sequential(
           [fixture.instanceId, result.epoch],
         );
       }
-      await stopManagedHost(result.host);
+      await stopManagedHostWithoutRuntime(result.host);
     }, 180_000);
 
     it("C8 rejects corrupted current migration history", async () => {
       const fixture = await makeFixture();
       const first = await boot(fixture);
-      await stopManagedHost(first.host);
+      await stopManagedHostWithoutRuntime(first.host);
       const prepared = await prepareOwned(fixture);
       await mutateAsBootstrap(
         fixture,
@@ -369,9 +369,11 @@ describeRealPostgres.sequential(
   },
 );
 
-describe("H2A-2 BootstrapState obsolete development shape", () => {
+describe("Canonical BootstrapState unsupported development shape", () => {
   it("C9 rejects current V1 bytes without ContinuityEpochId", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "heptalogos-h2a2-obsolete-state-"));
+    const directory = await mkdtemp(
+      join(tmpdir(), "heptalogos-canonical-unsupported-state-"),
+    );
     try {
       const body = {
         schemaVersion: 1,

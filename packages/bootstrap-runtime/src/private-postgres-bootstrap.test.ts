@@ -166,7 +166,9 @@ function makeOptions(
       use: (passwordUtf8: Uint8Array) => Promise<T>,
     ): Promise<T> {
       calls.count += 1;
-      return use(new TextEncoder().encode("M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6"));
+      return use(
+        new TextEncoder().encode("PRIVATE_POSTGRES_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6"),
+      );
     },
     async withPrivatePostgresHostLeasePassword<T>(
       _context: BootstrapKeyRequestContext,
@@ -257,7 +259,7 @@ describe("private PostgreSQL bootstrap ownership boundary", () => {
     }
   });
 
-  it("allows only M4 terminal handoff states to release without stopping PostgreSQL", () => {
+  it("allows only Host Handoff terminal handoff states to release without stopping PostgreSQL", () => {
     const handedOff = createPrivatePostgresSessionTracker();
     const handedOffToken = handedOff.beginPreparation();
     handedOff.markReady(handedOffToken);

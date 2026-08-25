@@ -676,9 +676,13 @@ describe("HostOwnershipFence schema", () => {
     const cases: Array<
       Partial<Pick<SchemaState, "databaseAcl" | "schemaAcl" | "tableAcl">>
     > = [
-      { databaseAcl: [{ grantee: "m4_intruder", privilege_type: "CONNECT" }] },
-      { schemaAcl: [{ grantee: "m4_intruder", privilege_type: "USAGE" }] },
-      { tableAcl: [{ grantee: "m4_intruder", privilege_type: "SELECT" }] },
+      {
+        databaseAcl: [
+          { grantee: "host_ownership_intruder", privilege_type: "CONNECT" },
+        ],
+      },
+      { schemaAcl: [{ grantee: "host_ownership_intruder", privilege_type: "USAGE" }] },
+      { tableAcl: [{ grantee: "host_ownership_intruder", privilege_type: "SELECT" }] },
     ];
     for (const change of cases) {
       const fixture = makeOptions("0197cfe0-0000-7000-8000-000000000001", {
@@ -758,7 +762,7 @@ describe("HostOwnershipFence schema", () => {
       columnAcl: [
         {
           column_name: "host_ownership_token",
-          grantee: "m4_intruder",
+          grantee: "host_ownership_intruder",
           privilege_type: "UPDATE",
         },
       ],

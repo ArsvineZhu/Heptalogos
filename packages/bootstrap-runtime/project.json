@@ -19,7 +19,7 @@
     "test:integration": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vitest run --root packages/bootstrap-runtime src/private-postgres-bootstrap.integration.test.ts src/host-ownership-handoff.integration.test.ts src/host-maintenance.integration.test.ts src/bootstrap-recovery.integration.test.ts src/canonical-initialization.integration.test.ts src/h2a3-execution-foundation.integration.test.ts src/h2b-runtime-kernel.integration.test.ts"
+        "command": "vitest run --root packages/bootstrap-runtime src/private-postgres-bootstrap.integration.test.ts src/host-ownership-handoff.integration.test.ts src/host-maintenance.integration.test.ts src/bootstrap-recovery.integration.test.ts src/canonical-initialization.integration.test.ts src/execution-foundation.integration.test.ts src/runtime-kernel-managed-host.integration.test.ts"
       }
     },
     "test:recovery-process": {

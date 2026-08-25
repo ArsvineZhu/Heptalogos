@@ -36,7 +36,7 @@ import type {
   HostMaintenanceQuiescence,
 } from "./managed-host.js";
 
-const KEEP_PRIVATE_POSTGRES_QUIESCENCE: HostMaintenanceQuiescence = {
+const NO_RUNTIME_QUIESCENCE: HostMaintenanceQuiescence = {
   async quiesce() {
     return { async resumeAfterAbort() {} };
   },
@@ -53,7 +53,7 @@ let resolvedToolchain: PrivatePostgresToolchain | undefined;
 
 const execFileAsync = promisify(execFile);
 const directories: string[] = [];
-const BOOTSTRAP_PASSWORD = "M4_TEST_BOOTSTRAP_PASSWORD_0123456789";
+const BOOTSTRAP_PASSWORD = "HOST_HANDOFF_TEST_BOOTSTRAP_PASSWORD_0123456789";
 const LIFECYCLE = {
   startupTimeoutMs: 60_000,
   shutdownTimeoutMs: 30_000,
@@ -83,14 +83,14 @@ function makeState(): BootstrapStateBodyV1 {
 }
 
 async function makeFixture(): Promise<Fixture> {
-  const anchorRoot = await mkdtemp(join(tmpdir(), "heptalogos-m4-handoff-anchor-"));
+  const anchorRoot = await mkdtemp(join(tmpdir(), "heptalogos-host-handoff-anchor-"));
   directories.push(anchorRoot);
   const roots = {} as Record<LifecycleRootId, string>;
   for (const id of LIFECYCLE_ROOT_IDS) {
     roots[id] =
       id === "PROGRAM"
         ? anchorRoot
-        : await mkdtemp(join(tmpdir(), `heptalogos-m4-handoff-${id.toLowerCase()}-`));
+        : await mkdtemp(join(tmpdir(), `heptalogos-host-handoff-${id.toLowerCase()}-`));
     if (id !== "PROGRAM") directories.push(roots[id]);
   }
   await writeFile(
@@ -136,7 +136,9 @@ function makeKeyProvider(): BootstrapKeyProvider {
       _context: BootstrapKeyRequestContext,
       use: (passwordUtf8: Uint8Array) => Promise<T>,
     ): Promise<T> {
-      const password = new TextEncoder().encode("M5A_TEST_RUNTIME_PASSWORD_0123456789");
+      const password = new TextEncoder().encode(
+        "HOST_HANDOFF_TEST_RUNTIME_PASSWORD_0123456789",
+      );
       try {
         return await use(password);
       } finally {
@@ -148,7 +150,7 @@ function makeKeyProvider(): BootstrapKeyProvider {
       use: (passwordUtf8: Uint8Array) => Promise<T>,
     ): Promise<T> {
       const password = new TextEncoder().encode(
-        "M5A_TEST_MIGRATION_PASSWORD_0123456789",
+        "HOST_HANDOFF_TEST_MIGRATION_PASSWORD_0123456789",
       );
       try {
         return await use(password);
@@ -316,7 +318,7 @@ describe("bootstrap to Host ownership real PostgreSQL 18.6 qualification", () =>
       );
     } finally {
       await host
-        ?.shutdownKeepingPrivatePostgres(KEEP_PRIVATE_POSTGRES_QUIESCENCE)
+        ?.shutdownKeepingPrivatePostgres(NO_RUNTIME_QUIESCENCE)
         .catch(() => undefined);
       await ready?.stop().catch(() => undefined);
       await stopQualifiedPostgres(join(fixture.roots.DATA, "private-postgres"));
@@ -403,7 +405,7 @@ describe("bootstrap to Host ownership real PostgreSQL 18.6 qualification", () =>
       }
     } finally {
       await hostA
-        ?.shutdownKeepingPrivatePostgres(KEEP_PRIVATE_POSTGRES_QUIESCENCE)
+        ?.shutdownKeepingPrivatePostgres(NO_RUNTIME_QUIESCENCE)
         .catch(() => undefined);
       await firstReady?.stop().catch(() => undefined);
       await stopQualifiedPostgres(join(fixture.roots.DATA, "private-postgres"));

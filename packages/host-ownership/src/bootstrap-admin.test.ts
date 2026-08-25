@@ -622,8 +622,8 @@ describe("bootstrap host ownership database provisioning", () => {
     const directions = [
       [HOST_OWNERSHIP_OWNER_ROLE, HOST_LEASE_ROLE],
       [HOST_LEASE_ROLE, HOST_OWNERSHIP_OWNER_ROLE],
-      ["m4_intruder", HOST_OWNERSHIP_OWNER_ROLE],
-      [HOST_OWNERSHIP_OWNER_ROLE, "m4_intruder"],
+      ["host_ownership_intruder", HOST_OWNERSHIP_OWNER_ROLE],
+      [HOST_OWNERSHIP_OWNER_ROLE, "host_ownership_intruder"],
     ] as const;
     for (const [member_role, granted_role] of directions) {
       const fixture = makeFixture({

@@ -52,11 +52,11 @@ if (!qualifiedPgBin) {
 }
 
 const execFileAsync = promisify(execFile);
-const BOOTSTRAP_PASSWORD = "H2A1_TEST_BOOTSTRAP_PASSWORD_0123456789";
-const HOST_LEASE_PASSWORD = "H2A1_TEST_HOST_LEASE_PASSWORD_0123456789";
-const RUNTIME_PASSWORD = "H2A1_TEST_RUNTIME_PASSWORD_0123456789";
-const MIGRATION_PASSWORD = "H2A1_TEST_MIGRATION_PASSWORD_0123456789";
-const QUALIFICATION_TABLE = "h2a1_persistence_qualification";
+const BOOTSTRAP_PASSWORD = "PERSISTENCE_TEST_BOOTSTRAP_PASSWORD_0123456789";
+const HOST_LEASE_PASSWORD = "PERSISTENCE_TEST_HOST_LEASE_PASSWORD_0123456789";
+const RUNTIME_PASSWORD = "PERSISTENCE_TEST_RUNTIME_PASSWORD_0123456789";
+const MIGRATION_PASSWORD = "PERSISTENCE_TEST_MIGRATION_PASSWORD_0123456789";
+const QUALIFICATION_TABLE = "persistence_qualification";
 const TIMING: HostOwnershipTimingOptions = {
   connectionTimeoutMs: 10_000,
   statementTimeoutMs: 10_000,
@@ -197,7 +197,7 @@ async function waitUntilReady(port: number): Promise<void> {
 
 async function createCluster(): Promise<Fixture> {
   const pg = await toolchain();
-  const root = await mkdtemp(join(tmpdir(), "heptalogos-h2a1-persistence-pg-"));
+  const root = await mkdtemp(join(tmpdir(), "heptalogos-persistence-pg-"));
   const dataDirectory = join(root, "data");
   const tempDirectory = join(root, "temp");
   const logDirectory = join(root, "log");
@@ -231,7 +231,7 @@ async function createCluster(): Promise<Fixture> {
   );
   await writeFile(
     join(dataDirectory, "pg_hba.conf"),
-    "# Heptalogos H2A-1 persistence integration HBA\nhost all all 127.0.0.1/32 scram-sha-256\n",
+    "# Heptalogos Host-fenced persistence integration HBA\nhost all all 127.0.0.1/32 scram-sha-256\n",
   );
   await runPgCtl([
     "start",
@@ -459,7 +459,7 @@ afterEach(async () => {
   );
 });
 
-describe("H2A-1 host-fenced persistence PostgreSQL 18.6 qualification", () => {
+describe("Host-fenced persistence PostgreSQL 18.6 qualification", () => {
   it("P1: admits a current Host mutation and commits through the runtime pool", async () => {
     const fixture = await createCluster();
     const lease = await prepareHostLease(fixture);

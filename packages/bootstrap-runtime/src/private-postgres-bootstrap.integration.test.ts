@@ -141,7 +141,9 @@ function makeOptions(
       use: (passwordUtf8: Uint8Array) => Promise<T>,
     ): Promise<T> {
       contexts.push(context);
-      return use(new TextEncoder().encode("M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6"));
+      return use(
+        new TextEncoder().encode("PRIVATE_POSTGRES_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6"),
+      );
     },
     async withPrivatePostgresHostLeasePassword<T>(
       _context: BootstrapKeyRequestContext,
@@ -272,7 +274,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         },
       });
       expect(JSON.stringify(state)).not.toContain(
-        "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
+        "PRIVATE_POSTGRES_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
       );
       const journal = await new BootstrapJournal(fixture.roots.INSTANCE).read(
         prepared.bootId,
@@ -294,7 +296,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
         "bootstrap.postgres.ready",
       ]);
       expect(JSON.stringify(journal)).not.toContain(
-        "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
+        "PRIVATE_POSTGRES_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
       );
       await expect(
         access(join(fixture.roots.DATA, "private-postgres", "postmaster.pid")),
@@ -309,7 +311,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
       });
       await expect(
         readFile(join(fixture.roots.LOG, "private-postgres.log"), "utf8"),
-      ).resolves.not.toContain("M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6");
+      ).resolves.not.toContain("PRIVATE_POSTGRES_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6");
     } finally {
       await ready?.stop().catch(() => undefined);
       await owned.close();
@@ -655,7 +657,7 @@ describe("private PostgreSQL bootstrap orchestration", () => {
       placement,
       credentialTempRoot: fixture.roots.TEMP,
       bootstrapPasswordUtf8: new TextEncoder().encode(
-        "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
+        "PRIVATE_POSTGRES_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
       ),
       port: 55443,
       lifecycle: LIFECYCLE,

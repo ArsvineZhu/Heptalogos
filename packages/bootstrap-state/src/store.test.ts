@@ -57,7 +57,7 @@ function makeStateWithPrivatePostgres(revision: number): BootstrapStateBodyV1 {
       initializationProfileRevision: asContentDigest(
         "PrivatePostgresInitializationProfileRevision",
         digestCanonicalJson("test.private-postgres-profile/v1", {
-          profile: "m3",
+          profile: "canonical",
         }),
       ),
     },
@@ -150,10 +150,10 @@ describe("BootstrapStateStore", () => {
 
   it("preserves the current schema problem when no previous revision exists", async () => {
     const directory = await makeDirectory();
-    const { continuityEpochId: _continuityEpochId, ...obsolete } = makeState(1);
+    const { continuityEpochId: _continuityEpochId, ...invalidState } = makeState(1);
     await writeFile(
       join(directory, "bootstrap-state.json"),
-      JSON.stringify(sealBootstrapState(obsolete as never)),
+      JSON.stringify(sealBootstrapState(invalidState as never)),
     );
 
     await expect(new BootstrapStateStore(directory).load()).resolves.toMatchObject({

@@ -41,26 +41,26 @@ function projectInputValue(
   if (typeof value === "function") {
     return unsupportedInput(
       "runtime.contract.unsupported_function_argument",
-      `H2B provider argument '${path}' contains a function`,
+      `Runtime provider argument '${path}' contains a function`,
     );
   }
   if (typeof value === "symbol") {
     return unsupportedInput(
       "runtime.contract.unsupported_symbol",
-      `H2B provider argument '${path}' contains a Symbol`,
+      `Runtime provider argument '${path}' contains a Symbol`,
     );
   }
   if (value === null || typeof value !== "object") return value;
   if (fencedProxies.has(value)) {
     return unsupportedInput(
       "runtime.contract.unsupported_provider_identity",
-      `H2B provider argument '${path}' contains a Host-owned contract facade`,
+      `Runtime provider argument '${path}' contains a Host-owned contract facade`,
     );
   }
   if (seen.has(value)) {
     return unsupportedInput(
       "runtime.contract.unsupported_input",
-      `H2B provider argument '${path}' contains a cyclic object`,
+      `Runtime provider argument '${path}' contains a cyclic object`,
     );
   }
   seen.add(value);
@@ -75,7 +75,7 @@ function projectInputValue(
   if (!isPlainObject(value)) {
     return unsupportedInput(
       "runtime.contract.unsupported_input",
-      `H2B provider argument '${path}' must be plain data`,
+      `Runtime provider argument '${path}' must be plain data`,
     );
   }
 
@@ -87,7 +87,7 @@ function projectInputValue(
     if (typeof property === "symbol") {
       return unsupportedInput(
         "runtime.contract.unsupported_symbol",
-        `H2B provider argument '${path}' contains a Symbol property`,
+        `Runtime provider argument '${path}' contains a Symbol property`,
       );
     }
     const descriptor = Reflect.getOwnPropertyDescriptor(value, property);
@@ -95,7 +95,7 @@ function projectInputValue(
     if (!Object.prototype.hasOwnProperty.call(descriptor, "value")) {
       return unsupportedInput(
         "runtime.contract.unsupported_accessor",
-        `H2B provider argument '${path}.${property}' uses an accessor`,
+        `Runtime provider argument '${path}.${property}' uses an accessor`,
       );
     }
     Object.defineProperty(projected, property, {
@@ -156,13 +156,13 @@ export function createFencedProxy<TContract extends object>(
     if (typeof value === "function") {
       return unsupportedInput(
         "runtime.contract.unsupported_function_result",
-        "H2B provider methods cannot return functions",
+        "Runtime provider methods cannot return functions",
       );
     }
     if (typeof value === "symbol") {
       return unsupportedInput(
         "runtime.contract.unsupported_symbol",
-        "H2B provider methods cannot return Symbol values",
+        "Runtime provider methods cannot return Symbol values",
       );
     }
     if (value === null || typeof value !== "object") return value;
@@ -181,7 +181,7 @@ export function createFencedProxy<TContract extends object>(
     if (seen.has(value)) {
       return unsupportedInput(
         "runtime.contract.unsupported_result",
-        "H2B provider result data cannot be cyclic",
+        "Runtime provider result data cannot be cyclic",
       );
     }
     seen.add(value);
@@ -194,7 +194,7 @@ export function createFencedProxy<TContract extends object>(
     if (!isPlainObject(value)) {
       return unsupportedInput(
         "runtime.contract.unsupported_result",
-        "H2B provider results must be plain data or nested contract objects",
+        "Runtime provider results must be plain data or nested contract objects",
       );
     }
 
@@ -206,7 +206,7 @@ export function createFencedProxy<TContract extends object>(
       if (typeof property === "symbol") {
         return unsupportedInput(
           "runtime.contract.unsupported_symbol",
-          "H2B provider result data cannot contain Symbol properties",
+          "Runtime provider result data cannot contain Symbol properties",
         );
       }
       const descriptor = Reflect.getOwnPropertyDescriptor(value, property);
@@ -214,7 +214,7 @@ export function createFencedProxy<TContract extends object>(
       if (!Object.prototype.hasOwnProperty.call(descriptor, "value")) {
         return unsupportedInput(
           "runtime.contract.unsupported_accessor",
-          `H2B provider result '${String(property)}' uses an accessor`,
+          `Runtime provider result '${String(property)}' uses an accessor`,
         );
       }
       Object.defineProperty(projected, property, {
@@ -292,7 +292,7 @@ export function createFencedProxy<TContract extends object>(
     if (descriptor.get !== undefined || descriptor.set !== undefined) {
       throw runtimeKernelProblem(
         "runtime.contract.unsupported_accessor",
-        `H2B contract member '${String(property)}' uses an accessor`,
+        `Runtime contract member '${String(property)}' uses an accessor`,
       );
     }
     return {
@@ -326,7 +326,7 @@ export function createFencedProxy<TContract extends object>(
         if (descriptor.get !== undefined || descriptor.set !== undefined) {
           throw runtimeKernelProblem(
             "runtime.contract.unsupported_accessor",
-            `H2B contract member '${String(property)}' uses an accessor`,
+            `Runtime contract member '${String(property)}' uses an accessor`,
           );
         }
         return typeof descriptor.value === "function"

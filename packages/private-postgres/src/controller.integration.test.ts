@@ -38,7 +38,7 @@ const { runPostgresTool } = await import("./process-adapter.js");
 
 describe("private PostgreSQL first initialization", () => {
   it(
-    "initializes an absent target with the deterministic M3 profile",
+    "initializes an absent target with the deterministic private-postgres profile",
     async () => {
       const dataRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-data-"));
       const tempRoot = await mkdtemp(join(tmpdir(), "heptalogos-pg-temp-"));
@@ -53,7 +53,7 @@ describe("private PostgreSQL first initialization", () => {
           placement,
           credentialTempRoot: tempRoot,
           bootstrapPasswordUtf8: new TextEncoder().encode(
-            "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
+            "PRIVATE_POSTGRES_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
           ),
           port: 55432,
           lifecycle: {
@@ -87,7 +87,7 @@ describe("private PostgreSQL first initialization", () => {
           "# Heptalogos private PostgreSQL HBA profile v1\nhost all all 127.0.0.1/32 scram-sha-256\n",
         );
         expect(JSON.stringify(result)).not.toContain(
-          "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
+          "PRIVATE_POSTGRES_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
         );
       } finally {
         await Promise.all(
@@ -116,7 +116,7 @@ describe("private PostgreSQL first initialization", () => {
           placement,
           credentialTempRoot: tempRoot,
           bootstrapPasswordUtf8: new TextEncoder().encode(
-            "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
+            "PRIVATE_POSTGRES_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
           ),
           port: 55445,
           lifecycle: {
@@ -155,7 +155,7 @@ describe("private PostgreSQL first initialization", () => {
           placement,
           credentialTempRoot: tempRoot,
           bootstrapPasswordUtf8: new TextEncoder().encode(
-            "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
+            "PRIVATE_POSTGRES_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
           ),
           port: 55432,
           lifecycle: {
@@ -194,7 +194,7 @@ describe("private PostgreSQL first initialization", () => {
         placement,
         credentialTempRoot: tempRoot,
         bootstrapPasswordUtf8: new TextEncoder().encode(
-          "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
+          "PRIVATE_POSTGRES_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
         ),
         port: 55432,
         lifecycle: {
@@ -422,7 +422,7 @@ describe("private PostgreSQL first initialization", () => {
         placement,
         credentialTempRoot: tempRoot,
         bootstrapPasswordUtf8: new TextEncoder().encode(
-          "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
+          "PRIVATE_POSTGRES_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6",
         ),
         port,
         lifecycle: {

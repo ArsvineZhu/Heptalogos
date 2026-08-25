@@ -191,7 +191,9 @@ async function makeFixture() {
       clusterSystemIdentifier: "12345678901234567890",
       initializationProfileRevision: asContentDigest(
         "PrivatePostgresInitializationProfileRevision",
-        digestCanonicalJson("test.private-postgres-profile/v1", { profile: "m5b" }),
+        digestCanonicalJson("test.private-postgres-profile/v1", {
+          profile: "host-maintenance-recovery",
+        }),
       ),
     },
     logFilePath: join(roots.LOG, "private-postgres.log"),
@@ -550,7 +552,7 @@ afterEach(async () => {
   );
 });
 
-describe("fixed M5B host-maintenance recovery", () => {
+describe("fixed Host maintenance recovery host-maintenance recovery", () => {
   it("blocks maintenance recovery when only RECOVERED_PREVIOUS state is available", async () => {
     const fixture = await makeFixture();
     const configured = configure(
@@ -848,17 +850,17 @@ describe("fixed M5B host-maintenance recovery", () => {
     expect(result.host.token).toBe(candidate);
   });
 
-  it("rejects a legacy target B without an explicit publication BootId", async () => {
+  it("rejects a target missing required publication BootId", async () => {
     const fixture = await makeFixture();
-    const legacyToken = createHostOwnershipToken();
+    const invalidToken = createHostOwnershipToken();
     configure(
       fixture,
       "HOST_TOKEN_PUBLISHED",
       "PRIVATE_POSTGRES_RESTART",
       "READY",
-      legacyToken,
+      invalidToken,
       {
-        hostOwnershipToken: legacyToken,
+        hostOwnershipToken: invalidToken,
         hostOwnershipRevision: "8",
       },
     );

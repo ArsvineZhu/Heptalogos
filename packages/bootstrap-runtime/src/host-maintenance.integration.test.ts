@@ -45,7 +45,7 @@ const qualifiedPgBin: string =
   process.env.HEPTALOGOS_TEST_PG_BIN ??
   (() => {
     throw new Error(
-      "BLOCKED: HEPTALOGOS_TEST_PG_BIN is required for M5A PostgreSQL maintenance qualification",
+      "BLOCKED: HEPTALOGOS_TEST_PG_BIN is required for Host maintenance PostgreSQL qualification",
     );
   })();
 
@@ -94,14 +94,18 @@ function makeState(): BootstrapStateBodyV1 {
 }
 
 async function makeFixture(): Promise<Fixture> {
-  const anchorRoot = await mkdtemp(join(tmpdir(), "heptalogos-m5a-anchor-"));
+  const anchorRoot = await mkdtemp(
+    join(tmpdir(), "heptalogos-host-maintenance-anchor-"),
+  );
   directories.push(anchorRoot);
   const roots = {} as Record<LifecycleRootId, string>;
   for (const id of LIFECYCLE_ROOT_IDS) {
     roots[id] =
       id === "PROGRAM"
         ? anchorRoot
-        : await mkdtemp(join(tmpdir(), `heptalogos-m5a-${id.toLowerCase()}-`));
+        : await mkdtemp(
+            join(tmpdir(), `heptalogos-host-maintenance-${id.toLowerCase()}-`),
+          );
     if (id !== "PROGRAM") directories.push(roots[id]);
   }
   await writeFile(
@@ -129,7 +133,7 @@ function makeKeyProvider(
     ): Promise<T> {
       onRequest?.(_context);
       const password = new TextEncoder().encode(
-        "M5A_TEST_BOOTSTRAP_PASSWORD_0123456789",
+        "HOST_MAINTENANCE_TEST_BOOTSTRAP_PASSWORD_0123456789",
       );
       try {
         return await use(password);
@@ -143,7 +147,7 @@ function makeKeyProvider(
     ): Promise<T> {
       onRequest?.(_context);
       const password = new TextEncoder().encode(
-        "M5A_TEST_HOST_LEASE_PASSWORD_0123456789",
+        "HOST_MAINTENANCE_TEST_HOST_LEASE_PASSWORD_0123456789",
       );
       try {
         return await use(password);
@@ -156,7 +160,9 @@ function makeKeyProvider(
       use: (password: Uint8Array) => Promise<T>,
     ): Promise<T> {
       onRequest?.(_context);
-      const password = new TextEncoder().encode("M5A_TEST_RUNTIME_PASSWORD_0123456789");
+      const password = new TextEncoder().encode(
+        "HOST_MAINTENANCE_TEST_RUNTIME_PASSWORD_0123456789",
+      );
       try {
         return await use(password);
       } finally {
@@ -169,7 +175,7 @@ function makeKeyProvider(
     ): Promise<T> {
       onRequest?.(_context);
       const password = new TextEncoder().encode(
-        "M5A_TEST_MIGRATION_PASSWORD_0123456789",
+        "HOST_MAINTENANCE_TEST_MIGRATION_PASSWORD_0123456789",
       );
       try {
         return await use(password);
@@ -385,7 +391,7 @@ afterEach(async () => {
   );
 });
 
-describe("M5A reverse-handoff PostgreSQL qualification", () => {
+describe("Host maintenance reverse-handoff PostgreSQL qualification", () => {
   it("restarts the same cluster and publishes a fresh Host token", async () => {
     const fixture = await makeFixture();
     const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);

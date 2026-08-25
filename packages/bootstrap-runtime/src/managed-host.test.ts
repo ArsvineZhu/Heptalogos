@@ -54,7 +54,7 @@ const quiescence: HostMaintenanceQuiescence = {
 };
 
 describe("managed Host capability", () => {
-  it("preserves the M4 identity view without exposing raw close", () => {
+  it("preserves the Host ownership identity view without exposing raw close", () => {
     const raw = rawHost();
     const managed = createManagedHostContext(
       raw,
