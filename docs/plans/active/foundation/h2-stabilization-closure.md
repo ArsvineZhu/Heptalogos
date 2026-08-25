@@ -1899,6 +1899,14 @@ pnpm tsc6
 
 No Cordis/Graphlib/Kysely/pg/Bootstrap private object becomes a stable Heptalogos contract.
 
+S8 re-audit evidence (2026-08-26): `check:hygiene`, compatibility register
+(`PRE_PRODUCTION`, obligations `[]`), repository, Corpus, dependency, boundary,
+agent-resource, and TS6 gates are `PASS`. Runtime Substrate (16 tests), Runtime
+Kernel (121 tests), Persistence (19 tests), Execution Lineage (29 tests),
+Canonical Schema (3 tests), Evidence (4 tests), Time Service (4 tests), and
+repo-kit (27 tests) are `PASS`. Persistence PostgreSQL integration remains
+`NOT_RUN`/`BLOCKED` because the qualified PostgreSQL toolchain is absent.
+
 ## Task S9 — Fresh H2-S local qualification matrix
 
 Candidate freeze is BLOCKED unless final-candidate PostgreSQL 18.6 is actually available.
