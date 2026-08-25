@@ -94,7 +94,7 @@ persistence_unit: PASS (19/19)
 bootstrap_runtime_unit: PASS
 runtime_origin_shared_als: PASS (L2-L8 unit coverage)
 activity_completion_unit: PASS (current Activity/origin admission)
-runtime_lifecycle_recorder_unit: PASS (retain/work/complete success and failure)
+runtime_lifecycle_recorder_unit: PASS (retain/work/complete success and failure) transient_service_call_activity: PASS (S11/R15 provider-origin semantics) transient_capability_invoke_activity: PASS (K9) no_op_reconcile_activity_suppression: PASS (R16) background_failure_race_and_cleanup_containment: PASS (R13/R14)
 runtime_lifecycle_real_postgres: PASS (I1-I10 plus L9-L16)
 bootstrap_runtime_real_postgres_regression: PASS (7 integration files, 51 tests)
 repository_verification: PASS (pnpm verify)
