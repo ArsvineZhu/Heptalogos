@@ -240,3 +240,22 @@ remain `NOT_RUN`.
 Exact-package RuntimeSubstrate integration, product start/stop, source-less and platform diagnostics remain implementation qualification.
 
 若未来真实 implementation 暴露 reproducible hard blocker，才允许按 `../DEPENDENCY-QUALIFICATION.md` 的 reopening rule 重开 RoleDecision。
+
+## H2B post-merge truth reconciliation (2026-08-26)
+
+```yaml
+h2b_review_candidate_base_sha: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+h2b_review_candidate_head_sha: 86c01ee90d6d1f6c953be39375ccddb0458a189a
+h2b_independent_review: PASS (operator-supplied exact pair)
+h2b_final_cross_platform_ci: PASS (run 32862042074; Ubuntu/macOS/Windows)
+h2b_squash_merge: PASS (PR #22 merge d7f32427398d2309c1732cdbce98f590e14a8249)
+h2b_final_head_real_postgres_rerun: NOT_RUN
+```
+
+The H2B Windows PostgreSQL property evidence remains explicitly carried
+forward because the final corrective cycle changed Runtime Kernel
+contract validation/projection and documentation, not persistence, lineage, or
+database behavior. H2A-3's historical final cross-platform CI remains
+`NOT_RUN`; it is not rewritten by H2B evidence. Linux/macOS product
+PostgreSQL, source-less, service/headless, and complete product runtime
+start/stop claims remain `NOT_RUN` or `PARTIAL` as previously recorded.

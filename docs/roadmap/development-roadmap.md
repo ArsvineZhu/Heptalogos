@@ -2,7 +2,7 @@
 
 **Status:** LIVING ROADMAP / planning guidance<br>
 **Date:** 2026-08-25<br>
-**Repository baseline:** `master@19ebef1c62a737ad077414a6817ffdf8ac3ad2a4` (H2A-3 post-merge truth reconciliation)<br>
+**Repository baseline:** `master@d7f32427398d2309c1732cdbce98f590e14a8249` (H2B squash merge / current reconciliation base)<br>
 **Architecture baseline:** `Architecture_Corpus` design state 2026-08-20
 
 > This document is a roadmap, not an Architecture Corpus authority and not an Implementation Plan. It guides future plan decomposition, sequencing, risk retirement, and acceptance. If it conflicts with the Architecture Corpus, the Corpus wins. If implementation evidence invalidates roadmap assumptions without invalidating architecture semantics, update the roadmap rather than silently changing the Corpus.
@@ -128,7 +128,7 @@ It does not prove private PostgreSQL, runtime supervision, durable work, system 
 
 > Can a Heptalogos installation reliably identify itself, locate its independent lifecycle roots, obtain exclusive bootstrap ownership, start/validate its private PostgreSQL, and hand ownership to exactly one normal Host without an authority gap?
 
-### Current progress (2026-08-25)
+### Current progress (2026-08-26)
 
 Current H-stage truth:
 
@@ -141,19 +141,25 @@ H2A_1: CLOSED
 H2A_2: CLOSED
 H2A_3: CLOSED
 H2A: FUNCTIONALLY_COMPLETE
-H2B: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
-H2_FUNCTIONAL: COMPLETE_PENDING_H2B_CLOSURE
-H2_STABILIZATION: NOT_STARTED
+H2B: CLOSED
+H2_FUNCTIONAL: COMPLETE
+H2_STABILIZATION: ELIGIBLE
 H2: OPEN
+H3: NOT_ELIGIBLE
 ```
 
 H2A-3 implementation and Windows PostgreSQL 18.6 local qualification are
-complete. H2B implementation and its bounded Windows PostgreSQL qualification
-are complete on Draft PR #22, based on the post-H2A-3 reconciliation master
-`19ebef1c62a737ad077414a6817ffdf8ac3ad2a4`; the current candidate remains
-awaiting a new exact-pair Independent Review. Final cross-platform CI and
-squash merge remain `NOT_RUN`. H2A is functionally complete, H2B is
-implementation-complete pending review/closure, and H2 remains open.
+complete and PR #22 is squash-merged at
+`d7f32427398d2309c1732cdbce98f590e14a8249`. Its exact reviewed behavior pair
+was `(19ebef1c62a737ad077414a6817ffdf8ac3ad2a4,
+86c01ee90d6d1f6c953be39375ccddb0458a189a)`; operator-supplied Independent
+Review is `PASS`, and manual final cross-platform workflow run `32862042074`
+is `PASS` on Ubuntu/macOS/Windows for the reviewed head. H2B is therefore
+closed and H2 is functionally complete. The final-head real PostgreSQL rerun
+was `NOT_RUN`; the qualified Windows PostgreSQL property evidence is carried
+forward because the final corrective cycle did not change persistence,
+lineage, or database behavior. H2-S is eligible but has not started, and H2
+remains open.
 
 H1 functional implementation: COMPLETE.
 
