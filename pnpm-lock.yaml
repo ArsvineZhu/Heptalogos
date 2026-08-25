@@ -9,6 +9,9 @@ catalogs:
     '@bybrave/proper-lockfile2':
       specifier: 5.0.0
       version: 5.0.0
+    '@dagrejs/graphlib':
+      specifier: 4.0.5
+      version: 4.0.5
     '@nx/js':
       specifier: 23.1.1
       version: 23.1.1
@@ -30,6 +33,9 @@ catalogs:
     canonicalize:
       specifier: 4.0.0
       version: 4.0.0
+    cordis:
+      specifier: 4.0.0-rc.8
+      version: 4.0.0-rc.8
     eslint:
       specifier: 10.8.1
       version: 10.8.1
@@ -156,6 +162,12 @@ importers:
       '@heptalogos/persistence':
         specifier: workspace:*
         version: link:../persistence
+      '@heptalogos/runtime-kernel':
+        specifier: workspace:*
+        version: link:../runtime-kernel
+      '@heptalogos/runtime-substrate':
+        specifier: workspace:*
+        version: link:../runtime-substrate
       '@heptalogos/time-service':
         specifier: workspace:*
         version: link:../time-service
@@ -341,6 +353,44 @@ importers:
       fast-check:
         specifier: 'catalog:'
         version: 4.9.0
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(yaml@2.9.0))
+
+  packages/runtime-kernel:
+    dependencies:
+      '@dagrejs/graphlib':
+        specifier: 'catalog:'
+        version: 4.0.5
+      '@heptalogos/execution-lineage':
+        specifier: workspace:*
+        version: link:../execution-lineage
+      '@heptalogos/foundation-contracts':
+        specifier: workspace:*
+        version: link:../foundation-contracts
+      '@heptalogos/persistence':
+        specifier: workspace:*
+        version: link:../persistence
+      '@heptalogos/runtime-substrate':
+        specifier: workspace:*
+        version: link:../runtime-substrate
+      '@heptalogos/time-service':
+        specifier: workspace:*
+        version: link:../time-service
+    devDependencies:
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(yaml@2.9.0))
+
+  packages/runtime-substrate:
+    dependencies:
+      '@heptalogos/foundation-contracts':
+        specifier: workspace:*
+        version: link:../foundation-contracts
+      cordis:
+        specifier: 'catalog:'
+        version: 4.0.0-rc.8
+    devDependencies:
       vitest:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(yaml@2.9.0))
@@ -926,6 +976,9 @@ packages:
   '@bybrave/proper-lockfile2@5.0.0':
     resolution: {integrity: sha512-oeebmWF78nnEw/v3B93dOsuqpGFseDoab9YdSDXSNGfksh5n9KIabFo9lzleEdiPygbpm6btCj6O58k0z1xaEw==}
     engines: {node: '>=18'}
+
+  '@dagrejs/graphlib@4.0.5':
+    resolution: {integrity: sha512-7xrBTqIts3o+PMUZX97wSc+7TUbW+/rULzGNCTP6yooNVDXbzw4Wutg/H/xOutTB/c/k0YqOAavgPh4/Zk9PFA==}
 
   '@emnapi/core@1.4.5':
     resolution: {integrity: sha512-XsLw1dEOpkSX/WucdqUhPWP7hDxSvZiY+fsUC14h+FtQ2Ifni4znbBt8punRX+Uj2JG/uDb8nEHVKvrVlvdZ5Q==}
@@ -1634,6 +1687,18 @@ packages:
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
 
+  cordis@4.0.0-rc.8:
+    resolution: {integrity: sha512-vXaYK6XZJlIFTnODp4Rd973Qnd/gm3cwFzWsMTaeu6cQQheA7N+aA0GqHRNl0cFIrxMXWU8dst1ZXHlUQvfyRw==}
+    hasBin: true
+    peerDependencies:
+      '@cordisjs/plugin-include': ^1.0.4
+      '@cordisjs/plugin-loader': ^1.0.0-rc.5
+    peerDependenciesMeta:
+      '@cordisjs/plugin-include':
+        optional: true
+      '@cordisjs/plugin-loader':
+        optional: true
+
   core-js-compat@3.50.0:
     resolution: {integrity: sha512-XGpFGbMLHwSt74YLTKho7Ib242qi6O8MSX+sRokV4oz7iKXvQWGYZthjIhjRGMxjzVkAubBO512dKGYcefmX3Q==}
     engines: {node: '>=6.4.0'}
@@ -1641,6 +1706,9 @@ packages:
   cosmiconfig@7.1.0:
     resolution: {integrity: sha512-AdmX6xUzdNASswsFtmwSt7Vj8po9IuqXm0UXz7QKPuEUmPB4XyjGfaAr2PSuELMwkRMVH1EpIkX5bTZGRB3eCA==}
     engines: {node: '>=10'}
+
+  cosmokit@1.8.1:
+    resolution: {integrity: sha512-PDBv4l90xZKrUsZ0vtoycgZpO/j4iFsqJXrAxsyBDsnQRI7ZMJXIjgDJsKNjd5L8jnVnnlrDCdhkFbTncgCVjQ==}
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -3512,6 +3580,8 @@ snapshots:
       retry: 0.13.1
       signal-exit: 3.0.7
 
+  '@dagrejs/graphlib@4.0.5': {}
+
   '@emnapi/core@1.4.5':
     dependencies:
       '@emnapi/wasi-threads': 1.0.4
@@ -4177,6 +4247,11 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
+  cordis@4.0.0-rc.8:
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      cosmokit: 1.8.1
+
   core-js-compat@3.50.0:
     dependencies:
       browserslist: 4.28.8
@@ -4188,6 +4263,8 @@ snapshots:
       parse-json: 5.2.0
       path-type: 4.0.0
       yaml: 1.10.3
+
+  cosmokit@1.8.1: {}
 
   cross-spawn@7.0.6:
     dependencies:

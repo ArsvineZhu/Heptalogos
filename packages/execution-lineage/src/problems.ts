@@ -87,6 +87,30 @@ export function activityAlreadyRetainedProblem(): ProblemError {
   );
 }
 
+export function activityNotRetainedProblem(): ProblemError {
+  return lineageProblem(
+    "lineage.persistence.activity_not_retained",
+    "Activity is not retained",
+    "Only a currently retained Activity can be completed",
+  );
+}
+
+export function completionConflictProblem(): ProblemError {
+  return lineageProblem(
+    "lineage.persistence.completion_conflict",
+    "Activity completion conflicts with retained history",
+    "A retained Activity already has a different completion",
+  );
+}
+
+export function invalidCompletionProblem(detail: string): ProblemError {
+  return lineageProblem(
+    "lineage.persistence.completion_invalid",
+    "Activity completion is invalid",
+    detail,
+  );
+}
+
 export function bootstrapReferenceDiscontinuityProblem(): ProblemError {
   return lineageProblem(
     "lineage.bootstrap_reference.discontinuity",

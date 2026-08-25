@@ -26,6 +26,10 @@ export interface CanonicalDatabase {
     readonly boot_id: string;
     readonly continuity_epoch_id: string;
     readonly host_ownership_token: string | null;
+    readonly product_generation_id: string | null;
+    readonly package_generation_id: string | null;
+    readonly micro_system_id: string | null;
+    readonly micro_system_instance_id: string | null;
     readonly importance: string;
     readonly retention_class: string;
     readonly sensitivity: string;

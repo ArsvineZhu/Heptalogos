@@ -6,6 +6,7 @@ test-results/
 .vite/
 .cache/
 .pnpm-store/
+/tmp/
 pnpm-lock.yaml
 Architecture_Corpus/
 .agents/

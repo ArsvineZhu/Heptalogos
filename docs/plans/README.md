@@ -15,8 +15,7 @@ surface the ambiguity rather than guessing.
 
 ## Active
 
-H2B is eligible after H2A-3 reconciliation; its implementation plan will be
-registered in `docs/plans/active/foundation/` with the H2B candidate.
+[H2B Runtime Composition & Kernel](active/foundation/h2b-runtime-composition-kernel.md) — `ACTIVE / CORRECTIVE_REVIEW_CYCLE`
 
 ## Completed
 

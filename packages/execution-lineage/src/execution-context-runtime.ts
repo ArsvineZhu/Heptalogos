@@ -2,10 +2,13 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import {
   createActivityId,
   parseBootId,
+  parseContentDigest,
   parseContinuityEpochId,
   parseHostOwnershipToken,
   parseInstallationId,
   parseInstanceId,
+  parseMicroSystemId,
+  parseMicroSystemInstanceId,
   type ActivityId,
 } from "@heptalogos/foundation-contracts";
 import type { TimeService } from "@heptalogos/time-service";
@@ -17,6 +20,7 @@ import type {
   ExecutionContextRuntime,
   HostExecutionOrigin,
   LineageContextRefV1,
+  RuntimeExecutionOrigin,
 } from "./contracts.js";
 import { decodeLineageContextRef } from "./lineage-context-ref.js";
 import {
@@ -36,6 +40,19 @@ interface ExecutionStore {
   readonly execution: ExecutionContext;
   readonly otelContext: LineageTelemetryContext;
 }
+
+export interface InternalRuntimeActivityRunner {
+  current(): ExecutionContext | undefined;
+  runActivity<T>(
+    request: ActivityRequest,
+    operation: (context: ExecutionContext) => Promise<T>,
+  ): Promise<T>;
+}
+
+const runtimeOriginBinders = new WeakMap<
+  ExecutionContextRuntime,
+  (origin: RuntimeExecutionOrigin) => InternalRuntimeActivityRunner
+>();
 
 const importanceValues = new Set<ActivityImportance>([
   "diagnostic",
@@ -97,6 +114,43 @@ function assertActivityRequest(request: ActivityRequest): void {
   }
 }
 
+function freezeRuntimeOrigin(origin: RuntimeExecutionOrigin): RuntimeExecutionOrigin {
+  const productGenerationId = parseContentDigest(
+    "ProductGenerationId",
+    origin.productGenerationId,
+  );
+  const packageGenerationId =
+    origin.packageGenerationId === undefined
+      ? undefined
+      : parseContentDigest("PackageGenerationId", origin.packageGenerationId);
+  const microSystemId =
+    origin.microSystemId === undefined
+      ? undefined
+      : parseMicroSystemId(origin.microSystemId);
+  const microSystemInstanceId =
+    origin.microSystemInstanceId === undefined
+      ? undefined
+      : parseMicroSystemInstanceId(origin.microSystemInstanceId);
+
+  if (
+    productGenerationId === undefined ||
+    (origin.packageGenerationId !== undefined && packageGenerationId === undefined) ||
+    (origin.microSystemId !== undefined && microSystemId === undefined) ||
+    (origin.microSystemInstanceId !== undefined &&
+      microSystemInstanceId === undefined) ||
+    (microSystemId === undefined) !== (microSystemInstanceId === undefined)
+  ) {
+    throw invalidOriginProblem();
+  }
+
+  return Object.freeze({
+    productGenerationId,
+    ...(packageGenerationId ? { packageGenerationId } : {}),
+    ...(microSystemId ? { microSystemId } : {}),
+    ...(microSystemInstanceId ? { microSystemInstanceId } : {}),
+  });
+}
+
 function freezeOrigin(origin: HostExecutionOrigin): HostExecutionOrigin {
   if (
     !parseInstallationId(origin.installationId) ||
@@ -107,7 +161,12 @@ function freezeOrigin(origin: HostExecutionOrigin): HostExecutionOrigin {
   ) {
     throw invalidOriginProblem();
   }
-  return Object.freeze({ ...origin });
+  const runtime =
+    origin.runtime === undefined ? undefined : freezeRuntimeOrigin(origin.runtime);
+  return Object.freeze({
+    ...origin,
+    ...(runtime ? { runtime } : {}),
+  });
 }
 
 function freezeLinks(links: readonly ActivityLink[]): readonly ActivityLink[] {
@@ -117,6 +176,7 @@ function freezeLinks(links: readonly ActivityLink[]): readonly ActivityLink[] {
 function createExecutionContext(
   request: ActivityRequest,
   origin: HostExecutionOrigin,
+  runtimeOrigin: RuntimeExecutionOrigin | undefined,
   time: TimeService,
   parentActivityId: ActivityId | undefined,
   causationActivityId: ActivityId | undefined,
@@ -132,7 +192,10 @@ function createExecutionContext(
     ...(parentActivityId ? { parentActivityId } : {}),
     ...(causationActivityId ? { causationActivityId } : {}),
     links: freezeLinks(request.links ?? []),
-    origin,
+    origin:
+      runtimeOrigin === undefined
+        ? origin
+        : Object.freeze({ ...origin, runtime: runtimeOrigin }),
     semantic,
     importance: request.importance,
     retentionClass: request.retentionClass,
@@ -155,10 +218,12 @@ export function createExecutionContextRuntime(
     parentActivityId: ActivityId | undefined,
     causationActivityId: ActivityId | undefined,
     parentOtel: LineageTelemetryContext,
+    runtimeOrigin: RuntimeExecutionOrigin | undefined,
   ): Promise<T> => {
     const execution = createExecutionContext(
       request,
       trustedOrigin,
+      runtimeOrigin,
       time,
       parentActivityId,
       causationActivityId,
@@ -170,7 +235,7 @@ export function createExecutionContextRuntime(
     );
   };
 
-  return {
+  const runtime: ExecutionContextRuntime = {
     current: () => storage.getStore()?.execution,
     async runActivity<T>(
       request: ActivityRequest,
@@ -184,6 +249,7 @@ export function createExecutionContextRuntime(
         parent?.execution.activityId,
         request.causationActivityId,
         parentOtel,
+        undefined,
       );
     },
     capture<TArgs extends readonly unknown[], TResult>(
@@ -227,7 +293,43 @@ export function createExecutionContextRuntime(
         undefined,
         decoded.sourceActivityId,
         parentOtel,
+        undefined,
       );
     },
   };
+
+  runtimeOriginBinders.set(runtime, (runtimeOrigin) => {
+    const trustedRuntimeOrigin = freezeRuntimeOrigin(runtimeOrigin);
+    return {
+      current: () => storage.getStore()?.execution,
+      async runActivity<T>(
+        request: ActivityRequest,
+        operation: (context: ExecutionContext) => Promise<T>,
+      ): Promise<T> {
+        const parent = storage.getStore();
+        const parentOtel = parent?.otelContext ?? activeTelemetryContext();
+        return runScope(
+          request,
+          operation,
+          parent?.execution.activityId,
+          request.causationActivityId,
+          parentOtel,
+          trustedRuntimeOrigin,
+        );
+      },
+    };
+  });
+
+  return runtime;
+}
+
+export function bindRuntimeOriginInternal(
+  runtime: ExecutionContextRuntime,
+  origin: RuntimeExecutionOrigin,
+): InternalRuntimeActivityRunner {
+  const binder = runtimeOriginBinders.get(runtime);
+  if (binder === undefined) {
+    throw invalidOriginProblem();
+  }
+  return binder(origin);
 }

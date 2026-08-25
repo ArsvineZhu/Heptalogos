@@ -74,6 +74,24 @@ function keyProvider() {
         password.fill(0);
       }
     },
+    async withPrivatePostgresRuntimePassword(_context, use) {
+      const password = new TextEncoder().encode("M5A_TEST_RUNTIME_PASSWORD_0123456789");
+      try {
+        return await use(password);
+      } finally {
+        password.fill(0);
+      }
+    },
+    async withPrivatePostgresMigrationPassword(_context, use) {
+      const password = new TextEncoder().encode(
+        "M5A_TEST_MIGRATION_PASSWORD_0123456789",
+      );
+      try {
+        return await use(password);
+      } finally {
+        password.fill(0);
+      }
+    },
   };
 }
 
@@ -163,6 +181,9 @@ async function runMaintenance() {
     keyProvider: keyProvider(),
   });
   const host = await owned.handoffPrivatePostgresToHost(ready, {
+    initializeCanonicalHost: async ({ authority }) => {
+      authority.assertCurrent();
+    },
     keyProvider: keyProvider(),
     timing: HOST_TIMING,
   });
@@ -217,6 +238,9 @@ async function runRecovery() {
       anchorRoot,
       principal: await proveLocalInstallationOwner(anchorRoot),
       expectedOperationId: operationId,
+      initializeCanonicalHost: async ({ authority }) => {
+        authority.assertCurrent();
+      },
       keyProvider: keyProvider(),
       timing: HOST_TIMING,
       privatePostgres: descriptor,

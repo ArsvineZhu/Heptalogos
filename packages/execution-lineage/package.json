@@ -8,6 +8,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./runtime-kernel": {
+      "types": "./dist/runtime-kernel.d.ts",
+      "import": "./dist/runtime-kernel.js",
+      "default": "./dist/runtime-kernel.js"
     }
   },
   "dependencies": {

@@ -58,6 +58,49 @@ addendum 记录 H2A-2 canonical schema continuity 证据。H2A-1 的 exact
 review/CI/merge tuple 不被 H2A-2 改写；两组证据的 `PASS` 只表示已执行的
 evidence gate，不等同于 qualification closure。
 
+## H2B corrective-cycle persistence addendum (2026-08-25)
+
+```yaml
+qualificationId: Q-PERSISTENCE-01
+testedProperty: "H2B canonical runtime-origin constraints and narrow Activity completion function validation"
+evidenceStatus: NOT_RUN
+qualificationState: PARTIAL
+implementationQualification: REQUIRED
+h2b_persistence_relevant_behavior_sha: NOT_FROZEN
+canonical_runtime_origin_constraints: NOT_RUN
+completion_function_fail_closed_input_validation: NOT_RUN
+real_postgres_platform: NOT_RUN
+repository_schema_compile: PASS
+pnpm_verify: PASS (full repository verify; one unrelated flaky lock test retried successfully)
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+This addendum deliberately uses `h2b_persistence_relevant_behavior_sha`, not
+`behavior_candidate_sha`: the corrective working tree has not been frozen into
+an H2B candidate. The current PRE_PRODUCTION baseline was edited in place as
+required; no compatibility migration was added. Real PostgreSQL constraint and
+SECURITY DEFINER execution evidence remains `NOT_RUN` because the local
+qualification toolchain was unavailable.
+
+## H2B second corrective-cycle persistence status (2026-08-25)
+
+The B1-B4/I1/I2 runtime-kernel corrections did not alter the canonical schema
+or completion function in this cycle. The persistence-relevant behavior still
+has no frozen candidate SHA, and real PostgreSQL execution of the runtime-origin
+constraints and completion validation remains `NOT_RUN`. The current full
+repository `pnpm verify` is `PASS`; this does not upgrade the real PostgreSQL
+claim, independent review, final cross-platform CI, or squash merge.
+
+## H2B third corrective-cycle persistence status (2026-08-25)
+
+The current RC-1 to RC-7 runtime ownership corrections do not change the
+canonical schema or completion function. The prior local verification result
+is historical for `4cad58d...`; the current full `pnpm verify` is `PASS`.
+Runtime-origin constraint, completion-function,
+Independent Review, final CI, and merge evidence remain `NOT_RUN`.
+
 ## H2A-1 historical/current ledger
 
 H2A-1 已在历史候选上完成外部独立 review、exact-pair final CI 和 squash merge：
@@ -77,6 +120,81 @@ least-privilege runtime role、事务生命周期和 leakage gates 保持既有
 `PASS`；Linux/macOS PostgreSQL、source-less persistence、installed
 service/headless runtime 仍为 `NOT_RUN`。机器可读的完整历史 ledger 位于
 `qualification-status.json`，本节不改写其历史字段。
+
+## H2B fourth corrective-cycle persistence status (2026-08-25)
+
+The current Host-facade, Supervisor mutation-domain, generation-bound failure,
+and authoritative Readiness corrections do not change the canonical schema or
+completion function. The persistence-relevant candidate boundary is frozen on
+the live PR #22 head authority with review base
+`19ebef1c62a737ad077414a6817ffdf8ac3ad2a4`; no self-referential head SHA is
+stored in this record.
+
+```yaml
+h2b_persistence_relevant_behavior_sha: FROZEN_ON_PR_HEAD
+canonical_runtime_origin_constraints: NOT_RUN
+completion_function_fail_closed_input_validation: NOT_RUN
+real_postgres_platform: NOT_RUN
+pnpm_verify: PASS (current full repository verify)
+independent_review: NOT_RUN (new exact pair)
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+## H2B fifth corrective-cycle persistence status (2026-08-25)
+
+The current corrective tree was reviewed as
+`19ebef1c62a737ad077414a6817ffdf8ac3ad2a4` → `674f5b241ba564ed6ee7b279b10908ffd5adc168`
+with `REQUEST_CHANGES`. The subsequent tree keeps the candidate boundary on
+live PR #22 metadata and records the real PostgreSQL evidence separately from
+the still-pending external gates.
+
+```yaml
+h2b_persistence_relevant_behavior_sha: FROZEN_ON_PR_HEAD
+h2b_review_base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+h2b_review_head_authority: live PR #22 head
+canonical_runtime_origin_constraints: PASS (H2B integration 5/5)
+direct_runtime_activity_update_denial: PASS (H2B integration 5/5)
+completion_function_fail_closed_input_validation: PASS (H2B integration 5/5)
+real_postgres_version: PostgreSQL 18.6
+real_postgres_platform: Windows
+real_postgres_bin_directory: C:\dev\Heptalogos\tmp\heptalogos-pg18.6-correction-20260825\extracted\pgsql\bin
+private_postgres_regression: PASS (20/20)
+host_ownership_regression: PASS (10/10)
+persistence_regression: PASS (9/9)
+bootstrap_runtime_regression: PASS (7 files, 52 tests)
+recovery_process_regression: PASS (2/2)
+pnpm_verify: PASS (current fifth-cycle full repository verify)
+independent_review: NOT_RUN (new exact pair)
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The PostgreSQL tools are retained only under the ignored repository-root
+`tmp/` directory. Linux/macOS, source-less, service/headless, independent
+review, final cross-platform CI, and squash merge remain `NOT_RUN`.
+
+## H2B sixth corrective-cycle persistence status (2026-08-25)
+
+The current corrective tree follows the `REQUEST_CHANGES` result for
+`19ebef1...` → `ee256dd...`. It changes only runtime-kernel contract shape,
+boundary projection, provider failure normalization, and governance text; no
+persistence, execution-lineage, schema, migration, or database path changed.
+
+```yaml
+h2b_persistence_relevant_behavior_sha: CARRIED_FORWARD_FROM_EE256
+h2b_review_base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+h2b_review_head_authority: live PR #22 head
+canonical_runtime_origin_constraints: CARRIED_FORWARD
+direct_runtime_activity_update_denial: CARRIED_FORWARD
+completion_function_fail_closed_input_validation: CARRIED_FORWARD
+real_postgres_platform: CARRIED_FORWARD (Windows PostgreSQL 18.6)
+current_head_real_postgres_rerun: NOT_RUN (no persistence/lineage/DB path changed)
+pnpm_verify: PASS (current sixth-cycle full repository verify)
+independent_review: NOT_RUN (new exact pair)
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
 
 ## H2A-2 current addendum (2026-08-24)
 

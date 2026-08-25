@@ -1,0 +1,24 @@
+{
+  "name": "@heptalogos/runtime-kernel",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@dagrejs/graphlib": "catalog:",
+    "@heptalogos/execution-lineage": "workspace:*",
+    "@heptalogos/foundation-contracts": "workspace:*",
+    "@heptalogos/persistence": "workspace:*",
+    "@heptalogos/runtime-substrate": "workspace:*",
+    "@heptalogos/time-service": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "catalog:"
+  }
+}

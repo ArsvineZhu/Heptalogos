@@ -21,6 +21,7 @@ const ignoredDirectories = new Set([
   "dist",
   "node_modules",
   "test-results",
+  "tmp",
 ]);
 const builtins = new Set([
   ...builtinModules,
@@ -66,6 +67,15 @@ const restrictedImports = new Map([
       "packages/execution-lineage/src/execution-context-runtime.test.ts",
     ],
   ],
+  ["cordis", ["packages/runtime-substrate/"]],
+  [
+    "@dagrejs/graphlib",
+    [
+      "packages/runtime-kernel/src/runtime-graph.ts",
+      "packages/runtime-kernel/src/runtime-graph.test.ts",
+    ],
+  ],
+  ["@heptalogos/execution-lineage/runtime-kernel", ["packages/runtime-kernel/"]],
   [
     "@heptalogos/bootstrap-state",
     ["packages/bootstrap-runtime/", "packages/bootstrap-state/"],
@@ -347,6 +357,37 @@ const sourcePaths = collect(root, (sourcePath) => /\.(?:ts|tsx)$/u.test(sourcePa
 for (const path of sourcePaths) {
   const relativePath = relative(root, path).replaceAll("\\", "/");
   const source = readFileSync(path, "utf8");
+  if (relativePath.startsWith("packages/runtime-substrate/")) {
+    if (
+      /(?:from|import\s*\(|require\s*\()(?:\s*["'])(?:@heptalogos\/(?:persistence|execution-lineage)|\.\.\/)/u.test(
+        source,
+      )
+    ) {
+      errors.push(
+        `${relativePath}: runtime-substrate must not depend on PersistenceService or execution-lineage`,
+      );
+    }
+  }
+  if (relativePath.startsWith("packages/runtime-kernel/")) {
+    if (
+      /(?:from|import\s*\(|require\s*\()(?:\s*["'])(?:@heptalogos\/(?:bootstrap-state|host-ownership|canonical-schema)|pg|kysely)(?:["'])/u.test(
+        source,
+      )
+    ) {
+      errors.push(
+        `${relativePath}: runtime-kernel must not import Bootstrap/Host ownership, canonical-schema, pg, or Kysely directly`,
+      );
+    }
+    if (relativePath === "packages/runtime-kernel/src/index.ts") {
+      if (
+        /\b(?:Cordis|Context|Fiber|Kysely|Pool|Client|PostgresDialect)\b/u.test(source)
+      ) {
+        errors.push(
+          "packages/runtime-kernel/src/index.ts: runtime-kernel package root must not leak framework or database objects",
+        );
+      }
+    }
+  }
   if (relativePath.startsWith(hostOwnershipSourcePrefix)) {
     for (const forbidden of ["Kysely", "DBOS", "PersistenceService"]) {
       if (new RegExp(`\\b${forbidden}\\b`, "u").test(source)) {

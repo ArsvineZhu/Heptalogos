@@ -8,18 +8,22 @@ import type { PersistenceMutationTransactionContext } from "@heptalogos/persiste
 import type { PersistenceInternalTransaction } from "@heptalogos/persistence/foundation-repository";
 import { useFoundationMutationTransaction } from "@heptalogos/persistence/foundation-repository";
 import type {
+  ActivityCompletion,
   BootstrapRetainedActivityDraft,
   ExecutionContext,
   ExecutionLineageService,
 } from "./contracts.js";
 import {
   activityAlreadyRetainedProblem,
+  activityNotRetainedProblem,
   bootstrapReferenceConflictProblem,
   bootstrapReferenceDiscontinuityProblem,
   currentActivityMismatchProblem,
   originMismatchProblem,
   retentionNotDurableProblem,
   invalidActivityProblem,
+  invalidCompletionProblem,
+  completionConflictProblem,
 } from "./problems.js";
 import { runWithLineageSuppressed } from "./suppression.js";
 
@@ -111,11 +115,13 @@ async function insertCurrentActivity(
       `INSERT INTO "heptalogos"."activity_record" (
         activity_id, kind, started_at, ended_at, parent_activity_id,
         causation_activity_id, installation_id, instance_id, boot_id,
-        continuity_epoch_id, host_ownership_token, importance, retention_class,
-        sensitivity, operation_id, feature_id, service_id, capability_id,
-        provider_id, contract_version, outcome, outcome_ref
-      ) VALUES ($1, $2, $3, NULL, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-        $14, $15, $16, $17, $18, $19, NULL, NULL)`,
+        continuity_epoch_id, host_ownership_token, product_generation_id,
+        package_generation_id, micro_system_id, micro_system_instance_id,
+        importance, retention_class, sensitivity, operation_id, feature_id,
+        service_id, capability_id, provider_id, contract_version, outcome,
+        outcome_ref
+      ) VALUES ($1, $2, $3, NULL, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+        $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, NULL, NULL)`,
       [
         context.activityId,
         context.kind,
@@ -127,6 +133,10 @@ async function insertCurrentActivity(
         context.origin.bootId,
         context.origin.continuityEpochId,
         context.origin.hostOwnershipToken,
+        context.origin.runtime?.productGenerationId ?? null,
+        context.origin.runtime?.packageGenerationId ?? null,
+        context.origin.runtime?.microSystemId ?? null,
+        context.origin.runtime?.microSystemInstanceId ?? null,
         context.importance,
         context.retentionClass,
         context.sensitivity,
@@ -221,12 +231,15 @@ async function retainBootstrap(
     `INSERT INTO "heptalogos"."activity_record" (
       activity_id, kind, started_at, ended_at, parent_activity_id,
       causation_activity_id, installation_id, instance_id, boot_id,
-      continuity_epoch_id, host_ownership_token, importance, retention_class,
+      continuity_epoch_id, host_ownership_token, product_generation_id,
+      package_generation_id, micro_system_id, micro_system_instance_id,
+      importance, retention_class,
       sensitivity, operation_id, feature_id, service_id, capability_id,
       provider_id, contract_version, outcome, outcome_ref
     ) VALUES ($1, 'bootstrap.handoff', $2, $3, NULL, NULL, $4, $5, $6, $7,
-      NULL, 'significant', 'retained', 'operational', NULL, NULL, NULL, NULL,
-      NULL, NULL, $8, $9) ON CONFLICT (activity_id) DO NOTHING`,
+      NULL, NULL, NULL, NULL, NULL, 'significant', 'retained', 'operational',
+      NULL, NULL, NULL, NULL, NULL, NULL, $8, $9)
+      ON CONFLICT (activity_id) DO NOTHING`,
     [
       draft.activityId,
       draft.startedAt,
@@ -253,6 +266,62 @@ async function retainBootstrap(
   }
 }
 
+function assertCompletion(completion: ActivityCompletion): void {
+  if (!parseInstant(completion.endedAt)) {
+    throw invalidCompletionProblem("endedAt must be a canonical Instant");
+  }
+  if (
+    completion.outcome !== "SUCCEEDED" &&
+    completion.outcome !== "FAILED" &&
+    completion.outcome !== "CANCELLED"
+  ) {
+    throw invalidCompletionProblem("outcome is not supported");
+  }
+  assertBounded(completion.outcomeRef, "outcomeRef", 1024);
+}
+
+async function completeActivity(
+  transaction: PersistenceInternalTransaction,
+  context: ExecutionContext,
+  completion: ActivityCompletion,
+): Promise<void> {
+  const runtime = context.origin.runtime;
+  const rows = await executeSql(
+    transaction,
+    `SELECT "heptalogos"."complete_activity_record"(
+       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+     ) AS result`,
+    [
+      context.activityId,
+      context.origin.installationId,
+      context.origin.instanceId,
+      context.origin.bootId,
+      context.origin.continuityEpochId,
+      context.origin.hostOwnershipToken,
+      runtime?.productGenerationId ?? null,
+      runtime?.packageGenerationId ?? null,
+      runtime?.microSystemId ?? null,
+      runtime?.microSystemInstanceId ?? null,
+      completion.endedAt,
+      completion.outcome,
+      outcomeRef(completion.outcomeRef),
+    ],
+  );
+  const result = rows[0]?.result;
+  if (result === "COMPLETED" || result === "IDEMPOTENT") return;
+  if (result === "NOT_FOUND") throw activityNotRetainedProblem();
+  if (result === "ORIGIN_MISMATCH") throw originMismatchProblem();
+  if (result === "CONFLICT") throw completionConflictProblem();
+  if (result === "INVALID_COMPLETION") {
+    throw invalidCompletionProblem(
+      "Canonical completion function rejected the completion payload",
+    );
+  }
+  throw invalidCompletionProblem(
+    "Canonical completion function returned an unknown result",
+  );
+}
+
 export function createExecutionLineageService(): ExecutionLineageService {
   return {
     async retainCurrent(transaction, context) {
@@ -268,6 +337,18 @@ export function createExecutionLineageService(): ExecutionLineageService {
       await runWithLineageSuppressed(() =>
         useFoundationMutationTransaction(transaction, async (databaseTransaction) => {
           await retainBootstrap(databaseTransaction, draft);
+        }),
+      );
+    },
+    async completeCurrent(transaction, context, completion) {
+      assertCurrentActivity(transaction, context);
+      if (context.retentionClass === "ephemeral") {
+        throw retentionNotDurableProblem();
+      }
+      assertCompletion(completion);
+      await runWithLineageSuppressed(() =>
+        useFoundationMutationTransaction(transaction, async (databaseTransaction) => {
+          await completeActivity(databaseTransaction, context, completion);
         }),
       );
     },

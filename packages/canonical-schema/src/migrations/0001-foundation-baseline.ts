@@ -1,4 +1,5 @@
 import { sql, type Kysely } from "kysely";
+import { HOST_RUNTIME_ROLE } from "@heptalogos/host-ownership";
 import type { Migration } from "kysely/migration";
 import type { CanonicalDatabase } from "../migration-pool.js";
 
@@ -29,6 +30,10 @@ export const foundationBaselineMigration: Migration = {
       .addColumn("boot_id", "uuid", (column) => column.notNull())
       .addColumn("continuity_epoch_id", "uuid", (column) => column.notNull())
       .addColumn("host_ownership_token", "uuid")
+      .addColumn("product_generation_id", "text")
+      .addColumn("package_generation_id", "text")
+      .addColumn("micro_system_id", "text")
+      .addColumn("micro_system_instance_id", "uuid")
       .addColumn("importance", "text", (column) => column.notNull())
       .addColumn("retention_class", "text", (column) => column.notNull())
       .addColumn("sensitivity", "text", (column) => column.notNull())
@@ -63,6 +68,41 @@ export const foundationBaselineMigration: Migration = {
       .addCheckConstraint(
         "activity_record_completion_pair_check",
         sql`(ended_at IS NULL AND outcome IS NULL) OR (ended_at IS NOT NULL AND outcome IS NOT NULL)`,
+      )
+      .addCheckConstraint(
+        "activity_record_runtime_identity_check",
+        sql`
+          product_generation_id IS NULL OR
+          product_generation_id ~ '^[0-9a-f]{64}$'
+        `,
+      )
+      .addCheckConstraint(
+        "activity_record_package_generation_check",
+        sql`
+          package_generation_id IS NULL OR
+          package_generation_id ~ '^[0-9a-f]{64}$'
+        `,
+      )
+      .addCheckConstraint(
+        "activity_record_package_requires_product_check",
+        sql`package_generation_id IS NULL OR product_generation_id IS NOT NULL`,
+      )
+      .addCheckConstraint(
+        "activity_record_micro_system_requires_product_check",
+        sql`micro_system_id IS NULL OR product_generation_id IS NOT NULL`,
+      )
+      .addCheckConstraint(
+        "activity_record_runtime_pair_check",
+        sql`(micro_system_id IS NULL AND micro_system_instance_id IS NULL)
+          OR (micro_system_id IS NOT NULL AND micro_system_instance_id IS NOT NULL)`,
+      )
+      .addCheckConstraint(
+        "activity_record_micro_system_id_shape_check",
+        sql`
+          micro_system_id IS NULL OR
+          (octet_length(micro_system_id) BETWEEN 1 AND 128 AND
+            micro_system_id ~ '^[a-z][a-z0-9]*(\\.[a-z0-9]+|-[a-z0-9]+)*$')
+        `,
       )
       .addCheckConstraint(
         "activity_record_operation_id_check",
@@ -176,5 +216,110 @@ export const foundationBaselineMigration: Migration = {
         GRANT SELECT, INSERT ON TABLE "heptalogos".${sql.ref(table)} TO "heptalogos_runtime"
       `.execute(db);
     }
+
+    await sql`
+      CREATE OR REPLACE FUNCTION "heptalogos"."complete_activity_record"(
+        p_activity_id uuid,
+        p_installation_id uuid,
+        p_instance_id uuid,
+        p_boot_id uuid,
+        p_continuity_epoch_id uuid,
+        p_host_ownership_token uuid,
+        p_product_generation_id text,
+        p_package_generation_id text,
+        p_micro_system_id text,
+        p_micro_system_instance_id uuid,
+        p_ended_at timestamptz,
+        p_outcome text,
+        p_outcome_ref text
+      )
+      RETURNS text
+      LANGUAGE plpgsql
+      SECURITY DEFINER
+      SET search_path = heptalogos, pg_catalog
+      AS $function$
+      DECLARE
+        retained RECORD;
+      BEGIN
+        IF p_ended_at IS NULL
+          OR p_outcome IS NULL
+          OR p_outcome NOT IN ('SUCCEEDED', 'FAILED', 'CANCELLED')
+          OR (
+            p_outcome_ref IS NOT NULL AND
+            (btrim(p_outcome_ref) = '' OR octet_length(p_outcome_ref) > 1024)
+          )
+        THEN
+          RETURN 'INVALID_COMPLETION';
+        END IF;
+
+        SELECT
+          installation_id,
+          instance_id,
+          boot_id,
+          continuity_epoch_id,
+          host_ownership_token,
+          product_generation_id,
+          package_generation_id,
+          micro_system_id,
+          micro_system_instance_id,
+          ended_at,
+          outcome,
+          outcome_ref
+        INTO retained
+        FROM "heptalogos"."activity_record"
+        WHERE activity_id = p_activity_id
+        FOR UPDATE;
+
+        IF NOT FOUND THEN
+          RETURN 'NOT_FOUND';
+        END IF;
+
+        IF retained.installation_id IS DISTINCT FROM p_installation_id
+          OR retained.instance_id IS DISTINCT FROM p_instance_id
+          OR retained.boot_id IS DISTINCT FROM p_boot_id
+          OR retained.continuity_epoch_id IS DISTINCT FROM p_continuity_epoch_id
+          OR retained.host_ownership_token IS DISTINCT FROM p_host_ownership_token
+          OR retained.product_generation_id IS DISTINCT FROM p_product_generation_id
+          OR retained.package_generation_id IS DISTINCT FROM p_package_generation_id
+          OR retained.micro_system_id IS DISTINCT FROM p_micro_system_id
+          OR retained.micro_system_instance_id IS DISTINCT FROM p_micro_system_instance_id
+        THEN
+          RETURN 'ORIGIN_MISMATCH';
+        END IF;
+
+        IF retained.ended_at IS NULL AND retained.outcome IS NULL THEN
+          UPDATE "heptalogos"."activity_record"
+          SET ended_at = p_ended_at,
+              outcome = p_outcome,
+              outcome_ref = p_outcome_ref
+          WHERE activity_id = p_activity_id;
+          RETURN 'COMPLETED';
+        END IF;
+
+        IF retained.ended_at IS NOT DISTINCT FROM p_ended_at
+          AND retained.outcome IS NOT DISTINCT FROM p_outcome
+          AND retained.outcome_ref IS NOT DISTINCT FROM p_outcome_ref
+        THEN
+          RETURN 'IDEMPOTENT';
+        END IF;
+
+        RETURN 'CONFLICT';
+      END;
+      $function$;
+    `.execute(db);
+
+    await sql`
+      REVOKE ALL ON FUNCTION "heptalogos"."complete_activity_record"(
+        uuid, uuid, uuid, uuid, uuid, uuid, text, text, text, uuid,
+        timestamptz, text, text
+      ) FROM PUBLIC
+    `.execute(db);
+
+    await sql`
+      GRANT EXECUTE ON FUNCTION "heptalogos"."complete_activity_record"(
+        uuid, uuid, uuid, uuid, uuid, uuid, text, text, text, uuid,
+        timestamptz, text, text
+      ) TO ${sql.ref(HOST_RUNTIME_ROLE)}
+    `.execute(db);
   },
 };
