@@ -19,10 +19,11 @@
     "check:agents": "node .agents/heptalogos/validate-skill-resources.mjs",
     "check:corpus": "node scripts/verify/corpus-integrity.mjs",
     "check:repository": "node scripts/verify/repository.mjs",
+    "check:hygiene": "node scripts/verify/current-tree-hygiene.mjs",
     "check:dependencies": "node scripts/verify/dependencies.mjs",
     "check:boundaries": "node scripts/verify/boundaries.mjs",
     "toolchain:check": "node scripts/verify/toolchain.mjs",
-    "verify": "pnpm check:agents && pnpm check:corpus && pnpm check:repository && pnpm check:dependencies && pnpm check:boundaries && pnpm toolchain:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm tsc6 && pnpm test && pnpm build"
+    "verify": "pnpm check:agents && pnpm check:corpus && pnpm check:repository && pnpm check:hygiene && pnpm check:dependencies && pnpm check:boundaries && pnpm toolchain:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm tsc6 && pnpm test && pnpm build"
   },
   "nx": {
     "includedScripts": []
