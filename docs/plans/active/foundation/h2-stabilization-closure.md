@@ -15,6 +15,22 @@ gate_r: PASS (PR #23 merged at 4e2dead8bbc413e31dfff1751663780ed8dc688a)
 draft_pr: 24 (DRAFT)
 ```
 
+## S4 compatibility audit record (2026-08-26)
+
+| finding | current purpose | declared obligation | action | evidence |
+| --- | --- | --- | --- | --- |
+| `fixtures/ts6-api-lane.ts` exposes compiler compatibility APIs | Isolated TS6 compiler-API qualification lane | none; adopted toolchain policy | `KEEP_CURRENT_SEMANTIC` | `pnpm tsc6` and dependency/toolchain gates |
+| `ContractCompatibilityRegistry` and Service/Capability contract matching | Current provider/consumer contract selection | none; this is present runtime semantics, not historical product compatibility | `KEEP_CURRENT_SEMANTIC` | Runtime Kernel unit tests and Corpus S13 |
+| `BootstrapStateStore` / `MaintenanceJournalStore` retain a previous validated revision | Current recovery evidence and authority fencing after torn/corrupt writes | none; previous revision is not a compatibility reader | `KEEP_CURRENT_SEMANTIC` | Bootstrap State and maintenance unit tests; recovered state cannot authorize mutation |
+| alias/unsupported-input rejection in bootstrap and installation boundaries | Current strict security/schema validation | none | `KEEP_CURRENT_SEMANTIC` | Current rejection tests; no alias reader is retained |
+| `schemaVersion: 1` codecs and explicit unsupported-version rejection | One current canonical V1 shape | none | `KEEP_CURRENT_SEMANTIC` | Canonical codec tests and one migration baseline |
+| milestone-named identities, historical-shaped test wording, and old internal names | Development chronology only | none | `REMOVED` / `REFRAMED` | `pnpm check:hygiene` PASS; current-surface residue search |
+
+The compatibility register is `PRE_PRODUCTION` with `obligations: []`. No
+finding above establishes a product compatibility obligation. A future finding
+that implies a real external consumer or retained production state is a
+`PLAN_GAP`, not a local shim decision.
+
 **Architecture:** H2-S remains a bounded stabilization pass, not a second H2 development cycle. One final H2-S candidate must contain the complete stabilized current tree so Independent Review and final CI see the same aggregate result: governance hardening, history-neutral current-tree cleanup, PRE_PRODUCTION compatibility enforcement, and the bounded Runtime/Host lifecycle correction. Historical provenance remains in Git, completed plans, and qualification history; it must not remain as canonical/executable identity or compatibility behavior.
 
 **Observed repository baseline:** `master@d7f32427398d2309c1732cdbce98f590e14a8249` (`H2B Runtime Composition & Kernel corrected candidate (#22)`).
