@@ -1460,21 +1460,21 @@ Remove/listener-clean up owner-signal subscriptions when terminal close complete
 
 Write red tests first:
 
-- [ ] Q1 quiesce synchronously rejects new Service/Capability invocation while an admitted call is still draining;
-- [ ] Q2 quiesce stops hard Service dependents before providers; independent branch is deterministic;
-- [ ] Q3 quiesce/resume restores captured Desired with fresh MicroSystemInstanceIds/Fences;
-- [ ] Q4 old leases remain retired after resume;
-- [ ] Q5 resume lease is one-shot;
-- [ ] Q6 Desired revision/mode/bindings/intent are not mutated by quiesce;
-- [ ] Q7 quiesce before first desired snapshot can resume to empty ACTIVE state;
-- [ ] Q8 owner signal abort terminalizes supervisor and rejects later reconcile;
-- [ ] Q9 owner abort racing background failure does not double-retire/resurrect/deadlock;
-- [ ] Q10 close after quiesce never resumes and closes substrate once;
-- [ ] Q11 settlement timeout leaves admission closed and does not report quiescence success;
-- [ ] Q12 reconcile already in progress cannot start a later MicroSystem after quiesce becomes requested;
-- [ ] Q13 already-aborted owner signal admits no work;
-- [ ] Q14 repeated close is idempotent;
-- [ ] Q15 structural resume failure fails closed rather than returning ACTIVE with uncontrolled partial admission.
+- [x] Q1 quiesce synchronously rejects new Service/Capability invocation while an admitted call is still draining;
+- [x] Q2 quiesce stops hard Service dependents before providers; independent branch is deterministic;
+- [x] Q3 quiesce/resume restores captured Desired with fresh MicroSystemInstanceIds/Fences;
+- [x] Q4 old leases remain retired after resume;
+- [x] Q5 resume lease is one-shot;
+- [x] Q6 Desired revision/mode/bindings/intent are not mutated by quiesce;
+- [x] Q7 quiesce before first desired snapshot can resume to empty ACTIVE state;
+- [x] Q8 owner signal abort terminalizes supervisor and rejects later reconcile;
+- [x] Q9 owner abort racing background failure does not double-retire/resurrect/deadlock;
+- [x] Q10 close after quiesce never resumes and closes substrate once;
+- [x] Q11 settlement timeout leaves admission closed and does not report quiescence success;
+- [x] Q12 reconcile already in progress cannot start a later MicroSystem after quiesce becomes requested;
+- [x] Q13 already-aborted owner signal admits no work;
+- [x] Q14 repeated close is idempotent;
+- [x] Q15 structural resume failure fails closed rather than returning ACTIVE with uncontrolled partial admission.
 
 After each red/green slice:
 
@@ -1793,6 +1793,13 @@ Recommended final commit:
 ```text
 fix: bind runtime lifecycle to root ownership and reversible quiescence
 ```
+
+S6 completion evidence (2026-08-26, commit `b717314`): Q1-Q15 are `PASS`
+through 121 runtime-kernel tests; the required focused `check:boundaries`,
+`typecheck`, and `tsc6` gates are `PASS`. The implementation exports the
+generic `RuntimeOwnerLifecycle` and `RuntimeQuiescenceLease`, closes generation
+admission synchronously, preserves accepted Desired state across reversible
+quiescence, and terminalizes on owner abort or structural resume failure.
 
 ## Task S7 — Real PostgreSQL Runtime/Host lifecycle integration
 
