@@ -6,6 +6,7 @@ import {
   createProviderId,
   createServiceId,
   digestCanonicalJson,
+  type CapabilityId,
   type ProviderId,
   type ServiceId,
 } from "@heptalogos/foundation-contracts";
@@ -20,10 +21,13 @@ import {
   type RuntimeLifecycleLineage,
   type MicroSystemDesiredState,
   type MicroSystemDefinition,
+  type CapabilityProvisionDescriptor,
+  type CapabilityRequirement,
   type ServiceProvisionDescriptor,
 } from "./index.js";
 
 const contractV1 = createContractVersion("v1");
+const contractV2 = createContractVersion("v2");
 const generation = {
   productGenerationId: asContentDigest(
     "ProductGenerationId",
@@ -38,8 +42,24 @@ function serviceRequirement(serviceId: ServiceId) {
 function serviceProvision(
   serviceId: ServiceId,
   providerId: ProviderId,
+  contractVersion: typeof contractV1 = contractV1,
 ): ServiceProvisionDescriptor {
-  return { serviceId, providerId, contractVersion: contractV1 };
+  return { serviceId, providerId, contractVersion };
+}
+
+function capabilityRequirement(
+  capabilityId: CapabilityId,
+  required = false,
+): CapabilityRequirement {
+  return { capabilityId, contract: exactContract(contractV1), required };
+}
+
+function capabilityProvision(
+  capabilityId: CapabilityId,
+  providerId: ProviderId,
+  priority = 0,
+): CapabilityProvisionDescriptor {
+  return { capabilityId, providerId, contractVersion: contractV1, priority };
 }
 
 function desired(
@@ -65,7 +85,11 @@ function system(
   options: Partial<
     Pick<
       MicroSystemDefinition,
-      "operatingModes" | "serviceRequirements" | "serviceProvisions"
+      | "operatingModes"
+      | "serviceRequirements"
+      | "serviceProvisions"
+      | "capabilityRequirements"
+      | "capabilityProvisions"
     >
   > = {},
 ): MicroSystemDefinition {
@@ -75,9 +99,9 @@ function system(
     generation,
     operatingModes: options.operatingModes ?? ["NORMAL", "SAFE"],
     serviceRequirements: options.serviceRequirements ?? [],
-    capabilityRequirements: [],
+    capabilityRequirements: options.capabilityRequirements ?? [],
     serviceProvisions: options.serviceProvisions ?? [],
-    capabilityProvisions: [],
+    capabilityProvisions: options.capabilityProvisions ?? [],
     activate,
   };
 }
@@ -130,6 +154,17 @@ function createSupervisor(definitions: readonly MicroSystemDefinition[]) {
     definitions,
     createRuntimeSubstrate({ settleTimeoutMs: 50 }),
   );
+}
+
+function deferred<T>(): {
+  readonly promise: Promise<T>;
+  resolve(value: T): void;
+} {
+  let resolvePromise!: (value: T) => void;
+  const promise = new Promise<T>((resolve) => {
+    resolvePromise = resolve;
+  });
+  return { promise, resolve: resolvePromise };
 }
 
 describe("MicroSystemSupervisor and RuntimeReconciler", () => {
@@ -302,6 +337,119 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
+  it("blocks a dependent when a replaced provider generation cannot drain", async () => {
+    const serviceId = createServiceId("test.replacement-timeout");
+    const started = deferred<void>();
+    const released = deferred<string>();
+    let holdNextCall = false;
+    const a = provider("replacement-timeout-a", serviceId, async (context) => {
+      context.publishService(
+        serviceProvision(serviceId, createProviderId("provider.replacement-timeout-a")),
+        {
+          async read() {
+            if (!holdNextCall) return "a";
+            holdNextCall = false;
+            started.resolve();
+            return released.promise;
+          },
+        },
+      );
+    });
+    const b = consumer("replacement-timeout-b", serviceId);
+    const d = provider("replacement-timeout-d", serviceId);
+    const c = system("system.replacement-timeout-independent", async () => undefined);
+    const supervisor = new MicroSystemSupervisor({
+      substrate: createRuntimeSubstrate({ settleTimeoutMs: 5 }),
+      settleTimeoutMs: 5,
+      definitions: [a, b, d, c],
+    });
+
+    try {
+      await supervisor.reconcile(desired([a, b, d, c]));
+      holdNextCall = true;
+      const lease = supervisor.services.resolve<{ read(): Promise<string> }>(
+        serviceRequirement(serviceId),
+        createProviderId("provider.replacement-timeout-a"),
+      );
+      const oldCall = lease.invoke("held-call", (service) => service.read());
+      await started.promise;
+
+      await expect(
+        supervisor.reconcile(
+          desired(
+            [b, d, c],
+            "NORMAL",
+            new Map([[serviceId, createProviderId("provider.replacement-timeout-d")]]),
+          ),
+        ),
+      ).rejects.toMatchObject({
+        problem: expect.objectContaining({
+          problemCode: "runtime.generation.settlement_timeout",
+        }),
+      });
+      expect(supervisor.getActualState(d.microSystemId)).toBe("RUNNING");
+      expect(supervisor.getActualState(b.microSystemId)).toBe("BLOCKED");
+      expect(supervisor.getActualState(c.microSystemId)).toBe("RUNNING");
+
+      released.resolve("late");
+      await expect(oldCall).resolves.toBe("late");
+    } finally {
+      released.resolve("cleanup");
+      await supervisor.close();
+    }
+  });
+
+  it("uses the exact selected Service binding when one MicroSystem has multiple bindings", async () => {
+    const serviceId = createServiceId("test.multiple-bindings.one-system");
+    const providerA = createProviderId("provider.multiple-bindings.a");
+    const providerB = createProviderId("provider.multiple-bindings.b");
+    const reads: string[] = [];
+    const providerDefinition = system(
+      "system.multiple-bindings-provider",
+      async (context) => {
+        context.publishService(serviceProvision(serviceId, providerA), {
+          read: () => "v1",
+        });
+        context.publishService(serviceProvision(serviceId, providerB, contractV2), {
+          read: () => "v2",
+        });
+      },
+      {
+        serviceProvisions: [
+          serviceProvision(serviceId, providerA),
+          serviceProvision(serviceId, providerB, contractV2),
+        ],
+      },
+    );
+    const consumerDefinition = system(
+      "system.multiple-bindings-consumer",
+      async (context) => {
+        const lease = context.requireService<{ read(): string }>({
+          serviceId,
+          contract: exactContract(contractV2),
+        });
+        reads.push(await lease.invoke("read", (service) => service.read()));
+      },
+      {
+        serviceRequirements: [{ serviceId, contract: exactContract(contractV2) }],
+      },
+    );
+    const supervisor = createSupervisor([providerDefinition, consumerDefinition]);
+
+    try {
+      const plan = await supervisor.reconcile(
+        desired([providerDefinition, consumerDefinition]),
+      );
+      expect(plan.serviceBindings.get(serviceId)).toBe(providerB);
+      expect(reads).toEqual(["v2"]);
+      expect(supervisor.getActualState(consumerDefinition.microSystemId)).toBe(
+        "RUNNING",
+      );
+    } finally {
+      await supervisor.close();
+    }
+  });
+
   it("forgets a removed explicit Capability binding before reintroducing it", async () => {
     const capabilityId = createCapabilityId("test.binding-removal");
     const providerId = createProviderId("provider.capability");
@@ -320,6 +468,105 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
         capabilityId,
         providerId,
       });
+    } finally {
+      await supervisor.close();
+    }
+  });
+
+  it("applies a removed Capability binding before a same-reconcile restart", async () => {
+    const serviceId = createServiceId("test.capability-unbind.service");
+    const capabilityId = createCapabilityId("test.capability-unbind.capability");
+    const serviceProviderA = provider("capability-unbind-a", serviceId);
+    const serviceProviderD = provider("capability-unbind-d", serviceId);
+    const capabilityProviderA = system(
+      "system.a-capability",
+      async (context) => {
+        context.publishCapability(
+          capabilityProvision(capabilityId, createProviderId("provider.capability-a")),
+          { read: () => "a" },
+        );
+      },
+      {
+        capabilityProvisions: [
+          capabilityProvision(capabilityId, createProviderId("provider.capability-a")),
+        ],
+      },
+    );
+    const capabilityProviderB = system(
+      "system.b-capability",
+      async (context) => {
+        context.publishCapability(
+          capabilityProvision(capabilityId, createProviderId("provider.capability-b")),
+          { read: () => "b" },
+        );
+      },
+      {
+        capabilityProvisions: [
+          capabilityProvision(capabilityId, createProviderId("provider.capability-b")),
+        ],
+      },
+    );
+    const reads: string[] = [];
+    const consumerDefinition = system(
+      "system.z-capability-consumer",
+      async (context) => {
+        await context
+          .requireService<{ read(): string }>(serviceRequirement(serviceId))
+          .invoke("read", (service) => service.read());
+        const lease = context.resolveCapability<{ read(): string }>(
+          capabilityRequirement(capabilityId),
+        );
+        reads.push(
+          lease === undefined
+            ? "missing"
+            : await lease.invoke("read", (capability) => capability.read()),
+        );
+      },
+      {
+        serviceRequirements: [serviceRequirement(serviceId)],
+        capabilityRequirements: [capabilityRequirement(capabilityId)],
+      },
+    );
+    const supervisor = createSupervisor([
+      serviceProviderA,
+      serviceProviderD,
+      capabilityProviderA,
+      capabilityProviderB,
+      consumerDefinition,
+    ]);
+
+    try {
+      await supervisor.reconcile(
+        desired(
+          [
+            serviceProviderA,
+            serviceProviderD,
+            capabilityProviderA,
+            capabilityProviderB,
+            consumerDefinition,
+          ],
+          "NORMAL",
+          new Map([[serviceId, createProviderId("provider.capability-unbind-a")]]),
+          new Map([[capabilityId, createProviderId("provider.capability-a")]]),
+        ),
+      );
+      const replacementPlan = await supervisor.reconcile(
+        desired(
+          [serviceProviderD, capabilityProviderB, consumerDefinition],
+          "NORMAL",
+          new Map([[serviceId, createProviderId("provider.capability-unbind-d")]]),
+        ),
+      );
+
+      expect(replacementPlan.actions).toContainEqual({
+        kind: "REBIND_CAPABILITY",
+        capabilityId,
+        providerId: undefined,
+      });
+      expect(reads).toEqual(["a", "b"]);
+      expect(supervisor.getActualState(consumerDefinition.microSystemId)).toBe(
+        "RUNNING",
+      );
     } finally {
       await supervisor.close();
     }
@@ -526,6 +773,37 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
+  it("recovers a failed provider and its dependent in one later reconcile", async () => {
+    const serviceId = createServiceId("test.recover-failed-provider");
+    let attempts = 0;
+    const a = provider("recover-failed-provider", serviceId, async (context) => {
+      attempts += 1;
+      if (attempts === 1) throw new Error("transient provider failure");
+      context.publishService(
+        serviceProvision(
+          serviceId,
+          createProviderId("provider.recover-failed-provider"),
+        ),
+        { read: () => "recovered" },
+      );
+    });
+    const b = consumer("recover-failed-consumer", serviceId);
+    const supervisor = createSupervisor([a, b]);
+
+    try {
+      await expect(supervisor.reconcile(desired([a, b]))).rejects.toBeDefined();
+      expect(supervisor.getActualState(b.microSystemId)).toBe("BLOCKED");
+
+      await supervisor.reconcile(desired([a, b]));
+
+      expect(attempts).toBe(2);
+      expect(supervisor.getActualState(a.microSystemId)).toBe("RUNNING");
+      expect(supervisor.getActualState(b.microSystemId)).toBe("RUNNING");
+    } finally {
+      await supervisor.close();
+    }
+  });
+
   it("R7 capability changes are handled without a hard consumer restart", async () => {
     const supervisor = createSupervisor([]);
     const capabilityId = createCapabilityId("test.dynamic");
@@ -610,6 +888,47 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
       await supervisor.reconcile(desired([systemDefinition], "SAFE"));
       await supervisor.reconcile(desired([systemDefinition], "NORMAL"));
       expect(supervisor.getActualState(systemDefinition.microSystemId)).toBe("RUNNING");
+    } finally {
+      await supervisor.close();
+    }
+  });
+
+  it("recovers a SAFE-blocked dependency chain in one NORMAL reconcile", async () => {
+    const serviceId = createServiceId("test.safe-recovery-chain");
+    const providerId = createProviderId("provider.safe-recovery");
+    const a = system(
+      "system.safe-recovery-provider",
+      async (context) => {
+        context.publishService(serviceProvision(serviceId, providerId), {
+          read: () => "safe-recovered",
+        });
+      },
+      {
+        operatingModes: ["NORMAL"],
+        serviceProvisions: [serviceProvision(serviceId, providerId)],
+      },
+    );
+    const b = system(
+      "system.safe-recovery-consumer",
+      async (context) => {
+        await context
+          .requireService<{ read(): string }>(serviceRequirement(serviceId))
+          .invoke("read", (service) => service.read());
+      },
+      {
+        operatingModes: ["NORMAL"],
+        serviceRequirements: [serviceRequirement(serviceId)],
+      },
+    );
+    const supervisor = createSupervisor([a, b]);
+
+    try {
+      await supervisor.reconcile(desired([a, b], "SAFE"));
+      expect(supervisor.getActualState(a.microSystemId)).toBe("BLOCKED");
+      expect(supervisor.getActualState(b.microSystemId)).toBe("BLOCKED");
+      await supervisor.reconcile(desired([a, b], "NORMAL"));
+      expect(supervisor.getActualState(a.microSystemId)).toBe("RUNNING");
+      expect(supervisor.getActualState(b.microSystemId)).toBe("RUNNING");
     } finally {
       await supervisor.close();
     }

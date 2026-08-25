@@ -35,7 +35,7 @@ export type ReconcileAction =
   | {
       readonly kind: "REBIND_CAPABILITY";
       readonly capabilityId: import("@heptalogos/foundation-contracts").CapabilityId;
-      readonly providerId: ProviderId;
+      readonly providerId: ProviderId | undefined;
     };
 
 export interface ReconcilePlan {
@@ -86,16 +86,15 @@ export class RuntimeReconciler {
       for (const definition of [...resolvable]) {
         for (const requirement of definition.serviceRequirements) {
           const explicit = input.desired.serviceBindings.get(requirement.serviceId);
-          const providers = [...resolvable].filter(
-            (provider) =>
-              input.actual.get(provider.microSystemId) !== "FAILED" &&
-              input.actual.get(provider.microSystemId) !== "BLOCKED" &&
-              provider.serviceProvisions.some(
+          const providers = [...resolvable].flatMap((provider) =>
+            provider.serviceProvisions
+              .filter(
                 (provision) =>
                   provision.serviceId === requirement.serviceId &&
                   provision.contractVersion === requirement.contract.version &&
                   (explicit === undefined || provision.providerId === explicit),
-              ),
+              )
+              .map(() => provider),
           );
           if (providers.length === 1) continue;
           blocked.set(
@@ -136,20 +135,11 @@ export class RuntimeReconciler {
     const selectedServices = new Map<ServiceId, ProviderId>();
     for (const edge of graphPlan.edges) {
       const previous = selectedServices.get(edge.serviceId);
-      if (
-        previous !== undefined &&
-        previous !==
-          edge.provider.serviceProvisions.find(
-            (provision) => provision.serviceId === edge.serviceId,
-          )?.providerId
-      ) {
+      if (previous !== undefined && previous !== edge.providerId) {
         blocked.set(edge.consumer.microSystemId, "runtime.service.binding_conflict");
         continue;
       }
-      const providerId = edge.provider.serviceProvisions.find(
-        (provision) => provision.serviceId === edge.serviceId,
-      )?.providerId;
-      if (providerId !== undefined) selectedServices.set(edge.serviceId, providerId);
+      selectedServices.set(edge.serviceId, edge.providerId);
     }
     const selectedCapabilities = new Map(input.desired.capabilityBindings);
     const stopped = new Set<MicroSystemId>();
@@ -194,6 +184,15 @@ export class RuntimeReconciler {
     for (const [capabilityId, providerId] of input.desired.capabilityBindings) {
       if (currentCapabilities.get(capabilityId) !== providerId) {
         actions.push({ kind: "REBIND_CAPABILITY", capabilityId, providerId });
+      }
+    }
+    for (const capabilityId of currentCapabilities.keys()) {
+      if (!selectedCapabilities.has(capabilityId)) {
+        actions.push({
+          kind: "REBIND_CAPABILITY",
+          capabilityId,
+          providerId: undefined,
+        });
       }
     }
 

@@ -31,6 +31,7 @@ import {
 import { ProblemError } from "@heptalogos/foundation-contracts";
 
 const contractV1 = createContractVersion("v1");
+const contractV2 = createContractVersion("v2");
 const generation = {
   productGenerationId: asContentDigest(
     "ProductGenerationId",
@@ -52,8 +53,9 @@ function capabilityRequirement(
 function serviceProvision(
   serviceId: ServiceId,
   providerId: ProviderId,
+  contractVersion: typeof contractV1 = contractV1,
 ): ServiceProvisionDescriptor {
-  return { serviceId, providerId, contractVersion: contractV1 };
+  return { serviceId, providerId, contractVersion };
 }
 
 function capabilityProvision(
@@ -257,6 +259,32 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     await call;
   });
 
+  it("keeps a timed-out generation RETIRING until its call settles", async () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.timeout-state");
+    const providerId = createProviderId("provider.timeout-state");
+    const released = deferred<string>();
+    const fence = registry.register(serviceProvision(serviceId, providerId), {
+      async read() {
+        return released.promise;
+      },
+    });
+    const lease = registry.resolve<{ read(): Promise<string> }>(
+      serviceRequirement(serviceId),
+    );
+    const call = lease.invoke("read", (service) => service.read());
+    await Promise.resolve();
+
+    await expect(registry.retireProvider(providerId, 5)).rejects.toMatchObject({
+      problem: { problemCode: "runtime.generation.settlement_timeout" },
+    });
+    expect(fence.state).toBe("RETIRING");
+
+    released.resolve("late");
+    await expect(call).resolves.toBe("late");
+    expect(fence.state).toBe("RETIRED");
+  });
+
   it("S9 retained fenced Proxy cannot call after retirement", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.proxy");
@@ -279,7 +307,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     );
   });
 
-  it("S10 fences nested provider method access during retirement", async () => {
+  it("lets an admitted provider call drain through the real provider identity", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.nested-proxy");
     const providerId = createProviderId("provider.nested-proxy");
@@ -302,9 +330,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     await started.promise;
     const retirement = registry.retireProvider(providerId, 50);
     released.resolve();
-    await expect(call).rejects.toMatchObject({
-      problem: { problemCode: "runtime.generation.retired" },
-    });
+    await expect(call).resolves.toBe("nested");
     await expect(retirement).resolves.toBeUndefined();
   });
 
@@ -382,6 +408,50 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     expect(() => session.read()).toThrow(
       expect.objectContaining({
         problem: expect.objectContaining({ problemCode: "runtime.generation.retired" }),
+      }),
+    );
+  });
+
+  it("preserves provider identity for private fields and native internal slots", async () => {
+    class PrivateClient {
+      #state = "ok";
+      #date = new Date(0);
+
+      read(): string {
+        return `${this.#state}:${this.#date.getTime()}`;
+      }
+    }
+
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.class-provider");
+    const providerId = createProviderId("provider.class-provider");
+    registry.register(serviceProvision(serviceId, providerId), new PrivateClient());
+    const lease = registry.resolve<{ read(): string }>(serviceRequirement(serviceId));
+
+    await expect(lease.invoke("read", (service) => service.read())).resolves.toBe(
+      "ok:0",
+    );
+  });
+
+  it("fences retained provider property mutation after retirement", async () => {
+    const registry = new ServiceRegistry();
+    const serviceId = createServiceId("test.mutable-provider");
+    const providerId = createProviderId("provider.mutable-provider");
+    registry.register(serviceProvision(serviceId, providerId), { value: 0 });
+    const lease = registry.resolve<{ value: number }>(serviceRequirement(serviceId));
+    let retained!: { value: number };
+    await lease.invoke("capture", (service) => {
+      retained = service;
+    });
+
+    await registry.retireProvider(providerId, 50);
+    expect(() => {
+      retained.value = 1;
+    }).toThrow(
+      expect.objectContaining({
+        problem: expect.objectContaining({
+          problemCode: "runtime.generation.retired",
+        }),
       }),
     );
   });
@@ -531,6 +601,13 @@ describe("Capability registry and readiness", () => {
     );
   });
 
+  it("returns unavailable for a missing required Capability without throwing", () => {
+    const registry = new CapabilityRegistry();
+    const capabilityId = createCapabilityId("test.required-missing");
+
+    expect(registry.resolve(capabilityRequirement(capabilityId, true))).toBeUndefined();
+  });
+
   it("K5 withdrawal selects the next eligible Capability provider", async () => {
     const registry = new CapabilityRegistry();
     const capabilityId = createCapabilityId("test.withdrawal");
@@ -555,7 +632,7 @@ describe("Capability registry and readiness", () => {
     expect(plan.startOrder).toHaveLength(2);
   });
 
-  it("K7 fences nested Capability method access during retirement", async () => {
+  it("lets an admitted Capability call drain through the real provider identity", async () => {
     const registry = new CapabilityRegistry();
     const capabilityId = createCapabilityId("test.nested-proxy");
     const providerId = createProviderId("provider.nested-proxy");
@@ -578,9 +655,7 @@ describe("Capability registry and readiness", () => {
     await started.promise;
     const retirement = registry.retireProvider(providerId, 50);
     released.resolve();
-    await expect(call).rejects.toMatchObject({
-      problem: { problemCode: "runtime.generation.retired" },
-    });
+    await expect(call).resolves.toBe("nested");
     await expect(retirement).resolves.toBeUndefined();
   });
 
@@ -713,5 +788,50 @@ describe("RuntimeGraph", () => {
         }),
       }),
     );
+  });
+
+  it("counts eligible Service bindings rather than MicroSystems for ambiguity", () => {
+    const serviceId = createServiceId("test.binding-ambiguity");
+    const provider = definition(createMicroSystemId("system.one-provider"), {
+      serviceProvisions: [
+        serviceProvision(serviceId, createProviderId("provider.a")),
+        serviceProvision(serviceId, createProviderId("provider.b")),
+      ],
+    });
+    const consumer = definition(createMicroSystemId("system.consumer"), {
+      serviceRequirements: [serviceRequirement(serviceId)],
+    });
+
+    expect(() => new RuntimeGraph([provider, consumer]).plan()).toThrow(
+      expect.objectContaining({
+        problem: expect.objectContaining({
+          problemCode: "runtime.service.ambiguous_provider",
+        }),
+      }),
+    );
+  });
+
+  it("carries the exact selected Service binding through a graph edge", () => {
+    const serviceId = createServiceId("test.binding-edge");
+    const providerB = createProviderId("provider.binding-b");
+    const provider = definition(createMicroSystemId("system.binding-provider"), {
+      serviceProvisions: [
+        serviceProvision(serviceId, createProviderId("provider.binding-a")),
+        serviceProvision(serviceId, providerB, contractV2),
+      ],
+    });
+    const consumer = definition(createMicroSystemId("system.binding-consumer"), {
+      serviceRequirements: [{ serviceId, contract: exactContract(contractV2) }],
+    });
+
+    const plan = new RuntimeGraph([provider, consumer]).plan();
+
+    expect(plan.edges).toContainEqual({
+      provider,
+      consumer,
+      serviceId,
+      providerId: providerB,
+      contractVersion: contractV2,
+    });
   });
 });

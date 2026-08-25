@@ -81,6 +81,7 @@ export class GenerationFence {
   }
 
   retire(settleTimeoutMs: number): Promise<void> {
+    if (this.currentState === "RETIRED") return Promise.resolve();
     if (this.retirementPromise !== undefined) return this.retirementPromise;
     if (!Number.isSafeInteger(settleTimeoutMs) || settleTimeoutMs < 0) {
       return Promise.reject(
@@ -91,36 +92,32 @@ export class GenerationFence {
       );
     }
     this.currentState = "RETIRING";
-    this.retirementPromise = (async () => {
-      try {
-        if (this.inFlight > 0) {
-          await new Promise<void>((resolve, reject) => {
-            let timer: ReturnType<typeof setTimeout> | undefined;
-            this.resolveIdle = () => {
-              if (timer !== undefined) clearTimeout(timer);
-              resolve();
-            };
-            timer = setTimeout(() => {
-              reject(
-                runtimeKernelProblem(
-                  "runtime.generation.settlement_timeout",
-                  `Generation did not settle within ${settleTimeoutMs}ms`,
-                ),
-              );
-            }, settleTimeoutMs);
-            void Promise.resolve().then(() => {
-              if (this.inFlight === 0) {
-                clearTimeout(timer);
-                resolve();
-              }
-            });
-          });
-        }
-      } finally {
+    this.retirementPromise = new Promise<void>((resolve, reject) => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const complete = () => {
+        if (this.currentState !== "RETIRING" || this.inFlight !== 0) return;
+        if (timer !== undefined) clearTimeout(timer);
         this.currentState = "RETIRED";
         this.resolveIdle = undefined;
+        resolve();
+      };
+      this.resolveIdle = complete;
+      if (this.inFlight === 0) {
+        complete();
+        return;
       }
-    })();
+      timer = setTimeout(() => {
+        // A timeout only reports that retirement is not yet proven. The
+        // in-flight drain watcher remains installed so a late settlement can
+        // still transition the fence to RETIRED.
+        reject(
+          runtimeKernelProblem(
+            "runtime.generation.settlement_timeout",
+            `Generation did not settle within ${settleTimeoutMs}ms`,
+          ),
+        );
+      }, settleTimeoutMs);
+    });
     return this.retirementPromise;
   }
 }

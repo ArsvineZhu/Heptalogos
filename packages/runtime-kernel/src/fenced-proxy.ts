@@ -32,23 +32,36 @@ export function createFencedProxy<TContract extends object>(
     if (previous !== undefined) return previous as T;
 
     const proxy = new Proxy(value, {
-      get(target, property, receiver) {
+      get(target, property) {
         fence.assertActive();
-        const member = Reflect.get(target, property, receiver);
+        const member = Reflect.get(target, property, target);
         if (typeof member === "function") {
           return (...args: readonly unknown[]) =>
             fence.invoke(operationIdFor(providerId, property), () =>
-              wrapResult(Reflect.apply(member, proxy, args)),
+              wrapResult(Reflect.apply(member, target, args)),
             );
         }
         return isProxyable(member) ? wrap(member) : member;
       },
+      set(target, property, value) {
+        fence.assertActive();
+        return Reflect.set(target, property, value, target);
+      },
+      deleteProperty(target, property) {
+        fence.assertActive();
+        return Reflect.deleteProperty(target, property);
+      },
+      defineProperty(target, property, descriptor) {
+        fence.assertActive();
+        return Reflect.defineProperty(target, property, descriptor);
+      },
       apply(target, thisArg, args) {
+        fence.assertActive();
         return fence.invoke(operationIdFor(providerId, "<call>"), () =>
           wrapResult(
             Reflect.apply(
               target as (...callArgs: readonly unknown[]) => unknown,
-              thisArg,
+              thisArg === proxy ? target : thisArg,
               args,
             ),
           ),

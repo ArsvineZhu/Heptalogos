@@ -158,12 +158,6 @@ export class CapabilityRegistry {
       return left.descriptor.providerId.localeCompare(right.descriptor.providerId);
     })[0];
     if (selected !== undefined) return selected;
-    if (requirement.required && throwOnFailure) {
-      throw runtimeKernelProblem(
-        "runtime.capability.missing",
-        `No eligible provider exists for Capability '${requirement.capabilityId}'`,
-      );
-    }
     return undefined;
   }
 }

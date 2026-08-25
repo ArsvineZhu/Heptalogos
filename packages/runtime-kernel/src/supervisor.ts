@@ -17,6 +17,7 @@ import type {
   MicroSystemActualState,
   MicroSystemDefinition,
   MicroSystemId,
+  ServiceId,
   ServiceProvisionDescriptor,
   ServiceRequirement,
 } from "./contracts.js";
@@ -34,6 +35,11 @@ interface RunningSystem {
   readonly handle: SubstrateActivationHandle;
   readonly serviceProviderIds: readonly ProviderId[];
   readonly capabilityProviderIds: readonly ProviderId[];
+}
+
+interface UnsettledRetirement {
+  readonly fence: GenerationFence;
+  readonly serviceIds: readonly ServiceId[];
 }
 
 export interface MicroSystemSupervisorOptions {
@@ -70,6 +76,7 @@ export class MicroSystemSupervisor {
   private readonly definitions = new Map<MicroSystemId, MicroSystemDefinition>();
   private readonly actual = new Map<MicroSystemId, MicroSystemActualState>();
   private readonly running = new Map<MicroSystemId, RunningSystem>();
+  private readonly unsettledRetirements = new Map<MicroSystemId, UnsettledRetirement>();
   private readonly reconciler = new RuntimeReconciler();
   private readonly serviceBindings = new Map<
     import("@heptalogos/foundation-contracts").ServiceId,
@@ -189,9 +196,12 @@ export class MicroSystemSupervisor {
 
   async executePlan(plan: ReconcilePlan): Promise<void> {
     let firstError: unknown;
+    const blockedServiceIds = this.collectUnsettledServiceIds();
     for (const action of plan.actions) {
       if (action.kind === "START") {
-        const blockedReason = this.hardPrerequisiteBlockReason(action, plan);
+        const blockedReason =
+          this.generationRetirementBlockReason(action) ??
+          this.hardPrerequisiteBlockReason(action, plan, blockedServiceIds);
         if (blockedReason !== undefined) {
           this.actual.set(action.microSystemId, "BLOCKED");
           continue;
@@ -211,6 +221,10 @@ export class MicroSystemSupervisor {
           ) {
             this.actual.set(action.microSystemId, "FAILED");
           }
+          const unsettled = this.unsettledRetirements.get(action.microSystemId);
+          for (const serviceId of unsettled?.serviceIds ?? []) {
+            blockedServiceIds.add(serviceId);
+          }
         } else if ("microSystemId" in action) {
           this.actual.set(action.microSystemId, "FAILED");
         }
@@ -228,9 +242,13 @@ export class MicroSystemSupervisor {
   private hardPrerequisiteBlockReason(
     action: Extract<ReconcileAction, { kind: "START" }>,
     plan: ReconcilePlan,
+    blockedServiceIds: ReadonlySet<ServiceId> = new Set(),
   ): string | undefined {
     const definition = this.getDefinition(action.microSystemId);
     for (const requirement of definition.serviceRequirements) {
+      if (blockedServiceIds.has(requirement.serviceId)) {
+        return "runtime.service.blocked_dependency";
+      }
       const providerId = plan.serviceBindings.get(requirement.serviceId);
       if (providerId === undefined) {
         return "runtime.service.missing";
@@ -252,6 +270,30 @@ export class MicroSystemSupervisor {
       }
     }
     return undefined;
+  }
+
+  private generationRetirementBlockReason(
+    action: Extract<ReconcileAction, { kind: "START" }>,
+  ): string | undefined {
+    const retirement = this.unsettledRetirements.get(action.microSystemId);
+    if (retirement === undefined) return undefined;
+    if (retirement.fence.state === "RETIRED") {
+      this.unsettledRetirements.delete(action.microSystemId);
+      return undefined;
+    }
+    return "runtime.generation.settlement_timeout";
+  }
+
+  private collectUnsettledServiceIds(): Set<ServiceId> {
+    const serviceIds = new Set<ServiceId>();
+    for (const [microSystemId, retirement] of this.unsettledRetirements) {
+      if (retirement.fence.state === "RETIRED") {
+        this.unsettledRetirements.delete(microSystemId);
+        continue;
+      }
+      for (const serviceId of retirement.serviceIds) serviceIds.add(serviceId);
+    }
+    return serviceIds;
   }
 
   async close(): Promise<void> {
@@ -328,7 +370,11 @@ export class MicroSystemSupervisor {
         this.serviceBindings.set(action.serviceId, action.providerId);
         return;
       case "REBIND_CAPABILITY":
-        this.capabilityBindings.set(action.capabilityId, action.providerId);
+        if (action.providerId === undefined) {
+          this.capabilityBindings.delete(action.capabilityId);
+        } else {
+          this.capabilityBindings.set(action.capabilityId, action.providerId);
+        }
         return;
     }
   }
@@ -444,11 +490,26 @@ export class MicroSystemSupervisor {
   ): Promise<void> {
     const running = this.running.get(microSystemId);
     if (running === undefined) {
+      const unsettled = this.unsettledRetirements.get(microSystemId);
+      if (unsettled !== undefined && unsettled.fence.state !== "RETIRED") {
+        this.actual.set(microSystemId, "FAILED");
+        return;
+      }
+      this.unsettledRetirements.delete(microSystemId);
       this.actual.set(microSystemId, terminalState);
       return;
     }
     this.actual.set(microSystemId, "QUIESCING");
     this.running.delete(microSystemId);
+    const serviceIds = [
+      ...new Set(
+        running.definition.serviceProvisions
+          .filter((provision) =>
+            running.serviceProviderIds.includes(provision.providerId),
+          )
+          .map((provision) => provision.serviceId),
+      ),
+    ];
     let firstError: unknown;
     try {
       await this.withdrawProviders(
@@ -468,11 +529,44 @@ export class MicroSystemSupervisor {
     } catch (error) {
       firstError ??= error;
     }
-    this.actual.set(microSystemId, terminalState);
+    if (running.fence.state !== "RETIRED") {
+      this.unsettledRetirements.set(microSystemId, {
+        fence: running.fence,
+        serviceIds,
+      });
+    }
+    this.actual.set(microSystemId, firstError === undefined ? terminalState : "FAILED");
     if (firstError !== undefined) throw firstError;
   }
 
   private async handleBackgroundFailure(microSystemId: MicroSystemId): Promise<void> {
+    const failed = this.definitions.get(microSystemId);
+    if (failed !== undefined) {
+      const failedProviderIds = new Set(
+        failed.serviceProvisions.map((provision) => provision.providerId),
+      );
+      const affectedServices = new Set(
+        failed.serviceProvisions
+          .filter(
+            (provision) =>
+              this.serviceBindings.get(provision.serviceId) === provision.providerId,
+          )
+          .map((provision) => provision.serviceId),
+      );
+      const dependentIds = [...this.running.entries()]
+        .filter(([runningId, running]) => {
+          if (runningId === microSystemId) return false;
+          return running.definition.serviceRequirements.some(
+            (requirement) =>
+              affectedServices.has(requirement.serviceId) &&
+              failedProviderIds.has(this.serviceBindings.get(requirement.serviceId)!),
+          );
+        })
+        .map(([runningId]) => runningId);
+      for (const dependentId of dependentIds) {
+        await this.stop(dependentId, "FAILED").catch(() => undefined);
+      }
+    }
     await this.stop(microSystemId, "FAILED").catch(() => undefined);
   }
 

@@ -84,6 +84,15 @@ required; no compatibility migration was added. Real PostgreSQL constraint and
 SECURITY DEFINER execution evidence remains `NOT_RUN` because the local
 qualification toolchain was unavailable.
 
+## H2B second corrective-cycle persistence status (2026-08-25)
+
+The B1-B4/I1/I2 runtime-kernel corrections did not alter the canonical schema
+or completion function in this cycle. The persistence-relevant behavior still
+has no frozen candidate SHA, and real PostgreSQL execution of the runtime-origin
+constraints and completion validation remains `NOT_RUN`. The current full
+repository `pnpm verify` is `PASS`; this does not upgrade the real PostgreSQL
+claim, independent review, final cross-platform CI, or squash merge.
+
 ## H2A-1 historical/current ledger
 
 H2A-1 已在历史候选上完成外部独立 review、exact-pair final CI 和 squash merge：

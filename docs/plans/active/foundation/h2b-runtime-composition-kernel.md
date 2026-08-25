@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: use the repository Heptalogos architecture/runtime-durability/dependencies/verification skills first, then execute this plan task-by-task with TDD. If the execution harness provides `superpowers:subagent-driven-development` or `superpowers:executing-plans`, use one of those modes. This plan intentionally retains architectural decisions here. The implementing Agent may make local code-organization choices, but **must not reinterpret dependency roles, runtime ownership, package boundaries, identity shapes, graph semantics, generation fencing, lifecycle authority, lineage persistence, or H2 stage closure policy**.
 
 **Plan state:** `ACTIVE / CORRECTIVE_REVIEW_CYCLE`
-**Target branch after activation:** `dev/h2b-runtime-composition-kernel`
+**Current candidate branch:** `dev/h2b-runtime-composition-kernel-corrected`
 **Integration unit:** one branch → one Draft PR → local qualification → external independent review on exact `(base_sha, head_sha)` → manual exact-pair Ubuntu/macOS/Windows final CI → squash merge → separate docs/evidence-only reconciliation.
 **Compatibility epoch:** `PRE_PRODUCTION`
 
@@ -24,28 +24,61 @@ task_3_supervisor_reconciler: PASS (R1-R16 focused unit evidence)
 task_4_runtime_origin_lineage: PASS (9/9 focused unit tests; real PostgreSQL NOT_RUN)
 task_5_windows_postgresql_18_6_integration: NOT_RUN (qualification toolchain unavailable on current host)
 task_5_current_head_rerun: NOT_RUN (real PostgreSQL integration skipped)
-runtime_kernel_unit: PASS (64/64 focused tests)
+runtime_kernel_unit: PASS (75/75 package tests)
 behavior_candidate: NOT_FROZEN (corrective changes remain in the working tree)
 removed_binding_reconcile_regression: PASS (focused supervisor regression)
 transient_call_activity: PASS (S11/K9/R15)
-task_6_boundaries_local_qualification: NOT_RUN (post-rebase corrective cycle)
-local_pnpm_verify: PASS (full pnpm verify; one unrelated flaky lock test retried successfully)
-pull_request: 20
+task_6_boundaries_local_qualification: PASS (current full repository verify)
+local_pnpm_verify: PASS (current full repository verify)
+pull_request: PENDING_NEW_DRAFT (PR #20 is the obsolete old pair)
 candidate_pair:
- base: NOT_FROZEN
+ base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
  head: NOT_FROZEN (corrective cycle)
-pr_20: OPEN_REBASE_PENDING
+pr_20: OPEN_OBSOLETE_PAIR
 previous_independent_review: REQUEST_CHANGES (old pair 7b51468c... → 06cc895b...) current_independent_review: NOT_RUN
 final_cross_platform_ci: NOT_RUN
 squash_merge: NOT_RUN
 ```
 
-Corrective-cycle local evidence (2026-08-25): Runtime Kernel focused tests
+First corrective-cycle local evidence (2026-08-25): Runtime Kernel focused tests
 `64/64` PASS; RuntimeSubstrate focused tests `16/16` PASS; changed-scope
 ESLint, TS7 build, TS6 lane, and the repository dependency/boundary/corpus/
 toolchain checks PASS. The managed-Host PostgreSQL integration file had `5`
 tests skipped because the current host has no configured qualification
 toolchain; this remains `NOT_RUN`, not `PASS`.
+
+## Governance repair and second corrective cycle (2026-08-25)
+
+The operator directed correction of an invalid H2B topology in which the
+eleven-commit H2B snapshot had reached `origin/master` without a new H2B PR.
+Before repair, `origin/master` was `3ce96cf7fdbe56e5fd5b3f9adfd9274bf945f0d6`.
+That snapshot was preserved at the local and remote backup ref
+`backup/h2b-master-3ce96cf`, and `origin/master` was restored to the exact
+post-H2A-3 baseline
+`19ebef1c62a737ad077414a6817ffdf8ac3ad2a4` using an explicit
+`--force-with-lease`. No H2B development continues on `master`.
+
+The corrected branch remains based on that baseline. The old PR #20 pair
+(`7b51468c...` → `06cc895b...`) is not reused; a new Draft PR is required
+after this corrective cycle is committed and pushed.
+
+The new review blockers and important findings are covered by focused tests:
+
+```yaml
+B1_exact_service_binding_graph: PASS
+B2_timeout_keeps_retiring_and_blocks_replacement_dependents: PASS
+B3_real_class_native_receiver_and_mutation_fence: PASS
+B4_capability_unbind_before_same_reconcile_start: PASS
+I1_failed_blocked_and_SAFE_dependency_recovery: PASS
+I2_required_capability_missing_is_dynamic_unavailable: PASS
+runtime_kernel_package_unit: PASS (75/75)
+runtime_substrate_package_unit: PASS (16/16)
+managed_host_postgres_h2b_integration: NOT_RUN (5 skipped; qualification toolchain unavailable)
+pnpm_verify_after_second_corrective_cycle: PASS
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
 
 
 **Goal:** complete H2 functional runtime composition by establishing a thin qualified Cordis runtime substrate, Heptalogos-owned MicroSystem supervision/reconciliation, hard Service and dynamic Capability registries, generation-fenced invocation, graphlib-backed dependency planning, OperatingMode/readiness semantics, and runtime lifecycle lineage—without pulling H3 durable work/effects or H4 system management into H2B.
@@ -1673,7 +1706,8 @@ H2B is ready for external review only when all are true:
 
 ```text
 [ ] Standard Activation Gate final-CI prerequisite was satisfied (operator-directed exception is recorded below)
-- [x] Operator-directed activation exception recorded with exact post-H2A3 master baseline `7b51468c2c41895bde7091868d688d98dfc6c957`; H2A-3 final CI remains `NOT_RUN`.
+- [x] Operator-directed activation exception recorded with exact post-H2A3 master baseline `19ebef1c62a737ad077414a6817ffdf8ac3ad2a4`; H2A-3 final CI remains `NOT_RUN`.
+- [x] invalid H2B-on-master snapshot preserved at `backup/h2b-master-3ce96cf` and `origin/master` restored to the post-H2A-3 baseline.
 [x] no H2A-S was created
 [x] cordis is exactly 4.0.0-rc.8 in Catalog/lockfile
 [x] @dagrejs/graphlib is exactly 4.0.5 in Catalog/lockfile
@@ -1690,10 +1724,15 @@ H2B is ready for external review only when all are true:
 [x] hard Service missing → BLOCKED
 [x] hard Service ambiguity does not resolve by load order
 [x] hard Service replacement quiesces dependents safely
+[x] RuntimeGraph resolves exact Service bindings and counts bindings rather than MicroSystems
 [x] Capability rebind is deterministic and does not force Service-style restart
+[x] removed explicit Capability binding takes effect before dependent START
 [x] Service/Capability consumers never receive raw provider implementation
-[x] retained fenced Proxy fails after retirement
+[x] retained fenced Proxy preserves real class/native receiver identity and fences mutation
 [x] generation retirement blocks new calls and settles in-flight calls
+[x] settlement timeout leaves a generation RETIRING and blocks replacement dependents
+[x] failed/BLOCKED and SAFE dependency chains recover in one later reconcile
+[x] missing required Capability remains dynamic unavailable and is represented by Readiness
 [x] no hidden automatic retry loop exists
 [x] RuntimeGraph uses graphlib and rejects hard cycles before activation
 [x] Readiness READY/DEGRADED/BLOCKED semantics pass
@@ -1712,7 +1751,7 @@ H2B is ready for external review only when all are true:
 [ ] real PostgreSQL H2B integration PASS on the actually recorded platform (`NOT_RUN`: qualification toolchain unavailable)
 [x] deferred L3 claims remain NOT_RUN
 [x] boundary/dependency/repository/corpus/toolchain gates PASS
-[x] pnpm verify PASS (full command passed; managed-Host H2B integration remains `NOT_RUN`)
+[x] pnpm verify PASS after B1-B4/I1/I2 corrective changes (managed-Host H2B integration remains `NOT_RUN`)
 [x] roadmap says H2 remains OPEN and H2-S has not been pre-claimed
 [ ] exact review pair is frozen only after all candidate mutations (`NOT_RUN`: working tree not frozen)
 ```

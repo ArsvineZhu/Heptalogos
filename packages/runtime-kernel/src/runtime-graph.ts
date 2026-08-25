@@ -1,5 +1,10 @@
 import { alg, Graph } from "@dagrejs/graphlib";
-import type { MicroSystemDefinition, ProviderId, ServiceId } from "./contracts.js";
+import type {
+  ContractVersion,
+  MicroSystemDefinition,
+  ProviderId,
+  ServiceId,
+} from "./contracts.js";
 import { ContractCompatibilityRegistry } from "./contract-compatibility.js";
 import { runtimeKernelProblem } from "./problems.js";
 
@@ -10,6 +15,8 @@ export interface RuntimeGraphPlan {
     readonly provider: MicroSystemDefinition;
     readonly consumer: MicroSystemDefinition;
     readonly serviceId: ServiceId;
+    readonly providerId: ProviderId;
+    readonly contractVersion: ContractVersion;
   }[];
 }
 
@@ -47,20 +54,20 @@ export class RuntimeGraph {
       );
       for (const requirement of requirements) {
         const explicitProviderId = explicitServiceBindings.get(requirement.serviceId);
-        const candidates = ordered.filter((provider) =>
-          provider.serviceProvisions.some(
-            (provision) =>
-              provision.serviceId === requirement.serviceId &&
-              this.compatibility.isCompatible(
-                requirement.contract,
-                provision.contractVersion,
-              ) &&
-              (explicitProviderId === undefined ||
-                provision.providerId === explicitProviderId),
-          ),
+        const candidates = ordered.flatMap((provider) =>
+          provider.serviceProvisions
+            .filter(
+              (provision) =>
+                provision.serviceId === requirement.serviceId &&
+                this.compatibility.isCompatible(
+                  requirement.contract,
+                  provision.contractVersion,
+                ) &&
+                (explicitProviderId === undefined ||
+                  provision.providerId === explicitProviderId),
+            )
+            .map((provision) => ({ provider, provision })),
         );
-        let provider: MicroSystemDefinition | undefined;
-        if (candidates.length === 1) provider = candidates[0];
         if (candidates.length === 0) {
           throw runtimeKernelProblem(
             explicitProviderId === undefined
@@ -75,13 +82,18 @@ export class RuntimeGraph {
             `More than one eligible provider exists for Service '${requirement.serviceId}'`,
           );
         }
-        this.graph.setEdge(provider!.microSystemId, consumer.microSystemId, {
+        const [{ provider, provision }] = candidates;
+        this.graph.setEdge(provider.microSystemId, consumer.microSystemId, {
           serviceId: requirement.serviceId,
+          providerId: provision.providerId,
+          contractVersion: provision.contractVersion,
         });
         (this.edges as Array<RuntimeGraphPlan["edges"][number]>).push({
-          provider: provider!,
+          provider,
           consumer,
           serviceId: requirement.serviceId,
+          providerId: provision.providerId,
+          contractVersion: provision.contractVersion,
         });
       }
     }

@@ -21,7 +21,7 @@ evidence:
   L2_adapter_fit: PASS
 ```
 
-## H2B corrective-cycle addendum (2026-08-25)
+## H2B first corrective-cycle addendum (2026-08-25)
 
 ```yaml
 candidate_status: NOT_FROZEN
@@ -58,6 +58,33 @@ The managed-Host PostgreSQL integration file was executed on the current host
 and all five cases were skipped because the qualification toolchain was not
 configured. This is `NOT_RUN`, not product/runtime qualification. Linux/macOS,
 source-less, and service/headless claims remain deferred.
+
+## H2B second corrective-cycle addendum (2026-08-25)
+
+```yaml
+candidate_status: NOT_FROZEN
+candidate_base_sha: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+candidate_branch: dev/h2b-runtime-composition-kernel-corrected
+runtime_kernel_package_unit: PASS (75/75)
+runtime_substrate_package_unit: PASS (16/16)
+B1_exact_service_binding_graph: PASS
+B2_retirement_timeout_and_replacement_block: PASS
+B3_real_class_native_receiver_and_mutation_fence: PASS
+B4_capability_unbind_before_restart: PASS
+I1_failed_blocked_and_SAFE_recovery: PASS
+I2_required_capability_dynamic_unavailable: PASS
+pnpm_verify: PASS (current full repository verify)
+managed_host_h2b_postgres_integration: NOT_RUN (5 skipped; qualification toolchain unavailable)
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The previous `3ce96cf7...` H2B-on-master snapshot was preserved at
+`backup/h2b-master-3ce96cf` and `origin/master` was restored to
+`19ebef1c...` before this branch continued. This topology repair is not
+independent review or final-CI evidence. The exact candidate pair remains
+unfrozen until the final documentation/qualification mutation is complete.
 
 ## NOT_RUN / deferred properties
 
