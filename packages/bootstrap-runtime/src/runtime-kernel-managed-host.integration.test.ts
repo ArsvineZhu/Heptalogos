@@ -43,7 +43,7 @@ import {
   makeFixture,
   queryAs,
   RUNTIME_PASSWORD,
-  stopManagedHost,
+  stopManagedHostWithoutRuntime,
 } from "./test-support/canonical-postgres.js";
 
 const describePostgres = describeRealPostgres === undefined ? describe.skip : describe;
@@ -245,14 +245,16 @@ async function closeComposition(
 ): Promise<void> {
   await composition.supervisor.close().catch(() => undefined);
   await composition.persistence.close().catch(() => undefined);
-  await stopManagedHost(composition.bootResult.host).catch(() => undefined);
+  await stopManagedHostWithoutRuntime(composition.bootResult.host).catch(
+    () => undefined,
+  );
 }
 
-describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
+describePostgres.sequential("Runtime Kernel Runtime Kernel on the managed Host", () => {
   it("I1-I4 persists runtime lifecycle lineage and keeps direct runtime UPDATE denied", async () => {
     const fixture = await makeFixture();
     const productGenerationId = testProductGenerationId();
-    const serviceId = createServiceId("h2b.integration.service");
+    const serviceId = createServiceId("runtime.integration.service");
     const a = provider("a", productGenerationId, serviceId);
     const b = consumer("b", productGenerationId, serviceId, async (context) => {
       await context
@@ -376,7 +378,7 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
   it("I5-I6 replaces a hard Service and fences the old ServiceLease", async () => {
     const fixture = await makeFixture();
     const productGenerationId = testProductGenerationId();
-    const serviceId = createServiceId("h2b.integration.replace");
+    const serviceId = createServiceId("runtime.integration.replace");
     let activations = 0;
     let oldLease: ServiceLease<{ read(): string }> | undefined;
     const a = provider("a", productGenerationId, serviceId);
@@ -419,7 +421,7 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
   it("I7 proves Capability provider activation, rebind, readiness, and fail-closed explicit binding", async () => {
     const fixture = await makeFixture();
     const productGenerationId = testProductGenerationId();
-    const capabilityId = createCapabilityId("h2b.integration.capability");
+    const capabilityId = createCapabilityId("runtime.integration.capability");
     const highProvider = capabilityProvider(
       "capability-high",
       productGenerationId,
@@ -453,7 +455,7 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
       },
     };
     const profile = {
-      profileId: "h2b.integration.capability-profile",
+      profileId: "runtime.integration.capability-profile",
       requiredServices: [],
       requiredCapabilities: [requirement],
       optionalCapabilities: [],
@@ -515,7 +517,7 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
   it("L9-L16 completes only the current Activity, idempotently, without wall-clock ordering", async () => {
     const fixture = await makeFixture();
     const productGenerationId = testProductGenerationId();
-    const serviceId = createServiceId("h2b.integration.completion");
+    const serviceId = createServiceId("runtime.integration.completion");
     const composition = await createComposition(fixture, productGenerationId, [
       provider("completion-provider", productGenerationId, serviceId),
     ]);
@@ -546,7 +548,7 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
               runtime: {
                 productGenerationId: asContentDigest(
                   "ProductGenerationId",
-                  digestCanonicalJson("h2b.integration.other-generation/v1", {
+                  digestCanonicalJson("runtime.integration.other-generation/v1", {
                     generation: "other",
                   }),
                 ),
@@ -603,7 +605,7 @@ describePostgres.sequential("H2B Runtime Kernel on the managed Host", () => {
   it("I7-I10 isolates provider failure, preserves mode Desired State, and shuts down scopes", async () => {
     const fixture = await makeFixture();
     const productGenerationId = testProductGenerationId();
-    const serviceId = createServiceId("h2b.integration.failure");
+    const serviceId = createServiceId("runtime.integration.failure");
     let rejectWorker!: (reason: unknown) => void;
     const worker = new Promise<void>((_resolve, reject) => {
       rejectWorker = reject;

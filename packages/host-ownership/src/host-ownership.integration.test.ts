@@ -43,10 +43,10 @@ const qualifiedPgBin: string =
 let resolvedToolchain: PrivatePostgresToolchain | undefined;
 
 const execFileAsync = promisify(execFile);
-const BOOTSTRAP_PASSWORD = "M4_TEST_BOOTSTRAP_PASSWORD_0123456789";
-const HOST_LEASE_PASSWORD = "M4_TEST_HOST_LEASE_PASSWORD_0123456789";
-const RUNTIME_PASSWORD = "M4_TEST_RUNTIME_PASSWORD_0123456789";
-const MIGRATION_PASSWORD = "M4_TEST_MIGRATION_PASSWORD_0123456789";
+const BOOTSTRAP_PASSWORD = "HOST_OWNERSHIP_TEST_BOOTSTRAP_PASSWORD_0123456789";
+const HOST_LEASE_PASSWORD = "HOST_OWNERSHIP_TEST_HOST_LEASE_PASSWORD_0123456789";
+const RUNTIME_PASSWORD = "HOST_OWNERSHIP_TEST_RUNTIME_PASSWORD_0123456789";
+const MIGRATION_PASSWORD = "HOST_OWNERSHIP_TEST_MIGRATION_PASSWORD_0123456789";
 const TIMING: HostOwnershipTimingOptions = {
   connectionTimeoutMs: 10_000,
   statementTimeoutMs: 10_000,
@@ -169,7 +169,7 @@ async function waitUntilReady(port: number): Promise<void> {
 
 async function createCluster(): Promise<ClusterFixture> {
   const toolchain = await getToolchain();
-  const root = await mkdtemp(join(tmpdir(), "heptalogos-m4-host-pg-"));
+  const root = await mkdtemp(join(tmpdir(), "heptalogos-host-ownership-pg-"));
   const dataDirectory = join(root, "data");
   const tempDirectory = join(root, "temp");
   const logDirectory = join(root, "log");
@@ -201,7 +201,7 @@ async function createCluster(): Promise<ClusterFixture> {
   );
   await writeFile(
     join(dataDirectory, "pg_hba.conf"),
-    "# Heptalogos M4 host ownership integration HBA\nhost all all 127.0.0.1/32 scram-sha-256\n",
+    "# Heptalogos host ownership integration HBA\nhost all all 127.0.0.1/32 scram-sha-256\n",
   );
   await runPgCtl([
     "start",
@@ -524,20 +524,22 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
       await lease.close();
       await secondClient.connect();
       await expect(
-        secondClient.query("CREATE DATABASE m4_forbidden_database"),
+        secondClient.query("CREATE DATABASE host_ownership_forbidden_database"),
       ).rejects.toThrow();
       await expect(
-        secondClient.query("CREATE ROLE m4_forbidden_role"),
+        secondClient.query("CREATE ROLE host_ownership_forbidden_role"),
       ).rejects.toThrow();
       await expect(
-        secondClient.query("CREATE SCHEMA m4_forbidden_schema"),
-      ).rejects.toThrow();
-      await expect(
-        secondClient.query("CREATE TABLE public.m4_forbidden_table (value integer)"),
+        secondClient.query("CREATE SCHEMA host_ownership_forbidden_schema"),
       ).rejects.toThrow();
       await expect(
         secondClient.query(
-          "ALTER TABLE heptalogos.host_ownership_fence ADD COLUMN m4_forbidden integer",
+          "CREATE TABLE public.host_ownership_forbidden_table (value integer)",
+        ),
+      ).rejects.toThrow();
+      await expect(
+        secondClient.query(
+          "ALTER TABLE heptalogos.host_ownership_fence ADD COLUMN host_ownership_forbidden integer",
         ),
       ).rejects.toThrow();
       await expect(
@@ -684,7 +686,7 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
     const lease = await prepareHostLease(fixture);
     const admin = await bootstrapClient(fixture, "postgres");
     let ownershipAdmin: Client | undefined;
-    const intruder = "m4_intruder";
+    const intruder = "host_ownership_intruder";
     try {
       ownershipAdmin = await bootstrapClient(fixture, "heptalogos");
       const published = await publish(fixture, lease);
@@ -748,7 +750,7 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
     const lease = await prepareHostLease(fixture);
     const admin = await bootstrapClient(fixture, "postgres");
     const ownershipAdmin = await bootstrapClient(fixture, "heptalogos");
-    const intruder = "m4_intruder";
+    const intruder = "host_ownership_intruder";
     try {
       await publish(fixture, lease);
       await admin.query(`CREATE ROLE "${intruder}" NOLOGIN`);

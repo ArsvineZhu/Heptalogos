@@ -113,7 +113,7 @@ const restrictedImports = new Map([
       "packages/canonical-schema/",
       "packages/execution-lineage/src/activity-repository.ts",
       "packages/evidence/src/evidence-service.ts",
-      "packages/bootstrap-runtime/src/h2a3-execution-foundation.integration.test.ts",
+      "packages/bootstrap-runtime/src/execution-foundation.integration.test.ts",
     ],
   ],
 ]);
@@ -124,7 +124,7 @@ const restrictedSpecifiers = new Map([
       "packages/execution-lineage/",
       "packages/evidence/",
       "packages/persistence/",
-      "packages/bootstrap-runtime/src/h2a3-execution-foundation.integration.test.ts",
+      "packages/bootstrap-runtime/src/execution-foundation.integration.test.ts",
     ],
   ],
 ]);
@@ -269,6 +269,25 @@ export function isRestrictedImportAllowed(specifier, relativePath) {
     allowedPath.endsWith("/")
       ? normalizedPath.startsWith(allowedPath)
       : normalizedPath === allowedPath,
+  );
+}
+
+const bootstrapRuntimeProductionForbiddenImports = new Set([
+  "@heptalogos/runtime-kernel",
+  "@heptalogos/runtime-substrate",
+  "cordis",
+]);
+
+export function isBootstrapRuntimeProductionImportAllowed(specifier, relativePath) {
+  const normalizedPath = relativePath.replaceAll("\\", "/");
+  const isBootstrapProductionSource =
+    normalizedPath.startsWith("packages/bootstrap-runtime/src/") &&
+    !normalizedPath.endsWith(".test.ts") &&
+    !normalizedPath.endsWith(".test.tsx") &&
+    !normalizedPath.endsWith(".test.mjs");
+  return (
+    !isBootstrapProductionSource ||
+    !bootstrapRuntimeProductionForbiddenImports.has(packageName(specifier))
   );
 }
 
@@ -464,6 +483,13 @@ for (const path of sourcePaths) {
     if (!isRestrictedSpecifierAllowed(specifier, relativePath)) {
       errors.push(
         `${relativePath}: restricted full import is not allowed here: ${specifier}`,
+      );
+      continue;
+    }
+
+    if (!isBootstrapRuntimeProductionImportAllowed(specifier, relativePath)) {
+      errors.push(
+        `${relativePath}: bootstrap-runtime production source must not import ${specifier}`,
       );
       continue;
     }

@@ -76,7 +76,7 @@ const qualifiedPgBin =
   process.env.HEPTALOGOS_TEST_PG_BIN ??
   (() => {
     throw new Error(
-      "BLOCKED: HEPTALOGOS_TEST_PG_BIN is required for M5B PostgreSQL recovery qualification",
+      "BLOCKED: HEPTALOGOS_TEST_PG_BIN is required for Bootstrap Recovery PostgreSQL recovery qualification",
     );
   })();
 const execFileAsync = promisify(execFile);
@@ -201,14 +201,21 @@ function makeState(): BootstrapStateBodyV1 {
 }
 
 async function makeFixture(port: number): Promise<Fixture> {
-  const anchorRoot = await mkdtemp(join(tmpdir(), "heptalogos-m5b-recovery-anchor-"));
+  const anchorRoot = await mkdtemp(
+    join(tmpdir(), "heptalogos-bootstrap-recovery-recovery-anchor-"),
+  );
   directories.push(anchorRoot);
   const roots = {} as Record<LifecycleRootId, string>;
   for (const id of LIFECYCLE_ROOT_IDS) {
     roots[id] =
       id === "PROGRAM"
         ? anchorRoot
-        : await mkdtemp(join(tmpdir(), `heptalogos-m5b-recovery-${id.toLowerCase()}-`));
+        : await mkdtemp(
+            join(
+              tmpdir(),
+              `heptalogos-bootstrap-recovery-recovery-${id.toLowerCase()}-`,
+            ),
+          );
     if (id !== "PROGRAM") directories.push(roots[id]);
   }
   const installationId = createInstallationId();
@@ -235,7 +242,7 @@ function makeKeyProvider(): BootstrapKeyProvider {
       use: (passwordUtf8: Uint8Array) => Promise<T>,
     ): Promise<T> {
       const password = new TextEncoder().encode(
-        "M5A_TEST_BOOTSTRAP_PASSWORD_0123456789",
+        "BOOTSTRAP_RECOVERY_TEST_BOOTSTRAP_PASSWORD_0123456789",
       );
       try {
         return await use(password);
@@ -248,7 +255,7 @@ function makeKeyProvider(): BootstrapKeyProvider {
       use: (passwordUtf8: Uint8Array) => Promise<T>,
     ): Promise<T> {
       const password = new TextEncoder().encode(
-        "M5A_TEST_HOST_LEASE_PASSWORD_0123456789",
+        "BOOTSTRAP_RECOVERY_TEST_HOST_LEASE_PASSWORD_0123456789",
       );
       try {
         return await use(password);
@@ -260,7 +267,9 @@ function makeKeyProvider(): BootstrapKeyProvider {
       _context: BootstrapKeyRequestContext,
       use: (passwordUtf8: Uint8Array) => Promise<T>,
     ): Promise<T> {
-      const password = new TextEncoder().encode("M5A_TEST_RUNTIME_PASSWORD_0123456789");
+      const password = new TextEncoder().encode(
+        "BOOTSTRAP_RECOVERY_TEST_RUNTIME_PASSWORD_0123456789",
+      );
       try {
         return await use(password);
       } finally {
@@ -272,7 +281,7 @@ function makeKeyProvider(): BootstrapKeyProvider {
       use: (passwordUtf8: Uint8Array) => Promise<T>,
     ): Promise<T> {
       const password = new TextEncoder().encode(
-        "M5A_TEST_MIGRATION_PASSWORD_0123456789",
+        "BOOTSTRAP_RECOVERY_TEST_MIGRATION_PASSWORD_0123456789",
       );
       try {
         return await use(password);
@@ -469,11 +478,13 @@ async function makeInterruptedOperation(
     const access = openMaintenanceStateAccess(profile, lease);
     const loaded = await access.state.load();
     if (loaded.status !== "CURRENT" || loaded.value.state.schemaVersion !== 1) {
-      throw new Error("M5B fixture BootstrapState V1 was not available");
+      throw new Error("Bootstrap Recovery fixture BootstrapState V1 was not available");
     }
     const privatePostgres = loaded.value.state.privatePostgres;
     if (privatePostgres === undefined || privatePostgres.schemaVersion !== 1) {
-      throw new Error("M5B fixture private PostgreSQL state was not available");
+      throw new Error(
+        "Bootstrap Recovery fixture private PostgreSQL state was not available",
+      );
     }
     const state = loaded.value as BootstrapStateEnvelopeV1;
     const snapshot = await inspectHostOwnershipCanonicalSnapshot({
@@ -487,7 +498,7 @@ async function makeInterruptedOperation(
     });
     const row = snapshot.fence[0];
     if (row === undefined || row.host_ownership_token === null) {
-      throw new Error("M5B fixture did not observe source Host token");
+      throw new Error("Bootstrap Recovery fixture did not observe source Host token");
     }
     const operationId = createUuidV7Id("MaintenanceOperationId");
     const body: MaintenanceJournalBodyV1 = {
@@ -719,7 +730,7 @@ afterEach(async () => {
   );
 });
 
-describe.sequential("M5B PostgreSQL 18.6 recovery qualification", () => {
+describe.sequential("Bootstrap Recovery PostgreSQL 18.6 recovery qualification", () => {
   it("additional maintenance recovery restarts after PostgreSQL READY interruption", async () => {
     const fixture = await makeFixture(55530);
     const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);

@@ -1,0 +1,57 @@
+# @heptalogos/canonical-schema
+
+## Purpose
+
+`canonical-schema` materializes the current canonical PostgreSQL schema used by
+the Foundation persistence layer. It provides the initializer and current
+development baseline that creates the tables, functions, and constraints needed
+by Host ownership, persistence, lineage, and evidence. During
+`PRE_PRODUCTION`, this is the rewriteable canonical baseline rather than a
+chronology-preserving migration archive.
+
+## Owns
+
+- Canonical schema definition and initialization.
+- Current migration/baseline mechanics required to materialize that schema.
+- Schema initialization contract and its runtime options.
+
+## Does not own
+
+- Connection pools or normal transaction APIs.
+- Host lease acquisition or ownership fencing.
+- Bootstrap maintenance control.
+- Compatibility readers or migrations for project-owned development history.
+
+## Public surface
+
+The package exports `CanonicalSchemaRuntimeOptions`,
+`CanonicalSchemaInitializer`, and `createCanonicalSchemaInitializer`. The
+initializer is consumed by the owning bootstrap/persistence composition rather
+than used as a general SQL execution surface.
+
+## Dependencies and boundaries
+
+It depends on `foundation-contracts`, `host-ownership`, Kysely, and `pg`.
+Database connection and Host context come from the caller's owning layer. Keep
+schema ownership separate from transaction and lifecycle ownership; do not add
+a second schema authority in persistence or Bootstrap.
+
+## Change constraints
+
+Keep one current PRE_PRODUCTION schema baseline. Development chronology does not
+justify append-only compatibility migrations or readers. Use the owning Host
+context and keep connection-pool and Bootstrap maintenance policy outside this
+package.
+
+## Verification
+
+Run `pnpm nx run canonical-schema:test`, lint, typecheck, and the relevant real
+PostgreSQL initialization/integration scenarios. Any baseline rewrite also
+requires the PRE_PRODUCTION reset/recreate procedure and full repository gates.
+
+## Architecture references
+
+- [`S03 — 持久化、事务与 EffectFence`](../../Architecture_Corpus/specs/S03-持久化-事务-EffectFence.md)
+- [`S12 — 验证、研究与评估`](../../Architecture_Corpus/specs/S12-验证-Research-Evaluation.md)
+- [`S15 — Foundation 横切合同`](../../Architecture_Corpus/specs/S15-Foundation横切合同.md)
+- [`S17 — Storage Workspace 与 DataLifecycle`](../../Architecture_Corpus/specs/S17-Storage-Workspace-DataLifecycle.md)

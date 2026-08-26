@@ -263,7 +263,7 @@ describe("MaintenanceJournal V1 model and codec", () => {
   });
 
   it.each(["HOST_TOKEN_PUBLISHED", "BOOTSTRAP_RELEASE_ARMED"] as const)(
-    "rejects the legacy token/revision target without hostBootId at %s",
+    "rejects a target missing required hostBootId at %s",
     (stage) => {
       const body = makeBody({
         lastCompletedStage: stage,
@@ -283,7 +283,7 @@ describe("MaintenanceJournal V1 model and codec", () => {
     },
   );
 
-  it("rejects the legacy target at RECOVERY_REQUIRED", () => {
+  it("rejects a recovery target missing required hostBootId", () => {
     const body = makeBody({
       lastCompletedStage: "RECOVERY_REQUIRED",
       terminalOutcome: "FAILED",

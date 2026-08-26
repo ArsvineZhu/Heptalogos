@@ -2,7 +2,7 @@
 
 **Status:** LIVING ROADMAP / planning guidance<br>
 **Date:** 2026-08-25<br>
-**Repository baseline:** `master@d7f32427398d2309c1732cdbce98f590e14a8249` (H2B squash merge / current reconciliation base)<br>
+**Repository baseline:** current `master` integration baseline for this roadmap (H2B reconciliation / H2-S branch base)<br>
 **Architecture baseline:** `Architecture_Corpus` design state 2026-08-20
 
 > This document is a roadmap, not an Architecture Corpus authority and not an Implementation Plan. It guides future plan decomposition, sequencing, risk retirement, and acceptance. If it conflicts with the Architecture Corpus, the Corpus wins. If implementation evidence invalidates roadmap assumptions without invalidating architecture semantics, update the roadmap rather than silently changing the Corpus.
@@ -114,7 +114,7 @@ The repository can safely evolve Foundation code with truthful gates and stable 
 - per-BootId BootstrapJournal;
 - atomic publication boundary;
 - cross-platform repository process substrate;
-- manual-only exact-SHA CI/review/squash closure process.
+- manual-only CI/review/squash closure process for the current live PR.
 
 ### What H0 does not prove
 
@@ -143,97 +143,44 @@ H2A_3: CLOSED
 H2A: FUNCTIONALLY_COMPLETE
 H2B: CLOSED
 H2_FUNCTIONAL: COMPLETE
-H2_STABILIZATION: ELIGIBLE
+H2_STABILIZATION: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
 H2: OPEN
 H3: NOT_ELIGIBLE
 ```
 
-H2A-3 implementation and Windows PostgreSQL 18.6 local qualification are
-complete and PR #22 is squash-merged at
-`d7f32427398d2309c1732cdbce98f590e14a8249`. Its exact reviewed behavior pair
-was `(19ebef1c62a737ad077414a6817ffdf8ac3ad2a4,
-86c01ee90d6d1f6c953be39375ccddb0458a189a)`; operator-supplied Independent
-Review is `PASS`, and manual final cross-platform workflow run `32862042074`
-is `PASS` on Ubuntu/macOS/Windows for the reviewed head. H2B is therefore
-closed and H2 is functionally complete. The final-head real PostgreSQL rerun
-was `NOT_RUN`; the qualified Windows PostgreSQL property evidence is carried
-forward because the final corrective cycle did not change persistence,
-lineage, or database behavior. H2-S is eligible but has not started, and H2
-remains open.
+H2B is closed and H2 is functionally complete. The current H2-S corrective
+candidate has local qualification and fresh PostgreSQL 18.6 qualification
+`PASS`. Independent Review, final cross-platform CI, and merge remain
+`NOT_RUN`; H2 remains open and H3 remains not eligible.
 
-H1 functional implementation: COMPLETE.
+H1 functional implementation and stabilization are `CLOSED`. Residual product
+qualification such as Linux/macOS PostgreSQL, source-less shipping,
+service-account ACL, and hardware power-loss remains `NOT_RUN` where the
+qualification records say so.
 
-H1-S review-correction implementation/qualification: COMPLETE at corrected
-behavior candidate `3cc589b667b0cd64342881caf7d382c2d960a928`. Current evidence
-is bound to that candidate and the exact Windows PostgreSQL 18.6 runtime used
-for the fresh qualification run.
+H2A and H2B are functionally complete. H2 remains `OPEN` until the current
+stabilization candidate completes its review, final CI, merge, and current-truth
+reconciliation gates. H3 remains `NOT_ELIGIBLE`.
 
-The exact H1-S reviewed pair is
-`(257ad6fe73924bcd1c9a00cad6a15938d6e6a2da,
-80440e89918f3141c087fff65118754bb07e09ca)`. Independent review is `PASS`;
-manual final cross-platform CI run `32643262593` is `PASS` for head
-`80440e89918f3141c087fff65118754bb07e09ca`; and squash merge
-`82541933bc2b5e6add0eeee711b4f36350f5d5ff` is `PASS`. H1 is therefore closed
-and H2 is eligible. The current corrected run proves Windows extracted-runtime
-PostgreSQL 18.6 behavior; Linux/macOS real PostgreSQL, source-less shipping,
-service-account ACL, and hardware power-loss remain product-qualification
-`NOT_RUN` items. The historical M5B review/CI/merge records below do not replace
-this current H1-S closure tuple.
+Current H2-S stabilization status:
 
-H2A-1 Host-Fenced Persistence Authority is squash-merged at
-`900a7b876ed4be7506beacead9f3285d1f4a5577`. Its exact reviewed pair is
-`(54688d2bb0da2b8516a84634459495956bd96b8c,
-e09f94d2a268480fea27b779c2b160fb3c5c68b5)`, with external out-of-band user /
-operator independent review `PASS`. Final cross-platform CI run
-`32697218296` is `PASS` for Ubuntu, macOS, and Windows at the reviewed head;
-the squash merge is `PASS`. `Q-PERSISTENCE-01` keeps
-`evidenceStatus: PASS` and `qualificationState: PARTIAL`: Windows PostgreSQL
-18.6 behavior, H1 ownership/bootstrap-runtime regressions, least-privilege
-runtime role, transaction lifecycle, and dependency/leakage gates pass.
-Linux/macOS PostgreSQL, source-less persistence, and installed
-service/headless runtime claims remain `NOT_RUN`. PostgreSQL's requirement for
-`UPDATE` privilege on direct `FOR SHARE` is handled by an owner-owned
-`SECURITY DEFINER` lock function; the runtime table ACL remains without
-`UPDATE`. At H2A-1 closure, Schema/Time/ExecutionContext/minimal
-Lineage remained outstanding; H2A-3 now implements that execution spine.
+```yaml
+H2_STABILIZATION: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+localQualification: PASS
+freshPostgreSQL18_6: PASS
+independentReview: NOT_RUN
+finalCrossPlatformCI: NOT_RUN
+merge: NOT_RUN
+```
 
-The initial `ContinuityEpochId` authority is now explicit in the Corpus: new
-Instances create one epoch under Bootstrap Closure before normal runtime,
-ordinary restart/crash retry reuses the committed value, and destructive
-restore/rollback rotates it inside the bootstrap-owned recovery window. H2A-2
-is locally implementation-complete at behavior candidate
-`00c03f7e635724636dc9fca56c6fc856e6b04603`, establishing canonical
-BootstrapState V1 with that required epoch, the distinct migration authority,
-the current canonical schema baseline, normal materialization/verification,
-and canonical admission on full bootstrap, maintenance restart, and
-interrupted-maintenance recovery, including the post-bootstrap-release Host
-liveness proof.
-Local `pnpm verify` is `PASS`. Windows PostgreSQL 18.6 C1-C9 evidence is
-`PASS` (9 scenarios; 8 Vitest cases because C4/C5 are parameterized), and the
-persistence/Host ownership/bootstrap-runtime regression integrations are
-`PASS`. Linux/macOS PostgreSQL, source-less, and service/headless claims remain
-`NOT_RUN`. PRE_PRODUCTION development shapes have no project-internal
-compatibility bridge in H2A-2; obsolete current-V1 bytes are rejected. Epoch
-mismatch outside the authorized restore window is fail-closed. The final exact
-pair
-`b306975bba3592a0d8c2e2e6d1649f2523af27bc` →
-`2b492ef69131cc9792babb094ec2be33b13a9c69` received independent review
-`PASS`, final CI run `32731811379` passed on Ubuntu/macOS/Windows, and squash
-merged as `2c8a68c7e76884d75fb3314ff18b1806a0625b3d`. Linux/macOS PostgreSQL,
-source-less, and service/headless claims remain `NOT_RUN`.
-
-Historical milestone context:
-
-- M2 pre-PostgreSQL bootstrap substrate is closed and merged.
-- M3 implementation is merged in squash commit `4b12c14693752d9796f8aa287666e6537321006d`; its corrected-final-head independent re-review, final cross-platform CI, corrected Linux/macOS real PostgreSQL, source-less shipping, and service-account ACL evidence remain `NOT_RUN`, so `Q-PRIVATE-POSTGRES-01 = PARTIAL`.
-- M4 is implemented and squash-merged at `83e0b603d039036326eca9983af381387a9bfdb3`; its exact-SHA independent review and final cross-platform CI are `PASS`, while corrected-candidate Linux/macOS real PostgreSQL, source-less shipping, and service-account ACL evidence remain `NOT_RUN`, so `Q-PRIVATE-POSTGRES-01 = PARTIAL`.
-- M5A is closed and merged in squash commit `8acedfd49b0bcc42444389c3f28f206d4e8438b6`. Its exact corrected reviewed SHA is `538cc6973fcd831cb47a60c5d126006032532591`; independent review passed and final manual cross-platform CI run `32570208341` passed on Ubuntu, macOS, and Windows.
-- M5A Linux PostgreSQL 18.6 evidence remains PASS at its corrected behavior candidate; Windows/macOS real PostgreSQL, source-less shipping, and service-account ACL evidence remain `NOT_RUN` and are not upgraded by final repository CI.
-- M5B was the active Foundation implementation plan for bounded abandoned-bootstrap ownership and interrupted M5A recovery; its implementation and post-merge reconciliation are historical records from squash merge `f16071cbff3e30cd4f839716130270770e99075a`. H1-S now governs current H1 closure, while residual L3 product qualification remains separately tracked.
-- M5B behavior candidate `e7e46e8e1d58f15e254b9644f5b315cd34090360` was reviewed at exact HEAD `5e8f1aa475730aef982622d05cd488767ac0c08a` and returned `REQUEST_CHANGES`. K1-K3 and surviving Linux subsets remain PASS, but K4/K5 deterministic process evidence, real pre-Host PG-1/PG-2 bootstrap recovery, and the complete matrix are `NOT_RUN` pending the second corrective cycle. The earlier review at `9e450f836466d32fb1f3d9027618fac236798eb9` also returned `REQUEST_CHANGES`; final CI and merge remain unauthorized, Windows/macOS real PostgreSQL, source-less recovery, service-account ACL, and hardware power-loss remain `NOT_RUN`, and H1 remains OPEN.
-- M5B second corrective behavior candidate `55c58ed83d5e7b7ce964b659e6250b6f6580634d` now has PASS evidence for RC-6 legacy journal compatibility, same-lease pre-Host continuation, K1-K3 (3/3), deterministic K4/K5 (1/1 each), dedicated PG-1/PG-2 (1/1 each), the Linux PG-1..PG-9 plus PG-5B/PG-6A/PG-6B matrix (11/11), private-postgres (20/20), Host ownership (8/8), bootstrap-runtime integration (29/29), and `pnpm verify`. The current candidate awaits independent review; final CI and merge remain unauthorized, Windows/macOS real PostgreSQL, source-less recovery, service-account ACL, and hardware power-loss remain `NOT_RUN`, and H1 remains OPEN.
-- Historical M5B third corrective behavior candidate `ce8ecbd2f54b6da39542845b1c23fbb959672c0a`, followed by qualification-only `a41dad0226310889f61515ba16ce910c1dbb0e53`, removed the `INSPECT` journal mutation and added the then-required live legacy-M5A PG-6A shape. Its tests and exact final review/CI/merge evidence remain historical M5B evidence; they do not close current H1-S.
-- M2/M5B normal boot automatic stale takeover remains intentionally disabled; an abandoned pre-PostgreSQL lock is recovery-required until the later bounded Recovery proof authorizes the same `@bybrave/proper-lockfile2` provider under explicit local recovery authority.
+The current candidate's concrete evidence is maintained in
+[`Q-RUNTIME-01`](../../Architecture_Corpus/qualification/results/Q-RUNTIME-01.md)
+and
+[`Q-PERSISTENCE-01`](../../Architecture_Corpus/qualification/results/Q-PERSISTENCE-01.md).
+The completed implementation/correction plan is
+[`H2-S context-efficient package governance correction`](../plans/completed/foundation/h2s-review-correction-context-efficient-package-governance.md).
+Historical implementation and qualification detail remains in completed plans
+and historical qualification records rather than in this living roadmap.
 
 ### Capability closure
 

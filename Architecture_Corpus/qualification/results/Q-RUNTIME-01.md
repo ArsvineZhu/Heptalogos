@@ -259,3 +259,60 @@ database behavior. H2A-3's historical final cross-platform CI remains
 `NOT_RUN`; it is not rewritten by H2B evidence. Linux/macOS product
 PostgreSQL, source-less, service/headless, and complete product runtime
 start/stop claims remain `NOT_RUN` or `PARTIAL` as previously recorded.
+
+## H2-S current candidate qualification (2026-08-26)
+
+```yaml
+candidate:
+  pullRequest: 24
+  state: READY_FOR_REVIEW
+  branch: dev/h2-stabilization
+localQualification:
+  status: PASS
+  environment: Windows / Node 24.19.0 / pnpm 11.22.0
+freshPostgreSQL18_6: PASS
+runtimeKernelScenarios:
+  status: PASS (125/125)
+  namedScenarios:
+    - Q1 closes Service admission synchronously while an admitted call drains
+    - Q2 quiesces hard dependents before providers with deterministic independent ordering
+    - Q3 restores captured Desired with fresh MicroSystemInstanceIds and fences
+    - Q5 makes the resume lease one-shot
+    - Q6 leaves the accepted Desired snapshot unchanged through quiescence
+    - Q7 can resume an empty supervisor before any Desired snapshot is accepted
+    - Q8 terminalizes the supervisor when its owner signal aborts
+    - Q9 does not double-retire or resurrect during an owner/background-failure race
+    - Q10 closes the substrate after quiescence without resuming
+    - Q11 keeps admission closed when quiescence settlement times out
+    - Q12 prevents a queued later start after quiescence is requested
+    - Q-start-quiesce-cancel aborts STARTING activation without manual release
+    - Q-start-owner-abort-cancel aborts STARTING activation and cannot reopen
+    - rejects a delayed activation after quiescence closes admission
+    - rejects a delayed activation after owner abort closes admission
+    - Q13 admits no work when the owner signal is already aborted
+    - Q14 returns the same idempotent terminal close outcome
+    - Q15 fails closed when resume encounters a structural activation failure
+  note: Q4 is intentionally absent; the ledger does not claim a contiguous Q1-Q15 range.
+runtimeSubstrateUnit: PASS (16/16)
+bootstrapProductionBoundary: PASS
+currentTreeHygiene: PASS
+pg1_identity_coherence: PASS
+pg2_host_terminality_propagation: PASS
+pg3_planned_stop_real_quiescence: PASS
+pg4_restart_continuity_rotation: PASS
+pg5_structural_safe_abort_fit: PASS
+pg6_shutdown_keep_postgres_and_bootstrap_cleanup: PASS
+bootstrapRuntimeIntegration: PASS (8 suites, 58 tests)
+privatePostgresIntegration: PASS (20/20)
+hostOwnershipIntegration: PASS (10/10)
+persistenceIntegration: PASS (9/9)
+recoveryProcess: PASS (4/4)
+recoveryProcessPostgres: PASS (2/2)
+independentReview: NOT_RUN
+finalCrossPlatformCI: NOT_RUN
+merge: NOT_RUN
+```
+
+This is the current Ready review candidate. The fresh Windows PostgreSQL 18.6
+suite and all required local gates completed after the implementation mutation;
+Independent Review, final cross-platform CI, and merge remain external gates.

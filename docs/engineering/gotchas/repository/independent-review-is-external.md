@@ -2,31 +2,40 @@
 
 ## Symptom
 
-An Agent repeatedly searches GitHub reviews, approvals, requested reviewers, or
-review comments and concludes that the milestone review is missing.
+An Agent searches GitHub reviews, approvals, requested reviewers, or review
+comments and concludes that the Heptalogos Independent Review gate is missing.
 
 ## Cause
 
-The repository's `Independent Review` gate was underspecified as to its
-transport and source. It is not the same thing as a GitHub PR review object.
+Heptalogos uses a GitHub Pull Request as the candidate transport, while
+Independent Review is a separate governance action. GitHub's Pull Request
+Review feature is not the Authority for this gate.
 
 ## Rule
 
-The user/operator supplies the external out-of-band review result for the exact
-candidate pair `(base_sha, head_sha)`. A supplied `PASS` authorizes the next
-governance step only for that exact pair; `REQUEST_CHANGES` requires correction,
-local re-verification, a new pair, and a new external review.
+Independent Review is an external governance verdict. It is not a GitHub Pull
+Request review, approval, requested-reviewer state, review comment, status
+check, or branch-protection signal. GitHub hosts the candidate and CI evidence;
+it does not provide the Independent Review Authority.
 
-GitHub may be used to verify repository facts that actually live there:
+The authorized independent reviewer supplies an explicit `PASS` or
+`REQUEST_CHANGES` verdict out-of-band to the implementation Agent. That verdict
+is authoritative for the current Ready candidate. The implementation Agent MUST
+NOT query GitHub reviews, approvals, requested reviewers, or review comments to
+determine Independent Review state. Absence of GitHub review objects has no
+meaning for this gate.
 
-- current PR base and head SHAs;
-- workflow run identity and checked-out head SHA;
-- CI conclusion;
-- PR and merge state.
+GitHub may still be used to verify facts that belong to GitHub: whether the PR
+is open and Ready, whether its candidate branch and base remain current, the
+final CI conclusion, and the merge state. Those facts do not produce an
+Independent Review verdict.
 
-The absence of a GitHub approval, review object, comment, or requested reviewer
-is not evidence that the external Independent Review is `NOT_RUN`.
+## Lifecycle
 
-Any candidate-pair change, including a branch commit or base-branch movement,
-invalidates the supplied review and requires a new external review. Final CI
-must target the same externally reviewed pair.
+- Draft work is mutable.
+- Ready identifies the candidate presented to the external reviewer.
+- External `REQUEST_CHANGES` returns the PR to Draft for bounded correction.
+- External `PASS` authorizes the next planned governance step, normally final
+  manual CI.
+- Any repository or base movement after the verdict makes the candidate stale;
+  return to Draft and obtain a new external verdict after requalification.

@@ -6,7 +6,8 @@
     "evidenceStatus": [
       "PASS",
       "FAIL",
-      "NOT_RUN"
+      "NOT_RUN",
+      "BLOCKED"
     ],
     "qualificationState": [
       "OPEN",
@@ -93,7 +94,59 @@
         "h2b_review_candidate_head_sha": "86c01ee90d6d1f6c953be39375ccddb0458a189a",
         "h2b_independent_review": "PASS (operator-supplied exact pair)",
         "h2b_final_cross_platform_ci": "PASS (run 32862042074; Ubuntu/macOS/Windows)",
-        "h2b_squash_merge": "PASS (PR #22 merge d7f32427398d2309c1732cdbce98f590e14a8249)"
+        "h2b_squash_merge": "PASS (PR #22 merge d7f32427398d2309c1732cdbce98f590e14a8249)",
+        "h2s_candidate": {
+          "pullRequest": 24,
+          "state": "READY_FOR_REVIEW",
+          "branch": "dev/h2-stabilization"
+        },
+        "h2s_localQualification": {
+          "status": "PASS",
+          "environment": "Windows / Node 24.19.0 / pnpm 11.22.0"
+        },
+        "h2s_freshPostgres18_6": "PASS",
+        "h2s_runtimeKernelScenarios": {
+          "status": "PASS (125/125)",
+          "namedScenarios": [
+            "Q1 closes Service admission synchronously while an admitted call drains",
+            "Q2 quiesces hard dependents before providers with deterministic independent ordering",
+            "Q3 restores captured Desired with fresh MicroSystemInstanceIds and fences",
+            "Q5 makes the resume lease one-shot",
+            "Q6 leaves the accepted Desired snapshot unchanged through quiescence",
+            "Q7 can resume an empty supervisor before any Desired snapshot is accepted",
+            "Q8 terminalizes the supervisor when its owner signal aborts",
+            "Q9 does not double-retire or resurrect during an owner/background-failure race",
+            "Q10 closes the substrate after quiescence without resuming",
+            "Q11 keeps admission closed when quiescence settlement times out",
+            "Q12 prevents a queued later start after quiescence is requested",
+            "Q-start-quiesce-cancel aborts STARTING activation without manual release",
+            "Q-start-owner-abort-cancel aborts STARTING activation and cannot reopen",
+            "rejects a delayed activation after quiescence closes admission",
+            "rejects a delayed activation after owner abort closes admission",
+            "Q13 admits no work when the owner signal is already aborted",
+            "Q14 returns the same idempotent terminal close outcome",
+            "Q15 fails closed when resume encounters a structural activation failure"
+          ],
+          "missingNumber": "Q4 intentionally absent"
+        },
+        "h2s_runtimeSubstrateUnit": "PASS (16/16)",
+        "h2s_bootstrapProductionBoundary": "PASS",
+        "h2s_currentTreeHygiene": "PASS",
+        "h2s_pg1_identity_coherence": "PASS",
+        "h2s_pg2_host_terminality_propagation": "PASS",
+        "h2s_pg3_planned_stop_real_quiescence": "PASS",
+        "h2s_pg4_restart_continuity_rotation": "PASS",
+        "h2s_pg5_structural_safe_abort_fit": "PASS",
+        "h2s_pg6_shutdown_keep_postgres_and_bootstrap_cleanup": "PASS",
+        "h2s_bootstrapRuntimeIntegration": "PASS (8 suites, 58 tests)",
+        "h2s_privatePostgresIntegration": "PASS (20/20)",
+        "h2s_hostOwnershipIntegration": "PASS (10/10)",
+        "h2s_persistenceIntegration": "PASS (9/9)",
+        "h2s_recoveryProcess": "PASS (4/4)",
+        "h2s_recoveryProcessPostgres": "PASS (2/2)",
+        "h2s_independentReview": "NOT_RUN",
+        "h2s_finalCrossPlatformCI": "NOT_RUN",
+        "h2s_merge": "NOT_RUN"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
@@ -584,7 +637,28 @@
         "h2a3_service_headless": "NOT_RUN",
     "h2a3_independent_review": "PASS",
         "h2a3_final_cross_platform_ci": "NOT_RUN",
-    "h2a3_squash_merge": "PASS (PR #19 merge 7b51468c2c41895bde7091868d688d98dfc6c957)"
+    "h2a3_squash_merge": "PASS (PR #19 merge 7b51468c2c41895bde7091868d688d98dfc6c957)",
+        "h2s_candidate": {
+          "pullRequest": 24,
+          "state": "READY_FOR_REVIEW",
+          "branch": "dev/h2-stabilization"
+        },
+        "h2s_localQualification": {
+          "status": "PASS",
+          "environment": "Windows / Node 24.19.0 / pnpm 11.22.0"
+        },
+        "h2s_freshPostgres18_6": "PASS",
+        "h2s_persistenceUnit": "PASS (19/19)",
+        "h2s_executionLineageUnit": "PASS (29/29)",
+        "h2s_canonicalSchemaUnit": "PASS (3/3)",
+        "h2s_bootstrapRuntimeIntegration": "PASS (8 suites, 58 tests)",
+        "h2s_hostOwnershipIntegration": "PASS (10/10)",
+        "h2s_persistenceIntegration": "PASS (9/9)",
+        "h2s_recoveryProcess": "PASS (4/4)",
+        "h2s_recoveryProcessPostgres": "PASS (2/2)",
+        "h2s_independentReview": "NOT_RUN",
+        "h2s_finalCrossPlatformCI": "NOT_RUN",
+        "h2s_merge": "NOT_RUN"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",

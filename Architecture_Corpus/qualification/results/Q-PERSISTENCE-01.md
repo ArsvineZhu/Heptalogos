@@ -305,3 +305,31 @@ not change persistence, lineage, schema, migration, or database behavior.
 The H2A-3 historical final cross-platform CI remains `NOT_RUN`; H2B evidence
 does not rewrite it. Linux/macOS PostgreSQL, source-less persistence, and
 service/headless product claims remain `NOT_RUN`.
+
+## H2-S current candidate qualification (2026-08-26)
+
+```yaml
+candidate:
+  pullRequest: 24
+  state: READY_FOR_REVIEW
+  branch: dev/h2-stabilization
+localQualification:
+  status: PASS
+  environment: Windows / Node 24.19.0 / pnpm 11.22.0
+freshPostgreSQL18_6: PASS
+persistenceUnit: PASS (19/19)
+executionLineageUnit: PASS (29/29)
+canonicalSchemaUnit: PASS (3/3)
+bootstrapRuntimeIntegration: PASS (8 suites, 58 tests)
+hostOwnershipIntegration: PASS (10/10)
+persistenceIntegration: PASS (9/9)
+recoveryProcess: PASS (4/4)
+recoveryProcessPostgres: PASS (2/2)
+independentReview: NOT_RUN
+finalCrossPlatformCI: NOT_RUN
+merge: NOT_RUN
+```
+
+This current record describes the Ready review candidate. Historical H2A/H2B
+review, CI, and merge records above remain historical; Independent Review,
+final cross-platform CI, and merge are still `NOT_RUN` for this candidate.

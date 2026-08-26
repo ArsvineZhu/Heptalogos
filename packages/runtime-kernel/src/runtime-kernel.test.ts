@@ -690,10 +690,10 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     expect(reflected).not.toBe(implementation.read);
   });
 
-  it("does not expose Object.prototype legacy mutation methods", async () => {
+  it("does not expose Object.prototype mutation helpers", async () => {
     const registry = new ServiceRegistry();
-    const serviceId = createServiceId("test.object-prototype-legacy");
-    const providerId = createProviderId("provider.object-prototype-legacy");
+    const serviceId = createServiceId("test.object-prototype-mutation");
+    const providerId = createProviderId("provider.object-prototype-mutation");
     const implementation = { read: () => "ok" };
     const fence = registry.register(
       serviceProvision(serviceId, providerId),
@@ -701,7 +701,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     );
     const lease = registry.resolve<{ read(): string }>(serviceRequirement(serviceId));
 
-    await lease.invoke("legacy", (service) => {
+    await lease.invoke("mutation-boundary", (service) => {
       expect(Reflect.get(service, "__defineGetter__")).toBeUndefined();
       expect(Reflect.get(service, "__defineSetter__")).toBeUndefined();
       expect(Reflect.has(service, "__defineGetter__")).toBe(false);

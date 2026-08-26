@@ -1,10 +1,41 @@
 import { describe, expect, it } from "vitest";
 import {
+  isBootstrapRuntimeProductionImportAllowed,
   isCrossWorkspaceRelativeImport,
   isRestrictedImportAllowed,
 } from "../../../scripts/verify/boundaries.mjs";
 
 describe("restricted repository imports", () => {
+  it("rejects Runtime Kernel, Runtime Substrate, and Cordis from Bootstrap production source", () => {
+    for (const specifier of [
+      "@heptalogos/runtime-kernel",
+      "@heptalogos/runtime-kernel/internal",
+      "@heptalogos/runtime-substrate",
+      "@heptalogos/runtime-substrate/internal",
+      "cordis",
+      "cordis/foo",
+    ]) {
+      expect(
+        isBootstrapRuntimeProductionImportAllowed(
+          specifier,
+          "packages/bootstrap-runtime/src/managed-host.ts",
+        ),
+      ).toBe(false);
+    }
+    expect(
+      isBootstrapRuntimeProductionImportAllowed(
+        "@heptalogos/runtime-kernel",
+        "packages/bootstrap-runtime/src/runtime-kernel-managed-host.integration.test.ts",
+      ),
+    ).toBe(true);
+    expect(
+      isBootstrapRuntimeProductionImportAllowed(
+        "@heptalogos/runtime-kernelish",
+        "packages/bootstrap-runtime/src/managed-host.ts",
+      ),
+    ).toBe(true);
+  });
+
   it("allows bootstrap-runtime access to bootstrap-state", () => {
     expect(
       isRestrictedImportAllowed(

@@ -1,7 +1,0 @@
-{
-  "schemaVersion": 1,
-  "scope": "Repository Genesis acceptance only",
-  "donorRepository": "../Heptalogos_Archived",
-  "donorRef": "dev/rewrite",
-  "donorCommit": "8094be40f6b5ae04a4052f5daa09abb1db3df76d"
-}

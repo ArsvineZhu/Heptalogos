@@ -57,10 +57,10 @@ export const CANONICAL_OPTIONS = {
   idleInTransactionSessionTimeoutMs: 30_000,
   onBackgroundError() {},
 } as const;
-export const BOOTSTRAP_PASSWORD = "H2A2_TEST_BOOTSTRAP_PASSWORD_0123456789";
-export const HOST_LEASE_PASSWORD = "H2A2_TEST_HOST_LEASE_PASSWORD_0123456789";
-export const RUNTIME_PASSWORD = "H2A2_TEST_RUNTIME_PASSWORD_0123456789";
-export const MIGRATION_PASSWORD = "H2A2_TEST_MIGRATION_PASSWORD_0123456789";
+export const BOOTSTRAP_PASSWORD = "CANONICAL_PG_TEST_BOOTSTRAP_PASSWORD_0123456789";
+export const HOST_LEASE_PASSWORD = "CANONICAL_PG_TEST_HOST_LEASE_PASSWORD_0123456789";
+export const RUNTIME_PASSWORD = "CANONICAL_PG_TEST_RUNTIME_PASSWORD_0123456789";
+export const MIGRATION_PASSWORD = "CANONICAL_PG_TEST_MIGRATION_PASSWORD_0123456789";
 
 export interface Fixture {
   readonly anchorRoot: string;
@@ -145,7 +145,9 @@ async function freePort(): Promise<number> {
 }
 
 export async function makeFixture(): Promise<Fixture> {
-  const anchorRoot = await mkdtemp(join(tmpdir(), "heptalogos-h2a3-canonical-anchor-"));
+  const anchorRoot = await mkdtemp(
+    join(tmpdir(), "heptalogos-canonical-postgres-anchor-"),
+  );
   directories.push(anchorRoot);
   const roots = {} as Record<LifecycleRootId, string>;
   for (const id of LIFECYCLE_ROOT_IDS) {
@@ -153,7 +155,7 @@ export async function makeFixture(): Promise<Fixture> {
       id === "PROGRAM"
         ? anchorRoot
         : await mkdtemp(
-            join(tmpdir(), `heptalogos-h2a3-canonical-${id.toLowerCase()}-`),
+            join(tmpdir(), `heptalogos-canonical-postgres-${id.toLowerCase()}-`),
           );
     if (id !== "PROGRAM") directories.push(roots[id]);
   }
@@ -212,7 +214,7 @@ export async function boot(
   };
 }
 
-export async function stopManagedHost(
+export async function stopManagedHostWithoutRuntime(
   host: BootstrapManagedHostContext,
 ): Promise<void> {
   if (host.state !== "ACTIVE") return;

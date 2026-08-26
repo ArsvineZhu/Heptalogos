@@ -56,7 +56,7 @@ function keyProvider() {
   return {
     async withPrivatePostgresBootstrapPassword(_context, use) {
       const password = new TextEncoder().encode(
-        "M5A_TEST_BOOTSTRAP_PASSWORD_0123456789",
+        "BOOTSTRAP_RECOVERY_TEST_BOOTSTRAP_PASSWORD_0123456789",
       );
       try {
         return await use(password);
@@ -66,7 +66,7 @@ function keyProvider() {
     },
     async withPrivatePostgresHostLeasePassword(_context, use) {
       const password = new TextEncoder().encode(
-        "M5A_TEST_HOST_LEASE_PASSWORD_0123456789",
+        "BOOTSTRAP_RECOVERY_TEST_HOST_LEASE_PASSWORD_0123456789",
       );
       try {
         return await use(password);
@@ -75,7 +75,9 @@ function keyProvider() {
       }
     },
     async withPrivatePostgresRuntimePassword(_context, use) {
-      const password = new TextEncoder().encode("M5A_TEST_RUNTIME_PASSWORD_0123456789");
+      const password = new TextEncoder().encode(
+        "BOOTSTRAP_RECOVERY_TEST_RUNTIME_PASSWORD_0123456789",
+      );
       try {
         return await use(password);
       } finally {
@@ -84,7 +86,7 @@ function keyProvider() {
     },
     async withPrivatePostgresMigrationPassword(_context, use) {
       const password = new TextEncoder().encode(
-        "M5A_TEST_MIGRATION_PASSWORD_0123456789",
+        "BOOTSTRAP_RECOVERY_TEST_MIGRATION_PASSWORD_0123456789",
       );
       try {
         return await use(password);

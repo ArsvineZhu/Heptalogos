@@ -61,7 +61,7 @@ function makeStateWithPrivatePostgres(): BootstrapStateBodyV1 {
       initializationProfileRevision: asContentDigest(
         "PrivatePostgresInitializationProfileRevision",
         digestCanonicalJson("test.private-postgres-profile/v1", {
-          profile: "m3",
+          profile: "canonical",
         }),
       ),
     },
@@ -77,16 +77,16 @@ describe("BootstrapState codec", () => {
     expect(sealed.digest.domain).toBe(BOOTSTRAP_STATE_DIGEST_DOMAIN);
   });
 
-  it("rejects obsolete development V1 that lacks continuityEpochId", () => {
+  it("rejects canonical V1 missing required continuityEpochId", () => {
     const sealed = sealBootstrapState(makeState());
-    const { continuityEpochId: _drop, ...obsoleteState } = sealed.state;
+    const { continuityEpochId: _drop, ...invalidState } = sealed.state;
 
     const result = parseBootstrapState(
       JSON.stringify({
-        state: obsoleteState,
+        state: invalidState,
         digest: digestCanonicalJson(
           BOOTSTRAP_STATE_DIGEST_DOMAIN,
-          obsoleteState as unknown as CanonicalJsonValue,
+          invalidState as unknown as CanonicalJsonValue,
         ),
       }),
     );
@@ -106,14 +106,14 @@ describe("BootstrapState codec", () => {
     expect(sealed.digest.domain).toBe(BOOTSTRAP_STATE_DIGEST_DOMAIN);
   });
 
-  it("rejects the obsolete pre-reset outer V2 shape", () => {
+  it("rejects an unsupported outer V2 shape", () => {
     const sealed = sealBootstrapState(makeStateWithPrivatePostgres());
-    const legacy = {
+    const unsupportedSchema = {
       ...sealed,
       state: { ...sealed.state, schemaVersion: 2 },
     };
 
-    expect(parseBootstrapState(JSON.stringify(legacy))).toMatchObject({
+    expect(parseBootstrapState(JSON.stringify(unsupportedSchema))).toMatchObject({
       ok: false,
       problem: { problemCode: "bootstrap.state.unsupported_schema" },
     });

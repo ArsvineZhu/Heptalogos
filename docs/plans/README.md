@@ -13,9 +13,20 @@ Filename recency is not plan authority. A task should name its governing active
 plan explicitly; if multiple active plans could apply and none is designated,
 surface the ambiguity rather than guessing.
 
+## Decision completeness
+
+An ACTIVE implementation plan is an executable specification, not an option memo.
+Before execution it MUST resolve non-trivial choices affecting Authority,
+semantic ownership, package/dependency boundaries, compatibility, durable
+shape, stable identity, lifecycle/failure semantics, stage scope and required
+evidence.
+
+The executor may choose only semantics-equivalent local implementation details.
+An unresolved non-trivial choice is `PLAN_GAP` and stops execution.
+
 ## Active
 
-[H2B Runtime Composition & Kernel](active/foundation/h2b-runtime-composition-kernel.md) — `ACTIVE / CORRECTIVE_REVIEW_CYCLE`
+No active implementation plan is installed for the current branch.
 
 ## Completed
 
@@ -36,3 +47,7 @@ surface the ambiguity rather than guessing.
 - [H1-S Stabilization Control Record](completed/foundation/h1s-control-record.md) — `COMPLETED` (H1 is `CLOSED`; H2 is `ELIGIBLE`)
 - [H2A-1 Host-Fenced Persistence Authority](completed/foundation/h2a1-host-fenced-persistence-authority.md) — `COMPLETED` (implementation/evidence PASS; external review, final CI, and squash merge PASS; qualification remains PARTIAL)
 - [H2A-2 Canonical Schema & Continuity Authority](completed/foundation/h2a2-canonical-schema-continuity-authority.md) — `COMPLETED` (implementation/evidence PASS; external review, final CI, and squash merge PASS; qualification remains PARTIAL)
+- [H2B Runtime Composition & Kernel](completed/foundation/h2b-runtime-composition-kernel.md) — `COMPLETED` (PR #22 merged; H2B closure reconciled in PR #23; final-head PostgreSQL rerun remains `NOT_RUN`)
+- [H2-S Stabilization Closure](completed/foundation/h2-stabilization-closure.md) — `COMPLETED` (local implementation and Windows PostgreSQL 18.6 qualification complete; Independent Review, final cross-platform CI, and squash merge remain `NOT_RUN`)
+- [H2-S review correction and governance simplification](completed/foundation/h2s-review-correction-governance-simplification.md) — `COMPLETED` (local qualification and fresh PostgreSQL 18.6 qualification PASS; Independent Review, final cross-platform CI, and merge remain `NOT_RUN`)
+- [H2-S context-efficient package governance correction](completed/foundation/h2s-review-correction-context-efficient-package-governance.md) — `COMPLETED` (local qualification and fresh PostgreSQL 18.6 qualification PASS; Independent Review, final cross-platform CI, and merge remain `NOT_RUN`)

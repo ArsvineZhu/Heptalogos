@@ -9,7 +9,6 @@ import type {
 } from "./contracts.js";
 import { RuntimeGraph } from "./runtime-graph.js";
 import type { ServiceRegistry } from "./service-registry.js";
-import type { MicroSystemSupervisor } from "./supervisor.js";
 
 export type ReconcileAction =
   | {
@@ -268,9 +267,5 @@ export class RuntimeReconciler {
       desiredServiceBindings: new Map(input.desired.serviceBindings),
       capabilityBindings: new Map(selectedCapabilities),
     });
-  }
-
-  execute(plan: ReconcilePlan, supervisor: MicroSystemSupervisor): Promise<void> {
-    return supervisor.executePlan(plan);
   }
 }

@@ -161,7 +161,7 @@ describe("MaintenanceJournalStore", () => {
   });
 
   it.each(["HOST_TOKEN_PUBLISHED", "BOOTSTRAP_RELEASE_ARMED"] as const)(
-    "rejects a legacy token/revision target without hostBootId at %s",
+    "rejects a target missing required hostBootId at %s",
     async (stage) => {
       const root = await directory();
       const store = new MaintenanceJournalStore(root);

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import { withRestrictedPasswordFile } from "./credential-file.js";
 
-const SENTINEL = "M3_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6";
+const SENTINEL = "PRIVATE_POSTGRES_TEST_SENTINEL_DO_NOT_LEAK_4f88b1c6";
 
 describe("withRestrictedPasswordFile", () => {
   it("writes one newline and removes the password file after success", async () => {

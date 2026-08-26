@@ -131,7 +131,9 @@ function makeState(
       clusterSystemIdentifier: "12345678901234567890",
       initializationProfileRevision: asContentDigest(
         "PrivatePostgresInitializationProfileRevision",
-        digestCanonicalJson("test.private-postgres-profile/v1", { profile: "m5a" }),
+        digestCanonicalJson("test.private-postgres-profile/v1", {
+          profile: "host-maintenance",
+        }),
       ),
     },
   };
@@ -183,7 +185,7 @@ function makeFixture(): {
       hostState = "CLOSED";
     },
   };
-  const root = `/tmp/heptalogos-m5a-${instanceId}`;
+  const root = `/tmp/heptalogos-host-maintenance-${instanceId}`;
   const resolved: ResolvedLifecycleRoot = {
     id: "INSTANCE",
     configuredPath: root,

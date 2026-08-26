@@ -1,8 +1,9 @@
 # Repository scripts
 
-`scripts/verify/` = permanent executable repository gates.
+`scripts/verify/` = permanent current repository gates.
 
-`scripts/phases/` = phase-specific or historical acceptance entrypoints.
+Reusable implementation belongs in `tools/repo-kit`.
 
-Reusable code must move to `tools/repo-kit` rather than accumulate under
-`scripts/`.
+One-time phase acceptance scripts do not remain after phase closure; their
+commands/results live in completed plans and Git history. `scripts/phases/` is
+not a historical-tools directory.

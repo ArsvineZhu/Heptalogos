@@ -21,6 +21,7 @@ Read first:
 - [System architecture](../../../Architecture_Corpus/04-总体系统架构.md)
 - [Terminology](../../../Architecture_Corpus/19-术语表.md)
 - [Architecture review checklist](../../../Architecture_Corpus/20-架构审查清单.md)
+- [Stabilization and compatibility governance](../../../Architecture_Corpus/26-开发阶段闭包-稳定化与兼容性治理.md)
 
 Load conditional references from the route index only when the change crosses those concerns.
 
@@ -34,6 +35,7 @@ Load conditional references from the route index only when the change crosses th
 6. If generic mechanics are needed, use `heptalogos-dependencies` before choosing or implementing them.
 7. If the proposal changes architecture, update every affected normative projection in the same change; do not leave a local code-only architecture decision.
 8. Define claim-matched verification with `heptalogos-verification` when the change alters failure, recovery, protocol, platform, or release behavior.
+9. For stabilization closure, treat the current Ready PR as the review candidate; keep Git revision identity inside Git/GitHub/CI rather than copying it into project records.
 
 ## Stop conditions
 
@@ -44,12 +46,19 @@ Stop and surface the conflict instead of implementing when:
 - a new abstraction would duplicate an existing Service/Capability/primitive;
 - Foundation work would require choosing an advanced-cognition algorithm/backend not explicitly scoped;
 - the task cannot be classified without changing architecture.
+- the approved plan is not decision-complete for a non-trivial choice;
+- current implementation preserves project-history compatibility without a declared obligation.
 
 While `CompatibilityEpoch=PRE_PRODUCTION`, do not infer a compatibility
 obligation from merged commits, retained developer databases, local fixtures,
 or previous development builds. Keep one canonical V1 and reject/reset obsolete
 development shapes; never add V2/V3, legacy readers, upcasters, bridge
 migrations, aliases, shims, or dual formats solely for repository history.
+
+For Hn-S work, route Corpus 26 directly and stop as `PLAN_GAP` when a required
+architecture/scope/compatibility decision is absent from Corpus + the approved
+plan. Do not create an allowlist or local exception to make the hygiene gate
+pass.
 
 ## Completion
 

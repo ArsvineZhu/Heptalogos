@@ -73,7 +73,7 @@ function makeStateWithPrivatePostgres(revision: number): BootstrapStateBodyV1 {
       initializationProfileRevision: asContentDigest(
         "PrivatePostgresInitializationProfileRevision",
         digestCanonicalJson("test.private-postgres-profile/v1", {
-          profile: "m3",
+          profile: "canonical",
         }),
       ),
     },

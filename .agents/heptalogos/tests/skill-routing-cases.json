@@ -95,6 +95,16 @@
       "id": "verification-source-less",
       "prompt": "Design the final source-less product artifact qualification and SBOM gate.",
       "expectedSkills": ["heptalogos-verification", "heptalogos-dependencies"]
+    },
+    {
+      "id": "architecture-history-compatibility-shim",
+      "prompt": "Keep an old internal schema via a compatibility shim because an earlier milestone used it.",
+      "expectedSkills": ["heptalogos-architecture", "heptalogos-verification"]
+    },
+    {
+      "id": "current-tree-phase-artifacts",
+      "prompt": "Leave phase-named fixtures and one-time evidence in the current tree for historical reference.",
+      "expectedSkills": ["heptalogos-architecture", "heptalogos-verification"]
     }
   ]
 }

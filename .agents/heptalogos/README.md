@@ -35,8 +35,11 @@ The validator checks:
 - every description begins with `Use when`;
 - route keys and Skill directory names match;
 - direct `../../../Architecture_Corpus/...` links resolve;
-- root `AGENTS.md` mentions every Skill;
 - no Skill exceeds the package's 500-word body budget.
+
+The validator checks routing and resource structure; it does not maintain a
+file-size or checksum manifest and it does not require root `AGENTS.md` to
+enumerate every Skill.
 
 Run this after renaming/moving Corpus files or changing Skill routing.
 

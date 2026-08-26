@@ -12,7 +12,8 @@
         "03-核心概念与Authority.md",
         "04-总体系统架构.md",
         "19-术语表.md",
-        "20-架构审查清单.md"
+        "20-架构审查清单.md",
+        "26-开发阶段闭包-稳定化与兼容性治理.md"
       ],
       "conditional": {
         "execution-model": ["05-整机执行模型.md"],
@@ -133,6 +134,7 @@
         "specs/S11-备份-更新-分发-平台.md",
         "specs/S12-验证-Research-Evaluation.md",
         "specs/S16-Execution-Lineage-Observability.md",
+        "26-开发阶段闭包-稳定化与兼容性治理.md",
         "qualification/DEPENDENCY-QUALIFICATION.md",
         "qualification/依赖资格矩阵.md",
         "qualification/results/README.md",
