@@ -2367,7 +2367,7 @@ closure:
   independentReview: PASS
   finalCrossPlatformCI: PASS
   squashMerge: PASS
-  postMergeReconciliation: IN_PROGRESS
+  postMergeReconciliation: PASS
 ```
 
 ---

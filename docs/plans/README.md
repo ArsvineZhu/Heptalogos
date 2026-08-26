@@ -26,10 +26,11 @@ An unresolved non-trivial choice is `PLAN_GAP` and stops execution.
 
 ## Active
 
-- [H2 Post-Merge Closure Reconciliation](active/foundation/h2-post-merge-closure-reconciliation.md) — `ACTIVE`
+No active implementation plan is installed for the current branch.
 
 ## Completed
 
+- [H2 Post-Merge Closure Reconciliation](completed/foundation/h2-post-merge-closure-reconciliation.md) — `COMPLETED` (H2-S post-merge truth reconciled; H2 is `CLOSED` and H3 is `ELIGIBLE`; Ubuntu residual qualification remains independent)
 - [H2A-3 Canonical Execution Context, Time & Lineage Foundation](completed/foundation/h2a3-canonical-execution-context-time-lineage.md) — `COMPLETED` (PR #19 merged; final cross-platform CI remains `NOT_RUN` by operator direction)
 
 - [Repository Genesis](completed/repository/repository-genesis.md) — `COMPLETED`

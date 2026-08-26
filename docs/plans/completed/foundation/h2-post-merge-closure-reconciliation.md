@@ -1,6 +1,6 @@
 # H2 Post-Merge Closure Reconciliation
 
-**Status:** `ACTIVE`
+**Status:** `COMPLETED`
 
 ## Purpose
 
@@ -17,7 +17,7 @@ H3: ELIGIBLE
 H3_implementation: NOT_STARTED
 ```
 
-The H2-S behavior candidate has externally supplied Independent Review `PASS`,
+The H2-S behavior candidate had externally supplied Independent Review `PASS`,
 manual final Ubuntu/macOS/Windows CI `PASS` with candidate revalidation `PASS`,
 and squash merge `PASS`. These are closure facts for the already-merged
 candidate; they are not GitHub review-object evidence.
@@ -25,7 +25,7 @@ candidate; they are not GitHub review-object evidence.
 ## Authorized scope
 
 Only current truth, qualification evidence, plan navigation, and the completed
-H2-S plan addendum may change:
+H2-S plan addendum changed:
 
 ```text
 docs/plans/active/foundation/h2-post-merge-closure-reconciliation.md
@@ -40,34 +40,35 @@ Architecture_Corpus/qualification/results/Q-PERSISTENCE-01.md
 
 No production source, tests, tooling, workflows, package metadata, normative
 Corpus semantics, H3 implementation, compatibility behavior, or product
-qualification residual claim may be added or changed.
+qualification residual claim changed.
 
 ## Ordered execution
 
-1. Re-prove the H2-S external closure tuple using the current merged PR/CI
+1. Re-proved the H2-S external closure tuple using the current merged PR/CI
    state and the supplied out-of-band Independent Review fact.
-2. Reconcile roadmap, machine-readable qualification state, runtime/persistence
+2. Reconciled roadmap, machine-readable qualification state, runtime/persistence
    evidence, and H2-S plan navigation while preserving historical records.
-3. Audit stale current-looking H2-S projections and classify historical matches.
-4. Run every required repository gate, prove the changed-path boundary, move
-   this plan to `completed/`, and record the actual execution result.
+3. Audited stale current-looking H2-S projections and classified historical
+   matches.
+4. Ran every required repository gate, proved the changed-path boundary, and
+   completed this plan.
 
 ## Evidence rules
 
-Use only `PASS`, `FAIL`, `NOT_RUN`, or `BLOCKED`. Keep Linux/macOS real
+Only `PASS`, `FAIL`, `NOT_RUN`, or `BLOCKED` are used. Linux/macOS real
 PostgreSQL, source-less, service/headless, service-account ACL, and hardware
-power-loss properties at their actual residual state. H2 closure is independent
-of the later Ubuntu residual qualification lane.
+power-loss properties remain at their actual residual state. H2 closure is
+independent of the later Ubuntu residual qualification lane.
 
 ## Execution record
 
 ```yaml
-planState: ACTIVE
-roadmapReconciled: NOT_RUN
-qualificationStatusReconciled: NOT_RUN
-runtimeEvidenceReconciled: NOT_RUN
-persistenceEvidenceReconciled: NOT_RUN
-planNavigationReconciled: NOT_RUN
-localRepositoryVerification: NOT_RUN
-changedPathBoundary: NOT_RUN
+planState: COMPLETED
+roadmapReconciled: PASS
+qualificationStatusReconciled: PASS
+runtimeEvidenceReconciled: PASS
+persistenceEvidenceReconciled: PASS
+planNavigationReconciled: PASS
+localRepositoryVerification: PASS
+changedPathBoundary: PASS
 ```
