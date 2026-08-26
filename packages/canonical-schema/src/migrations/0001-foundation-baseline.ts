@@ -158,14 +158,10 @@ export const foundationBaselineMigration: Migration = {
       .withSchema(schema)
       .createTable("work_item")
       .addColumn("work_item_id", "uuid", (column) => column.notNull().primaryKey())
-      .addColumn("target_product_generation_id", "text", (column) =>
-        column.notNull(),
-      )
+      .addColumn("target_product_generation_id", "text", (column) => column.notNull())
       .addColumn("handler_micro_system_id", "text", (column) => column.notNull())
       .addColumn("handler_contribution_id", "text", (column) => column.notNull())
-      .addColumn("handler_package_generation_id", "text", (column) =>
-        column.notNull(),
-      )
+      .addColumn("handler_package_generation_id", "text", (column) => column.notNull())
       .addColumn("payload_version", "integer", (column) => column.notNull())
       .addColumn("payload", "jsonb", (column) => column.notNull())
       .addColumn("queue_profile_id", "text", (column) => column.notNull())
@@ -174,13 +170,9 @@ export const foundationBaselineMigration: Migration = {
       .addColumn("priority", "integer", (column) => column.notNull())
       .addColumn("not_before", "timestamptz(3)")
       .addColumn("dedup_key", "text")
-      .addColumn("created_continuity_epoch_id", "uuid", (column) =>
-        column.notNull(),
-      )
+      .addColumn("created_continuity_epoch_id", "uuid", (column) => column.notNull())
       .addColumn("lineage_context_ref", "jsonb", (column) => column.notNull())
-      .addColumn("configuration_binding_policy", "text", (column) =>
-        column.notNull(),
-      )
+      .addColumn("configuration_binding_policy", "text", (column) => column.notNull())
       .addColumn("config_revision_ref", "text")
       .addColumn("restore_replay_class", "text", (column) => column.notNull())
       .addColumn("dispatch_revision", "bigint", (column) => column.notNull())

@@ -374,6 +374,9 @@ importers:
       '@heptalogos/runtime-substrate':
         specifier: workspace:*
         version: link:../runtime-substrate
+      '@heptalogos/schema-runtime':
+        specifier: workspace:*
+        version: link:../schema-runtime
       '@heptalogos/time-service':
         specifier: workspace:*
         version: link:../time-service

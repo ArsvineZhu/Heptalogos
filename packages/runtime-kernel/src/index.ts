@@ -24,6 +24,19 @@ export type {
   ServiceProvisionDescriptor,
   ServiceRequirement,
 } from "./contracts.js";
+export type {
+  ResourceAdmissionClassId,
+  RuntimeWorkHandler,
+  RuntimeWorkHandlerInvocation,
+  RuntimeWorkHandlerLease,
+  RuntimeWorkHandlerResult,
+  WorkHandlerConfigurationBindingPolicy,
+  WorkHandlerPayloadContract,
+  WorkHandlerProvisionDescriptor,
+  WorkHandlerRestoreReplayClass,
+  WorkHandlerTarget,
+  WorkQueueProfileId,
+} from "./work-handler-contracts.js";
 export {
   CONTRACT_VERSION_PATTERN,
   ContractCompatibilityRegistry,
@@ -47,6 +60,7 @@ export {
   type ReconcilePlan,
 } from "./reconciler.js";
 export { ServiceRegistry } from "./service-registry.js";
+export { WorkHandlerRegistry } from "./work-handler-registry.js";
 export {
   createRuntimeLifecycleLineage,
   type RuntimeLifecycleLineage,

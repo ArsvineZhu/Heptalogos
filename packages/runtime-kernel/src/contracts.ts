@@ -5,6 +5,10 @@ import type {
 } from "@heptalogos/runtime-substrate";
 import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
 import type {
+  RuntimeWorkHandler,
+  WorkHandlerProvisionDescriptor,
+} from "./work-handler-contracts.js";
+import type {
   Branded,
   CapabilityId,
   MicroSystemId,
@@ -139,6 +143,10 @@ export interface MicroSystemActivationContext {
     descriptor: CapabilityProvisionDescriptor,
     implementation: TContract,
   ): void;
+  publishWorkHandler(
+    descriptor: WorkHandlerProvisionDescriptor,
+    implementation: RuntimeWorkHandler,
+  ): void;
 }
 
 export interface MicroSystemDefinition {
@@ -150,6 +158,7 @@ export interface MicroSystemDefinition {
   readonly capabilityRequirements: readonly CapabilityRequirement[];
   readonly serviceProvisions: readonly ServiceProvisionDescriptor[];
   readonly capabilityProvisions: readonly CapabilityProvisionDescriptor[];
+  readonly workHandlerProvisions?: readonly WorkHandlerProvisionDescriptor[];
   readonly activate: (context: MicroSystemActivationContext) => Promise<void>;
 }
 

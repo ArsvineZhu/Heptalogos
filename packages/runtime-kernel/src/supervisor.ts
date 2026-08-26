@@ -1,5 +1,6 @@
 import {
   createMicroSystemInstanceId,
+  type ContributionId,
   type ProviderId,
 } from "@heptalogos/foundation-contracts";
 import type { RuntimeExecutionOrigin } from "@heptalogos/execution-lineage/runtime-kernel";
@@ -25,6 +26,10 @@ import type {
   ServiceProvisionDescriptor,
   ServiceRequirement,
 } from "./contracts.js";
+import type {
+  RuntimeWorkHandler,
+  WorkHandlerProvisionDescriptor,
+} from "./work-handler-contracts.js";
 import { runtimeKernelProblem } from "./problems.js";
 import type { ReconcileAction, ReconcilePlan } from "./reconciler.js";
 import { RuntimeReconciler } from "./reconciler.js";
@@ -32,6 +37,7 @@ import { RuntimeGraph } from "./runtime-graph.js";
 import { evaluateReadiness } from "./readiness.js";
 import { ServiceRegistry } from "./service-registry.js";
 import type { RuntimeLifecycleLineage } from "./lifecycle-lineage.js";
+import { WorkHandlerRegistry } from "./work-handler-registry.js";
 
 interface RunningSystem {
   readonly definition: MicroSystemDefinition;
@@ -59,6 +65,7 @@ export interface MicroSystemSupervisorOptions {
   readonly settleTimeoutMs: number;
   readonly serviceRegistry?: ServiceRegistry;
   readonly capabilityRegistry?: CapabilityRegistry;
+  readonly workHandlerRegistry?: WorkHandlerRegistry;
   readonly definitions?: readonly MicroSystemDefinition[];
   readonly lifecycleLineage?: RuntimeLifecycleLineage;
   readonly rootRuntimeOrigin?: RuntimeExecutionOrigin;
@@ -89,6 +96,7 @@ function captureDesiredRuntimeSnapshot(
 export class MicroSystemSupervisor {
   readonly services: ServiceRegistry;
   readonly capabilities: CapabilityRegistry;
+  readonly workHandlers: WorkHandlerRegistry;
   private readonly definitions = new Map<MicroSystemId, MicroSystemDefinition>();
   private readonly actual = new Map<MicroSystemId, MicroSystemActualState>();
   private readonly running = new Map<MicroSystemId, RunningSystem>();
@@ -119,6 +127,7 @@ export class MicroSystemSupervisor {
   constructor(private readonly options: MicroSystemSupervisorOptions) {
     this.services = options.serviceRegistry ?? new ServiceRegistry();
     this.capabilities = options.capabilityRegistry ?? new CapabilityRegistry();
+    this.workHandlers = options.workHandlerRegistry ?? new WorkHandlerRegistry();
     for (const definition of options.definitions ?? []) this.register(definition);
     if (options.ownerLifecycle !== undefined) {
       if (options.ownerLifecycle.signal.aborted) {
@@ -716,6 +725,7 @@ export class MicroSystemSupervisor {
     const capabilityProviderIds: ProviderId[] = [];
     const publishedServiceBindings = new Set<string>();
     const publishedCapabilityBindings = new Set<string>();
+    const publishedWorkHandlerBindings = new Set<string>();
     let backgroundFailure = false;
     let backgroundFailureCause: unknown;
     let activationCommitted = false;
@@ -737,6 +747,7 @@ export class MicroSystemSupervisor {
             capabilityProviderIds,
             publishedServiceBindings,
             publishedCapabilityBindings,
+            publishedWorkHandlerBindings,
             AbortSignal.any([scope.signal, activationController.signal]),
           );
           await definition.activate(context);
@@ -761,6 +772,18 @@ export class MicroSystemSupervisor {
               throw runtimeKernelProblem(
                 "runtime.activation.missing_capability_publication",
                 `MicroSystem '${definition.microSystemId}' did not publish declared Capability '${provision.capabilityId}'`,
+              );
+            }
+          }
+          for (const provision of definition.workHandlerProvisions ?? []) {
+            if (
+              !publishedWorkHandlerBindings.has(
+                `${provision.contributionId}\u0000${definition.generation.packageGenerationId ?? ""}`,
+              )
+            ) {
+              throw runtimeKernelProblem(
+                "runtime.activation.missing_work_handler_publication",
+                `MicroSystem '${definition.microSystemId}' did not publish declared WorkHandler '${provision.contributionId}'`,
               );
             }
           }
@@ -992,12 +1015,21 @@ export class MicroSystemSupervisor {
     } catch (error) {
       firstError ??= error;
     }
+    try {
+      await this.workHandlers.retireGeneration(
+        ownerFence,
+        this.options.settleTimeoutMs,
+      );
+    } catch (error) {
+      firstError ??= error;
+    }
     if (firstError !== undefined) throw firstError;
   }
 
   private runtimeOrigin(
     definition: MicroSystemDefinition,
     instanceId: ReturnType<typeof createMicroSystemInstanceId>,
+    contributionId?: ContributionId,
   ): RuntimeExecutionOrigin {
     return {
       productGenerationId: definition.generation.productGenerationId,
@@ -1006,6 +1038,7 @@ export class MicroSystemSupervisor {
         : {}),
       microSystemId: definition.microSystemId,
       microSystemInstanceId: instanceId,
+      ...(contributionId ? { contributionId } : {}),
     };
   }
 
@@ -1018,6 +1051,7 @@ export class MicroSystemSupervisor {
     capabilityProviderIds: ProviderId[],
     publishedServiceBindings: Set<string>,
     publishedCapabilityBindings: Set<string>,
+    publishedWorkHandlerBindings: Set<string>,
     signal: AbortSignal,
   ): MicroSystemActivationContext {
     const runtimeActivity = this.options.lifecycleLineage?.runner(
@@ -1037,6 +1071,26 @@ export class MicroSystemSupervisor {
           candidate.providerId === descriptor.providerId &&
           candidate.contractVersion === descriptor.contractVersion &&
           candidate.priority === descriptor.priority,
+      );
+    const declaredWorkHandler = (descriptor: WorkHandlerProvisionDescriptor): boolean =>
+      (definition.workHandlerProvisions ?? []).some(
+        (candidate) =>
+          candidate.contributionId === descriptor.contributionId &&
+          candidate.contractVersion === descriptor.contractVersion &&
+          candidate.queueProfileId === descriptor.queueProfileId &&
+          candidate.resourceAdmissionClass === descriptor.resourceAdmissionClass &&
+          candidate.configurationBindingPolicy ===
+            descriptor.configurationBindingPolicy &&
+          candidate.restoreReplayClass === descriptor.restoreReplayClass &&
+          candidate.payloadContracts.length === descriptor.payloadContracts.length &&
+          candidate.payloadContracts.every(
+            (payloadContract, index) =>
+              payloadContract.version === descriptor.payloadContracts[index]?.version &&
+              JSON.stringify(payloadContract.schema) ===
+                JSON.stringify(descriptor.payloadContracts[index]?.schema),
+          ) &&
+          JSON.stringify(candidate.outcomeSchema) ===
+            JSON.stringify(descriptor.outcomeSchema),
       );
     return {
       microSystemId: definition.microSystemId,
@@ -1119,6 +1173,47 @@ export class MicroSystemSupervisor {
         this.capabilities.register(descriptor, implementation, fence, runtimeActivity);
         publishedCapabilityBindings.add(bindingKey);
         capabilityProviderIds.push(descriptor.providerId);
+      },
+      publishWorkHandler: (
+        descriptor: WorkHandlerProvisionDescriptor,
+        implementation: RuntimeWorkHandler,
+      ) => {
+        fence.assertActive();
+        const packageGenerationId = definition.generation.packageGenerationId;
+        if (packageGenerationId === undefined) {
+          throw runtimeKernelProblem(
+            "runtime.work_handler.package_generation_required",
+            `MicroSystem '${definition.microSystemId}' must have a PackageGenerationId to publish a WorkHandler`,
+          );
+        }
+        if (!declaredWorkHandler(descriptor)) {
+          throw runtimeKernelProblem(
+            "runtime.activation.undeclared_work_handler_publication",
+            `MicroSystem '${definition.microSystemId}' published an undeclared WorkHandler`,
+          );
+        }
+        const bindingKey = `${descriptor.contributionId}\u0000${packageGenerationId}`;
+        if (publishedWorkHandlerBindings.has(bindingKey)) {
+          throw runtimeKernelProblem(
+            "runtime.activation.duplicate_work_handler_publication",
+            `MicroSystem '${definition.microSystemId}' published a WorkHandler twice`,
+          );
+        }
+        const contributionActivity = this.options.lifecycleLineage?.runner(
+          this.runtimeOrigin(definition, instanceId, descriptor.contributionId),
+        );
+        this.workHandlers.register(
+          {
+            microSystemId: definition.microSystemId,
+            productGenerationId: definition.generation.productGenerationId,
+            packageGenerationId,
+          },
+          descriptor,
+          implementation,
+          fence,
+          contributionActivity,
+        );
+        publishedWorkHandlerBindings.add(bindingKey);
       },
     };
   }

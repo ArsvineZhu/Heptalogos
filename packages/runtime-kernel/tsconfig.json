@@ -13,10 +13,23 @@
   },
   "include": ["src/**/*.ts"],
   "references": [
-    { "path": "../execution-lineage" },
-    { "path": "../foundation-contracts" },
-    { "path": "../persistence" },
-    { "path": "../time-service" },
-    { "path": "../runtime-substrate" }
+    {
+      "path": "../time-service"
+    },
+    {
+      "path": "../schema-runtime"
+    },
+    {
+      "path": "../runtime-substrate"
+    },
+    {
+      "path": "../persistence"
+    },
+    {
+      "path": "../foundation-contracts"
+    },
+    {
+      "path": "../execution-lineage"
+    }
   ]
 }

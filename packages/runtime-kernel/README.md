@@ -16,13 +16,14 @@ not the Bootstrap or PostgreSQL owner.
 - Service and Capability registries and lease contracts.
 - Generation fences, readiness evaluation, and lifecycle lineage.
 - Runtime contract matching and compatibility evaluation.
+- Generation-pinned WorkHandler declaration, validation, publication, and lookup.
 
 ## Does not own
 
 - Bootstrap state, Host lease, private PostgreSQL, or process control.
 - Cordis-specific resource mechanics.
-- Product durable work, WorkQueue, or external-effect semantics from later
-  stages.
+- Product durable WorkItem state, WorkQueue, DBOS, or external-effect semantics
+  from later stages.
 - A second persistence or recovery Authority.
 
 ## Public surface

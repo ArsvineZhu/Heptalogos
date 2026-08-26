@@ -46,7 +46,7 @@ describe("canonical schema adapter", () => {
     expect(sql).toContain('"contribution_id"');
     expect(sql).toContain('"work_item_dispatchable_index"');
     expect(sql).toContain('"work_item_dedup_unique"');
-    expect(sql).toContain('p_contribution_id');
+    expect(sql).toContain("p_contribution_id");
   });
 
   it("publishes exactly one static migration without a filesystem provider", async () => {

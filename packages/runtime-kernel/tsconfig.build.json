@@ -14,10 +14,23 @@
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"],
   "references": [
-    { "path": "../execution-lineage/tsconfig.build.json" },
-    { "path": "../foundation-contracts/tsconfig.build.json" },
-    { "path": "../persistence/tsconfig.build.json" },
-    { "path": "../runtime-substrate/tsconfig.build.json" },
-    { "path": "../time-service/tsconfig.build.json" }
+    {
+      "path": "../time-service/tsconfig.build.json"
+    },
+    {
+      "path": "../schema-runtime/tsconfig.build.json"
+    },
+    {
+      "path": "../runtime-substrate/tsconfig.build.json"
+    },
+    {
+      "path": "../persistence/tsconfig.build.json"
+    },
+    {
+      "path": "../foundation-contracts/tsconfig.build.json"
+    },
+    {
+      "path": "../execution-lineage/tsconfig.build.json"
+    }
   ]
 }
