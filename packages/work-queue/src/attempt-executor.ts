@@ -431,18 +431,16 @@ export function createWorkAttemptExecutor(
                 workItemId: item.workItemId,
                 expectedDispatchRevision: item.dispatchRevision,
                 updatedAt: options.time.now(),
-                onApplied: earlyActivityHook(
-                  options,
-                  activity,
-                  "WAITING_DEPENDENCY",
-                ),
+                onApplied: earlyActivityHook(options, activity, "WAITING_DEPENDENCY"),
               }),
             );
           }
 
           let payload: unknown;
           try {
-            payload = lease.validatePayload(item.handler.payloadVersion, item.payload);
+            payload = snapshotCanonicalJson(
+              lease.validatePayload(item.handler.payloadVersion, item.payload) as CanonicalJsonValue,
+            ).value;
           } catch (error) {
             if (isPayloadDependencyProblem(error)) {
               return resultForMutation(
@@ -450,11 +448,7 @@ export function createWorkAttemptExecutor(
                   workItemId: item.workItemId,
                   expectedDispatchRevision: item.dispatchRevision,
                   updatedAt: options.time.now(),
-                  onApplied: earlyActivityHook(
-                    options,
-                    activity,
-                    "WAITING_DEPENDENCY",
-                  ),
+                  onApplied: earlyActivityHook(options, activity, "WAITING_DEPENDENCY"),
                 }),
               );
             }
@@ -508,11 +502,7 @@ export function createWorkAttemptExecutor(
                   workItemId: item.workItemId,
                   expectedDispatchRevision: item.dispatchRevision,
                   updatedAt: options.time.now(),
-                  onApplied: earlyActivityHook(
-                    options,
-                    activity,
-                    "WAITING_DEPENDENCY",
-                  ),
+                  onApplied: earlyActivityHook(options, activity, "WAITING_DEPENDENCY"),
                 }),
               );
             }

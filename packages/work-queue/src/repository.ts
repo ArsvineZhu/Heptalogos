@@ -514,7 +514,9 @@ function parsePersistedWorkItem(row: Record<string, unknown>): WorkItem {
       outcome.kind !== "FAILED" ||
       retryClass !== outcome.retryClass)
   ) {
-    throw invalidItem("failed WorkItem retryClass and outcome retryClass are incoherent");
+    throw invalidItem(
+      "failed WorkItem retryClass and outcome retryClass are incoherent",
+    );
   }
   if (
     (state === "SUCCEEDED" || state === "CANCELLED" || state === "SUPERSEDED") &&
@@ -1209,11 +1211,7 @@ export function createWorkQueueRepository(
              AND cancel_requested_at IS NULL
              AND superseded_by IS NULL
            RETURNING ${WORK_ITEM_COLUMNS}`,
-          [
-            ...guard.parameters,
-            input.supersededBy,
-            input.requestedAt,
-          ],
+          [...guard.parameters, input.supersededBy, input.requestedAt],
         );
       });
     },

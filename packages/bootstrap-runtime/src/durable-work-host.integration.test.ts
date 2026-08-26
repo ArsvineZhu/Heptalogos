@@ -634,11 +634,13 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
       handler,
       fence,
     );
-    const classifier = { classify: vi.fn(() => ({
-      kind: "TERMINAL" as const,
-      retryClass: "permanent" as const,
-      reasonCode: "unexpected-handler-failure",
-    })) };
+    const classifier = {
+      classify: vi.fn(() => ({
+        kind: "TERMINAL" as const,
+        retryClass: "permanent" as const,
+        reasonCode: "unexpected-handler-failure",
+      })),
+    };
     const executor = createWorkAttemptExecutor({
       repository: composition.repository,
       handlerRegistry: registry,
@@ -922,9 +924,8 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
         reasonCode: "qualification.template.cancelled",
       }),
     );
-    const ids = Array.from(
-      { length: WORK_OPTIONS.reconciliationBatchSize + 1 },
-      () => createWorkItemId(),
+    const ids = Array.from({ length: WORK_OPTIONS.reconciliationBatchSize + 1 }, () =>
+      createWorkItemId(),
     ).sort();
     const waitingItems: WorkItem[] = ids.map((workItemId, index) => ({
       ...template.item,
@@ -1287,10 +1288,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
           workItemId: created.item.workItemId,
           expectedDispatchRevision: 1,
           expectedState: "RUNNING",
-          expectedActiveAttemptId: createDispatchAttemptId(
-            created.item.workItemId,
-            1,
-          ),
+          expectedActiveAttemptId: createDispatchAttemptId(created.item.workItemId, 1),
           requestedAt: initialTime,
           supersededBy,
         }),
@@ -1322,7 +1320,12 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
       {
         state: "SUCCEEDED",
         retryClass: null,
-        outcome: { schemaVersion: 1, kind: "FAILED", retryClass: "permanent", reasonCode: "x" },
+        outcome: {
+          schemaVersion: 1,
+          kind: "FAILED",
+          retryClass: "permanent",
+          reasonCode: "x",
+        },
       },
       {
         state: "FAILED",
@@ -1342,7 +1345,12 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
       {
         state: "FAILED",
         retryClass: "transient",
-        outcome: { schemaVersion: 1, kind: "FAILED", retryClass: "permanent", reasonCode: "x" },
+        outcome: {
+          schemaVersion: 1,
+          kind: "FAILED",
+          retryClass: "permanent",
+          reasonCode: "x",
+        },
       },
       {
         state: "SUCCEEDED",
@@ -1512,12 +1520,12 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     await expect(
       composition.executor.execute(successful.item.workItemId, 1),
     ).resolves.toMatchObject({ status: "SUCCEEDED" });
-    await expect(activity(successful.item.lineageContextRef.sourceActivityId)).resolves.toMatchObject(
-      {
-        ended_at: expect.anything(),
-        outcome: "SUCCEEDED",
-      },
-    );
+    await expect(
+      activity(successful.item.lineageContextRef.sourceActivityId),
+    ).resolves.toMatchObject({
+      ended_at: expect.anything(),
+      outcome: "SUCCEEDED",
+    });
 
     const waiting = await createWork(composition, composition.target, {
       dedupKey: "lineage-waiting",
@@ -1541,13 +1549,13 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     await expect(
       waitingExecutor.execute(waiting.item.workItemId, 1),
     ).resolves.toMatchObject({ status: "WAITING_DEPENDENCY" });
-    await expect(activity(waiting.item.lineageContextRef.sourceActivityId)).resolves.toMatchObject(
-      {
-        ended_at: expect.anything(),
-        outcome: "SUCCEEDED",
-        outcome_ref: "WAITING_DEPENDENCY",
-      },
-    );
+    await expect(
+      activity(waiting.item.lineageContextRef.sourceActivityId),
+    ).resolves.toMatchObject({
+      ended_at: expect.anything(),
+      outcome: "SUCCEEDED",
+      outcome_ref: "WAITING_DEPENDENCY",
+    });
 
     const retry = await createWork(composition, composition.target, {
       dedupKey: "lineage-retry-wait",
@@ -1556,13 +1564,13 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     await expect(
       composition.executor.execute(retry.item.workItemId, 1),
     ).resolves.toMatchObject({ status: "RETRY_WAIT" });
-    await expect(activity(retry.item.lineageContextRef.sourceActivityId)).resolves.toMatchObject(
-      {
-        ended_at: expect.anything(),
-        outcome: "SUCCEEDED",
-        outcome_ref: "RETRY_WAIT",
-      },
-    );
+    await expect(
+      activity(retry.item.lineageContextRef.sourceActivityId),
+    ).resolves.toMatchObject({
+      ended_at: expect.anything(),
+      outcome: "SUCCEEDED",
+      outcome_ref: "RETRY_WAIT",
+    });
 
     const invalidBase = await createWork(composition, composition.target, {
       dedupKey: "lineage-invalid-template",
@@ -1579,13 +1587,13 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     await expect(
       composition.executor.execute(invalid.workItemId, 1),
     ).resolves.toMatchObject({ status: "FAILED" });
-    await expect(activity(invalid.lineageContextRef.sourceActivityId)).resolves.toMatchObject(
-      {
-        ended_at: expect.anything(),
-        outcome: "FAILED",
-        outcome_ref: "runtime.work_handler.payload_invalid",
-      },
-    );
+    await expect(
+      activity(invalid.lineageContextRef.sourceActivityId),
+    ).resolves.toMatchObject({
+      ended_at: expect.anything(),
+      outcome: "FAILED",
+      outcome_ref: "runtime.work_handler.payload_invalid",
+    });
   }, 180_000);
 
   it("W8 fences mutations when the authentic Host lease closes", async () => {

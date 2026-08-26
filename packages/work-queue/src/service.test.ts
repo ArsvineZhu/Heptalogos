@@ -231,13 +231,14 @@ function serviceFixture(
       hostOwnershipToken: activity.origin.hostOwnershipToken,
     },
   };
-  const repository = fakeRepository(inserted, async (item, options, status) => {
-    insertedItems.push(item);
-    await options?.onWithinTransaction?.(
-      { status, item: inserted },
-      transaction,
-    );
-  }, insertStatus);
+  const repository = fakeRepository(
+    inserted,
+    async (item, options, status) => {
+      insertedItems.push(item);
+      await options?.onWithinTransaction?.({ status, item: inserted }, transaction);
+    },
+    insertStatus,
+  );
   const admission: WorkAdmissionPort = {
     beforeCreate: vi.fn(async () => decision),
     beforeDispatch: vi.fn(async () => ({ decision: "ALLOW" as const })),

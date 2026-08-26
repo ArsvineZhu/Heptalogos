@@ -67,6 +67,4 @@ export {
   type WorkAttemptExecutor,
   type WorkAttemptExecutorOptions,
 } from "./attempt-executor.js";
-export {
-  type WorkQueueRepository,
-} from "./repository.js";
+export { type WorkQueueRepository } from "./repository.js";

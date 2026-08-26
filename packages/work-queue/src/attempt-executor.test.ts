@@ -364,6 +364,29 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     expect(attempt.retainCurrent).toHaveBeenCalledTimes(1);
   });
 
+  it("detaches a validated payload before the RUNNING transaction can mutate its source", async () => {
+    const value = item(context(), { payload: { nested: { value: 1 } } });
+    const handler = vi.fn(async () => ({ outcome: { ok: true } as never }));
+    const attempt = fixture(value, handler);
+    attempt.repository.markRunning = vi.fn(async (input) => {
+      (value.payload as { nested: { value: number } }).nested.value = 9;
+      const running = {
+        ...value,
+        state: "RUNNING" as const,
+        activeAttemptId: input.activeAttemptId,
+      };
+      await input.onApplied?.(inTransactionContext(value), running);
+      return { status: "APPLIED" as const, item: running };
+    });
+
+    await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
+      status: "SUCCEEDED",
+    });
+    expect(handler).toHaveBeenCalledWith(
+      expect.objectContaining({ payload: { nested: { value: 1 } } }),
+    );
+  });
+
   it("keeps an admitted generation invocation alive through retirement", async () => {
     const value = item(context());
     const fence = new GenerationFence();
@@ -380,9 +403,7 @@ describe("engine-neutral WorkAttemptExecutor", () => {
       retirement = fence.retire(1000);
       return {
         execute: (input: Parameters<RuntimeWorkHandler["execute"]>[0]) =>
-          Promise.resolve(
-            generationReservation.run(() => handler(input)),
-          ),
+          Promise.resolve(generationReservation.run(() => handler(input))),
         release: () => generationReservation.release(),
       };
     });

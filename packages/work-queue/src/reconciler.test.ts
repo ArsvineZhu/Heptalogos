@@ -236,9 +236,9 @@ function reconcilerFixture(
     })),
   };
   const resolve = vi.fn(
-    (_target: Parameters<WorkHandlerResolver["resolve"]>[0]):
-      | RuntimeWorkHandlerLease
-      | undefined => handler,
+    (
+      _target: Parameters<WorkHandlerResolver["resolve"]>[0],
+    ): RuntimeWorkHandlerLease | undefined => handler,
   );
   const handlerRegistry = { resolve } satisfies WorkHandlerResolver;
   const beforeDispatch = vi.fn(
@@ -329,7 +329,7 @@ describe("WorkQueue reconciliation", () => {
     const pending = Array.from({ length: 5 }, (_, index) =>
       item(executionContext(), {
         priority: index < 2 ? 1 : 100,
-        notBefore: index < 2 ? "2026-08-27T12:00:00.000Z" as Instant : undefined,
+        notBefore: index < 2 ? ("2026-08-27T12:00:00.000Z" as Instant) : undefined,
       }),
     );
     const fixture = reconcilerFixture(pending, [], [], { decision: "ALLOW" }, 2);
@@ -340,7 +340,11 @@ describe("WorkQueue reconciliation", () => {
         : { decision: "ALLOW" as const },
     );
     fixture.repository.listProjectionCandidates.mockImplementation(
-      async ({ after, through, limit }: {
+      async ({
+        after,
+        through,
+        limit,
+      }: {
         readonly after?: WorkItemScanCursor;
         readonly through: WorkItemScanCursor;
         readonly limit: number;
@@ -348,7 +352,10 @@ describe("WorkQueue reconciliation", () => {
         pending
           .filter((value) => {
             const cursor = { createdAt: value.createdAt, workItemId: value.workItemId };
-            const afterKey = after === undefined ? undefined : `${after.createdAt}\u0000${after.workItemId}`;
+            const afterKey =
+              after === undefined
+                ? undefined
+                : `${after.createdAt}\u0000${after.workItemId}`;
             const cursorKey = `${cursor.createdAt}\u0000${cursor.workItemId}`;
             const throughKey = `${through.createdAt}\u0000${through.workItemId}`;
             return (
@@ -386,7 +393,11 @@ describe("WorkQueue reconciliation", () => {
       unavailableIds.has(value.contributionId) ? undefined : fixture.handler,
     );
     fixture.repository.listWaitingDependency.mockImplementation(
-      async ({ after, through, limit }: {
+      async ({
+        after,
+        through,
+        limit,
+      }: {
         readonly after?: WorkItemScanCursor;
         readonly through: WorkItemScanCursor;
         readonly limit: number;
@@ -395,7 +406,9 @@ describe("WorkQueue reconciliation", () => {
           .filter((value) => {
             const key = `${value.createdAt}\u0000${value.workItemId}`;
             const afterKey =
-              after === undefined ? undefined : `${after.createdAt}\u0000${after.workItemId}`;
+              after === undefined
+                ? undefined
+                : `${after.createdAt}\u0000${after.workItemId}`;
             const throughKey = `${through.createdAt}\u0000${through.workItemId}`;
             return (afterKey === undefined || key > afterKey) && key <= throughKey;
           })
@@ -435,7 +448,11 @@ describe("WorkQueue reconciliation", () => {
       return { createdAt: last.createdAt, workItemId: last.workItemId };
     });
     fixture.repository.listProjectionCandidates.mockImplementation(
-      async ({ after, through, limit }: {
+      async ({
+        after,
+        through,
+        limit,
+      }: {
         readonly after?: WorkItemScanCursor;
         readonly through: WorkItemScanCursor;
         readonly limit: number;
@@ -444,7 +461,9 @@ describe("WorkQueue reconciliation", () => {
           .filter((value) => {
             const key = `${value.createdAt}\u0000${value.workItemId}`;
             const afterKey =
-              after === undefined ? undefined : `${after.createdAt}\u0000${after.workItemId}`;
+              after === undefined
+                ? undefined
+                : `${after.createdAt}\u0000${after.workItemId}`;
             const throughKey = `${through.createdAt}\u0000${through.workItemId}`;
             return (afterKey === undefined || key > afterKey) && key <= throughKey;
           })
@@ -460,9 +479,9 @@ describe("WorkQueue reconciliation", () => {
     await fixture.reconciler.scan();
     expect(fixture.repository.snapshotProjectionCeiling).toHaveBeenCalledTimes(2);
     expect(fixture.repository.snapshotProjectionCeiling).toHaveBeenLastCalledWith();
-    expect(fixture.dispatches.slice(0, 5).map((value) => value.workItemId)).not.toContain(
-      tail.workItemId,
-    );
+    expect(
+      fixture.dispatches.slice(0, 5).map((value) => value.workItemId),
+    ).not.toContain(tail.workItemId);
   });
 
   it("does not dispatch when committed-work admission returns DELAY", async () => {

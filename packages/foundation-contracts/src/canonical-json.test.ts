@@ -22,9 +22,7 @@ describe("canonicalizeJson", () => {
     expect(snapshot.value).toEqual({ nested: { value: 1 }, list: [1, 2] });
     expect(Object.isFrozen(snapshot)).toBe(true);
     expect(Object.isFrozen(snapshot.value)).toBe(true);
-    expect(Object.isFrozen((snapshot.value as { nested: object }).nested)).toBe(
-      true,
-    );
+    expect(Object.isFrozen((snapshot.value as { nested: object }).nested)).toBe(true);
     expect(Object.isFrozen((snapshot.value as { list: readonly number[] }).list)).toBe(
       true,
     );
@@ -41,8 +39,6 @@ describe("canonicalizeJson", () => {
 
   it("rejects the same non-canonical values as canonicalizeJson", () => {
     expect(() => snapshotCanonicalJson({ value: Number.NaN })).toThrow();
-    expect(() =>
-      snapshotCanonicalJson({ value: new Date(0) } as never),
-    ).toThrow();
+    expect(() => snapshotCanonicalJson({ value: new Date(0) } as never)).toThrow();
   });
 });

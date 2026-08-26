@@ -20,10 +20,7 @@ import {
   type WorkHandlerResolver,
   validateWorkQueueRuntimeOptions,
 } from "./service.js";
-import type {
-  WorkItemScanCursor,
-  WorkQueueRepository,
-} from "./repository.js";
+import type { WorkItemScanCursor, WorkQueueRepository } from "./repository.js";
 import { workQueueProblem } from "./problems.js";
 
 const WORK_AVAILABLE_TOPIC = createSignalTopic("work.available");

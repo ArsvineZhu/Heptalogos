@@ -268,7 +268,9 @@ describe("WorkQueue Persistence repository", () => {
       { created_at: new Date(item.createdAt), work_item_id: item.workItemId },
       rowFor(item),
     );
-    const repository = createWorkQueueRepository(fakePersistence()) as typeof createWorkQueueRepository extends (
+    const repository = createWorkQueueRepository(
+      fakePersistence(),
+    ) as typeof createWorkQueueRepository extends (
       persistence: PersistenceService,
     ) => infer Repository
       ? Repository & {
@@ -304,7 +306,9 @@ describe("WorkQueue Persistence repository", () => {
       { created_at: new Date(item.createdAt), work_item_id: item.workItemId },
       rowFor(item),
     );
-    const repository = createWorkQueueRepository(fakePersistence()) as typeof createWorkQueueRepository extends (
+    const repository = createWorkQueueRepository(
+      fakePersistence(),
+    ) as typeof createWorkQueueRepository extends (
       persistence: PersistenceService,
     ) => infer Repository
       ? Repository & {
@@ -443,14 +447,14 @@ describe("WorkQueue Persistence repository", () => {
     const supersededBy = createWorkItemId();
     const superseded = sampleWorkItem({
       ...item,
-        state: "SUPERSEDED",
+      state: "SUPERSEDED",
+      supersededBy,
+      outcome: {
+        schemaVersion: 1,
+        kind: "SUPERSEDED",
+        reasonCode: "superseded-by-request",
         supersededBy,
-        outcome: {
-          schemaVersion: 1,
-          kind: "SUPERSEDED",
-          reasonCode: "superseded-by-request",
-          supersededBy,
-        },
+      },
     });
     prepareRows(rowFor(superseded));
     await expect(
