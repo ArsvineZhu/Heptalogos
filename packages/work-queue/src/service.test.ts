@@ -412,6 +412,64 @@ describe("WorkQueue creation service", () => {
     expect(Object.isFrozen(fixture.insertedItems[0]?.payload)).toBe(true);
   });
 
+  it("snapshots the complete creation envelope before asynchronous admission", async () => {
+    const fixture = serviceFixture({ decision: "ALLOW" });
+    const originalTarget: WorkHandlerTarget = { ...target };
+    const mutableTarget = { ...originalTarget };
+    const mutatedTarget: WorkHandlerTarget = {
+      ...originalTarget,
+      productGenerationId: digest("ProductGenerationId", "product-mutated"),
+      microSystemId: target.microSystemId,
+      contributionId: createContributionId("subject.mutated"),
+      packageGenerationId: digest("PackageGenerationId", "package-mutated"),
+      payloadVersion: 2,
+    };
+    const mutatedQueueProfileId = createMicroSystemId(
+      "mutated-profile",
+    ) as unknown as WorkQueueProfileId;
+    const mutatedResourceAdmissionClass = createMicroSystemId(
+      "mutated-resource",
+    ) as unknown as ResourceAdmissionClassId;
+    let admissionEntered!: () => void;
+    const entered = new Promise<void>((resolve) => {
+      admissionEntered = resolve;
+    });
+    let releaseAdmission!: () => void;
+    const admissionGate = new Promise<WorkCreationAdmissionDecision>((resolve) => {
+      releaseAdmission = () => resolve({ decision: "ALLOW" });
+    });
+    fixture.admission.beforeCreate = () => {
+      admissionEntered();
+      return admissionGate;
+    };
+
+    const createPromise = fixture.service.create({
+      target: mutableTarget,
+      payload: { value: "original" },
+      queueProfileId,
+      resourceAdmissionClass,
+      partitionKey: "original-partition",
+      priority: 100,
+      notBefore: delayed,
+      dedupKey: "original-dedup",
+    });
+    await entered;
+    Object.assign(mutableTarget, mutatedTarget);
+    releaseAdmission();
+    const result = await createPromise;
+
+    expect(result.status).toBe("CREATED");
+    expect(fixture.insertedItems[0]).toMatchObject({
+      handler: originalTarget,
+      queueProfileId,
+      resourceAdmissionClass,
+      partitionKey: "original-partition",
+      priority: 100,
+      notBefore: delayed,
+      dedupKey: "original-dedup",
+    });
+  });
+
   it("does not insert for either rejection decision", async () => {
     for (const decision of [
       { decision: "REJECT_OPTIONAL", reasonCode: "optional" },

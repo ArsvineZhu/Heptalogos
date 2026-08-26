@@ -872,6 +872,33 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     expect(composition.handlerCalls).toHaveLength(0);
   }, 180_000);
 
+  it("uses the canonical projection index for fair PENDING and dependency scans", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture);
+    for (const state of ["PENDING", "WAITING_DEPENDENCY"] as const) {
+      const explained = await queryAs(
+        fixture,
+        "heptalogos_bootstrap",
+        BOOTSTRAP_PASSWORD,
+        `EXPLAIN (FORMAT JSON, COSTS OFF)
+           SELECT work_item_id
+             FROM "heptalogos"."work_item"
+            WHERE state = '${state}'
+              AND (created_at, work_item_id) >
+                (TIMESTAMPTZ '1970-01-01 00:00:00+00',
+                 '00000000-0000-7000-8000-000000000000'::uuid)
+              AND (created_at, work_item_id) <=
+                (TIMESTAMPTZ '9999-12-31 23:59:59+00',
+                 'ffffffff-ffff-7fff-bfff-ffffffffffff'::uuid)
+            ORDER BY created_at ASC, work_item_id ASC
+            LIMIT 32`,
+        [],
+        "-c enable_seqscan=off",
+      );
+      expect(JSON.stringify(explained.rows)).toContain("work_item_projection_index");
+    }
+  }, 180_000);
+
   it("F1 gives a later PENDING WorkItem a projection opportunity past one stable page", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);

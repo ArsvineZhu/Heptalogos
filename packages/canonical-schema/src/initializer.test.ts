@@ -45,6 +45,7 @@ describe("canonical schema adapter", () => {
     expect(sql).toContain('create table "heptalogos"."work_item"');
     expect(sql).toContain('"contribution_id"');
     expect(sql).toContain('"work_item_dispatchable_index"');
+    expect(sql).toContain('"work_item_projection_index"');
     expect(sql).toContain('"work_item_dedup_unique"');
     expect(sql).toContain("p_contribution_id");
     expect(sql).toContain("payload_version BETWEEN 1 AND 2147483647");

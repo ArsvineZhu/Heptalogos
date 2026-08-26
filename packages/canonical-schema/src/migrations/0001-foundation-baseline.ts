@@ -332,6 +332,12 @@ export const foundationBaselineMigration: Migration = {
       .execute();
     await db.schema
       .withSchema(schema)
+      .createIndex("work_item_projection_index")
+      .on("work_item")
+      .columns(["state", "created_at", "work_item_id"])
+      .execute();
+    await db.schema
+      .withSchema(schema)
       .createIndex("work_item_handler_state_index")
       .on("work_item")
       .columns([

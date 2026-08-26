@@ -259,6 +259,21 @@ export function createWorkQueueService(
 
   return {
     async create(request): Promise<WorkCreationResult> {
+      const target: WorkHandlerTarget = Object.freeze({
+        productGenerationId: request.target.productGenerationId,
+        microSystemId: request.target.microSystemId,
+        contributionId: request.target.contributionId,
+        packageGenerationId: request.target.packageGenerationId,
+        payloadVersion: request.target.payloadVersion,
+      });
+      const payloadInput = request.payload;
+      const queueProfileId = request.queueProfileId;
+      const resourceAdmissionClass = request.resourceAdmissionClass;
+      const partitionKey = request.partitionKey;
+      const priority = request.priority;
+      const notBeforeInput = request.notBefore;
+      const dedupKey = request.dedupKey;
+      const configurationBindingInput = request.configurationBinding;
       const source = options.execution.current();
       if (source === undefined) {
         throw workQueueProblem(
@@ -266,12 +281,12 @@ export function createWorkQueueService(
           "Durable WorkItem creation requires a current ExecutionContext",
         );
       }
-      assertTarget(request.target);
-      assertPriority(request.priority);
-      assertBoundedOptional(request.partitionKey, "partitionKey");
-      assertBoundedOptional(request.dedupKey, "dedupKey");
-      const notBefore = requestedNotBefore(request.notBefore);
-      const lease = options.handlerRegistry.resolve(request.target);
+      assertTarget(target);
+      assertPriority(priority);
+      assertBoundedOptional(partitionKey, "partitionKey");
+      assertBoundedOptional(dedupKey, "dedupKey");
+      const notBefore = requestedNotBefore(notBeforeInput);
+      const lease = options.handlerRegistry.resolve(target);
       if (lease === undefined) {
         throw workQueueProblem(
           "work.handler.unavailable",
@@ -279,13 +294,13 @@ export function createWorkQueueService(
         );
       }
       const descriptor = lease.descriptor;
-      if (request.queueProfileId !== descriptor.queueProfileId) {
+      if (queueProfileId !== descriptor.queueProfileId) {
         throw workQueueProblem(
           "work.queue.profile_mismatch",
           "WorkItem queueProfileId does not match the exact WorkHandler descriptor",
         );
       }
-      if (request.resourceAdmissionClass !== descriptor.resourceAdmissionClass) {
+      if (resourceAdmissionClass !== descriptor.resourceAdmissionClass) {
         throw workQueueProblem(
           "work.resource-admission.mismatch",
           "WorkItem resourceAdmissionClass does not match the exact WorkHandler descriptor",
@@ -293,29 +308,27 @@ export function createWorkQueueService(
       }
       const payload = canonicalPayload(
         lease,
-        request.target,
-        request.payload,
+        target,
+        payloadInput,
         options.runtimeOptions.maxInlinePayloadBytes,
       );
-      const binding = configurationBinding(descriptor, request.configurationBinding);
+      const binding = configurationBinding(descriptor, configurationBindingInput);
       const lineageContextRef = options.execution.createLineageContextRef();
       const admissionRequest = {
         execution: source,
-        target: request.target,
+        target,
         payload,
-        queueProfileId: request.queueProfileId,
-        resourceAdmissionClass: request.resourceAdmissionClass,
-        ...(request.partitionKey === undefined
-          ? {}
-          : { partitionKey: request.partitionKey }),
-        priority: request.priority,
+        queueProfileId,
+        resourceAdmissionClass,
+        ...(partitionKey === undefined ? {} : { partitionKey }),
+        priority,
         ...(notBefore === undefined ? {} : { notBefore }),
-        ...(request.dedupKey === undefined ? {} : { dedupKey: request.dedupKey }),
+        ...(dedupKey === undefined ? {} : { dedupKey }),
         configurationBinding: binding,
         createdContinuityEpochId: source.origin.continuityEpochId,
         lineageContextRef,
-        handlerMicroSystemId: request.target.microSystemId,
-        handlerContributionId: request.target.contributionId,
+        handlerMicroSystemId: target.microSystemId,
+        handlerContributionId: target.contributionId,
       };
       const decision = await options.admission.beforeCreate(admissionRequest);
       const effectiveNotBefore = applyWorkAdmissionDecision(notBefore, decision);
@@ -333,18 +346,16 @@ export function createWorkQueueService(
           const item: WorkItem = {
             schemaVersion: 1,
             workItemId: createWorkItemId(),
-            handler: request.target,
+            handler: target,
             payload,
-            queueProfileId: request.queueProfileId,
-            resourceAdmissionClass: request.resourceAdmissionClass,
-            ...(request.partitionKey === undefined
-              ? {}
-              : { partitionKey: request.partitionKey }),
-            priority: request.priority,
+            queueProfileId,
+            resourceAdmissionClass,
+            ...(partitionKey === undefined ? {} : { partitionKey }),
+            priority,
             ...(effectiveNotBefore === undefined
               ? {}
               : { notBefore: effectiveNotBefore }),
-            ...(request.dedupKey === undefined ? {} : { dedupKey: request.dedupKey }),
+            ...(dedupKey === undefined ? {} : { dedupKey }),
             createdContinuityEpochId: source.origin.continuityEpochId,
             lineageContextRef: workLineageContextRef,
             configurationBinding: binding,
