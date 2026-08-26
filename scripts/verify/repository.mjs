@@ -25,6 +25,20 @@ function workflowDispatchInputs(workflow) {
   return block.join("\n");
 }
 
+function workflowOnDirectKeys(workflow) {
+  const lines = workflow.split(/\r?\n/u);
+  const onIndex = lines.findIndex((line) => /^on:\s*(?:#.*)?$/u.test(line));
+  if (onIndex < 0) return [];
+
+  const keys = [];
+  for (const line of lines.slice(onIndex + 1)) {
+    if (line.length > 0 && !/^\s/u.test(line)) break;
+    const match = line.match(/^ {2}([A-Za-z0-9_-]+):\s*(?:#.*)?$/u);
+    if (match !== null) keys.push(match[1]);
+  }
+  return keys;
+}
+
 export function validateVerifyWorkflow(workflow) {
   const errors = [];
   const fail = (message) => errors.push(message);
@@ -43,8 +57,9 @@ export function validateVerifyWorkflow(workflow) {
     "workflow_call",
   ];
 
+  const onDirectKeys = new Set(workflowOnDirectKeys(workflow));
   for (const trigger of forbiddenTriggers) {
-    if (new RegExp(`^${trigger}:`, "mu").test(workflow)) {
+    if (onDirectKeys.has(trigger)) {
       fail(`verify workflow must not auto-trigger via ${trigger}`);
     }
   }

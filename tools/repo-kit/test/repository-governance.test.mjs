@@ -20,6 +20,15 @@ const workflowPrefix = [
   "",
 ].join("\n");
 const baseOutput = "      base_sha: $" + "{{ steps.resolve.outputs.base_sha }}\n";
+const forbiddenTriggers = [
+  "push",
+  "pull_request",
+  "pull_request_target",
+  "schedule",
+  "repository_dispatch",
+  "merge_group",
+  "workflow_call",
+];
 
 describe("repository workflow governance", () => {
   it("allows machine-internal base_sha outputs while rejecting no inputs", () => {
@@ -44,5 +53,16 @@ describe("repository workflow governance", () => {
       "verify workflow must not expose revision input: base_sha:",
       "verify workflow must not expose revision input: target_sha:",
     ]);
+  });
+
+  it.each(forbiddenTriggers)("rejects a %s trigger beneath on", (trigger) => {
+    const errors = validateVerifyWorkflow(
+      workflowPrefix.replace(
+        "  workflow_dispatch:\n",
+        `  ${trigger}:\n  workflow_dispatch:\n`,
+      ) + "jobs:\n  verify:\n    runs-on: ubuntu-latest\n",
+    );
+
+    expect(errors).toContain(`verify workflow must not auto-trigger via ${trigger}`);
   });
 });
