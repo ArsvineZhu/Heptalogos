@@ -26,9 +26,10 @@ An unresolved non-trivial choice is `PLAN_GAP` and stops execution.
 
 ## Active
 
-No H2-S corrective implementation plan remains active. The current completed
-plan records the implementation and fresh local qualification; Independent
-Review, final manual CI, and merge remain external closure gates.
+- [H2-S context-efficient package governance correction](active/foundation/h2s-review-correction-context-efficient-package-governance.md) — `ACTIVE` (corrective implementation cycle; H2 remains `OPEN`)
+
+The earlier H2-S correction plan remains completed history; this active plan
+supersedes its package-context and remaining review-blocker instructions.
 
 ## Completed
 
