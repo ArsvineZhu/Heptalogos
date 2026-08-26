@@ -26,7 +26,7 @@ An unresolved non-trivial choice is `PLAN_GAP` and stops execution.
 
 ## Active
 
-No active implementation plan is installed for the current branch.
+- [H2 Ubuntu Residual Qualification](active/foundation/h2-ubuntu-residual-qualification.md) — `ACTIVE`
 
 ## Completed
 
