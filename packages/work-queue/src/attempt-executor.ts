@@ -262,6 +262,46 @@ function isPayloadDependencyProblem(error: unknown): boolean {
   );
 }
 
+function monitorCancellation(
+  repository: WorkQueueRepository,
+  workItemId: WorkItem["workItemId"],
+  expectedRevision: number,
+  controller: AbortController,
+  intervalMs: number,
+): () => void {
+  let closed = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const check = async (): Promise<void> => {
+    if (closed || controller.signal.aborted) return;
+    try {
+      const current = await repository.getWorkItem(workItemId);
+      if (
+        current !== undefined &&
+        current.dispatchRevision === expectedRevision &&
+        (current.cancelRequestedAt !== undefined || current.supersededBy !== undefined)
+      ) {
+        controller.abort();
+        return;
+      }
+    } catch {
+      // Tx B remains the authoritative fence when the monitor cannot read.
+    }
+    if (!closed && !controller.signal.aborted) {
+      timer = setTimeout(() => {
+        void check();
+      }, intervalMs);
+    }
+  };
+  timer = setTimeout(() => {
+    void check();
+  }, intervalMs);
+  return () => {
+    closed = true;
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined;
+  };
+}
+
 export function createWorkAttemptExecutor(
   options: WorkAttemptExecutorOptions,
 ): WorkAttemptExecutor {
@@ -401,13 +441,25 @@ export function createWorkAttemptExecutor(
           const abortController = new AbortController();
           let successOutcome: WorkItemOutcome;
           try {
-            const handlerResult = await lease.execute({
-              workItemId: running.workItemId,
-              dispatchRevision: running.dispatchRevision,
-              payloadVersion: running.handler.payloadVersion,
-              payload: payload as never,
-              signal: abortController.signal,
-            });
+            const stopCancellationMonitor = monitorCancellation(
+              options.repository,
+              running.workItemId,
+              running.dispatchRevision,
+              abortController,
+              options.runtimeOptions.antiEntropyIntervalMs,
+            );
+            let handlerResult: { readonly outcome: unknown };
+            try {
+              handlerResult = await lease.execute({
+                workItemId: running.workItemId,
+                dispatchRevision: running.dispatchRevision,
+                payloadVersion: running.handler.payloadVersion,
+                payload: payload as never,
+                signal: abortController.signal,
+              });
+            } finally {
+              stopCancellationMonitor();
+            }
             const validatedOutcome = lease.validateOutcome(handlerResult.outcome);
             const value = outputValue(
               validatedOutcome,
