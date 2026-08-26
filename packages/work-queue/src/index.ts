@@ -70,6 +70,7 @@ export {
   type MarkRetryWaitInput,
   type MarkRunningInput,
   type MarkWaitingDependencyInput,
+  type MutationAppliedHook,
   type RequestCancelInput,
   type RequestSupersedeInput,
   type WakeDependencyInput,
