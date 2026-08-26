@@ -58,6 +58,13 @@ export {
   type WorkQueueReconcilerOptions,
 } from "./reconciler.js";
 export {
+  createWorkAttemptExecutor,
+  type WorkAttemptExecutionResult,
+  type WorkAttemptExecutionStatus,
+  type WorkAttemptExecutor,
+  type WorkAttemptExecutorOptions,
+} from "./attempt-executor.js";
+export {
   createWorkQueueRepository,
   type CommitTerminalInput,
   type MarkRetryWaitInput,

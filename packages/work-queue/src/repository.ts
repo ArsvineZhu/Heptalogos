@@ -135,9 +135,7 @@ export interface MarkRunningInput {
   readonly expectedDispatchRevision: number;
   readonly activeAttemptId: DispatchAttemptId;
   readonly updatedAt: Instant;
-  readonly onApplied?: (
-    transaction: PersistenceMutationTransactionContext,
-  ) => Promise<void>;
+  readonly onApplied?: MutationAppliedHook;
 }
 
 export interface MarkWaitingDependencyInput {
@@ -161,6 +159,7 @@ export interface MarkRetryWaitInput {
   readonly reasonCode: string;
   readonly notBefore: Instant;
   readonly updatedAt: Instant;
+  readonly onApplied?: MutationAppliedHook;
 }
 
 export interface WakeDueRetryInput {
@@ -194,7 +193,13 @@ export interface CommitTerminalInput {
   readonly expectedActiveAttemptId?: DispatchAttemptId;
   readonly outcome: WorkItemOutcome;
   readonly updatedAt: Instant;
+  readonly onApplied?: MutationAppliedHook;
 }
+
+export type MutationAppliedHook = (
+  transaction: PersistenceMutationTransactionContext,
+  item: WorkItem,
+) => Promise<void>;
 
 export interface WorkQueueRepository {
   insertWorkItem(
@@ -687,14 +692,14 @@ async function applyCas(
   context: PersistenceMutationTransactionContext,
   text: string,
   parameters: readonly unknown[],
-  onApplied?: (context: PersistenceMutationTransactionContext) => Promise<void>,
+  onApplied?: MutationAppliedHook,
 ): Promise<WorkItemMutationResult> {
   const rows = await executeSql(transaction, text, parameters);
   if (rows[0] === undefined) {
     return casOutcome(transaction, parameters[0] as WorkItemId);
   }
   const item = parsePersistedWorkItem(rows[0]);
-  if (onApplied !== undefined) await onApplied(context);
+  if (onApplied !== undefined) await onApplied(context, item);
   return { status: "APPLIED", item };
 }
 
@@ -895,6 +900,8 @@ export function createWorkQueueRepository(
            SET state = 'RUNNING', active_attempt_id = $4,
                state_reason_code = NULL, updated_at = $5
            WHERE ${guard.clause}
+             AND cancel_requested_at IS NULL
+             AND superseded_by IS NULL
            RETURNING ${WORK_ITEM_COLUMNS}`,
           [...guard.parameters, input.activeAttemptId, input.updatedAt],
           input.onApplied,
@@ -956,10 +963,36 @@ export function createWorkQueueRepository(
           transaction,
           context,
           `UPDATE "heptalogos"."work_item"
-           SET state = 'RETRY_WAIT', active_attempt_id = NULL,
-               retry_class = $${guard.parameters.length + 1},
-               state_reason_code = $${guard.parameters.length + 2},
-               not_before = $${guard.parameters.length + 3},
+           SET state = CASE
+                 WHEN cancel_requested_at IS NOT NULL THEN 'CANCELLED'
+                 WHEN superseded_by IS NOT NULL THEN 'SUPERSEDED'
+                 ELSE 'RETRY_WAIT'
+               END,
+               active_attempt_id = NULL,
+               retry_class = CASE
+                 WHEN cancel_requested_at IS NOT NULL OR superseded_by IS NOT NULL THEN NULL
+                 ELSE $${guard.parameters.length + 1}
+               END,
+               state_reason_code = CASE
+                 WHEN cancel_requested_at IS NOT NULL THEN COALESCE(cancellation_reason_code, 'cancellation-requested')
+                 WHEN superseded_by IS NOT NULL THEN 'superseded-by-request'
+                 ELSE $${guard.parameters.length + 2}
+               END,
+               not_before = CASE
+                 WHEN cancel_requested_at IS NOT NULL OR superseded_by IS NOT NULL THEN not_before
+                 ELSE $${guard.parameters.length + 3}
+               END,
+               outcome = CASE
+                 WHEN cancel_requested_at IS NOT NULL THEN jsonb_build_object(
+                   'schemaVersion', 1, 'kind', 'CANCELLED',
+                   'reasonCode', COALESCE(cancellation_reason_code, 'cancellation-requested')
+                 )
+                 WHEN superseded_by IS NOT NULL THEN jsonb_build_object(
+                   'schemaVersion', 1, 'kind', 'SUPERSEDED',
+                   'reasonCode', 'superseded-by-request', 'supersededBy', superseded_by
+                 )
+                 ELSE NULL
+               END,
                updated_at = $${guard.parameters.length + 4}
            WHERE ${guard.clause}
            RETURNING ${WORK_ITEM_COLUMNS}`,
@@ -970,6 +1003,7 @@ export function createWorkQueueRepository(
             input.notBefore,
             input.updatedAt,
           ],
+          input.onApplied,
         );
       });
     },
@@ -1059,10 +1093,32 @@ export function createWorkQueueRepository(
           transaction,
           context,
           `UPDATE "heptalogos"."work_item"
-           SET state = $${guard.parameters.length + 1}, active_attempt_id = NULL,
-               retry_class = $${guard.parameters.length + 2},
-               state_reason_code = $${guard.parameters.length + 3},
-               outcome = $${guard.parameters.length + 4},
+           SET state = CASE
+                 WHEN cancel_requested_at IS NOT NULL THEN 'CANCELLED'
+                 WHEN superseded_by IS NOT NULL THEN 'SUPERSEDED'
+                 ELSE $${guard.parameters.length + 1}
+               END,
+               active_attempt_id = NULL,
+               retry_class = CASE
+                 WHEN cancel_requested_at IS NOT NULL OR superseded_by IS NOT NULL THEN NULL
+                 ELSE $${guard.parameters.length + 2}
+               END,
+               state_reason_code = CASE
+                 WHEN cancel_requested_at IS NOT NULL THEN COALESCE(cancellation_reason_code, 'cancellation-requested')
+                 WHEN superseded_by IS NOT NULL THEN 'superseded-by-request'
+                 ELSE $${guard.parameters.length + 3}
+               END,
+               outcome = CASE
+                 WHEN cancel_requested_at IS NOT NULL THEN jsonb_build_object(
+                   'schemaVersion', 1, 'kind', 'CANCELLED',
+                   'reasonCode', COALESCE(cancellation_reason_code, 'cancellation-requested')
+                 )
+                 WHEN superseded_by IS NOT NULL THEN jsonb_build_object(
+                   'schemaVersion', 1, 'kind', 'SUPERSEDED',
+                   'reasonCode', 'superseded-by-request', 'supersededBy', superseded_by
+                 )
+                 ELSE $${guard.parameters.length + 4}
+               END,
                updated_at = $${guard.parameters.length + 5}
            WHERE ${guard.clause}
            RETURNING ${WORK_ITEM_COLUMNS}`,
@@ -1074,6 +1130,7 @@ export function createWorkQueueRepository(
             canonicalizeJson(input.outcome as unknown as CanonicalJsonValue),
             input.updatedAt,
           ],
+          input.onApplied,
         );
       });
     },

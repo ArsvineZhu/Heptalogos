@@ -107,6 +107,36 @@ const problemSpecs: Readonly<Record<string, WorkQueueProblemSpec>> = {
     retryClass: "after-change",
     title: "Durable dispatch projection failed",
   },
+  "work.classifier.required": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkAttemptExecutor requires WorkErrorClassifier",
+  },
+  "work.external_effect_uncertain_unsupported": {
+    category: "validation",
+    retryClass: "never",
+    title: "H3A does not support external-effect-uncertain work",
+  },
+  "work.failure.unclassified": {
+    category: "integrity",
+    retryClass: "manual",
+    title: "WorkHandler failure was not classified",
+  },
+  "work.outcome.invalid": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkHandler outcome is invalid",
+  },
+  "work.outcome.too_large": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkHandler outcome exceeds the configured limit",
+  },
+  "work.retry.not_before_required": {
+    category: "validation",
+    retryClass: "never",
+    title: "Work retry requires an exact notBefore Instant",
+  },
   "work.queue.profile_mismatch": {
     category: "validation",
     retryClass: "never",
