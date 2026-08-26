@@ -44,7 +44,7 @@ Use the weakest test that actually proves the claim, never a weaker surrogate:
 5. Dependency `RoleDecision` and implementation/product qualification are separate dimensions.
 6. Keep required gates locally runnable and reproducible. CI may automate them but is not their sole authority.
 7. Hn-S closure requires `pnpm check:hygiene` and a zero-residue current-tree sweep; preserve Current Evidence versus Historical Evidence as separate claims.
-8. Review the current live Ready PR. A PR-branch mutation after review makes review and final CI stale. Any base movement after the Ready candidate is frozen makes the candidate stale. Return the PR to Draft, integrate/requalify against the current base, and obtain a new Independent Review before final CI.
+8. Independent Review is an externally supplied governance verdict. GitHub review/approval objects are neither required nor authoritative. The implementation Agent MUST NOT query GitHub reviews, approvals, requested reviewers, or review comments to determine this gate. A PR-branch mutation after external review makes review and final CI stale. Any base movement after the Ready candidate is frozen makes the candidate stale. Return the PR to Draft, integrate/requalify against the current base, and obtain a new external Independent Review before final CI.
 
 Verification status is exactly:
 

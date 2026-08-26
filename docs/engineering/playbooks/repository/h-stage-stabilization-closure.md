@@ -9,8 +9,9 @@ Hn functional milestone can close.
 - Complete every planned repository mutation before Independent Review.
 - Keep Hn-S bounded; defer new subsystem, architecture expansion, and
   next-milestone capability work.
-- Treat the current live Ready PR as the review candidate. Git revision
-  identity remains machine-internal to Git/GitHub/CI.
+- Treat the current live Ready PR as the candidate transport presented to the
+  external reviewer. Git revision identity remains machine-internal to
+  Git/GitHub/CI.
 
 ## Procedure
 
@@ -23,24 +24,30 @@ Hn functional milestone can close.
    and current-evidence sweeps before freezing the candidate.
 5. Record only observed verification states: `PASS`, `FAIL`, `NOT_RUN`, or
    `BLOCKED`.
-6. Mark the PR Ready and request Independent Review of the complete live PR.
-7. On `REQUEST_CHANGES`, return to Draft, make bounded corrections, rerun the
-   affected qualification and local gates, and request a new review.
-8. On Review `PASS`, run manual final CI on the current PR plus current `master`
-   integration. Require Ubuntu, macOS, and Windows to pass.
+6. Mark the PR Ready and obtain an out-of-band verdict from the authorized
+   external Independent Reviewer. GitHub review objects are not evidence for
+   this gate.
+7. On an external `REQUEST_CHANGES`, return to Draft, make bounded corrections,
+   rerun the affected qualification and local gates, and obtain a new external
+   Independent Review.
+8. On external Independent Review `PASS`, run manual final CI on the current PR
+   plus current `master` integration. Require Ubuntu, macOS, and Windows to
+   pass.
 9. Merge immediately if the PR remains current, Ready, open, and conflict-free;
-   any base movement sends the candidate back through Draft and new review.
-   Squash merge and delete the branch after success.
+   any base movement sends the candidate back through Draft and a new external
+   Independent Review. Squash merge and delete the branch after success.
 10. Reconcile Hn truth through a separate docs/evidence-only PR without changing
     behavior, production code, or tests.
 
 ## Candidate invalidation
 
 ```text
-PR branch mutation after Review PASS -> review stale; return to Draft
+PR branch mutation after external Independent Review PASS -> verdict stale;
+return to Draft
 PR branch mutation after final CI -> review and CI stale; return to Draft
 Any base movement after the Ready candidate is frozen -> candidate stale;
-return to Draft, integrate/requalify, and obtain a new review before final CI
+return to Draft, integrate/requalify, and obtain a new external Independent Review
+before final CI
 ```
 
 ## Mandatory pre-freeze sweeps
@@ -62,8 +69,8 @@ implementation plan complete
 + local qualification complete
 + mandatory Hn-S sweeps complete
 + PR Ready
-+ Independent Review PASS on the current live PR
-+ no PR-branch mutation after Review PASS
++ Independent Review PASS supplied by the authorized external reviewer
++ no PR-branch mutation after external Independent Review PASS
 + final manual CI PASS on Ubuntu/macOS/Windows for current-base integration
 + no PR-branch mutation after final CI
 + squash merge succeeds

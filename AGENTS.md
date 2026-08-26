@@ -109,13 +109,29 @@ PR lifecycle, Independent Review, manual final CI, and squash merge.
 PR candidate integrity is governed by PR lifecycle, not commit hashes in
 documents.
 
+Terminology: `Independent Review` in Heptalogos NEVER means GitHub's Pull
+Request Review feature.
+
+Independent Review is an external governance verdict. It is not a GitHub Pull
+Request review, approval, requested-reviewer state, review comment, status
+check, or branch-protection signal. GitHub hosts the candidate and CI evidence;
+it does not provide the Independent Review Authority.
+
+The authorized independent reviewer supplies an explicit `PASS` or
+`REQUEST_CHANGES` verdict out-of-band to the implementation Agent. That verdict
+is authoritative for the current Ready candidate. The implementation Agent MUST
+NOT query GitHub reviews, approvals, requested reviewers, or review comments to
+determine Independent Review state. Absence of GitHub review objects has no
+meaning for this gate.
+
 Draft = mutable.
 Ready = review candidate.
 
-Independent Review evaluates the current live Ready PR. Any repository mutation
-after Review PASS makes that review stale; return the PR to Draft before
-continuing. Final manual CI runs only after Review PASS. Any PR-branch mutation
-after final CI makes review and CI stale.
+The current Ready PR is the candidate transport presented to the authorized
+external reviewer. Any repository mutation after an external Independent Review
+`PASS` makes that verdict stale; return the PR to Draft before continuing.
+Final manual CI runs only after an external Independent Review `PASS`. Any
+PR-branch mutation after final CI makes review and CI stale.
 
 Do not copy commit SHAs into plans, qualification records, PR bodies, or Agent
 instructions. Git/GitHub/CI may use revision identity internally.

@@ -11,14 +11,16 @@ Merge sequence. It is the operational companion to the repository contract in
 2. Install the approved plan, make the bounded implementation changes, and run
    local tests plus `pnpm verify` as required by that plan.
 3. When implementation and evidence are complete, mark the PR Ready.
-4. Independent Review evaluates the current live Ready PR. Do not ask the
-   operator to copy Git revision identifiers into plans, evidence, or the PR
-   body.
-5. If review returns `REQUEST_CHANGES`, return the PR to Draft, make only the
-   bounded corrections, rerun affected qualification and local gates, then
-   mark it Ready for a new review.
-6. After Review `PASS`, dispatch final manual CI and require Ubuntu, macOS, and
-   Windows to pass.
+4. The authorized external Independent Reviewer examines the current Ready PR
+   as candidate transport and supplies an out-of-band `PASS` or
+   `REQUEST_CHANGES` verdict. GitHub Pull Request review objects, approvals,
+   requested reviewers, and comments are unrelated to this gate; do not inspect
+   them as evidence of Independent Review.
+5. If the external verdict is `REQUEST_CHANGES`, return the PR to Draft, make
+   only the bounded corrections, rerun affected qualification and local gates,
+   then mark it Ready for a new external review.
+6. After an external Independent Review `PASS`, dispatch final manual CI and
+   require Ubuntu, macOS, and Windows to pass.
 7. Merge immediately only while the PR is still open, Ready, conflict-free,
    and its branch has not changed since review and final CI.
 8. Squash merge, then delete the branch only after merge succeeds.
@@ -29,7 +31,8 @@ Merge sequence. It is the operational companion to the repository contract in
 
 ```text
 Draft work is mutable.
-Review PASS -> any PR-branch mutation makes review stale and requires Draft.
+External Independent Review PASS -> any PR-branch mutation makes the verdict
+stale and requires Draft.
 Final CI -> any PR-branch mutation makes review and CI stale and requires Draft.
 Any base movement after the Ready candidate is frozen makes the review
 candidate stale, regardless of any diff assessment. Return to Draft, integrate
@@ -39,7 +42,7 @@ new Independent Review before final manual CI.
 
 ## Manual CI dispatch
 
-After Independent Review `PASS`:
+After the external Independent Review supplies `PASS`:
 
 ```bash
 PR_NUMBER=<number>
