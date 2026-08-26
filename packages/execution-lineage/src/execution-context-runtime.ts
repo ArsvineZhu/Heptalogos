@@ -48,12 +48,31 @@ export interface InternalRuntimeActivityRunner {
     request: ActivityRequest,
     operation: (context: ExecutionContext) => Promise<T>,
   ): Promise<T>;
+  runFromLineageContextRef<T>(
+    ref: LineageContextRefV1,
+    request: Omit<ActivityRequest, "causationActivityId">,
+    operation: (context: ExecutionContext) => Promise<T>,
+  ): Promise<T>;
 }
 
 const runtimeOriginBinders = new WeakMap<
   ExecutionContextRuntime,
   (origin: RuntimeExecutionOrigin) => InternalRuntimeActivityRunner
 >();
+
+function causationFromLineageContextRef(
+  ref: LineageContextRefV1,
+  trustedOrigin: HostExecutionOrigin,
+): ActivityId {
+  const decoded = decodeLineageContextRef(ref);
+  if (
+    decoded.sourceInstanceId !== trustedOrigin.instanceId ||
+    decoded.sourceContinuityEpochId !== trustedOrigin.continuityEpochId
+  ) {
+    throw discontinuousContextRefProblem();
+  }
+  return decoded.sourceActivityId;
+}
 
 const importanceValues = new Set<ActivityImportance>([
   "diagnostic",
@@ -288,20 +307,14 @@ export function createExecutionContextRuntime(
       request: Omit<ActivityRequest, "causationActivityId">,
       operation: (context: ExecutionContext) => Promise<T>,
     ): Promise<T> {
-      const decoded = decodeLineageContextRef(ref);
-      if (
-        decoded.sourceInstanceId !== trustedOrigin.instanceId ||
-        decoded.sourceContinuityEpochId !== trustedOrigin.continuityEpochId
-      ) {
-        throw discontinuousContextRefProblem();
-      }
+      const causationActivityId = causationFromLineageContextRef(ref, trustedOrigin);
       const parent = storage.getStore();
       const parentOtel = parent?.otelContext ?? activeTelemetryContext();
       return runScope(
         request,
         operation,
         undefined,
-        decoded.sourceActivityId,
+        causationActivityId,
         parentOtel,
         undefined,
       );
@@ -323,6 +336,23 @@ export function createExecutionContextRuntime(
           operation,
           parent?.execution.activityId,
           request.causationActivityId,
+          parentOtel,
+          trustedRuntimeOrigin,
+        );
+      },
+      async runFromLineageContextRef<T>(
+        ref: LineageContextRefV1,
+        request: Omit<ActivityRequest, "causationActivityId">,
+        operation: (context: ExecutionContext) => Promise<T>,
+      ): Promise<T> {
+        const causationActivityId = causationFromLineageContextRef(ref, trustedOrigin);
+        const parent = storage.getStore();
+        const parentOtel = parent?.otelContext ?? activeTelemetryContext();
+        return runScope(
+          request,
+          operation,
+          undefined,
+          causationActivityId,
           parentOtel,
           trustedRuntimeOrigin,
         );

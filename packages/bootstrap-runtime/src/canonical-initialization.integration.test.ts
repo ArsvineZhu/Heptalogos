@@ -110,6 +110,7 @@ describeRealPostgres.sequential(
           { column_name: "package_generation_id" },
           { column_name: "micro_system_id" },
           { column_name: "micro_system_instance_id" },
+          { column_name: "contribution_id" },
           { column_name: "importance" },
           { column_name: "retention_class" },
           { column_name: "sensitivity" },

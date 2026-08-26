@@ -203,9 +203,19 @@ export function createWorkQueueReconciler(
 
   const scan = (): Promise<ReconciliationScanResult> => {
     if (scanPromise !== undefined) return scanPromise;
-    const current = runScan().finally(() => {
-      if (scanPromise === current) scanPromise = undefined;
-    });
+    const current = options.execution
+      .runActivity(
+        {
+          kind: "work.reconcile",
+          importance: "routine",
+          retentionClass: "ephemeral",
+          sensitivity: "operational",
+        },
+        runScan,
+      )
+      .finally(() => {
+        if (scanPromise === current) scanPromise = undefined;
+      });
     scanPromise = current;
     return current;
   };

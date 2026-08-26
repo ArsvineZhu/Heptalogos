@@ -368,6 +368,22 @@ async function createWork(
   );
 }
 
+async function runCanonicalMutation<T>(
+  composition: Composition,
+  kind: string,
+  operation: () => Promise<T>,
+): Promise<T> {
+  return composition.runtime.runActivity(
+    {
+      kind,
+      importance: "significant",
+      retentionClass: "operational",
+      sensitivity: "operational",
+    },
+    operation,
+  );
+}
+
 async function waitUntil(
   condition: () => boolean | Promise<boolean>,
   timeoutMs = 10_000,
@@ -482,15 +498,17 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     });
     const initial = await composition.repository.getWorkItem(created.item.workItemId);
     if (initial === undefined) throw new Error("created WorkItem was not found");
-    await composition.repository.markRetryWait({
-      workItemId: initial.workItemId,
-      expectedDispatchRevision: initial.dispatchRevision,
-      expectedState: "PENDING",
-      retryClass: "transient",
-      reasonCode: "qualification.retry",
-      notBefore: futureTime,
-      updatedAt: initialTime,
-    });
+    await runCanonicalMutation(composition, "qualification.work.retry", () =>
+      composition.repository.markRetryWait({
+        workItemId: initial.workItemId,
+        expectedDispatchRevision: initial.dispatchRevision,
+        expectedState: "PENDING",
+        retryClass: "transient",
+        reasonCode: "qualification.retry",
+        notBefore: futureTime,
+        updatedAt: initialTime,
+      }),
+    );
     await expect(
       composition.executor.execute(initial.workItemId, initial.dispatchRevision),
     ).resolves.toMatchObject({ status: "STALE_NOOP" });
@@ -559,11 +577,13 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
       handlerA,
       createGenerationFence(),
     );
-    await composition.repository.wakeDependency({
-      workItemId: created.item.workItemId,
-      expectedDispatchRevision: 1,
-      updatedAt: initialTime,
-    });
+    await runCanonicalMutation(composition, "qualification.work.dependency", () =>
+      composition.repository.wakeDependency({
+        workItemId: created.item.workItemId,
+        expectedDispatchRevision: 1,
+        updatedAt: initialTime,
+      }),
+    );
     await expect(
       alternateExecutor.execute(created.item.workItemId, 2),
     ).resolves.toMatchObject({ status: "SUCCEEDED" });
@@ -578,13 +598,15 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     const pending = await createWork(composition, composition.target, {
       dedupKey: "w7-pending-cancel",
     });
-    await composition.repository.requestCancel({
-      workItemId: pending.item.workItemId,
-      expectedDispatchRevision: 1,
-      expectedState: "PENDING",
-      requestedAt: initialTime,
-      reasonCode: "qualification.cancel",
-    });
+    await runCanonicalMutation(composition, "qualification.work.cancel", () =>
+      composition.repository.requestCancel({
+        workItemId: pending.item.workItemId,
+        expectedDispatchRevision: 1,
+        expectedState: "PENDING",
+        requestedAt: initialTime,
+        reasonCode: "qualification.cancel",
+      }),
+    );
     await expect(
       composition.executor.execute(pending.item.workItemId, 1),
     ).resolves.toMatchObject({ status: "CANCELLED" });
@@ -643,14 +665,19 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
         (await composition.repository.getWorkItem(runningItem.item.workItemId))
           ?.state === "RUNNING",
     );
-    await composition.repository.requestCancel({
-      workItemId: runningItem.item.workItemId,
-      expectedDispatchRevision: 1,
-      expectedState: "RUNNING",
-      expectedActiveAttemptId: createDispatchAttemptId(runningItem.item.workItemId, 1),
-      requestedAt: initialTime,
-      reasonCode: "qualification.cancel",
-    });
+    await runCanonicalMutation(composition, "qualification.work.cancel.running", () =>
+      composition.repository.requestCancel({
+        workItemId: runningItem.item.workItemId,
+        expectedDispatchRevision: 1,
+        expectedState: "RUNNING",
+        expectedActiveAttemptId: createDispatchAttemptId(
+          runningItem.item.workItemId,
+          1,
+        ),
+        requestedAt: initialTime,
+        reasonCode: "qualification.cancel",
+      }),
+    );
     await expect(execution).resolves.toMatchObject({ status: "CANCELLED" });
     expect(aborted).toBe(true);
   }, 180_000);
@@ -752,7 +779,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     expect(composition.contributionContexts).toContainEqual(
       expect.objectContaining({
         kind: "contribution.invoke",
-        causationActivityId: workExecute?.activity_id,
+        parentActivityId: workExecute?.activity_id,
         origin: expect.objectContaining({
           runtime: expect.objectContaining({
             productGenerationId: composition.target.productGenerationId,

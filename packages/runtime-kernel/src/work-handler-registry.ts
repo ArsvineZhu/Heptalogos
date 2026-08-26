@@ -190,6 +190,7 @@ function createLease(
   return Object.freeze({
     target: requestedTarget,
     descriptor: registration.descriptor,
+    runtimeActivity: registration.runtimeActivity,
     validatePayload(version: number, value: unknown) {
       registration.fence.assertActive();
       return validatePayloadValue(version, value) as never;

@@ -569,15 +569,6 @@ function parsePersistedWorkItem(row: Record<string, unknown>): WorkItem {
   return item;
 }
 
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "23505"
-  );
-}
-
 function assertPositiveRevision(value: number, field: string): void {
   if (!Number.isSafeInteger(value) || value < 1) {
     throw workQueueProblem(
@@ -752,28 +743,29 @@ export function createWorkQueueRepository(
         persistence,
         async (transaction, context) => {
           let insertResult: WorkItemInsertResult;
-          try {
-            const rows = await executeSql(
-              transaction,
-              `INSERT INTO "heptalogos"."work_item" (${INSERT_COLUMNS}) VALUES (
+          const insertRows = await executeSql(
+            transaction,
+            `INSERT INTO "heptalogos"."work_item" (${INSERT_COLUMNS}) VALUES (
               $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
               $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26,
               $27, $28, $29
-            ) RETURNING ${WORK_ITEM_COLUMNS}`,
-              serializeItem(item),
-            );
-            if (rows[0] !== undefined) {
-              insertResult = {
-                status: "INSERTED",
-                item: parsePersistedWorkItem(rows[0]),
-              };
-              if (options?.onWithinTransaction !== undefined) {
-                await options.onWithinTransaction(insertResult, context);
-              }
-              return insertResult;
+            ) ON CONFLICT (handler_micro_system_id, handler_contribution_id, dedup_key)
+              WHERE dedup_key IS NOT NULL AND state IN (
+                'PENDING', 'RUNNING', 'WAITING_DEPENDENCY', 'RETRY_WAIT',
+                'WAITING_RESTORE_RECONCILIATION'
+              ) DO NOTHING
+            RETURNING ${WORK_ITEM_COLUMNS}`,
+            serializeItem(item),
+          );
+          if (insertRows[0] !== undefined) {
+            insertResult = {
+              status: "INSERTED",
+              item: parsePersistedWorkItem(insertRows[0]),
+            };
+            if (options?.onWithinTransaction !== undefined) {
+              await options.onWithinTransaction(insertResult, context);
             }
-          } catch (error) {
-            if (!isUniqueViolation(error)) throw error;
+            return insertResult;
           }
 
           if (item.dedupKey === undefined) {

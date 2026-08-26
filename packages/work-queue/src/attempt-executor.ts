@@ -9,7 +9,9 @@ import type {
   ExecutionContext,
   ExecutionContextRuntime,
   ExecutionLineageService,
+  LineageContextRefV1,
 } from "@heptalogos/execution-lineage";
+import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
 import type { RuntimeWorkHandlerLease } from "@heptalogos/runtime-kernel";
 import type { TimeService } from "@heptalogos/time-service";
 import { createDispatchAttemptId } from "./attempt-identity.js";
@@ -262,6 +264,24 @@ function isPayloadDependencyProblem(error: unknown): boolean {
   );
 }
 
+function runAttemptActivity<T>(
+  execution: ExecutionContextRuntime,
+  runtimeActivity: RuntimeActivityRunner | undefined,
+  ref: LineageContextRefV1,
+  operation: (context: ExecutionContext) => Promise<T>,
+): Promise<T> {
+  const request = {
+    kind: "work.execute",
+    importance: "significant" as const,
+    retentionClass: "operational" as const,
+    sensitivity: "operational" as const,
+  };
+  if (runtimeActivity?.runFromLineageContextRef !== undefined) {
+    return runtimeActivity.runFromLineageContextRef(ref, request, operation);
+  }
+  return execution.runFromLineageContextRef(ref, request, operation);
+}
+
 function monitorCancellation(
   repository: WorkQueueRepository,
   workItemId: WorkItem["workItemId"],
@@ -330,78 +350,78 @@ export function createWorkAttemptExecutor(
       }
 
       const requestedTerminal = cancellationOutcome(item);
-      if (requestedTerminal !== undefined) {
-        return resultForMutation(
-          await options.repository.commitTerminal({
-            workItemId: item.workItemId,
-            expectedDispatchRevision: item.dispatchRevision,
-            expectedState: "PENDING",
-            outcome: requestedTerminal,
-            updatedAt: options.time.now(),
-          }),
-        );
-      }
+      const lease =
+        requestedTerminal === undefined
+          ? options.handlerRegistry.resolve(item.handler)
+          : undefined;
 
-      const lease = options.handlerRegistry.resolve(item.handler);
-      if (lease === undefined) {
-        return resultForMutation(
-          await options.repository.markWaitingDependency({
-            workItemId: item.workItemId,
-            expectedDispatchRevision: item.dispatchRevision,
-            updatedAt: options.time.now(),
-          }),
-        );
-      }
-
-      const now = options.time.now();
-      if (
-        item.notBefore !== undefined &&
-        Date.parse(item.notBefore) > Date.parse(now)
-      ) {
-        return resultForMutation(
-          await options.repository.markRetryWait({
-            workItemId: item.workItemId,
-            expectedDispatchRevision: item.dispatchRevision,
-            expectedState: "PENDING",
-            retryClass: "transient",
-            reasonCode: "not-before-not-yet-due",
-            notBefore: item.notBefore,
-            updatedAt: now,
-          }),
-        );
-      }
-
-      let payload: unknown;
-      try {
-        payload = lease.validatePayload(item.handler.payloadVersion, item.payload);
-      } catch (error) {
-        if (isPayloadDependencyProblem(error)) {
-          return resultForMutation(
-            await options.repository.markWaitingDependency({
-              workItemId: item.workItemId,
-              expectedDispatchRevision: item.dispatchRevision,
-              updatedAt: options.time.now(),
-            }),
-          );
-        }
-        return resultForMutation(
-          await options.repository.markWaitingDependency({
-            workItemId: item.workItemId,
-            expectedDispatchRevision: item.dispatchRevision,
-            updatedAt: options.time.now(),
-          }),
-        );
-      }
-
-      return options.execution.runFromLineageContextRef(
+      return runAttemptActivity(
+        options.execution,
+        lease?.runtimeActivity,
         item.lineageContextRef,
-        {
-          kind: "work.execute",
-          importance: "significant",
-          retentionClass: "operational",
-          sensitivity: "operational",
-        },
         async (activity: ExecutionContext) => {
+          if (requestedTerminal !== undefined) {
+            return resultForMutation(
+              await options.repository.commitTerminal({
+                workItemId: item.workItemId,
+                expectedDispatchRevision: item.dispatchRevision,
+                expectedState: "PENDING",
+                outcome: requestedTerminal,
+                updatedAt: options.time.now(),
+              }),
+            );
+          }
+
+          if (lease === undefined) {
+            return resultForMutation(
+              await options.repository.markWaitingDependency({
+                workItemId: item.workItemId,
+                expectedDispatchRevision: item.dispatchRevision,
+                updatedAt: options.time.now(),
+              }),
+            );
+          }
+
+          const now = options.time.now();
+          if (
+            item.notBefore !== undefined &&
+            Date.parse(item.notBefore) > Date.parse(now)
+          ) {
+            return resultForMutation(
+              await options.repository.markRetryWait({
+                workItemId: item.workItemId,
+                expectedDispatchRevision: item.dispatchRevision,
+                expectedState: "PENDING",
+                retryClass: "transient",
+                reasonCode: "not-before-not-yet-due",
+                notBefore: item.notBefore,
+                updatedAt: now,
+              }),
+            );
+          }
+
+          let payload: unknown;
+          try {
+            payload = lease.validatePayload(item.handler.payloadVersion, item.payload);
+          } catch (error) {
+            if (isPayloadDependencyProblem(error)) {
+              return resultForMutation(
+                await options.repository.markWaitingDependency({
+                  workItemId: item.workItemId,
+                  expectedDispatchRevision: item.dispatchRevision,
+                  updatedAt: options.time.now(),
+                }),
+              );
+            }
+            return resultForMutation(
+              await options.repository.markWaitingDependency({
+                workItemId: item.workItemId,
+                expectedDispatchRevision: item.dispatchRevision,
+                updatedAt: options.time.now(),
+              }),
+            );
+          }
+
           const attemptId = createDispatchAttemptId(
             item.workItemId,
             item.dispatchRevision,

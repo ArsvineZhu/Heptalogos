@@ -66,6 +66,7 @@ export interface WorkHandlerRegistrationOwner {
 export interface RuntimeWorkHandlerLease {
   readonly target: WorkHandlerTarget;
   readonly descriptor: WorkHandlerProvisionDescriptor;
+  readonly runtimeActivity?: RuntimeActivityRunner;
   validatePayload(version: number, value: unknown): RuntimeContractData;
   validateOutcome(value: unknown): RuntimeContractData;
   execute(input: RuntimeWorkHandlerInvocation): Promise<RuntimeWorkHandlerResult>;

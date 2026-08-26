@@ -204,6 +204,9 @@ describe("WorkQueue Persistence repository", () => {
     expect(mocks.executeQuery.mock.calls[1][0].sql).toContain(
       "state IN ('PENDING', 'RUNNING', 'WAITING_DEPENDENCY', 'RETRY_WAIT', 'WAITING_RESTORE_RECONCILIATION')",
     );
+    expect(mocks.executeQuery.mock.calls[0][0].sql).toContain(
+      "ON CONFLICT (handler_micro_system_id, handler_contribution_id, dedup_key)",
+    );
   });
 
   it("returns typed CAS outcomes instead of boolean ambiguity", async () => {
