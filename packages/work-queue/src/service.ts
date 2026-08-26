@@ -184,7 +184,7 @@ function configurationBinding(
   if (descriptor.configurationBindingPolicy !== "LATEST_COMPATIBLE_AT_ATTEMPT") {
     throw workQueueProblem(
       "work.configuration.binding_unavailable",
-      "H3A has no ConfigurationRevision resolver for CONFIG_PINNED WorkHandlers",
+      "No ConfigurationRevision resolver is composed for CONFIG_PINNED WorkHandlers",
     );
   }
   if (requested !== undefined) {
@@ -337,6 +337,7 @@ export function createWorkQueueService(
         },
         async (activity) => {
           const createdAt = options.time.now();
+          const workLineageContextRef = options.execution.createLineageContextRef();
           const item: WorkItem = {
             schemaVersion: 1,
             workItemId: createWorkItemId(),
@@ -353,7 +354,7 @@ export function createWorkQueueService(
               : { notBefore: effectiveNotBefore }),
             ...(request.dedupKey === undefined ? {} : { dedupKey: request.dedupKey }),
             createdContinuityEpochId: source.origin.continuityEpochId,
-            lineageContextRef,
+            lineageContextRef: workLineageContextRef,
             configurationBinding: binding,
             restoreReplayClass: descriptor.restoreReplayClass,
             dispatchRevision: 1,

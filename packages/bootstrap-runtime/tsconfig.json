@@ -12,37 +12,43 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../foundation-contracts"
-    },
-    {
-      "path": "../bootstrap-state"
-    },
-    {
       "path": "../private-postgres"
     },
     {
       "path": "../host-ownership"
     },
     {
-      "path": "../canonical-schema"
+      "path": "../foundation-contracts"
     },
     {
-      "path": "../evidence"
+      "path": "../bootstrap-state"
     },
     {
-      "path": "../execution-lineage"
-    },
-    {
-      "path": "../persistence"
-    },
-    {
-      "path": "../runtime-kernel"
+      "path": "../time-service"
     },
     {
       "path": "../runtime-substrate"
     },
     {
-      "path": "../time-service"
+      "path": "../work-queue"
+    },
+    {
+      "path": "../runtime-kernel"
+    },
+    {
+      "path": "../signal"
+    },
+    {
+      "path": "../persistence"
+    },
+    {
+      "path": "../execution-lineage"
+    },
+    {
+      "path": "../evidence"
+    },
+    {
+      "path": "../canonical-schema"
     }
   ]
 }

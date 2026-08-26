@@ -168,9 +168,15 @@ importers:
       '@heptalogos/runtime-substrate':
         specifier: workspace:*
         version: link:../runtime-substrate
+      '@heptalogos/signal':
+        specifier: workspace:*
+        version: link:../signal
       '@heptalogos/time-service':
         specifier: workspace:*
         version: link:../time-service
+      '@heptalogos/work-queue':
+        specifier: workspace:*
+        version: link:../work-queue
       '@types/pg':
         specifier: 'catalog:'
         version: 8.23.1
