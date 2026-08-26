@@ -42,6 +42,9 @@
     },
     {
       "path": "./packages/signal"
+    },
+    {
+      "path": "./packages/work-queue"
     }
   ]
 }

@@ -28,6 +28,8 @@ overview when a change crosses package boundaries.
 - `execution-lineage` — execution context and lineage propagation.
 - `evidence` — retained Evidence records and service semantics.
 - `signal` — PostgreSQL LISTEN/NOTIFY wakeup hints and reconnect/rescan mechanics.
+- `work-queue` — canonical durable WorkItem contracts, reconciliation, and
+  engine-neutral attempt execution.
 
 ## Runtime composition
 

@@ -1,0 +1,20 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "work-queue",
+  "projectType": "library",
+  "sourceRoot": "packages/work-queue/src",
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "eslint packages/work-queue"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run --root packages/work-queue"
+      }
+    }
+  }
+}

@@ -449,6 +449,34 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(yaml@2.9.0))
 
+  packages/work-queue:
+    dependencies:
+      '@heptalogos/execution-lineage':
+        specifier: workspace:*
+        version: link:../execution-lineage
+      '@heptalogos/foundation-contracts':
+        specifier: workspace:*
+        version: link:../foundation-contracts
+      '@heptalogos/persistence':
+        specifier: workspace:*
+        version: link:../persistence
+      '@heptalogos/runtime-kernel':
+        specifier: workspace:*
+        version: link:../runtime-kernel
+      '@heptalogos/signal':
+        specifier: workspace:*
+        version: link:../signal
+      '@heptalogos/time-service':
+        specifier: workspace:*
+        version: link:../time-service
+      xstate:
+        specifier: 'catalog:'
+        version: 5.32.5
+    devDependencies:
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(yaml@2.9.0))
+
   tools/repo-kit:
     dependencies:
       execa:
