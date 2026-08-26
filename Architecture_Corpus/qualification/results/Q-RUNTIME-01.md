@@ -339,3 +339,27 @@ verification for the candidate; it did not establish real PostgreSQL product
 qualification on Linux or macOS. Source-less, installed service/headless,
 service-account ACL, and hardware power-loss properties remain residuals at
 their recorded `NOT_RUN` states.
+
+## Current-master Ubuntu residual qualification (2026-08-26)
+
+```yaml
+ubuntu_current_master_residual_qualification:
+  platform: Ubuntu/Linux
+  architecture: x86_64
+  postgresVersion: PostgreSQL 18.6
+  postgresBinMode: explicit HEPTALOGOS_TEST_PG_BIN
+  postgresBinDirectory: /home/arsvine/Dev/Heptalogos/tmp/pg/postgresql-18.6/usr/lib/postgresql/18/bin
+  repositoryVerify: PASS
+  privatePostgresIntegration: PASS (20/20)
+  hostOwnershipIntegration: PASS (10/10)
+  bootstrapRuntimeIntegration: PASS (8 suites, 58 tests)
+  recoveryProcess: PASS (4/4)
+  recoveryProcessPostgres: PASS (2/2)
+  linuxRealPostgresRuntimeQualification: PASS
+  sourceLessRuntime: NOT_RUN
+  installedServiceHeadlessRuntime: NOT_RUN
+```
+
+This is current Ubuntu/Linux real-PostgreSQL runtime evidence from the
+explicit matrix. It does not imply macOS, source-less, installed
+service/headless, service-account ACL, or hardware power-loss qualification.

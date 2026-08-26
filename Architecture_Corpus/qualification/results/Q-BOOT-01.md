@@ -375,3 +375,29 @@ child-IPC cleanup race in the test helper and was corrected before this
 successful run. Windows/macOS real PostgreSQL, source-less recovery,
 service-account ACL, and hardware power-loss remain `NOT_RUN`; repository CI
 does not upgrade those product/platform claims.
+
+## Current-master Ubuntu residual qualification (2026-08-26)
+
+```yaml
+ubuntu_current_master_residual_qualification:
+  platform: Ubuntu/Linux
+  architecture: x86_64
+  postgresVersion: PostgreSQL 18.6
+  postgresBinMode: explicit HEPTALOGOS_TEST_PG_BIN
+  postgresBinDirectory: /home/arsvine/Dev/Heptalogos/tmp/pg/postgresql-18.6/usr/lib/postgresql/18/bin
+  privatePostgresIntegration: PASS (20/20)
+  hostOwnershipIntegration: PASS (10/10)
+  bootstrapRuntimeIntegration: PASS (8 suites, 58 tests)
+  recoveryProcess: PASS (4/4)
+  recoveryProcessPostgres: PASS (2/2)
+  linux_real_postgres_recovery: PASS
+  macos_real_postgres_recovery: NOT_RUN
+  source_less_recovery: NOT_RUN
+  service_account_acl: NOT_RUN
+  hardware_power_loss: NOT_RUN
+```
+
+The matrix used the explicit PostgreSQL 18.6 binaries above and did not use a
+system PostgreSQL service or default port. This upgrades only the current
+Ubuntu/Linux real-PostgreSQL recovery property; the remaining product
+qualification boundaries stay unproved.

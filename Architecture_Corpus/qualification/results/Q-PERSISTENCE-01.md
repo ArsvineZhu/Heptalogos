@@ -352,3 +352,27 @@ The final generic Ubuntu/macOS/Windows repository CI did not prove real
 PostgreSQL persistence on Linux or macOS, source-less persistence, installed
 service/headless persistence, service-account ACLs, or hardware power-loss
 behavior. Those residual product properties remain at their recorded states.
+
+## Current-master Ubuntu residual qualification (2026-08-26)
+
+```yaml
+ubuntu_current_master_real_postgres:
+  platform: Ubuntu/Linux
+  architecture: x86_64
+  postgresVersion: PostgreSQL 18.6
+  postgresBinMode: explicit HEPTALOGOS_TEST_PG_BIN
+  postgresBinDirectory: /home/arsvine/Dev/Heptalogos/tmp/pg/postgresql-18.6/usr/lib/postgresql/18/bin
+  privatePostgresIntegration: PASS (20/20)
+  hostOwnershipIntegration: PASS (10/10)
+  persistenceIntegration: PASS (9/9)
+  bootstrapRuntimeIntegration: PASS (8 suites, 58 tests)
+  recoveryProcess: PASS (4/4)
+  recoveryProcessPostgres: PASS (2/2)
+  realPostgresLinux: PASS
+  qualificationState: PARTIAL
+```
+
+The explicit PostgreSQL 18.6 matrix supports the current Ubuntu/Linux
+real-PostgreSQL persistence property. It does not prove macOS, source-less,
+installed service/headless, service-account ACL, or hardware power-loss
+behavior; those residuals remain at their recorded states.
