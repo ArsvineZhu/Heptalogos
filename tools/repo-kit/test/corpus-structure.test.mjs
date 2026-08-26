@@ -60,15 +60,30 @@ describe("Corpus structural verification", () => {
     ).toBe(true);
   });
 
-  it("fails when an indexed top-level normative document is missing", async () => {
+  it("fails when an existing top-level normative document is omitted from INDEX", async () => {
     const result = await fixtureTree(async (root) => {
+      await writeFile(join(root, "Architecture_Corpus/01-unindexed.md"), "# 01\n");
+    });
+    expect(
+      result.errors.some((error) =>
+        error.includes("INDEX.md does not link top-level normative document"),
+      ),
+    ).toBe(true);
+  });
+
+  it("fails a local Markdown link that escapes Architecture_Corpus", async () => {
+    const result = await fixtureTree(async (root) => {
+      await mkdir(join(root, "docs"), { recursive: true });
+      await writeFile(join(root, "docs/foo.md"), "# outside\n");
       await writeFile(
-        join(root, "Architecture_Corpus/INDEX.md"),
-        "[00](00-项目宪法与工程宪法.md)\n[26](26-开发阶段闭包-稳定化与兼容性治理.md)\n[01](01-missing.md)\n",
+        join(root, "Architecture_Corpus/README.md"),
+        "[outside](../docs/foo.md)\n",
       );
     });
     expect(
-      result.errors.some((error) => error.includes("broken local Markdown link")),
+      result.errors.some((error) =>
+        error.includes("local Markdown link escapes Architecture_Corpus"),
+      ),
     ).toBe(true);
   });
 

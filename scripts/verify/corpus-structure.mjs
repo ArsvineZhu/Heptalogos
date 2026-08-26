@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
@@ -19,6 +19,13 @@ const forbiddenArtifacts = [
 
 function normalize(root, path) {
   return relative(root, path).replaceAll("\\", "/");
+}
+
+function isWithin(root, path) {
+  const rootPath = resolve(root);
+  const candidate = resolve(path);
+  const remainder = relative(rootPath, candidate);
+  return remainder === "" || (!remainder.startsWith("..") && !isAbsolute(remainder));
 }
 
 function walkFiles(directory) {
@@ -88,6 +95,13 @@ export function validateCorpus({ root = repositoryRoot } = {}) {
     const source = readFileSync(path, "utf8");
     for (const target of localMarkdownTargets(source)) {
       const resolvedTarget = resolve(path.replace(/[^\\/]+$/u, ""), target);
+      if (!isWithin(corpusRoot, resolvedTarget)) {
+        fail(
+          errors,
+          `${normalize(repository, path)}: local Markdown link escapes Architecture_Corpus: ${target}`,
+        );
+        continue;
+      }
       if (!existsSync(resolvedTarget)) {
         fail(
           errors,
