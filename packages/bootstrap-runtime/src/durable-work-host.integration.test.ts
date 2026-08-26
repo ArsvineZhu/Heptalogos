@@ -24,6 +24,7 @@ import {
   createRuntimeLifecycleLineage,
   MicroSystemSupervisor,
   WorkHandlerRegistry,
+  type RuntimeWorkHandlerLease,
   type MicroSystemDefinition,
   type RuntimeWorkHandler,
   type RuntimeWorkHandlerInvocation,
@@ -38,13 +39,14 @@ import {
   createWorkAttemptExecutor,
   createDispatchAttemptId,
   createWorkQueueReconciler,
-  createWorkQueueRepository,
   createWorkQueueService,
   type WorkAdmissionPort,
   type WorkErrorClassifier,
   type WorkItem,
+  type WorkQueueRepository,
   type WorkQueueRuntimeOptions,
 } from "@heptalogos/work-queue";
+import { createWorkQueueRepository } from "@heptalogos/work-queue/foundation-repository";
 import {
   createPostgresSignalService,
   postgresSignalPublisher,
@@ -53,6 +55,7 @@ import {
 } from "@heptalogos/signal";
 import {
   BOOTSTRAP_PASSWORD,
+  MIGRATION_PASSWORD,
   boot,
   cleanupCanonicalPostgresFixtures,
   describeRealPostgres,
@@ -597,6 +600,154 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     void targetB;
   }, 180_000);
 
+  it("G1 keeps an exact admitted generation alive while retirement waits for settlement", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture);
+    const composition = activeComposition;
+    const created = await createWork(composition, composition.target, {
+      dedupKey: "generation-reservation-retirement",
+    });
+    const registry = new WorkHandlerRegistry();
+    const fence = createGenerationFence();
+    let entered!: () => void;
+    const enteredPromise = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let releaseHandler!: () => void;
+    const handlerGate = new Promise<void>((resolve) => {
+      releaseHandler = resolve;
+    });
+    const handler: RuntimeWorkHandler = {
+      execute: vi.fn(async () => {
+        entered();
+        await handlerGate;
+        return { outcome: { accepted: true } };
+      }),
+    };
+    registry.register(
+      {
+        microSystemId: composition.target.microSystemId,
+        productGenerationId: composition.target.productGenerationId,
+        packageGenerationId: composition.target.packageGenerationId,
+      },
+      composition.descriptor,
+      handler,
+      fence,
+    );
+    const classifier = { classify: vi.fn(() => ({
+      kind: "TERMINAL" as const,
+      retryClass: "permanent" as const,
+      reasonCode: "unexpected-handler-failure",
+    })) };
+    const executor = createWorkAttemptExecutor({
+      repository: composition.repository,
+      handlerRegistry: registry,
+      execution: composition.runtime,
+      lineage: composition.lineage,
+      time: composition.time,
+      classifier,
+      runtimeOptions: WORK_OPTIONS,
+    });
+    const execution = executor.execute(created.item.workItemId, 1);
+    await enteredPromise;
+    await expect(
+      composition.repository.getWorkItem(created.item.workItemId),
+    ).resolves.toMatchObject({ state: "RUNNING" });
+
+    const retirement = registry.retireGeneration(fence, 1_000);
+    expect(fence.state).toBe("RETIRING");
+    let retired = false;
+    void retirement.then(() => {
+      retired = true;
+    });
+    await Promise.resolve();
+    expect(retired).toBe(false);
+
+    releaseHandler();
+    await execution;
+    await retirement;
+    expect(handler.execute).toHaveBeenCalledTimes(1);
+    expect(classifier.classify).not.toHaveBeenCalled();
+    expect(fence.state).toBe("RETIRED");
+  }, 180_000);
+
+  it("G2 releases a reserved invocation when the RUNNING CAS is lost", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture);
+    const composition = activeComposition;
+    const created = await createWork(composition, composition.target, {
+      dedupKey: "generation-reservation-cas-loss",
+    });
+    let reservationReady!: () => void;
+    const reservationReadyPromise = new Promise<void>((resolve) => {
+      reservationReady = resolve;
+    });
+    let release: (() => void) | undefined;
+    let releaseCount = 0;
+    const handlerRegistry = {
+      resolve(target: WorkHandlerTarget): RuntimeWorkHandlerLease | undefined {
+        const lease = composition.supervisor.workHandlers.resolve(target);
+        if (lease === undefined) return undefined;
+        return Object.freeze({
+          ...lease,
+          reserveInvocation() {
+            const reservation = lease.reserveInvocation();
+            reservationReady();
+            release = () => {
+              releaseCount += 1;
+              reservation.release();
+            };
+            return {
+              execute: reservation.execute,
+              release,
+            };
+          },
+        });
+      },
+    };
+    const repository: WorkQueueRepository = {
+      ...composition.repository,
+      async markRunning(input) {
+        await reservationReadyPromise;
+        await runCanonicalMutation(composition, "qualification.work.cancel.cas", () =>
+          composition.repository.requestCancel({
+            workItemId: input.workItemId,
+            expectedDispatchRevision: input.expectedDispatchRevision,
+            expectedState: "PENDING",
+            requestedAt: initialTime,
+            reasonCode: "qualification.cancel.cas",
+          }),
+        );
+        return composition.repository.markRunning(input);
+      },
+    };
+    const executor = createWorkAttemptExecutor({
+      repository,
+      handlerRegistry,
+      execution: composition.runtime,
+      lineage: composition.lineage,
+      time: composition.time,
+      classifier: {
+        classify: vi.fn(() => ({
+          kind: "TERMINAL" as const,
+          retryClass: "permanent" as const,
+          reasonCode: "must-not-run",
+        })),
+      },
+      runtimeOptions: WORK_OPTIONS,
+    });
+
+    await expect(executor.execute(created.item.workItemId, 1)).resolves.toMatchObject({
+      status: "TERMINAL_REPLAY",
+      outcome: { kind: "CANCELLED" },
+    });
+    expect(releaseCount).toBe(1);
+    expect(composition.handlerCalls).toHaveLength(0);
+    await expect(
+      composition.repository.getWorkItem(created.item.workItemId),
+    ).resolves.toMatchObject({ state: "CANCELLED" });
+  }, 180_000);
+
   it("W7 makes cancellation win both before invoke and during cooperative running", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
@@ -719,6 +870,235 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     expect(composition.handlerCalls).toHaveLength(0);
   }, 180_000);
 
+  it("F1 gives a later PENDING WorkItem a projection opportunity past one stable page", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture);
+    const composition = activeComposition;
+    const created = await Promise.all(
+      Array.from({ length: WORK_OPTIONS.reconciliationBatchSize + 1 }, (_, index) =>
+        createWork(composition, composition.target, {
+          dedupKey: `fair-pending-${index}`,
+        }),
+      ),
+    );
+    const later = [...created]
+      .map((value) => value.item)
+      .sort((left, right) =>
+        `${left.createdAt}\u0000${left.workItemId}`.localeCompare(
+          `${right.createdAt}\u0000${right.workItemId}`,
+        ),
+      )
+      .at(-1)!;
+
+    await expect(composition.reconciler.scan()).resolves.toMatchObject({
+      scanned: WORK_OPTIONS.reconciliationBatchSize,
+      dispatched: WORK_OPTIONS.reconciliationBatchSize,
+    });
+    await expect(composition.reconciler.scan()).resolves.toMatchObject({
+      dispatched: 1,
+    });
+    expect(composition.dispatches).toContainEqual(
+      expect.objectContaining({
+        workItemId: later.workItemId,
+        dispatchRevision: 1,
+        dispatchAttemptId: createDispatchAttemptId(later.workItemId, 1),
+      }),
+    );
+  }, 180_000);
+
+  it("F2 gives a later available dependency a recheck past one stable unavailable page", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture);
+    const composition = activeComposition;
+    const template = await createWork(composition, composition.target, {
+      dedupKey: "fair-waiting-template",
+    });
+    await runCanonicalMutation(composition, "qualification.work.cancel.template", () =>
+      composition.repository.requestCancel({
+        workItemId: template.item.workItemId,
+        expectedDispatchRevision: 1,
+        expectedState: "PENDING",
+        requestedAt: initialTime,
+        reasonCode: "qualification.template.cancelled",
+      }),
+    );
+    const ids = Array.from(
+      { length: WORK_OPTIONS.reconciliationBatchSize + 1 },
+      () => createWorkItemId(),
+    ).sort();
+    const waitingItems: WorkItem[] = ids.map((workItemId, index) => ({
+      ...template.item,
+      workItemId,
+      dedupKey: undefined,
+      state: "WAITING_DEPENDENCY",
+      stateReasonCode: "handler-unavailable",
+      handler:
+        index === ids.length - 1
+          ? composition.target
+          : {
+              ...composition.target,
+              contributionId: createContributionId(
+                `qualification.work.missing.${index}`,
+              ),
+            },
+    }));
+    for (const waiting of waitingItems) {
+      await runCanonicalMutation(composition, "qualification.work.insert.waiting", () =>
+        composition.repository.insertWorkItem(waiting),
+      );
+    }
+    const available = waitingItems.at(-1)!;
+
+    await composition.reconciler.scan();
+    await composition.reconciler.scan();
+
+    await expect(
+      composition.repository.getWorkItem(available.workItemId),
+    ).resolves.toMatchObject({
+      state: "PENDING",
+      dispatchRevision: 2,
+    });
+    expect(composition.dispatches).toContainEqual(
+      expect.objectContaining({
+        workItemId: available.workItemId,
+        dispatchRevision: 2,
+        dispatchAttemptId: createDispatchAttemptId(available.workItemId, 2),
+      }),
+    );
+  }, 180_000);
+
+  it("J1 detaches a caller payload before an asynchronous admission boundary", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture);
+    const composition = activeComposition;
+    let admissionStarted!: () => void;
+    const admissionStartedPromise = new Promise<void>((resolve) => {
+      admissionStarted = resolve;
+    });
+    let releaseAdmission!: () => void;
+    const admissionGate = new Promise<void>((resolve) => {
+      releaseAdmission = resolve;
+    });
+    const admission: WorkAdmissionPort = {
+      async beforeCreate() {
+        admissionStarted();
+        await admissionGate;
+        return { decision: "ALLOW" };
+      },
+      async beforeDispatch() {
+        return { decision: "ALLOW" };
+      },
+    };
+    const work = createWorkQueueService({
+      persistence: composition.persistence,
+      repository: composition.repository,
+      handlerRegistry: composition.supervisor.workHandlers,
+      execution: composition.runtime,
+      lineage: composition.lineage,
+      time: composition.time,
+      signalPublisher: postgresSignalPublisher,
+      admission,
+      runtimeOptions: WORK_OPTIONS,
+      onBackgroundError() {},
+    });
+    const payload = { value: "before" };
+    const creation = composition.runtime.runActivity(
+      {
+        kind: "qualification.work.snapshot.payload",
+        importance: "significant",
+        retentionClass: "operational",
+        sensitivity: "operational",
+      },
+      () =>
+        work.create({
+          target: composition.target,
+          payload,
+          queueProfileId,
+          resourceAdmissionClass,
+          priority: 100,
+          dedupKey: "payload-snapshot-detachment",
+        }),
+    );
+    await admissionStartedPromise;
+    payload.value = "after";
+    releaseAdmission();
+    const result = await creation;
+
+    expect(result.item.payload).toEqual({ value: "before" });
+    await expect(
+      composition.repository.getWorkItem(result.item.workItemId),
+    ).resolves.toMatchObject({ payload: { value: "before" } });
+  }, 180_000);
+
+  it("J2 keeps a handler-held outcome mutation out of terminal WorkItem truth", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture);
+    const composition = activeComposition;
+    const created = await createWork(composition, composition.target, {
+      dedupKey: "outcome-snapshot-detachment",
+    });
+    const registry = new WorkHandlerRegistry();
+    const customDescriptor: WorkHandlerProvisionDescriptor = {
+      ...composition.descriptor,
+      outcomeSchema: {
+        type: "object",
+        properties: {
+          nested: {
+            type: "object",
+            properties: { value: { type: "number" } },
+            required: ["value"],
+            additionalProperties: false,
+          },
+        },
+        required: ["nested"],
+        additionalProperties: false,
+      },
+    };
+    let handlerOutcome!: { nested: { value: number } };
+    const handler: RuntimeWorkHandler = {
+      execute: vi.fn(async () => {
+        handlerOutcome = { nested: { value: 1 } };
+        return { outcome: handlerOutcome };
+      }),
+    };
+    registry.register(
+      {
+        microSystemId: composition.target.microSystemId,
+        productGenerationId: composition.target.productGenerationId,
+        packageGenerationId: composition.target.packageGenerationId,
+      },
+      customDescriptor,
+      handler,
+      createGenerationFence(),
+    );
+    const executor = createWorkAttemptExecutor({
+      repository: composition.repository,
+      handlerRegistry: registry,
+      execution: composition.runtime,
+      lineage: composition.lineage,
+      time: composition.time,
+      classifier: {
+        classify: () => ({
+          kind: "TERMINAL" as const,
+          retryClass: "permanent" as const,
+          reasonCode: "unexpected-handler-failure",
+        }),
+      },
+      runtimeOptions: WORK_OPTIONS,
+    });
+
+    await expect(executor.execute(created.item.workItemId, 1)).resolves.toMatchObject({
+      status: "SUCCEEDED",
+    });
+    handlerOutcome.nested.value = 9;
+    await expect(
+      composition.repository.getWorkItem(created.item.workItemId),
+    ).resolves.toMatchObject({
+      state: "SUCCEEDED",
+      outcome: { kind: "SUCCEEDED", value: { nested: { value: 1 } } },
+    });
+  }, 180_000);
+
   it("does not wake a waiting item when only its payload version is unavailable", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
@@ -832,7 +1212,6 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
           expectedDispatchRevision: 1,
           expectedState: "PENDING",
           requestedAt: initialTime,
-          reasonCode: "qualification.supersede.first",
           supersededBy: createWorkItemId(),
         }),
       ),
@@ -846,6 +1225,150 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
       item?.supersededBy !== undefined,
     );
     expect(item?.activeAttemptId).toBeUndefined();
+  }, 180_000);
+
+  it("S1 finalizes a RUNNING supersession with the stable reason and exact target", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture);
+    const composition = activeComposition;
+    const created = await createWork(composition, composition.target, {
+      dedupKey: "running-supersession-contract",
+    });
+    const registry = new WorkHandlerRegistry();
+    const supersessionHandler: RuntimeWorkHandler = {
+      execute: vi.fn(
+        ({ signal }: { readonly signal: AbortSignal }) =>
+          new Promise<{ readonly outcome: { readonly accepted: boolean } }>(
+            (resolve) => {
+              signal.addEventListener(
+                "abort",
+                () => resolve({ outcome: { accepted: true } }),
+                { once: true },
+              );
+            },
+          ),
+      ),
+    };
+    registry.register(
+      {
+        microSystemId: composition.target.microSystemId,
+        productGenerationId: composition.target.productGenerationId,
+        packageGenerationId: composition.target.packageGenerationId,
+      },
+      composition.descriptor,
+      supersessionHandler,
+      createGenerationFence(),
+    );
+    const executor = createWorkAttemptExecutor({
+      repository: composition.repository,
+      handlerRegistry: registry,
+      execution: composition.runtime,
+      lineage: composition.lineage,
+      time: composition.time,
+      classifier: {
+        classify: () => ({
+          kind: "TERMINAL" as const,
+          retryClass: "permanent" as const,
+          reasonCode: "unexpected-handler-failure",
+        }),
+      },
+      runtimeOptions: WORK_OPTIONS,
+    });
+    const supersededBy = createWorkItemId();
+    const execution = executor.execute(created.item.workItemId, 1);
+    await waitUntil(
+      async () =>
+        (await composition.repository.getWorkItem(created.item.workItemId))?.state ===
+        "RUNNING",
+    );
+    await expect(
+      runCanonicalMutation(composition, "qualification.work.supersede.running", () =>
+        composition.repository.requestSupersede({
+          workItemId: created.item.workItemId,
+          expectedDispatchRevision: 1,
+          expectedState: "RUNNING",
+          expectedActiveAttemptId: createDispatchAttemptId(
+            created.item.workItemId,
+            1,
+          ),
+          requestedAt: initialTime,
+          supersededBy,
+        }),
+      ),
+    ).resolves.toMatchObject({ status: "APPLIED" });
+    await expect(execution).resolves.toMatchObject({ status: "SUPERSEDED" });
+    await expect(
+      composition.repository.getWorkItem(created.item.workItemId),
+    ).resolves.toMatchObject({
+      state: "SUPERSEDED",
+      supersededBy,
+      outcome: {
+        schemaVersion: 1,
+        kind: "SUPERSEDED",
+        reasonCode: "superseded-by-request",
+        supersededBy,
+      },
+    });
+  }, 180_000);
+
+  it("C1 rejects incoherent terminal WorkItem rows on a fresh PostgreSQL baseline", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture);
+    const composition = activeComposition;
+    const created = await createWork(composition, composition.target, {
+      dedupKey: "terminal-outcome-schema-coherence",
+    });
+    const cases = [
+      {
+        state: "SUCCEEDED",
+        retryClass: null,
+        outcome: { schemaVersion: 1, kind: "FAILED", retryClass: "permanent", reasonCode: "x" },
+      },
+      {
+        state: "FAILED",
+        retryClass: "permanent",
+        outcome: { schemaVersion: 1, kind: "SUCCEEDED", value: {} },
+      },
+      {
+        state: "CANCELLED",
+        retryClass: null,
+        outcome: { schemaVersion: 1, kind: "SUPERSEDED", reasonCode: "x" },
+      },
+      {
+        state: "SUPERSEDED",
+        retryClass: null,
+        outcome: { schemaVersion: 1, kind: "CANCELLED", reasonCode: "x" },
+      },
+      {
+        state: "FAILED",
+        retryClass: "transient",
+        outcome: { schemaVersion: 1, kind: "FAILED", retryClass: "permanent", reasonCode: "x" },
+      },
+      {
+        state: "SUCCEEDED",
+        retryClass: null,
+        outcome: { schemaVersion: 2, kind: "SUCCEEDED", value: {} },
+      },
+    ] as const;
+    for (const value of cases) {
+      await expect(
+        queryAs(
+          fixture,
+          "heptalogos_migration",
+          MIGRATION_PASSWORD,
+          `UPDATE "heptalogos"."work_item"
+              SET state = $2, retry_class = $3, outcome = $4::jsonb
+            WHERE work_item_id = $1`,
+          [
+            created.item.workItemId,
+            value.state,
+            value.retryClass,
+            JSON.stringify(value.outcome),
+          ],
+          "-c role=heptalogos_owner",
+        ),
+      ).rejects.toBeDefined();
+    }
   }, 180_000);
 
   it("terminalizes a forbidden external-effect classifier decision without stranded RUNNING state", async () => {
@@ -950,6 +1473,121 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     ).resolves.toMatchObject({ rows: [{ count: 0 }] });
   }, 180_000);
 
+  it("L1-L5 closes every significant WorkQueue Activity with its canonical mutation", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture);
+    const composition = activeComposition;
+    const activity = async (sourceActivityId: string) =>
+      (
+        await queryAs(
+          fixture,
+          "heptalogos_bootstrap",
+          BOOTSTRAP_PASSWORD,
+          `SELECT started_at, ended_at, outcome, outcome_ref
+             FROM "heptalogos"."activity_record"
+            WHERE kind = 'work.execute' AND causation_activity_id = $1
+            ORDER BY started_at DESC, activity_id DESC
+            LIMIT 1`,
+          [sourceActivityId],
+        )
+      ).rows[0];
+
+    const successful = await createWork(composition, composition.target, {
+      dedupKey: "lineage-success",
+    });
+    const workCreate = await queryAs(
+      fixture,
+      "heptalogos_bootstrap",
+      BOOTSTRAP_PASSWORD,
+      `SELECT ended_at, outcome, outcome_ref
+         FROM "heptalogos"."activity_record"
+        WHERE activity_id = $1`,
+      [successful.item.lineageContextRef.sourceActivityId],
+    );
+    expect(workCreate.rows[0]).toMatchObject({
+      ended_at: expect.anything(),
+      outcome: "SUCCEEDED",
+      outcome_ref: "CREATED",
+    });
+    await expect(
+      composition.executor.execute(successful.item.workItemId, 1),
+    ).resolves.toMatchObject({ status: "SUCCEEDED" });
+    await expect(activity(successful.item.lineageContextRef.sourceActivityId)).resolves.toMatchObject(
+      {
+        ended_at: expect.anything(),
+        outcome: "SUCCEEDED",
+      },
+    );
+
+    const waiting = await createWork(composition, composition.target, {
+      dedupKey: "lineage-waiting",
+    });
+    const emptyRegistry = new WorkHandlerRegistry();
+    const waitingExecutor = createWorkAttemptExecutor({
+      repository: composition.repository,
+      handlerRegistry: emptyRegistry,
+      execution: composition.runtime,
+      lineage: composition.lineage,
+      time: composition.time,
+      classifier: {
+        classify: () => ({
+          kind: "TERMINAL" as const,
+          retryClass: "permanent" as const,
+          reasonCode: "unexpected-handler-failure",
+        }),
+      },
+      runtimeOptions: WORK_OPTIONS,
+    });
+    await expect(
+      waitingExecutor.execute(waiting.item.workItemId, 1),
+    ).resolves.toMatchObject({ status: "WAITING_DEPENDENCY" });
+    await expect(activity(waiting.item.lineageContextRef.sourceActivityId)).resolves.toMatchObject(
+      {
+        ended_at: expect.anything(),
+        outcome: "SUCCEEDED",
+        outcome_ref: "WAITING_DEPENDENCY",
+      },
+    );
+
+    const retry = await createWork(composition, composition.target, {
+      dedupKey: "lineage-retry-wait",
+      notBefore: futureTime,
+    });
+    await expect(
+      composition.executor.execute(retry.item.workItemId, 1),
+    ).resolves.toMatchObject({ status: "RETRY_WAIT" });
+    await expect(activity(retry.item.lineageContextRef.sourceActivityId)).resolves.toMatchObject(
+      {
+        ended_at: expect.anything(),
+        outcome: "SUCCEEDED",
+        outcome_ref: "RETRY_WAIT",
+      },
+    );
+
+    const invalidBase = await createWork(composition, composition.target, {
+      dedupKey: "lineage-invalid-template",
+    });
+    const invalid: WorkItem = {
+      ...invalidBase.item,
+      workItemId: createWorkItemId(),
+      dedupKey: "lineage-invalid-payload",
+      payload: { value: 42 } as never,
+    };
+    await runCanonicalMutation(composition, "qualification.work.insert.invalid", () =>
+      composition.repository.insertWorkItem(invalid),
+    );
+    await expect(
+      composition.executor.execute(invalid.workItemId, 1),
+    ).resolves.toMatchObject({ status: "FAILED" });
+    await expect(activity(invalid.lineageContextRef.sourceActivityId)).resolves.toMatchObject(
+      {
+        ended_at: expect.anything(),
+        outcome: "FAILED",
+        outcome_ref: "runtime.work_handler.payload_invalid",
+      },
+    );
+  }, 180_000);
+
   it("W8 fences mutations when the authentic Host lease closes", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
@@ -1028,7 +1666,8 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
       fixture,
       "heptalogos_bootstrap",
       BOOTSTRAP_PASSWORD,
-      `SELECT activity_id, kind, causation_activity_id,
+      `SELECT activity_id, kind, started_at, ended_at, outcome, outcome_ref,
+              causation_activity_id,
               product_generation_id, package_generation_id,
               micro_system_id, micro_system_instance_id, contribution_id
          FROM "heptalogos"."activity_record"
@@ -1037,8 +1676,14 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     );
     const workCreate = activities.rows.find((row) => row.kind === "work.create");
     const workExecute = activities.rows.find((row) => row.kind === "work.execute");
-    expect(workCreate).toBeDefined();
+    expect(workCreate).toMatchObject({
+      ended_at: expect.anything(),
+      outcome: "SUCCEEDED",
+      outcome_ref: "CREATED",
+    });
     expect(workExecute).toMatchObject({
+      ended_at: expect.anything(),
+      outcome: "SUCCEEDED",
       causation_activity_id: workCreate?.activity_id,
       product_generation_id: composition.target.productGenerationId,
       package_generation_id: composition.target.packageGenerationId,

@@ -190,7 +190,6 @@ export interface RequestCancelInput {
 
 export interface RequestSupersedeInput extends Omit<RequestCancelInput, "reasonCode"> {
   readonly supersededBy: WorkItemId;
-  readonly reasonCode: string;
 }
 
 export interface CommitTerminalInput {
@@ -505,6 +504,17 @@ function parsePersistedWorkItem(row: Record<string, unknown>): WorkItem {
   const outcome = parseOutcome(row.outcome);
   if (TERMINAL_STATES.has(state) !== (outcome !== undefined)) {
     throw invalidItem("terminal state and outcome are incoherent");
+  }
+  if (outcome !== undefined && outcome.kind !== state) {
+    throw invalidItem("terminal state and outcome kind are incoherent");
+  }
+  if (
+    state === "FAILED" &&
+    (outcome === undefined ||
+      outcome.kind !== "FAILED" ||
+      retryClass !== outcome.retryClass)
+  ) {
+    throw invalidItem("failed WorkItem retryClass and outcome retryClass are incoherent");
   }
   if (
     (state === "SUCCEEDED" || state === "CANCELLED" || state === "SUPERSEDED") &&
@@ -1134,16 +1144,16 @@ export function createWorkQueueRepository(
                END,
                state_reason_code = CASE
                  WHEN state IN ('PENDING', 'WAITING_DEPENDENCY', 'RETRY_WAIT')
-                   THEN $${guard.parameters.length + 2}
+                   THEN $${guard.parameters.length + 2}::text
                  ELSE state_reason_code
                END,
                cancel_requested_at = $${guard.parameters.length + 1},
-               cancellation_reason_code = $${guard.parameters.length + 2},
+               cancellation_reason_code = $${guard.parameters.length + 2}::text,
                outcome = CASE
                  WHEN state IN ('PENDING', 'WAITING_DEPENDENCY', 'RETRY_WAIT')
                    THEN jsonb_build_object(
                      'schemaVersion', 1, 'kind', 'CANCELLED',
-                     'reasonCode', $${guard.parameters.length + 2}
+                     'reasonCode', $${guard.parameters.length + 2}::text
                    )
                  ELSE outcome
                END,
@@ -1181,7 +1191,7 @@ export function createWorkQueueRepository(
                END,
                state_reason_code = CASE
                  WHEN state IN ('PENDING', 'WAITING_DEPENDENCY', 'RETRY_WAIT')
-                   THEN $${guard.parameters.length + 2}
+                   THEN 'superseded-by-request'
                  ELSE state_reason_code
                END,
                superseded_by = $${guard.parameters.length + 1},
@@ -1189,12 +1199,12 @@ export function createWorkQueueRepository(
                  WHEN state IN ('PENDING', 'WAITING_DEPENDENCY', 'RETRY_WAIT')
                    THEN jsonb_build_object(
                      'schemaVersion', 1, 'kind', 'SUPERSEDED',
-                     'reasonCode', $${guard.parameters.length + 2},
+                     'reasonCode', 'superseded-by-request',
                      'supersededBy', $${guard.parameters.length + 1}::uuid
                    )
                  ELSE outcome
                END,
-               updated_at = $${guard.parameters.length + 3}
+               updated_at = $${guard.parameters.length + 2}
            WHERE ${guard.clause}
              AND cancel_requested_at IS NULL
              AND superseded_by IS NULL
@@ -1202,7 +1212,6 @@ export function createWorkQueueRepository(
           [
             ...guard.parameters,
             input.supersededBy,
-            input.reasonCode,
             input.requestedAt,
           ],
         );

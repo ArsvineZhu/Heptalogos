@@ -68,20 +68,5 @@ export {
   type WorkAttemptExecutorOptions,
 } from "./attempt-executor.js";
 export {
-  createWorkQueueRepository,
-  type CommitTerminalInput,
-  type MarkRetryWaitInput,
-  type MarkRunningInput,
-  type MarkWaitingDependencyInput,
-  type MutationAppliedHook,
-  type RequestCancelInput,
-  type RequestSupersedeInput,
-  type WakeDependencyInput,
-  type WakeDueRetryInput,
-  type WorkItemDedupLookup,
-  type WorkItemInsertResult,
-  type WorkItemInsertOptions,
-  type WorkItemMutationResult,
-  type WorkItemMutationStatus,
   type WorkQueueRepository,
 } from "./repository.js";

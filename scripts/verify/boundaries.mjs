@@ -132,7 +132,24 @@ const restrictedSpecifiers = new Map([
       "packages/bootstrap-runtime/src/execution-foundation.integration.test.ts",
     ],
   ],
+  [
+    "@heptalogos/work-queue/foundation-repository",
+    [
+      "packages/work-queue/",
+      "packages/bootstrap-runtime/src/durable-work-host.integration.test.ts",
+    ],
+  ],
 ]);
+
+const workQueuePublicSource = readFileSync(
+  resolve(root, "packages/work-queue/src/index.ts"),
+  "utf8",
+);
+if (/\bcreateWorkQueueRepository\b/u.test(workQueuePublicSource)) {
+  errors.push(
+    "packages/work-queue/src/index.ts: concrete WorkQueue repository factory must remain on the restricted Foundation subpath",
+  );
+}
 
 const hostOwnershipSourcePrefix = "packages/host-ownership/src/";
 const hostOwnershipAdapterSourcePaths = new Set([

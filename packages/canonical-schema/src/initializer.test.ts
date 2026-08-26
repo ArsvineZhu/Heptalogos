@@ -51,6 +51,9 @@ describe("canonical schema adapter", () => {
     expect(sql).toContain("state = 'RUNNING' AND active_attempt_id IS NOT NULL");
     expect(sql).toContain("state <> 'RUNNING' AND active_attempt_id IS NULL");
     expect(sql).toContain("cancel_requested_at IS NULL OR superseded_by IS NULL");
+    expect(sql).toContain("outcome->>'schemaVersion' = '1'");
+    expect(sql).toContain("outcome->>'kind' = state");
+    expect(sql).toContain("outcome->>'retryClass' = retry_class");
   });
 
   it("publishes exactly one static migration without a filesystem provider", async () => {

@@ -21,11 +21,13 @@ import type {
 } from "@heptalogos/persistence";
 import {
   createDispatchAttemptId,
-  createWorkQueueRepository,
   type ResourceAdmissionClassId,
-  type WorkItemMutationResult,
   type WorkQueueProfileId,
 } from "./index.js";
+import {
+  createWorkQueueRepository,
+  type WorkItemMutationResult,
+} from "./foundation-repository.js";
 import type { WorkItem } from "./contracts.js";
 
 const mocks = vi.hoisted(() => ({
@@ -343,6 +345,69 @@ describe("WorkQueue Persistence repository", () => {
     });
   });
 
+  it("rejects incoherent terminal state and outcome rows", async () => {
+    const supersededBy = createWorkItemId();
+    const cases: readonly Record<string, unknown>[] = [
+      rowFor(
+        sampleWorkItem({
+          state: "SUCCEEDED",
+          outcome: {
+            schemaVersion: 1,
+            kind: "FAILED",
+            retryClass: "permanent",
+            reasonCode: "failed",
+          },
+        }),
+      ),
+      rowFor(
+        sampleWorkItem({
+          state: "FAILED",
+          retryClass: "permanent",
+          outcome: { schemaVersion: 1, kind: "SUCCEEDED", value: {} },
+        }),
+      ),
+      rowFor(
+        sampleWorkItem({
+          state: "CANCELLED",
+          outcome: { schemaVersion: 1, kind: "SUPERSEDED", reasonCode: "x" },
+        }),
+      ),
+      rowFor(
+        sampleWorkItem({
+          state: "SUPERSEDED",
+          supersededBy,
+          outcome: { schemaVersion: 1, kind: "CANCELLED", reasonCode: "x" },
+        }),
+      ),
+      rowFor(
+        sampleWorkItem({
+          state: "FAILED",
+          retryClass: "transient",
+          outcome: {
+            schemaVersion: 1,
+            kind: "FAILED",
+            retryClass: "permanent",
+            reasonCode: "x",
+          },
+        }),
+      ),
+      rowFor(
+        sampleWorkItem({
+          state: "SUCCEEDED",
+          outcome: { schemaVersion: 2, kind: "SUCCEEDED", value: {} } as never,
+        }),
+      ),
+    ];
+
+    for (const row of cases) {
+      prepareRows(row);
+      const repository = createWorkQueueRepository(fakePersistence());
+      await expect(repository.getWorkItem(createWorkItemId())).rejects.toMatchObject({
+        problem: { problemCode: "work_queue.invalid_work_item" },
+      });
+    }
+  });
+
   it("fences the first terminal intent and terminalizes idle waiting states atomically", async () => {
     const item = sampleWorkItem({ state: "WAITING_DEPENDENCY" });
     const cancelled = sampleWorkItem({
@@ -378,14 +443,14 @@ describe("WorkQueue Persistence repository", () => {
     const supersededBy = createWorkItemId();
     const superseded = sampleWorkItem({
       ...item,
-      state: "SUPERSEDED",
-      supersededBy,
-      outcome: {
-        schemaVersion: 1,
-        kind: "SUPERSEDED",
-        reasonCode: "operator.superseded",
+        state: "SUPERSEDED",
         supersededBy,
-      },
+        outcome: {
+          schemaVersion: 1,
+          kind: "SUPERSEDED",
+          reasonCode: "superseded-by-request",
+          supersededBy,
+        },
     });
     prepareRows(rowFor(superseded));
     await expect(
@@ -394,7 +459,6 @@ describe("WorkQueue Persistence repository", () => {
         expectedDispatchRevision: item.dispatchRevision,
         expectedState: "WAITING_DEPENDENCY",
         requestedAt: now,
-        reasonCode: "operator.superseded",
         supersededBy,
       }),
     ).resolves.toMatchObject({ status: "APPLIED", item: superseded });

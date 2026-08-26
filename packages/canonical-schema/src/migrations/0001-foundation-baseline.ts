@@ -298,8 +298,24 @@ export const foundationBaselineMigration: Migration = {
       .addCheckConstraint(
         "work_item_terminal_outcome_check",
         sql`
-          (state IN ('SUCCEEDED', 'FAILED', 'CANCELLED', 'SUPERSEDED') AND outcome IS NOT NULL) OR
-          (state NOT IN ('SUCCEEDED', 'FAILED', 'CANCELLED', 'SUPERSEDED') AND outcome IS NULL)
+          (
+            state NOT IN ('SUCCEEDED', 'FAILED', 'CANCELLED', 'SUPERSEDED') AND
+            outcome IS NULL
+          ) OR (
+            state IN ('SUCCEEDED', 'FAILED', 'CANCELLED', 'SUPERSEDED') AND
+            outcome IS NOT NULL AND
+            jsonb_typeof(outcome) = 'object' AND
+            outcome->>'schemaVersion' = '1' AND
+            outcome->>'kind' = state AND
+            (
+              state <> 'FAILED' OR
+              (
+                retry_class IS NOT NULL AND
+                outcome->>'retryClass' IS NOT NULL AND
+                outcome->>'retryClass' = retry_class
+              )
+            )
+          )
         `,
       )
       .addCheckConstraint(
