@@ -31,9 +31,10 @@ Merge sequence. It is the operational companion to the repository contract in
 Draft work is mutable.
 Review PASS -> any PR-branch mutation makes review stale and requires Draft.
 Final CI -> any PR-branch mutation makes review and CI stale and requires Draft.
-Base movement alone preserves review when the reviewed diff remains semantically
-unchanged and no conflict-resolution/rebase commit is added to the branch.
-Base movement invalidates final integration CI; rerun it against the current base.
+Any base movement after the Ready candidate is frozen makes the review
+candidate stale, regardless of any diff assessment. Return to Draft, integrate
+and requalify against the new base, then obtain a
+new Independent Review before final manual CI.
 ```
 
 ## Manual CI dispatch
@@ -47,10 +48,10 @@ gh workflow run verify.yml \
   -f reason=final-pre-merge
 ```
 
-The workflow reads the live PR metadata, checks that the dispatched branch is
-the PR head, fetches the current `master`, creates a temporary local
-integration, and runs `pnpm verify` on all three operating systems. It must not
-push the temporary integration.
+The workflow resolves one internal PR-head/current-base snapshot, checks that
+the dispatched branch is the PR head, feeds that snapshot to all three jobs,
+creates a temporary local integration, and revalidates the live PR and base
+before completion. It must not push the temporary integration.
 
 For a bounded cross-platform regression during Draft, use the same semantic
 inputs with `reason=cross-platform-regression`. Do not dispatch CI for ordinary
@@ -59,6 +60,6 @@ commits.
 ## Merge check
 
 Before merge, inspect `gh pr view` for an open Ready and mergeable PR, and
-`gh pr checks` for successful final manual verification. If the branch changed,
-return to Draft and repeat review and final CI. If the base moved, rerun final
-integration CI before merge.
+`gh pr checks` for successful final manual verification. If the branch or base
+changed, return to Draft and repeat integration, qualification, review, and
+final CI.

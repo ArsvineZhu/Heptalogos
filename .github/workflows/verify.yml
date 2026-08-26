@@ -21,25 +21,100 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: manual-verify-${{ inputs.pr_number }}-${{ inputs.reason }}
-  cancel-in-progress: false
+  group: verify-manual-pr-${{ inputs.pr_number }}
+  cancel-in-progress: true
 
 jobs:
+  resolve-candidate:
+    name: resolve candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      head_sha: ${{ steps.resolve.outputs.head_sha }}
+      base_sha: ${{ steps.resolve.outputs.base_sha }}
+      head_ref: ${{ steps.resolve.outputs.head_ref }}
+    steps:
+      - name: Resolve live PR candidate once
+        id: resolve
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          DISPATCHED_REF: ${{ github.ref_name }}
+          VERIFY_REASON: ${{ inputs.reason }}
+        run: |
+          set -euo pipefail
+          case "$PR_NUMBER" in
+            ""|*[!0-9]*)
+              echo "PR number must be numeric" >&2
+              exit 1
+              ;;
+          esac
+          pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
+          PR_JSON="$pr_json" \
+            DISPATCHED_REF="$DISPATCHED_REF" \
+            VERIFY_REASON="$VERIFY_REASON" \
+            node --input-type=module <<'NODE'
+          const pr = JSON.parse(process.env.PR_JSON);
+          if (pr.state !== "open") throw new Error("PR is not open");
+          if (pr.base?.ref !== "master") throw new Error("PR base is not master");
+          if (pr.head?.ref !== process.env.DISPATCHED_REF) {
+            throw new Error("dispatched ref is not the PR head branch");
+          }
+          if (process.env.VERIFY_REASON === "final-pre-merge" && pr.draft) {
+            throw new Error("final-pre-merge requires a Ready PR");
+          }
+          if (!pr.head?.sha || !pr.base?.sha || !pr.head?.ref) {
+            throw new Error("PR candidate revisions are unavailable");
+          }
+          NODE
+          head_sha="$(PR_JSON="$pr_json" node --input-type=module -e 'console.log(JSON.parse(process.env.PR_JSON).head.sha)')"
+          base_sha="$(PR_JSON="$pr_json" node --input-type=module -e 'console.log(JSON.parse(process.env.PR_JSON).base.sha)')"
+          head_ref="$(PR_JSON="$pr_json" node --input-type=module -e 'console.log(JSON.parse(process.env.PR_JSON).head.ref)')"
+          {
+            printf 'head_sha=%s\n' "$head_sha"
+            printf 'base_sha=%s\n' "$base_sha"
+            printf 'head_ref=%s\n' "$head_ref"
+          } >> "$GITHUB_OUTPUT"
+          echo "PASS candidate resolved for PR #${PR_NUMBER} on ${head_ref}"
+
   verify:
     name: verify (${{ matrix.os }})
+    needs: resolve-candidate
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-
+    env:
+      EXPECTED_HEAD_SHA: ${{ needs.resolve-candidate.outputs.head_sha }}
+      EXPECTED_BASE_SHA: ${{ needs.resolve-candidate.outputs.base_sha }}
+      EXPECTED_HEAD_REF: ${{ needs.resolve-candidate.outputs.head_ref }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.resolve-candidate.outputs.head_sha }}
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Validate resolved candidate checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+          test -n "$EXPECTED_HEAD_REF"
+
+      - name: Fetch resolved base revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$EXPECTED_BASE_SHA"
+          git cat-file -e "$EXPECTED_BASE_SHA^{commit}"
+
+      - name: Create temporary resolved-base integration
+        shell: bash
+        run: git merge --no-commit --no-ff "$EXPECTED_BASE_SHA"
 
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
 
@@ -48,7 +123,20 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
 
-      - name: Validate live PR candidate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify
+
+  revalidate-candidate:
+    name: revalidate candidate
+    needs: [resolve-candidate, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPECTED_HEAD_SHA: ${{ needs.resolve-candidate.outputs.head_sha }}
+      EXPECTED_BASE_SHA: ${{ needs.resolve-candidate.outputs.base_sha }}
+      EXPECTED_HEAD_REF: ${{ needs.resolve-candidate.outputs.head_ref }}
+    steps:
+      - name: Revalidate live PR and base after matrix
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -58,25 +146,32 @@ jobs:
         run: |
           set -euo pipefail
           pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
-          PR_JSON="$pr_json" node --input-type=module -e
-          "const pr=JSON.parse(process.env.PR_JSON);
-          if(pr.state!=='open') throw new Error('PR is not open');
-          if(pr.base?.ref!=='master') throw new Error('PR base is not master');
-          if(pr.head?.ref!==process.env.DISPATCHED_REF) throw new Error('dispatched ref is not the PR head branch');
-          if(process.env.VERIFY_REASON==='final-pre-merge' && pr.draft) throw new Error('final-pre-merge requires a Ready PR');
-          if(!pr.head?.sha) throw new Error('PR head revision is unavailable');
-          console.log('PASS live PR metadata: '+pr.number+' '+pr.head.ref+' '+pr.head.sha);"
-          checked_head="$(git rev-parse HEAD)"
-          expected_head="$(PR_JSON="$pr_json" node --input-type=module -e "console.log(JSON.parse(process.env.PR_JSON).head.sha)")"
-          test "$checked_head" = "$expected_head"
-
-      - name: Fetch current base branch
-        shell: bash
-        run: git fetch --no-tags origin master:refs/remotes/origin/master
-
-      - name: Create temporary current-base integration
-        shell: bash
-        run: git merge --no-commit --no-ff origin/master
-
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm verify
+          PR_JSON="$pr_json" \
+            DISPATCHED_REF="$DISPATCHED_REF" \
+            VERIFY_REASON="$VERIFY_REASON" \
+            EXPECTED_HEAD_SHA="$EXPECTED_HEAD_SHA" \
+            EXPECTED_BASE_SHA="$EXPECTED_BASE_SHA" \
+            EXPECTED_HEAD_REF="$EXPECTED_HEAD_REF" \
+            node --input-type=module <<'NODE'
+          const pr = JSON.parse(process.env.PR_JSON);
+          if (pr.state !== "open") throw new Error("PR is not open");
+          if (pr.base?.ref !== "master") throw new Error("PR base is not master");
+          if (pr.head?.ref !== process.env.DISPATCHED_REF) {
+            throw new Error("dispatched ref is not the PR head branch");
+          }
+          if (pr.head?.ref !== process.env.EXPECTED_HEAD_REF) {
+            throw new Error("PR head branch changed during verification");
+          }
+          if (pr.head?.sha !== process.env.EXPECTED_HEAD_SHA) {
+            throw new Error("PR head revision changed during verification");
+          }
+          if (pr.base?.sha !== process.env.EXPECTED_BASE_SHA) {
+            throw new Error("PR base revision changed during verification");
+          }
+          if (process.env.VERIFY_REASON === "final-pre-merge" && pr.draft) {
+            throw new Error("final-pre-merge requires a Ready PR");
+          }
+          NODE
+          current_base_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/master" --jq '.object.sha')"
+          test "$current_base_sha" = "$EXPECTED_BASE_SHA"
+          echo "PASS candidate revalidated after the three-OS matrix"

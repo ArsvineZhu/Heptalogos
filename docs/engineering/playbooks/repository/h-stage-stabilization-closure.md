@@ -28,7 +28,8 @@ Hn functional milestone can close.
    affected qualification and local gates, and request a new review.
 8. On Review `PASS`, run manual final CI on the current PR plus current `master`
    integration. Require Ubuntu, macOS, and Windows to pass.
-9. Merge immediately if the PR remains current, Ready, open, and conflict-free.
+9. Merge immediately if the PR remains current, Ready, open, and conflict-free;
+   any base movement sends the candidate back through Draft and new review.
    Squash merge and delete the branch after success.
 10. Reconcile Hn truth through a separate docs/evidence-only PR without changing
     behavior, production code, or tests.
@@ -38,8 +39,8 @@ Hn functional milestone can close.
 ```text
 PR branch mutation after Review PASS -> review stale; return to Draft
 PR branch mutation after final CI -> review and CI stale; return to Draft
-Base movement with unchanged reviewed diff -> review remains valid
-Base movement -> final integration CI stale; rerun against current base
+Any base movement after the Ready candidate is frozen -> candidate stale;
+return to Draft, integrate/requalify, and obtain a new review before final CI
 ```
 
 ## Mandatory pre-freeze sweeps
