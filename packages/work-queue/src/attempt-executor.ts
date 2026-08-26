@@ -439,7 +439,10 @@ export function createWorkAttemptExecutor(
           let payload: unknown;
           try {
             payload = snapshotCanonicalJson(
-              lease.validatePayload(item.handler.payloadVersion, item.payload) as CanonicalJsonValue,
+              lease.validatePayload(
+                item.handler.payloadVersion,
+                item.payload,
+              ) as CanonicalJsonValue,
             ).value;
           } catch (error) {
             if (isPayloadDependencyProblem(error)) {

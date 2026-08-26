@@ -394,7 +394,7 @@ describe("WorkQueue creation service", () => {
     const beforeCreate = fixture.admission.beforeCreate as unknown as ReturnType<
       typeof vi.fn
     >;
-    beforeCreate.mockImplementationOnce(async () => {
+    beforeCreate.mockImplementationOnce(() => {
       sourcePayload.nested.value = 9;
       return { decision: "ALLOW" };
     });

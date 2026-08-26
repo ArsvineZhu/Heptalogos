@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-27T01:24:29+09:00",
+  "recordedAt": "2026-08-27T02:41:07+09:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": [
@@ -161,9 +161,9 @@
     {
       "qualificationId": "Q-ASYNC-01",
       "testedProperty": "Static dispatcher semantics plus real DBOS/PostgreSQL queue, generation pinning, revision attempts, restart, and terminal retry effect fencing",
-      "evidenceStatus": "BLOCKED",
+      "evidenceStatus": "PASS",
       "qualificationState": "OPEN",
-      "candidateFreeze": "BLOCKED",
+      "candidateFreeze": "PASS",
       "independentReview": "NOT_RUN",
       "evidence": {
         "semantic_dispatcher_fixture": "PASS",
@@ -198,21 +198,21 @@
         "h3a1_real_postgres_18_6_ubuntu": "PASS",
         "h3a1_dbos_real_engine": "NOT_RUN",
         "h3a1_process_crash_after_terminal_commit": "NOT_RUN",
-        "h3a1_reconciliation_fairness": "NOT_RUN",
-        "h3a1_generation_preinvoke_admission_fence": "NOT_RUN",
-        "h3a1_canonical_snapshot_detachment": "NOT_RUN",
-        "h3a1_work_lineage_completion": "NOT_RUN",
-        "h3a1_repository_authority_surface": "NOT_RUN",
-        "h3a1_terminal_outcome_coherence": "NOT_RUN",
-        "h3a1_supersession_contract": "NOT_RUN"
+        "h3a1_reconciliation_fairness": "PASS",
+        "h3a1_generation_preinvoke_admission_fence": "PASS",
+        "h3a1_canonical_snapshot_detachment": "PASS",
+        "h3a1_work_lineage_completion": "PASS",
+        "h3a1_repository_authority_surface": "PASS",
+        "h3a1_terminal_outcome_coherence": "PASS",
+        "h3a1_supersession_contract": "PASS"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
       "evidenceSource": {
         "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane",
-        "focusedSuites": "foundation-contracts 26/26; execution-lineage 30/30; canonical-schema 4/4; runtime-kernel 135/135; signal 10/10; work-queue 44/44",
+        "focusedSuites": "foundation-contracts 29/29; execution-lineage 30/30; canonical-schema 4/4; runtime-kernel 142/142; signal 10/10; work-queue 59/59",
         "repositoryGates": "pnpm verify PASS including agents, Corpus, repository, hygiene, dependencies, boundaries, toolchain, format, lint, typecheck, tsc6, test, and build",
-        "h3a1_real_postgres_18_6_ubuntu": "PostgreSQL 18.6 Ubuntu toolchain via explicit HEPTALOGOS_TEST_PG_BIN; bootstrap-runtime integration 9 files, 73/73 tests"
+        "h3a1_real_postgres_18_6_ubuntu": "PostgreSQL 18.6 Ubuntu toolchain via explicit HEPTALOGOS_TEST_PG_BIN; bootstrap-runtime integration 9 files, 82/82 tests"
       },
       "historicalEvidence": {
         "preCorrectionH3A1": {
@@ -220,19 +220,18 @@
           "scope": "Pre-correction focused suites and real PostgreSQL/Host integration",
           "observed": "9 integration files, 67/67 tests",
           "currentUse": "Historical observation only; stale for current candidate freeze after correction mutation"
+        },
+        "round1CorrectionH3A1": {
+          "status": "PASS",
+          "scope": "First bounded H3A-1 correction focused suites and real PostgreSQL/Host integration",
+          "observed": "Focused suites 26/26, 30/30, 4/4, 135/135, 10/10, and 44/44; 9 integration files, 73/73 tests",
+          "currentUse": "Historical observation only; stale for the current candidate after Round 2 mutation"
         }
       },
       "notRunReasons": {
         "crash_after_terminal_commit": "No process-level crash was injected after the canonical terminal commit; only a real DBOS retry attempt was exercised.",
         "h3a1_dbos_real_engine": "H3A-1 deliberately implements engine-neutral WorkQueue semantics; DBOS integration is deferred to H3A-2.",
-        "h3a1_process_crash_after_terminal_commit": "H3A-1 has no process-level crash harness or DBOS engine checkpoint to exercise this boundary; it remains deferred to H3A-2.",
-        "h3a1_reconciliation_fairness": "The current candidate has not yet qualified cycle-bounded fair enumeration for stable PENDING and WAITING_DEPENDENCY prefixes.",
-        "h3a1_generation_preinvoke_admission_fence": "The current candidate has not yet qualified reservation before the RUNNING claim and retirement-safe admitted invocation settlement.",
-        "h3a1_canonical_snapshot_detachment": "The current candidate has not yet qualified detached frozen payload and outcome values across asynchronous durable boundaries.",
-        "h3a1_work_lineage_completion": "The current candidate has not yet qualified retain/complete closure for work.create and every early mutating work.execute path.",
-        "h3a1_repository_authority_surface": "The current candidate has not yet qualified the restricted Foundation repository subpath and root export boundary.",
-        "h3a1_terminal_outcome_coherence": "The current candidate has not yet qualified matching terminal WorkItem state, outcome kind, retry class, and schema checks.",
-        "h3a1_supersession_contract": "The current candidate has not yet qualified stable supersession reason semantics and removal of the supersession reasonCode input."
+        "h3a1_process_crash_after_terminal_commit": "H3A-1 has no process-level crash harness or DBOS engine checkpoint to exercise this boundary; it remains deferred to H3A-2."
       },
       "preImplementationDecisionState": "CLOSED",
       "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification unless explicitly promoted by a future blocker."

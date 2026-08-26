@@ -340,7 +340,7 @@ describe("WorkQueue reconciliation", () => {
         : { decision: "ALLOW" as const },
     );
     fixture.repository.listProjectionCandidates.mockImplementation(
-      async ({
+      ({
         after,
         through,
         limit,
@@ -393,7 +393,7 @@ describe("WorkQueue reconciliation", () => {
       unavailableIds.has(value.contributionId) ? undefined : fixture.handler,
     );
     fixture.repository.listWaitingDependency.mockImplementation(
-      async ({
+      ({
         after,
         through,
         limit,
@@ -414,7 +414,7 @@ describe("WorkQueue reconciliation", () => {
           })
           .slice(0, limit),
     );
-    fixture.repository.wakeDependency.mockImplementation(async ({ workItemId }) => {
+    fixture.repository.wakeDependency.mockImplementation(({ workItemId }) => {
       const current = waiting.find((value) => value.workItemId === workItemId)!;
       return unavailableIds.has(workItemId)
         ? { status: "STALE" as const, item: current }
@@ -443,12 +443,12 @@ describe("WorkQueue reconciliation", () => {
     const tail = item(executionContext());
     let rows = [...initial];
     const fixture = reconcilerFixture(initial, [], [], { decision: "ALLOW" }, 2);
-    fixture.repository.snapshotProjectionCeiling.mockImplementation(async () => {
+    fixture.repository.snapshotProjectionCeiling.mockImplementation(() => {
       const last = rows.at(-1)!;
       return { createdAt: last.createdAt, workItemId: last.workItemId };
     });
     fixture.repository.listProjectionCandidates.mockImplementation(
-      async ({
+      ({
         after,
         through,
         limit,

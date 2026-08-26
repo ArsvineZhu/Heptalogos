@@ -16,7 +16,7 @@
 
 ## H3A-1 Candidate Correction Amendment — 2026-08-26
 
-**Status:** ACTIVE
+**Status:** COMPLETED
 
 This is a bounded correctness correction cycle for the existing
 `dev/h3a1-canonical-work-signal` candidate. It is not a new H3A stage, does not
@@ -24,7 +24,7 @@ introduce a compatibility path, and does not change the H3A-1 package ownership
 boundaries. The prior H3A-1 qualification remains a historical observed run;
 candidate mutation makes its PASS evidence stale for the current candidate.
 
-Truth while the correction was in progress was:
+The truth while this completed correction was in progress was:
 
 ```yaml
 H3: OPEN
@@ -76,26 +76,25 @@ The following semantic decisions are locked for this correction:
   and repository verification is required before candidate truth can return to
   a review-ready state.
 
-This amendment is the governing correction for the implementation tasks below;
+This amendment governed the preceding correction candidate;
 H3A-2 remains prohibited until H3A-1 is externally reviewed and closed.
 
-The previous correction candidate was freshly qualified on 2026-08-27. That
-observation remains historical for the next bounded correction; the newly
-required properties below have not yet been qualified. While this correction
-is open, the current candidate truth is:
+The preceding correction candidate was freshly qualified on 2026-08-27. That
+observation is historical for the next bounded correction. Its candidate truth
+at completion was:
 
 ```yaml
 H3: OPEN
 H3A: ACTIVE
-H3A_1: ACTIVE
+H3A_1: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
 H3A_2: NOT_ELIGIBLE
-candidateFreeze: BLOCKED
+candidateFreeze: PASS
 independentReview: NOT_RUN
 ```
 
 ## H3A-1 Candidate Correctness Correction Round 2 Amendment — 2026-08-27
 
-**Status:** ACTIVE
+**Status:** COMPLETED
 
 This is a bounded correction of the existing H3A-1 candidate. It does not
 create a new H3A substage, alter package ownership, add a compatibility path,
@@ -143,24 +142,38 @@ The following decisions are locked for this correction:
   `superseded-by-request`, while the replacement identity is `supersededBy`.
   No new column or compatibility field is added.
 
-The correction must return the following seven properties to `PASS` through
-fresh focused and real PostgreSQL qualification before candidate freeze can be
-restored:
+The correction returned the following seven properties to `PASS` through fresh
+focused and real PostgreSQL qualification:
 
 ```yaml
-h3a1_reconciliation_fairness: NOT_RUN
-h3a1_generation_preinvoke_admission_fence: NOT_RUN
-h3a1_canonical_snapshot_detachment: NOT_RUN
-h3a1_work_lineage_completion: NOT_RUN
-h3a1_repository_authority_surface: NOT_RUN
-h3a1_terminal_outcome_coherence: NOT_RUN
-h3a1_supersession_contract: NOT_RUN
+h3a1_reconciliation_fairness: PASS
+h3a1_generation_preinvoke_admission_fence: PASS
+h3a1_canonical_snapshot_detachment: PASS
+h3a1_work_lineage_completion: PASS
+h3a1_repository_authority_surface: PASS
+h3a1_terminal_outcome_coherence: PASS
+h3a1_supersession_contract: PASS
 ```
 
-The previous corrected-candidate evidence remains historical and must not be
-carried forward as proof of these properties. H3A-2 remains `NOT_ELIGIBLE` and
-Independent Review remains `NOT_RUN` until the corrected candidate is freshly
-qualified and frozen.
+Fresh qualification on 2026-08-27 passed the focused suites
+`foundation-contracts` (29/29), `execution-lineage` (30/30), `canonical-schema`
+(4/4), `runtime-kernel` (142/142), `signal` (10/10), and `work-queue` (59/59).
+The explicit PostgreSQL 18.6 Ubuntu integration passed 9 test files and 82/82
+tests. The complete repository `pnpm verify` gate passed, including governance,
+format, lint, typecheck, TS6, test, and build checks. The current candidate is
+therefore frozen; H3A-2 remains `NOT_ELIGIBLE` and Independent Review remains
+`NOT_RUN`.
+
+The current post-qualification truth is:
+
+```yaml
+H3: OPEN
+H3A: ACTIVE
+H3A_1: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+H3A_2: NOT_ELIGIBLE
+candidateFreeze: PASS
+independentReview: NOT_RUN
+```
 
 ---
 

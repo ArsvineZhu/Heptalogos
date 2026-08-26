@@ -1,7 +1,7 @@
 # Heptalogos Development Roadmap
 
 **Status:** LIVING ROADMAP / planning guidance<br>
-**Date:** 2026-08-26<br>
+**Date:** 2026-08-27<br>
 **Repository baseline:** current `master` integration baseline after H2 post-merge reconciliation and Ubuntu/Linux residual qualification<br>
 **Architecture baseline:** `Architecture_Corpus` design state 2026-08-20
 
@@ -343,22 +343,22 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 ```yaml
 H3: OPEN
 H3A: ACTIVE
-H3A_1: ACTIVE
+H3A_1: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
 H3A_2: NOT_ELIGIBLE
 H3B: NOT_ELIGIBLE
 H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
-candidateFreeze: BLOCKED
+candidateFreeze: PASS
 independentReview: NOT_RUN
 activeImplementationPlan: docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md
 ```
 
-A newly bounded H3A-1 correctness correction is active on the existing
-candidate branch. The previous local and real PostgreSQL qualification remains
-historical observed evidence; seven newly required properties are not yet
-qualified. Candidate freeze is therefore `BLOCKED` until the correction is
-implemented and freshly verified. The out-of-band Independent Review remains
-`NOT_RUN`, and H3A-2 remains `NOT_ELIGIBLE`.
+The bounded H3A-1 correctness correction is complete on the existing candidate
+branch. Fresh focused suites, the explicit PostgreSQL 18.6 Ubuntu integration
+(9 files, 82/82 tests), and the complete `pnpm verify` repository gate passed;
+the seven Round 2 semantic properties are current `PASS` evidence. Candidate
+freeze is `PASS`. The out-of-band Independent Review remains `NOT_RUN`, and
+H3A-2 remains `NOT_ELIGIBLE`.
 
 ### Implementation decomposition
 
