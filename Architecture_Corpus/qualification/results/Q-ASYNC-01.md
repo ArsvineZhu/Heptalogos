@@ -48,6 +48,8 @@ evidence:
   h3a1_real_postgres_18_6_ubuntu: PASS
   h3a1_dbos_real_engine: NOT_RUN
   h3a1_process_crash_after_terminal_commit: NOT_RUN
+  h3a1_work_creation_envelope_snapshot: PASS
+  h3a1_projection_index_query_shape: PASS
 ```
 
 ## NOT_RUN / deferred properties
@@ -65,12 +67,12 @@ the correction amendment invalidates all pre-correction H3A-1 property PASS
 claims until the affected and expanded qualification cases are rerun.
 
 The previous corrected candidate was qualified and frozen on a clean branch;
-that observation remains historical. The fresh Round 2 candidate additionally
-qualified reconciliation fairness, pre-invocation generation admission,
-canonical snapshot detachment, complete WorkQueue lineage, restricted
-repository Authority surface, terminal outcome coherence, and the simplified
-supersession contract. The current candidate is freshly qualified and frozen;
-the out-of-band Independent Review remains `NOT_RUN`.
+that observation remains historical. The current candidate completed a narrow
+pre-review correction for the complete WorkCreationRequest semantic envelope
+and the canonical fair-scan projection index. Fresh focused and real
+PostgreSQL evidence and the final repository gate are fresh for this candidate;
+candidate freeze is `PASS`. The out-of-band Independent Review remains
+`NOT_RUN`.
 
 ## Current correction properties
 
@@ -82,14 +84,16 @@ h3a1_work_lineage_completion: PASS
 h3a1_repository_authority_surface: PASS
 h3a1_terminal_outcome_coherence: PASS
 h3a1_supersession_contract: PASS
+h3a1_work_creation_envelope_snapshot: PASS
+h3a1_projection_index_query_shape: PASS
 ```
 
-These properties are required for the current candidate and are supported by
-fresh focused and real PostgreSQL qualification.
+These two properties are required for the current candidate and are supported
+by fresh focused and real PostgreSQL qualification.
 
 ## H3A-1 observed implementation evidence
 
-The pre-correction focused unit suites passed on 2026-08-26: foundation-contracts (26/26), execution-lineage (30/30), canonical-schema (4/4), runtime-kernel (131/131), signal (6/6), and work-queue (33/33). The pre-correction real Ubuntu PostgreSQL 18.6/Host qualification also passed: 9 integration files and 67/67 tests, using the explicit `HEPTALOGOS_TEST_PG_BIN` toolchain path. These remain historical observations only. The fresh Round 2 focused suites passed on 2026-08-27: foundation-contracts (29/29), execution-lineage (30/30), canonical-schema (4/4), runtime-kernel (142/142), signal (10/10), and work-queue (59/59). The explicit bootstrap-runtime PostgreSQL 18.6/Host integration passed 9 files and 82/82 tests with the explicit toolchain path. The complete `pnpm verify` repository gate passed all required governance, format, lint, typecheck, TS6, test, and build checks. DBOS and process-crash boundaries remain deferred as recorded above.
+The pre-correction focused unit suites passed on 2026-08-26: foundation-contracts (26/26), execution-lineage (30/30), canonical-schema (4/4), runtime-kernel (131/131), signal (6/6), and work-queue (33/33). The pre-correction real Ubuntu PostgreSQL 18.6/Host qualification also passed: 9 integration files and 67/67 tests, using the explicit `HEPTALOGOS_TEST_PG_BIN` toolchain path. These remain historical observations only. The previous corrected candidate focused suites passed on 2026-08-27: foundation-contracts (29/29), execution-lineage (30/30), canonical-schema (4/4), runtime-kernel (142/142), signal (10/10), and work-queue (59/59); its explicit bootstrap-runtime PostgreSQL 18.6/Host integration passed 9 files and 82/82 tests. Those remain historical observations after the current mutation. Fresh final focused suites passed on 2026-08-27: foundation-contracts (29/29), execution-lineage (30/30), canonical-schema (4/4), runtime-kernel (142/142), signal (10/10), and work-queue (60/60). The fresh explicit bootstrap-runtime PostgreSQL 18.6/Host integration passed 9 files and 83/83 tests, including the real query-shape assertion for both fair-scan states. The complete `pnpm verify` repository gate remains the final required gate; DBOS and process-crash boundaries remain deferred as recorded above.
 
 ## Architecture disposition
 

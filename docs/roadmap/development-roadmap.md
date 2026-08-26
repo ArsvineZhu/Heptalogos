@@ -353,12 +353,11 @@ independentReview: NOT_RUN
 activeImplementationPlan: docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md
 ```
 
-The bounded H3A-1 correctness correction is complete on the existing candidate
-branch. Fresh focused suites, the explicit PostgreSQL 18.6 Ubuntu integration
-(9 files, 82/82 tests), and the complete `pnpm verify` repository gate passed;
-the seven Round 2 semantic properties are current `PASS` evidence. Candidate
-freeze is `PASS`. The out-of-band Independent Review remains `NOT_RUN`, and
-H3A-2 remains `NOT_ELIGIBLE`.
+The existing H3A-1 candidate has completed the narrow correction for the
+complete creation-request envelope and the fair-scan projection index. Fresh
+focused suites and the explicit PostgreSQL 18.6 Ubuntu integration passed;
+the final repository gate also passed, so candidate freeze is `PASS`. The out-of-band
+Independent Review remains `NOT_RUN`, and H3A-2 remains `NOT_ELIGIBLE`.
 
 ### Implementation decomposition
 

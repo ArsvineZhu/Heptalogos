@@ -14,74 +14,7 @@
 >
 > **Required execution disciplines:** TDD for behavior-bearing changes; evidence vocabulary `PASS | FAIL | NOT_RUN | BLOCKED`; verification before completion claims; external Independent Review is out-of-band and is never inferred from GitHub review/approval state.
 
-## H3A-1 Candidate Correction Amendment — 2026-08-26
-
-**Status:** COMPLETED
-
-This is a bounded correctness correction cycle for the existing
-`dev/h3a1-canonical-work-signal` candidate. It is not a new H3A stage, does not
-introduce a compatibility path, and does not change the H3A-1 package ownership
-boundaries. The prior H3A-1 qualification remains a historical observed run;
-candidate mutation makes its PASS evidence stale for the current candidate.
-
-The truth while this completed correction was in progress was:
-
-```yaml
-H3: OPEN
-H3A: ACTIVE
-H3A_1: ACTIVE
-H3A_2: NOT_ELIGIBLE
-candidateFreeze: BLOCKED
-independentReview: NOT_RUN
-```
-
-The following semantic decisions are locked for this correction:
-
-- Signal owns a connection slot with source identity/generation. Events from a
-  stale or closed connection are no-ops; closing the last subscription cancels
-  reconnect and connecting-client work and disposes any late client.
-- An admitted WorkHandler invocation returns a generation-fenced,
-  schema-validated outcome. WorkQueue may enforce canonical JSON and byte-size
-  bounds, but it must not request a second generation admission for outcome
-  validation.
-- Exact handler availability includes the requested payload version without
-  changing the registry's exact registration key. Unsupported payload versions
-  remain dependency-unavailable; immutable invalid payloads terminalize as
-  `FAILED` with retry class `invalid`.
-- Every `PENDING` WorkItem is a projection candidate, including one with a
-  future `notBefore`. Projection carries the canonical `notBefore`; the
-  executor's early-fire check remains the final invocation fence. The repository
-  API is named `listProjectionCandidates` and has no compatibility alias.
-- Committed-work dispatch uses a mandatory `beforeDispatch` admission seam with
-  only `ALLOW`, `DELAY`, and `THROTTLE`. `DELAY` and `THROTTLE` skip the current
-  projection scan without changing canonical WorkItem state or creating a
-  second durable timer.
-- For one WorkItem/revision, the first accepted cancel or supersede intent wins.
-  Idle non-terminal states may atomically terminalize; `RUNNING` records the
-  intent and relies on cooperative abort plus attempt-fenced terminalization;
-  `WAITING_RESTORE_RECONCILIATION` is not terminalized by H3A-1. Wake paths
-  carry the same intent fence.
-- `pg_notify` publication is part of the WorkItem creation transaction. A
-  transaction-time publisher failure aborts the creation transaction; only
-  post-commit delivery loss is best effort and recovered by reconciliation.
-- The H3A-1 classifier cannot retain `external-effect-uncertain` because H3A-1
-  has no external-effect capability. That forbidden decision terminalizes the
-  WorkItem as bounded `FAILED`/`invalid` rather than leaving `RUNNING`.
-- WorkHandler descriptors use canonical structural comparison and immutable
-  deep snapshots. Payload-version declarations are normalized for comparison.
-  Payload versions share PostgreSQL `integer`'s maximum, and the canonical
-  schema enforces `RUNNING` exactly when `active_attempt_id` is non-null.
-- Bootstrap production-import restrictions and current package documentation
-  must describe the current H3A-1 tree only. Fresh focused, real PostgreSQL,
-  and repository verification is required before candidate truth can return to
-  a review-ready state.
-
-This amendment governed the preceding correction candidate;
-H3A-2 remains prohibited until H3A-1 is externally reviewed and closed.
-
-The preceding correction candidate was freshly qualified on 2026-08-27. That
-observation is historical for the next bounded correction. Its candidate truth
-at completion was:
+## Current H3A-1 candidate state — 2026-08-27
 
 ```yaml
 H3: OPEN
@@ -92,88 +25,14 @@ candidateFreeze: PASS
 independentReview: NOT_RUN
 ```
 
-## H3A-1 Candidate Correctness Correction Round 2 Amendment — 2026-08-27
-
-**Status:** COMPLETED
-
-This is a bounded correction of the existing H3A-1 candidate. It does not
-create a new H3A substage, alter package ownership, add a compatibility path,
-or pull H3A-2/H3B behavior forward. It supersedes only conflicting
-implementation details in the preceding H3A-1 correction amendment.
-
-The following decisions are locked for this correction:
-
-- **C2-D01 — Fair reconciliation:** PENDING projection and
-  WAITING_DEPENDENCY availability scans use ephemeral, cycle-bounded keyset
-  enumeration ordered by `(created_at, work_item_id)`, with a snapshot ceiling
-  and a process-memory cursor. Priority remains only on the dispatch request;
-  no scheduler or persisted cursor is introduced. RETRY_WAIT due wake keeps
-  its existing CAS semantics.
-- **C2-D02 — Pre-invoke generation admission:** an exact WorkHandler
-  generation must reserve an invocation before Tx A changes PENDING to
-  RUNNING. The one-shot reservation increments the existing GenerationFence
-  in-flight count immediately, can run after retirement begins, and releases
-  exactly once. A failed Tx A releases without invoking the handler. The
-  direct lease `execute()` surface is removed.
-- **C2-D03 — Detached canonical values:** canonical JSON is canonicalized once,
-  parsed to detach it from the caller graph, recursively frozen, and measured
-  from its canonical UTF-8 representation. Creation and admitted outcomes use
-  detached snapshots across durable boundaries; non-JSON structured-clone
-  values remain invalid.
-- **C2-D04 — Complete WorkQueue lineage:** significant `work.create` and every
-  early mutating `work.execute` path retain and complete the Activity in the
-  same Host-fenced transaction as the canonical mutation. `work.create`
-  completion is `CREATED` or `EXISTING`; early waits/retries complete as
-  Activity `SUCCEEDED` with `WAITING_DEPENDENCY` or `RETRY_WAIT` references;
-  invalid failure completes as `FAILED`; no Activity is retained for a lost
-  CAS.
-- **C2-D05 — Restricted repository Authority:** the concrete WorkQueue
-  repository factory is removed from the package root and exposed only through
-  `@heptalogos/work-queue/foundation-repository` to WorkQueue internals and
-  the explicitly authorized Bootstrap integration fixture. No root alias or
-  broad allowlist is permitted.
-- **C2-D06 — Terminal coherence:** terminal WorkItem state and outcome kind
-  must agree exactly; non-terminal rows have no outcome; terminal outcomes
-  have schema version `1`; FAILED rows have matching row and outcome retry
-  classes. PostgreSQL baseline checks and repository parsing enforce the same
-  invariant.
-- **C2-D07 — Supersession semantics:** `RequestSupersedeInput.reasonCode` is
-  removed. Idle and RUNNING supersession use the stable reason
-  `superseded-by-request`, while the replacement identity is `supersededBy`.
-  No new column or compatibility field is added.
-
-The correction returned the following seven properties to `PASS` through fresh
-focused and real PostgreSQL qualification:
-
-```yaml
-h3a1_reconciliation_fairness: PASS
-h3a1_generation_preinvoke_admission_fence: PASS
-h3a1_canonical_snapshot_detachment: PASS
-h3a1_work_lineage_completion: PASS
-h3a1_repository_authority_surface: PASS
-h3a1_terminal_outcome_coherence: PASS
-h3a1_supersession_contract: PASS
-```
-
-Fresh qualification on 2026-08-27 passed the focused suites
-`foundation-contracts` (29/29), `execution-lineage` (30/30), `canonical-schema`
-(4/4), `runtime-kernel` (142/142), `signal` (10/10), and `work-queue` (59/59).
-The explicit PostgreSQL 18.6 Ubuntu integration passed 9 test files and 82/82
-tests. The complete repository `pnpm verify` gate passed, including governance,
-format, lint, typecheck, TS6, test, and build checks. The current candidate is
-therefore frozen; H3A-2 remains `NOT_ELIGIBLE` and Independent Review remains
-`NOT_RUN`.
-
-The current post-qualification truth is:
-
-```yaml
-H3: OPEN
-H3A: ACTIVE
-H3A_1: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
-H3A_2: NOT_ELIGIBLE
-candidateFreeze: PASS
-independentReview: NOT_RUN
-```
+H3A-1 remains bounded to the current engine-neutral WorkQueue, WorkHandler,
+Signal, reconciliation, admission, cancellation, and lineage semantics. The
+complete creation-request envelope and fair-scan projection index correction
+has fresh focused and real PostgreSQL qualification, and the final repository
+gate has passed; the current candidate is frozen. The DBOS real engine and
+process-crash boundaries remain deferred to H3A-2. Historical implementation
+sequence and superseded development text belong in Git history and
+qualification history; this active plan is the single current specification.
 
 ---
 
@@ -261,15 +120,17 @@ If implementation evidence proves this staging is semantically insufficient, sto
 
 H3A must not pretend that H8 ResourceGovernor/PressureSnapshot exists.
 
-H3A introduces an explicit Heptalogos-owned port:
+H3A introduces an explicit Heptalogos-owned port with two mandatory seams:
 
 ```text
 WorkAdmissionPort
+
+beforeCreate(...)  -> WorkCreationAdmissionDecision
+beforeDispatch(...) -> WorkDispatchAdmissionDecision
 ```
 
-that consumes the S15 admission vocabulary and is mandatory at WorkQueue composition.
-
-It returns exactly:
+It consumes the S15 admission vocabulary and is mandatory at WorkQueue composition.
+Creation admission returns exactly:
 
 ```text
 ALLOW
@@ -278,6 +139,16 @@ THROTTLE
 REJECT_OPTIONAL
 REJECT_NEW_WORK
 ```
+
+Dispatch admission returns exactly:
+
+```text
+ALLOW
+DELAY
+THROTTLE
+```
+
+The dispatch decision type has no rejection variant.
 
 Rules:
 
@@ -380,8 +251,12 @@ declared payload version carries a plain JSON Schema 2020-12 definition and the
 current handler outcome carries a bounded result schema. Runtime Kernel compiles
 those schemas through `@heptalogos/schema-runtime`; AJV/TypeBox objects do not
 become the WorkHandler public contract. The exact generation-bound handler lease
-therefore owns non-mutating `validatePayload(version, value)` and
-`validateOutcome(value)` gates in addition to invocation.
+therefore owns non-mutating `validatePayload(version, value)` and a one-shot
+`reserveInvocation()` seam. The reservation increments the same
+`GenerationFence` in-flight count immediately; its `execute()` invokes the
+admitted handler, validates the outcome schema, detaches/freezes the canonical
+outcome, and releases exactly once. WorkQueue never calls a lease-level
+outcome validator, and no direct lease invocation surface exists.
 
 The Runtime Kernel may own:
 
@@ -518,6 +393,18 @@ wake due RETRY_WAIT through an authoritative transition
 re-evaluate WAITING_DEPENDENCY
 ```
 
+`PENDING` projection and `WAITING_DEPENDENCY` availability scans use an
+ephemeral, cycle-bounded keyset cursor over `(created_at, work_item_id)` with a
+snapshot ceiling. The cursor exists only for the current process-memory scan;
+it is never persisted and is not a second scheduler. Priority is carried only
+on the dispatch request. The canonical baseline therefore contains both the
+existing retry/dispatch index and a dedicated projection index:
+
+```text
+work_item_dispatchable_index: (state, not_before, priority, created_at, work_item_id)
+work_item_projection_index:  (state, created_at, work_item_id)
+```
+
 It may **not** implement:
 
 ```text
@@ -625,13 +512,23 @@ Tx A
   verify Host fence + state + revision
   verify cancel/supersede request
   resolve exact handler availability
+  reserve exact handler invocation before the RUNNING claim
   PENDING -> RUNNING
   set activeAttemptId
   retain required work.execute lineage
 COMMIT
 
-invoke exact WorkHandler
+if Tx A does not apply:
+  release reservation
+  do not invoke handler
+
+invoke reserved exact WorkHandler
   OUTSIDE product transaction
+
+The reservation owns generation admission, outcome-schema validation, and the
+detached/frozen handler result. WorkQueue performs only its canonical JSON and
+`maxOutcomeBytes` checks before Tx B; it does not perform a second generation
+admission.
 
 Tx B
   re-read WorkItem
@@ -1450,7 +1347,11 @@ SUCCEEDED/CANCELLED/SUPERSEDED
 Required indexes:
 
 ```text
+retry/dispatch due ordering:
 (state, not_before, priority, created_at, work_item_id)
+
+PENDING and WAITING_DEPENDENCY fair keyset scans:
+(state, created_at, work_item_id)
 
 (handler_micro_system_id,
  handler_contribution_id,
@@ -1561,17 +1462,8 @@ Steps:
 4. copy this plan verbatim to active path;
 5. update Plans README to exactly one active plan;
 6. update Roadmap H3 implementation decomposition and staging clarification;
-7. set current progress:
-
-```yaml
-H3: OPEN
-H3A: ACTIVE
-H3A_1: ACTIVE
-H3A_2: NOT_ELIGIBLE
-H3B: NOT_ELIGIBLE
-H3_FUNCTIONAL: IN_PROGRESS
-H3_STABILIZATION: NOT_ELIGIBLE
-```
+7. record the current progress in the single current-state block at the top of
+   this plan; do not create a second status block.
 
 Roadmap text must explicitly state:
 
@@ -1708,6 +1600,7 @@ Update:
 activity origin constraints
 complete_activity_record(...) origin arguments/comparison
 runtime grants required for WorkQueue repository
+work_item_projection_index on (state, created_at, work_item_id)
 ```
 
 Privilege rule:
@@ -1811,6 +1704,9 @@ Registry tests:
 - missing A never returns B;
 - retiring A closes new admission;
 - admitted A invocation may settle under GenerationFence rules;
+- reservation before invocation increments the existing GenerationFence in-flight count;
+- a failed WorkItem admission releases the reservation without invoking the handler;
+- outcome schema validation and detached snapshotting happen inside the reservation;
 - retirement removes A;
 - handler signal aborts cooperatively;
 - `contribution.invoke` lineage uses Host-bound origin;
@@ -2034,6 +1930,12 @@ PersistenceService.mutate(...)
 
 No WorkQueue-owned `pg.Pool`.
 
+The concrete repository factory is a restricted Foundation seam at
+`@heptalogos/work-queue/foundation-repository`. The package root exposes only
+the `WorkQueueRepository` type; it has no factory alias. The restricted
+subpath is importable only by WorkQueue implementation code and the explicitly
+authorized Bootstrap integration fixture.
+
 Repository operations:
 
 ```text
@@ -2102,23 +2004,35 @@ packages/work-queue/src/service.test.ts
 Creation flow:
 
 ```text
+capture the request semantic envelope at entry:
+  frozen target value
+  queueProfileId, resourceAdmissionClass, partitionKey, priority,
+  notBefore, dedupKey, configurationBinding, and payload input
+  after the first await, never read the caller request again
 current ExecutionContext required
-→ exact WorkHandler lease lookup
+→ validate the captured target and scalar fields
+→ exact WorkHandler lease lookup for the captured target
 → validate payloadVersion and payload against generation-bound JSON Schema
 → canonicalize payload as CanonicalJsonValue
 → enforce WorkQueueRuntimeOptions.maxInlinePayloadBytes
-→ validate queueProfileId/resourceAdmissionClass against descriptor
+→ validate captured queueProfileId/resourceAdmissionClass against descriptor
 → enforce current H3A configuration-binding rule
 → WorkAdmissionPort.beforeCreate(...)
 → if rejected: no WorkItem committed
 → enter work.create Activity
 → Persistence transaction:
      retain required lineage
-     insert canonical WorkItem
+     insert canonical WorkItem from the captured envelope
      pg_notify(work.available)
   COMMIT
 → best-effort schedule reconciliation wake
 ```
+
+The target snapshot is detached and immutable at the service boundary. Every
+WorkItem binding field is built from the same captured locals used for exact
+validation and admission; asynchronous admission cannot change generation,
+payload version, queue profile, resource class, priority, partition, or dedup
+identity.
 
 Important:
 
@@ -2190,9 +2104,21 @@ Rules:
 - duplicate scans produce same DispatchAttemptId;
 - a dispatch adapter exception leaves canonical item recoverable;
 - anti-entropy has one bounded in-flight scan; no overlapping scan storm;
+- PENDING and WAITING_DEPENDENCY scans use a snapshot ceiling and ephemeral
+  `(created_at, work_item_id)` keyset cursor;
+- future `notBefore` PENDING rows are projection candidates and retain their
+  due time in the dispatch request;
+- only `ALLOW` from `beforeDispatch` calls DurableDispatchPort; `DELAY` and
+  `THROTTLE` leave the canonical item PENDING for a later scan;
 - no handler is invoked by reconciler;
 - no in-memory queue of durable obligations;
 - no per-item timer.
+
+The real PostgreSQL qualification includes an `EXPLAIN` query-shape assertion
+for both PENDING and WAITING_DEPENDENCY keyset scans. It must select
+`work_item_projection_index (state, created_at, work_item_id)`; the existing
+`work_item_dispatchable_index (state, not_before, priority, created_at,
+work_item_id)` remains for due retry ordering.
 
 Use TimeService for due checks.
 
@@ -2239,6 +2165,7 @@ execute(workItemId, expectedRevision):
     return WAITING_DEPENDENCY
 
   derive expected DispatchAttemptId
+  reserve the exact handler invocation before Tx A
 
   Tx A:
     expected state PENDING
@@ -2248,7 +2175,11 @@ execute(workItemId, expectedRevision):
     retain work.execute lineage
   COMMIT
 
-  invoke exact handler outside DB transaction
+  if Tx A is stale or does not apply:
+    release the reservation
+    do not invoke the handler
+
+  invoke the reserved exact handler outside DB transaction
 
   Tx B:
     expected state RUNNING
@@ -2274,10 +2205,11 @@ explicit terminal or retry decision. Unknown/unclassified failure becomes
 terminal `FAILED/permanent` rather than “retry until it works”. A retry decision
 must supply the exact `notBefore`; WorkQueue contains no hidden backoff formula.
 
-`lease.execute()` admits the handler invocation and validates its outcome
+The invocation reservation admits the handler and validates/detaches its outcome
 inside the same generation fence. WorkQueue must not request a second outcome
-admission after the lease settles; it only canonicalizes the returned outcome
-and checks `WorkQueueRuntimeOptions.maxOutcomeBytes` before Tx B can commit it.
+admission after the reservation settles; it only canonicalizes the returned
+outcome and checks `WorkQueueRuntimeOptions.maxOutcomeBytes` before Tx B can
+commit it.
 
 Before marking RUNNING, WorkAttemptExecutor re-checks canonical `notBefore`
 against TimeService. If an engine projection fires early (for example after a
@@ -2417,6 +2349,21 @@ After it becomes terminal, same key may create a new WorkItem.
 
 `work.create -> work.execute -> contribution.invoke` reconstructs exact causal/generation origin.
 
+### Creation request envelope
+
+An admission provider pauses after the pre-admission checks and mutates the
+caller-owned target and scalar fields. The persisted WorkItem must retain the
+captured generation, payload version, queue profile, resource class, partition,
+priority, and dedup identity. The service must not read the caller request again
+after the first asynchronous boundary.
+
+### Fair projection query shape
+
+On a fresh real PostgreSQL schema, `EXPLAIN` for both the PENDING and
+WAITING_DEPENDENCY `(created_at, work_item_id)` keyset queries must select
+`work_item_projection_index (state, created_at, work_item_id)`. The existing
+retry/dispatch index remains available for `RETRY_WAIT` due ordering.
+
 Run using explicit PostgreSQL 18.6 toolchain path; no PATH fallback.
 
 ---
@@ -2473,6 +2420,15 @@ h3a1_lost_dispatch_reconciliation: PASS
 h3a1_cancel_supersede_semantics: PASS
 h3a1_nonterminal_dedup: PASS
 h3a1_admission_contract: PASS
+h3a1_reconciliation_fairness: PASS
+h3a1_generation_preinvoke_admission_fence: PASS
+h3a1_canonical_snapshot_detachment: PASS
+h3a1_work_lineage_completion: PASS
+h3a1_repository_authority_surface: PASS
+h3a1_terminal_outcome_coherence: PASS
+h3a1_supersession_contract: PASS
+h3a1_work_creation_envelope_snapshot: PASS
+h3a1_projection_index_query_shape: PASS
 h3a1_real_postgres_18_6_ubuntu: PASS
 
 h3a1_dbos_real_engine: NOT_RUN
@@ -2511,9 +2467,14 @@ Candidate body states:
 
 - WorkItem canonical Authority;
 - narrow WorkHandler generation binding;
+- pre-invocation GenerationFence reservation with retirement-safe settlement;
 - Signal best-effort hint + rescan;
-- WorkAdmissionPort;
+- mandatory WorkAdmissionPort creation and dispatch seams;
 - engine-neutral WorkAttemptExecutor;
+- detached immutable creation envelope and handler outcomes;
+- fair keyset reconciliation with the canonical projection index;
+- complete WorkQueue Activity retain/complete closure;
+- terminal state/outcome coherence and first terminal intent wins;
 - real Ubuntu PostgreSQL 18.6;
 - DBOS deliberately not yet integrated;
 - Effect deliberately absent.
@@ -2524,6 +2485,8 @@ Before Ready:
 working tree clean
 pnpm verify PASS
 real PG H3A-1 scenarios PASS
+creation-envelope race regression PASS
+projection-index query-shape PASS
 raw DBOS production imports == 0
 new nested AGENTS == 0
 development-history compatibility residue == 0
