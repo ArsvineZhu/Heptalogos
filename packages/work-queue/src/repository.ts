@@ -117,6 +117,13 @@ export interface WorkItemInsertResult {
   readonly item: WorkItem;
 }
 
+export interface WorkItemInsertOptions {
+  readonly onWithinTransaction?: (
+    result: WorkItemInsertResult,
+    transaction: PersistenceMutationTransactionContext,
+  ) => Promise<void>;
+}
+
 export interface WorkItemDedupLookup {
   readonly handlerMicroSystemId: MicroSystemId;
   readonly handlerContributionId: ContributionId;
@@ -190,7 +197,10 @@ export interface CommitTerminalInput {
 }
 
 export interface WorkQueueRepository {
-  insertWorkItem(item: WorkItem): Promise<WorkItemInsertResult>;
+  insertWorkItem(
+    item: WorkItem,
+    options?: WorkItemInsertOptions,
+  ): Promise<WorkItemInsertResult>;
   getWorkItem(workItemId: WorkItemId): Promise<WorkItem | undefined>;
   findNonTerminalDedup(lookup: WorkItemDedupLookup): Promise<WorkItem | undefined>;
   listDispatchable(input: {
@@ -732,37 +742,44 @@ export function createWorkQueueRepository(
   persistence: PersistenceService,
 ): WorkQueueRepository {
   return {
-    async insertWorkItem(item) {
-      const result = await mutationContext(persistence, async (transaction) => {
-        try {
-          const rows = await executeSql(
-            transaction,
-            `INSERT INTO "heptalogos"."work_item" (${INSERT_COLUMNS}) VALUES (
+    async insertWorkItem(item, options) {
+      const result = await mutationContext(
+        persistence,
+        async (transaction, context) => {
+          let insertResult: WorkItemInsertResult;
+          try {
+            const rows = await executeSql(
+              transaction,
+              `INSERT INTO "heptalogos"."work_item" (${INSERT_COLUMNS}) VALUES (
               $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
               $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26,
               $27, $28, $29
             ) RETURNING ${WORK_ITEM_COLUMNS}`,
-            serializeItem(item),
-          );
-          if (rows[0] !== undefined) {
-            return {
-              status: "INSERTED",
-              item: parsePersistedWorkItem(rows[0]),
-            } satisfies WorkItemInsertResult;
+              serializeItem(item),
+            );
+            if (rows[0] !== undefined) {
+              insertResult = {
+                status: "INSERTED",
+                item: parsePersistedWorkItem(rows[0]),
+              };
+              if (options?.onWithinTransaction !== undefined) {
+                await options.onWithinTransaction(insertResult, context);
+              }
+              return insertResult;
+            }
+          } catch (error) {
+            if (!isUniqueViolation(error)) throw error;
           }
-        } catch (error) {
-          if (!isUniqueViolation(error)) throw error;
-        }
 
-        if (item.dedupKey === undefined) {
-          throw workQueueProblem(
-            "work_queue.insert_conflict",
-            "WorkItem insert did not return a row and has no dedup key to reconcile",
-          );
-        }
-        const rows = await executeSql(
-          transaction,
-          `SELECT ${WORK_ITEM_COLUMNS}
+          if (item.dedupKey === undefined) {
+            throw workQueueProblem(
+              "work_queue.insert_conflict",
+              "WorkItem insert did not return a row and has no dedup key to reconcile",
+            );
+          }
+          const rows = await executeSql(
+            transaction,
+            `SELECT ${WORK_ITEM_COLUMNS}
            FROM "heptalogos"."work_item"
            WHERE handler_micro_system_id = $1
              AND handler_contribution_id = $2
@@ -770,19 +787,24 @@ export function createWorkQueueRepository(
              AND state IN ('PENDING', 'RUNNING', 'WAITING_DEPENDENCY', 'RETRY_WAIT', 'WAITING_RESTORE_RECONCILIATION')
            ORDER BY created_at ASC, work_item_id ASC
            LIMIT 1`,
-          [item.handler.microSystemId, item.handler.contributionId, item.dedupKey],
-        );
-        if (rows[0] === undefined) {
-          throw workQueueProblem(
-            "work_queue.insert_conflict",
-            "WorkItem deduplication conflict did not expose an existing non-terminal item",
+            [item.handler.microSystemId, item.handler.contributionId, item.dedupKey],
           );
-        }
-        return {
-          status: "EXISTING",
-          item: parsePersistedWorkItem(rows[0]),
-        } satisfies WorkItemInsertResult;
-      });
+          if (rows[0] === undefined) {
+            throw workQueueProblem(
+              "work_queue.insert_conflict",
+              "WorkItem deduplication conflict did not expose an existing non-terminal item",
+            );
+          }
+          insertResult = {
+            status: "EXISTING",
+            item: parsePersistedWorkItem(rows[0]),
+          };
+          if (options?.onWithinTransaction !== undefined) {
+            await options.onWithinTransaction(insertResult, context);
+          }
+          return insertResult;
+        },
+      );
       return result;
     },
 

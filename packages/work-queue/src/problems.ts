@@ -32,6 +32,76 @@ const problemSpecs: Readonly<Record<string, WorkQueueProblemSpec>> = {
     retryClass: "manual",
     title: "Persisted WorkItem is invalid",
   },
+  "work.admission.invalid_decision": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkAdmission returned an invalid decision",
+  },
+  "work.admission.rejected_new_work": {
+    category: "conflict",
+    retryClass: "after-change",
+    title: "WorkAdmission rejected new work",
+  },
+  "work.admission.rejected_optional": {
+    category: "conflict",
+    retryClass: "after-change",
+    title: "WorkAdmission rejected optional work",
+  },
+  "work.configuration.binding_unavailable": {
+    category: "unavailable",
+    retryClass: "after-change",
+    title: "WorkItem configuration binding is unavailable",
+  },
+  "work.context.required": {
+    category: "conflict",
+    retryClass: "after-change",
+    title: "WorkItem creation requires an execution context",
+  },
+  "work.handler.unavailable": {
+    category: "unavailable",
+    retryClass: "after-change",
+    title: "Exact WorkHandler is unavailable",
+  },
+  "work.admission.required": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkQueue composition requires WorkAdmissionPort",
+  },
+  "work.payload.invalid": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkItem payload is invalid",
+  },
+  "work.payload.too_large": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkItem payload exceeds the configured limit",
+  },
+  "work.request.invalid": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkItem creation request is invalid",
+  },
+  "work.resource-admission.mismatch": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkItem resource admission class does not match its WorkHandler",
+  },
+  "work.signal.failed": {
+    category: "unavailable",
+    retryClass: "after-change",
+    title: "WorkItem Signal publication failed after canonical insertion",
+  },
+  "work.schedule.failed": {
+    category: "unavailable",
+    retryClass: "after-change",
+    title: "WorkQueue reconciliation scheduling failed",
+  },
+  "work.queue.profile_mismatch": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkItem queue profile does not match its WorkHandler",
+  },
 };
 
 function problemSpec(problemCode: string): WorkQueueProblemSpec {

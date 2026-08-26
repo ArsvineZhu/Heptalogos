@@ -37,6 +37,20 @@ export {
 } from "./state-machine.js";
 export { workQueueProblem } from "./problems.js";
 export {
+  applyWorkAdmissionDecision,
+  type WorkAdmissionPort,
+  type WorkAdmissionRequest,
+} from "./admission.js";
+export {
+  WORK_AVAILABLE_TOPIC,
+  createWorkQueueService,
+  type WorkCreationRequest,
+  type WorkCreationResult,
+  type WorkHandlerResolver,
+  type WorkQueueService,
+  type WorkQueueServiceOptions,
+} from "./service.js";
+export {
   createWorkQueueRepository,
   type CommitTerminalInput,
   type MarkRetryWaitInput,
@@ -48,6 +62,7 @@ export {
   type WakeDueRetryInput,
   type WorkItemDedupLookup,
   type WorkItemInsertResult,
+  type WorkItemInsertOptions,
   type WorkItemMutationResult,
   type WorkItemMutationStatus,
   type WorkQueueRepository,
