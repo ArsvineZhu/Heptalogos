@@ -24,7 +24,7 @@ introduce a compatibility path, and does not change the H3A-1 package ownership
 boundaries. The prior H3A-1 qualification remains a historical observed run;
 candidate mutation makes its PASS evidence stale for the current candidate.
 
-Current truth during this cycle is:
+Truth while the correction was in progress was:
 
 ```yaml
 H3: OPEN
@@ -78,6 +78,22 @@ The following semantic decisions are locked for this correction:
 
 This amendment is the governing correction for the implementation tasks below;
 H3A-2 remains prohibited until H3A-1 is externally reviewed and closed.
+
+The corrected candidate was freshly qualified on 2026-08-27. The focused
+Foundation suites, the complete repository verification gates, and the real
+PostgreSQL 18.6 Host integration all passed, including the expanded lifecycle,
+projection, admission, terminal-intent, classifier, transaction, and canonical
+representation scenarios. After the verified implementation and qualification
+record are committed on a clean branch, the current candidate truth is:
+
+```yaml
+H3: OPEN
+H3A: ACTIVE
+H3A_1: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+H3A_2: NOT_ELIGIBLE
+candidateFreeze: PASS
+independentReview: NOT_RUN
+```
 
 ---
 

@@ -128,7 +128,7 @@ It does not prove private PostgreSQL, runtime supervision, durable work, system 
 
 > Can a Heptalogos installation reliably identify itself, locate its independent lifecycle roots, obtain exclusive bootstrap ownership, start/validate its private PostgreSQL, and hand ownership to exactly one normal Host without an authority gap?
 
-### Current progress (2026-08-26)
+### Current progress (2026-08-27)
 
 Current H-stage truth:
 
@@ -338,29 +338,29 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 
 > Can the system make a durable promise, crash anywhere around dispatch/processing/external effects, and resume without losing the obligation or inventing false certainty?
 
-### Current progress (2026-08-26)
+### Current progress (2026-08-27)
 
 ```yaml
 H3: OPEN
 H3A: ACTIVE
-H3A_1: ACTIVE
+H3A_1: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
 H3A_2: NOT_ELIGIBLE
 H3B: NOT_ELIGIBLE
 H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
-candidateFreeze: BLOCKED
+candidateFreeze: PASS
 independentReview: NOT_RUN
 activeImplementationPlan: docs/plans/active/foundation/h3a-durable-obligation-signal-spine.md
 ```
 
-A bounded H3A-1 correctness correction cycle is active on the existing
-candidate branch. The previous local and real PostgreSQL qualification is
-retained as historical observed evidence only; candidate mutation makes it
-stale for current freeze purposes. Fresh qualification must cover the corrected
-Signal lifecycle, generation settlement, projection/admission, cancellation,
-transaction, and canonical-representation semantics before candidate freeze.
-The out-of-band Independent Review is `NOT_RUN`; H3A-2 remains
-`NOT_ELIGIBLE` until H3A-1 is closed.
+A bounded H3A-1 correctness correction cycle has completed on the existing
+candidate branch. The previous local and real PostgreSQL qualification remains
+historical observed evidence only. Fresh focused suites and the expanded real
+PostgreSQL 18.6 Host qualification passed, including Signal lifecycle,
+generation settlement, projection/admission, cancellation, transaction, and
+canonical-representation semantics. The candidate is frozen after clean-tree
+repository verification; the out-of-band Independent Review is `NOT_RUN` and
+H3A-2 remains `NOT_ELIGIBLE` until H3A-1 is closed.
 
 ### Implementation decomposition
 
