@@ -26,7 +26,7 @@ An unresolved non-trivial choice is `PLAN_GAP` and stops execution.
 
 ## Active
 
-- [H3A — Durable Obligation & Signal Spine](active/foundation/h3a-durable-obligation-signal-spine.md) — `ACTIVE` (H3A-1 canonical work, generation-pinned handlers, Signal, and engine-neutral WorkQueue semantics)
+- [H3A — Durable Obligation & Signal Spine](active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md) — `ACTIVE` (H3A-1 canonical work, generation-pinned handlers, Signal, and engine-neutral WorkQueue semantics)
 
 ## Completed
 

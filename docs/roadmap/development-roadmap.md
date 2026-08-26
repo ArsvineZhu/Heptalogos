@@ -350,7 +350,7 @@ H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
 candidateFreeze: PASS
 independentReview: NOT_RUN
-activeImplementationPlan: docs/plans/active/foundation/h3a-durable-obligation-signal-spine.md
+activeImplementationPlan: docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md
 ```
 
 A bounded H3A-1 correctness correction cycle has completed on the existing

@@ -4,7 +4,7 @@
 **Plan date:** 2026-08-26  
 **Status:** ACTIVE  
 **Authority level:** Implementation Plan below the Architecture Corpus; this plan may prescribe exact Roadmap/qualification updates, but it does not silently override Corpus Authority.  
-**Canonical active path after activation:** `docs/plans/active/foundation/h3a-durable-obligation-signal-spine.md`  
+**Canonical active path after activation:** `docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md`  
 **Supersedes:** the earlier draft `Heptalogos_H3A_Durable_Work_and_Signal_Spine_Implementation_Plan_2026-08-26.md`  
 **Behavior branches:**  
 - `dev/h3a1-canonical-work-signal`
@@ -1463,7 +1463,7 @@ dev/h3a1-canonical-work-signal
 **Create:**
 
 ```text
-docs/plans/active/foundation/h3a-durable-obligation-signal-spine.md
+docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md
 ```
 
 **Modify:**
@@ -2503,7 +2503,7 @@ Allowed scope:
 ```text
 docs/roadmap/development-roadmap.md
 docs/plans/README.md
-docs/plans/active/foundation/h3a-durable-obligation-signal-spine.md
+docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md
 Architecture_Corpus/qualification/results/Q-ASYNC-01.md
 Architecture_Corpus/qualification/results/qualification-status.json
 ```
@@ -3549,7 +3549,7 @@ Fresh docs/evidence-only branch from merged master.
 **Move:**
 
 ```text
-docs/plans/active/foundation/h3a-durable-obligation-signal-spine.md
+docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md
 →
 docs/plans/completed/foundation/h3a-durable-obligation-signal-spine.md
 ```
