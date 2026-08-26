@@ -26,7 +26,7 @@ An unresolved non-trivial choice is `PLAN_GAP` and stops execution.
 
 ## Active
 
-No active implementation plan is installed for the current branch.
+- [H3A — Durable Obligation & Signal Spine](active/foundation/h3a-durable-obligation-signal-spine.md) — `ACTIVE` (H3A-1 canonical work, generation-pinned handlers, Signal, and engine-neutral WorkQueue semantics)
 
 ## Completed
 

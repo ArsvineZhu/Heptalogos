@@ -338,6 +338,29 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 
 > Can the system make a durable promise, crash anywhere around dispatch/processing/external effects, and resume without losing the obligation or inventing false certainty?
 
+### Current progress (2026-08-26)
+
+```yaml
+H3: OPEN
+H3A: ACTIVE
+H3A_1: ACTIVE
+H3A_2: NOT_ELIGIBLE
+H3B: NOT_ELIGIBLE
+H3_FUNCTIONAL: IN_PROGRESS
+H3_STABILIZATION: NOT_ELIGIBLE
+activeImplementationPlan: docs/plans/active/foundation/h3a-durable-obligation-signal-spine.md
+```
+
+### Implementation decomposition
+
+- H3A-1 implements canonical work/handler/signal semantics without DBOS.
+- H3A-2 materializes DBOS durable mechanics and crash recovery.
+- H3B adds EffectOperation and uncertainty.
+- Real `CONFIG_PINNED` ConfigurationRevision resolution remains H4-owned; H3A
+  uses configuration-free handlers and fails closed for pinned binding.
+- Real PressureSnapshot/ResourceGovernor remains H8-owned; H3A establishes
+  explicit WorkAdmissionPort semantics.
+
 ### Capability closure
 
 - WorkItem canonical state + transition rules;
