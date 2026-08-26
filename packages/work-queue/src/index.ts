@@ -36,3 +36,19 @@ export {
   type WorkItemTransitionEvent,
 } from "./state-machine.js";
 export { workQueueProblem } from "./problems.js";
+export {
+  createWorkQueueRepository,
+  type CommitTerminalInput,
+  type MarkRetryWaitInput,
+  type MarkRunningInput,
+  type MarkWaitingDependencyInput,
+  type RequestCancelInput,
+  type RequestSupersedeInput,
+  type WakeDependencyInput,
+  type WakeDueRetryInput,
+  type WorkItemDedupLookup,
+  type WorkItemInsertResult,
+  type WorkItemMutationResult,
+  type WorkItemMutationStatus,
+  type WorkQueueRepository,
+} from "./repository.js";

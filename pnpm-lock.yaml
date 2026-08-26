@@ -469,6 +469,9 @@ importers:
       '@heptalogos/time-service':
         specifier: workspace:*
         version: link:../time-service
+      kysely:
+        specifier: 'catalog:'
+        version: 0.29.5
       xstate:
         specifier: 'catalog:'
         version: 5.32.5

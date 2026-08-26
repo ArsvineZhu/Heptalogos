@@ -17,10 +17,20 @@ const problemSpecs: Readonly<Record<string, WorkQueueProblemSpec>> = {
     retryClass: "never",
     title: "WorkQueue runtime options are invalid",
   },
+  "work_queue.insert_conflict": {
+    category: "conflict",
+    retryClass: "after-change",
+    title: "WorkItem insertion conflict cannot be reconciled",
+  },
   "work_queue.invalid_transition": {
     category: "conflict",
     retryClass: "manual",
     title: "WorkItem state transition is invalid",
+  },
+  "work_queue.invalid_work_item": {
+    category: "integrity",
+    retryClass: "manual",
+    title: "Persisted WorkItem is invalid",
   },
 };
 
