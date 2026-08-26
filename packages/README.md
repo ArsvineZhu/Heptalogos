@@ -27,6 +27,7 @@ overview when a change crosses package boundaries.
 - `time-service` — elapsed and wall-clock abstractions for runtime contracts.
 - `execution-lineage` — execution context and lineage propagation.
 - `evidence` — retained Evidence records and service semantics.
+- `signal` — PostgreSQL LISTEN/NOTIFY wakeup hints and reconnect/rescan mechanics.
 
 ## Runtime composition
 
@@ -54,6 +55,9 @@ execution foundation
 runtime-substrate
         ↓
 runtime-kernel
+
+signal and work-queue are Foundation system-service packages composed above the
+execution and persistence contracts; durable-execution remains the DBOS adapter.
 
 bootstrap-runtime production path stays outside runtime-kernel/runtime-substrate
 and composes with them only at higher Host/product integration boundaries.

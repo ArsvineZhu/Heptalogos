@@ -39,6 +39,9 @@
     },
     {
       "path": "./packages/runtime-kernel"
+    },
+    {
+      "path": "./packages/signal"
     }
   ]
 }

@@ -13,5 +13,6 @@
 | [`time-service`](./time-service/README.md)                 | execution foundation | Time abstraction and deterministic test time                                         |
 | [`execution-lineage`](./execution-lineage/README.md)       | execution foundation | ExecutionContext and retained lineage                                                |
 | [`evidence`](./evidence/README.md)                         | execution foundation | Retained Evidence contract and service                                               |
+| [`signal`](./signal/README.md)                             | system services      | PostgreSQL LISTEN/NOTIFY wakeup hints and reconnect/rescan                           |
 | [`runtime-substrate`](./runtime-substrate/README.md)       | runtime composition  | Cordis-backed activation and resource mechanics adapter                              |
 | [`runtime-kernel`](./runtime-kernel/README.md)             | runtime composition  | Reconciliation, generations, Service/Capability lifecycle, readiness, and quiescence |
