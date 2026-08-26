@@ -80,7 +80,9 @@ export interface WorkQueueService {
   create(request: WorkCreationRequest): Promise<WorkCreationResult>;
 }
 
-function assertRuntimeOptions(options: WorkQueueRuntimeOptions): void {
+export function validateWorkQueueRuntimeOptions(
+  options: WorkQueueRuntimeOptions,
+): void {
   for (const [name, value] of [
     ["maxInlinePayloadBytes", options.maxInlinePayloadBytes],
     ["maxOutcomeBytes", options.maxOutcomeBytes],
@@ -244,7 +246,7 @@ function scheduleFailure(sink: (error: unknown) => void): void {
 export function createWorkQueueService(
   options: WorkQueueServiceOptions,
 ): WorkQueueService {
-  assertRuntimeOptions(options.runtimeOptions);
+  validateWorkQueueRuntimeOptions(options.runtimeOptions);
   if (
     options.admission === undefined ||
     typeof options.admission.beforeCreate !== "function"

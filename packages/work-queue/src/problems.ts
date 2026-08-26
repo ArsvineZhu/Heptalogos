@@ -97,6 +97,16 @@ const problemSpecs: Readonly<Record<string, WorkQueueProblemSpec>> = {
     retryClass: "after-change",
     title: "WorkQueue reconciliation scheduling failed",
   },
+  "work.reconciliation.failed": {
+    category: "unavailable",
+    retryClass: "after-change",
+    title: "WorkQueue reconciliation scan failed",
+  },
+  "work.dispatch.failed": {
+    category: "unavailable",
+    retryClass: "after-change",
+    title: "Durable dispatch projection failed",
+  },
   "work.queue.profile_mismatch": {
     category: "validation",
     retryClass: "never",

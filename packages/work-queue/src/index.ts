@@ -49,7 +49,14 @@ export {
   type WorkHandlerResolver,
   type WorkQueueService,
   type WorkQueueServiceOptions,
+  validateWorkQueueRuntimeOptions,
 } from "./service.js";
+export {
+  createWorkQueueReconciler,
+  type ReconciliationScanResult,
+  type WorkQueueReconciler,
+  type WorkQueueReconcilerOptions,
+} from "./reconciler.js";
 export {
   createWorkQueueRepository,
   type CommitTerminalInput,
