@@ -26,7 +26,7 @@ An unresolved non-trivial choice is `PLAN_GAP` and stops execution.
 
 ## Active
 
-No active implementation plan is installed for the current branch.
+- [H2 Post-Merge Closure Reconciliation](active/foundation/h2-post-merge-closure-reconciliation.md) — `ACTIVE`
 
 ## Completed
 
