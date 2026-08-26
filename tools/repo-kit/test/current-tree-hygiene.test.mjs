@@ -1,8 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, mkdtemp, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { join, relative } from "node:path";
 import { tmpdir } from "node:os";
 import { scanCurrentTree } from "../src/current-tree-hygiene.mjs";
+
+async function collectTrackedPaths(root, directory = root, paths = []) {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      await collectTrackedPaths(root, path, paths);
+    } else if (entry.isFile() || entry.isSymbolicLink()) {
+      paths.push(relative(root, path).replaceAll("\\", "/"));
+    }
+  }
+  return paths;
+}
 
 async function fixtureTree(setup) {
   const root = await mkdtemp(join(tmpdir(), "heptalogos-hygiene-"));
@@ -17,8 +29,9 @@ async function fixtureTree(setup) {
         obligations: [],
       }),
     );
-    await setup(root);
-    return await scanCurrentTree({ root });
+    const configuredTrackedPaths = await setup(root);
+    const trackedPaths = configuredTrackedPaths ?? (await collectTrackedPaths(root));
+    return scanCurrentTree({ root, trackedPaths });
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -75,6 +88,38 @@ describe("current-tree hygiene scanner", () => {
     });
 
     expect(hasCode(result, "development-provenance")).toBe(true);
+  });
+
+  it("scans tracked generated and caches paths", async () => {
+    const result = await fixtureTree(async (root) => {
+      await mkdir(join(root, "packages/generated"), { recursive: true });
+      await mkdir(join(root, "packages/caches"), { recursive: true });
+      await writeFile(
+        join(root, "packages/generated/generated.ts"),
+        'const marker = "PR #24";\n',
+      );
+      await writeFile(
+        join(root, "packages/caches/cache.ts"),
+        'const marker = "PR #24";\n',
+      );
+    });
+
+    expect(
+      result.findings.filter((finding) => finding.code === "development-provenance"),
+    ).toHaveLength(2);
+  });
+
+  it("does not scan an untracked equivalent path", async () => {
+    const result = await fixtureTree(async (root) => {
+      await mkdir(join(root, "packages/generated"), { recursive: true });
+      await writeFile(
+        join(root, "packages/generated/untracked.ts"),
+        'const marker = "PR #24";\n',
+      );
+      return ["Architecture_Corpus/references/compatibility-obligations.json"];
+    });
+
+    expect(result.findings).toEqual([]);
   });
 
   it("rejects scanned symbolic-link residue without following it", async () => {
@@ -165,7 +210,7 @@ describe("current-tree hygiene scanner", () => {
   it("fails a missing or malformed compatibility register", async () => {
     const root = await mkdtemp(join(tmpdir(), "heptalogos-hygiene-register-"));
     try {
-      const missing = await scanCurrentTree({ root });
+      const missing = await scanCurrentTree({ root, trackedPaths: [] });
       expect(hasCode(missing, "compatibility-register")).toBe(true);
 
       await mkdir(join(root, "Architecture_Corpus/references"), { recursive: true });
@@ -173,7 +218,10 @@ describe("current-tree hygiene scanner", () => {
         join(root, "Architecture_Corpus/references/compatibility-obligations.json"),
         "{ malformed\n",
       );
-      const malformed = await scanCurrentTree({ root });
+      const malformed = await scanCurrentTree({
+        root,
+        trackedPaths: ["Architecture_Corpus/references/compatibility-obligations.json"],
+      });
       expect(hasCode(malformed, "compatibility-register")).toBe(true);
     } finally {
       await rm(root, { recursive: true, force: true });
@@ -192,7 +240,7 @@ describe("current-tree hygiene scanner", () => {
           obligations: [{ id: "external-consumer" }],
         }),
       );
-      const result = await scanCurrentTree({ root });
+      const result = await scanCurrentTree({ root, trackedPaths: [] });
       expect(hasCode(result, "compatibility-register")).toBe(true);
     } finally {
       await rm(root, { recursive: true, force: true });

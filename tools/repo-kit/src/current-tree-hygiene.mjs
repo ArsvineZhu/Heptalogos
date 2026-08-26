@@ -1,20 +1,6 @@
-import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-
-const EXCLUDED_DIRECTORIES = new Set([
-  ".git",
-  ".nx",
-  ".pnpm-store",
-  ".vite",
-  ".cache",
-  "coverage",
-  "dist",
-  "node_modules",
-  "test-results",
-  "tmp",
-  "generated",
-  "caches",
-]);
 
 const SELF_EXEMPTIONS = new Set([
   "tools/repo-kit/src/current-tree-hygiene.mjs",
@@ -51,45 +37,42 @@ function normalize(root, file) {
   return relative(root, file).replaceAll("\\", "/");
 }
 
-function isDirectoryExcluded(name) {
-  return EXCLUDED_DIRECTORIES.has(name);
-}
-
-function collectFiles(root, candidate, output, findings) {
-  if (!existsSync(candidate)) return;
-  const stats = lstatSync(candidate);
-  if (stats.isSymbolicLink()) {
-    addFinding(
-      findings,
-      "symbolic-link-residue",
-      normalize(root, candidate),
-      "symbolic links are not allowed in scanned canonical or executable surfaces",
-    );
-    return;
-  }
-  if (stats.isFile()) {
-    output.add(normalize(root, candidate));
-    return;
-  }
-  if (!stats.isDirectory()) return;
-  for (const entry of readdirSync(candidate, { withFileTypes: true })) {
-    if (entry.isDirectory() && isDirectoryExcluded(entry.name)) continue;
-    const child = join(candidate, entry.name);
-    if (entry.isSymbolicLink()) {
-      addFinding(
-        findings,
-        "symbolic-link-residue",
-        normalize(root, child),
-        "symbolic links are not allowed in scanned canonical or executable surfaces",
-      );
-      continue;
-    }
-    collectFiles(root, child, output, findings);
-  }
-}
-
 function addFinding(findings, code, path, message) {
   findings.push({ code, path, message });
+}
+
+function normalizeTrackedPath(path) {
+  return path.replaceAll("\\", "/").replace(/^\.\//u, "");
+}
+
+function isScannedPath(relativePath) {
+  return (
+    SCAN_ROOTS.some(
+      (scanRoot) =>
+        relativePath === scanRoot || relativePath.startsWith(`${scanRoot}/`),
+    ) || /^tsconfig.*\.json$/iu.test(relativePath)
+  );
+}
+
+function pathExists(path) {
+  try {
+    lstatSync(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function listTrackedPaths({ root = process.cwd() } = {}) {
+  const output = execFileSync("git", ["ls-files", "-z"], {
+    cwd: resolve(root),
+    encoding: "buffer",
+  });
+  return output
+    .toString("utf8")
+    .split("\0")
+    .filter((path) => path.length > 0)
+    .map(normalizeTrackedPath);
 }
 
 function scanCompatibilityRegister(root, findings) {
@@ -138,31 +121,15 @@ function scanCompatibilityRegister(root, findings) {
   }
 }
 
-export function scanCurrentTree({ root = process.cwd() } = {}) {
+export function scanCurrentTree({ root = process.cwd(), trackedPaths } = {}) {
   const repositoryRoot = resolve(root);
   const findings = [];
-  const files = new Set();
-
-  for (const relativePath of SCAN_ROOTS) {
-    collectFiles(repositoryRoot, join(repositoryRoot, relativePath), files, findings);
-  }
-  for (const entry of readdirSync(repositoryRoot, { withFileTypes: true })) {
-    if (
-      /^tsconfig.*\.json$/iu.test(entry.name) &&
-      (entry.isFile() || entry.isSymbolicLink())
-    ) {
-      if (entry.isSymbolicLink()) {
-        addFinding(
-          findings,
-          "symbolic-link-residue",
-          entry.name,
-          "symbolic links are not allowed in scanned canonical or executable surfaces",
-        );
-      } else {
-        files.add(entry.name);
-      }
-    }
-  }
+  const files = new Set(
+    (trackedPaths ?? listTrackedPaths({ root: repositoryRoot }))
+      .map(normalizeTrackedPath)
+      .filter(isScannedPath)
+      .filter((relativePath) => pathExists(join(repositoryRoot, relativePath))),
+  );
 
   if (existsSync(join(repositoryRoot, "GENESIS_EVIDENCE.json"))) {
     addFinding(
@@ -184,6 +151,31 @@ export function scanCurrentTree({ root = process.cwd() } = {}) {
   for (const relativePath of [...files].sort()) {
     if (SELF_EXEMPTIONS.has(relativePath)) continue;
     const file = join(repositoryRoot, relativePath);
+    let stats;
+    try {
+      stats = lstatSync(file);
+    } catch (error) {
+      addFinding(findings, "read-error", relativePath, error.message);
+      continue;
+    }
+    if (stats.isSymbolicLink()) {
+      addFinding(
+        findings,
+        "symbolic-link-residue",
+        relativePath,
+        "symbolic links are not allowed in scanned canonical or executable surfaces",
+      );
+      continue;
+    }
+    if (!stats.isFile()) {
+      addFinding(
+        findings,
+        "read-error",
+        relativePath,
+        "tracked scanned path is not a regular file",
+      );
+      continue;
+    }
     let content;
     try {
       content = readFileSync(file, "utf8");
