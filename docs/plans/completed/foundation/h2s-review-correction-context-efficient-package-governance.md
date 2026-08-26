@@ -372,12 +372,12 @@ No package child directory contains `AGENTS.md`.
 - Modify: `docs/plans/README.md`
 - PR metadata only; no production files yet.
 
-- [ ] Change PR #24 to Draft.
-- [ ] Update PR body: Independent Review `REQUEST_CHANGES`; corrective cycle active; final CI `NOT_RUN`; merge not authorized.
-- [ ] Install this plan as the active correction plan.
-- [ ] Keep the earlier H2-S implementation plan as completed history.
-- [ ] Run current baseline gates: `pnpm check:repository`, `pnpm check:hygiene`, `pnpm check:agents`.
-- [ ] Record actual baseline PASS/FAIL only.
+- [x] Change PR #24 to Draft.
+- [x] Update PR body: Independent Review `REQUEST_CHANGES`; corrective cycle active; final CI `NOT_RUN`; merge not authorized.
+- [x] Install this plan as the active correction plan.
+- [x] Keep the earlier H2-S implementation plan as completed history.
+- [x] Run current baseline gates: `pnpm check:repository`, `pnpm check:hygiene`, `pnpm check:agents`.
+- [x] Record actual baseline PASS/FAIL only.
 
 **Commit:** `docs: activate PR24 review correction`
 
@@ -1074,24 +1074,24 @@ Stop with `PLAN_GAP` if correction requires:
 
 PR #24 may request Independent Review again only when:
 
-- [ ] PR stayed Draft during correction.
-- [ ] all `packages/*/AGENTS.md` removed.
-- [ ] `packages/AGENTS.md`, `README.md`, `INDEX.md` present.
-- [ ] package AGENTS hard limit <=220 words.
-- [ ] every package README contains `Change constraints`.
-- [ ] every package README has valid direct Corpus links.
-- [ ] repository gate enforces required/forbidden topology and INDEX coverage.
-- [ ] delayed START race fixed and tested.
-- [ ] public arbitrary Runtime execution-plan mutation removed.
-- [ ] final CI resolves one internal candidate/base snapshot for all OS jobs.
-- [ ] stable-base rule replaces semantic base-equivalence judgment.
-- [ ] hygiene uses tracked current-tree input.
-- [ ] self-certifying qualification state removed.
-- [ ] Corpus structural gaps tested.
-- [ ] fresh PostgreSQL 18.6 H2-S qualification PASS.
-- [ ] fresh `pnpm verify` PASS.
-- [ ] current evidence truthful and SHA-governance-free.
-- [ ] corrective plan completed.
-- [ ] PR body reconciled.
+- [x] PR stayed Draft during correction.
+- [x] all `packages/*/AGENTS.md` removed.
+- [x] `packages/AGENTS.md`, `README.md`, `INDEX.md` present.
+- [x] package AGENTS hard limit <=220 words.
+- [x] every package README contains `Change constraints`.
+- [x] every package README has valid direct Corpus links.
+- [x] repository gate enforces required/forbidden topology and INDEX coverage.
+- [x] delayed START race fixed and tested.
+- [x] public arbitrary Runtime execution-plan mutation removed.
+- [x] final CI resolves one internal candidate/base snapshot for all OS jobs.
+- [x] stable-base rule replaces semantic base-equivalence judgment.
+- [x] hygiene uses tracked current-tree input.
+- [x] self-certifying qualification state removed.
+- [x] Corpus structural gaps tested.
+- [x] fresh PostgreSQL 18.6 H2-S qualification PASS.
+- [x] fresh `pnpm verify` PASS.
+- [x] current evidence truthful and SHA-governance-free.
+- [x] corrective plan completed.
+- [x] PR body reconciled.
 - [ ] PR returned Ready.
 - [ ] final CI still NOT_RUN until new Independent Review PASS.

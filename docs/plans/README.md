@@ -26,10 +26,7 @@ An unresolved non-trivial choice is `PLAN_GAP` and stops execution.
 
 ## Active
 
-- [H2-S context-efficient package governance correction](active/foundation/h2s-review-correction-context-efficient-package-governance.md) — `ACTIVE` (corrective implementation cycle; H2 remains `OPEN`)
-
-The earlier H2-S correction plan remains completed history; this active plan
-supersedes its package-context and remaining review-blocker instructions.
+No active implementation plan is installed for the current branch.
 
 ## Completed
 
@@ -53,3 +50,4 @@ supersedes its package-context and remaining review-blocker instructions.
 - [H2B Runtime Composition & Kernel](completed/foundation/h2b-runtime-composition-kernel.md) — `COMPLETED` (PR #22 merged; H2B closure reconciled in PR #23; final-head PostgreSQL rerun remains `NOT_RUN`)
 - [H2-S Stabilization Closure](completed/foundation/h2-stabilization-closure.md) — `COMPLETED` (local implementation and Windows PostgreSQL 18.6 qualification complete; Independent Review, final cross-platform CI, and squash merge remain `NOT_RUN`)
 - [H2-S review correction and governance simplification](completed/foundation/h2s-review-correction-governance-simplification.md) — `COMPLETED` (local qualification and fresh PostgreSQL 18.6 qualification PASS; Independent Review, final cross-platform CI, and merge remain `NOT_RUN`)
+- [H2-S context-efficient package governance correction](completed/foundation/h2s-review-correction-context-efficient-package-governance.md) — `COMPLETED` (local qualification and fresh PostgreSQL 18.6 qualification PASS; Independent Review, final cross-platform CI, and merge remain `NOT_RUN`)
