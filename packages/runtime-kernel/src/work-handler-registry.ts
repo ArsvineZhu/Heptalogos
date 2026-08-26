@@ -4,6 +4,7 @@ import {
   parseContentDigest,
   parseContributionId,
   parseMicroSystemId,
+  snapshotCanonicalJson,
   type CanonicalJsonValue,
 } from "@heptalogos/foundation-contracts";
 import { compileSchema, type SchemaValidator } from "@heptalogos/schema-runtime";
@@ -13,6 +14,7 @@ import { runtimeKernelProblem } from "./problems.js";
 import {
   type RuntimeWorkHandler,
   type RuntimeWorkHandlerInvocation,
+  type RuntimeWorkHandlerInvocationReservation,
   type RuntimeWorkHandlerLease,
   type RuntimeWorkHandlerResult,
   type WorkHandlerPayloadContract,
@@ -295,46 +297,67 @@ function createLease(
       registration.fence.assertActive();
       return validatePayloadValue(version, value) as never;
     },
-    validateOutcome(value: unknown) {
-      registration.fence.assertActive();
-      return validateOutcomeValue(value) as never;
-    },
-    async execute(
-      input: RuntimeWorkHandlerInvocation,
-    ): Promise<RuntimeWorkHandlerResult> {
-      registration.fence.assertActive();
-      const invoke = async (): Promise<RuntimeWorkHandlerResult> => {
-        const result = await registration.fence.invoke(
-          `work-handler.${registration.descriptor.contributionId}`,
-          async () => {
-            const handlerResult = await registration.implementation.execute(input);
-            if (!isWorkHandlerResult(handlerResult)) {
-              throw runtimeKernelProblem(
-                "runtime.work_handler.invalid_result",
-                "WorkHandler returned a value without an outcome field",
-              );
-            }
-            const outcome = validateOutcomeValue(handlerResult.outcome);
-            return Object.freeze({ outcome: outcome as never });
-          },
-        );
-        return result;
-      };
-
-      if (registration.runtimeActivity === undefined) return invoke();
-      return registration.runtimeActivity.runActivity(
-        {
-          kind: "contribution.invoke",
-          importance: "routine",
-          retentionClass: "ephemeral",
-          sensitivity: "operational",
-          semantic: {
-            operationId: `work-handler.${registration.descriptor.contributionId}`,
-            contractVersion: registration.descriptor.contractVersion,
-          },
-        },
-        async () => invoke(),
+    reserveInvocation(): RuntimeWorkHandlerInvocationReservation {
+      const reservation = registration.fence.reserve(
+        `work-handler.${registration.descriptor.contributionId}`,
       );
+      const execute = (
+        input: RuntimeWorkHandlerInvocation,
+      ): Promise<RuntimeWorkHandlerResult> => {
+        const invoke = (): Promise<RuntimeWorkHandlerResult> =>
+          Promise.resolve(
+            reservation.run(async () => {
+              const handlerResult = await registration.implementation.execute(input);
+              if (!isWorkHandlerResult(handlerResult)) {
+                throw runtimeKernelProblem(
+                  "runtime.work_handler.invalid_result",
+                  "WorkHandler returned a value without an outcome field",
+                );
+              }
+              const outcome = validateOutcomeValue(handlerResult.outcome);
+              let snapshot: ReturnType<typeof snapshotCanonicalJson>;
+              try {
+                snapshot = snapshotCanonicalJson(outcome as CanonicalJsonValue);
+              } catch (cause) {
+                throw runtimeKernelProblem(
+                  "runtime.work_handler.outcome_invalid",
+                  "WorkHandler outcome is not canonical JSON",
+                  cause,
+                );
+              }
+              return Object.freeze({ outcome: snapshot.value as never });
+            }),
+          );
+
+        try {
+          if (registration.runtimeActivity === undefined) return invoke();
+          return registration.runtimeActivity
+            .runActivity(
+              {
+                kind: "contribution.invoke",
+                importance: "routine",
+                retentionClass: "ephemeral",
+                sensitivity: "operational",
+                semantic: {
+                  operationId: `work-handler.${registration.descriptor.contributionId}`,
+                  contractVersion: registration.descriptor.contractVersion,
+                },
+              },
+              async () => invoke(),
+            )
+            .catch((error) => {
+              reservation.release();
+              throw error;
+            });
+        } catch (error) {
+          reservation.release();
+          throw error;
+        }
+      };
+      return Object.freeze({
+        execute,
+        release: () => reservation.release(),
+      });
     },
   });
 }

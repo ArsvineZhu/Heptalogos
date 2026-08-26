@@ -1,10 +1,10 @@
 import {
-  canonicalizeJson,
   POSTGRES_INTEGER_MAX,
   parseContentDigest,
   parseContributionId,
   parseInstant,
   parseMicroSystemId,
+  snapshotCanonicalJson,
   createWorkItemId,
   type CanonicalJsonValue,
   type Instant,
@@ -148,9 +148,9 @@ function canonicalPayload(
   maximumBytes: number,
 ): CanonicalJsonValue {
   const validated = lease.validatePayload(target.payloadVersion, value);
-  let encoded: string;
+  let snapshot: ReturnType<typeof snapshotCanonicalJson>;
   try {
-    encoded = canonicalizeJson(validated as CanonicalJsonValue);
+    snapshot = snapshotCanonicalJson(validated as CanonicalJsonValue);
   } catch (cause) {
     throw workQueueProblem(
       "work.payload.invalid",
@@ -158,13 +158,13 @@ function canonicalPayload(
       cause,
     );
   }
-  if (new TextEncoder().encode(encoded).byteLength > maximumBytes) {
+  if (snapshot.utf8ByteLength > maximumBytes) {
     throw workQueueProblem(
       "work.payload.too_large",
       "WorkHandler payload exceeds maxInlinePayloadBytes",
     );
   }
-  return validated as CanonicalJsonValue;
+  return snapshot.value;
 }
 
 function requestedNotBefore(value: Instant | undefined): Instant | undefined {
@@ -367,6 +367,11 @@ export function createWorkQueueService(
                   WORK_AVAILABLE_TOPIC,
                 );
               }
+              await options.lineage.completeCurrent(transaction, activity, {
+                endedAt: options.time.now(),
+                outcome: "SUCCEEDED",
+                outcomeRef: inserted.status === "INSERTED" ? "CREATED" : "EXISTING",
+              });
             },
           });
         },

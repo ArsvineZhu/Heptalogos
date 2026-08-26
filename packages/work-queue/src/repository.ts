@@ -125,6 +125,11 @@ export interface WorkItemInsertOptions {
   ) => Promise<void>;
 }
 
+export interface WorkItemScanCursor {
+  readonly createdAt: Instant;
+  readonly workItemId: WorkItemId;
+}
+
 export interface WorkItemDedupLookup {
   readonly handlerMicroSystemId: MicroSystemId;
   readonly handlerContributionId: ContributionId;
@@ -143,6 +148,7 @@ export interface MarkWaitingDependencyInput {
   readonly workItemId: WorkItemId;
   readonly expectedDispatchRevision: number;
   readonly updatedAt: Instant;
+  readonly onApplied?: MutationAppliedHook;
 }
 
 export interface WakeDependencyInput {
@@ -209,14 +215,20 @@ export interface WorkQueueRepository {
   ): Promise<WorkItemInsertResult>;
   getWorkItem(workItemId: WorkItemId): Promise<WorkItem | undefined>;
   findNonTerminalDedup(lookup: WorkItemDedupLookup): Promise<WorkItem | undefined>;
+  snapshotProjectionCeiling(): Promise<WorkItemScanCursor | undefined>;
   listProjectionCandidates(input: {
+    readonly after?: WorkItemScanCursor;
+    readonly through: WorkItemScanCursor;
     readonly limit: number;
   }): Promise<readonly WorkItem[]>;
   listDueRetry(input: {
     readonly now: Instant;
     readonly limit: number;
   }): Promise<readonly WorkItem[]>;
+  snapshotWaitingDependencyCeiling(): Promise<WorkItemScanCursor | undefined>;
   listWaitingDependency(input: {
+    readonly after?: WorkItemScanCursor;
+    readonly through: WorkItemScanCursor;
     readonly limit: number;
   }): Promise<readonly WorkItem[]>;
   markRunning(input: MarkRunningInput): Promise<WorkItemMutationResult>;
@@ -570,6 +582,80 @@ function parsePersistedWorkItem(row: Record<string, unknown>): WorkItem {
   return item;
 }
 
+function parseScanCursor(row: Record<string, unknown>): WorkItemScanCursor {
+  const workItemId = parseWorkItemId(row.work_item_id);
+  const createdAt = persistedInstant(row.created_at, "created_at");
+  if (workItemId === undefined || createdAt === undefined) {
+    throw invalidItem("WorkItem scan cursor contains an invalid identity");
+  }
+  return { createdAt, workItemId };
+}
+
+function assertScanCursor(cursor: WorkItemScanCursor, field: string): void {
+  if (
+    parseInstant(cursor.createdAt) === undefined ||
+    parseWorkItemId(cursor.workItemId) === undefined
+  ) {
+    throw workQueueProblem(
+      "work_queue.invalid_work_item",
+      `${field} is not a valid WorkItem scan cursor`,
+    );
+  }
+}
+
+async function selectLaneCeiling(
+  transaction: PersistenceInternalTransaction,
+  state: "PENDING" | "WAITING_DEPENDENCY",
+): Promise<WorkItemScanCursor | undefined> {
+  const rows = await executeSql(
+    transaction,
+    `SELECT created_at, work_item_id
+     FROM "heptalogos"."work_item"
+     WHERE state = '${state}'
+     ORDER BY created_at DESC, work_item_id DESC
+     LIMIT 1`,
+  );
+  return rows[0] === undefined ? undefined : parseScanCursor(rows[0]);
+}
+
+async function selectLanePage(
+  transaction: PersistenceInternalTransaction,
+  state: "PENDING" | "WAITING_DEPENDENCY",
+  input: {
+    readonly after?: WorkItemScanCursor;
+    readonly through: WorkItemScanCursor;
+    readonly limit: number;
+  },
+): Promise<readonly WorkItem[]> {
+  if (!Number.isSafeInteger(input.limit) || input.limit <= 0) {
+    throw workQueueProblem(
+      "work_queue.invalid_options",
+      "WorkItem scan limit must be a positive safe integer",
+    );
+  }
+  assertScanCursor(input.through, "through");
+  if (input.after !== undefined) assertScanCursor(input.after, "after");
+  const rows = await executeSql(
+    transaction,
+    `SELECT ${WORK_ITEM_COLUMNS}
+     FROM "heptalogos"."work_item"
+     WHERE state = '${state}'
+       AND ($1::timestamptz IS NULL OR
+            (created_at, work_item_id) > ($1::timestamptz, $2::uuid))
+       AND (created_at, work_item_id) <= ($3::timestamptz, $4::uuid)
+     ORDER BY created_at ASC, work_item_id ASC
+     LIMIT $5`,
+    [
+      input.after?.createdAt ?? null,
+      input.after?.workItemId ?? null,
+      input.through.createdAt,
+      input.through.workItemId,
+      input.limit,
+    ],
+  );
+  return rows.map(parsePersistedWorkItem);
+}
+
 function assertPositiveRevision(value: number, field: string): void {
   if (!Number.isSafeInteger(value) || value < 1) {
     throw workQueueProblem(
@@ -830,19 +916,16 @@ export function createWorkQueueRepository(
       return rows[0] === undefined ? undefined : parsePersistedWorkItem(rows[0]);
     },
 
-    async listProjectionCandidates({ limit }) {
-      const rows = (await readContext(persistence, (transaction) =>
-        executeSql(
-          transaction,
-          `SELECT ${WORK_ITEM_COLUMNS}
-           FROM "heptalogos"."work_item"
-           WHERE state = 'PENDING'
-           ORDER BY priority ASC, created_at ASC, work_item_id ASC
-           LIMIT $1`,
-          [limit],
-        ),
-      )) as readonly Record<string, unknown>[];
-      return rows.map(parsePersistedWorkItem);
+    async snapshotProjectionCeiling() {
+      return (await readContext(persistence, (transaction) =>
+        selectLaneCeiling(transaction, "PENDING"),
+      )) as WorkItemScanCursor | undefined;
+    },
+
+    async listProjectionCandidates(input) {
+      return (await readContext(persistence, (transaction) =>
+        selectLanePage(transaction, "PENDING", input),
+      )) as readonly WorkItem[];
     },
 
     async listDueRetry({ now, limit }) {
@@ -862,19 +945,16 @@ export function createWorkQueueRepository(
       return rows.map(parsePersistedWorkItem);
     },
 
-    async listWaitingDependency({ limit }) {
-      const rows = (await readContext(persistence, (transaction) =>
-        executeSql(
-          transaction,
-          `SELECT ${WORK_ITEM_COLUMNS}
-           FROM "heptalogos"."work_item"
-           WHERE state = 'WAITING_DEPENDENCY'
-           ORDER BY created_at ASC, work_item_id ASC
-           LIMIT $1`,
-          [limit],
-        ),
-      )) as readonly Record<string, unknown>[];
-      return rows.map(parsePersistedWorkItem);
+    async snapshotWaitingDependencyCeiling() {
+      return (await readContext(persistence, (transaction) =>
+        selectLaneCeiling(transaction, "WAITING_DEPENDENCY"),
+      )) as WorkItemScanCursor | undefined;
+    },
+
+    async listWaitingDependency(input) {
+      return (await readContext(persistence, (transaction) =>
+        selectLanePage(transaction, "WAITING_DEPENDENCY", input),
+      )) as readonly WorkItem[];
     },
 
     async markRunning(input) {
@@ -920,6 +1000,7 @@ export function createWorkQueueRepository(
              AND superseded_by IS NULL
            RETURNING ${WORK_ITEM_COLUMNS}`,
           [...guard.parameters, input.updatedAt],
+          input.onApplied,
         );
       });
     },

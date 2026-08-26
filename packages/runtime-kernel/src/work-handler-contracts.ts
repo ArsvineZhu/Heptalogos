@@ -45,6 +45,11 @@ export interface RuntimeWorkHandlerResult {
   readonly outcome: RuntimeContractData;
 }
 
+export interface RuntimeWorkHandlerInvocationReservation {
+  execute(input: RuntimeWorkHandlerInvocation): Promise<RuntimeWorkHandlerResult>;
+  release(): void;
+}
+
 export interface RuntimeWorkHandler {
   execute(input: RuntimeWorkHandlerInvocation): Promise<RuntimeWorkHandlerResult>;
 }
@@ -68,8 +73,7 @@ export interface RuntimeWorkHandlerLease {
   readonly descriptor: WorkHandlerProvisionDescriptor;
   readonly runtimeActivity?: RuntimeActivityRunner;
   validatePayload(version: number, value: unknown): RuntimeContractData;
-  validateOutcome(value: unknown): RuntimeContractData;
-  execute(input: RuntimeWorkHandlerInvocation): Promise<RuntimeWorkHandlerResult>;
+  reserveInvocation(): RuntimeWorkHandlerInvocationReservation;
 }
 
 export interface WorkHandlerRegistration {

@@ -146,6 +146,11 @@ const runtimeProblemSpecs: Readonly<Record<string, RuntimeProblemSpec>> = {
     retryClass: "never",
     title: "Runtime operation identifier is invalid",
   },
+  "runtime.generation.invalid_reservation": {
+    category: "validation",
+    retryClass: "never",
+    title: "Runtime generation invocation reservation is invalid",
+  },
   "runtime.generation.invalid_settle_timeout": {
     category: "validation",
     retryClass: "never",

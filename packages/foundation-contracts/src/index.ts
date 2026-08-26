@@ -1,4 +1,9 @@
-export { canonicalizeJson, type CanonicalJsonValue } from "./canonical-json.js";
+export {
+  canonicalizeJson,
+  snapshotCanonicalJson,
+  type CanonicalJsonSnapshot,
+  type CanonicalJsonValue,
+} from "./canonical-json.js";
 export { digestCanonicalJson, type Sha256Digest } from "./digest.js";
 export {
   asContentDigest,

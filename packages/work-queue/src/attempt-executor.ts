@@ -1,7 +1,7 @@
 import {
-  canonicalizeJson,
   parseInstant,
   ProblemError,
+  snapshotCanonicalJson,
   type CanonicalJsonValue,
   type Instant,
 } from "@heptalogos/foundation-contracts";
@@ -12,7 +12,10 @@ import type {
   LineageContextRefV1,
 } from "@heptalogos/execution-lineage";
 import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
-import type { RuntimeWorkHandlerLease } from "@heptalogos/runtime-kernel";
+import type {
+  RuntimeWorkHandlerInvocationReservation,
+  RuntimeWorkHandlerLease,
+} from "@heptalogos/runtime-kernel";
 import type { TimeService } from "@heptalogos/time-service";
 import { createDispatchAttemptId } from "./attempt-identity.js";
 import type {
@@ -23,7 +26,11 @@ import type {
   WorkQueueRuntimeOptions,
   WorkRetryClass,
 } from "./contracts.js";
-import { type WorkItemMutationResult, type WorkQueueRepository } from "./repository.js";
+import {
+  type MutationAppliedHook,
+  type WorkItemMutationResult,
+  type WorkQueueRepository,
+} from "./repository.js";
 import {
   type WorkHandlerResolver,
   validateWorkQueueRuntimeOptions,
@@ -207,7 +214,9 @@ function classifyFailure(
   };
 }
 
-function cancellationOutcome(item: WorkItem): WorkItemOutcome | undefined {
+function cancellationOutcome(
+  item: WorkItem,
+): Extract<WorkItemOutcome, { kind: "CANCELLED" | "SUPERSEDED" }> | undefined {
   if (item.cancelRequestedAt !== undefined) {
     return {
       schemaVersion: 1,
@@ -232,10 +241,43 @@ function outcomeForActivity(item: WorkItem): "SUCCEEDED" | "FAILED" | "CANCELLED
   return "FAILED";
 }
 
+function earlyActivityHook(
+  options: WorkAttemptExecutorOptions,
+  activity: ExecutionContext,
+  fallbackOutcomeRef: string,
+): MutationAppliedHook {
+  return async (transaction, item) => {
+    let outcome: "SUCCEEDED" | "FAILED" | "CANCELLED";
+    let outcomeRef = fallbackOutcomeRef;
+    if (item.state === "WAITING_DEPENDENCY") {
+      outcome = "SUCCEEDED";
+      outcomeRef = "WAITING_DEPENDENCY";
+    } else if (item.state === "RETRY_WAIT") {
+      outcome = "SUCCEEDED";
+      outcomeRef = "RETRY_WAIT";
+    } else if (item.state === "FAILED") {
+      outcome = "FAILED";
+      if (item.outcome?.kind === "FAILED") outcomeRef = item.outcome.reasonCode;
+    } else if (item.state === "CANCELLED" || item.state === "SUPERSEDED") {
+      outcome = "CANCELLED";
+      if (item.outcome?.kind === "CANCELLED") outcomeRef = item.outcome.reasonCode;
+      if (item.outcome?.kind === "SUPERSEDED") outcomeRef = item.outcome.reasonCode;
+    } else {
+      outcome = "FAILED";
+    }
+    await options.lineage.retainCurrent(transaction, activity);
+    await options.lineage.completeCurrent(transaction, activity, {
+      endedAt: options.time.now(),
+      outcome,
+      outcomeRef,
+    });
+  };
+}
+
 function outputValue(value: unknown, maximumBytes: number): CanonicalJsonValue {
-  let encoded: string;
+  let snapshot: ReturnType<typeof snapshotCanonicalJson>;
   try {
-    encoded = canonicalizeJson(value as CanonicalJsonValue);
+    snapshot = snapshotCanonicalJson(value as CanonicalJsonValue);
   } catch (cause) {
     throw workQueueProblem(
       "work.outcome.invalid",
@@ -243,13 +285,13 @@ function outputValue(value: unknown, maximumBytes: number): CanonicalJsonValue {
       cause,
     );
   }
-  if (new TextEncoder().encode(encoded).byteLength > maximumBytes) {
+  if (snapshot.utf8ByteLength > maximumBytes) {
     throw workQueueProblem(
       "work.outcome.too_large",
       "WorkHandler outcome exceeds maxOutcomeBytes",
     );
   }
-  return value as CanonicalJsonValue;
+  return snapshot.value;
 }
 
 function isPayloadDependencyProblem(error: unknown): boolean {
@@ -374,6 +416,11 @@ export function createWorkAttemptExecutor(
                 expectedState: "PENDING",
                 outcome: requestedTerminal,
                 updatedAt: options.time.now(),
+                onApplied: earlyActivityHook(
+                  options,
+                  activity,
+                  requestedTerminal.reasonCode,
+                ),
               }),
             );
           }
@@ -384,6 +431,47 @@ export function createWorkAttemptExecutor(
                 workItemId: item.workItemId,
                 expectedDispatchRevision: item.dispatchRevision,
                 updatedAt: options.time.now(),
+                onApplied: earlyActivityHook(
+                  options,
+                  activity,
+                  "WAITING_DEPENDENCY",
+                ),
+              }),
+            );
+          }
+
+          let payload: unknown;
+          try {
+            payload = lease.validatePayload(item.handler.payloadVersion, item.payload);
+          } catch (error) {
+            if (isPayloadDependencyProblem(error)) {
+              return resultForMutation(
+                await options.repository.markWaitingDependency({
+                  workItemId: item.workItemId,
+                  expectedDispatchRevision: item.dispatchRevision,
+                  updatedAt: options.time.now(),
+                  onApplied: earlyActivityHook(
+                    options,
+                    activity,
+                    "WAITING_DEPENDENCY",
+                  ),
+                }),
+              );
+            }
+            const reasonCode = payloadValidationReasonCode(error);
+            return resultForMutation(
+              await options.repository.commitTerminal({
+                workItemId: item.workItemId,
+                expectedDispatchRevision: item.dispatchRevision,
+                expectedState: "PENDING",
+                outcome: {
+                  schemaVersion: 1,
+                  kind: "FAILED",
+                  retryClass: "invalid",
+                  reasonCode,
+                },
+                updatedAt: options.time.now(),
+                onApplied: earlyActivityHook(options, activity, reasonCode),
               }),
             );
           }
@@ -402,53 +490,56 @@ export function createWorkAttemptExecutor(
                 reasonCode: "not-before-not-yet-due",
                 notBefore: item.notBefore,
                 updatedAt: now,
+                onApplied: earlyActivityHook(options, activity, "RETRY_WAIT"),
               }),
             );
           }
 
-          let payload: unknown;
+          let reservation: RuntimeWorkHandlerInvocationReservation;
           try {
-            payload = lease.validatePayload(item.handler.payloadVersion, item.payload);
+            reservation = lease.reserveInvocation();
           } catch (error) {
-            if (isPayloadDependencyProblem(error)) {
+            if (
+              error instanceof ProblemError &&
+              error.problem.problemCode === "runtime.generation.retired"
+            ) {
               return resultForMutation(
                 await options.repository.markWaitingDependency({
                   workItemId: item.workItemId,
                   expectedDispatchRevision: item.dispatchRevision,
                   updatedAt: options.time.now(),
+                  onApplied: earlyActivityHook(
+                    options,
+                    activity,
+                    "WAITING_DEPENDENCY",
+                  ),
                 }),
               );
             }
-            return resultForMutation(
-              await options.repository.commitTerminal({
-                workItemId: item.workItemId,
-                expectedDispatchRevision: item.dispatchRevision,
-                expectedState: "PENDING",
-                outcome: {
-                  schemaVersion: 1,
-                  kind: "FAILED",
-                  retryClass: "invalid",
-                  reasonCode: payloadValidationReasonCode(error),
-                },
-                updatedAt: options.time.now(),
-              }),
-            );
+            throw error;
           }
 
           const attemptId = createDispatchAttemptId(
             item.workItemId,
             item.dispatchRevision,
           );
-          const claimed = await options.repository.markRunning({
-            workItemId: item.workItemId,
-            expectedDispatchRevision: item.dispatchRevision,
-            activeAttemptId: attemptId,
-            updatedAt: options.time.now(),
-            onApplied: async (transaction, running) => {
-              await options.lineage.retainCurrent(transaction, activity);
-            },
-          });
+          let claimed: WorkItemMutationResult;
+          try {
+            claimed = await options.repository.markRunning({
+              workItemId: item.workItemId,
+              expectedDispatchRevision: item.dispatchRevision,
+              activeAttemptId: attemptId,
+              updatedAt: options.time.now(),
+              onApplied: async (transaction, running) => {
+                await options.lineage.retainCurrent(transaction, activity);
+              },
+            });
+          } catch (error) {
+            reservation.release();
+            throw error;
+          }
           if (claimed.status !== "APPLIED" || claimed.item === undefined) {
+            reservation.release();
             const racedRequest =
               claimed.item === undefined
                 ? undefined
@@ -465,6 +556,11 @@ export function createWorkAttemptExecutor(
                   expectedState: "PENDING",
                   outcome: racedRequest,
                   updatedAt: options.time.now(),
+                  onApplied: earlyActivityHook(
+                    options,
+                    activity,
+                    racedRequest.reasonCode,
+                  ),
                 }),
               );
             }
@@ -483,7 +579,7 @@ export function createWorkAttemptExecutor(
             );
             let handlerResult: { readonly outcome: unknown };
             try {
-              handlerResult = await lease.execute({
+              handlerResult = await reservation.execute({
                 workItemId: running.workItemId,
                 dispatchRevision: running.dispatchRevision,
                 payloadVersion: running.handler.payloadVersion,

@@ -28,6 +28,7 @@ export type {
   ResourceAdmissionClassId,
   RuntimeWorkHandler,
   RuntimeWorkHandlerInvocation,
+  RuntimeWorkHandlerInvocationReservation,
   RuntimeWorkHandlerLease,
   RuntimeWorkHandlerResult,
   WorkHandlerConfigurationBindingPolicy,
@@ -48,6 +49,7 @@ export { CapabilityRegistry } from "./capability-registry.js";
 export {
   createGenerationFence,
   GenerationFence,
+  type GenerationInvocationReservation,
   type GenerationFenceState,
 } from "./generation-fence.js";
 export { evaluateReadiness } from "./readiness.js";

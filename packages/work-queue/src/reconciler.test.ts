@@ -37,6 +37,7 @@ import {
   type WorkQueueRepository,
   type WorkQueueRuntimeOptions,
 } from "./index.js";
+import type { WorkItemScanCursor } from "./repository.js";
 
 const now = "2026-08-26T12:00:00.000Z" as Instant;
 const queueProfileId = createMicroSystemId(
@@ -139,16 +140,31 @@ function repositoryFor(
   dueRetry: readonly WorkItem[] = [],
   waiting: readonly WorkItem[] = [],
 ): WorkQueueRepository & {
+  readonly snapshotProjectionCeiling: ReturnType<typeof vi.fn>;
+  readonly snapshotWaitingDependencyCeiling: ReturnType<typeof vi.fn>;
   readonly wakeDependency: ReturnType<typeof vi.fn>;
   readonly wakeDueRetry: ReturnType<typeof vi.fn>;
   readonly listProjectionCandidates: ReturnType<typeof vi.fn>;
+  readonly listWaitingDependency: ReturnType<typeof vi.fn>;
 } {
   return {
     insertWorkItem: vi.fn(),
     getWorkItem: vi.fn(),
     findNonTerminalDedup: vi.fn(),
+    snapshotProjectionCeiling: vi.fn(async () => {
+      const last = pending.at(-1);
+      return last === undefined
+        ? undefined
+        : { createdAt: last.createdAt, workItemId: last.workItemId };
+    }),
     listProjectionCandidates: vi.fn(async () => pending),
     listDueRetry: vi.fn(async () => dueRetry),
+    snapshotWaitingDependencyCeiling: vi.fn(async () => {
+      const last = waiting.at(-1);
+      return last === undefined
+        ? undefined
+        : { createdAt: last.createdAt, workItemId: last.workItemId };
+    }),
     listWaitingDependency: vi.fn(async () => waiting),
     markRunning: vi.fn(),
     markWaitingDependency: vi.fn(),
@@ -159,9 +175,12 @@ function repositoryFor(
     requestSupersede: vi.fn(),
     commitTerminal: vi.fn(),
   } as unknown as WorkQueueRepository & {
+    readonly snapshotProjectionCeiling: ReturnType<typeof vi.fn>;
+    readonly snapshotWaitingDependencyCeiling: ReturnType<typeof vi.fn>;
     readonly wakeDependency: ReturnType<typeof vi.fn>;
     readonly wakeDueRetry: ReturnType<typeof vi.fn>;
     readonly listProjectionCandidates: ReturnType<typeof vi.fn>;
+    readonly listWaitingDependency: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -199,6 +218,7 @@ function reconcilerFixture(
   dueRetry: readonly WorkItem[] = [],
   waiting: readonly WorkItem[] = [],
   dispatchAdmission: WorkDispatchAdmissionDecision = { decision: "ALLOW" },
+  reconciliationBatchSize = 10,
 ) {
   const context = executionContext();
   const repository = repositoryFor(pending, dueRetry, waiting);
@@ -210,15 +230,24 @@ function reconcilerFixture(
     target: pending[0]?.handler ?? item(context).handler,
     descriptor: {} as never,
     validatePayload: (version, value) => value as never,
-    validateOutcome: (value) => value as never,
-    execute: vi.fn(async () => ({ outcome: {} as never })),
+    reserveInvocation: vi.fn(() => ({
+      execute: vi.fn(async () => ({ outcome: {} as never })),
+      release: vi.fn(),
+    })),
   };
-  const handlerRegistry: WorkHandlerResolver = {
-    resolve: vi.fn(() => handler),
-  };
+  const resolve = vi.fn(
+    (_target: Parameters<WorkHandlerResolver["resolve"]>[0]):
+      | RuntimeWorkHandlerLease
+      | undefined => handler,
+  );
+  const handlerRegistry = { resolve } satisfies WorkHandlerResolver;
+  const beforeDispatch = vi.fn(
+    async (_input: Parameters<WorkAdmissionPort["beforeDispatch"]>[0]) =>
+      dispatchAdmission,
+  );
   const admission = {
     beforeCreate: vi.fn(async () => ({ decision: "ALLOW" as const })),
-    beforeDispatch: vi.fn(async () => dispatchAdmission),
+    beforeDispatch,
   } satisfies WorkAdmissionPort;
   const signal = signalFixture();
   const backgroundErrors: unknown[] = [];
@@ -233,7 +262,7 @@ function reconcilerFixture(
     runtimeOptions: {
       maxInlinePayloadBytes: 1024,
       maxOutcomeBytes: 1024,
-      reconciliationBatchSize: 10,
+      reconciliationBatchSize,
       antiEntropyIntervalMs: 100,
     } satisfies WorkQueueRuntimeOptions,
     onBackgroundError: (error) => backgroundErrors.push(error),
@@ -268,7 +297,7 @@ describe("WorkQueue reconciliation", () => {
           createDispatchAttemptId(pending.workItemId, pending.dispatchRevision),
       ),
     ).toBe(true);
-    expect(fixture.handler.execute).not.toHaveBeenCalled();
+    expect(fixture.handler.reserveInvocation).not.toHaveBeenCalled();
     await fixture.reconciler.stop();
   });
 
@@ -280,6 +309,7 @@ describe("WorkQueue reconciliation", () => {
     await fixture.reconciler.scan();
 
     expect(fixture.repository.listProjectionCandidates).toHaveBeenCalledWith({
+      through: { createdAt: pending.createdAt, workItemId: pending.workItemId },
       limit: 10,
     });
     expect(fixture.dispatches).toEqual([
@@ -295,14 +325,152 @@ describe("WorkQueue reconciliation", () => {
     ]);
   });
 
+  it("eventually projects a later PENDING item past a deferred prefix", async () => {
+    const pending = Array.from({ length: 5 }, (_, index) =>
+      item(executionContext(), {
+        priority: index < 2 ? 1 : 100,
+        notBefore: index < 2 ? "2026-08-27T12:00:00.000Z" as Instant : undefined,
+      }),
+    );
+    const fixture = reconcilerFixture(pending, [], [], { decision: "ALLOW" }, 2);
+    const deferredIds = new Set(pending.slice(0, 2).map((value) => value.workItemId));
+    fixture.admission.beforeDispatch.mockImplementation(async ({ workItem }) =>
+      deferredIds.has(workItem.workItemId)
+        ? { decision: "DELAY" as const, reasonCode: "deferred-prefix" }
+        : { decision: "ALLOW" as const },
+    );
+    fixture.repository.listProjectionCandidates.mockImplementation(
+      async ({ after, through, limit }: {
+        readonly after?: WorkItemScanCursor;
+        readonly through: WorkItemScanCursor;
+        readonly limit: number;
+      }) =>
+        pending
+          .filter((value) => {
+            const cursor = { createdAt: value.createdAt, workItemId: value.workItemId };
+            const afterKey = after === undefined ? undefined : `${after.createdAt}\u0000${after.workItemId}`;
+            const cursorKey = `${cursor.createdAt}\u0000${cursor.workItemId}`;
+            const throughKey = `${through.createdAt}\u0000${through.workItemId}`;
+            return (
+              (afterKey === undefined || cursorKey > afterKey) &&
+              cursorKey <= throughKey
+            );
+          })
+          .slice(0, limit),
+    );
+
+    await fixture.reconciler.scan();
+    await fixture.reconciler.scan();
+
+    expect(fixture.dispatches.map((value) => value.workItemId)).toContain(
+      pending[2]!.workItemId,
+    );
+    expect(fixture.admission.beforeDispatch).toHaveBeenCalledTimes(4);
+  });
+
+  it("eventually rechecks a later available dependency past an unavailable prefix", async () => {
+    const waiting = Array.from({ length: 5 }, (_, index) =>
+      item(executionContext(), {
+        state: "WAITING_DEPENDENCY",
+        handler: {
+          ...item(executionContext()).handler,
+          contributionId: createContributionId(`subject.reply.${index}`),
+        },
+      }),
+    );
+    const fixture = reconcilerFixture([], [], waiting, { decision: "ALLOW" }, 2);
+    const unavailableIds = new Set(
+      waiting.slice(0, 2).map((value) => value.handler.contributionId),
+    );
+    fixture.handlerRegistry.resolve.mockImplementation((value) =>
+      unavailableIds.has(value.contributionId) ? undefined : fixture.handler,
+    );
+    fixture.repository.listWaitingDependency.mockImplementation(
+      async ({ after, through, limit }: {
+        readonly after?: WorkItemScanCursor;
+        readonly through: WorkItemScanCursor;
+        readonly limit: number;
+      }) =>
+        waiting
+          .filter((value) => {
+            const key = `${value.createdAt}\u0000${value.workItemId}`;
+            const afterKey =
+              after === undefined ? undefined : `${after.createdAt}\u0000${after.workItemId}`;
+            const throughKey = `${through.createdAt}\u0000${through.workItemId}`;
+            return (afterKey === undefined || key > afterKey) && key <= throughKey;
+          })
+          .slice(0, limit),
+    );
+    fixture.repository.wakeDependency.mockImplementation(async ({ workItemId }) => {
+      const current = waiting.find((value) => value.workItemId === workItemId)!;
+      return unavailableIds.has(workItemId)
+        ? { status: "STALE" as const, item: current }
+        : {
+            status: "APPLIED" as const,
+            item: { ...current, state: "PENDING" as const, dispatchRevision: 2 },
+          };
+    });
+
+    await fixture.reconciler.scan();
+    await fixture.reconciler.scan();
+
+    expect(fixture.repository.wakeDependency).toHaveBeenCalledWith(
+      expect.objectContaining({ workItemId: waiting[2]!.workItemId }),
+    );
+    expect(fixture.dispatches).toContainEqual(
+      expect.objectContaining({
+        workItemId: waiting[2]!.workItemId,
+        dispatchRevision: 2,
+      }),
+    );
+  });
+
+  it("keeps a reconciliation cycle bounded when new tail rows arrive", async () => {
+    const initial = Array.from({ length: 5 }, () => item(executionContext()));
+    const tail = item(executionContext());
+    let rows = [...initial];
+    const fixture = reconcilerFixture(initial, [], [], { decision: "ALLOW" }, 2);
+    fixture.repository.snapshotProjectionCeiling.mockImplementation(async () => {
+      const last = rows.at(-1)!;
+      return { createdAt: last.createdAt, workItemId: last.workItemId };
+    });
+    fixture.repository.listProjectionCandidates.mockImplementation(
+      async ({ after, through, limit }: {
+        readonly after?: WorkItemScanCursor;
+        readonly through: WorkItemScanCursor;
+        readonly limit: number;
+      }) =>
+        rows
+          .filter((value) => {
+            const key = `${value.createdAt}\u0000${value.workItemId}`;
+            const afterKey =
+              after === undefined ? undefined : `${after.createdAt}\u0000${after.workItemId}`;
+            const throughKey = `${through.createdAt}\u0000${through.workItemId}`;
+            return (afterKey === undefined || key > afterKey) && key <= throughKey;
+          })
+          .slice(0, limit),
+    );
+
+    await fixture.reconciler.scan();
+    rows = [...rows, tail];
+    await fixture.reconciler.scan();
+    await fixture.reconciler.scan();
+
+    expect(fixture.repository.snapshotProjectionCeiling).toHaveBeenCalledTimes(1);
+    await fixture.reconciler.scan();
+    expect(fixture.repository.snapshotProjectionCeiling).toHaveBeenCalledTimes(2);
+    expect(fixture.repository.snapshotProjectionCeiling).toHaveBeenLastCalledWith();
+    expect(fixture.dispatches.slice(0, 5).map((value) => value.workItemId)).not.toContain(
+      tail.workItemId,
+    );
+  });
+
   it("does not dispatch when committed-work admission returns DELAY", async () => {
     const pending = item(executionContext());
-    const fixture = reconcilerFixture([], [], [], {
+    const fixture = reconcilerFixture([pending], [], [], {
       decision: "DELAY",
       reasonCode: "pressure.delayed",
     });
-    fixture.repository.listProjectionCandidates.mockResolvedValueOnce([pending]);
-
     await fixture.reconciler.scan();
 
     expect(fixture.admission.beforeDispatch).toHaveBeenCalledTimes(1);
@@ -311,12 +479,10 @@ describe("WorkQueue reconciliation", () => {
 
   it("does not dispatch when committed-work admission returns THROTTLE", async () => {
     const pending = item(executionContext());
-    const fixture = reconcilerFixture([], [], [], {
+    const fixture = reconcilerFixture([pending], [], [], {
       decision: "THROTTLE",
       reasonCode: "pressure.throttled",
     });
-    fixture.repository.listProjectionCandidates.mockResolvedValueOnce([pending]);
-
     await fixture.reconciler.scan();
 
     expect(fixture.admission.beforeDispatch).toHaveBeenCalledTimes(1);

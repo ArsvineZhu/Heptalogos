@@ -20,7 +20,10 @@ import {
   type WorkHandlerResolver,
   validateWorkQueueRuntimeOptions,
 } from "./service.js";
-import type { WorkQueueRepository } from "./repository.js";
+import type {
+  WorkItemScanCursor,
+  WorkQueueRepository,
+} from "./repository.js";
 import { workQueueProblem } from "./problems.js";
 
 const WORK_AVAILABLE_TOPIC = createSignalTopic("work.available");
@@ -74,6 +77,19 @@ function dispatchRequest(item: WorkItem): DurableDispatchRequest {
   };
 }
 
+interface FairScanLane {
+  after?: WorkItemScanCursor;
+  through?: WorkItemScanCursor;
+}
+
+function itemCursor(item: WorkItem): WorkItemScanCursor {
+  return { createdAt: item.createdAt, workItemId: item.workItemId };
+}
+
+function sameCursor(left: WorkItemScanCursor, right: WorkItemScanCursor): boolean {
+  return left.createdAt === right.createdAt && left.workItemId === right.workItemId;
+}
+
 export function createWorkQueueReconciler(
   options: WorkQueueReconcilerOptions,
 ): WorkQueueReconciler {
@@ -98,6 +114,47 @@ export function createWorkQueueReconciler(
   let subscription: { close(): Promise<void> } | undefined;
   let antiEntropyTimer: ReturnType<typeof setTimeout> | undefined;
   let scanPromise: Promise<ReconciliationScanResult> | undefined;
+  const projectionLane: FairScanLane = {};
+  const waitingDependencyLane: FairScanLane = {};
+
+  const resetLane = (lane: FairScanLane): void => {
+    delete lane.after;
+    delete lane.through;
+  };
+
+  const readFairPage = async (
+    lane: FairScanLane,
+    snapshotCeiling: () => Promise<WorkItemScanCursor | undefined>,
+    readPage: (input: {
+      readonly after?: WorkItemScanCursor;
+      readonly through: WorkItemScanCursor;
+      readonly limit: number;
+    }) => Promise<readonly WorkItem[]>,
+  ): Promise<readonly WorkItem[]> => {
+    if (lane.through === undefined) {
+      const through = await snapshotCeiling();
+      if (through === undefined) return [];
+      lane.through = through;
+      delete lane.after;
+    }
+    const through = lane.through;
+    const page = await readPage({
+      ...(lane.after === undefined ? {} : { after: lane.after }),
+      through,
+      limit: options.runtimeOptions.reconciliationBatchSize,
+    });
+    const last = page.at(-1);
+    if (
+      last === undefined ||
+      page.length < options.runtimeOptions.reconciliationBatchSize ||
+      sameCursor(itemCursor(last), through)
+    ) {
+      resetLane(lane);
+    } else {
+      lane.after = itemCursor(last);
+    }
+    return page;
+  };
 
   const reportScanFailure = (): void => {
     report(
@@ -156,9 +213,11 @@ export function createWorkQueueReconciler(
       }
     }
 
-    const waiting = await options.repository.listWaitingDependency({
-      limit: options.runtimeOptions.reconciliationBatchSize,
-    });
+    const waiting = await readFairPage(
+      waitingDependencyLane,
+      () => options.repository.snapshotWaitingDependencyCeiling(),
+      (input) => options.repository.listWaitingDependency(input),
+    );
     for (const item of waiting) {
       if (options.handlerRegistry.resolve(item.handler) === undefined) continue;
       const result = await options.repository.wakeDependency({
@@ -172,9 +231,11 @@ export function createWorkQueueReconciler(
       }
     }
 
-    const pending = await options.repository.listProjectionCandidates({
-      limit: options.runtimeOptions.reconciliationBatchSize,
-    });
+    const pending = await readFairPage(
+      projectionLane,
+      () => options.repository.snapshotProjectionCeiling(),
+      (input) => options.repository.listProjectionCandidates(input),
+    );
     const candidates = new Map<string, WorkItem>();
     for (const item of [...awakened, ...pending]) {
       if (item.state !== "PENDING") continue;
@@ -270,6 +331,8 @@ export function createWorkQueueReconciler(
       subscription = undefined;
       await currentSubscription?.close();
       await scanPromise?.catch(() => undefined);
+      resetLane(projectionLane);
+      resetLane(waitingDependencyLane);
     },
   };
 }

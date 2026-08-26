@@ -246,7 +246,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
       const lease = supervisor.workHandlers.resolve(target);
       expect(lease).toBeDefined();
       await expect(
-        lease!.execute({
+        lease!.reserveInvocation().execute({
           workItemId: createWorkItemId(),
           dispatchRevision: 1,
           payloadVersion: 1,

@@ -260,6 +260,77 @@ describe("WorkQueue Persistence repository", () => {
     } satisfies Partial<WorkItemMutationResult>);
   });
 
+  it("reads a cycle ceiling and a keyset projection page", async () => {
+    const item = sampleWorkItem();
+    prepareRows(
+      { created_at: new Date(item.createdAt), work_item_id: item.workItemId },
+      rowFor(item),
+    );
+    const repository = createWorkQueueRepository(fakePersistence()) as typeof createWorkQueueRepository extends (
+      persistence: PersistenceService,
+    ) => infer Repository
+      ? Repository & {
+          snapshotProjectionCeiling(): Promise<unknown>;
+          listProjectionCandidates(input: {
+            readonly after?: unknown;
+            readonly through: unknown;
+            readonly limit: number;
+          }): Promise<readonly WorkItem[]>;
+        }
+      : never;
+
+    const ceiling = await repository.snapshotProjectionCeiling();
+    const candidates = await repository.listProjectionCandidates({
+      through: ceiling,
+      limit: 2,
+    });
+
+    expect(ceiling).toEqual({
+      createdAt: item.createdAt,
+      workItemId: item.workItemId,
+    });
+    expect(candidates).toEqual([item]);
+    expect(mocks.executeQuery.mock.calls[1][0].sql).toMatch(
+      /ORDER BY created_at ASC, work_item_id ASC/u,
+    );
+    expect(mocks.executeQuery.mock.calls[1][0].sql).not.toContain("priority ASC");
+  });
+
+  it("reads a cycle ceiling and a keyset WAITING_DEPENDENCY page", async () => {
+    const item = sampleWorkItem({ state: "WAITING_DEPENDENCY" });
+    prepareRows(
+      { created_at: new Date(item.createdAt), work_item_id: item.workItemId },
+      rowFor(item),
+    );
+    const repository = createWorkQueueRepository(fakePersistence()) as typeof createWorkQueueRepository extends (
+      persistence: PersistenceService,
+    ) => infer Repository
+      ? Repository & {
+          snapshotWaitingDependencyCeiling(): Promise<unknown>;
+          listWaitingDependency(input: {
+            readonly after?: unknown;
+            readonly through: unknown;
+            readonly limit: number;
+          }): Promise<readonly WorkItem[]>;
+        }
+      : never;
+
+    const ceiling = await repository.snapshotWaitingDependencyCeiling();
+    const candidates = await repository.listWaitingDependency({
+      through: ceiling,
+      limit: 2,
+    });
+
+    expect(ceiling).toEqual({
+      createdAt: item.createdAt,
+      workItemId: item.workItemId,
+    });
+    expect(candidates).toEqual([item]);
+    expect(mocks.executeQuery.mock.calls[1][0].sql).toContain(
+      "state = 'WAITING_DEPENDENCY'",
+    );
+  });
+
   it("rejects persisted payload versions outside the PostgreSQL integer range", async () => {
     const item = sampleWorkItem({
       handler: { ...sampleWorkItem().handler, payloadVersion: 2_147_483_648 },

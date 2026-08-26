@@ -158,15 +158,19 @@ function fakeRepository(
           ) => Promise<void>;
         }
       | undefined,
+    status: "INSERTED" | "EXISTING",
   ) => Promise<void> = async () => undefined,
+  status: "INSERTED" | "EXISTING" = "INSERTED",
 ): WorkQueueRepository {
   return {
     insertWorkItem: (item, options) =>
-      onInsert(item, options).then(() => ({ status: "INSERTED", item: inserted })),
+      onInsert(item, options, status).then(() => ({ status, item: inserted })),
     getWorkItem: async () => undefined,
     findNonTerminalDedup: async () => undefined,
+    snapshotProjectionCeiling: async () => undefined,
     listProjectionCandidates: async () => [],
     listDueRetry: async () => [],
+    snapshotWaitingDependencyCeiling: async () => undefined,
     listWaitingDependency: async () => [],
     markRunning: async () => ({ status: "NOT_FOUND" }),
     markWaitingDependency: async () => ({ status: "NOT_FOUND" }),
@@ -204,11 +208,15 @@ function workItem(
   };
 }
 
-function serviceFixture(decision: WorkCreationAdmissionDecision) {
+function serviceFixture(
+  decision: WorkCreationAdmissionDecision,
+  insertStatus: "INSERTED" | "EXISTING" = "INSERTED",
+) {
   const source = executionContext();
   const activity = executionContext();
   const inserted = workItem(activity);
   const retainCurrent = vi.fn(async () => undefined);
+  const completeCurrent = vi.fn(async () => undefined);
   const publish = vi.fn(async () => undefined);
   const backgroundErrors: unknown[] = [];
   const insertedItems: WorkItem[] = [];
@@ -223,13 +231,13 @@ function serviceFixture(decision: WorkCreationAdmissionDecision) {
       hostOwnershipToken: activity.origin.hostOwnershipToken,
     },
   };
-  const repository = fakeRepository(inserted, async (item, options) => {
+  const repository = fakeRepository(inserted, async (item, options, status) => {
     insertedItems.push(item);
     await options?.onWithinTransaction?.(
-      { status: "INSERTED", item: inserted },
+      { status, item: inserted },
       transaction,
     );
-  });
+  }, insertStatus);
   const admission: WorkAdmissionPort = {
     beforeCreate: vi.fn(async () => decision),
     beforeDispatch: vi.fn(async () => ({ decision: "ALLOW" as const })),
@@ -251,8 +259,10 @@ function serviceFixture(decision: WorkCreationAdmissionDecision) {
       expect(version).toBe(1);
       return payload as never;
     }),
-    validateOutcome: vi.fn((value: unknown) => value as never),
-    execute: vi.fn(async () => ({ outcome: { ok: true } as never })),
+    reserveInvocation: vi.fn(() => ({
+      execute: vi.fn(async () => ({ outcome: { ok: true } as never })),
+      release: vi.fn(),
+    })),
   };
   const runtime: ExecutionContextRuntime = {
     current: () => source,
@@ -268,7 +278,7 @@ function serviceFixture(decision: WorkCreationAdmissionDecision) {
   };
   const lineage: ExecutionLineageService = {
     retainCurrent,
-    completeCurrent: async () => undefined,
+    completeCurrent,
     retainBootstrapReference: async () => undefined,
   };
   const resolve = vi.fn(() => lease);
@@ -300,6 +310,7 @@ function serviceFixture(decision: WorkCreationAdmissionDecision) {
     runtime,
     lineage,
     retainCurrent,
+    completeCurrent,
     publish,
     backgroundErrors,
     insertedItems,
@@ -325,11 +336,37 @@ describe("WorkQueue creation service", () => {
     });
     expect(fixture.retainCurrent).toHaveBeenCalledTimes(1);
     expect(fixture.publish).toHaveBeenCalledTimes(1);
+    expect(fixture.completeCurrent).toHaveBeenCalledWith(
+      expect.anything(),
+      fixture.activity,
+      { endedAt: now, outcome: "SUCCEEDED", outcomeRef: "CREATED" },
+    );
     expect(fixture.insertedItems[0]).toMatchObject({
       state: "PENDING",
       handler: target,
     });
     expect(fixture.insertedItems[0]).not.toHaveProperty("notBefore");
+  });
+
+  it("completes a deduplicated work.create Activity as EXISTING", async () => {
+    const fixture = serviceFixture({ decision: "ALLOW" }, "EXISTING");
+
+    const result = await fixture.service.create({
+      target,
+      payload: { value: "hello" },
+      queueProfileId,
+      resourceAdmissionClass,
+      priority: 100,
+    });
+
+    expect(result.status).toBe("EXISTING");
+    expect(fixture.retainCurrent).toHaveBeenCalledTimes(1);
+    expect(fixture.publish).not.toHaveBeenCalled();
+    expect(fixture.completeCurrent).toHaveBeenCalledWith(
+      expect.anything(),
+      fixture.activity,
+      { endedAt: now, outcome: "SUCCEEDED", outcomeRef: "EXISTING" },
+    );
   });
 
   it("retains DELAY and THROTTLE items with their explicit due time", async () => {
@@ -348,6 +385,30 @@ describe("WorkQueue creation service", () => {
       expect(result.status).toBe("CREATED");
       expect(fixture.insertedItems[0]?.notBefore).toBe(delayed);
     }
+  });
+
+  it("detaches the payload before admission can mutate the caller object", async () => {
+    const fixture = serviceFixture({ decision: "ALLOW" });
+    const sourcePayload = { nested: { value: 1 } };
+    const beforeCreate = fixture.admission.beforeCreate as unknown as ReturnType<
+      typeof vi.fn
+    >;
+    beforeCreate.mockImplementationOnce(async () => {
+      sourcePayload.nested.value = 9;
+      return { decision: "ALLOW" };
+    });
+
+    await fixture.service.create({
+      target,
+      payload: sourcePayload,
+      queueProfileId,
+      resourceAdmissionClass,
+      priority: 100,
+    });
+
+    expect(sourcePayload.nested.value).toBe(9);
+    expect(fixture.insertedItems[0]?.payload).toEqual({ nested: { value: 1 } });
+    expect(Object.isFrozen(fixture.insertedItems[0]?.payload)).toBe(true);
   });
 
   it("does not insert for either rejection decision", async () => {

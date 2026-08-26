@@ -122,11 +122,22 @@ describe("WorkHandlerRegistry", () => {
     expect(lease?.validatePayload(1, { value: "ok" })).toEqual({ value: "ok" });
     expect(() => lease?.validatePayload(1, { value: 1 })).toThrow();
     expect(() => lease?.validatePayload(2, { value: "ok" })).toThrow();
-    expect(lease?.validateOutcome({ accepted: true })).toEqual({ accepted: true });
-    expect(() => lease?.validateOutcome({ accepted: "yes" })).toThrow();
-    await expect(lease?.execute(invocation())).resolves.toEqual({
+    await expect(lease?.reserveInvocation().execute(invocation())).resolves.toEqual({
       outcome: { accepted: true },
     });
+    const invalidRegistry = new WorkHandlerRegistry();
+    invalidRegistry.register(
+      owner(packageGenerationA),
+      descriptor,
+      handler(async () => ({ outcome: { accepted: "yes" } as never })),
+      new GenerationFence(),
+    );
+    await expect(
+      invalidRegistry
+        .resolve(target(packageGenerationA))!
+        .reserveInvocation()
+        .execute(invocation()),
+    ).rejects.toThrow();
   });
 
   it("does not resolve an exact registration for an unsupported payload version", () => {
@@ -143,7 +154,7 @@ describe("WorkHandlerRegistry", () => {
     ).toBeUndefined();
   });
 
-  it("normalizes payload contract order and keeps a deep descriptor snapshot", () => {
+  it("normalizes payload contract order and keeps a deep descriptor snapshot", async () => {
     const mutablePayloadSchema = {
       type: "object",
       properties: { value: { type: "string" } },
@@ -192,7 +203,9 @@ describe("WorkHandlerRegistry", () => {
       type: "object",
     });
     expect(lease.validatePayload(1, { value: "ok" })).toEqual({ value: "ok" });
-    expect(lease.validateOutcome({ accepted: true })).toEqual({ accepted: true });
+    await expect(lease.reserveInvocation().execute(invocation())).resolves.toEqual({
+      outcome: { accepted: true },
+    });
   });
 
   it("never falls from a missing generation to another registered generation", () => {
@@ -266,12 +279,35 @@ describe("WorkHandlerRegistry", () => {
       fence,
     );
     const lease = registry.resolve(target(packageGenerationA))!;
-    const running = lease.execute(invocation());
+    const running = lease.reserveInvocation().execute(invocation());
 
     fence.beginRetirement();
     expect(registry.resolve(target(packageGenerationA))).toBeUndefined();
     resolveHandler({ outcome: { accepted: true } });
     await expect(running).resolves.toEqual({ outcome: { accepted: true } });
+  });
+
+  it("returns a detached deeply frozen outcome snapshot", async () => {
+    let handlerOutcome: { accepted: boolean } | undefined;
+    const registry = new WorkHandlerRegistry();
+    registry.register(
+      owner(packageGenerationA),
+      descriptor,
+      handler(async () => {
+        handlerOutcome = { accepted: true };
+        return { outcome: handlerOutcome };
+      }),
+      new GenerationFence(),
+    );
+
+    const result = await registry
+      .resolve(target(packageGenerationA))!
+      .reserveInvocation()
+      .execute(invocation());
+    handlerOutcome!.accepted = false;
+
+    expect(result.outcome).toEqual({ accepted: true });
+    expect(Object.isFrozen(result.outcome)).toBe(true);
   });
 
   it("passes the cooperative signal and records contribution.invoke with Host-bound origin", async () => {
@@ -315,6 +351,7 @@ describe("WorkHandlerRegistry", () => {
     const controller = new AbortController();
     await registry
       .resolve(target(packageGenerationA))!
+      .reserveInvocation()
       .execute(invocation(controller.signal));
 
     expect(seenKind).toBe("contribution.invoke");

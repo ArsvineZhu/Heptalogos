@@ -2,6 +2,11 @@ import { runtimeKernelProblem } from "./problems.js";
 
 export type GenerationFenceState = "ACTIVE" | "RETIRING" | "RETIRED";
 
+export interface GenerationInvocationReservation {
+  run<TResult>(call: () => TResult | Promise<TResult>): TResult | Promise<TResult>;
+  release(): void;
+}
+
 function validateOperationId(operationId: string): void {
   if (
     operationId.length === 0 ||
@@ -45,34 +50,68 @@ export class GenerationFence {
     }
   }
 
+  reserve(operationId: string): GenerationInvocationReservation {
+    validateOperationId(operationId);
+    this.assertActive();
+    this.inFlight += 1;
+    let started = false;
+    let released = false;
+    let settled = false;
+
+    const invalidReservation = (): never => {
+      throw runtimeKernelProblem(
+        "runtime.generation.invalid_reservation",
+        "Generation invocation reservation has already been released or run",
+      );
+    };
+
+    const finish = (): void => {
+      if (settled) return;
+      settled = true;
+      this.finishInvocation();
+    };
+
+    return Object.freeze({
+      run: <TResult>(
+        call: () => TResult | Promise<TResult>,
+      ): TResult | Promise<TResult> => {
+        if (started || released) invalidReservation();
+        started = true;
+        let result: TResult | Promise<TResult>;
+        try {
+          result = call();
+        } catch (error) {
+          finish();
+          throw error;
+        }
+        if (isPromiseLike(result)) {
+          return Promise.resolve(result).then(
+            (value) => {
+              finish();
+              return value;
+            },
+            (error) => {
+              finish();
+              throw error;
+            },
+          );
+        }
+        finish();
+        return result;
+      },
+      release: (): void => {
+        if (released || settled || started) return;
+        released = true;
+        finish();
+      },
+    });
+  }
+
   invoke<TResult>(
     operationId: string,
     call: () => TResult | Promise<TResult>,
   ): TResult | Promise<TResult> {
-    validateOperationId(operationId);
-    this.assertActive();
-    this.inFlight += 1;
-    let result: TResult | Promise<TResult>;
-    try {
-      result = call();
-    } catch (error) {
-      this.finishInvocation();
-      throw error;
-    }
-    if (isPromiseLike(result)) {
-      return Promise.resolve(result).then(
-        (value) => {
-          this.finishInvocation();
-          return value;
-        },
-        (error) => {
-          this.finishInvocation();
-          throw error;
-        },
-      );
-    }
-    this.finishInvocation();
-    return result;
+    return this.reserve(operationId).run(call);
   }
 
   private finishInvocation(): void {

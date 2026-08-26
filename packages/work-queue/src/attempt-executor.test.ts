@@ -23,9 +23,11 @@ import type {
   LineageContextRefV1,
 } from "@heptalogos/execution-lineage";
 import type { PersistenceMutationTransactionContext } from "@heptalogos/persistence";
+import { GenerationFence } from "@heptalogos/runtime-kernel";
 import type {
   ContractVersion,
   ResourceAdmissionClassId,
+  RuntimeWorkHandler,
   RuntimeWorkHandlerLease,
   WorkHandlerProvisionDescriptor,
   WorkQueueProfileId,
@@ -151,7 +153,7 @@ function terminalItem(
 
 function leaseFor(
   value: WorkItem,
-  execute: RuntimeWorkHandlerLease["execute"] = vi.fn(async () => ({
+  execute: RuntimeWorkHandler["execute"] = vi.fn(async () => ({
     outcome: { ok: true } as never,
   })),
 ): RuntimeWorkHandlerLease {
@@ -169,14 +171,16 @@ function leaseFor(
     target: value.handler,
     descriptor,
     validatePayload: (_version, payload) => payload as never,
-    validateOutcome: (outcome) => outcome as never,
-    execute,
+    reserveInvocation: vi.fn(() => ({
+      execute,
+      release: vi.fn(),
+    })),
   };
 }
 
 function fixture(
   value: WorkItem = item(context()),
-  execute: RuntimeWorkHandlerLease["execute"] = vi.fn(async () => ({
+  execute: RuntimeWorkHandler["execute"] = vi.fn(async () => ({
     outcome: { ok: true } as never,
   })),
 ) {
@@ -205,10 +209,11 @@ function fixture(
       await input.onApplied?.(transaction, running);
       return { status: "APPLIED" as const, item: running };
     }),
-    markWaitingDependency: vi.fn(async () => ({
-      status: "APPLIED" as const,
-      item: { ...value, state: "WAITING_DEPENDENCY" as const },
-    })),
+    markWaitingDependency: vi.fn(async (input) => {
+      const waiting = { ...value, state: "WAITING_DEPENDENCY" as const };
+      await input.onApplied?.(transaction, waiting);
+      return { status: "APPLIED" as const, item: waiting };
+    }),
     markRetryWait: vi.fn(async (input) => {
       const waiting = {
         ...value,
@@ -221,14 +226,21 @@ function fixture(
       return { status: "APPLIED" as const, item: waiting };
     }),
     commitTerminal: vi.fn(async (input) => {
-      const completed = terminalItem(value, input.outcome.kind);
+      const completed = {
+        ...terminalItem(value, input.outcome.kind),
+        outcome: input.outcome,
+        retryClass:
+          input.outcome.kind === "FAILED" ? input.outcome.retryClass : undefined,
+      };
       await input.onApplied?.(transaction, completed);
       return { status: "APPLIED" as const, item: completed };
     }),
     insertWorkItem: vi.fn(),
     findNonTerminalDedup: vi.fn(),
+    snapshotProjectionCeiling: vi.fn(),
     listProjectionCandidates: vi.fn(),
     listDueRetry: vi.fn(),
+    snapshotWaitingDependencyCeiling: vi.fn(),
     listWaitingDependency: vi.fn(),
     wakeDependency: vi.fn(),
     wakeDueRetry: vi.fn(),
@@ -313,7 +325,7 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     await expect(stale.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
       status: "STALE_NOOP",
     });
-    expect(stale.lease.execute).not.toHaveBeenCalled();
+    expect(stale.lease.reserveInvocation).not.toHaveBeenCalled();
   });
 
   it("claims and invokes only the exact generation, outside any product transaction", async () => {
@@ -352,24 +364,72 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     expect(attempt.retainCurrent).toHaveBeenCalledTimes(1);
   });
 
-  it("does not re-admit an outcome after the handler lease has already validated it", async () => {
+  it("keeps an admitted generation invocation alive through retirement", async () => {
     const value = item(context());
-    const attempt = fixture(value, async () => ({ outcome: { ok: true } as never }));
-    const validateOutcome = vi.fn(() => {
-      throw new ProblemError({
-        schemaVersion: 1,
-        problemCode: "runtime.generation.retired",
-        category: "conflict",
-        retryClass: "after-change",
-        title: "Runtime generation no longer admits new invocations",
-      });
+    const fence = new GenerationFence();
+    const generationReservation = fence.reserve("work-handler.subject.reply");
+    let retirement: Promise<void> | undefined;
+    const handler = vi.fn(
+      async (_input: Parameters<RuntimeWorkHandler["execute"]>[0]) => ({
+        outcome: { ok: true } as never,
+      }),
+    );
+    const attempt = fixture(value, handler);
+    attempt.lease.reserveInvocation = vi.fn(() => {
+      fence.beginRetirement();
+      retirement = fence.retire(1000);
+      return {
+        execute: (input: Parameters<RuntimeWorkHandler["execute"]>[0]) =>
+          Promise.resolve(
+            generationReservation.run(() => handler(input)),
+          ),
+        release: () => generationReservation.release(),
+      };
     });
-    attempt.lease.validateOutcome = validateOutcome;
 
     await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
       status: "SUCCEEDED",
     });
-    expect(validateOutcome).not.toHaveBeenCalled();
+    await retirement;
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(fence.state).toBe("RETIRED");
+    expect(attempt.classifier.classify).not.toHaveBeenCalled();
+  });
+
+  it("releases an admitted reservation when the RUNNING CAS loses", async () => {
+    const value = item(context());
+    const fence = new GenerationFence();
+    const generationReservation = fence.reserve("work-handler.subject.reply");
+    const execute = vi.fn(async () => ({ outcome: { ok: true } as never }));
+    const release = vi.fn(() => generationReservation.release());
+    const attempt = fixture(value, execute);
+    attempt.lease.reserveInvocation = vi.fn(() => ({
+      execute,
+      release,
+    }));
+    attempt.repository.markRunning = vi.fn(async () => ({
+      status: "STALE" as const,
+      item: value,
+    }));
+
+    await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
+      status: "STALE_NOOP",
+    });
+
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(execute).not.toHaveBeenCalled();
+    expect(fence.activeInvocationCount).toBe(0);
+  });
+
+  it("executes through one admitted reservation without a second lease gate", async () => {
+    const value = item(context());
+    const attempt = fixture(value, async () => ({ outcome: { ok: true } as never }));
+
+    await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
+      status: "SUCCEEDED",
+    });
+    expect(attempt.lease.reserveInvocation).toHaveBeenCalledTimes(1);
   });
 
   it("does not fall forward from a missing exact generation to another package", async () => {
@@ -382,7 +442,48 @@ describe("engine-neutral WorkAttemptExecutor", () => {
       status: "WAITING_DEPENDENCY",
     });
     expect(resolve).toHaveBeenCalledWith(value.handler);
-    expect(other.execute).not.toHaveBeenCalled();
+    expect(other.reserveInvocation).not.toHaveBeenCalled();
+  });
+
+  it("closes the work.execute Activity when an exact handler is unavailable", async () => {
+    const value = item(context());
+    const attempt = fixture(value);
+    attempt.handlerRegistry.resolve = vi.fn(() => undefined);
+
+    await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
+      status: "WAITING_DEPENDENCY",
+    });
+
+    expect(attempt.retainCurrent).toHaveBeenCalledTimes(1);
+    expect(attempt.completeCurrent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      {
+        endedAt: now,
+        outcome: "SUCCEEDED",
+        outcomeRef: "WAITING_DEPENDENCY",
+      },
+    );
+  });
+
+  it("closes the work.execute Activity when notBefore moves work to RETRY_WAIT", async () => {
+    const value = item(context(), { notBefore: future });
+    const attempt = fixture(value);
+
+    await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
+      status: "RETRY_WAIT",
+    });
+
+    expect(attempt.retainCurrent).toHaveBeenCalledTimes(1);
+    expect(attempt.completeCurrent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      {
+        endedAt: now,
+        outcome: "SUCCEEDED",
+        outcomeRef: "RETRY_WAIT",
+      },
+    );
   });
 
   it("terminalizes an immutable invalid payload instead of waiting for a dependency", async () => {
@@ -413,6 +514,16 @@ describe("engine-neutral WorkAttemptExecutor", () => {
         },
       }),
     );
+    expect(attempt.retainCurrent).toHaveBeenCalledTimes(1);
+    expect(attempt.completeCurrent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      {
+        endedAt: now,
+        outcome: "FAILED",
+        outcomeRef: "runtime.work_handler.payload_invalid",
+      },
+    );
   });
 
   it("lets cancellation and supersession win a stale handler result", async () => {
@@ -430,6 +541,35 @@ describe("engine-neutral WorkAttemptExecutor", () => {
       });
       expect(attempt.repository.commitTerminal).toHaveBeenCalledTimes(1);
     }
+  });
+
+  it("closes the work.execute Activity when a terminal intent wins before RUNNING", async () => {
+    const value = item(context());
+    const cancelled = {
+      ...value,
+      cancelRequestedAt: now,
+      cancellationReasonCode: "operator.cancelled",
+    };
+    const attempt = fixture(value);
+    attempt.repository.markRunning = vi.fn(async () => ({
+      status: "STALE" as const,
+      item: cancelled,
+    }));
+
+    await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
+      status: "CANCELLED",
+    });
+
+    expect(attempt.retainCurrent).toHaveBeenCalledTimes(1);
+    expect(attempt.completeCurrent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      {
+        endedAt: now,
+        outcome: "CANCELLED",
+        outcomeRef: "operator.cancelled",
+      },
+    );
   });
 
   it("does not turn a retry classification into work without an exact notBefore", async () => {
@@ -459,7 +599,7 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
       status: "RETRY_WAIT",
     });
-    expect(attempt.lease.execute).not.toHaveBeenCalled();
+    expect(attempt.lease.reserveInvocation).not.toHaveBeenCalled();
     expect(attempt.repository.markRetryWait).toHaveBeenCalledWith(
       expect.objectContaining({
         retryClass: "transient",
@@ -513,6 +653,31 @@ describe("engine-neutral WorkAttemptExecutor", () => {
         }),
       }),
     );
+  });
+
+  it("persists a detached outcome when the handler retains and mutates its result", async () => {
+    const value = item(context());
+    let handlerOutcome: { nested: { value: number } } | undefined;
+    const attempt = fixture(value, async () => {
+      handlerOutcome = { nested: { value: 1 } };
+      return { outcome: handlerOutcome } as never;
+    });
+
+    await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
+      status: "SUCCEEDED",
+    });
+    handlerOutcome!.nested.value = 9;
+
+    const terminalInput = (
+      attempt.repository.commitTerminal as ReturnType<typeof vi.fn>
+    ).mock.calls[0]?.[0] as { readonly outcome: WorkItem["outcome"] };
+    expect(terminalInput.outcome).toMatchObject({
+      kind: "SUCCEEDED",
+      value: { nested: { value: 1 } },
+    });
+    if (terminalInput.outcome?.kind === "SUCCEEDED") {
+      expect(Object.isFrozen(terminalInput.outcome.value)).toBe(true);
+    }
   });
 
   it("keeps secret handler diagnostics out of canonical failure details", async () => {
