@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-26T18:53:34+09:00",
+  "recordedAt": "2026-08-26T22:12:53+09:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": [
@@ -173,7 +173,20 @@
         "postgres_restart_read": "PASS",
         "missing_retained_generation_blocks": "PASS",
         "terminal_retry_single_effect": "PASS",
-        "crash_after_terminal_commit": "NOT_RUN"
+        "crash_after_terminal_commit": "NOT_RUN",
+        "h3a1_contribution_origin": "PASS",
+        "h3a1_workitem_canonical_state": "PASS",
+        "h3a1_generation_pinned_handler": "PASS",
+        "h3a1_revision_fence": "PASS",
+        "h3a1_terminal_replay_semantics": "PASS",
+        "h3a1_signal_reconnect_rescan": "PASS",
+        "h3a1_lost_dispatch_reconciliation": "PASS",
+        "h3a1_cancel_supersede_semantics": "PASS",
+        "h3a1_nonterminal_dedup": "PASS",
+        "h3a1_admission_contract": "PASS",
+        "h3a1_real_postgres_18_6_ubuntu": "NOT_RUN",
+        "h3a1_dbos_real_engine": "NOT_RUN",
+        "h3a1_process_crash_after_terminal_commit": "NOT_RUN"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
@@ -181,7 +194,10 @@
         "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
       },
       "notRunReasons": {
-        "crash_after_terminal_commit": "No process-level crash was injected after the canonical terminal commit; only a real DBOS retry attempt was exercised."
+        "crash_after_terminal_commit": "No process-level crash was injected after the canonical terminal commit; only a real DBOS retry attempt was exercised.",
+        "h3a1_real_postgres_18_6_ubuntu": "The required explicit PostgreSQL toolchain was not configured: HEPTALOGOS_TEST_PG_BIN was unset and no PostgreSQL binary was available in the bounded standard-path check. The integration command reported BLOCKED before the real H3A-1 PostgreSQL scenarios ran.",
+        "h3a1_dbos_real_engine": "H3A-1 deliberately implements engine-neutral WorkQueue semantics; DBOS integration is deferred to H3A-2.",
+        "h3a1_process_crash_after_terminal_commit": "H3A-1 has no process-level crash harness or DBOS engine checkpoint to exercise this boundary; it remains deferred to H3A-2."
       },
       "preImplementationDecisionState": "CLOSED",
       "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification unless explicitly promoted by a future blocker."

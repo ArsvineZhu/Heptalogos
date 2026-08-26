@@ -24,11 +24,31 @@ evidence:
   missing_retained_generation_blocks: PASS
   terminal_retry_single_effect: PASS
   crash_after_terminal_commit: NOT_RUN
+  h3a1_contribution_origin: PASS
+  h3a1_workitem_canonical_state: PASS
+  h3a1_generation_pinned_handler: PASS
+  h3a1_revision_fence: PASS
+  h3a1_terminal_replay_semantics: PASS
+  h3a1_signal_reconnect_rescan: PASS
+  h3a1_lost_dispatch_reconciliation: PASS
+  h3a1_cancel_supersede_semantics: PASS
+  h3a1_nonterminal_dedup: PASS
+  h3a1_admission_contract: PASS
+  h3a1_real_postgres_18_6_ubuntu: NOT_RUN
+  h3a1_dbos_real_engine: NOT_RUN
+  h3a1_process_crash_after_terminal_commit: NOT_RUN
 ```
 
 ## NOT_RUN / deferred properties
 
 - `crash_after_terminal_commit`: No process-level crash was injected after the canonical terminal commit; only a real DBOS retry attempt was exercised.
+- `h3a1_real_postgres_18_6_ubuntu`: The required explicit PostgreSQL toolchain was not configured (`HEPTALOGOS_TEST_PG_BIN` was unset and no PostgreSQL binary was available in the bounded standard-path check). The integration command therefore reported `BLOCKED` before the real H3A-1 PostgreSQL scenarios ran.
+- `h3a1_dbos_real_engine`: H3A-1 deliberately implements engine-neutral WorkQueue semantics; DBOS integration is deferred to H3A-2.
+- `h3a1_process_crash_after_terminal_commit`: H3A-1 has no process-level crash harness or DBOS engine checkpoint to exercise this boundary; it remains deferred to H3A-2.
+
+## H3A-1 observed implementation evidence
+
+The focused unit suites passed on 2026-08-26: foundation-contracts (26/26), execution-lineage (30/30), canonical-schema (4/4), runtime-kernel (131/131), signal (6/6), and work-queue (33/33). These suites establish the local semantic properties listed above; they do not substitute for the required real PostgreSQL/Host qualification.
 
 ## Architecture disposition
 

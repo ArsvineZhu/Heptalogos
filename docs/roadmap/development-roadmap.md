@@ -343,13 +343,20 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 ```yaml
 H3: OPEN
 H3A: ACTIVE
-H3A_1: ACTIVE
+H3A_1: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
 H3A_2: NOT_ELIGIBLE
 H3B: NOT_ELIGIBLE
 H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
 activeImplementationPlan: docs/plans/active/foundation/h3a-durable-obligation-signal-spine.md
 ```
+
+H3A-1 implementation is complete on its candidate branch. The focused local
+semantic suites pass, while the required real Ubuntu PostgreSQL 18.6/Host
+qualification is `NOT_RUN`/`BLOCKED` because the explicit
+`HEPTALOGOS_TEST_PG_BIN` toolchain was not configured. The candidate therefore
+awaits that evidence and the out-of-band Independent Review; H3A-2 remains
+`NOT_ELIGIBLE` until H3A-1 is closed.
 
 ### Implementation decomposition
 
