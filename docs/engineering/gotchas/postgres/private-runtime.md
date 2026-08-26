@@ -33,6 +33,20 @@ capture for commands whose diagnostics are needed, such as stop and status
 probes. This is a process-adapter concern; readiness still comes from the
 explicit loopback `pg_isready` check.
 
+## Extracted runtime library closure
+
+An extracted PostgreSQL runtime can contain `postgres`, `initdb`, `pg_ctl`,
+`pg_controldata`, and `pg_isready` while still failing before startup because
+the dynamic loader cannot resolve the matching `libpq.so.5`. PostgreSQL
+executables being present does not mean the extracted runtime is self-contained.
+
+For the Ubuntu 26.04 PostgreSQL 18.6 qualification, the matching `libpq5`
+shared-library runtime was extracted into the ignored qualification scratch
+area and exposed through `LD_LIBRARY_PATH`. That was sufficient for this live
+Ubuntu qualification. It does not establish source-less shipping artifact
+closure; source-less qualification must prove the complete transitive native
+runtime closure supplied by the artifact.
+
 ## Related version-probe detail
 
 Distro PostgreSQL tools may report an exact version with one parenthesized
@@ -47,6 +61,6 @@ qualification runtime. The Windows `pg_ctl` behavior was reproduced with the
 explicit EDB 18.6 Windows x64 runtime. Both are covered by
 `packages/private-postgres/src/controller.integration.test.ts` and
 `packages/bootstrap-runtime/src/private-postgres-bootstrap.integration.test.ts`.
-This does not qualify corrected-candidate Linux/macOS parity, source-less
-shipping, or service-account/installer ACLs; those remain separate
-qualification properties.
+These mechanics do not by themselves establish macOS real PostgreSQL,
+source-less artifact, service-account ACL, or installed service/headless
+qualification; those remain separate qualification properties.

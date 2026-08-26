@@ -1,8 +1,8 @@
 # Heptalogos Development Roadmap
 
 **Status:** LIVING ROADMAP / planning guidance<br>
-**Date:** 2026-08-25<br>
-**Repository baseline:** current `master` integration baseline for this roadmap (H2B reconciliation / H2-S branch base)<br>
+**Date:** 2026-08-26<br>
+**Repository baseline:** current `master` integration baseline after H2 post-merge reconciliation and Ubuntu/Linux residual qualification<br>
 **Architecture baseline:** `Architecture_Corpus` design state 2026-08-20
 
 > This document is a roadmap, not an Architecture Corpus authority and not an Implementation Plan. It guides future plan decomposition, sequencing, risk retirement, and acceptance. If it conflicts with the Architecture Corpus, the Corpus wins. If implementation evidence invalidates roadmap assumptions without invalidating architecture semantics, update the roadmap rather than silently changing the Corpus.
@@ -154,18 +154,26 @@ candidate revalidation, squash merge, and this post-merge reconciliation.
 The H2-S local qualification and fresh PostgreSQL 18.6 qualification are also
 `PASS`.
 
-H1 functional implementation and stabilization are `CLOSED`. Residual product
-qualification such as Linux/macOS PostgreSQL, source-less shipping,
-service-account ACL, and hardware power-loss remains `NOT_RUN` where the
-qualification records say so.
+H1 functional implementation and stabilization are `CLOSED`. Current product
+qualification is property-scoped:
+
+```yaml
+current_product_qualification:
+  windows_real_postgres: PASS
+  ubuntu_linux_real_postgres: PASS
+  macos_real_postgres: NOT_RUN
+  source_less: NOT_RUN
+  service_headless: NOT_RUN
+  service_account_acl: NOT_RUN
+  hardware_power_loss: NOT_RUN
+```
 
 H2A and H2B are functionally complete, H2-S stabilization is `CLOSED`, and H3
-is `ELIGIBLE`. H2 closure is not product-qualification closure: final generic
-Ubuntu/macOS/Windows repository CI did not prove real PostgreSQL on Linux or
-macOS, source-less execution, installed service/headless execution,
-service-account ACLs, or hardware power-loss behavior. Those residuals remain
-at their recorded states and are handled independently by the later Ubuntu
-qualification lane.
+is `ELIGIBLE`. H2 closure is not product-qualification closure. The current
+evidence proves real PostgreSQL on Windows and Ubuntu/Linux; macOS real
+PostgreSQL, source-less execution, installed service/headless execution,
+service-account ACLs, and hardware power-loss behavior remain `NOT_RUN`. Those
+boundaries remain at their recorded states and are not implied by H2 closure.
 
 Current H2-S stabilization status:
 

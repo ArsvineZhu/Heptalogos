@@ -10,7 +10,7 @@ implementationQualification: REQUIRED
 selectedRoute: "`@bybrave/proper-lockfile2` 5.0.0"
 ```
 
-## Current H1-S candidate truth (2026-08-23)
+## Historical H1-S candidate snapshot (2026-08-23)
 
 ```yaml
 M5B: CLOSED
@@ -21,11 +21,11 @@ H2: NOT_ELIGIBLE
 behavior_candidate_sha: 3cc589b667b0cd64342881caf7d382c2d960a928
 ```
 
-The machine-readable ledger contains only current H1-S properties. Historical
-M5A/M5B review, CI, and merge records remain below as narrative evidence and do
-not create a current compatibility obligation.
+This is a historical candidate snapshot. Its milestone statuses and candidate
+identity were true at that point in the H1-S sequence and are retained as
+historical evidence; they are not current milestone state.
 
-## Current properties
+## Historical H1-S candidate properties (2026-08-23)
 
 ```yaml
 evidence:
@@ -82,7 +82,7 @@ archive in the temporary bin root
 `C:\Users\Arsvine\AppData\Local\Temp\heptalogos-pg18.6-correction-20260823\extracted\pgsql\bin`;
 all five required tools reported 18.6.
 
-## NOT_RUN / deferred properties
+## Historical H1-S deferred properties (2026-08-23)
 
 - Linux/macOS real PostgreSQL recovery, source-less recovery, service-account ACL, and hardware power-loss remain unrun.
 - Independent review, final cross-platform CI, and squash merge are external closure gates for this exact candidate.
@@ -376,7 +376,11 @@ successful run. Windows/macOS real PostgreSQL, source-less recovery,
 service-account ACL, and hardware power-loss remain `NOT_RUN`; repository CI
 does not upgrade those product/platform claims.
 
-## Current-master Ubuntu residual qualification (2026-08-26)
+## Current-master qualification properties (2026-08-26)
+
+Current milestone state is owned by the living Roadmap and the machine-readable
+qualification ledger. This section reports only current qualification
+properties.
 
 ```yaml
 ubuntu_current_master_residual_qualification:
@@ -391,6 +395,7 @@ ubuntu_current_master_residual_qualification:
   recoveryProcess: PASS (4/4)
   recoveryProcessPostgres: PASS (2/2)
   linux_real_postgres_recovery: PASS
+  windows_real_postgres_recovery: PASS
   macos_real_postgres_recovery: NOT_RUN
   source_less_recovery: NOT_RUN
   service_account_acl: NOT_RUN

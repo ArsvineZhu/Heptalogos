@@ -30,6 +30,7 @@ No active implementation plan is installed for the current branch.
 
 ## Completed
 
+- [Post-H2 Current Authority Hygiene](completed/post-h2-current-authority-hygiene.md) — `COMPLETED` (current-truth, provenance, and terminology maintenance only; H2 remains `CLOSED` and H3 remains `ELIGIBLE`)
 - [H2 Ubuntu Residual Qualification](completed/foundation/h2-ubuntu-residual-qualification.md) — `COMPLETED` (Ubuntu/Linux PostgreSQL 18.6 matrix `PASS`; only directly exercised Linux residuals upgraded; remaining product boundaries stay `NOT_RUN`)
 - [H2 Post-Merge Closure Reconciliation](completed/foundation/h2-post-merge-closure-reconciliation.md) — `COMPLETED` (H2-S post-merge truth reconciled; H2 is `CLOSED` and H3 is `ELIGIBLE`; Ubuntu residual qualification remains independent)
 - [H2A-3 Canonical Execution Context, Time & Lineage Foundation](completed/foundation/h2a3-canonical-execution-context-time-lineage.md) — `COMPLETED` (PR #19 merged; final cross-platform CI remains `NOT_RUN` by operator direction)

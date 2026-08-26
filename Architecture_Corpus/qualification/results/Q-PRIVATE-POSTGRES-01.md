@@ -9,7 +9,7 @@ implementationQualification: REQUIRED
 testedProperty: "Exact PostgreSQL 18.6 private bootstrap initialization, portable identity, bounded lifecycle, ownership-held handoff, and fail-closed recovery boundaries"
 ```
 
-## Current H1-S candidate truth (2026-08-23)
+## Historical H1-S candidate snapshot (2026-08-23)
 
 ```yaml
 M5B: CLOSED
@@ -20,11 +20,13 @@ H2: NOT_ELIGIBLE
 behavior_candidate_sha: 3cc589b667b0cd64342881caf7d382c2d960a928
 ```
 
-The machine-readable ledger currently contains the H1-S canonical V1 property
-set. Historical M3/M4/M5A/M5B implementation records remain below as narrative
-evidence and do not assert compatibility with removed development-era formats.
+This is a historical candidate snapshot. Its milestone statuses and candidate
+identity were true at that point in the H1-S sequence and are retained as
+historical evidence; they are not current milestone state. The machine-readable
+ledger and the current-master section at the end of this record own current
+qualification properties.
 
-## Current H1-S properties
+## Historical H1-S candidate properties (2026-08-23)
 
 ```yaml
 canonical_v1_private_postgres_identity_commit: PASS
@@ -52,7 +54,7 @@ The five required tools reported 18.6; private-postgres integration passed
 20/20, Host ownership integration 8/8, bootstrap-runtime integration 30/30,
 and PostgreSQL process recovery 2/2. `pnpm verify` also passed.
 
-## Current H1-S review-correction qualification
+## Historical H1-S review-correction qualification (2026-08-23)
 
 ```yaml
 candidate_sha: 3cc589b667b0cd64342881caf7d382c2d960a928
@@ -80,14 +82,14 @@ final_cross_platform_ci: NOT_RUN
 squash_merge: NOT_RUN
 ```
 
-This current-host run proves Windows extracted-runtime PostgreSQL behavior for
-the corrected candidate. It does not upgrade Linux/macOS, source-less shipping,
-service-account ACL, hardware power-loss, independent-review, final-CI, or
-merge claims.
+This historical candidate run proves Windows extracted-runtime PostgreSQL
+behavior for the corrected candidate at that time. It does not upgrade
+Linux/macOS, source-less shipping, service-account ACL, hardware power-loss,
+independent-review, final-CI, or merge claims.
 
 ## Historical corrected-candidate Windows evidence
 
-## Corrected-candidate Windows evidence
+### Windows evidence
 
 ```yaml
 platform: Windows x64
@@ -173,7 +175,7 @@ installer ACL behavior. The real lifecycle suite also covers a restart
 readiness failure followed by a bounded stop that proves the process is no
 longer running; it does not treat stale in-memory STOPPED state as proof.
 
-## Final hardening evidence (2026-08-22)
+## Historical final hardening evidence (2026-08-22)
 
 The following evidence is an addendum for the final hardening candidate; the
 earlier PASS entries above remain historical evidence at their recorded SHA.
@@ -487,7 +489,7 @@ and returns the close failure through the normal maintenance error path without
 an `unhandledRejection` event. No PONR, Scenario F, PostgreSQL lifecycle, or
 M5B scope was changed.
 
-## Qualification remaining
+## Historical qualification remaining
 
 This is implementation/product evidence, not a new dependency-selection
 authority. Corrected-candidate M4 Linux/macOS evidence, M5A Windows/macOS real
@@ -686,3 +688,32 @@ The final manual workflow verified the exact reviewed SHA on all three
 platforms. This is repository verification, not real PostgreSQL qualification
 on Windows or macOS. Source-less recovery, service-account ACL, and hardware
 power-loss remain `NOT_RUN`.
+
+## Current-master qualification properties (2026-08-26)
+
+Current milestone state is owned by the living Roadmap and the machine-readable
+qualification ledger. This section reports only current qualification
+properties.
+
+```yaml
+current_master_ubuntu_linux_qualification:
+  platform: Ubuntu/Linux
+  architecture: x86_64
+  postgresVersion: PostgreSQL 18.6
+  postgresBinMode: explicit HEPTALOGOS_TEST_PG_BIN
+  postgresBinDirectory: /home/arsvine/Dev/Heptalogos/tmp/pg/postgresql-18.6/usr/lib/postgresql/18/bin
+  privatePostgresIntegration: PASS (20/20)
+  hostOwnershipIntegration: PASS (10/10)
+  bootstrapRuntimeIntegration: PASS (8 suites, 58 tests)
+  recoveryProcessPostgres: PASS (2/2)
+  linux_real_pg: PASS
+  windows_real_pg: PASS
+  macos_real_pg: NOT_RUN
+  source_less_shipping_closure: NOT_RUN
+  service_account_acl_closure: NOT_RUN
+  hardware_power_loss: NOT_RUN
+```
+
+The Ubuntu/Linux result is limited to the explicit PostgreSQL 18.6 runtime
+qualification above. It does not imply macOS, source-less, installed
+service/headless, service-account ACL, or hardware power-loss qualification.

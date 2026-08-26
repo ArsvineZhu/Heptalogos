@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
- "recordedAt": "2026-08-26T00:40:07+08:00",
+  "recordedAt": "2026-08-26T18:53:34+09:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": [
@@ -20,7 +20,6 @@
       "REOPENED"
     ]
   },
-  "runMetadata": "run-metadata/latest.json",
   "records": [
     {
       "qualificationId": "C-TOOLCHAIN-01",
@@ -277,8 +276,8 @@
         "canonical_bootstrap_state_v1": "PASS",
         "canonical_bootstrap_journal_v1": "PASS",
         "canonical_private_postgres_initialization_profile_v1": "PASS",
-        "legacy_preproduction_bootstrap_shape_rejected": "PASS",
-        "legacy_preproduction_maintenance_shape_rejected": "PASS",
+        "bootstrap_state_rejects_unsupported_shape": "PASS",
+        "maintenance_state_rejects_unsupported_shape": "PASS",
         "recovered_previous_bootstrap_state_read_only": "PASS",
         "recovered_previous_maintenance_journal_read_only": "PASS",
         "recovery_declared_root_closure": "PASS",
