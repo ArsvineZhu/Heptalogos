@@ -270,10 +270,9 @@ candidate:
 localQualification:
   status: PASS
   environment: Windows / Node 24.19.0 / pnpm 11.22.0
-  completedAfterLastRepositoryMutation: true
 freshPostgreSQL18_6: PASS
 runtimeKernelScenarios:
-  status: PASS (123/123)
+  status: PASS (125/125)
   namedScenarios:
     - Q1 closes Service admission synchronously while an admitted call drains
     - Q2 quiesces hard dependents before providers with deterministic independent ordering
@@ -288,6 +287,8 @@ runtimeKernelScenarios:
     - Q12 prevents a queued later start after quiescence is requested
     - Q-start-quiesce-cancel aborts STARTING activation without manual release
     - Q-start-owner-abort-cancel aborts STARTING activation and cannot reopen
+    - rejects a delayed activation after quiescence closes admission
+    - rejects a delayed activation after owner abort closes admission
     - Q13 admits no work when the owner signal is already aborted
     - Q14 returns the same idempotent terminal close outcome
     - Q15 fails closed when resume encounters a structural activation failure

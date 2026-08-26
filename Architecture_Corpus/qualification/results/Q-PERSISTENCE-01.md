@@ -316,7 +316,6 @@ candidate:
 localQualification:
   status: PASS
   environment: Windows / Node 24.19.0 / pnpm 11.22.0
-  completedAfterLastRepositoryMutation: true
 freshPostgreSQL18_6: PASS
 persistenceUnit: PASS (19/19)
 executionLineageUnit: PASS (29/29)
