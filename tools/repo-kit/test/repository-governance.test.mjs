@@ -59,7 +59,7 @@ describe("repository workflow governance", () => {
     const errors = validateVerifyWorkflow(
       workflowPrefix.replace(
         "  workflow_dispatch:\n",
-        `  ${trigger}:\n  workflow_dispatch:\n`,
+        `  ${trigger}: {}\n  workflow_dispatch:\n`,
       ) + "jobs:\n  verify:\n    runs-on: ubuntu-latest\n",
     );
 

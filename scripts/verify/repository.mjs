@@ -33,7 +33,7 @@ function workflowOnDirectKeys(workflow) {
   const keys = [];
   for (const line of lines.slice(onIndex + 1)) {
     if (line.length > 0 && !/^\s/u.test(line)) break;
-    const match = line.match(/^ {2}([A-Za-z0-9_-]+):\s*(?:#.*)?$/u);
+    const match = line.match(/^ {2}([A-Za-z0-9_-]+):(?:\s.*)?$/u);
     if (match !== null) keys.push(match[1]);
   }
   return keys;
