@@ -97,7 +97,7 @@
         "h2b_squash_merge": "PASS (PR #22 merge d7f32427398d2309c1732cdbce98f590e14a8249)",
         "h2s_candidate": {
           "pullRequest": 24,
-          "state": "READY_FOR_REVIEW",
+          "state": "MERGED",
           "branch": "dev/h2-stabilization"
         },
         "h2s_localQualification": {
@@ -144,9 +144,9 @@
         "h2s_persistenceIntegration": "PASS (9/9)",
         "h2s_recoveryProcess": "PASS (4/4)",
         "h2s_recoveryProcessPostgres": "PASS (2/2)",
-        "h2s_independentReview": "NOT_RUN",
-        "h2s_finalCrossPlatformCI": "NOT_RUN",
-        "h2s_merge": "NOT_RUN"
+        "h2s_independentReview": "PASS",
+        "h2s_finalCrossPlatformCI": "PASS",
+        "h2s_merge": "PASS"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
@@ -640,7 +640,7 @@
     "h2a3_squash_merge": "PASS (PR #19 merge 7b51468c2c41895bde7091868d688d98dfc6c957)",
         "h2s_candidate": {
           "pullRequest": 24,
-          "state": "READY_FOR_REVIEW",
+          "state": "MERGED",
           "branch": "dev/h2-stabilization"
         },
         "h2s_localQualification": {
@@ -656,9 +656,9 @@
         "h2s_persistenceIntegration": "PASS (9/9)",
         "h2s_recoveryProcess": "PASS (4/4)",
         "h2s_recoveryProcessPostgres": "PASS (2/2)",
-        "h2s_independentReview": "NOT_RUN",
-        "h2s_finalCrossPlatformCI": "NOT_RUN",
-        "h2s_merge": "NOT_RUN"
+        "h2s_independentReview": "PASS",
+        "h2s_finalCrossPlatformCI": "PASS",
+        "h2s_merge": "PASS"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",

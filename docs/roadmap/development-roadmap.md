@@ -143,37 +143,43 @@ H2A_3: CLOSED
 H2A: FUNCTIONALLY_COMPLETE
 H2B: CLOSED
 H2_FUNCTIONAL: COMPLETE
-H2_STABILIZATION: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
-H2: OPEN
-H3: NOT_ELIGIBLE
+H2_STABILIZATION: CLOSED
+H2: CLOSED
+H3: ELIGIBLE
 ```
 
-H2B is closed and H2 is functionally complete. The current H2-S corrective
-candidate has local qualification and fresh PostgreSQL 18.6 qualification
-`PASS`. Independent Review, final cross-platform CI, and merge remain
-`NOT_RUN`; H2 remains open and H3 remains not eligible.
+H2B is closed and H2 is now closed after the H2-S behavior candidate completed
+its externally supplied Independent Review, final manual cross-platform CI with
+candidate revalidation, squash merge, and this post-merge reconciliation.
+The H2-S local qualification and fresh PostgreSQL 18.6 qualification are also
+`PASS`.
 
 H1 functional implementation and stabilization are `CLOSED`. Residual product
 qualification such as Linux/macOS PostgreSQL, source-less shipping,
 service-account ACL, and hardware power-loss remains `NOT_RUN` where the
 qualification records say so.
 
-H2A and H2B are functionally complete. H2 remains `OPEN` until the current
-stabilization candidate completes its review, final CI, merge, and current-truth
-reconciliation gates. H3 remains `NOT_ELIGIBLE`.
+H2A and H2B are functionally complete, H2-S stabilization is `CLOSED`, and H3
+is `ELIGIBLE`. H2 closure is not product-qualification closure: final generic
+Ubuntu/macOS/Windows repository CI did not prove real PostgreSQL on Linux or
+macOS, source-less execution, installed service/headless execution,
+service-account ACLs, or hardware power-loss behavior. Those residuals remain
+at their recorded states and are handled independently by the later Ubuntu
+qualification lane.
 
 Current H2-S stabilization status:
 
 ```yaml
-H2_STABILIZATION: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+H2_STABILIZATION: CLOSED
 localQualification: PASS
 freshPostgreSQL18_6: PASS
-independentReview: NOT_RUN
-finalCrossPlatformCI: NOT_RUN
-merge: NOT_RUN
+independentReview: PASS
+finalCrossPlatformCI: PASS
+finalCandidateRevalidation: PASS
+merge: PASS
 ```
 
-The current candidate's concrete evidence is maintained in
+The H2-S closure evidence is maintained in
 [`Q-RUNTIME-01`](../../Architecture_Corpus/qualification/results/Q-RUNTIME-01.md)
 and
 [`Q-PERSISTENCE-01`](../../Architecture_Corpus/qualification/results/Q-PERSISTENCE-01.md).

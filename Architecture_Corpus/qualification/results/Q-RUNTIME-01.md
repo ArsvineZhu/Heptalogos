@@ -260,7 +260,7 @@ database behavior. H2A-3's historical final cross-platform CI remains
 PostgreSQL, source-less, service/headless, and complete product runtime
 start/stop claims remain `NOT_RUN` or `PARTIAL` as previously recorded.
 
-## H2-S current candidate qualification (2026-08-26)
+## H2-S pre-merge candidate qualification (2026-08-26)
 
 ```yaml
 candidate:
@@ -313,6 +313,29 @@ finalCrossPlatformCI: NOT_RUN
 merge: NOT_RUN
 ```
 
-This is the current Ready review candidate. The fresh Windows PostgreSQL 18.6
-suite and all required local gates completed after the implementation mutation;
-Independent Review, final cross-platform CI, and merge remain external gates.
+This section preserves the pre-merge Ready review candidate as historical
+evidence. The fresh Windows PostgreSQL 18.6 suite and all required local gates
+completed after the implementation mutation; the external closure gates were
+subsequently completed and are recorded below.
+
+## H2-S post-merge closure (2026-08-26)
+
+```yaml
+h2s_post_merge_closure:
+  independentReview: PASS
+  finalCrossPlatformCI: PASS
+  finalCrossPlatformCIPlatforms:
+    ubuntu: PASS
+    macos: PASS
+    windows: PASS
+  finalCandidateRevalidation: PASS
+  squashMerge: PASS
+  H2Stabilization: CLOSED
+  H2: CLOSED
+```
+
+The final generic Ubuntu/macOS/Windows repository CI established repository
+verification for the candidate; it did not establish real PostgreSQL product
+qualification on Linux or macOS. Source-less, installed service/headless,
+service-account ACL, and hardware power-loss properties remain residuals at
+their recorded `NOT_RUN` states.

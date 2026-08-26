@@ -306,7 +306,7 @@ The H2A-3 historical final cross-platform CI remains `NOT_RUN`; H2B evidence
 does not rewrite it. Linux/macOS PostgreSQL, source-less persistence, and
 service/headless product claims remain `NOT_RUN`.
 
-## H2-S current candidate qualification (2026-08-26)
+## H2-S pre-merge candidate qualification (2026-08-26)
 
 ```yaml
 candidate:
@@ -330,6 +330,25 @@ finalCrossPlatformCI: NOT_RUN
 merge: NOT_RUN
 ```
 
-This current record describes the Ready review candidate. Historical H2A/H2B
-review, CI, and merge records above remain historical; Independent Review,
-final cross-platform CI, and merge are still `NOT_RUN` for this candidate.
+This section preserves the Ready review candidate as historical pre-merge
+evidence. Historical H2A/H2B review, CI, and merge records above remain
+historical; the H2-S external closure gates were subsequently completed and
+are recorded below.
+
+## H2-S post-merge closure (2026-08-26)
+
+```yaml
+h2s_post_merge_closure:
+  freshWindowsPostgreSQL18_6: PASS
+  independentReview: PASS
+  finalCrossPlatformCI: PASS
+  squashMerge: PASS
+  H2Stabilization: CLOSED
+  H2: CLOSED
+  qualificationState: PARTIAL
+```
+
+The final generic Ubuntu/macOS/Windows repository CI did not prove real
+PostgreSQL persistence on Linux or macOS, source-less persistence, installed
+service/headless persistence, service-account ACLs, or hardware power-loss
+behavior. Those residual product properties remain at their recorded states.
