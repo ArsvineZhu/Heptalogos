@@ -38,6 +38,13 @@ inside the adapter and must use the repository subprocess mechanics. Bootstrap
 and Host packages authorize when these mechanics may be used; this package does
 not decide that authority.
 
+## Change constraints
+
+Keep process control behind the exported controller contracts and the adopted
+subprocess route. Preserve bounded timeouts, identity/profile checks, and
+explicit failure dispositions. Do not decide Bootstrap ownership, Host fencing,
+or normal persistence policy here.
+
 ## Verification
 
 Run `pnpm nx run private-postgres:test`,
@@ -47,5 +54,7 @@ changing startup or maintenance behavior.
 
 ## Architecture references
 
-Read Corpus S01, S03, S11, S17, and the private PostgreSQL qualification record
-before changing process, profile, or lifecycle semantics.
+- [`S01 — 启动、恢复与运行时监督`](../../Architecture_Corpus/specs/S01-启动-恢复-运行时监督.md)
+- [`S03 — 持久化、事务与 EffectFence`](../../Architecture_Corpus/specs/S03-持久化-事务-EffectFence.md)
+- [`S11 — 备份、更新、分发与平台`](../../Architecture_Corpus/specs/S11-备份-更新-分发-平台.md)
+- [`S17 — Storage Workspace 与 DataLifecycle`](../../Architecture_Corpus/specs/S17-Storage-Workspace-DataLifecycle.md)

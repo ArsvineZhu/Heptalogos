@@ -35,6 +35,13 @@ do not add database, filesystem, framework, or network behavior. Current
 PRE_PRODUCTION shapes are defined by their owning package, and unsupported
 shapes must fail according to that package's contract.
 
+## Change constraints
+
+Keep validator mechanics behind the package contract. Do not define product or
+domain Authority, compatibility policy, or fallback readers here. Preserve
+explicit validation failures and keep the package deterministic and side-effect
+free.
+
 ## Verification
 
 Run `pnpm nx run schema-runtime:test`, lint, typecheck, and the schema contract
@@ -43,5 +50,8 @@ gates when public exports change.
 
 ## Architecture references
 
-Read Corpus 02, 12, 15, 16, 19, 24, and S15 before changing compilation,
-validation results, or TypeBox routing.
+- [`02 — 架构原则与反 NIH 约束`](../../Architecture_Corpus/02-架构原则与反NIH约束.md)
+- [`12 — 数据、证据、内容与持久化`](../../Architecture_Corpus/12-数据-证据-内容与持久化.md)
+- [`16 — 验证与资格认定体系`](../../Architecture_Corpus/16-验证与资格认定体系.md)
+- [`24 — 依赖使用与实现路由`](../../Architecture_Corpus/24-依赖使用与实现路由.md)
+- [`S15 — Foundation 横切合同`](../../Architecture_Corpus/specs/S15-Foundation横切合同.md)

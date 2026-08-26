@@ -37,6 +37,13 @@ It depends on `foundation-contracts`, `execution-lineage`, `host-ownership`,
 fence Authority and canonical-schema remains the schema Authority. Do not
 introduce direct SQL mutation paths around the service.
 
+## Change constraints
+
+Canonical normal mutation remains Host-fenced and must use the persistence
+service. Do not create a second direct canonical mutation path. Keep schema
+ownership in `canonical-schema`, lease ownership in `host-ownership`, and pool
+lifecycle bounded.
+
 ## Verification
 
 Run `pnpm nx run persistence:test`, the real PostgreSQL integration target, and
@@ -45,5 +52,7 @@ the corresponding persistence and Host qualification scenarios.
 
 ## Architecture references
 
-Read Corpus S03, S15, S16, S17, and the persistence qualification record before
-changing transaction, connection, or context propagation behavior.
+- [`S03 — 持久化、事务与 EffectFence`](../../Architecture_Corpus/specs/S03-持久化-事务-EffectFence.md)
+- [`S15 — Foundation 横切合同`](../../Architecture_Corpus/specs/S15-Foundation横切合同.md)
+- [`S16 — Execution Lineage Observability`](../../Architecture_Corpus/specs/S16-Execution-Lineage-Observability.md)
+- [`S17 — Storage Workspace 与 DataLifecycle`](../../Architecture_Corpus/specs/S17-Storage-Workspace-DataLifecycle.md)

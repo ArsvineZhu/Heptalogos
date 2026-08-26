@@ -120,9 +120,8 @@ after final CI makes review and CI stale.
 Do not copy commit SHAs into plans, qualification records, PR bodies, or Agent
 instructions. Git/GitHub/CI may use revision identity internally.
 
-When working under a workspace package, read its nearest AGENTS.md and README.md.
-The local AGENTS.md refines this repository contract for that package; it does
-not replace Corpus Authority.
+For work under `packages/**`, follow `packages/AGENTS.md` and read the target
+package `README.md` before editing.
 
 ## 6. Stop conditions
 

@@ -37,6 +37,13 @@ created here must have an owner and bounded cancel/drain/dispose behavior; work
 that must survive restart belongs to a Foundation durable primitive in a later
 stage.
 
+## Change constraints
+
+Cordis objects and mechanics must not escape this adapter boundary. Substrate
+owns mechanics, not Desired/Actual state, Service/Capability meaning, provider
+selection, or Generation Authority. Every process-memory task needs an owner
+and bounded cancel/drain/dispose behavior.
+
 ## Verification
 
 Run `pnpm nx run runtime-substrate:test`, lint, typecheck, and focused resource
@@ -45,5 +52,8 @@ owner or generation behavior.
 
 ## Architecture references
 
-Read Corpus S01, S06, S13, S15, and S16 before changing activation, disposal,
-failure, or framework-adapter behavior.
+- [`S01 — 启动、恢复与运行时监督`](../../Architecture_Corpus/specs/S01-启动-恢复-运行时监督.md)
+- [`S06 — Extension、Package Trust 与 ExecutionDomain`](../../Architecture_Corpus/specs/S06-Extension-Package-Trust-ExecutionDomain.md)
+- [`S13 — Foundation Service/Capability/Readiness`](../../Architecture_Corpus/specs/S13-Foundation-Service-Capability-Readiness-Catalog.md)
+- [`S15 — Foundation 横切合同`](../../Architecture_Corpus/specs/S15-Foundation横切合同.md)
+- [`S16 — Execution Lineage Observability`](../../Architecture_Corpus/specs/S16-Execution-Lineage-Observability.md)

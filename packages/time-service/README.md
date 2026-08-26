@@ -35,6 +35,12 @@ side-effect limited to the system-clock adapter. Time values are inputs to
 other owners; this package does not decide retention, lifecycle, scheduling, or
 configuration policy.
 
+## Change constraints
+
+Keep monotonic elapsed time distinct from human-local wall time. Use the fake
+service for deterministic tests rather than global clock mocks. Do not add
+scheduling, retry, persistence, or lifecycle ownership.
+
 ## Verification
 
 Run `pnpm nx run time-service:test`, lint, typecheck, and deterministic fake-time
@@ -43,5 +49,8 @@ lifecycle, persistence, or Evidence tests as well.
 
 ## Architecture references
 
-Read Corpus S02, S03, S10, S15, and S16 before changing monotonic, instant, or
-timezone behavior.
+- [`S02 — 异步、WorkQueue、Durable 与 Time`](../../Architecture_Corpus/specs/S02-异步-WorkQueue-Durable-Time.md)
+- [`S03 — 持久化、事务与 EffectFence`](../../Architecture_Corpus/specs/S03-持久化-事务-EffectFence.md)
+- [`S10 — Evidence、Replay、Observability 与 Content`](../../Architecture_Corpus/specs/S10-Evidence-Replay-Observability-Content.md)
+- [`S15 — Foundation 横切合同`](../../Architecture_Corpus/specs/S15-Foundation横切合同.md)
+- [`S16 — Execution Lineage Observability`](../../Architecture_Corpus/specs/S16-Execution-Lineage-Observability.md)

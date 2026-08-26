@@ -1,9 +1,14 @@
 # Workspace packages
 
 These packages are the current Heptalogos Foundation workspace. Each package
-has a local `README.md` for human orientation and an `AGENTS.md` for concise
-implementation rules. The repository root `AGENTS.md` and Architecture Corpus
-remain authoritative; local files refine them for one package.
+has one substantive `README.md` for human orientation, package boundaries, and
+local change constraints. The repository root `AGENTS.md` and the single
+[`packages/AGENTS.md`](./AGENTS.md) overlay remain authoritative for agent
+execution rules; the package README refines them for one package.
+
+Use the compact [`package index`](./INDEX.md) to navigate every workspace
+package. Read the target package README before editing; read the index and this
+overview when a change crosses package boundaries.
 
 ## Bootstrap / recovery closure
 
@@ -54,5 +59,23 @@ bootstrap-runtime production path stays outside runtime-kernel/runtime-substrate
 and composes with them only at higher Host/product integration boundaries.
 ```
 
-Use each package's verification target and the repository gates for changes that
-cross package boundaries.
+## Adding or removing a package
+
+Add a workspace package only when it has a distinct semantic owner and a
+Corpus-supported boundary. Its manifest must use the adopted dependency route,
+its README must follow the current headings below, and the package must be
+listed exactly once in [`INDEX.md`](./INDEX.md). Remove a package only after
+its consumers and navigation are updated. Do not create a child `AGENTS.md`.
+
+Every package README uses these sections: `Purpose`, `Owns`, `Does not own`,
+`Public surface`, `Dependencies and boundaries`, `Change constraints`,
+`Verification`, and `Architecture references`. The last section contains direct
+relative links into `Architecture_Corpus`; package docs do not duplicate the
+Corpus or root agent constitution.
+
+The semantic layers shown above are directional boundaries, not a strict total
+dependency order. Shared contracts sit below schema/bootstrap/data primitives;
+ownership and persistence support execution foundation; Runtime Substrate sits
+below Runtime Kernel. `bootstrap-runtime` production code remains outside the
+Runtime Kernel/Substrate path and composes with it only at higher integration
+boundaries.

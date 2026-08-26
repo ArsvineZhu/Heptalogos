@@ -38,6 +38,13 @@ behind the package contracts. Persistence and Evidence remain their respective
 authorities; lineage adds correlation and causal semantics rather than a second
 database or scheduler.
 
+## Change constraints
+
+Keep Activity/ExecutionContext identity distinct from Evidence and telemetry.
+Use the persistence service for durable mutations. Preserve causal propagation
+and current Host/generation fences; do not add scheduler, durable-work, or
+Runtime reconciliation semantics.
+
 ## Verification
 
 Run `pnpm nx run execution-lineage:test`, lint, typecheck, and persistence-backed
@@ -46,5 +53,7 @@ PostgreSQL when the claim concerns durable lineage.
 
 ## Architecture references
 
-Read Corpus 22, S03, S10, S15, S16, and the lineage qualification material before
-changing context propagation, handoff, or retained Activity behavior.
+- [`22 — Execution-Lineage 与可观测执行`](../../Architecture_Corpus/22-Execution-Lineage与可观测执行.md)
+- [`S03 — 持久化、事务与 EffectFence`](../../Architecture_Corpus/specs/S03-持久化-事务-EffectFence.md)
+- [`S10 — Evidence、Replay、Observability 与 Content`](../../Architecture_Corpus/specs/S10-Evidence-Replay-Observability-Content.md)
+- [`S16 — Execution Lineage Observability`](../../Architecture_Corpus/specs/S16-Execution-Lineage-Observability.md)

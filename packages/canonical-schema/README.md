@@ -36,6 +36,13 @@ Database connection and Host context come from the caller's owning layer. Keep
 schema ownership separate from transaction and lifecycle ownership; do not add
 a second schema authority in persistence or Bootstrap.
 
+## Change constraints
+
+Keep one current PRE_PRODUCTION schema baseline. Development chronology does not
+justify append-only compatibility migrations or readers. Use the owning Host
+context and keep connection-pool and Bootstrap maintenance policy outside this
+package.
+
 ## Verification
 
 Run `pnpm nx run canonical-schema:test`, lint, typecheck, and the relevant real
@@ -44,5 +51,7 @@ requires the PRE_PRODUCTION reset/recreate procedure and full repository gates.
 
 ## Architecture references
 
-Read Corpus S03, S12, S15, S17, and the canonical persistence qualification
-record before changing schema, constraints, or initialization behavior.
+- [`S03 — 持久化、事务与 EffectFence`](../../Architecture_Corpus/specs/S03-持久化-事务-EffectFence.md)
+- [`S12 — 验证、研究与评估`](../../Architecture_Corpus/specs/S12-验证-Research-Evaluation.md)
+- [`S15 — Foundation 横切合同`](../../Architecture_Corpus/specs/S15-Foundation横切合同.md)
+- [`S17 — Storage Workspace 与 DataLifecycle`](../../Architecture_Corpus/specs/S17-Storage-Workspace-DataLifecycle.md)

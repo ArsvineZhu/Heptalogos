@@ -40,6 +40,14 @@ composition dependencies for integration tests only. Bootstrap owns authorized
 handoff and must not control PostgreSQL from a closed Host; cleanup after Host
 terminal shutdown reacquires Bootstrap authority first.
 
+## Change constraints
+
+Production source must not import `@heptalogos/runtime-kernel`,
+`@heptalogos/runtime-substrate`, or `cordis`; integration/test composition may
+use them. Preserve Bootstrap → Host ownership order and reacquire Bootstrap
+authority before post-Host PostgreSQL cleanup. Keep shutdown and quiescence
+bounded, and never control PostgreSQL from a closed Host.
+
 ## Verification
 
 Run `pnpm nx run bootstrap-runtime:test`, the real PostgreSQL integration target,
@@ -48,5 +56,8 @@ also require claim-matched Host and Runtime qualification.
 
 ## Architecture references
 
-Read Corpus S01, S03, S13, S15, S17, and the Bootstrap/Runtime qualification
-records before changing ownership, shutdown, recovery, or handoff behavior.
+- [`S01 — 启动、恢复与运行时监督`](../../Architecture_Corpus/specs/S01-启动-恢复-运行时监督.md)
+- [`S03 — 持久化、事务与 EffectFence`](../../Architecture_Corpus/specs/S03-持久化-事务-EffectFence.md)
+- [`S13 — Foundation Service/Capability/Readiness`](../../Architecture_Corpus/specs/S13-Foundation-Service-Capability-Readiness-Catalog.md)
+- [`S15 — Foundation 横切合同`](../../Architecture_Corpus/specs/S15-Foundation横切合同.md)
+- [`S17 — Storage Workspace 与 DataLifecycle`](../../Architecture_Corpus/specs/S17-Storage-Workspace-DataLifecycle.md)

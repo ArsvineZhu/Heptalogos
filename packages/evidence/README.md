@@ -34,6 +34,12 @@ Persistence remains the database mutation owner while this package owns the
 Evidence semantic contract. Execution lineage can correlate a record, but it
 does not become a second Evidence store or identity Authority.
 
+## Change constraints
+
+Use the persistence service and keep Evidence distinct from telemetry, Activity
+lineage, and logs. Preserve sensitivity and retention semantics from shared
+contracts. Match qualification claims to observed evidence and environment.
+
 ## Verification
 
 Run `pnpm nx run evidence:test`, lint, typecheck, and the persistence-backed
@@ -43,5 +49,7 @@ matched to actual runs.
 
 ## Architecture references
 
-Read Corpus S10, S12, S16, and the data/evidence sections of S03 before changing
-record shape, retention meaning, or service writes.
+- [`S10 — Evidence、Replay、Observability 与 Content`](../../Architecture_Corpus/specs/S10-Evidence-Replay-Observability-Content.md)
+- [`S12 — 验证、研究与评估`](../../Architecture_Corpus/specs/S12-验证-Research-Evaluation.md)
+- [`S16 — Execution Lineage Observability`](../../Architecture_Corpus/specs/S16-Execution-Lineage-Observability.md)
+- [`S03 — 持久化、事务与 EffectFence`](../../Architecture_Corpus/specs/S03-持久化-事务-EffectFence.md)
