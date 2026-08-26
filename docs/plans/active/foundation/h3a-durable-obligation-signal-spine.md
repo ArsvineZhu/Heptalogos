@@ -2,7 +2,7 @@
 ## Decision-Complete Implementation & Qualification Plan
 
 **Plan date:** 2026-08-26  
-**Status:** PLANNED  
+**Status:** ACTIVE  
 **Authority level:** Implementation Plan below the Architecture Corpus; this plan may prescribe exact Roadmap/qualification updates, but it does not silently override Corpus Authority.  
 **Canonical active path after activation:** `docs/plans/active/foundation/h3a-durable-obligation-signal-spine.md`  
 **Supersedes:** the earlier draft `Heptalogos_H3A_Durable_Work_and_Signal_Spine_Implementation_Plan_2026-08-26.md`  
@@ -13,6 +13,71 @@
 > **Executor rule:** This plan is decision-complete. The development Agent implements the decisions below; it does not select architecture, invent fallback providers, broaden scope, add compatibility behavior, redefine Authority, or replace adopted dependencies. If reality contradicts a locked decision in a non-trivial way, stop with `PLAN_GAP` and provide concrete evidence.
 >
 > **Required execution disciplines:** TDD for behavior-bearing changes; evidence vocabulary `PASS | FAIL | NOT_RUN | BLOCKED`; verification before completion claims; external Independent Review is out-of-band and is never inferred from GitHub review/approval state.
+
+## H3A-1 Candidate Correction Amendment — 2026-08-26
+
+**Status:** ACTIVE
+
+This is a bounded correctness correction cycle for the existing
+`dev/h3a1-canonical-work-signal` candidate. It is not a new H3A stage, does not
+introduce a compatibility path, and does not change the H3A-1 package ownership
+boundaries. The prior H3A-1 qualification remains a historical observed run;
+candidate mutation makes its PASS evidence stale for the current candidate.
+
+Current truth during this cycle is:
+
+```yaml
+H3: OPEN
+H3A: ACTIVE
+H3A_1: ACTIVE
+H3A_2: NOT_ELIGIBLE
+candidateFreeze: BLOCKED
+independentReview: NOT_RUN
+```
+
+The following semantic decisions are locked for this correction:
+
+- Signal owns a connection slot with source identity/generation. Events from a
+  stale or closed connection are no-ops; closing the last subscription cancels
+  reconnect and connecting-client work and disposes any late client.
+- An admitted WorkHandler invocation returns a generation-fenced,
+  schema-validated outcome. WorkQueue may enforce canonical JSON and byte-size
+  bounds, but it must not request a second generation admission for outcome
+  validation.
+- Exact handler availability includes the requested payload version without
+  changing the registry's exact registration key. Unsupported payload versions
+  remain dependency-unavailable; immutable invalid payloads terminalize as
+  `FAILED` with retry class `invalid`.
+- Every `PENDING` WorkItem is a projection candidate, including one with a
+  future `notBefore`. Projection carries the canonical `notBefore`; the
+  executor's early-fire check remains the final invocation fence. The repository
+  API is named `listProjectionCandidates` and has no compatibility alias.
+- Committed-work dispatch uses a mandatory `beforeDispatch` admission seam with
+  only `ALLOW`, `DELAY`, and `THROTTLE`. `DELAY` and `THROTTLE` skip the current
+  projection scan without changing canonical WorkItem state or creating a
+  second durable timer.
+- For one WorkItem/revision, the first accepted cancel or supersede intent wins.
+  Idle non-terminal states may atomically terminalize; `RUNNING` records the
+  intent and relies on cooperative abort plus attempt-fenced terminalization;
+  `WAITING_RESTORE_RECONCILIATION` is not terminalized by H3A-1. Wake paths
+  carry the same intent fence.
+- `pg_notify` publication is part of the WorkItem creation transaction. A
+  transaction-time publisher failure aborts the creation transaction; only
+  post-commit delivery loss is best effort and recovered by reconciliation.
+- The H3A-1 classifier cannot retain `external-effect-uncertain` because H3A-1
+  has no external-effect capability. That forbidden decision terminalizes the
+  WorkItem as bounded `FAILED`/`invalid` rather than leaving `RUNNING`.
+- WorkHandler descriptors use canonical structural comparison and immutable
+  deep snapshots. Payload-version declarations are normalized for comparison.
+  Payload versions share PostgreSQL `integer`'s maximum, and the canonical
+  schema enforces `RUNNING` exactly when `active_attempt_id` is non-null.
+- Bootstrap production-import restrictions and current package documentation
+  must describe the current H3A-1 tree only. Fresh focused, real PostgreSQL,
+  and repository verification is required before candidate truth can return to
+  a review-ready state.
+
+This amendment is the governing correction for the implementation tasks below;
+H3A-2 remains prohibited until H3A-1 is externally reviewed and closed.
 
 ---
 
@@ -61,9 +126,9 @@ H3 is **not** closed by this plan.
 
 ---
 
-## D-02 — No normative Corpus rewrite is required before H3A
+## D-02 — No broad normative Corpus rewrite is required before H3A
 
-The Architecture Corpus is living Authority and may be revised when engineering evidence exposes a true semantic conflict. After rereading the current relevant Corpus, no such conflict requires a normative rewrite before H3A.
+The Architecture Corpus is living Authority and may be revised when engineering evidence exposes a true semantic conflict. No broad rewrite is required before H3A. The bounded correction amendment adds the narrow first-accepted-terminal-intent clarification to S02 §12; that clarification is the only normative Corpus change in this cycle.
 
 Specifically, **do not add** a new `CONFIG_INDEPENDENT` policy now.
 

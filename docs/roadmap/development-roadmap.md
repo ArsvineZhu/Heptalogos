@@ -343,19 +343,24 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 ```yaml
 H3: OPEN
 H3A: ACTIVE
-H3A_1: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+H3A_1: ACTIVE
 H3A_2: NOT_ELIGIBLE
 H3B: NOT_ELIGIBLE
 H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
+candidateFreeze: BLOCKED
+independentReview: NOT_RUN
 activeImplementationPlan: docs/plans/active/foundation/h3a-durable-obligation-signal-spine.md
 ```
 
-H3A-1 implementation is complete on its candidate branch. The focused local
-semantic suites and the required real Ubuntu PostgreSQL 18.6/Host qualification
-pass; the latter ran as 9 integration files with 67/67 tests using the explicit
-`HEPTALOGOS_TEST_PG_BIN` toolchain. The candidate now awaits the out-of-band
-Independent Review; H3A-2 remains `NOT_ELIGIBLE` until H3A-1 is closed.
+A bounded H3A-1 correctness correction cycle is active on the existing
+candidate branch. The previous local and real PostgreSQL qualification is
+retained as historical observed evidence only; candidate mutation makes it
+stale for current freeze purposes. Fresh qualification must cover the corrected
+Signal lifecycle, generation settlement, projection/admission, cancellation,
+transaction, and canonical-representation semantics before candidate freeze.
+The out-of-band Independent Review is `NOT_RUN`; H3A-2 remains
+`NOT_ELIGIBLE` until H3A-1 is closed.
 
 ### Implementation decomposition
 

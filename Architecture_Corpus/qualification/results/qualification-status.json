@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-26T22:40:19+09:00",
+  "recordedAt": "2026-08-26T23:36:53+09:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": [
@@ -161,8 +161,10 @@
     {
       "qualificationId": "Q-ASYNC-01",
       "testedProperty": "Static dispatcher semantics plus real DBOS/PostgreSQL queue, generation pinning, revision attempts, restart, and terminal retry effect fencing",
-      "evidenceStatus": "PASS",
+      "evidenceStatus": "BLOCKED",
       "qualificationState": "OPEN",
+      "candidateFreeze": "BLOCKED",
+      "independentReview": "NOT_RUN",
       "evidence": {
         "semantic_dispatcher_fixture": "PASS",
         "generation_pin_revision_fence": "PASS",
@@ -174,17 +176,17 @@
         "missing_retained_generation_blocks": "PASS",
         "terminal_retry_single_effect": "PASS",
         "crash_after_terminal_commit": "NOT_RUN",
-        "h3a1_contribution_origin": "PASS",
-        "h3a1_workitem_canonical_state": "PASS",
-        "h3a1_generation_pinned_handler": "PASS",
-        "h3a1_revision_fence": "PASS",
-        "h3a1_terminal_replay_semantics": "PASS",
-        "h3a1_signal_reconnect_rescan": "PASS",
-        "h3a1_lost_dispatch_reconciliation": "PASS",
-        "h3a1_cancel_supersede_semantics": "PASS",
-        "h3a1_nonterminal_dedup": "PASS",
-        "h3a1_admission_contract": "PASS",
-        "h3a1_real_postgres_18_6_ubuntu": "PASS",
+        "h3a1_contribution_origin": "BLOCKED",
+        "h3a1_workitem_canonical_state": "BLOCKED",
+        "h3a1_generation_pinned_handler": "BLOCKED",
+        "h3a1_revision_fence": "BLOCKED",
+        "h3a1_terminal_replay_semantics": "BLOCKED",
+        "h3a1_signal_reconnect_rescan": "BLOCKED",
+        "h3a1_lost_dispatch_reconciliation": "BLOCKED",
+        "h3a1_cancel_supersede_semantics": "BLOCKED",
+        "h3a1_nonterminal_dedup": "BLOCKED",
+        "h3a1_admission_contract": "BLOCKED",
+        "h3a1_real_postgres_18_6_ubuntu": "BLOCKED",
         "h3a1_dbos_real_engine": "NOT_RUN",
         "h3a1_process_crash_after_terminal_commit": "NOT_RUN"
       },
@@ -194,7 +196,16 @@
         "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane",
         "h3a1_real_postgres_18_6_ubuntu": "PostgreSQL 18.6 Ubuntu toolchain via explicit HEPTALOGOS_TEST_PG_BIN; bootstrap-runtime integration 9 files, 67/67 tests"
       },
+      "historicalEvidence": {
+        "preCorrectionH3A1": {
+          "status": "PASS",
+          "scope": "Pre-correction focused suites and real PostgreSQL/Host integration",
+          "observed": "9 integration files, 67/67 tests",
+          "currentUse": "Historical observation only; stale for current candidate freeze after correction mutation"
+        }
+      },
       "notRunReasons": {
+        "candidateFreeze": "The pre-correction candidate was mutated after review findings; fresh correction qualification is required before freeze.",
         "crash_after_terminal_commit": "No process-level crash was injected after the canonical terminal commit; only a real DBOS retry attempt was exercised.",
         "h3a1_dbos_real_engine": "H3A-1 deliberately implements engine-neutral WorkQueue semantics; DBOS integration is deferred to H3A-2.",
         "h3a1_process_crash_after_terminal_commit": "H3A-1 has no process-level crash harness or DBOS engine checkpoint to exercise this boundary; it remains deferred to H3A-2."

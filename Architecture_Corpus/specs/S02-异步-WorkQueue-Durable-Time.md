@@ -399,6 +399,31 @@ RUNNING + cancel/supersede request
 
 Handler 的 terminal commit 使用 revision/attempt precondition；收到 cancel/supersede 后的 stale attempt 不能无条件覆盖 owning Authority 的新状态。
 
+### First accepted terminal intent
+
+For one `WorkItemId` and `dispatchRevision`, the first accepted terminal
+intent wins. A later cancel or supersede request cannot overwrite the accepted
+intent or create a second simultaneous intent; the owning repository returns a
+typed stale/terminal result instead.
+
+```text
+PENDING | WAITING_DEPENDENCY | RETRY_WAIT
+→ no active attempt exists
+→ an accepted cancel/supersede request may atomically terminalize the WorkItem
+
+RUNNING
+→ an accepted request is recorded only
+→ cooperative abort is signalled
+→ terminalization remains owned by the attempt-fenced commit
+
+WAITING_RESTORE_RECONCILIATION
+→ H3A-1 does not terminalize the WorkItem
+→ restore reconciliation remains its owner
+```
+
+Wake transitions out of `WAITING_DEPENDENCY` and `RETRY_WAIT` must carry the
+same terminal-intent fence and cannot erase an already accepted request.
+
 ---
 
 ### Dispatch Revision Fence
