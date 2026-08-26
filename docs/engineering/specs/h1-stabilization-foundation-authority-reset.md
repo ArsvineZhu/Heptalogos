@@ -1,10 +1,16 @@
-# H1 Stabilization — Foundation Authority & Canonical-State Reset
+# Historical H1 Stabilization — Foundation Authority & Canonical-State Reset
 
-**Status:** APPROVED IMPLEMENTATION SPEC  
+**Status:** HISTORICAL COMPLETED IMPLEMENTATION SPEC
 **Baseline:** `master@257ad6fe73924bcd1c9a00cad6a15938d6e6a2da`  
 **Target branch:** `dev/h1-stabilization`  
 **Integration unit:** one short-lived branch, one Draft PR, multiple focused commits, one final independent review, one final exact-candidate cross-platform CI, one squash merge  
 **Compatibility epoch:** `PRE_PRODUCTION`
+
+This document records the completed H1 stabilization implementation
+specification. Its stage state, baseline, branch, candidate identities, and
+evidence vocabulary are historical context; they do not define current
+milestone or qualification truth. Current milestone state is owned by the
+living Roadmap and the machine-readable qualification ledger.
 
 ## 1. Purpose
 
@@ -16,7 +22,7 @@ The governing question for every change is:
 
 If the answer is no, and the defect can be corrected without creating a new subsystem or H2 capability, it belongs in H1-S.
 
-## 2. Stage state and closure rule
+## 2. Historical stage state and closure rule
 
 Before H1-S final closure:
 
@@ -402,9 +408,11 @@ test "$(gh pr view "$PR_NUMBER" --json headRefOid --jq .headRefOid)" = "$REVIEWE
 
 If master moves, rebase the stabilization branch on the new master, rerun local qualification, obtain a new independent review and rerun final CI.
 
-## 16. Evidence truth
+## 16. Historical evidence truth
 
-Current machine evidence must describe current canonical behavior. Historical M5A/M5B evidence may remain in narrative history but must not remain as current properties after the behavior is removed.
+The H1-S candidate machine evidence had to describe the canonical behavior
+under test. Historical M5A/M5B evidence could remain in narrative history but
+could not remain as current properties after the behavior was removed.
 
 Replace current claims such as:
 
@@ -416,7 +424,7 @@ m5bLegacyM5aJournalV1Compatibility
 v1_to_v2_under_bootstrap_ownership
 ```
 
-with current H1-S properties proving:
+with H1-S candidate properties proving:
 
 ```text
 canonical_bootstrap_state_v1
