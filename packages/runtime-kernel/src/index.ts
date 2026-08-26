@@ -60,7 +60,11 @@ export {
   type ReconcilePlan,
 } from "./reconciler.js";
 export { ServiceRegistry } from "./service-registry.js";
-export { WorkHandlerRegistry } from "./work-handler-registry.js";
+export {
+  canonicalizeWorkHandlerDescriptor,
+  WorkHandlerRegistry,
+  workHandlerDescriptorsEqual,
+} from "./work-handler-registry.js";
 export {
   createRuntimeLifecycleLineage,
   type RuntimeLifecycleLineage,

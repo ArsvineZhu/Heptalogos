@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { type Instant } from "@heptalogos/foundation-contracts";
-import { applyWorkAdmissionDecision, type WorkAdmissionDecision } from "./index.js";
+import {
+  applyWorkAdmissionDecision,
+  type WorkCreationAdmissionDecision,
+} from "./index.js";
 
 const requested = "2026-08-26T12:00:00.000Z" as Instant;
 const delayed = "2026-08-26T12:05:00.000Z" as Instant;
@@ -16,7 +19,7 @@ describe("WorkAdmissionPort decision mechanics", () => {
   });
 
   it("retains a durable item with the later explicit deadline for DELAY", () => {
-    const decision: WorkAdmissionDecision = {
+    const decision: WorkCreationAdmissionDecision = {
       decision: "DELAY",
       notBefore: delayed,
       reasonCode: "pressure.delayed",

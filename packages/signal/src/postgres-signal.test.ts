@@ -26,12 +26,18 @@ import {
 class FakeSignalClient implements SignalClient {
   readonly queries: string[] = [];
   ended = false;
+  connectStarted = false;
   private readonly listeners = new Map<string, ((value?: unknown) => void)[]>();
 
-  constructor(private readonly connectError?: Error) {}
+  constructor(
+    private readonly connectError?: Error,
+    private readonly connectGate?: Promise<void>,
+  ) {}
 
   async connect(): Promise<void> {
+    this.connectStarted = true;
     if (this.connectError !== undefined) throw this.connectError;
+    await this.connectGate;
   }
 
   async query(text: string): Promise<void> {
@@ -58,6 +64,10 @@ class FakeSignalClient implements SignalClient {
 
   emitEnd(): void {
     for (const listener of this.listeners.get("end") ?? []) listener();
+  }
+
+  emitError(error: Error): void {
+    for (const listener of this.listeners.get("error") ?? []) listener(error);
   }
 }
 
@@ -89,6 +99,8 @@ function authority(signal = new AbortController().signal): HostPersistenceAuthor
 function options(
   factory: SignalClientFactory,
   onBackgroundError: (error: unknown) => void = () => {},
+  reconnectBaseDelayMs = 1,
+  reconnectMaxDelayMs = Math.max(4, reconnectBaseDelayMs),
 ): {
   readonly connectionTimeoutMs: number;
   readonly reconnectBaseDelayMs: number;
@@ -98,20 +110,24 @@ function options(
 } {
   return {
     connectionTimeoutMs: 1_000,
-    reconnectBaseDelayMs: 1,
-    reconnectMaxDelayMs: 4,
+    reconnectBaseDelayMs,
+    reconnectMaxDelayMs,
     clientFactory: factory,
     onBackgroundError,
   };
 }
 
-function factoryFor(clients: readonly FakeSignalClient[]): SignalClientFactory {
+function factoryFor(
+  clients: readonly FakeSignalClient[],
+  onCreate: () => void = () => {},
+): SignalClientFactory {
   let index = 0;
   return {
     create() {
       const client = clients[Math.min(index, clients.length - 1)];
       index += 1;
       if (client === undefined) throw new Error("missing test client");
+      onCreate();
       return client;
     },
   };
@@ -228,6 +244,134 @@ describe("PostgresSignalService", () => {
     expect(second.queries).toEqual([`LISTEN "${SIGNAL_CHANNEL}"`]);
     expect(rescans).toBe(2);
     await subscription.close();
+  });
+
+  it("ignores a late event from an old connection after a replacement is active", async () => {
+    const first = new FakeSignalClient();
+    const second = new FakeSignalClient();
+    const service = createPostgresSignalService(
+      authority(),
+      options(factoryFor([first, second])),
+    );
+    const topic = createSignalTopic("work.available");
+    let wakeups = 0;
+    const subscription = await service.subscribe(topic, {
+      onWakeup() {
+        wakeups += 1;
+      },
+      onRescanRequired() {},
+      onBackgroundError() {},
+    });
+
+    first.emitError(new Error("first connection failed"));
+    await waitFor(() => second.queries.length === 1);
+    first.emitEnd();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(second.ended).toBe(false);
+    second.emitNotification({
+      channel: SIGNAL_CHANNEL,
+      payload: encodeSignalHint({ schemaVersion: 1, topic }),
+    });
+    await waitFor(() => wakeups === 1);
+    await subscription.close();
+    expect(second.ended).toBe(true);
+  });
+
+  it("does not reconnect after the final subscription closes", async () => {
+    const first = new FakeSignalClient();
+    const second = new FakeSignalClient();
+    let created = 0;
+    const service = createPostgresSignalService(
+      authority(),
+      options(
+        factoryFor([first, second], () => (created += 1)),
+        () => {},
+        50,
+      ),
+    );
+    const subscription = await service.subscribe(createSignalTopic("work.available"), {
+      onWakeup() {},
+      onRescanRequired() {},
+      onBackgroundError() {},
+    });
+
+    first.emitError(new Error("connection failed"));
+    await subscription.close();
+    await new Promise((resolve) => setTimeout(resolve, 80));
+
+    expect(created).toBe(1);
+    expect(second.queries).toEqual([]);
+    expect(second.ended).toBe(false);
+  });
+
+  it("disposes a connection that finishes connecting after the final subscription closes", async () => {
+    const first = new FakeSignalClient();
+    let releaseSecond!: () => void;
+    const secondGate = new Promise<void>((resolve) => {
+      releaseSecond = resolve;
+    });
+    const second = new FakeSignalClient(undefined, secondGate);
+    const service = createPostgresSignalService(
+      authority(),
+      options(factoryFor([first, second])),
+    );
+    const subscription = await service.subscribe(createSignalTopic("work.available"), {
+      onWakeup() {},
+      onRescanRequired() {},
+      onBackgroundError() {},
+    });
+
+    first.emitError(new Error("connection failed"));
+    await waitFor(() => second.connectStarted);
+    await subscription.close();
+    releaseSecond();
+    await waitFor(() => second.ended);
+
+    expect(second.ended).toBe(true);
+  });
+
+  it("starts a fresh connection when a new subscription follows an invalidated connection attempt", async () => {
+    const first = new FakeSignalClient();
+    let releaseSecond!: () => void;
+    const secondGate = new Promise<void>((resolve) => {
+      releaseSecond = resolve;
+    });
+    const second = new FakeSignalClient(undefined, secondGate);
+    const third = new FakeSignalClient();
+    const service = createPostgresSignalService(
+      authority(),
+      options(factoryFor([first, second, third])),
+    );
+    const firstSubscription = await service.subscribe(
+      createSignalTopic("work.available"),
+      {
+        onWakeup() {},
+        onRescanRequired() {},
+        onBackgroundError() {},
+      },
+    );
+
+    first.emitError(new Error("connection failed"));
+    await waitFor(() => second.connectStarted);
+    await firstSubscription.close();
+
+    const secondSubscriptionPromise = service.subscribe(
+      createSignalTopic("work.available"),
+      {
+        onWakeup() {},
+        onRescanRequired() {},
+        onBackgroundError() {},
+      },
+    );
+    await waitFor(() => third.queries.length === 1);
+    releaseSecond();
+    const secondSubscription = await secondSubscriptionPromise;
+
+    expect(second.ended).toBe(true);
+    expect(third.ended).toBe(false);
+    await secondSubscription.close();
+    expect(third.ended).toBe(true);
   });
 
   it("normalizes initial listener failure to a canonical Problem", async () => {

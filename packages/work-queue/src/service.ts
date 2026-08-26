@@ -1,5 +1,6 @@
 import {
   canonicalizeJson,
+  POSTGRES_INTEGER_MAX,
   parseContentDigest,
   parseContributionId,
   parseInstant,
@@ -130,7 +131,8 @@ function assertTarget(target: WorkHandlerTarget): void {
     parseMicroSystemId(target.microSystemId) === undefined ||
     parseContributionId(target.contributionId) === undefined ||
     !Number.isSafeInteger(target.payloadVersion) ||
-    target.payloadVersion <= 0
+    target.payloadVersion < 1 ||
+    target.payloadVersion > POSTGRES_INTEGER_MAX
   ) {
     throw workQueueProblem(
       "work.request.invalid",
@@ -221,16 +223,6 @@ function reportBackgroundError(sink: (error: unknown) => void, problem: unknown)
   } catch {
     // Background reporting must not escape canonical creation.
   }
-}
-
-function signalFailure(sink: (error: unknown) => void): void {
-  reportBackgroundError(
-    sink,
-    workQueueProblem(
-      "work.signal.failed",
-      "Signal publication failed after the WorkItem was inserted; reconciliation remains authoritative",
-    ),
-  );
 }
 
 function scheduleFailure(sink: (error: unknown) => void): void {
@@ -370,14 +362,10 @@ export function createWorkQueueService(
             ) => {
               await options.lineage.retainCurrent(transaction, activity);
               if (inserted.status === "INSERTED") {
-                try {
-                  await options.signalPublisher.publish(
-                    transaction,
-                    WORK_AVAILABLE_TOPIC,
-                  );
-                } catch {
-                  signalFailure(options.onBackgroundError);
-                }
+                await options.signalPublisher.publish(
+                  transaction,
+                  WORK_AVAILABLE_TOPIC,
+                );
               }
             },
           });

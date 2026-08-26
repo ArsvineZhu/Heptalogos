@@ -42,6 +42,8 @@ const workItemMachine = setup({
     WAITING_DEPENDENCY: {
       on: {
         WAKE_DEPENDENCY: "PENDING",
+        CANCEL: "CANCELLED",
+        SUPERSEDE: "SUPERSEDED",
       },
     },
     RETRY_WAIT: {

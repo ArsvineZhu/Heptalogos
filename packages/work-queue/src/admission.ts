@@ -10,10 +10,13 @@ import type {
   LineageContextRefV1,
 } from "@heptalogos/execution-lineage";
 import type {
+  DurableDispatchRequest,
   ResourceAdmissionClassId,
-  WorkAdmissionDecision,
+  WorkCreationAdmissionDecision,
   WorkConfigurationBinding,
+  WorkDispatchAdmissionDecision,
   WorkHandlerTarget,
+  WorkItem,
   WorkQueueProfileId,
 } from "./contracts.js";
 import { workQueueProblem } from "./problems.js";
@@ -38,7 +41,17 @@ export interface WorkAdmissionRequest {
 export interface WorkAdmissionPort {
   beforeCreate(
     input: WorkAdmissionRequest,
-  ): WorkAdmissionDecision | Promise<WorkAdmissionDecision>;
+  ): WorkCreationAdmissionDecision | Promise<WorkCreationAdmissionDecision>;
+  beforeDispatch(
+    input: WorkDispatchAdmissionRequest,
+  ): WorkDispatchAdmissionDecision | Promise<WorkDispatchAdmissionDecision>;
+}
+
+export interface WorkDispatchAdmissionRequest {
+  readonly execution: ExecutionContext;
+  readonly workItem: WorkItem;
+  readonly dispatch: DurableDispatchRequest;
+  readonly now: Instant;
 }
 
 function assertReasonCode(reasonCode: unknown): void {
@@ -72,7 +85,7 @@ function laterInstant(left: Instant | undefined, right: Instant): Instant {
 
 export function applyWorkAdmissionDecision(
   requestedNotBefore: Instant | undefined,
-  decision: WorkAdmissionDecision,
+  decision: WorkCreationAdmissionDecision,
 ): Instant | undefined {
   if (typeof decision !== "object" || decision === null) {
     throw workQueueProblem(
@@ -117,6 +130,30 @@ export function applyWorkAdmissionDecision(
       throw workQueueProblem(
         "work.admission.invalid_decision",
         "WorkAdmission returned an unsupported decision",
+      );
+  }
+}
+
+export function applyWorkDispatchAdmissionDecision(
+  decision: WorkDispatchAdmissionDecision,
+): boolean {
+  if (typeof decision !== "object" || decision === null) {
+    throw workQueueProblem(
+      "work.admission.invalid_decision",
+      "WorkAdmission returned no dispatch decision object",
+    );
+  }
+  switch (decision.decision) {
+    case "ALLOW":
+      return true;
+    case "DELAY":
+    case "THROTTLE":
+      assertReasonCode(decision.reasonCode);
+      return false;
+    default:
+      throw workQueueProblem(
+        "work.admission.invalid_decision",
+        "WorkAdmission returned an unsupported dispatch decision",
       );
   }
 }

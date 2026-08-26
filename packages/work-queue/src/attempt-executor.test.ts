@@ -227,7 +227,7 @@ function fixture(
     }),
     insertWorkItem: vi.fn(),
     findNonTerminalDedup: vi.fn(),
-    listDispatchable: vi.fn(),
+    listProjectionCandidates: vi.fn(),
     listDueRetry: vi.fn(),
     listWaitingDependency: vi.fn(),
     wakeDependency: vi.fn(),
@@ -352,6 +352,26 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     expect(attempt.retainCurrent).toHaveBeenCalledTimes(1);
   });
 
+  it("does not re-admit an outcome after the handler lease has already validated it", async () => {
+    const value = item(context());
+    const attempt = fixture(value, async () => ({ outcome: { ok: true } as never }));
+    const validateOutcome = vi.fn(() => {
+      throw new ProblemError({
+        schemaVersion: 1,
+        problemCode: "runtime.generation.retired",
+        category: "conflict",
+        retryClass: "after-change",
+        title: "Runtime generation no longer admits new invocations",
+      });
+    });
+    attempt.lease.validateOutcome = validateOutcome;
+
+    await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
+      status: "SUCCEEDED",
+    });
+    expect(validateOutcome).not.toHaveBeenCalled();
+  });
+
   it("does not fall forward from a missing exact generation to another package", async () => {
     const value = item(context());
     const other = leaseFor({ ...value, handler: target("package-b") });
@@ -363,6 +383,36 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     });
     expect(resolve).toHaveBeenCalledWith(value.handler);
     expect(other.execute).not.toHaveBeenCalled();
+  });
+
+  it("terminalizes an immutable invalid payload instead of waiting for a dependency", async () => {
+    const value = item(context());
+    const attempt = fixture(value);
+    attempt.lease.validatePayload = vi.fn(() => {
+      throw new ProblemError({
+        schemaVersion: 1,
+        problemCode: "runtime.work_handler.payload_invalid",
+        category: "validation",
+        retryClass: "never",
+        title: "WorkHandler payload is invalid",
+      });
+    });
+
+    await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
+      status: "FAILED",
+    });
+    expect(attempt.repository.markWaitingDependency).not.toHaveBeenCalled();
+    expect(attempt.repository.commitTerminal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expectedState: "PENDING",
+        outcome: {
+          schemaVersion: 1,
+          kind: "FAILED",
+          retryClass: "invalid",
+          reasonCode: "runtime.work_handler.payload_invalid",
+        },
+      }),
+    );
   });
 
   it("lets cancellation and supersession win a stale handler result", async () => {
@@ -419,7 +469,7 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     );
   });
 
-  it("blocks unsupported external-effect-uncertain classification", async () => {
+  it("terminalizes a forbidden external-effect-uncertain classification as invalid", async () => {
     const value = item(context());
     const attempt = fixture(value, async () => {
       throw new Error("handler failed");
@@ -431,10 +481,19 @@ describe("engine-neutral WorkAttemptExecutor", () => {
       notBefore: future,
     }));
 
-    await expect(attempt.executor.execute(value.workItemId, 1)).rejects.toMatchObject({
-      problem: { problemCode: "work.external_effect_uncertain_unsupported" },
+    await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
+      status: "FAILED",
     });
-    expect(attempt.repository.markRetryWait).not.toHaveBeenCalled();
+    expect(attempt.repository.commitTerminal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        outcome: {
+          schemaVersion: 1,
+          kind: "FAILED",
+          retryClass: "invalid",
+          reasonCode: "work.external_effect_uncertain_unsupported",
+        },
+      }),
+    );
   });
 
   it("validates and bounds handler output before terminal persistence", async () => {

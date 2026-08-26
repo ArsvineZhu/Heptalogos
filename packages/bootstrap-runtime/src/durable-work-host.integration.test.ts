@@ -3,6 +3,7 @@ import {
   asContentDigest,
   createContributionId,
   createMicroSystemId,
+  createWorkItemId,
   createUuidV7Id,
   digestCanonicalJson,
   parseInstant,
@@ -47,6 +48,7 @@ import {
 import {
   createPostgresSignalService,
   postgresSignalPublisher,
+  type SignalPublisher,
   type SignalService,
 } from "@heptalogos/signal";
 import {
@@ -146,6 +148,7 @@ interface Composition {
   readonly descriptor: WorkHandlerProvisionDescriptor;
   readonly handlerCalls: RuntimeWorkHandlerInvocation[];
   readonly contributionContexts: ExecutionContext[];
+  readonly admission: WorkAdmissionPort;
   readonly dispatches: Array<{
     readonly workItemId: WorkItem["workItemId"];
     readonly dispatchRevision: number;
@@ -277,6 +280,7 @@ async function createComposition(
   };
   const admission: WorkAdmissionPort = {
     beforeCreate: async () => ({ decision: "ALLOW" }),
+    beforeDispatch: async () => ({ decision: "ALLOW" }),
   };
   const classifier: WorkErrorClassifier = {
     classify: () => ({
@@ -301,6 +305,7 @@ async function createComposition(
     repository,
     durableDispatch,
     handlerRegistry: supervisor.workHandlers,
+    admission,
     signal,
     execution: runtime,
     time,
@@ -333,6 +338,7 @@ async function createComposition(
     descriptor,
     handlerCalls,
     contributionContexts,
+    admission,
     dispatches,
     setDispatchUnavailable: (value) => {
       dispatchUnavailable = value;
@@ -609,7 +615,10 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     );
     await expect(
       composition.executor.execute(pending.item.workItemId, 1),
-    ).resolves.toMatchObject({ status: "CANCELLED" });
+    ).resolves.toMatchObject({
+      status: "TERMINAL_REPLAY",
+      outcome: { kind: "CANCELLED" },
+    });
     expect(composition.handlerCalls).toHaveLength(0);
 
     const runningItem = await createWork(composition, composition.target, {
@@ -680,6 +689,265 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     );
     await expect(execution).resolves.toMatchObject({ status: "CANCELLED" });
     expect(aborted).toBe(true);
+  }, 180_000);
+
+  it("projects future work with its due time while early execution remains fenced", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture);
+    const composition = activeComposition;
+    const created = await createWork(composition, composition.target, {
+      dedupKey: "future-projection",
+      notBefore: futureTime,
+    });
+
+    await expect(composition.reconciler.scan()).resolves.toMatchObject({
+      dispatched: 1,
+    });
+    expect(composition.dispatches).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          workItemId: created.item.workItemId,
+          dispatchRevision: 1,
+          dispatchAttemptId: createDispatchAttemptId(created.item.workItemId, 1),
+          notBefore: futureTime,
+        }),
+      ]),
+    );
+    await expect(
+      composition.executor.execute(created.item.workItemId, 1),
+    ).resolves.toMatchObject({ status: "RETRY_WAIT" });
+    expect(composition.handlerCalls).toHaveLength(0);
+  }, 180_000);
+
+  it("does not wake a waiting item when only its payload version is unavailable", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture);
+    const composition = activeComposition;
+    const created = await createWork(composition, composition.target, {
+      dedupKey: "payload-version-waiting",
+    });
+    const unavailable: WorkItem = {
+      ...created.item,
+      workItemId: createWorkItemId(),
+      handler: { ...created.item.handler, payloadVersion: 2 },
+      dedupKey: "payload-version-unavailable",
+    };
+    await runCanonicalMutation(composition, "qualification.work.insert", () =>
+      composition.repository.insertWorkItem(unavailable),
+    );
+
+    await expect(
+      composition.executor.execute(unavailable.workItemId, 1),
+    ).resolves.toMatchObject({ status: "WAITING_DEPENDENCY" });
+    const before = await composition.repository.getWorkItem(unavailable.workItemId);
+    expect(before).toMatchObject({
+      state: "WAITING_DEPENDENCY",
+      dispatchRevision: 1,
+    });
+    await composition.reconciler.scan();
+    await expect(
+      composition.repository.getWorkItem(unavailable.workItemId),
+    ).resolves.toMatchObject({
+      state: "WAITING_DEPENDENCY",
+      dispatchRevision: 1,
+    });
+  }, 180_000);
+
+  it("terminalizes cancellation for dependency and retry waiting states", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture);
+    const composition = activeComposition;
+    const created = await createWork(composition, composition.target, {
+      dedupKey: "waiting-cancel",
+    });
+    const unavailable: WorkItem = {
+      ...created.item,
+      workItemId: createWorkItemId(),
+      handler: { ...created.item.handler, payloadVersion: 2 },
+      dedupKey: "waiting-cancel-payload",
+    };
+    await runCanonicalMutation(composition, "qualification.work.insert", () =>
+      composition.repository.insertWorkItem(unavailable),
+    );
+    await composition.executor.execute(unavailable.workItemId, 1);
+    await expect(
+      runCanonicalMutation(composition, "qualification.work.cancel.waiting", () =>
+        composition.repository.requestCancel({
+          workItemId: unavailable.workItemId,
+          expectedDispatchRevision: 1,
+          expectedState: "WAITING_DEPENDENCY",
+          requestedAt: initialTime,
+          reasonCode: "qualification.cancel.waiting",
+        }),
+      ),
+    ).resolves.toMatchObject({ status: "APPLIED", item: { state: "CANCELLED" } });
+
+    const retry = await createWork(composition, composition.target, {
+      dedupKey: "retry-cancel",
+    });
+    await runCanonicalMutation(composition, "qualification.work.retry", () =>
+      composition.repository.markRetryWait({
+        workItemId: retry.item.workItemId,
+        expectedDispatchRevision: 1,
+        expectedState: "PENDING",
+        retryClass: "transient",
+        reasonCode: "qualification.retry.waiting",
+        notBefore: futureTime,
+        updatedAt: initialTime,
+      }),
+    );
+    await expect(
+      runCanonicalMutation(composition, "qualification.work.cancel.retry", () =>
+        composition.repository.requestCancel({
+          workItemId: retry.item.workItemId,
+          expectedDispatchRevision: 1,
+          expectedState: "RETRY_WAIT",
+          requestedAt: initialTime,
+          reasonCode: "qualification.cancel.retry",
+        }),
+      ),
+    ).resolves.toMatchObject({ status: "APPLIED", item: { state: "CANCELLED" } });
+  }, 180_000);
+
+  it("accepts only the first concurrent cancellation or supersession intent", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture);
+    const composition = activeComposition;
+    const created = await createWork(composition, composition.target, {
+      dedupKey: "first-terminal-intent",
+    });
+    const [cancel, supersede] = await Promise.all([
+      runCanonicalMutation(composition, "qualification.work.cancel.concurrent", () =>
+        composition.repository.requestCancel({
+          workItemId: created.item.workItemId,
+          expectedDispatchRevision: 1,
+          expectedState: "PENDING",
+          requestedAt: initialTime,
+          reasonCode: "qualification.cancel.first",
+        }),
+      ),
+      runCanonicalMutation(composition, "qualification.work.supersede.concurrent", () =>
+        composition.repository.requestSupersede({
+          workItemId: created.item.workItemId,
+          expectedDispatchRevision: 1,
+          expectedState: "PENDING",
+          requestedAt: initialTime,
+          reasonCode: "qualification.supersede.first",
+          supersededBy: createWorkItemId(),
+        }),
+      ),
+    ]);
+    expect(new Set([cancel.status, supersede.status])).toEqual(
+      new Set(["APPLIED", "TERMINAL"]),
+    );
+    const item = await composition.repository.getWorkItem(created.item.workItemId);
+    expect(item?.state === "CANCELLED" || item?.state === "SUPERSEDED").toBe(true);
+    expect(item?.cancelRequestedAt !== undefined).not.toBe(
+      item?.supersededBy !== undefined,
+    );
+    expect(item?.activeAttemptId).toBeUndefined();
+  }, 180_000);
+
+  it("terminalizes a forbidden external-effect classifier decision without stranded RUNNING state", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture);
+    const composition = activeComposition;
+    const created = await createWork(composition, composition.target, {
+      dedupKey: "forbidden-classifier-decision",
+    });
+    const registry = new WorkHandlerRegistry();
+    const failingHandler: RuntimeWorkHandler = {
+      execute: vi.fn(async () => {
+        throw new Error("handler failure");
+      }),
+    };
+    registry.register(
+      {
+        microSystemId: composition.target.microSystemId,
+        productGenerationId: composition.target.productGenerationId,
+        packageGenerationId: composition.target.packageGenerationId,
+      },
+      composition.descriptor,
+      failingHandler,
+      createGenerationFence(),
+    );
+    const executor = createWorkAttemptExecutor({
+      repository: composition.repository,
+      handlerRegistry: registry,
+      execution: composition.runtime,
+      lineage: composition.lineage,
+      time: composition.time,
+      classifier: {
+        classify: () => ({
+          kind: "TERMINAL" as const,
+          retryClass: "external-effect-uncertain" as const,
+          reasonCode: "forbidden-in-this-stage",
+        }),
+      },
+      runtimeOptions: WORK_OPTIONS,
+    });
+
+    await expect(executor.execute(created.item.workItemId, 1)).resolves.toMatchObject({
+      status: "FAILED",
+      item: { state: "FAILED", retryClass: "invalid" },
+    });
+    await expect(
+      composition.repository.getWorkItem(created.item.workItemId),
+    ).resolves.toMatchObject({
+      state: "FAILED",
+      retryClass: "invalid",
+      outcome: {
+        kind: "FAILED",
+        retryClass: "invalid",
+        reasonCode: "work.external_effect_uncertain_unsupported",
+      },
+    });
+  }, 180_000);
+
+  it("rolls back WorkItem creation when transaction-time Signal publication fails", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture);
+    const composition = activeComposition;
+    const failingPublisher: SignalPublisher = {
+      async publish() {
+        throw new Error("transaction-time signal failure");
+      },
+    };
+    const failingWork = createWorkQueueService({
+      persistence: composition.persistence,
+      repository: composition.repository,
+      handlerRegistry: composition.supervisor.workHandlers,
+      execution: composition.runtime,
+      lineage: composition.lineage,
+      time: composition.time,
+      signalPublisher: failingPublisher,
+      admission: composition.admission,
+      runtimeOptions: WORK_OPTIONS,
+      onBackgroundError() {},
+    });
+    const dedupKey = "transaction-signal-rollback";
+
+    await expect(
+      runCanonicalMutation(composition, "qualification.work.signal.rollback", () =>
+        failingWork.create({
+          target: composition.target,
+          payload: { value: "work-qualification" },
+          queueProfileId,
+          resourceAdmissionClass,
+          priority: 100,
+          dedupKey,
+        }),
+      ),
+    ).rejects.toBeDefined();
+    await expect(
+      queryAs(
+        fixture,
+        "heptalogos_bootstrap",
+        BOOTSTRAP_PASSWORD,
+        `SELECT count(*)::int AS count FROM "heptalogos"."work_item" WHERE dedup_key = $1`,
+        [dedupKey],
+      ),
+    ).resolves.toMatchObject({ rows: [{ count: 0 }] });
   }, 180_000);
 
   it("W8 fences mutations when the authentic Host lease closes", async () => {

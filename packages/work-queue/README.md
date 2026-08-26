@@ -26,8 +26,8 @@ lost notifications or dispatch failures.
 
 The entry point exports WorkItem contracts, dispatch-attempt identity helpers,
 state-transition validation, repository/service ports, and WorkQueue runtime
-components. DBOS-specific composition remains in `durable-execution`; callers
-must use the Persistence and Runtime Kernel ownership boundaries.
+components. Engine-specific composition is outside this package; callers must
+use the Persistence and Runtime Kernel ownership boundaries.
 
 ## Dependencies and boundaries
 

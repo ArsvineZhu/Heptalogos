@@ -262,6 +262,84 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     expect(supervisor.workHandlers.resolve(target)).toBeUndefined();
   });
 
+  it("matches WorkHandler declarations by canonical structure and payload version", async () => {
+    const declared = workHandlerDescriptor();
+    const declaredPayloadV1 = declared.payloadContracts[0]!;
+    const declaredPayloadV2 = {
+      version: 2,
+      schema: {
+        type: "object",
+        properties: { count: { type: "integer" } },
+        required: ["count"],
+        additionalProperties: false,
+      },
+    };
+    const published: WorkHandlerProvisionDescriptor = {
+      ...declared,
+      payloadContracts: [
+        {
+          version: declaredPayloadV2.version,
+          schema: {
+            required: ["count"],
+            additionalProperties: false,
+            properties: { count: { type: "integer" } },
+            type: "object",
+          },
+        },
+        {
+          version: declaredPayloadV1.version,
+          schema: {
+            required: ["value"],
+            additionalProperties: false,
+            properties: { value: { type: "string" } },
+            type: "object",
+          },
+        },
+      ],
+      outcomeSchema: {
+        required: ["accepted"],
+        additionalProperties: false,
+        properties: { accepted: { type: "boolean" } },
+        type: "object",
+      },
+    };
+    const definition = system(
+      "canonical-work-handler",
+      async (context) => {
+        context.publishWorkHandler(published, {
+          async execute() {
+            return { outcome: { accepted: true } };
+          },
+        });
+      },
+      {
+        generation: workHandlerGeneration,
+        workHandlerProvisions: [
+          {
+            ...declared,
+            payloadContracts: [declaredPayloadV1, declaredPayloadV2],
+          },
+        ],
+      },
+    );
+    const supervisor = createSupervisor([definition]);
+
+    try {
+      await supervisor.reconcile(desired([definition]));
+      expect(
+        supervisor.workHandlers.resolve({
+          productGenerationId: workHandlerGeneration.productGenerationId,
+          microSystemId: definition.microSystemId,
+          contributionId: declared.contributionId,
+          packageGenerationId: workHandlerGeneration.packageGenerationId!,
+          payloadVersion: 2,
+        }),
+      ).toBeDefined();
+    } finally {
+      await supervisor.close();
+    }
+  });
+
   it("R1 starts provider before dependent and keeps independent C running", async () => {
     const serviceId = createServiceId("test.x");
     const a = provider("a", serviceId);

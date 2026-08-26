@@ -113,7 +113,7 @@ export interface WorkItem {
   readonly updatedAt: Instant;
 }
 
-export type WorkAdmissionDecision =
+export type WorkCreationAdmissionDecision =
   | { readonly decision: "ALLOW" }
   | {
       readonly decision: "DELAY";
@@ -127,6 +127,11 @@ export type WorkAdmissionDecision =
     }
   | { readonly decision: "REJECT_OPTIONAL"; readonly reasonCode: string }
   | { readonly decision: "REJECT_NEW_WORK"; readonly reasonCode: string };
+
+export type WorkDispatchAdmissionDecision =
+  | { readonly decision: "ALLOW" }
+  | { readonly decision: "DELAY"; readonly reasonCode: string }
+  | { readonly decision: "THROTTLE"; readonly reasonCode: string };
 
 export interface DurableDispatchRequest {
   readonly workItemId: WorkItemId;

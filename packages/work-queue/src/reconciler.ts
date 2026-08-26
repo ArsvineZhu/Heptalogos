@@ -13,6 +13,10 @@ import type {
   WorkQueueRuntimeOptions,
 } from "./contracts.js";
 import {
+  applyWorkDispatchAdmissionDecision,
+  type WorkAdmissionPort,
+} from "./admission.js";
+import {
   type WorkHandlerResolver,
   validateWorkQueueRuntimeOptions,
 } from "./service.js";
@@ -25,6 +29,7 @@ export interface WorkQueueReconcilerOptions {
   readonly repository: WorkQueueRepository;
   readonly durableDispatch: DurableDispatchPort;
   readonly handlerRegistry: WorkHandlerResolver;
+  readonly admission: WorkAdmissionPort;
   readonly signal: SignalService;
   readonly execution: ExecutionContextRuntime;
   readonly time: TimeService;
@@ -77,6 +82,15 @@ export function createWorkQueueReconciler(
     throw workQueueProblem(
       "work.request.invalid",
       "WorkQueueReconciler requires a background error sink",
+    );
+  }
+  if (
+    options.admission === undefined ||
+    typeof options.admission.beforeDispatch !== "function"
+  ) {
+    throw workQueueProblem(
+      "work.admission.required",
+      "WorkQueueReconciler requires an explicit dispatch WorkAdmissionPort",
     );
   }
 
@@ -158,8 +172,7 @@ export function createWorkQueueReconciler(
       }
     }
 
-    const pending = await options.repository.listDispatchable({
-      now,
+    const pending = await options.repository.listProjectionCandidates({
       limit: options.runtimeOptions.reconciliationBatchSize,
     });
     const candidates = new Map<string, WorkItem>();
@@ -173,6 +186,7 @@ export function createWorkQueueReconciler(
     for (const item of candidates.values()) {
       const request = dispatchRequest(item);
       try {
+        let admitted = false;
         await options.execution.runActivity(
           {
             kind: "work.dispatch",
@@ -180,9 +194,19 @@ export function createWorkQueueReconciler(
             retentionClass: "ephemeral",
             sensitivity: "operational",
           },
-          async () => options.durableDispatch.dispatch(request),
+          async (activity) => {
+            const decision = await options.admission.beforeDispatch({
+              execution: activity,
+              workItem: item,
+              dispatch: request,
+              now,
+            });
+            if (!applyWorkDispatchAdmissionDecision(decision)) return;
+            await options.durableDispatch.dispatch(request);
+            admitted = true;
+          },
         );
-        dispatched += 1;
+        if (admitted) dispatched += 1;
       } catch {
         dispatchFailures += 1;
         report(

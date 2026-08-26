@@ -1871,7 +1871,7 @@ WorkItemState
 WorkConfigurationBinding
 WorkItem
 WorkItemOutcome
-WorkAdmissionDecision
+WorkCreationAdmissionDecision
 DurableDispatchPort
 WorkErrorClassifier
 WorkQueueRuntimeOptions
@@ -1944,7 +1944,7 @@ Repository operations:
 insertWorkItem
 getWorkItem
 findNonTerminalDedup
-listDispatchable
+listProjectionCandidates
 listDueRetry
 listWaitingDependency
 markRunning
@@ -2027,8 +2027,8 @@ current ExecutionContext required
 Important:
 
 ```text
-notification delivery failure after commit
-does not roll back or erase WorkItem
+transaction-time pg_notify failure aborts the creation transaction
+post-commit notification delivery loss does not roll back or erase WorkItem
 ```
 
 If `CONFIG_PINNED` requested without a real resolver:
@@ -2178,9 +2178,10 @@ explicit terminal or retry decision. Unknown/unclassified failure becomes
 terminal `FAILED/permanent` rather than “retry until it works”. A retry decision
 must supply the exact `notBefore`; WorkQueue contains no hidden backoff formula.
 
-A successful handler result is validated against the exact generation-bound
-outcome schema, canonicalized, and checked against
-`WorkQueueRuntimeOptions.maxOutcomeBytes` before Tx B can commit it.
+`lease.execute()` admits the handler invocation and validates its outcome
+inside the same generation fence. WorkQueue must not request a second outcome
+admission after the lease settles; it only canonicalizes the returned outcome
+and checks `WorkQueueRuntimeOptions.maxOutcomeBytes` before Tx B can commit it.
 
 Before marking RUNNING, WorkAttemptExecutor re-checks canonical `notBefore`
 against TimeService. If an engine projection fires early (for example after a

@@ -65,6 +65,20 @@ interface SubscriptionEntry {
   closed: boolean;
 }
 
+type ConnectionSlotState = "CONNECTING" | "ACTIVE" | "STALE" | "CLOSED";
+
+interface ConnectionSlot {
+  readonly generation: number;
+  readonly client: SignalClient;
+  state: ConnectionSlotState;
+  endPromise?: Promise<void>;
+}
+
+interface ConnectionAttempt {
+  readonly epoch: number;
+  readonly promise: Promise<void>;
+}
+
 function normalizeError(problemCode: string, error: unknown): unknown {
   return error instanceof ProblemError
     ? error
@@ -90,10 +104,13 @@ function assertOptions(options: PostgresSignalRuntimeOptions): void {
 export class PostgresSignalService implements SignalService {
   private readonly subscriptions = new Set<SubscriptionEntry>();
   private readonly clientFactory: SignalClientFactory;
-  private client: SignalClient | undefined;
-  private connectPromise: Promise<void> | undefined;
+  private activeSlot: ConnectionSlot | undefined;
+  private connectingSlot: ConnectionSlot | undefined;
+  private connectPromise: ConnectionAttempt | undefined;
   private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   private reconnectAttempt = 0;
+  private connectionEpoch = 0;
+  private nextConnectionGeneration = 0;
   private closing = false;
   private closePromise: Promise<void> | undefined;
 
@@ -128,14 +145,14 @@ export class PostgresSignalService implements SignalService {
     const entry: SubscriptionEntry = { topic, listener, closed: false };
     this.subscriptions.add(entry);
     try {
-      const wasConnected = this.client !== undefined;
+      const wasConnected = this.activeSlot !== undefined;
       await this.ensureConnected();
       if (wasConnected) await this.invokeRescan(entry);
     } catch (error) {
       this.subscriptions.delete(entry);
       throw error;
     }
-    if (this.client !== undefined && !this.hasRescannedEntry(entry)) {
+    if (this.activeSlot !== undefined && !this.hasRescannedEntry(entry)) {
       await this.invokeRescan(entry);
     }
     return {
@@ -165,67 +182,122 @@ export class PostgresSignalService implements SignalService {
   }
 
   private async ensureConnected(): Promise<void> {
-    if (this.client !== undefined) return;
-    if (this.connectPromise !== undefined) return this.connectPromise;
-    this.connectPromise = this.connect().finally(() => {
-      this.connectPromise = undefined;
-    });
-    return this.connectPromise;
-  }
-
-  private async connect(): Promise<void> {
-    this.authority.assertActive();
-    const isReconnect = this.reconnectAttempt > 0;
-    const client = await this.authority.withRuntimeDatabasePassword(
-      async (passwordUtf8) => {
-        this.authority.assertActive();
-        let password: string;
-        try {
-          password = utf8Decoder.decode(passwordUtf8);
-        } catch (error) {
-          throw signalProblem(
-            "signal.listener.connection_failed",
-            "Signal credential is invalid UTF-8",
-            error,
-          );
-        }
-        return this.clientFactory.create({
-          host: this.authority.target.host,
-          port: this.authority.target.port,
-          database: this.authority.target.database,
-          user: this.authority.target.user,
-          password,
-          connectionTimeoutMs: this.options.connectionTimeoutMs,
-        });
+    if (this.activeSlot !== undefined) return;
+    if (this.connectPromise?.epoch === this.connectionEpoch) {
+      return this.connectPromise.promise;
+    }
+    if (
+      this.closing ||
+      this.authority.signal.aborted ||
+      this.subscriptions.size === 0
+    ) {
+      return;
+    }
+    const epoch = this.connectionEpoch;
+    const promise = this.connect(epoch);
+    this.connectPromise = { epoch, promise };
+    void promise.then(
+      () => {
+        if (this.connectPromise?.promise === promise) this.connectPromise = undefined;
+      },
+      () => {
+        if (this.connectPromise?.promise === promise) this.connectPromise = undefined;
       },
     );
-    this.attachClient(client);
+    return promise;
+  }
+
+  private canActivate(epoch: number, slot?: ConnectionSlot): boolean {
+    return (
+      !this.closing &&
+      !this.authority.signal.aborted &&
+      this.connectionEpoch === epoch &&
+      this.subscriptions.size > 0 &&
+      (slot === undefined || this.connectingSlot === slot) &&
+      (slot === undefined || slot.state === "CONNECTING")
+    );
+  }
+
+  private async connect(epoch: number): Promise<void> {
+    this.authority.assertActive();
+    const isReconnect = this.reconnectAttempt > 0;
+    let slot: ConnectionSlot | undefined;
     try {
+      const client = await this.authority.withRuntimeDatabasePassword(
+        async (passwordUtf8) => {
+          this.authority.assertActive();
+          let password: string;
+          try {
+            password = utf8Decoder.decode(passwordUtf8);
+          } catch (error) {
+            throw signalProblem(
+              "signal.listener.connection_failed",
+              "Signal credential is invalid UTF-8",
+              error,
+            );
+          }
+          return this.clientFactory.create({
+            host: this.authority.target.host,
+            port: this.authority.target.port,
+            database: this.authority.target.database,
+            user: this.authority.target.user,
+            password,
+            connectionTimeoutMs: this.options.connectionTimeoutMs,
+          });
+        },
+      );
+      slot = {
+        generation: ++this.nextConnectionGeneration,
+        client,
+        state: "CONNECTING",
+      };
+      this.connectingSlot = slot;
+      this.attachClient(slot);
+      if (!this.canActivate(epoch, slot)) {
+        await this.disposeSlot(slot);
+        return;
+      }
       await client.connect();
-      this.authority.assertActive();
+      if (!this.canActivate(epoch, slot)) {
+        await this.disposeSlot(slot);
+        return;
+      }
       await client.query(`LISTEN "${SIGNAL_CHANNEL}"`);
-      this.authority.assertActive();
-      this.client = client;
+      if (!this.canActivate(epoch, slot)) {
+        await this.disposeSlot(slot);
+        return;
+      }
+      this.connectingSlot = undefined;
+      slot.state = "ACTIVE";
+      this.activeSlot = slot;
       this.reconnectAttempt = 0;
       if (isReconnect) {
         for (const entry of this.subscriptions) await this.invokeRescan(entry);
       }
     } catch (error) {
-      await client.end().catch(() => undefined);
+      if (slot !== undefined) {
+        if (this.connectingSlot === slot) this.connectingSlot = undefined;
+        if (this.activeSlot === slot) this.activeSlot = undefined;
+        slot.state = "STALE";
+        await this.disposeSlot(slot);
+      }
       throw normalizeError("signal.listener.connection_failed", error);
     }
   }
 
-  private attachClient(client: SignalClient): void {
-    client.on("notification", (value) => {
-      void this.handleNotification(value).catch((error) => this.report(error));
+  private attachClient(slot: ConnectionSlot): void {
+    slot.client.on("notification", (value) => {
+      void this.handleNotification(slot, value).catch((error) => this.report(error));
     });
-    client.on("error", (error) => this.handleClientFailure(error));
-    client.on("end", () => this.handleClientFailure(undefined));
+    slot.client.on("error", (error) => this.handleClientFailure(slot, error));
+    slot.client.on("end", () => this.handleClientFailure(slot, undefined));
   }
 
-  private async handleNotification(value: unknown): Promise<void> {
-    if (this.closing || this.client === undefined) return;
+  private async handleNotification(
+    slot: ConnectionSlot,
+    value: unknown,
+  ): Promise<void> {
+    if (this.closing || this.activeSlot !== slot || slot.state !== "ACTIVE") return;
     const notification = value as SignalNotification | undefined;
     if (
       notification === undefined ||
@@ -245,12 +317,17 @@ export class PostgresSignalService implements SignalService {
     );
   }
 
-  private handleClientFailure(error: unknown): void {
-    if (this.closing || this.client === undefined) return;
-    const client = this.client;
-    this.client = undefined;
+  private handleClientFailure(slot: ConnectionSlot, error: unknown): void {
+    if (this.closing || slot.state === "STALE" || slot.state === "CLOSED") return;
+    const isActive = this.activeSlot === slot && slot.state === "ACTIVE";
+    const isConnecting = this.connectingSlot === slot && slot.state === "CONNECTING";
+    if (!isActive && !isConnecting) return;
+    slot.state = "STALE";
+    if (this.activeSlot === slot) this.activeSlot = undefined;
+    if (this.connectingSlot === slot) this.connectingSlot = undefined;
+    this.connectionEpoch += 1;
     this.report(normalizeError("signal.listener.connection_failed", error));
-    void client.end().catch((endError) => this.report(endError));
+    void this.disposeSlot(slot);
     this.scheduleReconnect();
   }
 
@@ -270,6 +347,13 @@ export class PostgresSignalService implements SignalService {
     this.reconnectAttempt += 1;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = undefined;
+      if (
+        this.closing ||
+        this.authority.signal.aborted ||
+        this.subscriptions.size === 0
+      ) {
+        return;
+      }
       void this.ensureConnected().catch((error) => {
         this.report(error);
         this.scheduleReconnect();
@@ -292,10 +376,30 @@ export class PostgresSignalService implements SignalService {
     }
   }
 
+  private async disposeSlot(slot: ConnectionSlot): Promise<void> {
+    if (slot.endPromise !== undefined) return slot.endPromise;
+    slot.state = "CLOSED";
+    slot.endPromise = slot.client.end().catch((error) => {
+      this.report(error);
+    });
+    await slot.endPromise;
+  }
+
   private async closeClient(): Promise<void> {
-    const client = this.client;
-    this.client = undefined;
-    if (client !== undefined) await client.end().catch((error) => this.report(error));
+    this.connectionEpoch += 1;
+    if (this.reconnectTimer !== undefined) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = undefined;
+    const slots = new Set<ConnectionSlot>();
+    if (this.activeSlot !== undefined) slots.add(this.activeSlot);
+    if (this.connectingSlot !== undefined) slots.add(this.connectingSlot);
+    this.activeSlot = undefined;
+    this.connectingSlot = undefined;
+    await Promise.all(
+      [...slots].map((slot) => {
+        slot.state = "STALE";
+        return this.disposeSlot(slot);
+      }),
+    );
   }
 
   private async close(): Promise<void> {

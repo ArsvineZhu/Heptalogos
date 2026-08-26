@@ -129,6 +129,72 @@ describe("WorkHandlerRegistry", () => {
     });
   });
 
+  it("does not resolve an exact registration for an unsupported payload version", () => {
+    const registry = new WorkHandlerRegistry();
+    registry.register(
+      owner(packageGenerationA),
+      descriptor,
+      handler(),
+      new GenerationFence(),
+    );
+
+    expect(
+      registry.resolve({ ...target(packageGenerationA), payloadVersion: 2 }),
+    ).toBeUndefined();
+  });
+
+  it("normalizes payload contract order and keeps a deep descriptor snapshot", () => {
+    const mutablePayloadSchema = {
+      type: "object",
+      properties: { value: { type: "string" } },
+      required: ["value"],
+      additionalProperties: false,
+    };
+    const mutableOutcomeSchema = {
+      type: "object",
+      properties: { accepted: { type: "boolean" } },
+      required: ["accepted"],
+      additionalProperties: false,
+    };
+    const sourceDescriptor: WorkHandlerProvisionDescriptor = {
+      ...descriptor,
+      payloadContracts: [
+        { version: 2, schema: { type: "object" } },
+        { version: 1, schema: mutablePayloadSchema },
+      ],
+      outcomeSchema: mutableOutcomeSchema,
+    };
+    const registry = new WorkHandlerRegistry();
+    registry.register(
+      owner(packageGenerationA),
+      sourceDescriptor,
+      handler(),
+      new GenerationFence(),
+    );
+
+    mutablePayloadSchema.properties.value.type = "number";
+    mutableOutcomeSchema.properties.accepted.type = "string";
+
+    const lease = registry.resolve(target(packageGenerationA))!;
+    expect(
+      lease.descriptor.payloadContracts.map((contract) => contract.version),
+    ).toEqual([1, 2]);
+    expect(lease.descriptor.payloadContracts[0]?.schema).toEqual({
+      additionalProperties: false,
+      properties: { value: { type: "string" } },
+      required: ["value"],
+      type: "object",
+    });
+    expect(lease.descriptor.outcomeSchema).toEqual({
+      additionalProperties: false,
+      properties: { accepted: { type: "boolean" } },
+      required: ["accepted"],
+      type: "object",
+    });
+    expect(lease.validatePayload(1, { value: "ok" })).toEqual({ value: "ok" });
+    expect(lease.validateOutcome({ accepted: true })).toEqual({ accepted: true });
+  });
+
   it("never falls from a missing generation to another registered generation", () => {
     const registry = new WorkHandlerRegistry();
     registry.register(
@@ -168,6 +234,22 @@ describe("WorkHandlerRegistry", () => {
         }),
       }),
     );
+  });
+
+  it("rejects payload contract versions outside the PostgreSQL integer range", () => {
+    const registry = new WorkHandlerRegistry();
+
+    expect(() =>
+      registry.register(
+        owner(packageGenerationA),
+        {
+          ...descriptor,
+          payloadContracts: [{ version: 2_147_483_648, schema: {} }],
+        },
+        handler(),
+        new GenerationFence(),
+      ),
+    ).toThrow();
   });
 
   it("closes new admission while an admitted generation invocation settles", async () => {

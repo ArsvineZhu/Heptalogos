@@ -37,7 +37,10 @@ import { RuntimeGraph } from "./runtime-graph.js";
 import { evaluateReadiness } from "./readiness.js";
 import { ServiceRegistry } from "./service-registry.js";
 import type { RuntimeLifecycleLineage } from "./lifecycle-lineage.js";
-import { WorkHandlerRegistry } from "./work-handler-registry.js";
+import {
+  WorkHandlerRegistry,
+  workHandlerDescriptorsEqual,
+} from "./work-handler-registry.js";
 
 interface RunningSystem {
   readonly definition: MicroSystemDefinition;
@@ -1073,24 +1076,8 @@ export class MicroSystemSupervisor {
           candidate.priority === descriptor.priority,
       );
     const declaredWorkHandler = (descriptor: WorkHandlerProvisionDescriptor): boolean =>
-      (definition.workHandlerProvisions ?? []).some(
-        (candidate) =>
-          candidate.contributionId === descriptor.contributionId &&
-          candidate.contractVersion === descriptor.contractVersion &&
-          candidate.queueProfileId === descriptor.queueProfileId &&
-          candidate.resourceAdmissionClass === descriptor.resourceAdmissionClass &&
-          candidate.configurationBindingPolicy ===
-            descriptor.configurationBindingPolicy &&
-          candidate.restoreReplayClass === descriptor.restoreReplayClass &&
-          candidate.payloadContracts.length === descriptor.payloadContracts.length &&
-          candidate.payloadContracts.every(
-            (payloadContract, index) =>
-              payloadContract.version === descriptor.payloadContracts[index]?.version &&
-              JSON.stringify(payloadContract.schema) ===
-                JSON.stringify(descriptor.payloadContracts[index]?.schema),
-          ) &&
-          JSON.stringify(candidate.outcomeSchema) ===
-            JSON.stringify(descriptor.outcomeSchema),
+      (definition.workHandlerProvisions ?? []).some((candidate) =>
+        workHandlerDescriptorsEqual(candidate, descriptor),
       );
     return {
       microSystemId: definition.microSystemId,

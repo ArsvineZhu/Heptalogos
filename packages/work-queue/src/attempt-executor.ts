@@ -154,13 +154,6 @@ function safeRetryClass(value: unknown): WorkRetryClass | undefined {
     : undefined;
 }
 
-function unsupportedExternalEffectUncertainty(): ProblemError {
-  return workQueueProblem(
-    "work.external_effect_uncertain_unsupported",
-    "The current WorkAttemptExecutor does not support external-effect-uncertain classification",
-  );
-}
-
 function classifyFailure(
   classifier: WorkErrorClassifier,
   item: WorkItem,
@@ -180,7 +173,11 @@ function classifyFailure(
   const retryClass = safeRetryClass(decision?.retryClass);
   const reasonCode = safeReasonCode(decision?.reasonCode);
   if (retryClass === "external-effect-uncertain") {
-    throw unsupportedExternalEffectUncertainty();
+    return {
+      kind: "TERMINAL",
+      retryClass: "invalid",
+      reasonCode: "work.external_effect_uncertain_unsupported",
+    };
   }
   if (reasonCode === undefined || retryClass === undefined) {
     return {
@@ -259,9 +256,18 @@ function isPayloadDependencyProblem(error: unknown): boolean {
   if (!(error instanceof ProblemError)) return false;
   return (
     error.problem.problemCode === "runtime.work_handler.payload_version_unavailable" ||
-    error.problem.problemCode === "runtime.work_handler.payload_invalid" ||
     error.problem.problemCode === "runtime.generation.retired"
   );
+}
+
+function payloadValidationReasonCode(error: unknown): string {
+  if (
+    error instanceof ProblemError &&
+    error.problem.problemCode === "runtime.work_handler.payload_invalid"
+  ) {
+    return error.problem.problemCode;
+  }
+  return "work.handler.payload_invalid";
 }
 
 function runAttemptActivity<T>(
@@ -414,9 +420,16 @@ export function createWorkAttemptExecutor(
               );
             }
             return resultForMutation(
-              await options.repository.markWaitingDependency({
+              await options.repository.commitTerminal({
                 workItemId: item.workItemId,
                 expectedDispatchRevision: item.dispatchRevision,
+                expectedState: "PENDING",
+                outcome: {
+                  schemaVersion: 1,
+                  kind: "FAILED",
+                  retryClass: "invalid",
+                  reasonCode: payloadValidationReasonCode(error),
+                },
                 updatedAt: options.time.now(),
               }),
             );
@@ -480,9 +493,8 @@ export function createWorkAttemptExecutor(
             } finally {
               stopCancellationMonitor();
             }
-            const validatedOutcome = lease.validateOutcome(handlerResult.outcome);
             const value = outputValue(
-              validatedOutcome,
+              handlerResult.outcome,
               options.runtimeOptions.maxOutcomeBytes,
             );
             successOutcome = {
@@ -491,12 +503,6 @@ export function createWorkAttemptExecutor(
               value,
             };
           } catch (error) {
-            if (
-              error instanceof ProblemError &&
-              error.problem.problemCode === "work.external_effect_uncertain_unsupported"
-            ) {
-              throw error;
-            }
             const decision = classifyFailure(options.classifier, running, error);
             if (decision.kind === "RETRY") {
               const retried = await options.repository.markRetryWait({

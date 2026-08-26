@@ -1,7 +1,10 @@
 import {
+  canonicalizeJson,
+  POSTGRES_INTEGER_MAX,
   parseContentDigest,
   parseContributionId,
   parseMicroSystemId,
+  type CanonicalJsonValue,
 } from "@heptalogos/foundation-contracts";
 import { compileSchema, type SchemaValidator } from "@heptalogos/schema-runtime";
 import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
@@ -47,10 +50,107 @@ function descriptorProblem(detail: string): never {
   throw runtimeKernelProblem("runtime.work_handler.invalid_descriptor", detail);
 }
 
+function deepFreeze<T>(value: T): T {
+  if (typeof value !== "object" || value === null || Object.isFrozen(value)) {
+    return value;
+  }
+  for (const child of Object.values(value as Record<string, unknown>)) {
+    deepFreeze(child);
+  }
+  return Object.freeze(value);
+}
+
+function snapshotSchema(
+  schema: Readonly<Record<string, unknown>>,
+  label: string,
+): Readonly<Record<string, unknown>> {
+  try {
+    const snapshot = JSON.parse(
+      canonicalizeJson(schema as CanonicalJsonValue),
+    ) as Readonly<Record<string, unknown>>;
+    return deepFreeze(snapshot);
+  } catch {
+    descriptorProblem(`${label} must be canonical JSON`);
+  }
+}
+
+function normalizedPayloadContracts(
+  payloadContracts: readonly WorkHandlerPayloadContract[],
+): readonly WorkHandlerPayloadContract[] {
+  return [...payloadContracts].sort((left, right) => left.version - right.version);
+}
+
+export function canonicalizeWorkHandlerDescriptor(
+  descriptor: WorkHandlerProvisionDescriptor,
+): string {
+  const payloadContracts = normalizedPayloadContracts(descriptor.payloadContracts).map(
+    (contract) => ({
+      version: contract.version,
+      schema: contract.schema as CanonicalJsonValue,
+    }),
+  );
+  return canonicalizeJson({
+    contributionId: descriptor.contributionId,
+    contractVersion: descriptor.contractVersion,
+    payloadContracts,
+    outcomeSchema: descriptor.outcomeSchema as CanonicalJsonValue,
+    queueProfileId: descriptor.queueProfileId,
+    resourceAdmissionClass: descriptor.resourceAdmissionClass,
+    configurationBindingPolicy: descriptor.configurationBindingPolicy,
+    restoreReplayClass: descriptor.restoreReplayClass,
+  });
+}
+
+export function workHandlerDescriptorsEqual(
+  left: WorkHandlerProvisionDescriptor,
+  right: WorkHandlerProvisionDescriptor,
+): boolean {
+  try {
+    return (
+      canonicalizeWorkHandlerDescriptor(left) ===
+      canonicalizeWorkHandlerDescriptor(right)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function snapshotDescriptor(
+  descriptor: WorkHandlerProvisionDescriptor,
+): WorkHandlerProvisionDescriptor {
+  const payloadContracts = normalizedPayloadContracts(descriptor.payloadContracts).map(
+    (contract) =>
+      Object.freeze({
+        version: contract.version,
+        schema: snapshotSchema(
+          contract.schema,
+          `WorkHandler payload schema for version ${contract.version}`,
+        ),
+      }),
+  );
+  return Object.freeze({
+    contributionId: descriptor.contributionId,
+    contractVersion: descriptor.contractVersion,
+    payloadContracts: Object.freeze(payloadContracts),
+    outcomeSchema: snapshotSchema(
+      descriptor.outcomeSchema,
+      "WorkHandler outcome schema",
+    ),
+    queueProfileId: descriptor.queueProfileId,
+    resourceAdmissionClass: descriptor.resourceAdmissionClass,
+    configurationBindingPolicy: descriptor.configurationBindingPolicy,
+    restoreReplayClass: descriptor.restoreReplayClass,
+  });
+}
+
 function compilePayloadContract(
   contract: WorkHandlerPayloadContract,
 ): SchemaValidator<unknown> {
-  if (!Number.isSafeInteger(contract.version) || contract.version <= 0) {
+  if (
+    !Number.isSafeInteger(contract.version) ||
+    contract.version < 1 ||
+    contract.version > POSTGRES_INTEGER_MAX
+  ) {
     descriptorProblem(
       "WorkHandler payload contract versions must be positive integers",
     );
@@ -266,8 +366,9 @@ export class WorkHandlerRegistry {
     if (typeof implementation.execute !== "function") {
       descriptorProblem("WorkHandler implementation must expose execute");
     }
-    const payloadValidators = validateDescriptor(descriptor);
-    const outcomeValidator = compileOutcomeSchema(descriptor.outcomeSchema);
+    const snapshottedDescriptor = snapshotDescriptor(descriptor);
+    const payloadValidators = validateDescriptor(snapshottedDescriptor);
+    const outcomeValidator = compileOutcomeSchema(snapshottedDescriptor.outcomeSchema);
     const key = keyFor(owner, descriptor.contributionId);
     if (this.registrations.has(key)) {
       throw runtimeKernelProblem(
@@ -277,12 +378,7 @@ export class WorkHandlerRegistry {
     }
     this.registrations.set(key, {
       owner,
-      descriptor: Object.freeze({
-        ...descriptor,
-        payloadContracts: Object.freeze(
-          descriptor.payloadContracts.map((contract) => Object.freeze({ ...contract })),
-        ),
-      }),
+      descriptor: snapshottedDescriptor,
       implementation,
       fence,
       runtimeActivity,
@@ -298,7 +394,8 @@ export class WorkHandlerRegistry {
     if (
       registration === undefined ||
       registration.owner.productGenerationId !== target.productGenerationId ||
-      registration.fence.state !== "ACTIVE"
+      registration.fence.state !== "ACTIVE" ||
+      !registration.payloadValidators.has(target.payloadVersion)
     ) {
       return undefined;
     }

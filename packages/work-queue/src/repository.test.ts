@@ -260,6 +260,133 @@ describe("WorkQueue Persistence repository", () => {
     } satisfies Partial<WorkItemMutationResult>);
   });
 
+  it("rejects persisted payload versions outside the PostgreSQL integer range", async () => {
+    const item = sampleWorkItem({
+      handler: { ...sampleWorkItem().handler, payloadVersion: 2_147_483_648 },
+    });
+    prepareRows(rowFor(item));
+    const repository = createWorkQueueRepository(fakePersistence());
+
+    await expect(repository.getWorkItem(item.workItemId)).rejects.toMatchObject({
+      problem: { problemCode: "work_queue.invalid_work_item" },
+    });
+  });
+
+  it("fences the first terminal intent and terminalizes idle waiting states atomically", async () => {
+    const item = sampleWorkItem({ state: "WAITING_DEPENDENCY" });
+    const cancelled = sampleWorkItem({
+      ...item,
+      state: "CANCELLED",
+      cancelRequestedAt: now,
+      cancellationReasonCode: "operator.cancelled",
+      outcome: {
+        schemaVersion: 1,
+        kind: "CANCELLED",
+        reasonCode: "operator.cancelled",
+      },
+    });
+    prepareRows(rowFor(cancelled));
+    const repository = createWorkQueueRepository(fakePersistence());
+
+    await expect(
+      repository.requestCancel({
+        workItemId: item.workItemId,
+        expectedDispatchRevision: item.dispatchRevision,
+        expectedState: "WAITING_DEPENDENCY",
+        requestedAt: now,
+        reasonCode: "operator.cancelled",
+      }),
+    ).resolves.toMatchObject({ status: "APPLIED", item: cancelled });
+    expect(mocks.executeQuery.mock.calls[0][0].sql).toMatch(
+      /cancel_requested_at IS NULL\s+AND superseded_by IS NULL/u,
+    );
+    expect(mocks.executeQuery.mock.calls[0][0].sql).toMatch(
+      /state IN \('PENDING', 'WAITING_DEPENDENCY', 'RETRY_WAIT'\)/u,
+    );
+
+    const supersededBy = createWorkItemId();
+    const superseded = sampleWorkItem({
+      ...item,
+      state: "SUPERSEDED",
+      supersededBy,
+      outcome: {
+        schemaVersion: 1,
+        kind: "SUPERSEDED",
+        reasonCode: "operator.superseded",
+        supersededBy,
+      },
+    });
+    prepareRows(rowFor(superseded));
+    await expect(
+      repository.requestSupersede({
+        workItemId: item.workItemId,
+        expectedDispatchRevision: item.dispatchRevision,
+        expectedState: "WAITING_DEPENDENCY",
+        requestedAt: now,
+        reasonCode: "operator.superseded",
+        supersededBy,
+      }),
+    ).resolves.toMatchObject({ status: "APPLIED", item: superseded });
+    expect(mocks.executeQuery.mock.calls[0][0].sql).toMatch(
+      /cancel_requested_at IS NULL\s+AND superseded_by IS NULL/u,
+    );
+    expect(mocks.executeQuery.mock.calls[0][0].sql).toMatch(
+      /state IN \('PENDING', 'WAITING_DEPENDENCY', 'RETRY_WAIT'\)/u,
+    );
+  });
+
+  it("does not wake a waiting item after a terminal intent is accepted", async () => {
+    const item = sampleWorkItem({ state: "WAITING_DEPENDENCY" });
+    const cancelled = sampleWorkItem({
+      ...item,
+      state: "CANCELLED",
+      cancelRequestedAt: now,
+      cancellationReasonCode: "operator.cancelled",
+      outcome: {
+        schemaVersion: 1,
+        kind: "CANCELLED",
+        reasonCode: "operator.cancelled",
+      },
+    });
+    prepareRows(rowFor(cancelled));
+    const repository = createWorkQueueRepository(fakePersistence());
+
+    await repository.wakeDependency({
+      workItemId: item.workItemId,
+      expectedDispatchRevision: item.dispatchRevision,
+      updatedAt: now,
+    });
+
+    expect(mocks.executeQuery.mock.calls[0][0].sql).toMatch(
+      /cancel_requested_at IS NULL\s+AND superseded_by IS NULL/u,
+    );
+  });
+
+  it("records but does not terminalize a restore-reconciliation cancellation", async () => {
+    const item = sampleWorkItem({ state: "WAITING_RESTORE_RECONCILIATION" });
+    const recorded = sampleWorkItem({
+      ...item,
+      state: "WAITING_RESTORE_RECONCILIATION",
+      cancelRequestedAt: now,
+      cancellationReasonCode: "operator.cancelled",
+    });
+    prepareRows(rowFor(recorded));
+    const repository = createWorkQueueRepository(fakePersistence());
+
+    await expect(
+      repository.requestCancel({
+        workItemId: item.workItemId,
+        expectedDispatchRevision: item.dispatchRevision,
+        expectedState: "WAITING_RESTORE_RECONCILIATION",
+        requestedAt: now,
+        reasonCode: "operator.cancelled",
+      }),
+    ).resolves.toMatchObject({
+      status: "APPLIED",
+      item: { state: "WAITING_RESTORE_RECONCILIATION" },
+    });
+  });
+
   it("does not retain a transaction or use one outside the Persistence callback", async () => {
     const item = sampleWorkItem();
     prepareRows(rowFor(item));

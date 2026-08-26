@@ -37,7 +37,7 @@ import type {
 import type { TimeService } from "@heptalogos/time-service";
 import {
   createWorkQueueService,
-  type WorkAdmissionDecision,
+  type WorkCreationAdmissionDecision,
   type WorkAdmissionPort,
   type WorkHandlerTarget,
   type WorkItem,
@@ -165,7 +165,7 @@ function fakeRepository(
       onInsert(item, options).then(() => ({ status: "INSERTED", item: inserted })),
     getWorkItem: async () => undefined,
     findNonTerminalDedup: async () => undefined,
-    listDispatchable: async () => [],
+    listProjectionCandidates: async () => [],
     listDueRetry: async () => [],
     listWaitingDependency: async () => [],
     markRunning: async () => ({ status: "NOT_FOUND" }),
@@ -204,7 +204,7 @@ function workItem(
   };
 }
 
-function serviceFixture(decision: WorkAdmissionDecision) {
+function serviceFixture(decision: WorkCreationAdmissionDecision) {
   const source = executionContext();
   const activity = executionContext();
   const inserted = workItem(activity);
@@ -232,6 +232,7 @@ function serviceFixture(decision: WorkAdmissionDecision) {
   });
   const admission: WorkAdmissionPort = {
     beforeCreate: vi.fn(async () => decision),
+    beforeDispatch: vi.fn(async () => ({ decision: "ALLOW" as const })),
   };
   const descriptor: WorkHandlerProvisionDescriptor = {
     contributionId: target.contributionId,
@@ -424,23 +425,36 @@ describe("WorkQueue creation service", () => {
     });
   });
 
-  it("keeps a Signal failure best-effort after insertion", async () => {
+  it("rejects payload versions outside the PostgreSQL integer range", async () => {
+    const fixture = serviceFixture({ decision: "ALLOW" });
+    await expect(
+      fixture.service.create({
+        target: { ...target, payloadVersion: 2_147_483_648 },
+        payload: { value: "hello" },
+        queueProfileId,
+        resourceAdmissionClass,
+        priority: 100,
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "work.request.invalid" },
+    });
+    expect(fixture.handlerRegistry.resolve).not.toHaveBeenCalled();
+  });
+
+  it("propagates a transaction-time Signal publication failure", async () => {
     const fixture = serviceFixture({ decision: "ALLOW" });
     fixture.publish.mockRejectedValueOnce(new Error("secret-sentinel"));
 
-    const result = await fixture.service.create({
-      target,
-      payload: { value: "hello" },
-      queueProfileId,
-      resourceAdmissionClass,
-      priority: 100,
-    });
-
-    expect(result.status).toBe("CREATED");
+    await expect(
+      fixture.service.create({
+        target,
+        payload: { value: "hello" },
+        queueProfileId,
+        resourceAdmissionClass,
+        priority: 100,
+      }),
+    ).rejects.toThrow("secret-sentinel");
     expect(fixture.insertedItems).toHaveLength(1);
-    expect(fixture.backgroundErrors).toHaveLength(1);
-    expect(JSON.stringify(fixture.backgroundErrors[0])).not.toContain(
-      "secret-sentinel",
-    );
+    expect(fixture.backgroundErrors).toHaveLength(0);
   });
 });

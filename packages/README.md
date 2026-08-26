@@ -59,7 +59,8 @@ runtime-substrate
 runtime-kernel
 
 signal and work-queue are Foundation system-service packages composed above the
-execution and persistence contracts; durable-execution remains the DBOS adapter.
+execution and persistence contracts; engine-specific execution integration is
+outside the current workspace tree.
 
 bootstrap-runtime production path stays outside runtime-kernel/runtime-substrate
 and composes with them only at higher Host/product integration boundaries.

@@ -280,6 +280,9 @@ export function isRestrictedImportAllowed(specifier, relativePath) {
 const bootstrapRuntimeProductionForbiddenImports = new Set([
   "@heptalogos/runtime-kernel",
   "@heptalogos/runtime-substrate",
+  "@heptalogos/work-queue",
+  "@heptalogos/signal",
+  "@heptalogos/durable-execution",
   "cordis",
 ]);
 

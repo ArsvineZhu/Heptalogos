@@ -47,6 +47,10 @@ describe("canonical schema adapter", () => {
     expect(sql).toContain('"work_item_dispatchable_index"');
     expect(sql).toContain('"work_item_dedup_unique"');
     expect(sql).toContain("p_contribution_id");
+    expect(sql).toContain("payload_version BETWEEN 1 AND 2147483647");
+    expect(sql).toContain("state = 'RUNNING' AND active_attempt_id IS NOT NULL");
+    expect(sql).toContain("state <> 'RUNNING' AND active_attempt_id IS NULL");
+    expect(sql).toContain("cancel_requested_at IS NULL OR superseded_by IS NULL");
   });
 
   it("publishes exactly one static migration without a filesystem provider", async () => {

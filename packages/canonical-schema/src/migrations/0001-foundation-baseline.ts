@@ -214,7 +214,10 @@ export const foundationBaselineMigration: Migration = {
         "work_item_handler_package_generation_check",
         sql`handler_package_generation_id ~ '^[0-9a-f]{64}$'`,
       )
-      .addCheckConstraint("work_item_payload_version_check", sql`payload_version > 0`)
+      .addCheckConstraint(
+        "work_item_payload_version_check",
+        sql`payload_version BETWEEN 1 AND 2147483647`,
+      )
       .addCheckConstraint(
         "work_item_queue_profile_id_check",
         sql`
@@ -264,10 +267,9 @@ export const foundationBaselineMigration: Migration = {
       .addCheckConstraint(
         "work_item_active_attempt_id_check",
         sql`
-          active_attempt_id IS NULL OR (
-            state = 'RUNNING' AND
-            active_attempt_id ~ '^[0-9a-f]{64}$'
-          )
+          (state = 'RUNNING' AND active_attempt_id IS NOT NULL AND
+            active_attempt_id ~ '^[0-9a-f]{64}$') OR
+          (state <> 'RUNNING' AND active_attempt_id IS NULL)
         `,
       )
       .addCheckConstraint(
@@ -288,6 +290,10 @@ export const foundationBaselineMigration: Migration = {
           (state_reason_code IS NULL OR (btrim(state_reason_code) <> '' AND octet_length(state_reason_code) BETWEEN 1 AND 256)) AND
           (cancellation_reason_code IS NULL OR (btrim(cancellation_reason_code) <> '' AND octet_length(cancellation_reason_code) BETWEEN 1 AND 256))
         `,
+      )
+      .addCheckConstraint(
+        "work_item_terminal_intent_exclusivity_check",
+        sql`cancel_requested_at IS NULL OR superseded_by IS NULL`,
       )
       .addCheckConstraint(
         "work_item_terminal_outcome_check",

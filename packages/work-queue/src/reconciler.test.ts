@@ -30,6 +30,8 @@ import {
   createDispatchAttemptId,
   createWorkQueueReconciler,
   type DurableDispatchRequest,
+  type WorkAdmissionPort,
+  type WorkDispatchAdmissionDecision,
   type WorkHandlerResolver,
   type WorkItem,
   type WorkQueueRepository,
@@ -139,13 +141,13 @@ function repositoryFor(
 ): WorkQueueRepository & {
   readonly wakeDependency: ReturnType<typeof vi.fn>;
   readonly wakeDueRetry: ReturnType<typeof vi.fn>;
-  readonly listDispatchable: ReturnType<typeof vi.fn>;
+  readonly listProjectionCandidates: ReturnType<typeof vi.fn>;
 } {
   return {
     insertWorkItem: vi.fn(),
     getWorkItem: vi.fn(),
     findNonTerminalDedup: vi.fn(),
-    listDispatchable: vi.fn(async () => pending),
+    listProjectionCandidates: vi.fn(async () => pending),
     listDueRetry: vi.fn(async () => dueRetry),
     listWaitingDependency: vi.fn(async () => waiting),
     markRunning: vi.fn(),
@@ -159,7 +161,7 @@ function repositoryFor(
   } as unknown as WorkQueueRepository & {
     readonly wakeDependency: ReturnType<typeof vi.fn>;
     readonly wakeDueRetry: ReturnType<typeof vi.fn>;
-    readonly listDispatchable: ReturnType<typeof vi.fn>;
+    readonly listProjectionCandidates: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -196,6 +198,7 @@ function reconcilerFixture(
   pending: readonly WorkItem[] = [],
   dueRetry: readonly WorkItem[] = [],
   waiting: readonly WorkItem[] = [],
+  dispatchAdmission: WorkDispatchAdmissionDecision = { decision: "ALLOW" },
 ) {
   const context = executionContext();
   const repository = repositoryFor(pending, dueRetry, waiting);
@@ -213,12 +216,17 @@ function reconcilerFixture(
   const handlerRegistry: WorkHandlerResolver = {
     resolve: vi.fn(() => handler),
   };
+  const admission = {
+    beforeCreate: vi.fn(async () => ({ decision: "ALLOW" as const })),
+    beforeDispatch: vi.fn(async () => dispatchAdmission),
+  } satisfies WorkAdmissionPort;
   const signal = signalFixture();
   const backgroundErrors: unknown[] = [];
   const reconciler = createWorkQueueReconciler({
     repository,
     durableDispatch: { dispatch },
     handlerRegistry,
+    admission,
     signal: signal.service,
     execution: executionRuntime(context),
     time: fakeTime(),
@@ -237,6 +245,7 @@ function reconcilerFixture(
     dispatches,
     handler,
     handlerRegistry,
+    admission,
     signal,
     reconciler,
     backgroundErrors,
@@ -263,6 +272,78 @@ describe("WorkQueue reconciliation", () => {
     await fixture.reconciler.stop();
   });
 
+  it("projects a future notBefore without waiting for the due instant", async () => {
+    const future = "2026-08-26T12:05:00.000Z" as Instant;
+    const pending = item(executionContext(), { notBefore: future });
+    const fixture = reconcilerFixture([pending]);
+
+    await fixture.reconciler.scan();
+
+    expect(fixture.repository.listProjectionCandidates).toHaveBeenCalledWith({
+      limit: 10,
+    });
+    expect(fixture.dispatches).toEqual([
+      expect.objectContaining({
+        workItemId: pending.workItemId,
+        dispatchRevision: pending.dispatchRevision,
+        dispatchAttemptId: createDispatchAttemptId(
+          pending.workItemId,
+          pending.dispatchRevision,
+        ),
+        notBefore: future,
+      }),
+    ]);
+  });
+
+  it("does not dispatch when committed-work admission returns DELAY", async () => {
+    const pending = item(executionContext());
+    const fixture = reconcilerFixture([], [], [], {
+      decision: "DELAY",
+      reasonCode: "pressure.delayed",
+    });
+    fixture.repository.listProjectionCandidates.mockResolvedValueOnce([pending]);
+
+    await fixture.reconciler.scan();
+
+    expect(fixture.admission.beforeDispatch).toHaveBeenCalledTimes(1);
+    expect(fixture.dispatch).not.toHaveBeenCalled();
+  });
+
+  it("does not dispatch when committed-work admission returns THROTTLE", async () => {
+    const pending = item(executionContext());
+    const fixture = reconcilerFixture([], [], [], {
+      decision: "THROTTLE",
+      reasonCode: "pressure.throttled",
+    });
+    fixture.repository.listProjectionCandidates.mockResolvedValueOnce([pending]);
+
+    await fixture.reconciler.scan();
+
+    expect(fixture.admission.beforeDispatch).toHaveBeenCalledTimes(1);
+    expect(fixture.dispatch).not.toHaveBeenCalled();
+  });
+
+  it("re-evaluates deferred committed work and dispatches the same revision after ALLOW", async () => {
+    const pending = item(executionContext());
+    const fixture = reconcilerFixture([pending]);
+    fixture.admission.beforeDispatch
+      .mockResolvedValueOnce({ decision: "DELAY", reasonCode: "pressure.delayed" })
+      .mockResolvedValueOnce({ decision: "ALLOW" });
+
+    await fixture.reconciler.scan();
+    await fixture.reconciler.scan();
+
+    expect(fixture.dispatches).toHaveLength(1);
+    expect(fixture.dispatches[0]).toMatchObject({
+      workItemId: pending.workItemId,
+      dispatchRevision: pending.dispatchRevision,
+      dispatchAttemptId: createDispatchAttemptId(
+        pending.workItemId,
+        pending.dispatchRevision,
+      ),
+    });
+  });
+
   it("keeps a canonical item recoverable when the dispatch adapter fails", async () => {
     const pending = item(executionContext());
     const fixture = reconcilerFixture([pending]);
@@ -270,10 +351,10 @@ describe("WorkQueue reconciliation", () => {
 
     await fixture.reconciler.scan();
     expect(fixture.backgroundErrors).toHaveLength(1);
-    expect(fixture.repository.listDispatchable).toHaveBeenCalledTimes(1);
+    expect(fixture.repository.listProjectionCandidates).toHaveBeenCalledTimes(1);
 
     await fixture.reconciler.scan();
-    expect(fixture.repository.listDispatchable).toHaveBeenCalledTimes(2);
+    expect(fixture.repository.listProjectionCandidates).toHaveBeenCalledTimes(2);
     expect(fixture.dispatch).toHaveBeenCalledTimes(2);
   });
 
@@ -284,12 +365,12 @@ describe("WorkQueue reconciliation", () => {
     const blocked = new Promise<readonly WorkItem[]>((resolve) => {
       release = () => resolve([pending]);
     });
-    fixture.repository.listDispatchable.mockReturnValueOnce(blocked);
+    fixture.repository.listProjectionCandidates.mockReturnValueOnce(blocked);
 
     const first = fixture.reconciler.scan();
     const second = fixture.reconciler.scan();
     await new Promise<void>((resolve) => setTimeout(() => resolve(), 0));
-    expect(fixture.repository.listDispatchable).toHaveBeenCalledTimes(1);
+    expect(fixture.repository.listProjectionCandidates).toHaveBeenCalledTimes(1);
     release();
     await Promise.all([first, second]);
   });

@@ -66,6 +66,7 @@ export {
   type WorkItemId,
 } from "./runtime-identity.js";
 export { LIFECYCLE_ROOT_IDS, type LifecycleRootId } from "./lifecycle-root.js";
+export { POSTGRES_INTEGER_MAX } from "./numeric.js";
 export {
   ProblemError,
   type FieldError,

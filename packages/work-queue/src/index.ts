@@ -9,7 +9,8 @@ export type {
   DurableDispatchRequest,
   NormalizedWorkFailure,
   ResourceAdmissionClassId,
-  WorkAdmissionDecision,
+  WorkCreationAdmissionDecision,
+  WorkDispatchAdmissionDecision,
   WorkConfigurationBinding,
   WorkErrorClassificationInput,
   WorkErrorClassifier,
@@ -38,8 +39,10 @@ export {
 export { workQueueProblem } from "./problems.js";
 export {
   applyWorkAdmissionDecision,
+  applyWorkDispatchAdmissionDecision,
   type WorkAdmissionPort,
   type WorkAdmissionRequest,
+  type WorkDispatchAdmissionRequest,
 } from "./admission.js";
 export {
   WORK_AVAILABLE_TOPIC,
