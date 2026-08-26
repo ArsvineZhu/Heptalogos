@@ -79,21 +79,88 @@ The following semantic decisions are locked for this correction:
 This amendment is the governing correction for the implementation tasks below;
 H3A-2 remains prohibited until H3A-1 is externally reviewed and closed.
 
-The corrected candidate was freshly qualified on 2026-08-27. The focused
-Foundation suites, the complete repository verification gates, and the real
-PostgreSQL 18.6 Host integration all passed, including the expanded lifecycle,
-projection, admission, terminal-intent, classifier, transaction, and canonical
-representation scenarios. After the verified implementation and qualification
-record are committed on a clean branch, the current candidate truth is:
+The previous correction candidate was freshly qualified on 2026-08-27. That
+observation remains historical for the next bounded correction; the newly
+required properties below have not yet been qualified. While this correction
+is open, the current candidate truth is:
 
 ```yaml
 H3: OPEN
 H3A: ACTIVE
-H3A_1: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+H3A_1: ACTIVE
 H3A_2: NOT_ELIGIBLE
-candidateFreeze: PASS
+candidateFreeze: BLOCKED
 independentReview: NOT_RUN
 ```
+
+## H3A-1 Candidate Correctness Correction Round 2 Amendment — 2026-08-27
+
+**Status:** ACTIVE
+
+This is a bounded correction of the existing H3A-1 candidate. It does not
+create a new H3A substage, alter package ownership, add a compatibility path,
+or pull H3A-2/H3B behavior forward. It supersedes only conflicting
+implementation details in the preceding H3A-1 correction amendment.
+
+The following decisions are locked for this correction:
+
+- **C2-D01 — Fair reconciliation:** PENDING projection and
+  WAITING_DEPENDENCY availability scans use ephemeral, cycle-bounded keyset
+  enumeration ordered by `(created_at, work_item_id)`, with a snapshot ceiling
+  and a process-memory cursor. Priority remains only on the dispatch request;
+  no scheduler or persisted cursor is introduced. RETRY_WAIT due wake keeps
+  its existing CAS semantics.
+- **C2-D02 — Pre-invoke generation admission:** an exact WorkHandler
+  generation must reserve an invocation before Tx A changes PENDING to
+  RUNNING. The one-shot reservation increments the existing GenerationFence
+  in-flight count immediately, can run after retirement begins, and releases
+  exactly once. A failed Tx A releases without invoking the handler. The
+  direct lease `execute()` surface is removed.
+- **C2-D03 — Detached canonical values:** canonical JSON is canonicalized once,
+  parsed to detach it from the caller graph, recursively frozen, and measured
+  from its canonical UTF-8 representation. Creation and admitted outcomes use
+  detached snapshots across durable boundaries; non-JSON structured-clone
+  values remain invalid.
+- **C2-D04 — Complete WorkQueue lineage:** significant `work.create` and every
+  early mutating `work.execute` path retain and complete the Activity in the
+  same Host-fenced transaction as the canonical mutation. `work.create`
+  completion is `CREATED` or `EXISTING`; early waits/retries complete as
+  Activity `SUCCEEDED` with `WAITING_DEPENDENCY` or `RETRY_WAIT` references;
+  invalid failure completes as `FAILED`; no Activity is retained for a lost
+  CAS.
+- **C2-D05 — Restricted repository Authority:** the concrete WorkQueue
+  repository factory is removed from the package root and exposed only through
+  `@heptalogos/work-queue/foundation-repository` to WorkQueue internals and
+  the explicitly authorized Bootstrap integration fixture. No root alias or
+  broad allowlist is permitted.
+- **C2-D06 — Terminal coherence:** terminal WorkItem state and outcome kind
+  must agree exactly; non-terminal rows have no outcome; terminal outcomes
+  have schema version `1`; FAILED rows have matching row and outcome retry
+  classes. PostgreSQL baseline checks and repository parsing enforce the same
+  invariant.
+- **C2-D07 — Supersession semantics:** `RequestSupersedeInput.reasonCode` is
+  removed. Idle and RUNNING supersession use the stable reason
+  `superseded-by-request`, while the replacement identity is `supersededBy`.
+  No new column or compatibility field is added.
+
+The correction must return the following seven properties to `PASS` through
+fresh focused and real PostgreSQL qualification before candidate freeze can be
+restored:
+
+```yaml
+h3a1_reconciliation_fairness: NOT_RUN
+h3a1_generation_preinvoke_admission_fence: NOT_RUN
+h3a1_canonical_snapshot_detachment: NOT_RUN
+h3a1_work_lineage_completion: NOT_RUN
+h3a1_repository_authority_surface: NOT_RUN
+h3a1_terminal_outcome_coherence: NOT_RUN
+h3a1_supersession_contract: NOT_RUN
+```
+
+The previous corrected-candidate evidence remains historical and must not be
+carried forward as proof of these properties. H3A-2 remains `NOT_ELIGIBLE` and
+Independent Review remains `NOT_RUN` until the corrected candidate is freshly
+qualified and frozen.
 
 ---
 

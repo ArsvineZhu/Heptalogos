@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-27T00:22:58+09:00",
+  "recordedAt": "2026-08-27T01:24:29+09:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": [
@@ -161,9 +161,9 @@
     {
       "qualificationId": "Q-ASYNC-01",
       "testedProperty": "Static dispatcher semantics plus real DBOS/PostgreSQL queue, generation pinning, revision attempts, restart, and terminal retry effect fencing",
-      "evidenceStatus": "PASS",
+      "evidenceStatus": "BLOCKED",
       "qualificationState": "OPEN",
-      "candidateFreeze": "PASS",
+      "candidateFreeze": "BLOCKED",
       "independentReview": "NOT_RUN",
       "evidence": {
         "semantic_dispatcher_fixture": "PASS",
@@ -197,7 +197,14 @@
         "h3a1_canonical_representation_invariants": "PASS",
         "h3a1_real_postgres_18_6_ubuntu": "PASS",
         "h3a1_dbos_real_engine": "NOT_RUN",
-        "h3a1_process_crash_after_terminal_commit": "NOT_RUN"
+        "h3a1_process_crash_after_terminal_commit": "NOT_RUN",
+        "h3a1_reconciliation_fairness": "NOT_RUN",
+        "h3a1_generation_preinvoke_admission_fence": "NOT_RUN",
+        "h3a1_canonical_snapshot_detachment": "NOT_RUN",
+        "h3a1_work_lineage_completion": "NOT_RUN",
+        "h3a1_repository_authority_surface": "NOT_RUN",
+        "h3a1_terminal_outcome_coherence": "NOT_RUN",
+        "h3a1_supersession_contract": "NOT_RUN"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
@@ -218,7 +225,14 @@
       "notRunReasons": {
         "crash_after_terminal_commit": "No process-level crash was injected after the canonical terminal commit; only a real DBOS retry attempt was exercised.",
         "h3a1_dbos_real_engine": "H3A-1 deliberately implements engine-neutral WorkQueue semantics; DBOS integration is deferred to H3A-2.",
-        "h3a1_process_crash_after_terminal_commit": "H3A-1 has no process-level crash harness or DBOS engine checkpoint to exercise this boundary; it remains deferred to H3A-2."
+        "h3a1_process_crash_after_terminal_commit": "H3A-1 has no process-level crash harness or DBOS engine checkpoint to exercise this boundary; it remains deferred to H3A-2.",
+        "h3a1_reconciliation_fairness": "The current candidate has not yet qualified cycle-bounded fair enumeration for stable PENDING and WAITING_DEPENDENCY prefixes.",
+        "h3a1_generation_preinvoke_admission_fence": "The current candidate has not yet qualified reservation before the RUNNING claim and retirement-safe admitted invocation settlement.",
+        "h3a1_canonical_snapshot_detachment": "The current candidate has not yet qualified detached frozen payload and outcome values across asynchronous durable boundaries.",
+        "h3a1_work_lineage_completion": "The current candidate has not yet qualified retain/complete closure for work.create and every early mutating work.execute path.",
+        "h3a1_repository_authority_surface": "The current candidate has not yet qualified the restricted Foundation repository subpath and root export boundary.",
+        "h3a1_terminal_outcome_coherence": "The current candidate has not yet qualified matching terminal WorkItem state, outcome kind, retry class, and schema checks.",
+        "h3a1_supersession_contract": "The current candidate has not yet qualified stable supersession reason semantics and removal of the supersession reasonCode input."
       },
       "preImplementationDecisionState": "CLOSED",
       "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification unless explicitly promoted by a future blocker."

@@ -3,12 +3,12 @@
 ```yaml
 qualificationId: Q-ASYNC-01
 role: WorkQueue scheduling mechanics
-evidenceStatus: PASS
+evidenceStatus: BLOCKED
 preImplementationDecisionState: CLOSED
 roleDecision: ADOPTED
 implementationQualification: REQUIRED
 selectedRoute: "DBOS Queue"
-candidateFreeze: PASS
+candidateFreeze: BLOCKED
 independentReview: NOT_RUN
 ```
 
@@ -64,11 +64,29 @@ historical observation is retained, but it is not current-candidate evidence:
 the correction amendment invalidates all pre-correction H3A-1 property PASS
 claims until the affected and expanded qualification cases are rerun.
 
-The corrected candidate is now qualified and frozen on a clean branch. It has
-no Independent Review verdict yet. The fresh run qualified Signal connection
-ownership, admitted-handler settlement, payload dependency, future-`notBefore`
-projection, dispatch admission, failure disposition, terminal-intent CAS,
-transaction-time Signal rollback, and canonical representation invariants.
+The previous corrected candidate was qualified and frozen on a clean branch,
+but that observation is historical for the newly opened correction. The fresh
+Round 2 candidate must additionally qualify reconciliation fairness,
+pre-invocation generation admission, canonical snapshot detachment, complete
+WorkQueue lineage, restricted repository Authority surface, terminal outcome
+coherence, and the simplified supersession contract. Until those properties
+are rerun, the current candidate is blocked and has no Independent Review
+verdict.
+
+## Current correction properties
+
+```yaml
+h3a1_reconciliation_fairness: NOT_RUN
+h3a1_generation_preinvoke_admission_fence: NOT_RUN
+h3a1_canonical_snapshot_detachment: NOT_RUN
+h3a1_work_lineage_completion: NOT_RUN
+h3a1_repository_authority_surface: NOT_RUN
+h3a1_terminal_outcome_coherence: NOT_RUN
+h3a1_supersession_contract: NOT_RUN
+```
+
+These properties are required for the current candidate and are not failures
+of the previous observed run.
 
 ## H3A-1 observed implementation evidence
 

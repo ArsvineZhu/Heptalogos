@@ -343,24 +343,22 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 ```yaml
 H3: OPEN
 H3A: ACTIVE
-H3A_1: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+H3A_1: ACTIVE
 H3A_2: NOT_ELIGIBLE
 H3B: NOT_ELIGIBLE
 H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
-candidateFreeze: PASS
+candidateFreeze: BLOCKED
 independentReview: NOT_RUN
 activeImplementationPlan: docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md
 ```
 
-A bounded H3A-1 correctness correction cycle has completed on the existing
+A newly bounded H3A-1 correctness correction is active on the existing
 candidate branch. The previous local and real PostgreSQL qualification remains
-historical observed evidence only. Fresh focused suites and the expanded real
-PostgreSQL 18.6 Host qualification passed, including Signal lifecycle,
-generation settlement, projection/admission, cancellation, transaction, and
-canonical-representation semantics. The candidate is frozen after clean-tree
-repository verification; the out-of-band Independent Review is `NOT_RUN` and
-H3A-2 remains `NOT_ELIGIBLE` until H3A-1 is closed.
+historical observed evidence; seven newly required properties are not yet
+qualified. Candidate freeze is therefore `BLOCKED` until the correction is
+implemented and freshly verified. The out-of-band Independent Review remains
+`NOT_RUN`, and H3A-2 remains `NOT_ELIGIBLE`.
 
 ### Implementation decomposition
 
