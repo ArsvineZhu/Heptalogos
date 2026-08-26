@@ -352,11 +352,10 @@ activeImplementationPlan: docs/plans/active/foundation/h3a-durable-obligation-si
 ```
 
 H3A-1 implementation is complete on its candidate branch. The focused local
-semantic suites pass, while the required real Ubuntu PostgreSQL 18.6/Host
-qualification is `NOT_RUN`/`BLOCKED` because the explicit
-`HEPTALOGOS_TEST_PG_BIN` toolchain was not configured. The candidate therefore
-awaits that evidence and the out-of-band Independent Review; H3A-2 remains
-`NOT_ELIGIBLE` until H3A-1 is closed.
+semantic suites and the required real Ubuntu PostgreSQL 18.6/Host qualification
+pass; the latter ran as 9 integration files with 67/67 tests using the explicit
+`HEPTALOGOS_TEST_PG_BIN` toolchain. The candidate now awaits the out-of-band
+Independent Review; H3A-2 remains `NOT_ELIGIBLE` until H3A-1 is closed.
 
 ### Implementation decomposition
 
