@@ -100,7 +100,7 @@ function generation<T extends "ProductGenerationId" | "PackageGenerationId">(
 ): T extends "ProductGenerationId" ? ProductGenerationId : PackageGenerationId {
   return asContentDigest(
     brand,
-    digestCanonicalJson(`h3a1/durable-work/${label}/v1`, { label }),
+    digestCanonicalJson(`durable-work/${label}/v1`, { label }),
   ) as unknown as T extends "ProductGenerationId"
     ? ProductGenerationId
     : PackageGenerationId;
@@ -358,7 +358,7 @@ async function createWork(
     () =>
       composition.work.create({
         target,
-        payload: { value: "h3a1" },
+        payload: { value: "work-qualification" },
         queueProfileId,
         resourceAdmissionClass,
         priority: 100,
@@ -398,7 +398,7 @@ afterEach(async () => {
   await cleanupCanonicalPostgresFixtures();
 });
 
-describePostgres.sequential("H3A-1 canonical durable WorkItem qualification", () => {
+describePostgres.sequential("Canonical durable WorkItem qualification", () => {
   it("W1 canonical creation commits lineage and wakes dispatch reconciliation", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
