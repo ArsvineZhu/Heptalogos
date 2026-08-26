@@ -2464,6 +2464,110 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
+  it("rejects a delayed activation after quiescence closes admission", async () => {
+    const activationPreludeStarted = deferred<void>();
+    const releaseActivationPrelude = deferred<void>();
+    let activations = 0;
+    const definition = system("system.delayed-activation-quiesce", async () => {
+      activations += 1;
+    });
+    const lifecycleLineage = {
+      runner: () => ({
+        current: () => undefined,
+        runActivity: async <T>(
+          _request: never,
+          operation: (context: never) => Promise<T>,
+        ) => operation(undefined as never),
+      }),
+      runRetained: async <T>(
+        _origin: never,
+        request: { kind: string },
+        operation: (context: never) => Promise<T>,
+      ) => {
+        if (request.kind === "runtime.lifecycle.activate") {
+          activationPreludeStarted.resolve();
+          await releaseActivationPrelude.promise;
+        }
+        return operation(undefined as never);
+      },
+    } as unknown as RuntimeLifecycleLineage;
+    const supervisor = new MicroSystemSupervisor({
+      substrate: createRuntimeSubstrate({ settleTimeoutMs: 50 }),
+      settleTimeoutMs: 50,
+      definitions: [definition],
+      lifecycleLineage,
+    });
+
+    try {
+      const reconciliation = supervisor.reconcile(desired([definition]));
+      await activationPreludeStarted.promise;
+      const quiesce = supervisor.quiesce();
+      releaseActivationPrelude.resolve();
+
+      await expect(reconciliation).rejects.toMatchObject({
+        problem: { problemCode: "runtime.supervisor.not_active" },
+      });
+      await expect(quiesce).resolves.toBeDefined();
+      expect(activations).toBe(0);
+    } finally {
+      releaseActivationPrelude.resolve();
+      await supervisor.close().catch(() => undefined);
+    }
+  });
+
+  it("rejects a delayed activation after owner abort closes admission", async () => {
+    const owner = new AbortController();
+    const activationPreludeStarted = deferred<void>();
+    const releaseActivationPrelude = deferred<void>();
+    let activations = 0;
+    const definition = system("system.delayed-activation-owner-abort", async () => {
+      activations += 1;
+    });
+    const lifecycleLineage = {
+      runner: () => ({
+        current: () => undefined,
+        runActivity: async <T>(
+          _request: never,
+          operation: (context: never) => Promise<T>,
+        ) => operation(undefined as never),
+      }),
+      runRetained: async <T>(
+        _origin: never,
+        request: { kind: string },
+        operation: (context: never) => Promise<T>,
+      ) => {
+        if (request.kind === "runtime.lifecycle.activate") {
+          activationPreludeStarted.resolve();
+          await releaseActivationPrelude.promise;
+        }
+        return operation(undefined as never);
+      },
+    } as unknown as RuntimeLifecycleLineage;
+    const supervisor = new MicroSystemSupervisor({
+      substrate: createRuntimeSubstrate({ settleTimeoutMs: 50 }),
+      settleTimeoutMs: 50,
+      definitions: [definition],
+      lifecycleLineage,
+      ownerLifecycle: { signal: owner.signal, onTerminalFailure: () => undefined },
+    });
+
+    try {
+      const reconciliation = supervisor.reconcile(desired([definition]));
+      await activationPreludeStarted.promise;
+      owner.abort();
+      releaseActivationPrelude.resolve();
+
+      await expect(reconciliation).rejects.toMatchObject({
+        problem: { problemCode: "runtime.supervisor.not_active" },
+      });
+      await expect(supervisor.close()).resolves.toBeUndefined();
+      expect(activations).toBe(0);
+    } finally {
+      releaseActivationPrelude.resolve();
+      await supervisor.close().catch(() => undefined);
+    }
+  });
+
   it("Q13 admits no work when the owner signal is already aborted", async () => {
     const owner = new AbortController();
     owner.abort();

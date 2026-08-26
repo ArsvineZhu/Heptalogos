@@ -186,14 +186,6 @@ export class MicroSystemSupervisor {
     );
   }
 
-  async executePlan(plan: ReconcilePlan): Promise<void> {
-    this.assertActive();
-    return this.enqueueMutation(async () => {
-      this.assertActive();
-      await this.executePlanInternal(plan);
-    });
-  }
-
   private async reconcileAcceptedSnapshot(
     desired: DesiredRuntimeSnapshot,
     phase: "ACTIVE" | "RESUMING",
@@ -228,7 +220,7 @@ export class MicroSystemSupervisor {
       blockedTransition;
     const execute = async (): Promise<void> => {
       try {
-        await this.executePlanInternal(result);
+        await this.executePlan(result);
       } finally {
         for (const serviceId of this.serviceBindings.keys()) {
           if (!result.serviceBindings.has(serviceId)) {
@@ -278,7 +270,7 @@ export class MicroSystemSupervisor {
     return result;
   }
 
-  private async executePlanInternal(plan: ReconcilePlan): Promise<void> {
+  private async executePlan(plan: ReconcilePlan): Promise<void> {
     let firstError: unknown;
     const blockedServiceIds = this.collectUnsettledServiceIds();
     for (const action of plan.actions) {
@@ -700,6 +692,12 @@ export class MicroSystemSupervisor {
     microSystemId: MicroSystemId,
     instanceId = createMicroSystemInstanceId(),
   ): Promise<void> {
+    if (!this.acceptsStartAdmission()) {
+      throw runtimeKernelProblem(
+        "runtime.supervisor.not_active",
+        "Runtime supervisor admission closed before a MicroSystem start",
+      );
+    }
     const existing = this.running.get(microSystemId);
     if (existing !== undefined) {
       if (existing.fence.state !== "ACTIVE") {
