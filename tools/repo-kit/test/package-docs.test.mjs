@@ -83,7 +83,8 @@ describe("package documentation topology", () => {
 
   it("fails when a nested package AGENTS.md is present", async () => {
     const result = await fixtureTree(async (root) => {
-      await writeFile(join(root, "packages/example/AGENTS.md"), "# forbidden\n");
+      await mkdir(join(root, "packages/example/src"), { recursive: true });
+      await writeFile(join(root, "packages/example/src/AGENTS.md"), "# forbidden\n");
     });
     expect(hasError(result, "package AGENTS.md is forbidden")).toBe(true);
   });

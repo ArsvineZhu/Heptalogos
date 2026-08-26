@@ -77,6 +77,19 @@ function discoverPackages(packagesRoot) {
     .sort((left, right) => left.name.localeCompare(right.name));
 }
 
+function discoverPackageAgentFiles(directory, files = []) {
+  if (!existsSync(directory) || !statSync(directory).isDirectory()) return files;
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+    if (entry.name === "AGENTS.md" && (entry.isFile() || entry.isSymbolicLink())) {
+      files.push(path);
+    } else if (entry.isDirectory()) {
+      discoverPackageAgentFiles(path, files);
+    }
+  }
+  return files;
+}
+
 export function validatePackageDocumentation({ root = process.cwd() } = {}) {
   const repositoryRoot = resolve(root);
   const packagesRoot = join(repositoryRoot, "packages");
@@ -103,6 +116,14 @@ export function validatePackageDocumentation({ root = process.cwd() } = {}) {
     errors.push(`${normalize(repositoryRoot, packageAgents)} exceeds 220 words`);
   }
 
+  for (const agentPath of discoverPackageAgentFiles(packagesRoot)) {
+    if (resolve(agentPath) !== resolve(packageAgents)) {
+      errors.push(
+        `${normalize(repositoryRoot, agentPath)}: package AGENTS.md is forbidden`,
+      );
+    }
+  }
+
   const packageIndex = join(packagesRoot, "INDEX.md");
   const indexLinks = new Map();
   if (existsSync(packageIndex) && statSync(packageIndex).isFile()) {
@@ -122,7 +143,6 @@ export function validatePackageDocumentation({ root = process.cwd() } = {}) {
 
   for (const packageInfo of packages) {
     const readme = join(packageInfo.directory, "README.md");
-    const agents = join(packageInfo.directory, "AGENTS.md");
     if (!existsSync(readme) || !statSync(readme).isFile()) {
       errors.push(
         `${normalize(repositoryRoot, packageInfo.directory)} package README.md is missing`,
@@ -156,12 +176,6 @@ export function validatePackageDocumentation({ root = process.cwd() } = {}) {
           `${normalize(repositoryRoot, readme)} must contain a Corpus link in Architecture references`,
         );
       }
-    }
-
-    if (existsSync(agents)) {
-      errors.push(
-        `${normalize(repositoryRoot, agents)}: package AGENTS.md is forbidden`,
-      );
     }
 
     const indexCount = indexLinks.get(packageInfo.name) ?? 0;

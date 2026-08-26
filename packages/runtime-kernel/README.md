@@ -15,7 +15,7 @@ not the Bootstrap or PostgreSQL owner.
 - Runtime graph planning and reconciliation.
 - Service and Capability registries and lease contracts.
 - Generation fences, readiness evaluation, and lifecycle lineage.
-- Runtime contract compatibility registration.
+- Runtime contract matching and compatibility evaluation.
 
 ## Does not own
 
@@ -27,7 +27,7 @@ not the Bootstrap or PostgreSQL owner.
 
 ## Public surface
 
-The entry point exports runtime contracts, compatibility helpers, registries,
+The entry point exports runtime contracts, contract-matching helpers, registries,
 generation fences, readiness evaluation, graph/reconciler types,
 `MicroSystemSupervisor`, and lifecycle-lineage helpers. Activation contexts carry
 cooperative cancellation and owner scope; callers must respect quiescence and

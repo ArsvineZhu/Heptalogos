@@ -42,9 +42,12 @@ new Independent Review before final manual CI.
 After Independent Review `PASS`:
 
 ```bash
+PR_NUMBER=<number>
+PR_BRANCH=<head-branch>
+
 gh workflow run verify.yml \
-  --ref dev/h2-stabilization \
-  -f pr_number=24 \
+  --ref "$PR_BRANCH" \
+  -f pr_number="$PR_NUMBER" \
   -f reason=final-pre-merge
 ```
 

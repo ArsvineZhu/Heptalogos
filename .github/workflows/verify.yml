@@ -41,6 +41,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ inputs.pr_number }}
           DISPATCHED_REF: ${{ github.ref_name }}
+          DISPATCHED_SHA: ${{ github.sha }}
           VERIFY_REASON: ${{ inputs.reason }}
         run: |
           set -euo pipefail
@@ -60,6 +61,9 @@ jobs:
           if (pr.base?.ref !== "master") throw new Error("PR base is not master");
           if (pr.head?.ref !== process.env.DISPATCHED_REF) {
             throw new Error("dispatched ref is not the PR head branch");
+          }
+          if (pr.head?.sha !== process.env.DISPATCHED_SHA) {
+            throw new Error("PR head changed since workflow dispatch");
           }
           if (process.env.VERIFY_REASON === "final-pre-merge" && pr.draft) {
             throw new Error("final-pre-merge requires a Ready PR");
