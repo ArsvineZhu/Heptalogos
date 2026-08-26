@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import {
   createActivityId,
+  parseContributionId,
   parseBootId,
   parseContentDigest,
   parseContinuityEpochId,
@@ -131,13 +132,21 @@ function freezeRuntimeOrigin(origin: RuntimeExecutionOrigin): RuntimeExecutionOr
     origin.microSystemInstanceId === undefined
       ? undefined
       : parseMicroSystemInstanceId(origin.microSystemInstanceId);
-
+  const contributionId =
+    origin.contributionId === undefined
+      ? undefined
+      : parseContributionId(origin.contributionId);
   if (
     productGenerationId === undefined ||
     (origin.packageGenerationId !== undefined && packageGenerationId === undefined) ||
     (origin.microSystemId !== undefined && microSystemId === undefined) ||
     (origin.microSystemInstanceId !== undefined &&
       microSystemInstanceId === undefined) ||
+    (origin.contributionId !== undefined && contributionId === undefined) ||
+    (contributionId !== undefined &&
+      (packageGenerationId === undefined ||
+        microSystemId === undefined ||
+        microSystemInstanceId === undefined)) ||
     (microSystemId === undefined) !== (microSystemInstanceId === undefined)
   ) {
     throw invalidOriginProblem();
@@ -148,6 +157,7 @@ function freezeRuntimeOrigin(origin: RuntimeExecutionOrigin): RuntimeExecutionOr
     ...(packageGenerationId ? { packageGenerationId } : {}),
     ...(microSystemId ? { microSystemId } : {}),
     ...(microSystemInstanceId ? { microSystemInstanceId } : {}),
+    ...(contributionId ? { contributionId } : {}),
   });
 }
 

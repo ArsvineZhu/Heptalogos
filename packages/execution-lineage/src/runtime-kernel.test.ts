@@ -1,6 +1,7 @@
 import {
   createBootId,
   createContinuityEpochId,
+  createContributionId,
   createHostOwnershipToken,
   createInstallationId,
   createInstanceId,
@@ -39,6 +40,8 @@ const request: ActivityRequest = {
 };
 
 const productGenerationId = parseContentDigest("ProductGenerationId", "a".repeat(64))!;
+const packageGenerationId = parseContentDigest("PackageGenerationId", "b".repeat(64))!;
+const contributionId = createContributionId("system.runtime-test.handler");
 
 function runtimeOrigin(): RuntimeExecutionOrigin {
   return {
@@ -94,6 +97,29 @@ describe("restricted runtime execution-origin bridge", () => {
     expect(() =>
       bindRuntimeExecutionOrigin(runtime, {
         packageGenerationId: productGenerationId,
+      } as unknown as RuntimeExecutionOrigin),
+    ).toThrow();
+  });
+
+  it("carries an exact ContributionId only with complete generation origin", async () => {
+    const runtime = createExecutionContextRuntime(origin, time);
+    const boundOrigin: RuntimeExecutionOrigin = {
+      productGenerationId,
+      packageGenerationId,
+      microSystemId: createMicroSystemId("system.runtime-test"),
+      microSystemInstanceId: createMicroSystemInstanceId(),
+      contributionId,
+    };
+    const bound = bindRuntimeExecutionOrigin(runtime, boundOrigin);
+
+    await bound.runActivity(request, async (context) => {
+      expect(context.origin.runtime).toEqual(boundOrigin);
+    });
+
+    expect(() =>
+      bindRuntimeExecutionOrigin(runtime, {
+        ...boundOrigin,
+        packageGenerationId: undefined,
       } as unknown as RuntimeExecutionOrigin),
     ).toThrow();
   });

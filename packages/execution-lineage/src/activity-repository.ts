@@ -117,11 +117,12 @@ async function insertCurrentActivity(
         causation_activity_id, installation_id, instance_id, boot_id,
         continuity_epoch_id, host_ownership_token, product_generation_id,
         package_generation_id, micro_system_id, micro_system_instance_id,
+        contribution_id,
         importance, retention_class, sensitivity, operation_id, feature_id,
         service_id, capability_id, provider_id, contract_version, outcome,
         outcome_ref
       ) VALUES ($1, $2, $3, NULL, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-        $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, NULL, NULL)`,
+        $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, NULL, NULL)`,
       [
         context.activityId,
         context.kind,
@@ -137,6 +138,7 @@ async function insertCurrentActivity(
         context.origin.runtime?.packageGenerationId ?? null,
         context.origin.runtime?.microSystemId ?? null,
         context.origin.runtime?.microSystemInstanceId ?? null,
+        context.origin.runtime?.contributionId ?? null,
         context.importance,
         context.retentionClass,
         context.sensitivity,
@@ -233,11 +235,12 @@ async function retainBootstrap(
       causation_activity_id, installation_id, instance_id, boot_id,
       continuity_epoch_id, host_ownership_token, product_generation_id,
       package_generation_id, micro_system_id, micro_system_instance_id,
+      contribution_id,
       importance, retention_class,
       sensitivity, operation_id, feature_id, service_id, capability_id,
       provider_id, contract_version, outcome, outcome_ref
     ) VALUES ($1, 'bootstrap.handoff', $2, $3, NULL, NULL, $4, $5, $6, $7,
-      NULL, NULL, NULL, NULL, NULL, 'significant', 'retained', 'operational',
+      NULL, NULL, NULL, NULL, NULL, NULL, 'significant', 'retained', 'operational',
       NULL, NULL, NULL, NULL, NULL, NULL, $8, $9)
       ON CONFLICT (activity_id) DO NOTHING`,
     [
@@ -289,7 +292,7 @@ async function completeActivity(
   const rows = await executeSql(
     transaction,
     `SELECT "heptalogos"."complete_activity_record"(
-       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
      ) AS result`,
     [
       context.activityId,
@@ -302,6 +305,7 @@ async function completeActivity(
       runtime?.packageGenerationId ?? null,
       runtime?.microSystemId ?? null,
       runtime?.microSystemInstanceId ?? null,
+      runtime?.contributionId ?? null,
       completion.endedAt,
       completion.outcome,
       outcomeRef(completion.outcomeRef),

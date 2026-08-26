@@ -2,6 +2,7 @@ import type {
   ActivityId,
   BootId,
   ContinuityEpochId,
+  ContributionId,
   HostOwnershipToken,
   InstallationId,
   Instant,
@@ -20,6 +21,7 @@ export interface RuntimeExecutionOrigin {
   readonly packageGenerationId?: PackageGenerationId;
   readonly microSystemId?: MicroSystemId;
   readonly microSystemInstanceId?: MicroSystemInstanceId;
+  readonly contributionId?: ContributionId;
 }
 
 export interface HostExecutionOrigin {
