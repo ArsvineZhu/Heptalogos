@@ -115,7 +115,7 @@ const problemSpecs: Readonly<Record<string, WorkQueueProblemSpec>> = {
   "work.external_effect_uncertain_unsupported": {
     category: "validation",
     retryClass: "never",
-    title: "H3A does not support external-effect-uncertain work",
+    title: "External-effect-uncertain work is unsupported",
   },
   "work.failure.unclassified": {
     category: "integrity",

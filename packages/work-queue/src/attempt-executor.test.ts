@@ -419,7 +419,7 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     );
   });
 
-  it("blocks external-effect-uncertain classification in H3A", async () => {
+  it("blocks unsupported external-effect-uncertain classification", async () => {
     const value = item(context());
     const attempt = fixture(value, async () => {
       throw new Error("handler failed");

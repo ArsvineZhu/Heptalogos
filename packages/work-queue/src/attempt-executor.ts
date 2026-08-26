@@ -155,7 +155,7 @@ function safeRetryClass(value: unknown): WorkRetryClass | undefined {
 function unsupportedExternalEffectUncertainty(): ProblemError {
   return workQueueProblem(
     "work.external_effect_uncertain_unsupported",
-    "H3A WorkAttemptExecutor does not support external-effect-uncertain classification",
+    "The current WorkAttemptExecutor does not support external-effect-uncertain classification",
   );
 }
 

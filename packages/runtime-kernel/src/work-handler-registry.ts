@@ -107,7 +107,7 @@ function validateDescriptor(
   if (descriptor.configurationBindingPolicy !== "LATEST_COMPATIBLE_AT_ATTEMPT") {
     throw runtimeKernelProblem(
       "runtime.work-handler.configuration-binding-unavailable",
-      "H3A WorkHandlers require configuration-free latest-compatible binding",
+      "Current WorkHandlers require configuration-free latest-compatible binding",
     );
   }
   if (!restoreReplayClasses.has(descriptor.restoreReplayClass)) {
