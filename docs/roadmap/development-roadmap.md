@@ -353,10 +353,10 @@ independentReview: NOT_RUN
 activeImplementationPlan: docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md
 ```
 
-The existing H3A-1 candidate has completed the narrow correction for the
-complete creation-request envelope and the fair-scan projection index. Fresh
-focused suites and the explicit PostgreSQL 18.6 Ubuntu integration passed;
-the final repository gate also passed, so candidate freeze is `PASS`. The out-of-band
+The current H3A-1 implementation includes complete creation-request envelope
+snapshotting and the canonical fair-scan projection index. Fresh focused
+suites, the explicit PostgreSQL 18.6 Ubuntu integration, and the final
+repository gate passed, so candidate freeze is `PASS`. The out-of-band
 Independent Review remains `NOT_RUN`, and H3A-2 remains `NOT_ELIGIBLE`.
 
 ### Implementation decomposition

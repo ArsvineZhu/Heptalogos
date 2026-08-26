@@ -27,12 +27,13 @@ independentReview: NOT_RUN
 
 H3A-1 remains bounded to the current engine-neutral WorkQueue, WorkHandler,
 Signal, reconciliation, admission, cancellation, and lineage semantics. The
-complete creation-request envelope and fair-scan projection index correction
-has fresh focused and real PostgreSQL qualification, and the final repository
-gate has passed; the current candidate is frozen. The DBOS real engine and
-process-crash boundaries remain deferred to H3A-2. Historical implementation
-sequence and superseded development text belong in Git history and
-qualification history; this active plan is the single current specification.
+current implementation includes complete creation-request envelope
+snapshotting and the canonical fair-scan projection index; fresh focused and
+real PostgreSQL qualification and the final repository gate have passed, so
+the current candidate is frozen. The DBOS real engine and process-crash
+boundaries remain deferred to H3A-2. Historical implementation sequence and
+superseded development text belong in Git history and qualification history;
+this active plan is the single current specification.
 
 ---
 
@@ -83,7 +84,7 @@ H3 is **not** closed by this plan.
 
 ## D-02 — No broad normative Corpus rewrite is required before H3A
 
-The Architecture Corpus is living Authority and may be revised when engineering evidence exposes a true semantic conflict. No broad rewrite is required before H3A. The bounded correction amendment adds the narrow first-accepted-terminal-intent clarification to S02 §12; that clarification is the only normative Corpus change in this cycle.
+The Architecture Corpus is living Authority and may be revised when engineering evidence exposes a true semantic conflict. No broad rewrite is required before H3A. The narrow first-accepted-terminal-intent clarification to S02 §12 is the only normative Corpus change required by this plan.
 
 Specifically, **do not add** a new `CONFIG_INDEPENDENT` policy now.
 
