@@ -2353,6 +2353,23 @@ identity.
 
 After candidate freeze only externally observed review/CI/merge fields change, and those changes occur in PR-C after merge—not by mutating the reviewed behavior candidate.
 
+## Post-merge closure reconciliation (2026-08-26)
+
+The H2-S candidate's external closure gates completed after the pre-merge
+qualification record above. Historical `NOT_RUN` values in earlier candidate
+snapshots are preserved as historical evidence.
+
+```yaml
+closure:
+  implementation: PASS
+  requiredLocalQualification: PASS
+  freshPostgreSQL18_6Qualification: PASS
+  independentReview: PASS
+  finalCrossPlatformCI: PASS
+  squashMerge: PASS
+  postMergeReconciliation: PASS
+```
+
 ---
 
 # 21. Source map used to derive this plan

@@ -30,6 +30,7 @@ No active implementation plan is installed for the current branch.
 
 ## Completed
 
+- [H2 Post-Merge Closure Reconciliation](completed/foundation/h2-post-merge-closure-reconciliation.md) — `COMPLETED` (H2-S post-merge truth reconciled; H2 is `CLOSED` and H3 is `ELIGIBLE`; Ubuntu residual qualification remains independent)
 - [H2A-3 Canonical Execution Context, Time & Lineage Foundation](completed/foundation/h2a3-canonical-execution-context-time-lineage.md) — `COMPLETED` (PR #19 merged; final cross-platform CI remains `NOT_RUN` by operator direction)
 
 - [Repository Genesis](completed/repository/repository-genesis.md) — `COMPLETED`
@@ -48,6 +49,6 @@ No active implementation plan is installed for the current branch.
 - [H2A-1 Host-Fenced Persistence Authority](completed/foundation/h2a1-host-fenced-persistence-authority.md) — `COMPLETED` (implementation/evidence PASS; external review, final CI, and squash merge PASS; qualification remains PARTIAL)
 - [H2A-2 Canonical Schema & Continuity Authority](completed/foundation/h2a2-canonical-schema-continuity-authority.md) — `COMPLETED` (implementation/evidence PASS; external review, final CI, and squash merge PASS; qualification remains PARTIAL)
 - [H2B Runtime Composition & Kernel](completed/foundation/h2b-runtime-composition-kernel.md) — `COMPLETED` (PR #22 merged; H2B closure reconciled in PR #23; final-head PostgreSQL rerun remains `NOT_RUN`)
-- [H2-S Stabilization Closure](completed/foundation/h2-stabilization-closure.md) — `COMPLETED` (local implementation and Windows PostgreSQL 18.6 qualification complete; Independent Review, final cross-platform CI, and squash merge remain `NOT_RUN`)
-- [H2-S review correction and governance simplification](completed/foundation/h2s-review-correction-governance-simplification.md) — `COMPLETED` (local qualification and fresh PostgreSQL 18.6 qualification PASS; Independent Review, final cross-platform CI, and merge remain `NOT_RUN`)
-- [H2-S context-efficient package governance correction](completed/foundation/h2s-review-correction-context-efficient-package-governance.md) — `COMPLETED` (local qualification and fresh PostgreSQL 18.6 qualification PASS; Independent Review, final cross-platform CI, and merge remain `NOT_RUN`)
+- [H2-S Stabilization Closure](completed/foundation/h2-stabilization-closure.md) — `COMPLETED` (historical implementation record; post-merge H2-S closure is reconciled below and residual product qualification remains `PARTIAL`/`NOT_RUN`)
+- [H2-S review correction and governance simplification](completed/foundation/h2s-review-correction-governance-simplification.md) — `COMPLETED` (historical corrective-cycle record; superseded by the context-efficient correction and later post-merge reconciliation)
+- [H2-S context-efficient package governance correction](completed/foundation/h2s-review-correction-context-efficient-package-governance.md) — `COMPLETED` (historical pre-merge corrective-cycle record; local and fresh PostgreSQL 18.6 qualification `PASS`)
