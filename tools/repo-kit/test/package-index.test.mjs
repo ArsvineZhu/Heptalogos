@@ -6,10 +6,21 @@ import {
   renderPackageIndex,
   validatePackageIndex,
 } from "../src/package-index.mjs";
+import { discoverProductPackages } from "../src/workspace.mjs";
 
 const root = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 
 describe("generated package index", () => {
+  it("discovers product packages from the workspace boundary", async () => {
+    const packages = await discoverProductPackages({ root });
+
+    expect(packages).toHaveLength(15);
+    expect(packages.every((entry) => entry.directoryName.length > 0)).toBe(true);
+    expect(packages.map((entry) => entry.manifestName)).toContain(
+      "@heptalogos/foundation-contracts",
+    );
+  });
+
   it("collects every pnpm workspace package under packages", async () => {
     const model = await collectPackageIndex({ root });
 

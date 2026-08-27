@@ -1,3 +1,5 @@
+import { existsSync, statSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
 import { runPnpm } from "./process.mjs";
 
 export async function discoverWorkspacePackages({ cwd = process.cwd() } = {}) {
@@ -12,4 +14,44 @@ export async function discoverWorkspacePackages({ cwd = process.cwd() } = {}) {
     path: entry.path,
     private: entry.private === true,
   }));
+}
+
+export async function discoverProductPackages({ root = process.cwd() } = {}) {
+  const repositoryRoot = resolve(root);
+  const packagesRoot = join(repositoryRoot, "packages");
+  if (!existsSync(packagesRoot) || !statSync(packagesRoot).isDirectory()) return [];
+
+  const workspacePackages = await discoverWorkspacePackages({ cwd: repositoryRoot });
+  return workspacePackages
+    .map((workspacePackage) => {
+      const directory = resolve(repositoryRoot, workspacePackage.path);
+      const directoryName = relative(packagesRoot, directory).replaceAll("\\", "/");
+      return { directory, directoryName, workspacePackage };
+    })
+    .filter(({ directoryName }) => {
+      return (
+        directoryName.length > 0 &&
+        !directoryName.startsWith("..") &&
+        !directoryName.includes("/") &&
+        directoryName !== "."
+      );
+    })
+    .map(({ directory, directoryName, workspacePackage }) => {
+      if (!existsSync(join(directory, "package.json"))) {
+        throw new Error(`packages/${directoryName} is missing package.json`);
+      }
+      if (
+        typeof workspacePackage.name !== "string" ||
+        workspacePackage.name.length === 0
+      ) {
+        throw new Error(`packages/${directoryName}/package.json must declare name`);
+      }
+      return {
+        directory,
+        directoryName,
+        manifestName: workspacePackage.name,
+        workspacePackage,
+      };
+    })
+    .sort((left, right) => left.directoryName.localeCompare(right.directoryName));
 }

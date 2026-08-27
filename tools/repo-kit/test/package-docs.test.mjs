@@ -45,14 +45,30 @@ async function fixtureTree(setup) {
       join(root, "packages/INDEX.md"),
       "| Package | Layer | Responsibility |\n| --- | --- | --- |\n| [example](./example/README.md) | test | example |\n",
     );
-    await writeFile(join(root, "packages/example/package.json"), "{}\n");
+    await writeFile(
+      join(root, "packages/example/package.json"),
+      '{"name":"@heptalogos/example"}\n',
+    );
     await writeFile(join(root, "packages/example/README.md"), packageReadme);
     await writeFile(
       join(root, "docs/architecture/authority-and-core-concepts.md"),
       "# Architecture\n",
     );
     await setup(root);
-    return validatePackageDocumentation({ root });
+    return validatePackageDocumentation({
+      root,
+      productPackages: [
+        {
+          directory: join(root, "packages/example"),
+          directoryName: "example",
+          manifestName: "@heptalogos/example",
+          workspacePackage: {
+            name: "@heptalogos/example",
+            path: join(root, "packages/example"),
+          },
+        },
+      ],
+    });
   } finally {
     await rm(root, { recursive: true, force: true });
   }

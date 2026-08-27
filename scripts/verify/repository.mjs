@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  discoverProductPackages,
   validateMachineAuthorityConsumers,
   validatePackageDocumentation,
   validatePackageIndex,
@@ -11,7 +12,7 @@ import {
 
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 
-export function findSourceTestFiles(packagesRoot) {
+export async function findSourceTestFiles({ root, productPackages } = {}) {
   const findings = [];
   const visit = (directory) => {
     if (!existsSync(directory)) return;
@@ -24,10 +25,9 @@ export function findSourceTestFiles(packagesRoot) {
       }
     }
   };
-  if (existsSync(packagesRoot)) {
-    for (const entry of readdirSync(packagesRoot, { withFileTypes: true })) {
-      if (entry.isDirectory()) visit(join(packagesRoot, entry.name, "src"));
-    }
+  const packages = productPackages ?? (await discoverProductPackages({ root }));
+  for (const packageInfo of packages) {
+    visit(join(packageInfo.directory, "src"));
   }
   return findings.sort();
 }
@@ -172,11 +172,12 @@ async function main() {
   }
   walk(root);
 
-  for (const path of findSourceTestFiles(join(root, "packages"))) {
+  for (const path of await findSourceTestFiles({ root })) {
     fail(`package test must live under a package test plane, not src: ${path}`);
   }
 
-  for (const error of validatePackageDocumentation({ root }).errors) fail(error);
+  for (const error of (await validatePackageDocumentation({ root })).errors)
+    fail(error);
   try {
     const packageIndex = join(root, "packages", "INDEX.md");
     if (existsSync(packageIndex)) {

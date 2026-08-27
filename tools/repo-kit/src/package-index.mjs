@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { discoverWorkspacePackages } from "./workspace.mjs";
+import { discoverProductPackages } from "./workspace.mjs";
 
 const PACKAGE_INDEX_PATH = "packages/INDEX.md";
 
@@ -11,12 +11,6 @@ function normalize(root, path) {
 function isWithin(root, path) {
   const remainder = relative(resolve(root), resolve(path));
   return remainder === "" || (!remainder.startsWith("..") && !isAbsolute(remainder));
-}
-
-function isDirectPackagePath(packagesRoot, path) {
-  if (!isWithin(packagesRoot, path)) return false;
-  const parts = normalize(packagesRoot, path).split("/");
-  return parts.length === 1 && parts[0].length > 0;
 }
 
 function readJson(path) {
@@ -49,55 +43,46 @@ function escapeTableCell(value) {
 
 export async function collectPackageIndex({ root = process.cwd() } = {}) {
   const repositoryRoot = resolve(root);
-  const packagesRoot = join(repositoryRoot, "packages");
-  const workspacePackages = await discoverWorkspacePackages({ cwd: repositoryRoot });
-  const packages = workspacePackages
-    .map((workspacePackage) => {
-      const directory = resolve(repositoryRoot, workspacePackage.path);
-      return { directory, workspacePackage };
-    })
-    .filter(({ directory }) => isDirectPackagePath(packagesRoot, directory))
-    .sort((left, right) => left.directory.localeCompare(right.directory))
-    .map(({ directory }) => {
-      const directoryName = normalize(packagesRoot, directory);
-      const manifestPath = join(directory, "package.json");
-      const projectPath = join(directory, "project.json");
-      const readmePath = join(directory, "README.md");
-      if (!existsSync(manifestPath)) {
-        throw new Error(
-          `${normalize(repositoryRoot, directory)} is missing package.json`,
-        );
-      }
-      if (!existsSync(projectPath)) {
-        throw new Error(
-          `${normalize(repositoryRoot, directory)} is missing project.json`,
-        );
-      }
-      if (!existsSync(readmePath) || !statSync(readmePath).isFile()) {
-        throw new Error(`${normalize(repositoryRoot, directory)} is missing README.md`);
-      }
-      const manifest = readJson(manifestPath);
-      const project = readJson(projectPath);
-      if (typeof manifest.name !== "string" || manifest.name.length === 0) {
-        throw new Error(`${normalize(repositoryRoot, manifestPath)} must declare name`);
-      }
-      if (
-        !Array.isArray(project.tags) ||
-        !project.tags.every((tag) => typeof tag === "string")
-      ) {
-        throw new Error(
-          `${normalize(repositoryRoot, projectPath)} must declare string tags[]`,
-        );
-      }
-      return {
-        directoryName,
-        name: manifest.name,
-        readmePath,
-        readmeLink: `./${directoryName}/README.md`,
-        tags: project.tags,
-        purpose: purposeSummary(readFileSync(readmePath, "utf8")),
-      };
-    });
+  const productPackages = await discoverProductPackages({ root: repositoryRoot });
+  const packages = productPackages.map(({ directory, directoryName, manifestName }) => {
+    const manifestPath = join(directory, "package.json");
+    const projectPath = join(directory, "project.json");
+    const readmePath = join(directory, "README.md");
+    if (!existsSync(manifestPath)) {
+      throw new Error(
+        `${normalize(repositoryRoot, directory)} is missing package.json`,
+      );
+    }
+    if (!existsSync(projectPath)) {
+      throw new Error(
+        `${normalize(repositoryRoot, directory)} is missing project.json`,
+      );
+    }
+    if (!existsSync(readmePath) || !statSync(readmePath).isFile()) {
+      throw new Error(`${normalize(repositoryRoot, directory)} is missing README.md`);
+    }
+    const manifest = readJson(manifestPath);
+    const project = readJson(projectPath);
+    if (typeof manifest.name !== "string" || manifest.name.length === 0) {
+      throw new Error(`${normalize(repositoryRoot, manifestPath)} must declare name`);
+    }
+    if (
+      !Array.isArray(project.tags) ||
+      !project.tags.every((tag) => typeof tag === "string")
+    ) {
+      throw new Error(
+        `${normalize(repositoryRoot, projectPath)} must declare string tags[]`,
+      );
+    }
+    return {
+      directoryName,
+      name: manifestName,
+      readmePath,
+      readmeLink: `./${directoryName}/README.md`,
+      tags: project.tags,
+      purpose: purposeSummary(readFileSync(readmePath, "utf8")),
+    };
+  });
 
   return { root: repositoryRoot, packages };
 }

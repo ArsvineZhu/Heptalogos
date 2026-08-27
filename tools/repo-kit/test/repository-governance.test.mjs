@@ -41,14 +41,29 @@ const forbiddenTriggers = [
 ];
 
 describe("repository workflow governance", () => {
-  it("finds package tests that remain under src", async () => {
+  it("finds product package tests that remain under src", async () => {
     const root = await mkdtemp(join(tmpdir(), "heptalogos-repository-governance-"));
     try {
-      const source = join(root, "example", "src");
+      const source = join(root, "packages", "example", "src");
       await mkdir(source, { recursive: true });
       const testPath = join(source, "left-behind.test.ts");
       await writeFile(testPath, "export {}\n");
-      expect(findSourceTestFiles(root)).toEqual([testPath]);
+      expect(
+        await findSourceTestFiles({
+          root,
+          productPackages: [
+            {
+              directory: join(root, "packages", "example"),
+              directoryName: "example",
+              manifestName: "@heptalogos/example",
+              workspacePackage: {
+                name: "@heptalogos/example",
+                path: join(root, "packages/example"),
+              },
+            },
+          ],
+        }),
+      ).toEqual([testPath]);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
