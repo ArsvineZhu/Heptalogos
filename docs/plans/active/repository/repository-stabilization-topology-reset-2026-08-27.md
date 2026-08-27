@@ -1498,16 +1498,16 @@ Delete any stabilization-only executable helper that has no permanent repository
 H3A-2 may begin only when all of the following are true:
 
 ```text
-[ ] H3A-1 governance recovery is closed.
-[ ] Architecture_Corpus/ no longer exists.
-[ ] all current Authority routes resolve under docs/.
-[ ] documentation gate passes.
-[ ] repository gate graph is active.
-[ ] package tests are outside src/.
-[ ] Nx/ESLint generic boundaries are active.
-[ ] custom boundary scanner is reduced to Heptalogos-specific semantics.
-[ ] Knip is clean.
-[ ] current-tree hygiene is clean.
+[x] H3A-1 governance recovery is closed.
+[x] Architecture_Corpus/ no longer exists.
+[x] all current Authority routes resolve under docs/.
+[x] documentation gate passes.
+[x] repository gate graph is active.
+[x] package tests are outside src/.
+[x] Nx/ESLint generic boundaries are active.
+[x] custom boundary scanner is reduced to Heptalogos-specific semantics.
+[x] Knip is clean.
+[x] current-tree hygiene is clean.
 [ ] stabilization Independent Review PASS.
 [ ] final manual CI PASS.
 [ ] stabilization merge/reconciliation complete.
@@ -1614,54 +1614,54 @@ Repository stabilization is complete only when the repository satisfies all of t
 ### Topology
 
 ```text
-[ ] no root Architecture_Corpus/
-[ ] docs/ is the complete knowledge system
-[ ] scripts/ has responsibility-based structure
-[ ] tools/repo-kit owns reusable repo mechanics only
-[ ] packages remain clean product workspaces
-[ ] no speculative empty top-level roots
+[x] no root Architecture_Corpus/
+[x] docs/ is the complete knowledge system
+[x] scripts/ has responsibility-based structure
+[x] tools/repo-kit owns reusable repo mechanics only
+[x] packages remain clean product workspaces
+[x] no speculative empty top-level roots
 ```
 
 ### Documentation Authority
 
 ```text
-[ ] Architecture Corpus is logical, not physical
-[ ] one home per current fact
-[ ] current docs contain no development-stage provenance
-[ ] completed plans remain historical
-[ ] machine Authority files are minimal and consumed
-[ ] no duplicated constitution/config/storage JSON projection remains
-[ ] no translation files or translation tooling
+[x] Architecture Corpus is logical, not physical
+[x] one home per current fact
+[x] current docs contain no development-stage provenance
+[x] completed plans remain historical
+[x] machine Authority files are minimal and consumed
+[x] no duplicated constitution/config/storage JSON projection remains
+[x] no translation files or translation tooling
 ```
 
 ### Code / package hygiene
 
 ```text
-[ ] package tests are not under src/
-[ ] product packages cannot depend on repo tooling
-[ ] Nx/ESLint handles generic module boundaries
-[ ] custom gate handles only project-specific semantics
-[ ] Knip clean
-[ ] no undeclared legacy/compatibility paths
-[ ] no speculative production abstraction retained without current owner/consumer
+[x] package tests are not under src/
+[x] product packages cannot depend on repo tooling
+[x] Nx/ESLint handles generic module boundaries
+[x] custom gate handles only project-specific semantics
+[x] Knip clean
+[x] no undeclared legacy/compatibility paths
+[x] no speculative production abstraction retained without current owner/consumer
 ```
 
 ### Repository control plane
 
 ```text
-[ ] leaf gates remain directly runnable
-[ ] aggregate gate graph is validated and tested
-[ ] pnpm verify no longer relies on one long && chain
-[ ] clean is derived and fail-closed
-[ ] package navigation completeness is mechanically checked
-[ ] current-tree hygiene covers old-path/provenance/compatibility residue
+[x] leaf gates remain directly runnable
+[x] aggregate gate graph is validated and tested
+[x] pnpm verify no longer relies on one long && chain
+[x] clean is derived and fail-closed
+[x] package navigation completeness is mechanically checked
+[x] current-tree hygiene covers old-path/provenance/compatibility residue
 ```
 
 ### Governance
 
 ```text
-[ ] separate H3A-1 premature-merge recovery was already closed before this plan began
-[ ] this plan performed no H3A-1 revert/re-land transport
+[x] separate H3A-1 premature-merge recovery was already closed before this plan began
+[x] this plan performed no H3A-1 revert/re-land transport
 [ ] stabilization Independent Review PASS
 [ ] final manual CI PASS
 [ ] stabilization merged
@@ -1736,6 +1736,13 @@ After RS-1, replace item 5 with the new `docs/` authoritative homes.
 ---
 
 **Plan status:** `READY_AFTER_H3A1_RECOVERY`
+
+**Local execution state (2026-08-27):** H3A-1 recovery is recorded as `CLOSED`;
+P0 and RS-1 through RS-5 are locally complete, and the RS-6 local closure
+candidate passed frozen install, safe clean, and full `pnpm verify` in the same
+worktree. Cross-platform CI, stabilization Independent Review, final manual CI,
+and merge/reconciliation remain `NOT_RUN` under the explicit no-push/no-merge
+execution boundary. H3A-2 remains `BLOCKED_BY_REPOSITORY_STABILIZATION`.
 
 **Execution ordering:** `separate H3A-1 recovery CLOSED → P0 → RS-1 → RS-2 → RS-3 → RS-4 → RS-5 → RS-6 → H3A-2 refresh`
 
