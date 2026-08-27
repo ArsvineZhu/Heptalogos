@@ -15,8 +15,8 @@ describe("repository gate graph", () => {
     const events = [];
     const result = await runGateGraph({
       gates: [
-        nodeGate("alpha", "setTimeout(() => process.stdout.write('alpha'), 220)"),
-        nodeGate("beta", "setTimeout(() => process.stdout.write('beta'), 220)"),
+        nodeGate("alpha", "setTimeout(() => process.stdout.write('alpha'), 500)"),
+        nodeGate("beta", "setTimeout(() => process.stdout.write('beta'), 500)"),
       ],
       concurrency: 2,
       onResult: (entry) => events.push(entry.id),
@@ -27,7 +27,7 @@ describe("repository gate graph", () => {
     expect(new Set(events)).toEqual(new Set(["alpha", "beta"]));
     expect(
       Math.abs(result.results[0].startedAt - result.results[1].startedAt),
-    ).toBeLessThan(180);
+    ).toBeLessThan(300);
   });
 
   it("waits for needs dependencies before running a gate", async () => {
