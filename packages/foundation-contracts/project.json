@@ -2,6 +2,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "foundation-contracts",
   "projectType": "library",
+  "tags": ["kind:product", "area:shared"],
   "sourceRoot": "packages/foundation-contracts/src",
   "targets": {
     "lint": {

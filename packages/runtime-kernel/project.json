@@ -2,6 +2,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "runtime-kernel",
   "projectType": "library",
+  "tags": ["kind:product", "area:runtime"],
   "sourceRoot": "packages/runtime-kernel/src",
   "targets": {
     "lint": {

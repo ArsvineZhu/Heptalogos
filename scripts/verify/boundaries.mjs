@@ -56,15 +56,15 @@ const restrictedImports = new Map([
   [
     "@heptalogos/canonical-schema",
     [
-      "packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts",
-      "packages/bootstrap-runtime/src/test-support/canonical-postgres.ts",
+      "packages/bootstrap-runtime/test/integration/canonical-initialization.integration.test.ts",
+      "packages/bootstrap-runtime/test/support/canonical-postgres.ts",
     ],
   ],
   [
     "@opentelemetry/api",
     [
       "packages/execution-lineage/src/observability-adapter.ts",
-      "packages/execution-lineage/src/execution-context-runtime.test.ts",
+      "packages/execution-lineage/test/unit/execution-context-runtime.test.ts",
     ],
   ],
   ["cordis", ["packages/runtime-substrate/"]],
@@ -72,7 +72,7 @@ const restrictedImports = new Map([
     "@dagrejs/graphlib",
     [
       "packages/runtime-kernel/src/runtime-graph.ts",
-      "packages/runtime-kernel/src/runtime-graph.test.ts",
+      "packages/runtime-kernel/test/unit/runtime-graph.test.ts",
     ],
   ],
   ["@heptalogos/execution-lineage/runtime-kernel", ["packages/runtime-kernel/"]],
@@ -85,8 +85,8 @@ const restrictedImports = new Map([
     [
       "packages/private-postgres/",
       "packages/bootstrap-runtime/",
-      "packages/host-ownership/src/host-ownership.integration.test.ts",
-      "packages/persistence/src/persistence.integration.test.ts",
+      "packages/host-ownership/test/integration/host-ownership.integration.test.ts",
+      "packages/persistence/test/integration/persistence.integration.test.ts",
     ],
   ],
   [
@@ -101,10 +101,10 @@ const restrictedImports = new Map([
       "packages/persistence/",
       "packages/canonical-schema/",
       "packages/signal/",
-      "packages/bootstrap-runtime/src/host-maintenance.integration.test.ts",
-      "packages/bootstrap-runtime/src/bootstrap-recovery.integration.test.ts",
-      "packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts",
-      "packages/bootstrap-runtime/src/test-support/canonical-postgres.ts",
+      "packages/bootstrap-runtime/test/integration/host-maintenance.integration.test.ts",
+      "packages/bootstrap-runtime/test/integration/bootstrap-recovery.integration.test.ts",
+      "packages/bootstrap-runtime/test/integration/canonical-initialization.integration.test.ts",
+      "packages/bootstrap-runtime/test/support/canonical-postgres.ts",
     ],
   ],
   [
@@ -116,7 +116,7 @@ const restrictedImports = new Map([
       "packages/work-queue/",
       "packages/execution-lineage/src/activity-repository.ts",
       "packages/evidence/src/evidence-service.ts",
-      "packages/bootstrap-runtime/src/execution-foundation.integration.test.ts",
+      "packages/bootstrap-runtime/test/integration/execution-foundation.integration.test.ts",
     ],
   ],
 ]);
@@ -129,14 +129,14 @@ const restrictedSpecifiers = new Map([
       "packages/persistence/",
       "packages/signal/",
       "packages/work-queue/",
-      "packages/bootstrap-runtime/src/execution-foundation.integration.test.ts",
+      "packages/bootstrap-runtime/test/integration/execution-foundation.integration.test.ts",
     ],
   ],
   [
     "@heptalogos/work-queue/foundation-repository",
     [
       "packages/work-queue/",
-      "packages/bootstrap-runtime/src/durable-work-host.integration.test.ts",
+      "packages/bootstrap-runtime/test/integration/durable-work-host.integration.test.ts",
     ],
   ],
 ]);
@@ -356,11 +356,43 @@ function packageName(specifier) {
   return specifier.split("/")[0];
 }
 
+const workspacePackages = await discoverWorkspacePackages({ cwd: root });
 const workspacePackageNames = new Set(
-  (await discoverWorkspacePackages({ cwd: root }))
+  workspacePackages
     .map(({ name }) => name)
     .filter((name) => typeof name === "string" && name.length > 0),
 );
+const projectAreas = new Map();
+for (const workspacePackage of workspacePackages) {
+  if (typeof workspacePackage.name !== "string") continue;
+  const projectPath = resolve(workspacePackage.path, "project.json");
+  if (!existsSync(projectPath)) continue;
+  const project = JSON.parse(readFileSync(projectPath, "utf8"));
+  const area = project.tags?.find((tag) => tag.startsWith("area:"));
+  if (typeof area === "string") projectAreas.set(workspacePackage.name, area.slice(5));
+}
+
+export function isAreaDependencyAllowed({ sourcePackageName, targetPackageName }) {
+  const sourceArea = projectAreas.get(sourcePackageName);
+  const targetArea = projectAreas.get(targetPackageName);
+  if (!sourceArea || !targetArea || sourceArea === targetArea) return true;
+
+  const forbiddenBySource = new Map([
+    ["shared", new Set(["bootstrap", "data", "execution", "service", "runtime"])],
+    ["bootstrap", new Set(["execution", "service", "runtime"])],
+    ["data", new Set(["service", "runtime"])],
+    ["execution", new Set(["service", "runtime"])],
+    ["service", new Set(["runtime"])],
+  ]);
+  if (!forbiddenBySource.get(sourceArea)?.has(targetArea)) return true;
+
+  // S02's generation-pinned WorkHandler seam is the one explicit service to
+  // Runtime Kernel contract; it is not a general service/runtime allowance.
+  return (
+    sourcePackageName === "@heptalogos/work-queue" &&
+    targetPackageName === "@heptalogos/runtime-kernel"
+  );
+}
 
 function packageJsonFor(file) {
   let directory = dirname(file);
@@ -401,7 +433,8 @@ const sourcePaths = collect(root, (sourcePath) => /\.(?:ts|tsx)$/u.test(sourcePa
 for (const path of sourcePaths) {
   const relativePath = relative(root, path).replaceAll("\\", "/");
   const source = readFileSync(path, "utf8");
-  if (relativePath.startsWith("packages/runtime-substrate/")) {
+  const isTestSource = relativePath.includes("/test/");
+  if (relativePath.startsWith("packages/runtime-substrate/") && !isTestSource) {
     if (
       /(?:from|import\s*\(|require\s*\()(?:\s*["'])(?:@heptalogos\/(?:persistence|execution-lineage)|\.\.\/)/u.test(
         source,
@@ -534,6 +567,17 @@ for (const path of sourcePaths) {
       continue;
     }
     if (isWorkspaceDependency) {
+      if (
+        !isTestSource &&
+        !isAreaDependencyAllowed({
+          sourcePackageName: projectPackage.name,
+          targetPackageName: dependency,
+        })
+      ) {
+        errors.push(
+          `[BOUNDARY_AREA_DIRECTION] ${relativePath}: ${projectPackage.name} (${projectAreas.get(projectPackage.name)}) must not depend on ${specifier} (${projectAreas.get(dependency)})`,
+        );
+      }
       continue;
     }
     if (repositoryToolingPackages.has(dependency)) {

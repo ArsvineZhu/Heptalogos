@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@heptalogos/repo-kit": "workspace:*",
+    "@nx/eslint-plugin": "catalog:",
     "@nx/js": "catalog:",
     "@types/node": "catalog:",
     "@typescript/native": "catalog:",

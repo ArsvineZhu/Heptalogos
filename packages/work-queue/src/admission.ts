@@ -1,6 +1,7 @@
 import {
   parseInstant,
   type CanonicalJsonValue,
+  type ContinuityEpochId,
   type Instant,
   type MicroSystemId,
   type ContributionId,
@@ -32,7 +33,7 @@ export interface WorkAdmissionRequest {
   readonly notBefore?: Instant;
   readonly dedupKey?: string;
   readonly configurationBinding: WorkConfigurationBinding;
-  readonly createdContinuityEpochId: import("@heptalogos/foundation-contracts").ContinuityEpochId;
+  readonly createdContinuityEpochId: ContinuityEpochId;
   readonly lineageContextRef: LineageContextRefV1;
   readonly handlerMicroSystemId: MicroSystemId;
   readonly handlerContributionId: ContributionId;

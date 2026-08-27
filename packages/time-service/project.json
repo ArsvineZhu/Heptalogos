@@ -2,6 +2,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "time-service",
   "projectType": "library",
+  "tags": ["kind:product", "area:execution"],
   "sourceRoot": "packages/time-service/src",
   "targets": {
     "lint": {

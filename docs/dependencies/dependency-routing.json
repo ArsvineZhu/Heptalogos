@@ -43,6 +43,7 @@
       "directive": "USE",
       "packages": [
         "@nx/js",
+        "@nx/eslint-plugin",
         "@types/node",
         "@typescript/native",
         "eslint",

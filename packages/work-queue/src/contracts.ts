@@ -1,5 +1,6 @@
 import type {
   CanonicalJsonValue,
+  ContentDigest,
   ContinuityEpochId,
   Instant,
   WorkItemId,
@@ -181,5 +182,4 @@ export interface WorkQueueRuntimeOptions {
   readonly antiEntropyIntervalMs: number;
 }
 
-export type DispatchAttemptId =
-  import("@heptalogos/foundation-contracts").ContentDigest<"DispatchAttemptId">;
+export type DispatchAttemptId = ContentDigest<"DispatchAttemptId">;

@@ -2,6 +2,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "execution-lineage",
   "projectType": "library",
+  "tags": ["kind:product", "area:execution"],
   "sourceRoot": "packages/execution-lineage/src",
   "targets": {
     "lint": {

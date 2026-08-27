@@ -6,6 +6,27 @@ import { validatePackageDocumentation } from "@heptalogos/repo-kit";
 
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 
+export function findSourceTestFiles(packagesRoot) {
+  const findings = [];
+  const visit = (directory) => {
+    if (!existsSync(directory)) return;
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        visit(path);
+      } else if (entry.isFile() && /\.test\.tsx?$/u.test(entry.name)) {
+        findings.push(path);
+      }
+    }
+  };
+  if (existsSync(packagesRoot)) {
+    for (const entry of readdirSync(packagesRoot, { withFileTypes: true })) {
+      if (entry.isDirectory()) visit(join(packagesRoot, entry.name, "src"));
+    }
+  }
+  return findings.sort();
+}
+
 function workflowDispatchInputs(workflow) {
   const lines = workflow.split(/\r?\n/u);
   const dispatchIndex = lines.findIndex((line) =>
@@ -145,6 +166,10 @@ function main() {
     }
   }
   walk(root);
+
+  for (const path of findSourceTestFiles(join(root, "packages"))) {
+    fail(`package test must live under a package test plane, not src: ${path}`);
+  }
 
   for (const error of validatePackageDocumentation({ root }).errors) fail(error);
 

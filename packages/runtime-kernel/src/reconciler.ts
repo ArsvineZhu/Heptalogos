@@ -1,4 +1,5 @@
 import type { CapabilityRegistry } from "./capability-registry.js";
+import type { CapabilityId } from "./contracts.js";
 import type {
   DesiredRuntimeSnapshot,
   MicroSystemActualState,
@@ -33,7 +34,7 @@ export type ReconcileAction =
     }
   | {
       readonly kind: "REBIND_CAPABILITY";
-      readonly capabilityId: import("@heptalogos/foundation-contracts").CapabilityId;
+      readonly capabilityId: CapabilityId;
       readonly providerId: ProviderId | undefined;
     };
 
@@ -43,10 +44,7 @@ export interface ReconcilePlan {
   readonly blocked: ReadonlyMap<MicroSystemId, string>;
   readonly serviceBindings: ReadonlyMap<ServiceId, ProviderId>;
   readonly desiredServiceBindings: ReadonlyMap<ServiceId, ProviderId>;
-  readonly capabilityBindings: ReadonlyMap<
-    import("@heptalogos/foundation-contracts").CapabilityId,
-    ProviderId
-  >;
+  readonly capabilityBindings: ReadonlyMap<CapabilityId, ProviderId>;
 }
 
 export interface ReconcileInput {
@@ -56,10 +54,7 @@ export interface ReconcileInput {
   readonly services: ServiceRegistry;
   readonly capabilities: CapabilityRegistry;
   readonly currentServiceBindings?: ReadonlyMap<ServiceId, ProviderId>;
-  readonly currentCapabilityBindings?: ReadonlyMap<
-    import("@heptalogos/foundation-contracts").CapabilityId,
-    ProviderId
-  >;
+  readonly currentCapabilityBindings?: ReadonlyMap<CapabilityId, ProviderId>;
 }
 
 export class RuntimeReconciler {

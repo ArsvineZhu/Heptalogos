@@ -2,6 +2,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "runtime-substrate",
   "projectType": "library",
+  "tags": ["kind:product", "area:runtime"],
   "sourceRoot": "packages/runtime-substrate/src",
   "targets": {
     "lint": {

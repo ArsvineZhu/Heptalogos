@@ -5,12 +5,14 @@ import {
 } from "@heptalogos/foundation-contracts";
 import type { RuntimeExecutionOrigin } from "@heptalogos/execution-lineage/runtime-kernel";
 import type {
+  ActivationResourceScope,
   RuntimeSubstrate,
   SubstrateActivationHandle,
 } from "@heptalogos/runtime-substrate";
 import { CapabilityRegistry } from "./capability-registry.js";
 import { GenerationFence } from "./generation-fence.js";
 import type {
+  CapabilityId,
   CapabilityProvisionDescriptor,
   CapabilityRequirement,
   DesiredRuntimeSnapshot,
@@ -105,18 +107,9 @@ export class MicroSystemSupervisor {
   private readonly running = new Map<MicroSystemId, RunningSystem>();
   private readonly unsettledRetirements = new Map<MicroSystemId, UnsettledRetirement>();
   private readonly reconciler = new RuntimeReconciler();
-  private readonly serviceBindings = new Map<
-    import("@heptalogos/foundation-contracts").ServiceId,
-    ProviderId
-  >();
-  private readonly desiredServiceBindings = new Map<
-    import("@heptalogos/foundation-contracts").ServiceId,
-    ProviderId
-  >();
-  private readonly capabilityBindings = new Map<
-    import("@heptalogos/foundation-contracts").CapabilityId,
-    ProviderId
-  >();
+  private readonly serviceBindings = new Map<ServiceId, ProviderId>();
+  private readonly desiredServiceBindings = new Map<ServiceId, ProviderId>();
+  private readonly capabilityBindings = new Map<CapabilityId, ProviderId>();
   private operatingMode: import("./contracts.js").OperatingMode = "NORMAL";
   private mutationChain: Promise<void> = Promise.resolve();
   private lifecycleState: SupervisorLifecycleState = "ACTIVE";
@@ -1049,7 +1042,7 @@ export class MicroSystemSupervisor {
     definition: MicroSystemDefinition,
     instanceId: ReturnType<typeof createMicroSystemInstanceId>,
     fence: GenerationFence,
-    scope: import("@heptalogos/runtime-substrate").ActivationResourceScope,
+    scope: ActivationResourceScope,
     serviceProviderIds: ProviderId[],
     capabilityProviderIds: ProviderId[],
     publishedServiceBindings: Set<string>,

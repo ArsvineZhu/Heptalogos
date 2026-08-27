@@ -2,6 +2,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "bootstrap-state",
   "projectType": "library",
+  "tags": ["kind:product", "area:bootstrap"],
   "sourceRoot": "packages/bootstrap-state/src",
   "targets": {
     "lint": {

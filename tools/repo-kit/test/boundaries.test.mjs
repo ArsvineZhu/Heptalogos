@@ -1,11 +1,27 @@
 import { describe, expect, it } from "vitest";
 import {
+  isAreaDependencyAllowed,
   isBootstrapRuntimeProductionImportAllowed,
   isCrossWorkspaceRelativeImport,
   isRestrictedImportAllowed,
 } from "../../../scripts/verify/boundaries.mjs";
 
 describe("restricted repository imports", () => {
+  it("enforces production area directions with the explicit WorkQueue seam", () => {
+    expect(
+      isAreaDependencyAllowed({
+        sourcePackageName: "@heptalogos/signal",
+        targetPackageName: "@heptalogos/runtime-kernel",
+      }),
+    ).toBe(false);
+    expect(
+      isAreaDependencyAllowed({
+        sourcePackageName: "@heptalogos/work-queue",
+        targetPackageName: "@heptalogos/runtime-kernel",
+      }),
+    ).toBe(true);
+  });
+
   it("rejects Runtime Kernel, Runtime Substrate, and Cordis from Bootstrap production source", () => {
     for (const specifier of [
       "@heptalogos/runtime-kernel",
@@ -25,7 +41,7 @@ describe("restricted repository imports", () => {
     expect(
       isBootstrapRuntimeProductionImportAllowed(
         "@heptalogos/runtime-kernel",
-        "packages/bootstrap-runtime/src/runtime-kernel-managed-host.integration.test.ts",
+        "packages/bootstrap-runtime/test/integration/runtime-kernel-managed-host.integration.test.ts",
       ),
     ).toBe(true);
     expect(

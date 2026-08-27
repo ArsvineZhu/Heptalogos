@@ -2,6 +2,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "repo-kit",
   "projectType": "library",
+  "tags": ["kind:tooling", "area:repository"],
   "targets": {
     "lint": {
       "executor": "nx:run-commands",

@@ -1,5 +1,11 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
-import { validateVerifyWorkflow } from "../../../scripts/verify/repository.mjs";
+import {
+  findSourceTestFiles,
+  validateVerifyWorkflow,
+} from "../../../scripts/verify/repository.mjs";
 
 const workflowPrefix = [
   "name: verify-manual",
@@ -31,6 +37,19 @@ const forbiddenTriggers = [
 ];
 
 describe("repository workflow governance", () => {
+  it("finds package tests that remain under src", async () => {
+    const root = await mkdtemp(join(tmpdir(), "heptalogos-repository-governance-"));
+    try {
+      const source = join(root, "example", "src");
+      await mkdir(source, { recursive: true });
+      const testPath = join(source, "left-behind.test.ts");
+      await writeFile(testPath, "export {}\n");
+      expect(findSourceTestFiles(root)).toEqual([testPath]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("allows machine-internal base_sha outputs while rejecting no inputs", () => {
     const errors = validateVerifyWorkflow(
       workflowPrefix + "jobs:\n  resolve-candidate:\n    outputs:\n" + baseOutput,

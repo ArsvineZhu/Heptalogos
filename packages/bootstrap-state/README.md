@@ -44,7 +44,7 @@ database, Host lease, or Runtime lifecycle ownership here.
 ## Verification
 
 Run `pnpm nx run bootstrap-state:test` and the package lint target. For changes
-to durable shapes, also run `pnpm check:corpus`, `pnpm check:hygiene`,
+to durable shapes, also run `pnpm check:documentation`, `pnpm check:hygiene`,
 `pnpm typecheck`, and the relevant recovery qualification.
 
 ## Architecture references

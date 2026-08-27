@@ -2,6 +2,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "host-ownership",
   "projectType": "library",
+  "tags": ["kind:product", "area:bootstrap"],
   "sourceRoot": "packages/host-ownership/src",
   "targets": {
     "lint": {
@@ -19,7 +20,7 @@
     "test:integration": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vitest run --root packages/host-ownership src/host-ownership.integration.test.ts"
+        "command": "vitest run --root packages/host-ownership test/integration/host-ownership.integration.test.ts"
       }
     }
   }
