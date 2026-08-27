@@ -343,23 +343,22 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 ```yaml
 H3: OPEN
 H3A: ACTIVE
-H3A_1: ACTIVE
+H3A_1: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
 H3A_2: NOT_ELIGIBLE
 H3B: NOT_ELIGIBLE
 H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
-candidateFreeze: BLOCKED
+candidateFreeze: PASS
 independentReview: NOT_RUN
 activeImplementationPlan: docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md
 ```
 
 The current H3A-1 implementation includes complete creation-request envelope
-snapshotting and the canonical fair-scan projection index. The previous final
-cross-platform candidate run exposed two Windows-only bootstrap-runtime test
-timeouts, so the candidate is reopened for a bounded test-budget correction.
-Fresh full-head qualification, renewed out-of-band Independent Review, and
-final manual CI are pending; candidate freeze is `BLOCKED`. H3A-2 remains
-`NOT_ELIGIBLE`.
+snapshotting, the canonical fair-scan projection index, and cross-platform
+bootstrap-runtime test budgets. Full local verification and Draft
+cross-platform regression CI passed on Ubuntu, macOS, and Windows. The
+candidate is ready for renewed out-of-band Independent Review; final manual CI
+follows that review. H3A-2 remains `NOT_ELIGIBLE`.
 
 ### Implementation decomposition
 

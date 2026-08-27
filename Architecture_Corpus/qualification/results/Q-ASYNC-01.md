@@ -3,12 +3,12 @@
 ```yaml
 qualificationId: Q-ASYNC-01
 role: WorkQueue scheduling mechanics
-evidenceStatus: BLOCKED
+evidenceStatus: PASS
 preImplementationDecisionState: CLOSED
 roleDecision: ADOPTED
 implementationQualification: REQUIRED
 selectedRoute: "DBOS Queue"
-candidateFreeze: BLOCKED
+candidateFreeze: PASS
 independentReview: NOT_RUN
 ```
 
@@ -51,6 +51,7 @@ evidence:
   h3a1_work_creation_envelope_snapshot: PASS
   h3a1_projection_index_query_shape: PASS
   h3a1_final_cross_platform_ci: NOT_RUN
+  h3a1_cross_platform_regression_ci: PASS
 ```
 
 ## NOT_RUN / deferred properties
@@ -70,10 +71,11 @@ claims until the affected and expanded qualification cases are rerun.
 The previous corrected candidate was qualified and frozen on a clean branch;
 that observation remains historical. Its final cross-platform CI then failed
 on Windows because two bootstrap-runtime tests exceeded their test timeouts;
-Ubuntu and macOS passed. The current candidate contains a bounded test-budget
-correction for those two cross-platform cases. Its full-head qualification,
-renewed out-of-band Independent Review, and final manual CI are pending;
-candidate freeze is `BLOCKED`.
+Ubuntu and macOS passed. The current candidate includes the bounded
+cross-platform test-budget adjustment. Full local verification and Draft
+cross-platform regression CI passed on Ubuntu, macOS, and Windows. The
+candidate is ready for renewed out-of-band Independent Review; final manual CI
+has not yet run for the current Ready head.
 
 ## Current correction properties
 
@@ -94,7 +96,7 @@ by fresh focused and real PostgreSQL qualification.
 
 ## H3A-1 observed implementation evidence
 
-The pre-correction focused unit suites passed on 2026-08-26: foundation-contracts (26/26), execution-lineage (30/30), canonical-schema (4/4), runtime-kernel (131/131), signal (6/6), and work-queue (33/33). The pre-correction real Ubuntu PostgreSQL 18.6/Host qualification also passed: 9 integration files and 67/67 tests, using the explicit `HEPTALOGOS_TEST_PG_BIN` toolchain path. These remain historical observations only. The previous corrected candidate focused suites passed on 2026-08-27: foundation-contracts (29/29), execution-lineage (30/30), canonical-schema (4/4), runtime-kernel (142/142), signal (10/10), and work-queue (59/59); its explicit bootstrap-runtime PostgreSQL 18.6/Host integration passed 9 files and 82/82 tests. Those remain historical observations after the current mutation. Fresh final focused suites on the previous candidate passed on 2026-08-27: foundation-contracts (29/29), execution-lineage (30/30), canonical-schema (4/4), runtime-kernel (142/142), signal (10/10), and work-queue (60/60). The previous candidate's explicit bootstrap-runtime PostgreSQL 18.6/Host integration passed 9 files and 83/83 tests, including the real query-shape assertion for both fair-scan states, and its local `pnpm verify` passed. Those observations are historical after the current timeout-budget mutation. The first final-pre-merge CI run passed on Ubuntu and macOS but failed on Windows at `bootstrap-runtime:test` because `does not reclaim a heartbeat-refreshed active owner` exceeded 5 seconds and `blocks no-lock inspection when an OWNER witness proves this process` exceeded 15 seconds. The corrected current head has passed the focused bootstrap-runtime test and lint locally; full-head qualification and final manual CI remain pending. DBOS and process-crash boundaries remain deferred as recorded above.
+The pre-correction focused unit suites passed on 2026-08-26: foundation-contracts (26/26), execution-lineage (30/30), canonical-schema (4/4), runtime-kernel (131/131), signal (6/6), and work-queue (33/33). The pre-correction real Ubuntu PostgreSQL 18.6/Host qualification also passed: 9 integration files and 67/67 tests, using the explicit `HEPTALOGOS_TEST_PG_BIN` toolchain path. These remain historical observations only. The previous corrected candidate focused suites passed on 2026-08-27: foundation-contracts (29/29), execution-lineage (30/30), canonical-schema (4/4), runtime-kernel (142/142), signal (10/10), and work-queue (59/59); its explicit bootstrap-runtime PostgreSQL 18.6/Host integration passed 9 files and 82/82 tests. Those remain historical observations after the current mutation. Fresh final focused suites on the previous candidate passed on 2026-08-27: foundation-contracts (29/29), execution-lineage (30/30), canonical-schema (4/4), runtime-kernel (142/142), signal (10/10), and work-queue (60/60). The previous candidate's explicit bootstrap-runtime PostgreSQL 18.6/Host integration passed 9 files and 83/83 tests, including the real query-shape assertion for both fair-scan states, and its local `pnpm verify` passed. Those observations are historical after the current timeout-budget mutation. The first final-pre-merge CI run passed on Ubuntu and macOS but failed on Windows at `bootstrap-runtime:test` because `does not reclaim a heartbeat-refreshed active owner` exceeded 5 seconds and `blocks no-lock inspection when an OWNER witness proves this process` exceeded 15 seconds. After the timeout-budget adjustment, the corrected test head passed local `pnpm verify` and Draft cross-platform regression CI on Ubuntu, macOS, and Windows; those observations predate this documentation-only synchronization. Final manual CI remains pending for the current Ready head. DBOS and process-crash boundaries remain deferred as recorded above.
 
 ## Architecture disposition
 
