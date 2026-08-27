@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { Kysely, PostgresDialect } from "kysely";
+import type { Pool, PoolClient } from "pg";
 import { createCanonicalSchemaInitializer } from "./initializer.js";
+import { foundationBaselineMigration } from "./migrations/0001-foundation-baseline.js";
+import type { CanonicalDatabase } from "./migration-pool.js";
 import {
   canonicalMigrationNames,
   canonicalMigrationProvider,
@@ -11,6 +15,48 @@ import {
 } from "@heptalogos/foundation-contracts";
 
 describe("canonical schema adapter", () => {
+  it("materializes the current WorkItem and Contribution-origin schema", async () => {
+    const statements: string[] = [];
+    const client = {
+      query: async (query: unknown) => {
+        if (typeof query === "string") statements.push(query);
+        else if (typeof query === "object" && query !== null && "text" in query) {
+          statements.push(String(query.text));
+        }
+        return { rows: [], rowCount: 0 };
+      },
+      release() {},
+    } as unknown as PoolClient;
+    const pool = {
+      connect: async () => client,
+      end: async () => undefined,
+    } as unknown as Pool;
+    const database = new Kysely<CanonicalDatabase>({
+      dialect: new PostgresDialect({ pool }),
+    });
+
+    try {
+      await foundationBaselineMigration.up(database);
+    } finally {
+      await database.destroy();
+    }
+
+    const sql = statements.join("\n");
+    expect(sql).toContain('create table "heptalogos"."work_item"');
+    expect(sql).toContain('"contribution_id"');
+    expect(sql).toContain('"work_item_dispatchable_index"');
+    expect(sql).toContain('"work_item_projection_index"');
+    expect(sql).toContain('"work_item_dedup_unique"');
+    expect(sql).toContain("p_contribution_id");
+    expect(sql).toContain("payload_version BETWEEN 1 AND 2147483647");
+    expect(sql).toContain("state = 'RUNNING' AND active_attempt_id IS NOT NULL");
+    expect(sql).toContain("state <> 'RUNNING' AND active_attempt_id IS NULL");
+    expect(sql).toContain("cancel_requested_at IS NULL OR superseded_by IS NULL");
+    expect(sql).toContain("outcome->>'schemaVersion' = '1'");
+    expect(sql).toContain("outcome->>'kind' = state");
+    expect(sql).toContain("outcome->>'retryClass' = retry_class");
+  });
+
   it("publishes exactly one static migration without a filesystem provider", async () => {
     expect(canonicalMigrationNames).toEqual(["0001_foundation_baseline"]);
     await expect(canonicalMigrationProvider.getMigrations()).resolves.toEqual(

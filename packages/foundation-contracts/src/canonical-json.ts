@@ -8,6 +8,12 @@ export type CanonicalJsonValue =
   | readonly CanonicalJsonValue[]
   | { readonly [key: string]: CanonicalJsonValue };
 
+export interface CanonicalJsonSnapshot {
+  readonly value: CanonicalJsonValue;
+  readonly canonical: string;
+  readonly utf8ByteLength: number;
+}
+
 function assertCanonicalJsonValue(value: unknown, path: string): void {
   if (value === null || typeof value === "boolean" || typeof value === "string") {
     return;
@@ -54,4 +60,29 @@ export function canonicalizeJson(value: CanonicalJsonValue): string {
     throw new TypeError("canonical JSON serializer returned no representation");
   }
   return serialized;
+}
+
+function deepFreeze(value: CanonicalJsonValue): CanonicalJsonValue {
+  if (Array.isArray(value)) {
+    for (const item of value) deepFreeze(item);
+    return Object.freeze(value);
+  }
+  if (typeof value === "object" && value !== null) {
+    for (const item of Object.values(value)) deepFreeze(item);
+    return Object.freeze(value);
+  }
+  return value;
+}
+
+export function snapshotCanonicalJson(
+  value: CanonicalJsonValue,
+): CanonicalJsonSnapshot {
+  const canonical = canonicalizeJson(value);
+  const detached = JSON.parse(canonical) as CanonicalJsonValue;
+  const snapshot = {
+    value: deepFreeze(detached),
+    canonical,
+    utf8ByteLength: new TextEncoder().encode(canonical).byteLength,
+  };
+  return Object.freeze(snapshot);
 }

@@ -56,6 +56,21 @@ const runtimeProblemSpecs: Readonly<Record<string, RuntimeProblemSpec>> = {
     retryClass: "never",
     title: "MicroSystem published an undeclared Service",
   },
+  "runtime.activation.duplicate_work_handler_publication": {
+    category: "validation",
+    retryClass: "never",
+    title: "MicroSystem published a WorkHandler more than once",
+  },
+  "runtime.activation.missing_work_handler_publication": {
+    category: "validation",
+    retryClass: "never",
+    title: "MicroSystem did not publish a declared WorkHandler",
+  },
+  "runtime.activation.undeclared_work_handler_publication": {
+    category: "validation",
+    retryClass: "never",
+    title: "MicroSystem published an undeclared WorkHandler",
+  },
   "runtime.contract.invalid_shape": {
     category: "validation",
     retryClass: "never",
@@ -131,6 +146,11 @@ const runtimeProblemSpecs: Readonly<Record<string, RuntimeProblemSpec>> = {
     retryClass: "never",
     title: "Runtime operation identifier is invalid",
   },
+  "runtime.generation.invalid_reservation": {
+    category: "validation",
+    retryClass: "never",
+    title: "Runtime generation invocation reservation is invalid",
+  },
   "runtime.generation.invalid_settle_timeout": {
     category: "validation",
     retryClass: "never",
@@ -150,6 +170,46 @@ const runtimeProblemSpecs: Readonly<Record<string, RuntimeProblemSpec>> = {
     category: "unavailable",
     retryClass: "after-change",
     title: "Provider invocation failed",
+  },
+  "runtime.work-handler.configuration-binding-unavailable": {
+    category: "unavailable",
+    retryClass: "after-change",
+    title: "WorkHandler configuration binding is unavailable",
+  },
+  "runtime.work_handler.duplicate_registration": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkHandler registration is duplicated",
+  },
+  "runtime.work_handler.invalid_descriptor": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkHandler descriptor is invalid",
+  },
+  "runtime.work_handler.invalid_result": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkHandler result is invalid",
+  },
+  "runtime.work_handler.package_generation_required": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkHandler requires a PackageGenerationId",
+  },
+  "runtime.work_handler.payload_invalid": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkHandler payload is invalid",
+  },
+  "runtime.work_handler.payload_version_unavailable": {
+    category: "conflict",
+    retryClass: "after-change",
+    title: "WorkHandler payload version is unavailable",
+  },
+  "runtime.work_handler.outcome_invalid": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkHandler outcome is invalid",
   },
   "runtime.graph.duplicate_node": {
     category: "validation",

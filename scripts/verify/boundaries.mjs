@@ -100,6 +100,7 @@ const restrictedImports = new Map([
       "packages/host-ownership/",
       "packages/persistence/",
       "packages/canonical-schema/",
+      "packages/signal/",
       "packages/bootstrap-runtime/src/host-maintenance.integration.test.ts",
       "packages/bootstrap-runtime/src/bootstrap-recovery.integration.test.ts",
       "packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts",
@@ -111,6 +112,8 @@ const restrictedImports = new Map([
     [
       "packages/persistence/",
       "packages/canonical-schema/",
+      "packages/signal/",
+      "packages/work-queue/",
       "packages/execution-lineage/src/activity-repository.ts",
       "packages/evidence/src/evidence-service.ts",
       "packages/bootstrap-runtime/src/execution-foundation.integration.test.ts",
@@ -124,10 +127,29 @@ const restrictedSpecifiers = new Map([
       "packages/execution-lineage/",
       "packages/evidence/",
       "packages/persistence/",
+      "packages/signal/",
+      "packages/work-queue/",
       "packages/bootstrap-runtime/src/execution-foundation.integration.test.ts",
     ],
   ],
+  [
+    "@heptalogos/work-queue/foundation-repository",
+    [
+      "packages/work-queue/",
+      "packages/bootstrap-runtime/src/durable-work-host.integration.test.ts",
+    ],
+  ],
 ]);
+
+const workQueuePublicSource = readFileSync(
+  resolve(root, "packages/work-queue/src/index.ts"),
+  "utf8",
+);
+if (/\bcreateWorkQueueRepository\b/u.test(workQueuePublicSource)) {
+  errors.push(
+    "packages/work-queue/src/index.ts: concrete WorkQueue repository factory must remain on the restricted Foundation subpath",
+  );
+}
 
 const hostOwnershipSourcePrefix = "packages/host-ownership/src/";
 const hostOwnershipAdapterSourcePaths = new Set([
@@ -275,6 +297,9 @@ export function isRestrictedImportAllowed(specifier, relativePath) {
 const bootstrapRuntimeProductionForbiddenImports = new Set([
   "@heptalogos/runtime-kernel",
   "@heptalogos/runtime-substrate",
+  "@heptalogos/work-queue",
+  "@heptalogos/signal",
+  "@heptalogos/durable-execution",
   "cordis",
 ]);
 

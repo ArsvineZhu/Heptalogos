@@ -1,4 +1,4 @@
-import { sql, type Kysely } from "kysely";
+import { sql, type Kysely, type SqlBool } from "kysely";
 import { HOST_RUNTIME_ROLE } from "@heptalogos/host-ownership";
 import type { Migration } from "kysely/migration";
 import type { CanonicalDatabase } from "../migration-pool.js";
@@ -34,6 +34,7 @@ export const foundationBaselineMigration: Migration = {
       .addColumn("package_generation_id", "text")
       .addColumn("micro_system_id", "text")
       .addColumn("micro_system_instance_id", "uuid")
+      .addColumn("contribution_id", "text")
       .addColumn("importance", "text", (column) => column.notNull())
       .addColumn("retention_class", "text", (column) => column.notNull())
       .addColumn("sensitivity", "text", (column) => column.notNull())
@@ -105,6 +106,25 @@ export const foundationBaselineMigration: Migration = {
         `,
       )
       .addCheckConstraint(
+        "activity_record_contribution_id_shape_check",
+        sql`
+          contribution_id IS NULL OR
+          (octet_length(contribution_id) BETWEEN 1 AND 128 AND
+            contribution_id ~ '^[a-z][a-z0-9]*(\\.[a-z0-9]+|-[a-z0-9]+)*$')
+        `,
+      )
+      .addCheckConstraint(
+        "activity_record_contribution_requires_generation_check",
+        sql`
+          contribution_id IS NULL OR (
+            product_generation_id IS NOT NULL AND
+            package_generation_id IS NOT NULL AND
+            micro_system_id IS NOT NULL AND
+            micro_system_instance_id IS NOT NULL
+          )
+        `,
+      )
+      .addCheckConstraint(
         "activity_record_operation_id_check",
         sql`operation_id IS NULL OR (btrim(operation_id) <> '' AND octet_length(operation_id) BETWEEN 1 AND 256)`,
       )
@@ -131,6 +151,210 @@ export const foundationBaselineMigration: Migration = {
       .addCheckConstraint(
         "activity_record_outcome_ref_check",
         sql`outcome_ref IS NULL OR (btrim(outcome_ref) <> '' AND octet_length(outcome_ref) BETWEEN 1 AND 1024)`,
+      )
+      .execute();
+
+    await db.schema
+      .withSchema(schema)
+      .createTable("work_item")
+      .addColumn("work_item_id", "uuid", (column) => column.notNull().primaryKey())
+      .addColumn("target_product_generation_id", "text", (column) => column.notNull())
+      .addColumn("handler_micro_system_id", "text", (column) => column.notNull())
+      .addColumn("handler_contribution_id", "text", (column) => column.notNull())
+      .addColumn("handler_package_generation_id", "text", (column) => column.notNull())
+      .addColumn("payload_version", "integer", (column) => column.notNull())
+      .addColumn("payload", "jsonb", (column) => column.notNull())
+      .addColumn("queue_profile_id", "text", (column) => column.notNull())
+      .addColumn("resource_admission_class", "text", (column) => column.notNull())
+      .addColumn("partition_key", "text")
+      .addColumn("priority", "integer", (column) => column.notNull())
+      .addColumn("not_before", "timestamptz(3)")
+      .addColumn("dedup_key", "text")
+      .addColumn("created_continuity_epoch_id", "uuid", (column) => column.notNull())
+      .addColumn("lineage_context_ref", "jsonb", (column) => column.notNull())
+      .addColumn("configuration_binding_policy", "text", (column) => column.notNull())
+      .addColumn("config_revision_ref", "text")
+      .addColumn("restore_replay_class", "text", (column) => column.notNull())
+      .addColumn("dispatch_revision", "bigint", (column) => column.notNull())
+      .addColumn("active_attempt_id", "text")
+      .addColumn("state", "text", (column) => column.notNull())
+      .addColumn("retry_class", "text")
+      .addColumn("state_reason_code", "text")
+      .addColumn("cancel_requested_at", "timestamptz(3)")
+      .addColumn("cancellation_reason_code", "text")
+      .addColumn("superseded_by", "uuid")
+      .addColumn("outcome", "jsonb")
+      .addColumn("created_at", "timestamptz(3)", (column) => column.notNull())
+      .addColumn("updated_at", "timestamptz(3)", (column) => column.notNull())
+      .addCheckConstraint(
+        "work_item_id_shape_check",
+        sql`
+          work_item_id::text ~ '^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+        `,
+      )
+      .addCheckConstraint(
+        "work_item_target_product_generation_check",
+        sql`target_product_generation_id ~ '^[0-9a-f]{64}$'`,
+      )
+      .addCheckConstraint(
+        "work_item_handler_micro_system_id_check",
+        sql`
+          octet_length(handler_micro_system_id) BETWEEN 1 AND 128 AND
+          handler_micro_system_id ~ '^[a-z][a-z0-9]*(\\.[a-z0-9]+|-[a-z0-9]+)*$'
+        `,
+      )
+      .addCheckConstraint(
+        "work_item_handler_contribution_id_check",
+        sql`
+          octet_length(handler_contribution_id) BETWEEN 1 AND 128 AND
+          handler_contribution_id ~ '^[a-z][a-z0-9]*(\\.[a-z0-9]+|-[a-z0-9]+)*$'
+        `,
+      )
+      .addCheckConstraint(
+        "work_item_handler_package_generation_check",
+        sql`handler_package_generation_id ~ '^[0-9a-f]{64}$'`,
+      )
+      .addCheckConstraint(
+        "work_item_payload_version_check",
+        sql`payload_version BETWEEN 1 AND 2147483647`,
+      )
+      .addCheckConstraint(
+        "work_item_queue_profile_id_check",
+        sql`
+          octet_length(queue_profile_id) BETWEEN 1 AND 128 AND
+          queue_profile_id ~ '^[a-z][a-z0-9]*(\\.[a-z0-9]+|-[a-z0-9]+)*$'
+        `,
+      )
+      .addCheckConstraint(
+        "work_item_resource_admission_class_check",
+        sql`
+          octet_length(resource_admission_class) BETWEEN 1 AND 128 AND
+          resource_admission_class ~ '^[a-z][a-z0-9]*(\\.[a-z0-9]+|-[a-z0-9]+)*$'
+        `,
+      )
+      .addCheckConstraint(
+        "work_item_partition_key_check",
+        sql`partition_key IS NULL OR octet_length(partition_key) BETWEEN 1 AND 256`,
+      )
+      .addCheckConstraint(
+        "work_item_priority_check",
+        sql`priority BETWEEN 1 AND 2147483647`,
+      )
+      .addCheckConstraint(
+        "work_item_dedup_key_check",
+        sql`dedup_key IS NULL OR octet_length(dedup_key) BETWEEN 1 AND 256`,
+      )
+      .addCheckConstraint(
+        "work_item_configuration_binding_check",
+        sql`
+          configuration_binding_policy IN ('CONFIG_PINNED', 'LATEST_COMPATIBLE_AT_ATTEMPT') AND
+          ((configuration_binding_policy = 'CONFIG_PINNED' AND config_revision_ref IS NOT NULL)
+            OR (configuration_binding_policy = 'LATEST_COMPATIBLE_AT_ATTEMPT' AND config_revision_ref IS NULL))
+        `,
+      )
+      .addCheckConstraint(
+        "work_item_config_revision_ref_check",
+        sql`config_revision_ref IS NULL OR (btrim(config_revision_ref) <> '' AND octet_length(config_revision_ref) BETWEEN 1 AND 256)`,
+      )
+      .addCheckConstraint(
+        "work_item_restore_replay_class_check",
+        sql`restore_replay_class IN ('RECONCILE_REQUIRED', 'RESTORE_SAFE')`,
+      )
+      .addCheckConstraint(
+        "work_item_dispatch_revision_check",
+        sql`dispatch_revision >= 1`,
+      )
+      .addCheckConstraint(
+        "work_item_active_attempt_id_check",
+        sql`
+          (state = 'RUNNING' AND active_attempt_id IS NOT NULL AND
+            active_attempt_id ~ '^[0-9a-f]{64}$') OR
+          (state <> 'RUNNING' AND active_attempt_id IS NULL)
+        `,
+      )
+      .addCheckConstraint(
+        "work_item_state_check",
+        sql`state IN ('PENDING', 'RUNNING', 'WAITING_DEPENDENCY', 'RETRY_WAIT', 'WAITING_RESTORE_RECONCILIATION', 'SUCCEEDED', 'FAILED', 'CANCELLED', 'SUPERSEDED')`,
+      )
+      .addCheckConstraint(
+        "work_item_retry_class_check",
+        sql`retry_class IS NULL OR retry_class IN ('transient', 'rate-limited', 'dependency-unavailable', 'not-configured', 'policy-blocked', 'invalid', 'permanent', 'external-effect-uncertain')`,
+      )
+      .addCheckConstraint(
+        "work_item_retry_wait_fields_check",
+        sql`state <> 'RETRY_WAIT' OR (retry_class IS NOT NULL AND not_before IS NOT NULL)`,
+      )
+      .addCheckConstraint(
+        "work_item_reason_code_check",
+        sql`
+          (state_reason_code IS NULL OR (btrim(state_reason_code) <> '' AND octet_length(state_reason_code) BETWEEN 1 AND 256)) AND
+          (cancellation_reason_code IS NULL OR (btrim(cancellation_reason_code) <> '' AND octet_length(cancellation_reason_code) BETWEEN 1 AND 256))
+        `,
+      )
+      .addCheckConstraint(
+        "work_item_terminal_intent_exclusivity_check",
+        sql`cancel_requested_at IS NULL OR superseded_by IS NULL`,
+      )
+      .addCheckConstraint(
+        "work_item_terminal_outcome_check",
+        sql`
+          (
+            state NOT IN ('SUCCEEDED', 'FAILED', 'CANCELLED', 'SUPERSEDED') AND
+            outcome IS NULL
+          ) OR (
+            state IN ('SUCCEEDED', 'FAILED', 'CANCELLED', 'SUPERSEDED') AND
+            outcome IS NOT NULL AND
+            jsonb_typeof(outcome) = 'object' AND
+            outcome->>'schemaVersion' = '1' AND
+            outcome->>'kind' = state AND
+            (
+              state <> 'FAILED' OR
+              (
+                retry_class IS NOT NULL AND
+                outcome->>'retryClass' IS NOT NULL AND
+                outcome->>'retryClass' = retry_class
+              )
+            )
+          )
+        `,
+      )
+      .addCheckConstraint(
+        "work_item_terminal_retry_class_check",
+        sql`state NOT IN ('SUCCEEDED', 'CANCELLED', 'SUPERSEDED') OR retry_class IS NULL`,
+      )
+      .execute();
+
+    await db.schema
+      .withSchema(schema)
+      .createIndex("work_item_dispatchable_index")
+      .on("work_item")
+      .columns(["state", "not_before", "priority", "created_at", "work_item_id"])
+      .execute();
+    await db.schema
+      .withSchema(schema)
+      .createIndex("work_item_projection_index")
+      .on("work_item")
+      .columns(["state", "created_at", "work_item_id"])
+      .execute();
+    await db.schema
+      .withSchema(schema)
+      .createIndex("work_item_handler_state_index")
+      .on("work_item")
+      .columns([
+        "handler_micro_system_id",
+        "handler_contribution_id",
+        "handler_package_generation_id",
+        "state",
+      ])
+      .execute();
+    await db.schema
+      .withSchema(schema)
+      .createIndex("work_item_dedup_unique")
+      .unique()
+      .on("work_item")
+      .columns(["handler_micro_system_id", "handler_contribution_id", "dedup_key"])
+      .where(
+        sql<SqlBool>`dedup_key IS NOT NULL AND state IN ('PENDING', 'RUNNING', 'WAITING_DEPENDENCY', 'RETRY_WAIT', 'WAITING_RESTORE_RECONCILIATION')`,
       )
       .execute();
 
@@ -203,6 +427,7 @@ export const foundationBaselineMigration: Migration = {
       "activity_record",
       "activity_link",
       "evidence_record",
+      "work_item",
     ]) {
       await sql`
         REVOKE ALL ON TABLE "heptalogos".${sql.ref(table)} FROM PUBLIC
@@ -216,6 +441,9 @@ export const foundationBaselineMigration: Migration = {
         GRANT SELECT, INSERT ON TABLE "heptalogos".${sql.ref(table)} TO "heptalogos_runtime"
       `.execute(db);
     }
+    await sql`
+      GRANT SELECT, INSERT, UPDATE ON TABLE "heptalogos"."work_item" TO "heptalogos_runtime"
+    `.execute(db);
 
     await sql`
       CREATE OR REPLACE FUNCTION "heptalogos"."complete_activity_record"(
@@ -229,6 +457,7 @@ export const foundationBaselineMigration: Migration = {
         p_package_generation_id text,
         p_micro_system_id text,
         p_micro_system_instance_id uuid,
+        p_contribution_id text,
         p_ended_at timestamptz,
         p_outcome text,
         p_outcome_ref text
@@ -262,6 +491,7 @@ export const foundationBaselineMigration: Migration = {
           package_generation_id,
           micro_system_id,
           micro_system_instance_id,
+          contribution_id,
           ended_at,
           outcome,
           outcome_ref
@@ -283,6 +513,7 @@ export const foundationBaselineMigration: Migration = {
           OR retained.package_generation_id IS DISTINCT FROM p_package_generation_id
           OR retained.micro_system_id IS DISTINCT FROM p_micro_system_id
           OR retained.micro_system_instance_id IS DISTINCT FROM p_micro_system_instance_id
+          OR retained.contribution_id IS DISTINCT FROM p_contribution_id
         THEN
           RETURN 'ORIGIN_MISMATCH';
         END IF;
@@ -310,14 +541,14 @@ export const foundationBaselineMigration: Migration = {
 
     await sql`
       REVOKE ALL ON FUNCTION "heptalogos"."complete_activity_record"(
-        uuid, uuid, uuid, uuid, uuid, uuid, text, text, text, uuid,
+        uuid, uuid, uuid, uuid, uuid, uuid, text, text, text, uuid, text,
         timestamptz, text, text
       ) FROM PUBLIC
     `.execute(db);
 
     await sql`
       GRANT EXECUTE ON FUNCTION "heptalogos"."complete_activity_record"(
-        uuid, uuid, uuid, uuid, uuid, uuid, text, text, text, uuid,
+        uuid, uuid, uuid, uuid, uuid, uuid, text, text, text, uuid, text,
         timestamptz, text, text
       ) TO ${sql.ref(HOST_RUNTIME_ROLE)}
     `.execute(db);

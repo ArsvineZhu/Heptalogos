@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import {
   createActivityId,
+  parseContributionId,
   parseBootId,
   parseContentDigest,
   parseContinuityEpochId,
@@ -47,12 +48,31 @@ export interface InternalRuntimeActivityRunner {
     request: ActivityRequest,
     operation: (context: ExecutionContext) => Promise<T>,
   ): Promise<T>;
+  runFromLineageContextRef<T>(
+    ref: LineageContextRefV1,
+    request: Omit<ActivityRequest, "causationActivityId">,
+    operation: (context: ExecutionContext) => Promise<T>,
+  ): Promise<T>;
 }
 
 const runtimeOriginBinders = new WeakMap<
   ExecutionContextRuntime,
   (origin: RuntimeExecutionOrigin) => InternalRuntimeActivityRunner
 >();
+
+function causationFromLineageContextRef(
+  ref: LineageContextRefV1,
+  trustedOrigin: HostExecutionOrigin,
+): ActivityId {
+  const decoded = decodeLineageContextRef(ref);
+  if (
+    decoded.sourceInstanceId !== trustedOrigin.instanceId ||
+    decoded.sourceContinuityEpochId !== trustedOrigin.continuityEpochId
+  ) {
+    throw discontinuousContextRefProblem();
+  }
+  return decoded.sourceActivityId;
+}
 
 const importanceValues = new Set<ActivityImportance>([
   "diagnostic",
@@ -131,13 +151,21 @@ function freezeRuntimeOrigin(origin: RuntimeExecutionOrigin): RuntimeExecutionOr
     origin.microSystemInstanceId === undefined
       ? undefined
       : parseMicroSystemInstanceId(origin.microSystemInstanceId);
-
+  const contributionId =
+    origin.contributionId === undefined
+      ? undefined
+      : parseContributionId(origin.contributionId);
   if (
     productGenerationId === undefined ||
     (origin.packageGenerationId !== undefined && packageGenerationId === undefined) ||
     (origin.microSystemId !== undefined && microSystemId === undefined) ||
     (origin.microSystemInstanceId !== undefined &&
       microSystemInstanceId === undefined) ||
+    (origin.contributionId !== undefined && contributionId === undefined) ||
+    (contributionId !== undefined &&
+      (packageGenerationId === undefined ||
+        microSystemId === undefined ||
+        microSystemInstanceId === undefined)) ||
     (microSystemId === undefined) !== (microSystemInstanceId === undefined)
   ) {
     throw invalidOriginProblem();
@@ -148,6 +176,7 @@ function freezeRuntimeOrigin(origin: RuntimeExecutionOrigin): RuntimeExecutionOr
     ...(packageGenerationId ? { packageGenerationId } : {}),
     ...(microSystemId ? { microSystemId } : {}),
     ...(microSystemInstanceId ? { microSystemInstanceId } : {}),
+    ...(contributionId ? { contributionId } : {}),
   });
 }
 
@@ -278,20 +307,14 @@ export function createExecutionContextRuntime(
       request: Omit<ActivityRequest, "causationActivityId">,
       operation: (context: ExecutionContext) => Promise<T>,
     ): Promise<T> {
-      const decoded = decodeLineageContextRef(ref);
-      if (
-        decoded.sourceInstanceId !== trustedOrigin.instanceId ||
-        decoded.sourceContinuityEpochId !== trustedOrigin.continuityEpochId
-      ) {
-        throw discontinuousContextRefProblem();
-      }
+      const causationActivityId = causationFromLineageContextRef(ref, trustedOrigin);
       const parent = storage.getStore();
       const parentOtel = parent?.otelContext ?? activeTelemetryContext();
       return runScope(
         request,
         operation,
         undefined,
-        decoded.sourceActivityId,
+        causationActivityId,
         parentOtel,
         undefined,
       );
@@ -313,6 +336,23 @@ export function createExecutionContextRuntime(
           operation,
           parent?.execution.activityId,
           request.causationActivityId,
+          parentOtel,
+          trustedRuntimeOrigin,
+        );
+      },
+      async runFromLineageContextRef<T>(
+        ref: LineageContextRefV1,
+        request: Omit<ActivityRequest, "causationActivityId">,
+        operation: (context: ExecutionContext) => Promise<T>,
+      ): Promise<T> {
+        const causationActivityId = causationFromLineageContextRef(ref, trustedOrigin);
+        const parent = storage.getStore();
+        const parentOtel = parent?.otelContext ?? activeTelemetryContext();
+        return runScope(
+          request,
+          operation,
+          undefined,
+          causationActivityId,
           parentOtel,
           trustedRuntimeOrigin,
         );

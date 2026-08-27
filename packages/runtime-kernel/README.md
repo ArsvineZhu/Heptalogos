@@ -16,13 +16,13 @@ not the Bootstrap or PostgreSQL owner.
 - Service and Capability registries and lease contracts.
 - Generation fences, readiness evaluation, and lifecycle lineage.
 - Runtime contract matching and compatibility evaluation.
+- Generation-pinned WorkHandler declaration, validation, publication, and lookup.
 
 ## Does not own
 
 - Bootstrap state, Host lease, private PostgreSQL, or process control.
 - Cordis-specific resource mechanics.
-- Product durable work, WorkQueue, or external-effect semantics from later
-  stages.
+- Product durable WorkItem state, WorkQueue, DBOS, or external-effect semantics.
 - A second persistence or recovery Authority.
 
 ## Public surface
@@ -46,7 +46,7 @@ the higher Host/product boundary.
 Runtime topology Authority is `DesiredRuntimeSnapshot` reconciliation; do not
 add a general imperative topology mutation path. Do not import Bootstrap private
 types. Keep Cordis mechanics behind `runtime-substrate` and do not introduce
-H3 durable-work/effect semantics. Lifecycle and quiescence changes require
+product durable-work/effect semantics. Lifecycle and quiescence changes require
 focused concurrency and cancellation tests.
 
 ## Verification

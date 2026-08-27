@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   asContentDigest,
   createCapabilityId,
+  createContributionId,
   createMicroSystemId,
+  createWorkItemId,
   createProviderId,
   createServiceId,
   digestCanonicalJson,
@@ -25,6 +27,8 @@ import {
   type CapabilityProvisionDescriptor,
   type CapabilityRequirement,
   type ServiceProvisionDescriptor,
+  type RuntimeGenerationRef,
+  type WorkHandlerProvisionDescriptor,
 } from "./index.js";
 
 const contractV1 = createContractVersion("v1");
@@ -35,6 +39,43 @@ const generation = {
     digestCanonicalJson("supervisor-test-generation/v1", { id: "test" }),
   ),
 };
+const workHandlerGeneration: RuntimeGenerationRef = {
+  ...generation,
+  packageGenerationId: asContentDigest(
+    "PackageGenerationId",
+    digestCanonicalJson("supervisor-test-package/v1", { id: "work-handler" }),
+  ),
+};
+
+function workHandlerDescriptor(
+  contributionId = createContributionId("system.work-handler.execute"),
+): WorkHandlerProvisionDescriptor {
+  return {
+    contributionId,
+    contractVersion: contractV1,
+    payloadContracts: [
+      {
+        version: 1,
+        schema: {
+          type: "object",
+          properties: { value: { type: "string" } },
+          required: ["value"],
+          additionalProperties: false,
+        },
+      },
+    ],
+    outcomeSchema: {
+      type: "object",
+      properties: { accepted: { type: "boolean" } },
+      required: ["accepted"],
+      additionalProperties: false,
+    },
+    queueProfileId: "work.default" as never,
+    resourceAdmissionClass: "work.default" as never,
+    configurationBindingPolicy: "LATEST_COMPATIBLE_AT_ATTEMPT",
+    restoreReplayClass: "RECONCILE_REQUIRED",
+  };
+}
 
 function serviceRequirement(serviceId: ServiceId) {
   return { serviceId, contract: exactContract(contractV1) };
@@ -92,17 +133,23 @@ function system(
       | "capabilityRequirements"
       | "capabilityProvisions"
     >
-  > = {},
+  > & {
+    readonly generation?: RuntimeGenerationRef;
+    readonly workHandlerProvisions?: readonly WorkHandlerProvisionDescriptor[];
+  } = {},
 ): MicroSystemDefinition {
   return {
     microSystemId: createMicroSystemId(id),
     role: "provider",
-    generation,
+    generation: options.generation ?? generation,
     operatingModes: options.operatingModes ?? ["NORMAL", "SAFE"],
     serviceRequirements: options.serviceRequirements ?? [],
     capabilityRequirements: options.capabilityRequirements ?? [],
     serviceProvisions: options.serviceProvisions ?? [],
     capabilityProvisions: options.capabilityProvisions ?? [],
+    ...(options.workHandlerProvisions
+      ? { workHandlerProvisions: options.workHandlerProvisions }
+      : {}),
     activate,
   };
 }
@@ -169,6 +216,130 @@ function deferred<T>(): {
 }
 
 describe("MicroSystemSupervisor and RuntimeReconciler", () => {
+  it("publishes a declared WorkHandler and retires its generation-bound lease", async () => {
+    const descriptor = workHandlerDescriptor();
+    const definition = system(
+      "work-handler",
+      async (context) => {
+        context.publishWorkHandler(descriptor, {
+          async execute() {
+            return { outcome: { accepted: true } };
+          },
+        });
+      },
+      {
+        generation: workHandlerGeneration,
+        workHandlerProvisions: [descriptor],
+      },
+    );
+    const supervisor = createSupervisor([definition]);
+    const target = {
+      productGenerationId: workHandlerGeneration.productGenerationId,
+      microSystemId: definition.microSystemId,
+      contributionId: descriptor.contributionId,
+      packageGenerationId: workHandlerGeneration.packageGenerationId!,
+      payloadVersion: 1,
+    };
+
+    try {
+      await supervisor.reconcile(desired([definition]));
+      const lease = supervisor.workHandlers.resolve(target);
+      expect(lease).toBeDefined();
+      await expect(
+        lease!.reserveInvocation().execute({
+          workItemId: createWorkItemId(),
+          dispatchRevision: 1,
+          payloadVersion: 1,
+          payload: { value: "ok" },
+          signal: new AbortController().signal,
+        }),
+      ).resolves.toEqual({ outcome: { accepted: true } });
+      expect(supervisor.workHandlers.size()).toBe(1);
+    } finally {
+      await supervisor.close();
+    }
+
+    expect(supervisor.workHandlers.resolve(target)).toBeUndefined();
+  });
+
+  it("matches WorkHandler declarations by canonical structure and payload version", async () => {
+    const declared = workHandlerDescriptor();
+    const declaredPayloadV1 = declared.payloadContracts[0]!;
+    const declaredPayloadV2 = {
+      version: 2,
+      schema: {
+        type: "object",
+        properties: { count: { type: "integer" } },
+        required: ["count"],
+        additionalProperties: false,
+      },
+    };
+    const published: WorkHandlerProvisionDescriptor = {
+      ...declared,
+      payloadContracts: [
+        {
+          version: declaredPayloadV2.version,
+          schema: {
+            required: ["count"],
+            additionalProperties: false,
+            properties: { count: { type: "integer" } },
+            type: "object",
+          },
+        },
+        {
+          version: declaredPayloadV1.version,
+          schema: {
+            required: ["value"],
+            additionalProperties: false,
+            properties: { value: { type: "string" } },
+            type: "object",
+          },
+        },
+      ],
+      outcomeSchema: {
+        required: ["accepted"],
+        additionalProperties: false,
+        properties: { accepted: { type: "boolean" } },
+        type: "object",
+      },
+    };
+    const definition = system(
+      "canonical-work-handler",
+      async (context) => {
+        context.publishWorkHandler(published, {
+          async execute() {
+            return { outcome: { accepted: true } };
+          },
+        });
+      },
+      {
+        generation: workHandlerGeneration,
+        workHandlerProvisions: [
+          {
+            ...declared,
+            payloadContracts: [declaredPayloadV1, declaredPayloadV2],
+          },
+        ],
+      },
+    );
+    const supervisor = createSupervisor([definition]);
+
+    try {
+      await supervisor.reconcile(desired([definition]));
+      expect(
+        supervisor.workHandlers.resolve({
+          productGenerationId: workHandlerGeneration.productGenerationId,
+          microSystemId: definition.microSystemId,
+          contributionId: declared.contributionId,
+          packageGenerationId: workHandlerGeneration.packageGenerationId!,
+          payloadVersion: 2,
+        }),
+      ).toBeDefined();
+    } finally {
+      await supervisor.close();
+    }
+  });
+
   it("R1 starts provider before dependent and keeps independent C running", async () => {
     const serviceId = createServiceId("test.x");
     const a = provider("a", serviceId);

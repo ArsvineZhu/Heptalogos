@@ -1,7 +1,7 @@
 # Heptalogos Development Roadmap
 
 **Status:** LIVING ROADMAP / planning guidance<br>
-**Date:** 2026-08-26<br>
+**Date:** 2026-08-27<br>
 **Repository baseline:** current `master` integration baseline after H2 post-merge reconciliation and Ubuntu/Linux residual qualification<br>
 **Architecture baseline:** `Architecture_Corpus` design state 2026-08-20
 
@@ -128,7 +128,7 @@ It does not prove private PostgreSQL, runtime supervision, durable work, system 
 
 > Can a Heptalogos installation reliably identify itself, locate its independent lifecycle roots, obtain exclusive bootstrap ownership, start/validate its private PostgreSQL, and hand ownership to exactly one normal Host without an authority gap?
 
-### Current progress (2026-08-26)
+### Current progress (2026-08-27)
 
 Current H-stage truth:
 
@@ -337,6 +337,38 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 ### Question answered
 
 > Can the system make a durable promise, crash anywhere around dispatch/processing/external effects, and resume without losing the obligation or inventing false certainty?
+
+### Current progress (2026-08-27)
+
+```yaml
+H3: OPEN
+H3A: ACTIVE
+H3A_1: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+H3A_2: NOT_ELIGIBLE
+H3B: NOT_ELIGIBLE
+H3_FUNCTIONAL: IN_PROGRESS
+H3_STABILIZATION: NOT_ELIGIBLE
+candidateFreeze: PASS
+independentReview: NOT_RUN
+activeImplementationPlan: docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md
+```
+
+The current H3A-1 implementation includes complete creation-request envelope
+snapshotting, the canonical fair-scan projection index, and cross-platform
+bootstrap-runtime test budgets. Full local verification and Draft
+cross-platform regression CI passed on Ubuntu, macOS, and Windows. The
+candidate is ready for renewed out-of-band Independent Review; final manual CI
+follows that review. H3A-2 remains `NOT_ELIGIBLE`.
+
+### Implementation decomposition
+
+- H3A-1 implements canonical work/handler/signal semantics without DBOS.
+- H3A-2 materializes DBOS durable mechanics and crash recovery.
+- H3B adds EffectOperation and uncertainty.
+- Real `CONFIG_PINNED` ConfigurationRevision resolution remains H4-owned; H3A
+  uses configuration-free handlers and fails closed for pinned binding.
+- Real PressureSnapshot/ResourceGovernor remains H8-owned; H3A establishes
+  explicit WorkAdmissionPort semantics.
 
 ### Capability closure
 

@@ -13,6 +13,7 @@ chronology-preserving migration archive.
 
 - Canonical schema definition and initialization.
 - Current migration/baseline mechanics required to materialize that schema.
+- Canonical `WorkItem` obligation state and immutable execution-origin fields.
 - Schema initialization contract and its runtime options.
 
 ## Does not own
@@ -21,6 +22,7 @@ chronology-preserving migration archive.
 - Host lease acquisition or ownership fencing.
 - Bootstrap maintenance control.
 - Compatibility readers or migrations for project-owned development history.
+- DBOS vendor schema or durable-engine state.
 
 ## Public surface
 

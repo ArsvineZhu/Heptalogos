@@ -24,6 +24,20 @@ export type {
   ServiceProvisionDescriptor,
   ServiceRequirement,
 } from "./contracts.js";
+export type {
+  ResourceAdmissionClassId,
+  RuntimeWorkHandler,
+  RuntimeWorkHandlerInvocation,
+  RuntimeWorkHandlerInvocationReservation,
+  RuntimeWorkHandlerLease,
+  RuntimeWorkHandlerResult,
+  WorkHandlerConfigurationBindingPolicy,
+  WorkHandlerPayloadContract,
+  WorkHandlerProvisionDescriptor,
+  WorkHandlerRestoreReplayClass,
+  WorkHandlerTarget,
+  WorkQueueProfileId,
+} from "./work-handler-contracts.js";
 export {
   CONTRACT_VERSION_PATTERN,
   ContractCompatibilityRegistry,
@@ -35,6 +49,7 @@ export { CapabilityRegistry } from "./capability-registry.js";
 export {
   createGenerationFence,
   GenerationFence,
+  type GenerationInvocationReservation,
   type GenerationFenceState,
 } from "./generation-fence.js";
 export { evaluateReadiness } from "./readiness.js";
@@ -47,6 +62,11 @@ export {
   type ReconcilePlan,
 } from "./reconciler.js";
 export { ServiceRegistry } from "./service-registry.js";
+export {
+  canonicalizeWorkHandlerDescriptor,
+  WorkHandlerRegistry,
+  workHandlerDescriptorsEqual,
+} from "./work-handler-registry.js";
 export {
   createRuntimeLifecycleLineage,
   type RuntimeLifecycleLineage,

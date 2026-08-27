@@ -13,37 +13,43 @@
   "exclude": ["src/**/*.test.ts"],
   "references": [
     {
-      "path": "../foundation-contracts/tsconfig.build.json"
-    },
-    {
-      "path": "../bootstrap-state/tsconfig.build.json"
-    },
-    {
       "path": "../private-postgres/tsconfig.build.json"
     },
     {
       "path": "../host-ownership/tsconfig.build.json"
     },
     {
-      "path": "../canonical-schema/tsconfig.build.json"
+      "path": "../foundation-contracts/tsconfig.build.json"
     },
     {
-      "path": "../evidence/tsconfig.build.json"
+      "path": "../bootstrap-state/tsconfig.build.json"
     },
     {
-      "path": "../execution-lineage/tsconfig.build.json"
-    },
-    {
-      "path": "../persistence/tsconfig.build.json"
-    },
-    {
-      "path": "../runtime-kernel/tsconfig.build.json"
+      "path": "../time-service/tsconfig.build.json"
     },
     {
       "path": "../runtime-substrate/tsconfig.build.json"
     },
     {
-      "path": "../time-service/tsconfig.build.json"
+      "path": "../work-queue/tsconfig.build.json"
+    },
+    {
+      "path": "../runtime-kernel/tsconfig.build.json"
+    },
+    {
+      "path": "../signal/tsconfig.build.json"
+    },
+    {
+      "path": "../persistence/tsconfig.build.json"
+    },
+    {
+      "path": "../execution-lineage/tsconfig.build.json"
+    },
+    {
+      "path": "../evidence/tsconfig.build.json"
+    },
+    {
+      "path": "../canonical-schema/tsconfig.build.json"
     }
   ]
 }

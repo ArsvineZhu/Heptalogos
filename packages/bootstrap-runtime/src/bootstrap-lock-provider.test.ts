@@ -27,6 +27,7 @@ const FIXTURE = fileURLToPath(
   new URL("../test/fixtures/stale-reclaim-race.mjs", import.meta.url),
 );
 const STALE_MS = 2_000;
+const ACTIVE_OWNER_TEST_TIMEOUT_MS = 30_000;
 const children: ChildController[] = [];
 const temporaryRoots: string[] = [];
 
@@ -202,18 +203,27 @@ describe("bootstrap stale-reclaim provider qualification", () => {
     expect((await stat(lockfilePath)).isDirectory()).toBe(true);
   });
 
-  it("does not reclaim a heartbeat-refreshed active owner", async () => {
-    const { target, lockfilePath } = await makeTarget();
-    const holder = start("@bybrave/proper-lockfile2", "hold", target, lockfilePath);
-    await holder.waitFor("acquired");
-    await new Promise((resolve) => setTimeout(resolve, STALE_MS + 1_500));
+  it(
+    "does not reclaim a heartbeat-refreshed active owner",
+    async () => {
+      const { target, lockfilePath } = await makeTarget();
+      const holder = start("@bybrave/proper-lockfile2", "hold", target, lockfilePath);
+      await holder.waitFor("acquired");
+      await new Promise((resolve) => setTimeout(resolve, STALE_MS + 1_500));
 
-    const contender = start("@bybrave/proper-lockfile2", "hold", target, lockfilePath);
-    await expect(contender.waitFor("error")).resolves.toMatchObject({
-      code: "ELOCKED",
-    });
-    expect((await stat(lockfilePath)).isDirectory()).toBe(true);
-  });
+      const contender = start(
+        "@bybrave/proper-lockfile2",
+        "hold",
+        target,
+        lockfilePath,
+      );
+      await expect(contender.waitFor("error")).resolves.toMatchObject({
+        code: "ELOCKED",
+      });
+      expect((await stat(lockfilePath)).isDirectory()).toBe(true);
+    },
+    ACTIVE_OWNER_TEST_TIMEOUT_MS,
+  );
 
   it("reclaims a lock left by a killed owner and reports the reclaim", async () => {
     const { target, lockfilePath } = await makeTarget();

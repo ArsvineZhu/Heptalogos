@@ -30,6 +30,7 @@ export interface CanonicalDatabase {
     readonly package_generation_id: string | null;
     readonly micro_system_id: string | null;
     readonly micro_system_instance_id: string | null;
+    readonly contribution_id: string | null;
     readonly importance: string;
     readonly retention_class: string;
     readonly sensitivity: string;
@@ -41,6 +42,37 @@ export interface CanonicalDatabase {
     readonly contract_version: string | null;
     readonly outcome: string | null;
     readonly outcome_ref: string | null;
+  };
+  readonly work_item: {
+    readonly work_item_id: string;
+    readonly target_product_generation_id: string;
+    readonly handler_micro_system_id: string;
+    readonly handler_contribution_id: string;
+    readonly handler_package_generation_id: string;
+    readonly payload_version: number;
+    readonly payload: unknown;
+    readonly queue_profile_id: string;
+    readonly resource_admission_class: string;
+    readonly partition_key: string | null;
+    readonly priority: number;
+    readonly not_before: Date | string | null;
+    readonly dedup_key: string | null;
+    readonly created_continuity_epoch_id: string;
+    readonly lineage_context_ref: unknown;
+    readonly configuration_binding_policy: string;
+    readonly config_revision_ref: string | null;
+    readonly restore_replay_class: string;
+    readonly dispatch_revision: string | number;
+    readonly active_attempt_id: string | null;
+    readonly state: string;
+    readonly retry_class: string | null;
+    readonly state_reason_code: string | null;
+    readonly cancel_requested_at: Date | string | null;
+    readonly cancellation_reason_code: string | null;
+    readonly superseded_by: string | null;
+    readonly outcome: unknown | null;
+    readonly created_at: Date | string;
+    readonly updated_at: Date | string;
   };
   readonly activity_link: {
     readonly source_activity_id: string;

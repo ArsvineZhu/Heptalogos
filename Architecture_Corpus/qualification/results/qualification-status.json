@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-26T18:53:34+09:00",
+  "recordedAt": "2026-08-27T13:39:50+09:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": [
@@ -163,6 +163,8 @@
       "testedProperty": "Static dispatcher semantics plus real DBOS/PostgreSQL queue, generation pinning, revision attempts, restart, and terminal retry effect fencing",
       "evidenceStatus": "PASS",
       "qualificationState": "OPEN",
+      "candidateFreeze": "PASS",
+      "independentReview": "NOT_RUN",
       "evidence": {
         "semantic_dispatcher_fixture": "PASS",
         "generation_pin_revision_fence": "PASS",
@@ -173,15 +175,80 @@
         "postgres_restart_read": "PASS",
         "missing_retained_generation_blocks": "PASS",
         "terminal_retry_single_effect": "PASS",
-        "crash_after_terminal_commit": "NOT_RUN"
+        "crash_after_terminal_commit": "NOT_RUN",
+        "h3a1_contribution_origin": "PASS",
+        "h3a1_workitem_canonical_state": "PASS",
+        "h3a1_generation_pinned_handler": "PASS",
+        "h3a1_revision_fence": "PASS",
+        "h3a1_terminal_replay_semantics": "PASS",
+        "h3a1_signal_reconnect_rescan": "PASS",
+        "h3a1_lost_dispatch_reconciliation": "PASS",
+        "h3a1_cancel_supersede_semantics": "PASS",
+        "h3a1_nonterminal_dedup": "PASS",
+        "h3a1_admission_contract": "PASS",
+        "h3a1_handler_descriptor_canonical_snapshot": "PASS",
+        "h3a1_generation_fenced_settlement": "PASS",
+        "h3a1_future_not_before_projection": "PASS",
+        "h3a1_payload_version_dependency_no_revision_churn": "PASS",
+        "h3a1_waiting_state_cancellation": "PASS",
+        "h3a1_first_terminal_intent_wins": "PASS",
+        "h3a1_forbidden_classifier_terminal_disposition": "PASS",
+        "h3a1_transaction_signal_failure_rollback": "PASS",
+        "h3a1_canonical_representation_invariants": "PASS",
+        "h3a1_real_postgres_18_6_ubuntu": "PASS",
+        "h3a1_dbos_real_engine": "NOT_RUN",
+        "h3a1_process_crash_after_terminal_commit": "NOT_RUN",
+        "h3a1_reconciliation_fairness": "PASS",
+        "h3a1_generation_preinvoke_admission_fence": "PASS",
+        "h3a1_canonical_snapshot_detachment": "PASS",
+        "h3a1_work_lineage_completion": "PASS",
+        "h3a1_repository_authority_surface": "PASS",
+        "h3a1_terminal_outcome_coherence": "PASS",
+        "h3a1_supersession_contract": "PASS",
+        "h3a1_work_creation_envelope_snapshot": "PASS",
+        "h3a1_projection_index_query_shape": "PASS",
+        "h3a1_final_cross_platform_ci": "NOT_RUN",
+        "h3a1_cross_platform_regression_ci": "PASS"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
       "evidenceSource": {
-        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane"
+        "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane",
+        "focusedSuites": "Previous candidate: foundation-contracts 29/29; execution-lineage 30/30; canonical-schema 4/4; runtime-kernel 142/142; signal 10/10; work-queue 60/60. Corrected bootstrap-runtime timeout tests: 214 passed, 1 skipped; lint PASS",
+        "repositoryGates": "Corrected test head pnpm verify PASS locally; final-pre-merge CI remains pending for the current Ready head after renewed Independent Review",
+        "h3a1_cross_platform_regression_ci": "Draft cross-platform regression CI PASS on Ubuntu, macOS, and Windows after the bootstrap-runtime timeout-budget adjustment",
+        "h3a1_real_postgres_18_6_ubuntu": "Previous candidate PostgreSQL 18.6 Ubuntu toolchain via explicit HEPTALOGOS_TEST_PG_BIN; 9 files, 83/83 tests, including fair projection index query-shape coverage; current head not rerun after test-only mutation"
+      },
+      "historicalEvidence": {
+        "preCorrectionH3A1": {
+          "status": "PASS",
+          "scope": "Pre-correction focused suites and real PostgreSQL/Host integration",
+          "observed": "9 integration files, 67/67 tests",
+          "currentUse": "Historical observation only; stale for current candidate freeze after correction mutation"
+        },
+        "round1CorrectionH3A1": {
+          "status": "PASS",
+          "scope": "First bounded H3A-1 correction focused suites and real PostgreSQL/Host integration",
+          "observed": "Focused suites 26/26, 30/30, 4/4, 135/135, 10/10, and 44/44; 9 integration files, 73/73 tests",
+          "currentUse": "Historical observation only; stale for the current candidate after Round 2 mutation"
+        },
+        "previousFinalCrossPlatformCi": {
+          "status": "FAIL",
+          "scope": "Final-pre-merge Ubuntu/macOS/Windows repository verification",
+          "observed": "Ubuntu and macOS PASS; Windows bootstrap-runtime:test failed two tests by timeout",
+          "currentUse": "Historical failure; current head contains the bounded timeout-budget correction"
+        },
+        "correctedDraftCrossPlatformCi": {
+          "status": "PASS",
+          "scope": "Draft cross-platform regression Ubuntu/macOS/Windows repository verification",
+          "observed": "All three platforms passed after the bootstrap-runtime timeout-budget adjustment",
+          "currentUse": "Observed on the corrected test head; final manual CI remains the current Ready-head gate"
+        }
       },
       "notRunReasons": {
-        "crash_after_terminal_commit": "No process-level crash was injected after the canonical terminal commit; only a real DBOS retry attempt was exercised."
+        "crash_after_terminal_commit": "No process-level crash was injected after the canonical terminal commit; only a real DBOS retry attempt was exercised.",
+        "h3a1_dbos_real_engine": "H3A-1 deliberately implements engine-neutral WorkQueue semantics; DBOS integration is deferred to H3A-2.",
+        "h3a1_process_crash_after_terminal_commit": "H3A-1 has no process-level crash harness or DBOS engine checkpoint to exercise this boundary; it remains deferred to H3A-2."
       },
       "preImplementationDecisionState": "CLOSED",
       "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification unless explicitly promoted by a future blocker."

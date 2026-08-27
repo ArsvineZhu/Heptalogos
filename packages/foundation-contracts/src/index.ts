@@ -1,4 +1,9 @@
-export { canonicalizeJson, type CanonicalJsonValue } from "./canonical-json.js";
+export {
+  canonicalizeJson,
+  snapshotCanonicalJson,
+  type CanonicalJsonSnapshot,
+  type CanonicalJsonValue,
+} from "./canonical-json.js";
 export { digestCanonicalJson, type Sha256Digest } from "./digest.js";
 export {
   asContentDigest,
@@ -40,17 +45,22 @@ export {
 export type { RetentionClass, Sensitivity } from "./data-governance.js";
 export {
   createCapabilityId,
+  createContributionId,
   createMicroSystemId,
   createMicroSystemInstanceId,
   createProviderId,
   createServiceId,
+  createWorkItemId,
   NAMESPACED_ID_PATTERN,
   parseCapabilityId,
+  parseContributionId,
   parseMicroSystemId,
   parseMicroSystemInstanceId,
   parseProviderId,
   parseServiceId,
+  parseWorkItemId,
   type CapabilityId,
+  type ContributionId,
   type MicroSystemId,
   type MicroSystemInstanceId,
   type NamespacedId,
@@ -58,8 +68,10 @@ export {
   type ProductGenerationId,
   type ProviderId,
   type ServiceId,
+  type WorkItemId,
 } from "./runtime-identity.js";
 export { LIFECYCLE_ROOT_IDS, type LifecycleRootId } from "./lifecycle-root.js";
+export { POSTGRES_INTEGER_MAX } from "./numeric.js";
 export {
   ProblemError,
   type FieldError,

@@ -351,7 +351,7 @@ describePostgres.sequential("Runtime Kernel Runtime Kernel on the managed Host",
         "heptalogos_bootstrap",
         BOOTSTRAP_PASSWORD,
         `SELECT "heptalogos"."complete_activity_record"(
-           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
          ) AS result`,
         [
           createActivityId(),
@@ -361,6 +361,7 @@ describePostgres.sequential("Runtime Kernel Runtime Kernel on the managed Host",
           host.continuityEpochId,
           host.token,
           productGenerationId,
+          null,
           null,
           null,
           null,
