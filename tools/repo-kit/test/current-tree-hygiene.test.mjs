@@ -63,6 +63,15 @@ describe("current-tree hygiene scanner", () => {
     expect(hasCode(result, "development-provenance")).toBe(true);
   });
 
+  it("scans every permanent scripts responsibility root", async () => {
+    const result = await fixtureTree(async (root) => {
+      await mkdir(join(root, "scripts/gates"), { recursive: true });
+      await writeFile(join(root, "scripts/gates/h2a3-gate.mjs"), "export {};\n");
+    });
+
+    expect(hasCode(result, "development-provenance")).toBe(true);
+  });
+
   it("rejects a phase token in a test constant or value", async () => {
     const result = await fixtureTree(async (root) => {
       await mkdir(join(root, "packages/example"), { recursive: true });
