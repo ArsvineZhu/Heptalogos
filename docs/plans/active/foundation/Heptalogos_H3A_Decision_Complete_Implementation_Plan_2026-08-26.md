@@ -14,29 +14,43 @@
 >
 > **Required execution disciplines:** TDD for behavior-bearing changes; evidence vocabulary `PASS | FAIL | NOT_RUN | BLOCKED`; verification before completion claims; external Independent Review is out-of-band and is never inferred from GitHub review/approval state.
 
-## Current H3A-1 candidate state — 2026-08-27
+## Current H3A-1 stage state — 2026-08-27
 
 ```yaml
 H3: OPEN
 H3A: ACTIVE
-H3A_1: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
-H3A_2: NOT_ELIGIBLE
+H3A_1: CLOSED
+H3A_2: BLOCKED_BY_REPOSITORY_STABILIZATION
 candidateFreeze: PASS
 independentReview: NOT_RUN
+finalManualCI: NOT_RUN
+prematureMergeRecovery: CLOSED
 ```
 
 H3A-1 remains bounded to the current engine-neutral WorkQueue, WorkHandler,
 Signal, reconciliation, admission, cancellation, and lineage semantics. The
 current implementation includes complete creation-request envelope
 snapshotting, the canonical fair-scan projection index, and cross-platform
-bootstrap-runtime test budgets. Full local verification and Draft
-cross-platform regression CI passed on Ubuntu, macOS, and Windows after the
-test-budget adjustment. The candidate is ready for renewed out-of-band
-Independent Review; final manual CI follows that review. The DBOS real engine
-and process-crash boundaries remain deferred to H3A-2. Historical
-implementation sequence and superseded development text belong in Git history
-and qualification history; this active plan is the single current
-specification.
+bootstrap-runtime test budgets. The separate governance recovery record accepts
+this already-merged implementation baseline as current and closes the
+premature-merge transport anomaly without changing product history. Existing
+Independent Review and final manual CI evidence remains `NOT_RUN`; those
+statuses are not inferred from the merge fact. The DBOS real engine and
+process-crash boundaries remain deferred to H3A-2, which is frozen behind
+Repository Stabilization. Historical implementation sequence and superseded
+development text belong in Git history and qualification history; this active
+plan is the single current specification.
+
+## Current execution reconciliation — 2026-08-27
+
+```yaml
+governanceRecoveryRecord: docs/plans/completed/foundation/h3a1-premature-merge-governance-recovery.md
+implementationBaseline: CLOSED
+qualificationState: OPEN
+independentReview: NOT_RUN
+finalManualCI: NOT_RUN
+repositoryStabilizationDependency: BLOCKED
+```
 
 ---
 

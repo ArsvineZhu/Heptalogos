@@ -10,6 +10,8 @@ implementationQualification: REQUIRED
 selectedRoute: "DBOS Queue"
 candidateFreeze: PASS
 independentReview: NOT_RUN
+h3a1_merge: PASS
+h3a1_governance_recovery: PASS
 ```
 
 ## Observed properties
@@ -71,11 +73,13 @@ claims until the affected and expanded qualification cases are rerun.
 The previous corrected candidate was qualified and frozen on a clean branch;
 that observation remains historical. Its final cross-platform CI then failed
 on Windows because two bootstrap-runtime tests exceeded their test timeouts;
-Ubuntu and macOS passed. The current candidate includes the bounded
-cross-platform test-budget adjustment. Full local verification and Draft
-cross-platform regression CI passed on Ubuntu, macOS, and Windows. The
-candidate is ready for renewed out-of-band Independent Review; final manual CI
-has not yet run for the current Ready head.
+Ubuntu and macOS passed. The current implementation baseline includes the
+bounded cross-platform test-budget adjustment and was merged into `master`.
+The separate H3A-1 governance recovery record accepts that existing baseline as
+current without changing the qualification record's evidence boundaries.
+Independent Review and final manual CI remain `NOT_RUN`; neither is inferred
+from the merge fact. Q-ASYNC-01 remains `OPEN` for its deferred implementation
+and product qualification properties.
 
 ## Current correction properties
 
@@ -105,3 +109,18 @@ The pre-correction focused unit suites passed on 2026-08-26: foundation-contract
 Crash-after-terminal-commit, restart/source-less and full WorkItem/Effect integration remain implementation qualification.
 
 若未来真实 implementation 暴露 reproducible hard blocker，才允许按 `../DEPENDENCY-QUALIFICATION.md` 的 reopening rule 重开 RoleDecision。
+
+## Current governance projection
+
+```yaml
+h3a1_implementation: PASS
+h3a1_merge: PASS
+h3a1_governance_recovery: PASS
+h3a1_independent_review: NOT_RUN
+h3a1_final_manual_ci: NOT_RUN
+qualificationState: OPEN
+```
+
+This projection records the completed implementation baseline and the
+documentation-only recovery decision. It does not promote `NOT_RUN` evidence
+to `PASS` and does not create a second milestone Authority.

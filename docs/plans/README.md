@@ -27,8 +27,11 @@ An unresolved non-trivial choice is `PLAN_GAP` and stops execution.
 ## Active
 
 - [H3A — Durable Obligation & Signal Spine](active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md) — `ACTIVE` (H3A-1 canonical work, generation-pinned handlers, Signal, and engine-neutral WorkQueue semantics)
+- [Repository Stabilization & Topology Reset v2](active/repository/repository-stabilization-topology-reset-2026-08-27.md) — `ACTIVE` (P0 baseline and repository topology/control-plane reset; H3A-2 remains blocked by this plan)
 
 ## Completed
+
+- [H3A-1 Premature-Merge Governance Recovery](completed/foundation/h3a1-premature-merge-governance-recovery.md) — `COMPLETED` (current H3A-1 baseline and merge fact reconciled without replaying product history; qualification evidence remains separately scoped)
 
 - [Post-H2 Current Authority Hygiene](completed/post-h2-current-authority-hygiene.md) — `COMPLETED` (current-truth, provenance, and terminology maintenance only; H2 remains `CLOSED` and H3 remains `ELIGIBLE`)
 - [H2 Ubuntu Residual Qualification](completed/foundation/h2-ubuntu-residual-qualification.md) — `COMPLETED` (Ubuntu/Linux PostgreSQL 18.6 matrix `PASS`; only directly exercised Linux residuals upgraded; remaining product boundaries stay `NOT_RUN`)

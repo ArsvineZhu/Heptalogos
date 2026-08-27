@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-27T13:39:50+09:00",
+  "recordedAt": "2026-08-27T15:49:28+08:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": [
@@ -215,9 +215,13 @@
       "evidenceSource": {
         "toolchain": "Node 24.19.0 / pnpm 11.22.0 / TS7.0.2 canonical; TS6.0.2 compatibility lane",
         "focusedSuites": "Previous candidate: foundation-contracts 29/29; execution-lineage 30/30; canonical-schema 4/4; runtime-kernel 142/142; signal 10/10; work-queue 60/60. Corrected bootstrap-runtime timeout tests: 214 passed, 1 skipped; lint PASS",
-        "repositoryGates": "Corrected test head pnpm verify PASS locally; final-pre-merge CI remains pending for the current Ready head after renewed Independent Review",
+        "repositoryGates": "Corrected test head pnpm verify PASS locally; the merged baseline retains independent review and final manual CI as NOT_RUN",
         "h3a1_cross_platform_regression_ci": "Draft cross-platform regression CI PASS on Ubuntu, macOS, and Windows after the bootstrap-runtime timeout-budget adjustment",
-        "h3a1_real_postgres_18_6_ubuntu": "Previous candidate PostgreSQL 18.6 Ubuntu toolchain via explicit HEPTALOGOS_TEST_PG_BIN; 9 files, 83/83 tests, including fair projection index query-shape coverage; current head not rerun after test-only mutation"
+        "h3a1_real_postgres_18_6_ubuntu": "Previous candidate PostgreSQL 18.6 Ubuntu toolchain via explicit HEPTALOGOS_TEST_PG_BIN; 9 files, 83/83 tests, including fair projection index query-shape coverage; current head not rerun after test-only mutation",
+        "h3a1_merge": "PASS (PR #28 merged into current master)",
+        "h3a1_governance_recovery": "PASS (separate documentation-only current-truth decision)",
+        "h3a1_independent_review": "NOT_RUN (not inferred from GitHub merge state)",
+        "h3a1_final_manual_ci": "NOT_RUN"
       },
       "historicalEvidence": {
         "preCorrectionH3A1": {
@@ -242,7 +246,7 @@
           "status": "PASS",
           "scope": "Draft cross-platform regression Ubuntu/macOS/Windows repository verification",
           "observed": "All three platforms passed after the bootstrap-runtime timeout-budget adjustment",
-          "currentUse": "Observed on the corrected test head; final manual CI remains the current Ready-head gate"
+          "currentUse": "Observed on the corrected test head; final manual CI remains NOT_RUN for the merged baseline"
         }
       },
       "notRunReasons": {
