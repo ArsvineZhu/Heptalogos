@@ -50,8 +50,8 @@ gates when public exports change.
 
 ## Architecture references
 
-- [`02 — 架构原则与反 NIH 约束`](../../Architecture_Corpus/02-架构原则与反NIH约束.md)
-- [`12 — 数据、证据、内容与持久化`](../../Architecture_Corpus/12-数据-证据-内容与持久化.md)
-- [`16 — 验证与资格认定体系`](../../Architecture_Corpus/16-验证与资格认定体系.md)
-- [`24 — 依赖使用与实现路由`](../../Architecture_Corpus/24-依赖使用与实现路由.md)
-- [`S15 — Foundation 横切合同`](../../Architecture_Corpus/specs/S15-Foundation横切合同.md)
+- [`02 — 架构原则与反 NIH 约束`](../../docs/governance/engineering-principles.md)
+- [`12 — 数据、证据、内容与持久化`](../../docs/architecture/data-evidence-persistence.md)
+- [`16 — 验证与资格认定体系`](../../docs/qualification/verification-system.md)
+- [`24 — 依赖使用与实现路由`](../../docs/dependencies/implementation-routing.md)
+- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)

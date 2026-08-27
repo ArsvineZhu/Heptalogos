@@ -93,7 +93,7 @@ function discoverPackageAgentFiles(directory, files = []) {
 export function validatePackageDocumentation({ root = process.cwd() } = {}) {
   const repositoryRoot = resolve(root);
   const packagesRoot = join(repositoryRoot, "packages");
-  const corpusRoot = join(repositoryRoot, "Architecture_Corpus");
+  const docsRoot = join(repositoryRoot, "docs");
   const errors = [];
   const packages = discoverPackages(packagesRoot);
 
@@ -162,10 +162,10 @@ export function validatePackageDocumentation({ root = process.cwd() } = {}) {
         section(source, "Architecture references"),
       )) {
         const resolvedTarget = resolve(dirname(readme), target);
-        if (!isWithin(corpusRoot, resolvedTarget)) continue;
+        if (!isWithin(docsRoot, resolvedTarget)) continue;
         if (!existsSync(resolvedTarget) || !statSync(resolvedTarget).isFile()) {
           errors.push(
-            `${normalize(repositoryRoot, readme)}: broken Corpus link: ${target}`,
+            `${normalize(repositoryRoot, readme)}: broken architecture documentation link: ${target}`,
           );
         } else {
           corpusLinks += 1;
@@ -173,7 +173,7 @@ export function validatePackageDocumentation({ root = process.cwd() } = {}) {
       }
       if (corpusLinks === 0) {
         errors.push(
-          `${normalize(repositoryRoot, readme)} must contain a Corpus link in Architecture references`,
+          `${normalize(repositoryRoot, readme)} must contain an architecture documentation link in Architecture references`,
         );
       }
     }

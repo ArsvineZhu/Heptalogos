@@ -9,19 +9,19 @@ Use this skill as the architecture fallback. It is not a substitute for the doma
 
 ## Authority route
 
-Corpus root from this file: `../../../Architecture_Corpus/`  
+Documentation root from this file: `../../../docs/`
 Route index: `../../heptalogos/corpus-routes.json`
 
 Read first:
 
-- [Project / engineering constitution](../../../Architecture_Corpus/00-项目宪法与工程宪法.md)
-- [Product and differentiation](../../../Architecture_Corpus/01-产品目标与差异化.md)
-- [Architecture principles / anti-NIH](../../../Architecture_Corpus/02-架构原则与反NIH约束.md)
-- [Core concepts and Authority](../../../Architecture_Corpus/03-核心概念与Authority.md)
-- [System architecture](../../../Architecture_Corpus/04-总体系统架构.md)
-- [Terminology](../../../Architecture_Corpus/19-术语表.md)
-- [Architecture review checklist](../../../Architecture_Corpus/20-架构审查清单.md)
-- [Stabilization and compatibility governance](../../../Architecture_Corpus/26-开发阶段闭包-稳定化与兼容性治理.md)
+- [Project / engineering constitution](../../../docs/governance/constitution.md)
+- [Product and differentiation](../../../docs/product/product-goals.md)
+- [Architecture principles / anti-NIH](../../../docs/governance/engineering-principles.md)
+- [Core concepts and Authority](../../../docs/architecture/authority-and-core-concepts.md)
+- [System architecture](../../../docs/architecture/system-architecture.md)
+- [Terminology](../../../docs/reference/glossary.md)
+- [Architecture review checklist](../../../docs/engineering/repository/architecture-review.md)
+- [Stabilization and compatibility governance](../../../docs/governance/pre-production-evolution.md)
 
 Load conditional references from the route index only when the change crosses those concerns.
 

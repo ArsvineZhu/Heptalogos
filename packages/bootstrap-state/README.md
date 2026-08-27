@@ -49,7 +49,7 @@ to durable shapes, also run `pnpm check:corpus`, `pnpm check:hygiene`,
 
 ## Architecture references
 
-- [`S01 — 启动、恢复与运行时监督`](../../Architecture_Corpus/specs/S01-启动-恢复-运行时监督.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../Architecture_Corpus/specs/S03-持久化-事务-EffectFence.md)
-- [`S17 — Storage Workspace 与 DataLifecycle`](../../Architecture_Corpus/specs/S17-Storage-Workspace-DataLifecycle.md)
-- [`16 — 验证与资格认定体系`](../../Architecture_Corpus/16-验证与资格认定体系.md)
+- [`S01 — 启动、恢复与运行时监督`](../../docs/architecture/contracts/startup-recovery-runtime-supervision.md)
+- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
+- [`S17 — Storage Workspace 与 DataLifecycle`](../../docs/architecture/contracts/storage-workspace-data-lifecycle.md)
+- [`16 — 验证与资格认定体系`](../../docs/qualification/verification-system.md)

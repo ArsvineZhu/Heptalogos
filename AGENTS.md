@@ -46,7 +46,7 @@ tree solely as an archive.
 
 `CompatibilityEpoch = PRE_PRODUCTION`.
 Current compatibility obligations are declared only in
-`Architecture_Corpus/references/compatibility-obligations.json`.
+`docs/governance/compatibility-obligations.json`.
 
 No declaration means no obligation.
 

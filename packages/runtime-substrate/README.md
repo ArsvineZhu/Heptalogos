@@ -52,8 +52,8 @@ owner or generation behavior.
 
 ## Architecture references
 
-- [`S01 — 启动、恢复与运行时监督`](../../Architecture_Corpus/specs/S01-启动-恢复-运行时监督.md)
-- [`S06 — Extension、Package Trust 与 ExecutionDomain`](../../Architecture_Corpus/specs/S06-Extension-Package-Trust-ExecutionDomain.md)
-- [`S13 — Foundation Service/Capability/Readiness`](../../Architecture_Corpus/specs/S13-Foundation-Service-Capability-Readiness-Catalog.md)
-- [`S15 — Foundation 横切合同`](../../Architecture_Corpus/specs/S15-Foundation横切合同.md)
-- [`S16 — Execution Lineage Observability`](../../Architecture_Corpus/specs/S16-Execution-Lineage-Observability.md)
+- [`S01 — 启动、恢复与运行时监督`](../../docs/architecture/contracts/startup-recovery-runtime-supervision.md)
+- [`S06 — Extension、Package Trust 与 ExecutionDomain`](../../docs/architecture/contracts/extension-package-trust-execution-domain.md)
+- [`S13 — Foundation Service/Capability/Readiness`](../../docs/architecture/contracts/foundation-service-capability-readiness-catalog.md)
+- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
+- [`S16 — Execution Lineage Observability`](../../docs/architecture/contracts/execution-lineage-observability.md)

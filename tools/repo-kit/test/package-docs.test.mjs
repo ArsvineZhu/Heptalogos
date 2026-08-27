@@ -28,14 +28,14 @@ Example constraints.
 Example verification.
 
 ## Architecture references
-- [Corpus](../../Architecture_Corpus/00-constitution.md)
+- [Architecture](../../docs/architecture/authority-and-core-concepts.md)
 `;
 
 async function fixtureTree(setup) {
   const root = await mkdtemp(join(tmpdir(), "heptalogos-package-docs-"));
   try {
     await mkdir(join(root, "packages/example"), { recursive: true });
-    await mkdir(join(root, "Architecture_Corpus"), { recursive: true });
+    await mkdir(join(root, "docs/architecture"), { recursive: true });
     await writeFile(
       join(root, "packages/AGENTS.md"),
       "# Package Workspace Agent Contract\n",
@@ -47,7 +47,10 @@ async function fixtureTree(setup) {
     );
     await writeFile(join(root, "packages/example/package.json"), "{}\n");
     await writeFile(join(root, "packages/example/README.md"), packageReadme);
-    await writeFile(join(root, "Architecture_Corpus/00-constitution.md"), "# Corpus\n");
+    await writeFile(
+      join(root, "docs/architecture/authority-and-core-concepts.md"),
+      "# Architecture\n",
+    );
     await setup(root);
     return validatePackageDocumentation({ root });
   } finally {
@@ -99,27 +102,29 @@ describe("package documentation topology", () => {
     expect(hasError(result, 'missing heading "Change constraints"')).toBe(true);
   });
 
-  it("fails when a package README has no Corpus link", async () => {
+  it("fails when a package README has no architecture documentation link", async () => {
     const result = await fixtureTree(async (root) => {
       await writeFile(
         join(root, "packages/example/README.md"),
         packageReadme.replace(
-          "- [Corpus](../../Architecture_Corpus/00-constitution.md)\n",
+          "- [Architecture](../../docs/architecture/authority-and-core-concepts.md)\n",
           "",
         ),
       );
     });
-    expect(hasError(result, "must contain a Corpus link")).toBe(true);
+    expect(hasError(result, "must contain an architecture documentation link")).toBe(
+      true,
+    );
   });
 
-  it("fails when a package Corpus link is broken", async () => {
+  it("fails when a package architecture documentation link is broken", async () => {
     const result = await fixtureTree(async (root) => {
       await writeFile(
         join(root, "packages/example/README.md"),
-        packageReadme.replace("00-constitution.md", "missing.md"),
+        packageReadme.replace("authority-and-core-concepts.md", "missing.md"),
       );
     });
-    expect(hasError(result, "broken Corpus link")).toBe(true);
+    expect(hasError(result, "broken architecture documentation link")).toBe(true);
   });
 
   it("fails when INDEX omits an existing package", async () => {

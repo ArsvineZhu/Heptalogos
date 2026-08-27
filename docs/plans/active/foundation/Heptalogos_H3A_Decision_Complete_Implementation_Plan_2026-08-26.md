@@ -921,39 +921,39 @@ docs/roadmap/development-roadmap.md
 ## Architecture Corpus
 
 ```text
-Architecture_Corpus/README.md
-Architecture_Corpus/00-项目宪法与工程宪法.md
-Architecture_Corpus/02-架构原则与反NIH约束.md
-Architecture_Corpus/03-核心概念与Authority.md
-Architecture_Corpus/05-整机执行模型.md
-Architecture_Corpus/06-MicroSystem与Extension架构.md
-Architecture_Corpus/12-数据-证据-内容与持久化.md
-Architecture_Corpus/14-跨平台产品运行与分发.md
-Architecture_Corpus/15-技术与依赖决策账本.md
-Architecture_Corpus/16-验证与资格认定体系.md
-Architecture_Corpus/20-架构审查清单.md
-Architecture_Corpus/21-配置治理与Configuration-Surface.md
-Architecture_Corpus/24-依赖使用与实现路由.md
-Architecture_Corpus/25-TypeScript与仓库工具链.md
-Architecture_Corpus/26-开发阶段闭包-稳定化与兼容性治理.md
+docs/README.md
+docs/governance/constitution.md
+docs/governance/engineering-principles.md
+docs/architecture/authority-and-core-concepts.md
+docs/architecture/execution-model.md
+docs/architecture/extensions.md
+docs/architecture/data-evidence-persistence.md
+docs/architecture/platform-distribution.md
+docs/dependencies/decision-ledger.md
+docs/qualification/verification-system.md
+docs/engineering/repository/architecture-review.md
+docs/architecture/configuration.md
+docs/dependencies/implementation-routing.md
+docs/engineering/repository/toolchain.md
+docs/governance/pre-production-evolution.md
 
-Architecture_Corpus/specs/S02-异步-WorkQueue-Durable-Time.md
-Architecture_Corpus/specs/S03-持久化-事务-EffectFence.md
-Architecture_Corpus/specs/S04-配置-Secret-管理Surface.md
-Architecture_Corpus/specs/S13-Foundation-Service-Capability-Readiness-Catalog.md
-Architecture_Corpus/specs/S14-Canonical-End-to-End-Flows.md
-Architecture_Corpus/specs/S15-Foundation横切合同.md
-Architecture_Corpus/specs/S16-Execution-Lineage-Observability.md
+docs/architecture/contracts/async-work-queue-durable-time.md
+docs/architecture/contracts/persistence-transactions-effect-fence.md
+docs/architecture/contracts/configuration-secret-management-surface.md
+docs/architecture/contracts/foundation-service-capability-readiness-catalog.md
+docs/architecture/contracts/canonical-end-to-end-flows.md
+docs/architecture/contracts/foundation-cross-cutting-contracts.md
+docs/architecture/contracts/execution-lineage-observability.md
 ```
 
 ## Qualification / machine-readable routing
 
 ```text
-Architecture_Corpus/qualification/dependency-status.json
-Architecture_Corpus/qualification/results/qualification-status.json
-Architecture_Corpus/qualification/results/Q-ASYNC-01.md
-Architecture_Corpus/references/dependency-routing.json
-Architecture_Corpus/references/compatibility-obligations.json
+docs/qualification/dependency-status.json
+docs/qualification/results/qualification-status.json
+docs/qualification/results/Q-ASYNC-01.md
+docs/dependencies/dependency-routing.json
+docs/governance/compatibility-obligations.json
 ```
 
 ## Existing implementation boundaries
@@ -2418,8 +2418,8 @@ pnpm verify
 Update:
 
 ```text
-Architecture_Corpus/qualification/results/Q-ASYNC-01.md
-Architecture_Corpus/qualification/results/qualification-status.json
+docs/qualification/results/Q-ASYNC-01.md
+docs/qualification/results/qualification-status.json
 docs/roadmap/development-roadmap.md
 ```
 
@@ -2565,8 +2565,8 @@ Allowed scope:
 docs/roadmap/development-roadmap.md
 docs/plans/README.md
 docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md
-Architecture_Corpus/qualification/results/Q-ASYNC-01.md
-Architecture_Corpus/qualification/results/qualification-status.json
+docs/qualification/results/Q-ASYNC-01.md
+docs/qualification/results/qualification-status.json
 ```
 
 The active plan file itself may receive only an execution-record block, not semantic redesign.
@@ -2628,7 +2628,7 @@ Do not let Agent pick.
 ```text
 pnpm-workspace.yaml
 pnpm-lock.yaml
-Architecture_Corpus/references/dependency-routing.json
+docs/dependencies/dependency-routing.json
 ```
 
 Catalog:
@@ -3496,8 +3496,8 @@ Record actual test counts only after observing them.
 Update:
 
 ```text
-Architecture_Corpus/qualification/results/Q-ASYNC-01.md
-Architecture_Corpus/qualification/results/qualification-status.json
+docs/qualification/results/Q-ASYNC-01.md
+docs/qualification/results/qualification-status.json
 docs/roadmap/development-roadmap.md
 ```
 
@@ -3620,8 +3620,8 @@ docs/plans/completed/foundation/h3a-durable-obligation-signal-spine.md
 ```text
 docs/plans/README.md
 docs/roadmap/development-roadmap.md
-Architecture_Corpus/qualification/results/Q-ASYNC-01.md
-Architecture_Corpus/qualification/results/qualification-status.json
+docs/qualification/results/Q-ASYNC-01.md
+docs/qualification/results/qualification-status.json
 ```
 
 Final living truth:
@@ -4089,7 +4089,7 @@ crash after dispatching
 WorkItem/Effect outcome coupling
 ```
 
-H3-S remains mandatory after H3 functional completion and must perform the project-wide current-tree/history/compatibility cleanup defined by `Architecture_Corpus/26-开发阶段闭包-稳定化与兼容性治理.md`.
+H3-S remains mandatory after H3 functional completion and must perform the project-wide current-tree/history/compatibility cleanup defined by `docs/governance/pre-production-evolution.md`.
 
 ---
 

@@ -7,20 +7,20 @@ description: Use when designing or evaluating Heptalogos verification, qualifica
 
 ## Authority route
 
-Corpus root: `../../../Architecture_Corpus/`  
+Documentation root: `../../../docs/`
 Route index: `../../heptalogos/corpus-routes.json`
 
 Read first:
 
-- [Cross-platform product runtime and distribution](../../../Architecture_Corpus/14-跨平台产品运行与分发.md)
-- [Verification and qualification](../../../Architecture_Corpus/16-验证与资格认定体系.md)
-- [Architecture review checklist](../../../Architecture_Corpus/20-架构审查清单.md)
-- [Execution Lineage and observable execution](../../../Architecture_Corpus/22-Execution-Lineage与可观测执行.md)
-- [S10 Evidence / replay / observability / content](../../../Architecture_Corpus/specs/S10-Evidence-Replay-Observability-Content.md)
-- [S11 Backup / update / distribution / platform](../../../Architecture_Corpus/specs/S11-备份-更新-分发-平台.md)
-- [S12 Verification / research / evaluation](../../../Architecture_Corpus/specs/S12-验证-Research-Evaluation.md)
-- [Dependency qualification](../../../Architecture_Corpus/qualification/DEPENDENCY-QUALIFICATION.md)
-- [Qualification status](../../../Architecture_Corpus/qualification/results/qualification-status.json)
+- [Cross-platform product runtime and distribution](../../../docs/architecture/platform-distribution.md)
+- [Verification and qualification](../../../docs/qualification/verification-system.md)
+- [Architecture review checklist](../../../docs/engineering/repository/architecture-review.md)
+- [Execution Lineage and observable execution](../../../docs/architecture/execution-lineage.md)
+- [S10 Evidence / replay / observability / content](../../../docs/architecture/contracts/evidence-replay-observability-content.md)
+- [S11 Backup / update / distribution / platform](../../../docs/architecture/contracts/backup-update-distribution-platform.md)
+- [S12 Verification / research / evaluation](../../../docs/architecture/contracts/verification-research-evaluation.md)
+- [Dependency qualification](../../../docs/qualification/dependencies.md)
+- [Qualification status](../../../docs/qualification/results/qualification-status.json)
 
 ## Claim-matched verification
 

@@ -49,7 +49,7 @@ matched to actual runs.
 
 ## Architecture references
 
-- [`S10 — Evidence、Replay、Observability 与 Content`](../../Architecture_Corpus/specs/S10-Evidence-Replay-Observability-Content.md)
-- [`S12 — 验证、研究与评估`](../../Architecture_Corpus/specs/S12-验证-Research-Evaluation.md)
-- [`S16 — Execution Lineage Observability`](../../Architecture_Corpus/specs/S16-Execution-Lineage-Observability.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../Architecture_Corpus/specs/S03-持久化-事务-EffectFence.md)
+- [`S10 — Evidence、Replay、Observability 与 Content`](../../docs/architecture/contracts/evidence-replay-observability-content.md)
+- [`S12 — 验证、研究与评估`](../../docs/architecture/contracts/verification-research-evaluation.md)
+- [`S16 — Execution Lineage Observability`](../../docs/architecture/contracts/execution-lineage-observability.md)
+- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)

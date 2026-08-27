@@ -1,150 +1,232 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "version": 1,
-  "corpusRoot": "Architecture_Corpus",
-  "skillRelativeCorpusRoot": "../../../Architecture_Corpus",
+  "version": 2,
   "routes": {
     "heptalogos-architecture": {
       "core": [
-        "00-项目宪法与工程宪法.md",
-        "01-产品目标与差异化.md",
-        "02-架构原则与反NIH约束.md",
-        "03-核心概念与Authority.md",
-        "04-总体系统架构.md",
-        "19-术语表.md",
-        "20-架构审查清单.md",
-        "26-开发阶段闭包-稳定化与兼容性治理.md"
+        "docs/governance/constitution.md",
+        "docs/product/product-goals.md",
+        "docs/governance/engineering-principles.md",
+        "docs/architecture/authority-and-core-concepts.md",
+        "docs/architecture/system-architecture.md",
+        "docs/reference/glossary.md",
+        "docs/engineering/repository/architecture-review.md",
+        "docs/governance/pre-production-evolution.md"
       ],
       "conditional": {
-        "execution-model": ["05-整机执行模型.md"],
-        "service-catalog": ["07-Foundation系统服务目录.md", "specs/S13-Foundation-Service-Capability-Readiness-Catalog.md"],
-        "end-to-end-flow": ["specs/S14-Canonical-End-to-End-Flows.md"],
-        "cross-cutting-contracts": ["specs/S15-Foundation横切合同.md"],
-        "implementation-entry": ["README.md", "INDEX.md"]
+        "execution-model": [
+          "docs/architecture/execution-model.md"
+        ],
+        "service-catalog": [
+          "docs/architecture/foundation-services.md",
+          "docs/architecture/contracts/foundation-service-capability-readiness-catalog.md"
+        ],
+        "end-to-end-flow": [
+          "docs/architecture/contracts/canonical-end-to-end-flows.md"
+        ],
+        "cross-cutting-contracts": [
+          "docs/architecture/contracts/foundation-cross-cutting-contracts.md"
+        ],
+        "implementation-entry": [
+          "docs/README.md",
+          "docs/INDEX.md"
+        ]
       }
     },
     "heptalogos-runtime-durability": {
       "core": [
-        "05-整机执行模型.md",
-        "07-Foundation系统服务目录.md",
-        "specs/S01-启动-恢复-运行时监督.md",
-        "specs/S02-异步-WorkQueue-Durable-Time.md",
-        "specs/S03-持久化-事务-EffectFence.md",
-        "specs/S13-Foundation-Service-Capability-Readiness-Catalog.md",
-        "specs/S15-Foundation横切合同.md"
+        "docs/architecture/execution-model.md",
+        "docs/architecture/foundation-services.md",
+        "docs/architecture/contracts/startup-recovery-runtime-supervision.md",
+        "docs/architecture/contracts/async-work-queue-durable-time.md",
+        "docs/architecture/contracts/persistence-transactions-effect-fence.md",
+        "docs/architecture/contracts/foundation-service-capability-readiness-catalog.md",
+        "docs/architecture/contracts/foundation-cross-cutting-contracts.md"
       ],
       "conditional": {
-        "end-to-end-flow": ["specs/S14-Canonical-End-to-End-Flows.md"],
-        "lineage-observability": ["22-Execution-Lineage与可观测执行.md", "specs/S16-Execution-Lineage-Observability.md"],
-        "storage-lifecycle": ["23-存储拓扑-生命周期根与DataOwner.md", "specs/S17-Storage-Workspace-DataLifecycle.md"],
-        "platform-release-recovery": ["13-备份-Subject可移植性-更新与恢复.md", "14-跨平台产品运行与分发.md", "specs/S11-备份-更新-分发-平台.md"]
+        "end-to-end-flow": [
+          "docs/architecture/contracts/canonical-end-to-end-flows.md"
+        ],
+        "lineage-observability": [
+          "docs/architecture/execution-lineage.md",
+          "docs/architecture/contracts/execution-lineage-observability.md"
+        ],
+        "storage-lifecycle": [
+          "docs/architecture/storage-lifecycle.md",
+          "docs/architecture/contracts/storage-workspace-data-lifecycle.md"
+        ],
+        "platform-release-recovery": [
+          "docs/architecture/backup-portability-update-recovery.md",
+          "docs/architecture/platform-distribution.md",
+          "docs/architecture/contracts/backup-update-distribution-platform.md"
+        ]
       }
     },
     "heptalogos-config-data": {
       "core": [
-        "12-数据-证据-内容与持久化.md",
-        "13-备份-Subject可移植性-更新与恢复.md",
-        "21-配置治理与Configuration-Surface.md",
-        "23-存储拓扑-生命周期根与DataOwner.md",
-        "specs/S04-配置-Secret-管理Surface.md",
-        "specs/S11-备份-更新-分发-平台.md",
-        "specs/S17-Storage-Workspace-DataLifecycle.md",
-        "references/configuration-governance.json",
-        "references/storage-governance.json"
+        "docs/architecture/data-evidence-persistence.md",
+        "docs/architecture/backup-portability-update-recovery.md",
+        "docs/architecture/configuration.md",
+        "docs/architecture/storage-lifecycle.md",
+        "docs/architecture/contracts/configuration-secret-management-surface.md",
+        "docs/architecture/contracts/backup-update-distribution-platform.md",
+        "docs/architecture/contracts/storage-workspace-data-lifecycle.md"
       ],
       "conditional": {
-        "evidence-content": ["specs/S10-Evidence-Replay-Observability-Content.md"],
-        "runtime-fencing": ["specs/S01-启动-恢复-运行时监督.md", "specs/S03-持久化-事务-EffectFence.md"],
-        "cross-cutting-contracts": ["specs/S15-Foundation横切合同.md"]
+        "evidence-content": [
+          "docs/architecture/contracts/evidence-replay-observability-content.md"
+        ],
+        "runtime-fencing": [
+          "docs/architecture/contracts/startup-recovery-runtime-supervision.md",
+          "docs/architecture/contracts/persistence-transactions-effect-fence.md"
+        ],
+        "cross-cutting-contracts": [
+          "docs/architecture/contracts/foundation-cross-cutting-contracts.md"
+        ]
       }
     },
     "heptalogos-extensions": {
       "core": [
-        "06-MicroSystem与Extension架构.md",
-        "07-Foundation系统服务目录.md",
-        "specs/S06-Extension-Package-Trust-ExecutionDomain.md",
-        "specs/S13-Foundation-Service-Capability-Readiness-Catalog.md",
-        "specs/S15-Foundation横切合同.md"
+        "docs/architecture/extensions.md",
+        "docs/architecture/foundation-services.md",
+        "docs/architecture/contracts/extension-package-trust-execution-domain.md",
+        "docs/architecture/contracts/foundation-service-capability-readiness-catalog.md",
+        "docs/architecture/contracts/foundation-cross-cutting-contracts.md"
       ],
       "conditional": {
-        "dependency-route": ["15-技术与依赖决策账本.md", "24-依赖使用与实现路由.md", "references/dependency-routing.json", "qualification/dependency-status.json"],
-        "external-mcp": ["10-AI-Runtime-Capability-MCP.md", "specs/S08-AI-Capability-MCP.md"],
-        "state-storage": ["specs/S17-Storage-Workspace-DataLifecycle.md"],
-        "lineage": ["specs/S16-Execution-Lineage-Observability.md"]
+        "dependency-route": [
+          "docs/dependencies/decision-ledger.md",
+          "docs/dependencies/implementation-routing.md",
+          "docs/dependencies/dependency-routing.json",
+          "docs/qualification/dependency-status.json"
+        ],
+        "external-mcp": [
+          "docs/architecture/ai-runtime.md",
+          "docs/architecture/contracts/ai-capability-mcp.md"
+        ],
+        "state-storage": [
+          "docs/architecture/contracts/storage-workspace-data-lifecycle.md"
+        ],
+        "lineage": [
+          "docs/architecture/contracts/execution-lineage-observability.md"
+        ]
       }
     },
     "heptalogos-interaction": {
       "core": [
-        "08-Subject与认知系统.md",
-        "09-Messaging与Subject-Chat.md",
-        "10-AI-Runtime-Capability-MCP.md",
-        "17-高级研究子系统接入地图.md",
-        "specs/S07-Messaging-SubjectChat-Drivers.md",
-        "specs/S08-AI-Capability-MCP.md",
-        "specs/S09-Reactor-Context-Prompt与高级认知接入.md",
-        "specs/S14-Canonical-End-to-End-Flows.md"
+        "docs/architecture/subject.md",
+        "docs/architecture/messaging.md",
+        "docs/architecture/ai-runtime.md",
+        "docs/architecture/research-subsystem-integration.md",
+        "docs/architecture/contracts/messaging-subject-chat-drivers.md",
+        "docs/architecture/contracts/ai-capability-mcp.md",
+        "docs/architecture/contracts/reactor-context-prompt-research-integration.md",
+        "docs/architecture/contracts/canonical-end-to-end-flows.md"
       ],
       "conditional": {
-        "evidence-replay": ["specs/S10-Evidence-Replay-Observability-Content.md"],
-        "lineage": ["22-Execution-Lineage与可观测执行.md", "specs/S16-Execution-Lineage-Observability.md"],
-        "effect-boundary": ["specs/S03-持久化-事务-EffectFence.md"],
-        "advanced-research": ["17-高级研究子系统接入地图.md"]
+        "evidence-replay": [
+          "docs/architecture/contracts/evidence-replay-observability-content.md"
+        ],
+        "lineage": [
+          "docs/architecture/execution-lineage.md",
+          "docs/architecture/contracts/execution-lineage-observability.md"
+        ],
+        "effect-boundary": [
+          "docs/architecture/contracts/persistence-transactions-effect-fence.md"
+        ],
+        "advanced-research": [
+          "docs/architecture/research-subsystem-integration.md"
+        ]
       }
     },
     "heptalogos-management": {
       "core": [
-        "11-System-Authority与Operator-Assistant.md",
-        "18-接口-CLI-Web与Presentation.md",
-        "specs/S05-Policy-Approval-Management-Operator.md",
-        "specs/S14-Canonical-End-to-End-Flows.md",
-        "specs/S15-Foundation横切合同.md"
+        "docs/architecture/management-authority.md",
+        "docs/architecture/management-presentation.md",
+        "docs/architecture/contracts/policy-approval-management-operator.md",
+        "docs/architecture/contracts/canonical-end-to-end-flows.md",
+        "docs/architecture/contracts/foundation-cross-cutting-contracts.md"
       ],
       "conditional": {
-        "config-secret-auth": ["21-配置治理与Configuration-Surface.md", "specs/S04-配置-Secret-管理Surface.md"],
-        "lineage-audit": ["22-Execution-Lineage与可观测执行.md", "specs/S16-Execution-Lineage-Observability.md"],
-        "service-readiness": ["07-Foundation系统服务目录.md", "specs/S13-Foundation-Service-Capability-Readiness-Catalog.md"],
-        "cli-toolchain": ["25-TypeScript与仓库工具链.md"]
+        "config-secret-auth": [
+          "docs/architecture/configuration.md",
+          "docs/architecture/contracts/configuration-secret-management-surface.md"
+        ],
+        "lineage-audit": [
+          "docs/architecture/execution-lineage.md",
+          "docs/architecture/contracts/execution-lineage-observability.md"
+        ],
+        "service-readiness": [
+          "docs/architecture/foundation-services.md",
+          "docs/architecture/contracts/foundation-service-capability-readiness-catalog.md"
+        ],
+        "cli-toolchain": [
+          "docs/engineering/repository/toolchain.md"
+        ]
       }
     },
     "heptalogos-dependencies": {
       "core": [
-        "02-架构原则与反NIH约束.md",
-        "15-技术与依赖决策账本.md",
-        "24-依赖使用与实现路由.md",
-        "25-TypeScript与仓库工具链.md",
-        "qualification/DEPENDENCY-QUALIFICATION.md",
-        "qualification/dependency-status.json",
-        "references/dependency-routing.json",
-        "references/Foundation依赖证据基线-2026-08-20.md"
+        "docs/governance/engineering-principles.md",
+        "docs/dependencies/decision-ledger.md",
+        "docs/dependencies/implementation-routing.md",
+        "docs/engineering/repository/toolchain.md",
+        "docs/qualification/dependencies.md",
+        "docs/qualification/dependency-status.json",
+        "docs/dependencies/dependency-routing.json",
+        "docs/qualification/evidence/dependency-baseline-2026-08-20.md"
       ],
       "conditional": {
-        "deferred-role": ["references/延期与实现期资格.md"],
-        "qualification-matrix": ["qualification/依赖资格矩阵.md", "qualification/验证结果模板.md"],
-        "release-native-closure": ["14-跨平台产品运行与分发.md", "specs/S11-备份-更新-分发-平台.md"],
-        "framework-leakage": ["specs/S15-Foundation横切合同.md"]
+        "deferred-role": [
+          "docs/qualification/deferred-and-implementation-qualification.md"
+        ],
+        "qualification-matrix": [
+          "docs/qualification/dependency-matrix.md",
+          "docs/qualification/result-template.md"
+        ],
+        "release-native-closure": [
+          "docs/architecture/platform-distribution.md",
+          "docs/architecture/contracts/backup-update-distribution-platform.md"
+        ],
+        "framework-leakage": [
+          "docs/architecture/contracts/foundation-cross-cutting-contracts.md"
+        ]
       }
     },
     "heptalogos-verification": {
       "core": [
-        "14-跨平台产品运行与分发.md",
-        "16-验证与资格认定体系.md",
-        "20-架构审查清单.md",
-        "22-Execution-Lineage与可观测执行.md",
-        "specs/S10-Evidence-Replay-Observability-Content.md",
-        "specs/S11-备份-更新-分发-平台.md",
-        "specs/S12-验证-Research-Evaluation.md",
-        "specs/S16-Execution-Lineage-Observability.md",
-        "26-开发阶段闭包-稳定化与兼容性治理.md",
-        "qualification/DEPENDENCY-QUALIFICATION.md",
-        "qualification/依赖资格矩阵.md",
-        "qualification/results/README.md",
-        "qualification/results/qualification-status.json"
+        "docs/architecture/platform-distribution.md",
+        "docs/qualification/verification-system.md",
+        "docs/engineering/repository/architecture-review.md",
+        "docs/architecture/execution-lineage.md",
+        "docs/architecture/contracts/evidence-replay-observability-content.md",
+        "docs/architecture/contracts/backup-update-distribution-platform.md",
+        "docs/architecture/contracts/verification-research-evaluation.md",
+        "docs/architecture/contracts/execution-lineage-observability.md",
+        "docs/governance/pre-production-evolution.md",
+        "docs/qualification/dependencies.md",
+        "docs/qualification/dependency-matrix.md",
+        "docs/qualification/results/README.md",
+        "docs/qualification/results/qualification-status.json"
       ],
       "conditional": {
-        "dependency-state": ["qualification/dependency-status.json", "references/dependency-routing.json"],
-        "runtime-crash-recovery": ["specs/S01-启动-恢复-运行时监督.md", "specs/S02-异步-WorkQueue-Durable-Time.md", "specs/S03-持久化-事务-EffectFence.md"],
-        "management-contract": ["specs/S05-Policy-Approval-Management-Operator.md", "18-接口-CLI-Web与Presentation.md"],
-        "live-messaging-ai": ["specs/S07-Messaging-SubjectChat-Drivers.md", "specs/S08-AI-Capability-MCP.md"]
+        "dependency-state": [
+          "docs/qualification/dependency-status.json",
+          "docs/dependencies/dependency-routing.json"
+        ],
+        "runtime-crash-recovery": [
+          "docs/architecture/contracts/startup-recovery-runtime-supervision.md",
+          "docs/architecture/contracts/async-work-queue-durable-time.md",
+          "docs/architecture/contracts/persistence-transactions-effect-fence.md"
+        ],
+        "management-contract": [
+          "docs/architecture/contracts/policy-approval-management-operator.md",
+          "docs/architecture/management-presentation.md"
+        ],
+        "live-messaging-ai": [
+          "docs/architecture/contracts/messaging-subject-chat-drivers.md",
+          "docs/architecture/contracts/ai-capability-mcp.md"
+        ]
       }
     }
   }

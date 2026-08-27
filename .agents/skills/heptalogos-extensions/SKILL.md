@@ -7,16 +7,16 @@ description: Use when changing Heptalogos Extension packages, PackageGeneration 
 
 ## Authority route
 
-Corpus root: `../../../Architecture_Corpus/`  
+Documentation root: `../../../docs/`
 Route index: `../../heptalogos/corpus-routes.json`
 
 Read first:
 
-- [MicroSystem and Extension architecture](../../../Architecture_Corpus/06-MicroSystem与Extension架构.md)
-- [Foundation service catalog](../../../Architecture_Corpus/07-Foundation系统服务目录.md)
-- [S06 Extension / package / trust / execution domain](../../../Architecture_Corpus/specs/S06-Extension-Package-Trust-ExecutionDomain.md)
-- [S13 Service / Capability / readiness catalog](../../../Architecture_Corpus/specs/S13-Foundation-Service-Capability-Readiness-Catalog.md)
-- [S15 Cross-cutting contracts](../../../Architecture_Corpus/specs/S15-Foundation横切合同.md)
+- [MicroSystem and Extension architecture](../../../docs/architecture/extensions.md)
+- [Foundation service catalog](../../../docs/architecture/foundation-services.md)
+- [S06 Extension / package / trust / execution domain](../../../docs/architecture/contracts/extension-package-trust-execution-domain.md)
+- [S13 Service / Capability / readiness catalog](../../../docs/architecture/contracts/foundation-service-capability-readiness-catalog.md)
+- [S15 Cross-cutting contracts](../../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
 
 ## Procedure
 

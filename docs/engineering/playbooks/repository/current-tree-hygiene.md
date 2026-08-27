@@ -19,7 +19,7 @@ no declared compatibility obligation = rewrite/reset/reject/delete
 
 The hygiene gate scans current source, tests, fixtures, scripts, tooling,
 configuration, workflow definitions, manifests, permanent verification, Skills,
-and current agent instructions. It does not scan `Architecture_Corpus/**`,
+and current agent instructions. It does not scan `docs/**`,
 `docs/**`, lockfiles, dependencies, build output, coverage, temporary caches, or
 generated artifacts excluded by the gate.
 
@@ -46,7 +46,7 @@ rejection, and the adopted compiler compatibility lane when they are current
 semantics rather than historical product compatibility.
 
 The sole current obligation owner is
-`Architecture_Corpus/references/compatibility-obligations.json`. With an empty
+`docs/governance/compatibility-obligations.json`. With an empty
 PRE_PRODUCTION obligation list, project-history compatibility behavior must be
 removed or rejected.
 

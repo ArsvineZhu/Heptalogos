@@ -54,7 +54,7 @@ changing startup or maintenance behavior.
 
 ## Architecture references
 
-- [`S01 — 启动、恢复与运行时监督`](../../Architecture_Corpus/specs/S01-启动-恢复-运行时监督.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../Architecture_Corpus/specs/S03-持久化-事务-EffectFence.md)
-- [`S11 — 备份、更新、分发与平台`](../../Architecture_Corpus/specs/S11-备份-更新-分发-平台.md)
-- [`S17 — Storage Workspace 与 DataLifecycle`](../../Architecture_Corpus/specs/S17-Storage-Workspace-DataLifecycle.md)
+- [`S01 — 启动、恢复与运行时监督`](../../docs/architecture/contracts/startup-recovery-runtime-supervision.md)
+- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
+- [`S11 — 备份、更新、分发与平台`](../../docs/architecture/contracts/backup-update-distribution-platform.md)
+- [`S17 — Storage Workspace 与 DataLifecycle`](../../docs/architecture/contracts/storage-workspace-data-lifecycle.md)

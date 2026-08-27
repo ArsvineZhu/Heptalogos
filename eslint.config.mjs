@@ -9,7 +9,6 @@ export default [
       ".nx/**",
       ".vite/**",
       ".cache/**",
-      "Architecture_Corpus/**",
       ".agents/**",
       "fixtures/ts6-api-lane.ts",
     ],

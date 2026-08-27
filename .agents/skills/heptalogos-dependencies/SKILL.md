@@ -7,18 +7,18 @@ description: Use when adding, removing, upgrading, replacing, or routing a Hepta
 
 ## Authority route
 
-Corpus root: `../../../Architecture_Corpus/`  
+Documentation root: `../../../docs/`
 Route index: `../../heptalogos/corpus-routes.json`
 
 Always consult these before implementing generic mechanics:
 
-- [Architecture principles / anti-NIH](../../../Architecture_Corpus/02-架构原则与反NIH约束.md)
-- [Technology and dependency ledger](../../../Architecture_Corpus/15-技术与依赖决策账本.md)
-- [Dependency implementation routing](../../../Architecture_Corpus/24-依赖使用与实现路由.md)
-- [TypeScript and repository toolchain](../../../Architecture_Corpus/25-TypeScript与仓库工具链.md)
-- [Dependency qualification](../../../Architecture_Corpus/qualification/DEPENDENCY-QUALIFICATION.md)
-- [dependency-status.json](../../../Architecture_Corpus/qualification/dependency-status.json)
-- [dependency-routing.json](../../../Architecture_Corpus/references/dependency-routing.json)
+- [Architecture principles / anti-NIH](../../../docs/governance/engineering-principles.md)
+- [Technology and dependency ledger](../../../docs/dependencies/decision-ledger.md)
+- [Dependency implementation routing](../../../docs/dependencies/implementation-routing.md)
+- [TypeScript and repository toolchain](../../../docs/engineering/repository/toolchain.md)
+- [Dependency qualification](../../../docs/qualification/dependencies.md)
+- [dependency-status.json](../../../docs/qualification/dependency-status.json)
+- [dependency-routing.json](../../../docs/dependencies/dependency-routing.json)
 
 Machine-readable dependency state/routing beats prose summaries when they disagree; such disagreement is a Corpus defect and must be surfaced.
 

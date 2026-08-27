@@ -3,7 +3,7 @@
 **Status:** LIVING ROADMAP / planning guidance<br>
 **Date:** 2026-08-27<br>
 **Repository baseline:** current `master` integration baseline after H2 post-merge reconciliation and Ubuntu/Linux residual qualification<br>
-**Architecture baseline:** `Architecture_Corpus` design state 2026-08-20
+**Architecture baseline:** `docs/architecture/` design state 2026-08-20
 
 > This document is a roadmap, not an Architecture Corpus authority and not an Implementation Plan. It guides future plan decomposition, sequencing, risk retirement, and acceptance. If it conflicts with the Architecture Corpus, the Corpus wins. If implementation evidence invalidates roadmap assumptions without invalidating architecture semantics, update the roadmap rather than silently changing the Corpus.
 
@@ -188,9 +188,9 @@ merge: PASS
 ```
 
 The H2-S closure evidence is maintained in
-[`Q-RUNTIME-01`](../../Architecture_Corpus/qualification/results/Q-RUNTIME-01.md)
+[`Q-RUNTIME-01`](../qualification/results/Q-RUNTIME-01.md)
 and
-[`Q-PERSISTENCE-01`](../../Architecture_Corpus/qualification/results/Q-PERSISTENCE-01.md).
+[`Q-PERSISTENCE-01`](../qualification/results/Q-PERSISTENCE-01.md).
 The completed implementation/correction plan is
 [`H2-S context-efficient package governance correction`](../plans/completed/foundation/h2s-review-correction-context-efficient-package-governance.md).
 Historical implementation and qualification detail remains in completed plans

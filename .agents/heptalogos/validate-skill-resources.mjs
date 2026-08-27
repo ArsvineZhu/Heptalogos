@@ -5,9 +5,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const scriptFile = fileURLToPath(import.meta.url);
-const scriptDir = path.dirname(scriptFile);               // .agents/heptalogos
-const agentsDir = path.dirname(scriptDir);                 // .agents
-const repoRoot = path.dirname(agentsDir);                  // repo root
+const scriptDir = path.dirname(scriptFile);
+const agentsDir = path.dirname(scriptDir);
+const repoRoot = path.dirname(agentsDir);
+const docsRoot = path.join(repoRoot, 'docs');
 const skillsDir = path.join(agentsDir, 'skills');
 const routesPath = path.join(scriptDir, 'corpus-routes.json');
 const casesPath = path.join(scriptDir, 'tests', 'skill-routing-cases.json');
@@ -37,14 +38,9 @@ function requireFile(file, label = path.relative(repoRoot, file)) {
   return true;
 }
 
-function walkRouteValues(value, visit) {
-  if (Array.isArray(value)) {
-    for (const item of value) visit(item);
-    return;
-  }
-  if (value && typeof value === 'object') {
-    for (const child of Object.values(value)) walkRouteValues(child, visit);
-  }
+function isWithin(root, candidate) {
+  const remainder = path.relative(path.resolve(root), path.resolve(candidate));
+  return remainder === '' || (!remainder.startsWith('..') && !path.isAbsolute(remainder));
 }
 
 function parseFrontmatter(text, file) {
@@ -73,20 +69,93 @@ function wordCount(text) {
     .filter(Boolean).length;
 }
 
-requireFile(routesPath);
-requireFile(rootAgentsPath);
-requireFile(casesPath);
+function validateRouteValue(skillName, routeValue, seen) {
+  if (typeof routeValue !== 'string') {
+    fail(`Non-string documentation route value in ${skillName}`);
+    return;
+  }
+  if (
+    routeValue.includes('\\') ||
+    path.posix.isAbsolute(routeValue) ||
+    routeValue.startsWith('./') ||
+    routeValue.startsWith('../') ||
+    path.posix.normalize(routeValue) !== routeValue ||
+    routeValue.includes('Architecture_Corpus/')
+  ) {
+    fail(`Invalid repository-relative documentation route for ${skillName}: ${routeValue}`);
+    return;
+  }
+  if (seen.has(routeValue)) {
+    fail(`Duplicate documentation route in ${skillName}: ${routeValue}`);
+    return;
+  }
+  seen.add(routeValue);
+
+  const target = path.resolve(repoRoot, routeValue);
+  if (!isWithin(docsRoot, target)) {
+    fail(`Documentation route escapes docs/ for ${skillName}: ${routeValue}`);
+    return;
+  }
+  if (routeValue.startsWith('docs/plans/completed/')) {
+    fail(`Active documentation route points to completed plan for ${skillName}: ${routeValue}`);
+  }
+  if (!requireFile(target, routeValue)) {
+    return;
+  }
+}
+
+function walkRouteLists(value, skillName) {
+  if (Array.isArray(value)) {
+    const seen = new Set();
+    for (const item of value) {
+      if (typeof item === 'string') {
+        validateRouteValue(skillName, item, seen);
+      } else {
+        walkRouteLists(item, skillName);
+      }
+    }
+    return;
+  }
+  if (value && typeof value === 'object') {
+    for (const child of Object.values(value)) walkRouteLists(child, skillName);
+  }
+}
+
+function validateSkillLinks(skillName, skillFile, text) {
+  const linkRegex = /\]\((?:<)?(\.\.\/\.\.\/\.\.\/docs\/[^)>\s]+)(?:>)?\)/gu;
+  for (const match of text.matchAll(linkRegex)) {
+    const resolved = path.resolve(path.dirname(skillFile), decodeURI(match[1]));
+    if (!isWithin(docsRoot, resolved) || !requireFile(resolved, match[1])) {
+      fail(`Broken direct documentation link in ${skillName}: ${match[1]}`);
+    }
+  }
+}
+
+if (!requireFile(routesPath) || !requireFile(rootAgentsPath) || !requireFile(casesPath)) {
+  process.exitCode = 1;
+}
+
+if (!fs.existsSync(docsRoot) || !fs.statSync(docsRoot).isDirectory()) {
+  fail('Missing docs/ directory');
+}
+if (!requireFile(path.join(docsRoot, 'AGENTS.md'))) {
+  // The detailed error was emitted by requireFile.
+}
 
 const routesDoc = readJson(routesPath);
 const casesDoc = readJson(casesPath);
-if (!routesDoc) process.exitCode = 1;
-
-const corpusRoot = routesDoc
-  ? path.resolve(repoRoot, routesDoc.corpusRoot ?? 'Architecture_Corpus')
-  : path.join(repoRoot, 'Architecture_Corpus');
-
-if (!fs.existsSync(corpusRoot) || !fs.statSync(corpusRoot).isDirectory()) {
-  fail(`Missing corpus root: ${path.relative(repoRoot, corpusRoot)}`);
+if (routesDoc) {
+  if (routesDoc.version !== 2) fail('corpus-routes.json must use version 2');
+  if ('corpusRoot' in routesDoc || 'skillRelativeCorpusRoot' in routesDoc) {
+    fail('corpus-routes.json must not declare a physical documentation root');
+  }
+  if (!routesDoc.routes || typeof routesDoc.routes !== 'object') {
+    fail('corpus-routes.json must contain routes');
+  } else {
+    for (const [skillName, route] of Object.entries(routesDoc.routes)) {
+      walkRouteLists(route, skillName);
+    }
+  }
 }
 
 const routeNames = new Set(Object.keys(routesDoc?.routes ?? {}));
@@ -122,13 +191,7 @@ if (fs.existsSync(skillsDir)) {
       notes.push(`${skillName}: ${words} words`);
     }
 
-    const linkRegex = /\]\((\.\.\/\.\.\/\.\.\/Architecture_Corpus\/[^)]+)\)/gu;
-    for (const match of text.matchAll(linkRegex)) {
-      const resolved = path.resolve(path.dirname(skillFile), decodeURI(match[1]));
-      if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
-        fail(`Broken direct Corpus link in ${skillName}: ${match[1]}`);
-      }
-    }
+    validateSkillLinks(skillName, skillFile, text);
   }
 } else {
   fail('Missing .agents/skills directory');
@@ -139,19 +202,6 @@ for (const name of routeNames) {
 }
 for (const name of skillNames) {
   if (!routeNames.has(name)) fail(`Skill has no route entry: ${name}`);
-}
-
-for (const [skillName, route] of Object.entries(routesDoc?.routes ?? {})) {
-  walkRouteValues(route, (relativePath) => {
-    if (typeof relativePath !== 'string') {
-      fail(`Non-string Corpus route value in ${skillName}`);
-      return;
-    }
-    const file = path.resolve(corpusRoot, relativePath);
-    if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
-      fail(`Broken Corpus route for ${skillName}: ${relativePath}`);
-    }
-  });
 }
 
 if (casesDoc) {
@@ -178,7 +228,7 @@ if (casesDoc) {
 
 console.log('Heptalogos Codex Skills resource validation');
 console.log(`repo root:   ${repoRoot}`);
-console.log(`corpus root: ${corpusRoot}`);
+console.log(`docs root:   ${docsRoot}`);
 console.log(`skills:      ${skillNames.size}`);
 for (const note of notes) console.log(`  - ${note}`);
 

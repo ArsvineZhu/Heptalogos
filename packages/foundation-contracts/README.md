@@ -52,8 +52,8 @@ and the relevant property tests for identity or canonicalization changes.
 
 ## Architecture references
 
-- [`00 — 项目宪法与工程宪法`](../../Architecture_Corpus/00-项目宪法与工程宪法.md)
-- [`03 — 核心概念与 Authority`](../../Architecture_Corpus/03-核心概念与Authority.md)
-- [`12 — 数据、证据、内容与持久化`](../../Architecture_Corpus/12-数据-证据-内容与持久化.md)
-- [`22 — Execution-Lineage 与可观测执行`](../../Architecture_Corpus/22-Execution-Lineage与可观测执行.md)
-- [`23 — 存储拓扑、生命周期根与 DataOwner`](../../Architecture_Corpus/23-存储拓扑-生命周期根与DataOwner.md)
+- [`00 — 项目宪法与工程宪法`](../../docs/governance/constitution.md)
+- [`03 — 核心概念与 Authority`](../../docs/architecture/authority-and-core-concepts.md)
+- [`12 — 数据、证据、内容与持久化`](../../docs/architecture/data-evidence-persistence.md)
+- [`22 — Execution-Lineage 与可观测执行`](../../docs/architecture/execution-lineage.md)
+- [`23 — 存储拓扑、生命周期根与 DataOwner`](../../docs/architecture/storage-lifecycle.md)
