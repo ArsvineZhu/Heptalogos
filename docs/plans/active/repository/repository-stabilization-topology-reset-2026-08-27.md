@@ -13,6 +13,9 @@
 
 **Tech Stack:** Node.js 24, pnpm 11, Nx 23, TypeScript 7 primary + TS6 compiler-API lane, ESLint, Vitest, Prettier, existing `@heptalogos/repo-kit`, `@nx/eslint-plugin` matched to the repository Nx version, Knip, existing manual GitHub Actions verification workflow.
 
+> Remaining mechanics/library-first corrective work is governed by the named
+> active plan `mechanics-ownership-library-first-convergence-2026-08-28.md`.
+
 **Repository destination when adopted:** `docs/plans/active/repository/repository-stabilization-topology-reset-2026-08-27.md`
 
 **Spec / authority inputs:**

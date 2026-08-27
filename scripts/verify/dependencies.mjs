@@ -7,6 +7,7 @@ import {
   discoverWorkspacePackages,
   packageRoutes,
   readPackageManagerBaseline,
+  readYamlFile,
   readWorkspaceCatalog,
   readWorkspaceSection,
   repositoryToolingPackages,
@@ -17,7 +18,13 @@ import {
 
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const workspacePath = join(root, "pnpm-workspace.yaml");
-const workspace = readFileSync(workspacePath, "utf8");
+let workspaceDocument;
+try {
+  workspaceDocument = readYamlFile(workspacePath);
+} catch (error) {
+  fail(`workspace YAML Authority is unreadable: ${error.message}`);
+  workspaceDocument = {};
+}
 const qualificationStatusPath = join(
   root,
   "docs",
@@ -175,9 +182,14 @@ for (const { manifest, path: manifestPath } of manifests) {
   }
 }
 
-for (const name of ["@nx/js", "@typescript/native", "typescript", "nx"]) {
-  if (!externalDependencyNames.has(name)) {
-    fail(`required toolchain dependency missing: ${name}`);
+const toolingRoute = routes.get("tooling.build");
+if (!toolingRoute) {
+  fail("dependency route missing: tooling.build");
+} else {
+  for (const name of toolingRoute.packages) {
+    if (!externalDependencyNames.has(name)) {
+      fail(`required toolchain dependency missing: ${name}`);
+    }
   }
 }
 
@@ -220,20 +232,20 @@ for (const error of validateStandingDependencyDocuments({
   fail(error);
 }
 
-if (!/^catalogMode:\s+strict$/m.test(workspace)) fail("catalogMode is not strict");
-if (!/^strictPeerDependencies:\s+true$/m.test(workspace)) {
+if (workspaceDocument.catalogMode !== "strict") fail("catalogMode is not strict");
+if (workspaceDocument.strictPeerDependencies !== true) {
   fail("strictPeerDependencies must be explicitly enabled");
 }
-if (!/^engineStrict:\s+true$/m.test(workspace)) {
+if (workspaceDocument.engineStrict !== true) {
   fail("engineStrict must be explicitly enabled");
 }
 if (
   Number.isInteger(minimumReleaseAge) &&
-  !new RegExp(`^minimumReleaseAge:\\s+${minimumReleaseAge}$`, "m").test(workspace)
+  workspaceDocument.minimumReleaseAge !== minimumReleaseAge
 ) {
   fail(`minimumReleaseAge must be explicitly pinned to ${minimumReleaseAge} minutes`);
 }
-if (/^nodeLinker:/m.test(workspace)) {
+if (Object.hasOwn(workspaceDocument, "nodeLinker")) {
   fail("nodeLinker must remain pnpm's explicit default: isolated");
 }
 if (workspaceOverrides["@types/node"] !== workspaceCatalog["@types/node"]) {

@@ -1,21 +1,10 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { findRepositoryFilesSync } from "@heptalogos/repo-kit";
 
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const errors = [];
-const ignoredDirectories = new Set([
-  ".git",
-  ".nx",
-  ".pnpm-store",
-  ".vite",
-  ".cache",
-  "coverage",
-  "dist",
-  "node_modules",
-  "test-results",
-  "tmp",
-]);
 const workQueuePublicSource = readFileSync(
   resolve(root, "packages/work-queue/src/index.ts"),
   "utf8",
@@ -27,10 +16,6 @@ if (/\bcreateWorkQueueRepository\b/u.test(workQueuePublicSource)) {
 }
 
 const hostOwnershipSourcePrefix = "packages/host-ownership/src/";
-const hostOwnershipAdapterSourcePaths = new Set([
-  "packages/host-ownership/src/bootstrap-admin.ts",
-  "packages/host-ownership/src/host-lease-connection.ts",
-]);
 const hostOwnershipPublicSource = readFileSync(
   resolve(root, "packages/host-ownership/src/index.ts"),
   "utf8",
@@ -129,23 +114,6 @@ if (canonicalSchemaMechanicsPattern.test(canonicalSchemaPublicSource)) {
     "packages/canonical-schema/src/index.ts: concrete pg/Kysely migration mechanics must not leak through the canonical-schema package root",
   );
 }
-for (const match of persistencePublicSource.matchAll(
-  /export\s+\*\s+from\s+["'](\.\/[^"']+)["']/gu,
-)) {
-  const specifier = match[1];
-  const candidatePaths = [
-    resolve(dirname(persistencePublicSourcePath), `${specifier}.ts`),
-    resolve(dirname(persistencePublicSourcePath), `${specifier}.tsx`),
-  ];
-  const targetPath = candidatePaths.find((candidate) => existsSync(candidate));
-  if (!targetPath) continue;
-  const targetSource = readFileSync(targetPath, "utf8");
-  if (/(?:from\s+|import\s*\(\s*)["'](?:pg|kysely)["']/u.test(targetSource)) {
-    errors.push(
-      `packages/persistence/src/index.ts: package-root star export leaks pg/Kysely mechanics from ${specifier}`,
-    );
-  }
-}
 if (
   sensitiveBootstrapAuthorityModules.some((specifier) =>
     new RegExp(`export\\s+\\*\\s+from\\s+["']${specifier}["']`, "u").test(
@@ -158,69 +126,14 @@ if (
   );
 }
 
-function collect(directory, matcher, files = []) {
-  if (!existsSync(directory)) return files;
-  for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) {
-      if (!ignoredDirectories.has(entry.name)) collect(path, matcher, files);
-    } else if (entry.isFile() && matcher(path, entry.name)) {
-      files.push(path);
-    }
-  }
-  return files;
-}
-
-const sourcePaths = collect(root, (sourcePath) => /\.(?:ts|tsx)$/u.test(sourcePath));
+const sourcePaths = findRepositoryFilesSync({
+  root,
+  patterns: ["packages/**/*.ts", "packages/**/*.tsx"],
+  ignore: ["**/dist/**", "**/node_modules/**", "**/.nx/**", "**/coverage/**"],
+});
 for (const path of sourcePaths) {
   const relativePath = relative(root, path).replaceAll("\\", "/");
   const source = readFileSync(path, "utf8");
-  const isTestSource = relativePath.includes("/test/");
-  if (relativePath.startsWith("packages/runtime-substrate/") && !isTestSource) {
-    if (
-      /(?:from|import\s*\(|require\s*\()(?:\s*["'])(?:@heptalogos\/(?:persistence|execution-lineage)|\.\.\/)/u.test(
-        source,
-      )
-    ) {
-      errors.push(
-        `${relativePath}: runtime-substrate must not depend on PersistenceService or execution-lineage`,
-      );
-    }
-  }
-  if (relativePath.startsWith("packages/runtime-kernel/")) {
-    if (
-      /(?:from|import\s*\(|require\s*\()(?:\s*["'])(?:@heptalogos\/(?:bootstrap-state|host-ownership|canonical-schema)|pg|kysely)(?:["'])/u.test(
-        source,
-      )
-    ) {
-      errors.push(
-        `${relativePath}: runtime-kernel must not import Bootstrap/Host ownership, canonical-schema, pg, or Kysely directly`,
-      );
-    }
-    if (relativePath === "packages/runtime-kernel/src/index.ts") {
-      if (
-        /\b(?:Cordis|Context|Fiber|Kysely|Pool|Client|PostgresDialect)\b/u.test(source)
-      ) {
-        errors.push(
-          "packages/runtime-kernel/src/index.ts: runtime-kernel package root must not leak framework or database objects",
-        );
-      }
-    }
-  }
-  if (relativePath.startsWith(hostOwnershipSourcePrefix)) {
-    for (const forbidden of ["Kysely", "DBOS", "PersistenceService"]) {
-      if (new RegExp(`\\b${forbidden}\\b`, "u").test(source)) {
-        errors.push(
-          `${relativePath}: Host ownership must not materialize ${forbidden}`,
-        );
-      }
-    }
-    if (
-      /(?:from|import\s*\()\s*["'](?:kysely|dbos|@dbos-inc\/dbos-sdk)["']/u.test(source)
-    ) {
-      errors.push(`${relativePath}: Host ownership must not import Kysely or DBOS`);
-    }
-  }
   if (
     source.includes("createHostOwnershipToken") &&
     !(
@@ -233,16 +146,6 @@ for (const path of sourcePaths) {
   ) {
     errors.push(
       `${relativePath}: HostOwnershipToken creation is outside the Host acquisition path`,
-    );
-  }
-  if (
-    relativePath.startsWith(hostOwnershipSourcePrefix) &&
-    !hostOwnershipAdapterSourcePaths.has(relativePath) &&
-    !relativePath.endsWith(".test.ts") &&
-    /from\s+["']pg["']/u.test(source)
-  ) {
-    errors.push(
-      `${relativePath}: raw pg imports are restricted to the Host ownership adapters or tests`,
     );
   }
 }

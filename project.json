@@ -4,10 +4,138 @@
   "projectType": "library",
   "tags": ["kind:tooling", "area:repository"],
   "targets": {
-    "lint": {
+    "check:agents": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint scripts"
+        "command": "node .agents/heptalogos/validate-skill-resources.mjs"
+      }
+    },
+    "check:documentation": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/verify/documentation.mjs"
+      }
+    },
+    "check:repository": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/verify/repository.mjs"
+      }
+    },
+    "check:hygiene": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/verify/current-tree-hygiene.mjs"
+      }
+    },
+    "check:dependencies": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/verify/dependencies.mjs"
+      }
+    },
+    "check:boundaries": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/verify/boundaries.mjs"
+      }
+    },
+    "check:unused": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "knip"
+      }
+    },
+    "toolchain:check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/verify/toolchain.mjs"
+      }
+    },
+    "check:duplicates": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "jscpd --config .jscpd.json packages tools scripts .agents"
+      }
+    },
+    "format:check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prettier --check ."
+      }
+    },
+    "boundary": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "eslint packages"
+      }
+    },
+    "lint": {
+      "dependsOn": ["boundary"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nx run-many -t lint --all --exclude=repository"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nx run-many -t typecheck --all --exclude=repository"
+      }
+    },
+    "tsc6": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc6 --noEmit -p tsconfig.ts6.json"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nx run-many -t test --all --exclude=repository"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nx run-many -t build --all --exclude=repository"
+      }
+    },
+    "check:repo": {
+      "dependsOn": [
+        "check:agents",
+        "check:documentation",
+        "check:repository",
+        "check:hygiene",
+        "check:dependencies",
+        "check:boundaries",
+        "check:unused",
+        "toolchain:check"
+      ],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node -e \"process.exit(0)\""
+      }
+    },
+    "check:static": {
+      "dependsOn": [
+        "check:repo",
+        "check:duplicates",
+        "format:check",
+        "lint",
+        "typecheck",
+        "tsc6"
+      ],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node -e \"process.exit(0)\""
+      }
+    },
+    "verify": {
+      "dependsOn": ["check:static"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nx run-many --targets=test,build --all --exclude=repository --parallel=1"
       }
     }
   }

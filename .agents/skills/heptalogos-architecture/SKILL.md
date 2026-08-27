@@ -22,6 +22,7 @@ Read first:
 - [Terminology](../../../docs/reference/glossary.md)
 - [Architecture review checklist](../../../docs/engineering/repository/architecture-review.md)
 - [Stabilization and compatibility governance](../../../docs/governance/pre-production-evolution.md)
+- [Mechanics Ownership and Library-First playbook](../../../docs/engineering/playbooks/mechanics-ownership-and-library-first.md)
 
 Load conditional references from the route index only when the change crosses those concerns.
 
@@ -32,7 +33,7 @@ Load conditional references from the route index only when the change crosses th
 3. Classify the change as Foundation, advanced research hook, presentation, integration, or generic mechanics.
 4. Trace the affected end-to-end flow and every cross-domain contract.
 5. Check whether the current Corpus already expresses the scenario. Prefer composition of existing contracts over creating a new Foundation abstraction.
-6. If generic mechanics are needed, use `heptalogos-dependencies` before choosing or implementing them.
+6. If generic mechanics are needed, use the Mechanics Ownership and Library-First playbook and `heptalogos-dependencies` before choosing or implementing them.
 7. If the proposal changes architecture, update every affected normative projection in the same change; do not leave a local code-only architecture decision.
 8. Define claim-matched verification with `heptalogos-verification` when the change alters failure, recovery, protocol, platform, or release behavior.
 9. For stabilization closure, treat the current Ready PR as the review candidate; keep Git revision identity inside Git/GitHub/CI rather than copying it into project records.

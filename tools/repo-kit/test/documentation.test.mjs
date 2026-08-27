@@ -177,6 +177,17 @@ describe("documentation topology verification", () => {
     expect(result.errors).toEqual([]);
   });
 
+  it("ignores link-shaped syntax inside a fenced code block", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/plans/active/current.md",
+        '```text\nrg -n "from [\' ](?:ajv|typebox)"\n```\n',
+      );
+    });
+    expect(result.errors).toEqual([]);
+  });
+
   it("rejects a noncanonical dependency Authority home in inline code", async () => {
     const result = await fixtureTree(async (root) => {
       await writeFixtureFile(

@@ -10,19 +10,26 @@ const eslintSource = readFileSync(
   fileURLToPath(new URL("../../../eslint.config.mjs", import.meta.url)),
   "utf8",
 );
+const oxlintSource = readFileSync(
+  fileURLToPath(new URL("../../../.oxlintrc.json", import.meta.url)),
+  "utf8",
+);
 const dependencySource = readFileSync(
   fileURLToPath(new URL("../../../scripts/verify/dependencies.mjs", import.meta.url)),
   "utf8",
 );
 
 describe("repository boundary ownership", () => {
-  it("delegates generic import restrictions to Nx and ESLint", () => {
+  it("delegates generic import restrictions to Oxlint and Nx ESLint", () => {
     expect(boundarySource).not.toMatch(
       /restrictedImports|restrictedSpecifiers|isRestrictedImportAllowed|isRestrictedSpecifierAllowed|isCrossWorkspaceRelativeImport|isAreaDependencyAllowed/u,
     );
-    expect(eslintSource).toContain("no-restricted-imports");
-    expect(eslintSource).toContain('"@heptalogos/repo-kit"');
-    expect(eslintSource).toContain("@heptalogos/persistence/foundation-repository");
+    expect(eslintSource).not.toContain("no-restricted-imports");
+    expect(oxlintSource).toContain("no-restricted-imports");
+    expect(oxlintSource).toContain('"@heptalogos/repo-kit"');
+    expect(oxlintSource).toContain("@heptalogos/persistence/foundation-repository");
+    expect(oxlintSource).toContain('"ajv"');
+    expect(oxlintSource).toContain('"typebox"');
     expect(eslintSource).toContain("@nx/enforce-module-boundaries");
   });
 

@@ -1,6 +1,12 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { markdownTargets, section } from "./markdown.mjs";
+import {
+  isWithinPath as isWithin,
+  normalizeRepositoryPath as normalize,
+} from "./paths.mjs";
 import { discoverProductPackages } from "./workspace.mjs";
+import { findRepositoryFilesSync } from "./discovery.mjs";
 
 const README_HEADINGS = [
   "Purpose",
@@ -13,17 +19,6 @@ const README_HEADINGS = [
   "Architecture references",
 ];
 
-function normalize(root, path) {
-  return relative(root, path).replaceAll("\\", "/");
-}
-
-function isWithin(root, path) {
-  const rootPath = resolve(root);
-  const candidate = resolve(path);
-  const remainder = relative(rootPath, candidate);
-  return remainder === "" || (!remainder.startsWith("..") && !isAbsolute(remainder));
-}
-
 function hasHeading(source, heading) {
   return new RegExp(
     `^## ${heading.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}$`,
@@ -31,52 +26,8 @@ function hasHeading(source, heading) {
   ).test(source);
 }
 
-function markdownTargets(source) {
-  const targets = [];
-  const linkPattern = /\[[^\]]*\]\((<[^>]+>|[^)\s]+)(?:\s+["'][^)]*["'])?\)/gu;
-  for (const match of source.matchAll(linkPattern)) {
-    let target = match[1];
-    if (target.startsWith("<") && target.endsWith(">")) {
-      target = target.slice(1, -1);
-    }
-    if (
-      target.startsWith("http://") ||
-      target.startsWith("https://") ||
-      target.startsWith("mailto:") ||
-      target.startsWith("#")
-    ) {
-      continue;
-    }
-    const path = target.split("#", 1)[0];
-    if (path) targets.push(path);
-  }
-  return targets;
-}
-
-function section(source, heading) {
-  const marker = `## ${heading}`;
-  const start = source.indexOf(marker);
-  if (start < 0) return "";
-  const body = source.slice(start + marker.length);
-  const nextHeading = body.search(/^##\s+/mu);
-  return nextHeading < 0 ? body : body.slice(0, nextHeading);
-}
-
 function wordCount(source) {
   return source.trim().split(/\s+/u).filter(Boolean).length;
-}
-
-function discoverPackageAgentFiles(directory, files = []) {
-  if (!existsSync(directory) || !statSync(directory).isDirectory()) return files;
-  for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    const path = join(directory, entry.name);
-    if (entry.name === "AGENTS.md" && (entry.isFile() || entry.isSymbolicLink())) {
-      files.push(path);
-    } else if (entry.isDirectory()) {
-      discoverPackageAgentFiles(path, files);
-    }
-  }
-  return files;
 }
 
 export async function validatePackageDocumentation({
@@ -110,7 +61,10 @@ export async function validatePackageDocumentation({
   }
 
   for (const packageInfo of packages) {
-    for (const agentPath of discoverPackageAgentFiles(packageInfo.directory)) {
+    for (const agentPath of findRepositoryFilesSync({
+      root: packageInfo.directory,
+      patterns: ["**/AGENTS.md"],
+    })) {
       errors.push(
         `${normalize(repositoryRoot, agentPath)}: package AGENTS.md is forbidden`,
       );

@@ -42,6 +42,34 @@
 
 不能在产品代码中偷偷保留一个未经批准的 custom fallback。
 
+### Mechanics lookup algorithm
+
+Before adding or expanding a generic mechanic:
+
+```text
+1. search the target package for an existing owner or primitive;
+2. search workspace exports and packages/INDEX.md/README files;
+3. consult dependency-routing.json and the implementation route;
+4. reuse the existing owner or extend it with the smallest reusable primitive;
+5. otherwise use the adopted Standard/Node/OS or library route behind an adapter;
+6. use custom mechanics only with explicit plan/change-rationale evidence.
+```
+
+Examples:
+
+```text
+Ajv/TypeBox validation       → schema-runtime
+complex local state machine  → XState behind the owning package
+repository process execution → repo-kit process helper / Execa
+repository YAML parsing      → repo-kit YAML helper / yaml
+read-only file discovery     → repo-kit discovery / tinyglobby
+```
+
+An existing implementation is not evidence that a duplicate is legitimate.
+PRE_PRODUCTION cleanup deletes a replaced implementation and its obsolete
+exports, callers, tests, and dependency declarations; it does not add a
+compatibility wrapper.
+
 ---
 
 ## 2. Foundation mandatory routing
@@ -53,7 +81,8 @@
 | Monorepo task/project graph            | Nx 23.x line                                                                                                             | repository tooling / dependency-boundary gates                                                                             | hand-written recursive build orchestration                                    |
 | Primary compiler                       | TypeScript 7.0.x (`tsc`)                                                                                                 | canonical build/typecheck                                                                                                  | TypeScript 6 as product compile Authority                                     |
 | Compiler-API compatibility             | `@typescript/typescript6` 6.0.x, isolated compatibility lane                                                             | Nx/typescript-eslint/other API-dependent tooling only                                                                      | allowing TS6 compatibility to define product language baseline                |
-| Lint                                   | ESLint 10.x + typescript-eslint 8.x                                                                                      | repository lint/import-boundary gates; typescript-eslint consumes TS6 API lane while required                              | legacy lint stack or TS7 downgrade because parser API lags                    |
+| Primary JS/TS lint                     | Oxlint 1.x + oxlint-tsgolint 7.x                                                                                         | repository correctness/restriction/type-aware lint; TypeScript 7 remains canonical typecheck                               | ESLint as the general lint engine                                             |
+| Nx boundary lint                       | ESLint 10.x residual `@nx/enforce-module-boundaries` lane; typescript-eslint parser only where required                  | Nx module-boundary enforcement                                                                                             | community Nx-Oxlint integration or duplicated boundary parser                 |
 | Node ambient types                     | `@types/node` 24.x, same major as shipping Node                                                                          | compile/typecheck environment                                                                                              | global-latest Node types from a newer runtime major                           |
 | Language/module baseline               | TypeScript / ESM-first / `target=ESNext` / `module=NodeNext` / `moduleResolution=NodeNext` / `verbatimModuleSyntax=true` | product source / public contracts                                                                                          | `ES2022` or CJS-first default without explicit compatibility requirement      |
 | Foundation transactional DB            | PostgreSQL 18                                                                                                            | `PersistenceService` / private PostgreSQL controller                                                                       | SQLite/custom file DB as Core authority                                       |
@@ -88,6 +117,9 @@
 | Cedar JS/WASM binding                  | `@cedar-policy/cedar-wasm`                                                                                               | `PolicyService` adapter                                                                                                    | broader/parallel authorization runtime or raw Cedar types in domain contracts |
 | npm artifact acquisition               | `pacote`                                                                                                                 | package acquisition adapter                                                                                                | `npm install`/`pnpm install` as product Extension install                     |
 | Process execution                      | Execa                                                                                                                    | process adapter                                                                                                            | ad-hoc shell interpolation / raw `exec` for structured subprocesses           |
+| Repository YAML parsing                | `yaml` 2.x                                                                                                               | repo-kit YAML helpers                                                                                                      | line-oriented pseudo-YAML parser                                              |
+| Read-only repository discovery         | `tinyglobby` 0.2.x                                                                                                       | repo-kit discovery helpers                                                                                                 | repeated recursive walkers in scripts                                         |
+| Copy/paste detection                   | `jscpd` 5.x                                                                                                              | repository static gate                                                                                                     | baseline/ignore registry hiding clones                                        |
 | Media type detection                   | `file-type`                                                                                                              | media/content adapter                                                                                                      | extension-based MIME guessing as canonical type                               |
 | Image mechanics                        | `sharp`                                                                                                                  | media adapter                                                                                                              | hand-written image codec/transforms                                           |
 | Audio/video mechanics                  | vendored FFmpeg                                                                                                          | media/process adapter                                                                                                      | custom codec pipeline                                                         |

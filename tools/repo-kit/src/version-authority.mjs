@@ -1,20 +1,9 @@
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { readYamlFile } from "./yaml.mjs";
 
 function readJson(root, name) {
   return JSON.parse(readFileSync(join(resolve(root), name), "utf8"));
-}
-
-function unwrapYamlScalar(value) {
-  const trimmed = value.trim();
-  if (
-    trimmed.length >= 2 &&
-    ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-      (trimmed.startsWith("'") && trimmed.endsWith("'")))
-  ) {
-    return trimmed.slice(1, -1);
-  }
-  return trimmed;
 }
 
 function parsePackageManager(value) {
@@ -134,24 +123,26 @@ export function validateNodeVersionProjections({ root = process.cwd() } = {}) {
 }
 
 export function readWorkspaceSection({ root = process.cwd(), section } = {}) {
-  const source = readFileSync(join(resolve(root), "pnpm-workspace.yaml"), "utf8");
-  const lines = source.split(/\r?\n/u);
-  const sectionStart = lines.findIndex((line) =>
-    new RegExp(`^${section}:\\s*$`, "u").test(line),
-  );
-  if (sectionStart < 0) {
+  const workspace = readYamlFile(join(resolve(root), "pnpm-workspace.yaml"));
+  const value = workspace?.[section];
+  if (value === undefined) {
     throw new Error(`pnpm-workspace.yaml ${section} section is missing`);
   }
-
-  const values = {};
-  for (const line of lines.slice(sectionStart + 1)) {
-    if (line.length > 0 && !/^\s/u.test(line)) break;
-    const match = line.match(/^\s{2}(?:"([^"]+)"|'([^']+)'|([^:\s]+)):\s*(.*?)\s*$/u);
-    if (match === null) continue;
-    const name = match[1] ?? match[2] ?? match[3];
-    values[name] = unwrapYamlScalar(match[4]);
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`pnpm-workspace.yaml ${section} section must be a mapping`);
   }
-  return values;
+  return Object.fromEntries(
+    Object.entries(value).map(([name, entry]) => {
+      if (
+        typeof entry !== "string" &&
+        typeof entry !== "number" &&
+        typeof entry !== "boolean"
+      ) {
+        throw new Error(`pnpm-workspace.yaml ${section}.${name} must be a scalar`);
+      }
+      return [name, String(entry)];
+    }),
+  );
 }
 
 export function readWorkspaceCatalog({ root = process.cwd() } = {}) {

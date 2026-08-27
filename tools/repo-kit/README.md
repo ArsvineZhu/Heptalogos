@@ -22,6 +22,9 @@ dependency.
 - Product semantics, runtime lifecycle, or data/authority contracts.
 - Architecture decisions or compatibility obligations.
 - A checksum catalog, file manifest, or generic gate bypass.
+- Repository task graph or scheduling; Nx owns that mechanic.
+- YAML parsing, glob discovery, or generic subprocess orchestration; `yaml`,
+  `tinyglobby`, and Execa own those mechanics behind repo-kit policy helpers.
 - Direct mutation of product state or developer databases.
 
 ## Public surface
@@ -34,9 +37,11 @@ public helper behavior with temporary fixtures.
 
 ## Dependencies and boundaries
 
-The package uses the adopted `execa` route and Node standard-library mechanics.
-It may inspect repository files and run bounded repository commands, but it must
-not become a second production execution layer. Gate findings must remain
+The package uses the adopted `execa`, `yaml`, and `tinyglobby` routes with Node
+standard-library mechanics. It may inspect repository files and run bounded
+repository commands, but it must not become a second production execution
+layer. Nx owns project discovery, task graphs, and scheduling; repo-kit only
+composes adopted mechanics with repository policy. Gate findings must remain
 actionable and must not silently ignore symlinks, provenance, or compatibility
 residue.
 
@@ -48,6 +53,7 @@ consumer of the hygiene scanner.
 
 ## Architecture references
 
-Read the repository `AGENTS.md`, Corpus 00, 16, 20, 24, and 26, plus the
-repository verification and current-tree hygiene playbooks before changing
-gate mechanics or their finding codes.
+Read the repository `AGENTS.md`, the mechanics ownership and library-first
+playbook, the repository verification and current-tree hygiene playbooks, and
+the relevant Corpus documents before changing repository mechanics or finding
+codes.

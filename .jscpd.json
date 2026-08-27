@@ -1,0 +1,19 @@
+{
+  "minTokens": 60,
+  "minLines": 6,
+  "mode": "mild",
+  "format": ["javascript", "typescript"],
+  "exitCode": 1,
+  "reporters": ["console"],
+  "noColors": true,
+  "noTips": true,
+  "ignore": [
+    "**/test/**",
+    "**/tests/**",
+    "**/fixtures/**",
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/generated/**",
+    "**/vendor/**"
+  ]
+}

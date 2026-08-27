@@ -8,7 +8,7 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint packages/private-postgres"
+        "command": "oxlint --type-aware packages/private-postgres"
       }
     },
     "test": {

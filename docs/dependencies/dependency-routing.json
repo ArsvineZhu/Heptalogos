@@ -1,6 +1,6 @@
 {
   "schemaVersion": 4,
-  "asOf": "2026-08-20",
+  "asOf": "2026-08-28",
   "authority": "Current implementation routing for Foundation generic mechanics. All Foundation provider selections in scope are frozen; deferred L3 roles are intentionally absent from mandatory routes.",
   "rule": "ADOPTED is an implementation directive. Use the selected route behind the designated Heptalogos boundary. Residual product qualification does not authorize an unapproved parallel implementation.",
   "repositoryMaterialization": {
@@ -9,10 +9,19 @@
     "packageReferences": "workspace package.json uses catalog: references; pnpm-lock.yaml owns exact resolved closure",
     "minimumReleaseAge": 1440,
     "packageIdentity": "routes[].packages is the exact npm package identity authority for each adopted route; an empty array means the route is not an npm package dependency",
-    "repositoryToolingPackages": ["knip", "prettier"],
+    "repositoryToolingPackages": [
+      "jscpd",
+      "knip",
+      "oxlint",
+      "oxlint-tsgolint",
+      "prettier",
+      "tinyglobby",
+      "yaml"
+    ],
     "boundaryEnforcement": [
       "Nx module boundaries",
-      "ESLint import restrictions",
+      "Oxlint import restrictions",
+      "ESLint residual module-boundary lint",
       "dependency-route governance gate"
     ],
     "newDependencyRule": "classify the role before adding a dependency; current Foundation roles may not silently acquire a second provider. The baseline contains no PRIMARY_CANDIDATE/UNRESOLVED role.",
@@ -39,7 +48,8 @@
         "Nx 23.x line",
         "TypeScript 7.0.x primary compiler",
         "@typescript/typescript6 6.0.x compiler-API compatibility lane only",
-        "ESLint 10.x + typescript-eslint 8.x",
+        "Oxlint 1.x + oxlint-tsgolint 7.x primary JS/TS lint",
+        "ESLint 10.x residual Nx module-boundary lane; typescript-eslint 8.x parser only where required",
         "@types/node 24.x aligned with shipping Node major",
         "ESM-first + ESNext + NodeNext"
       ],
@@ -147,7 +157,7 @@
     {
       "roleId": "runtime.local-state-machine",
       "route": "XState stable 5.x line using pure transition APIs",
-      "boundary": "implementation-only local complex FSM/statechart adapters; initial consumer @heptalogos/private-postgres lifecycle",
+      "boundary": "implementation-only local complex FSM/statechart mechanics behind owning package boundaries; current consumers include private-postgres, host-ownership, bootstrap-runtime, work-queue, and runtime-kernel supervisor lifecycle",
       "directive": "USE",
       "versionConstraint": {
         "major": 5

@@ -62,6 +62,31 @@ policy evaluation
 
 `Heptalogos owns semantics` 不是自研 generic mechanics 的理由。
 
+### Mechanics Ownership Before Local Implementation
+
+Every implementation must distinguish four roles:
+
+```text
+semantic owner
+  owns Heptalogos meaning, Authority, and product invariants
+
+mechanics provider
+  owns generic lifecycle, parsing, graph, process, schema, or other mechanics
+
+adapter owner
+  keeps the provider behind a Heptalogos contract and applies local policy
+
+consumer
+  uses the adapter/owner without instantiating a parallel provider
+```
+
+The lookup order is existing Heptalogos owner, adopted dependency route,
+Standard/Node/OS facility, mature library behind a narrow adapter, composition
+of mature primitives, and custom implementation only with explicit evidence.
+An `ADOPTED` route plus an existing owner closes provider selection for ordinary
+implementation. Missing owner API is a reason to extend the owner, not to copy
+its mechanic into a consumer.
+
 ---
 
 ## 3. Adapter 是默认隔离层

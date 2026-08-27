@@ -1,5 +1,7 @@
 # Playbooks
 
+Use the [mechanics ownership and library-first playbook](playbooks/mechanics-ownership-and-library-first.md) before introducing generic helpers, adapters, or library-backed mechanics.
+
 | Entry                                                                                  | Scope                                                 | Evidence                              |
 | -------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------- |
 | [Subprocess execution](playbooks/process/subprocess-execution.md)                      | Repository subprocesses                               | `tools/repo-kit/src/process.mjs`      |

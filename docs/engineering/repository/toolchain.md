@@ -16,10 +16,23 @@ Package manager          pnpm 11 stable line
 Workspace/task graph     Nx 23.x line
 Primary compiler         TypeScript 7.0.x
 Compiler-API compat      @typescript/typescript6 6.0.x, only where required
-Lint                     ESLint 10.x + typescript-eslint 8.x
+Primary lint              Oxlint 1.x + oxlint-tsgolint 7.x, type-aware
+Boundary lint             ESLint 10.x residual Nx module-boundary lane
 Module model             ESM-first / NodeNext
 JavaScript target        ESNext
 Node ambient types       @types/node 24.x, aligned to shipping Node major
+```
+
+Repository-only tool ownership is explicit:
+
+```text
+Oxlint + oxlint-tsgolint  primary JS/TS lint, including type-aware promise rules
+ESLint                    residual @nx/enforce-module-boundaries lane only
+TypeScript 7              canonical typecheck/build authority
+Knip                      unused files/exports/dependencies
+jscpd                     copy/paste clone detection
+Prettier                  formatting
+Nx                        project/task graph and task scheduling
 ```
 
 当前 L0 exact observation 保存在
@@ -307,7 +320,10 @@ pnpm Catalog exact direct versions
 catalogMode: strict
 pnpm-lock.yaml only
 Nx project graph / affected tasks
-ESLint import/module-boundary rules
+Oxlint primary JS/TS lint and import restrictions
+ESLint residual Nx module-boundary rules
+jscpd clone detection
+Nx project graph / affected tasks and task scheduling
 TypeScript 7 canonical typecheck
 TS6 compiler-API lane isolated from product compile authority
 @types/node major-match gate

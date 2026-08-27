@@ -83,6 +83,19 @@ For generic mechanics, follow the adopted dependency route. Do not silently
 replace an adopted library/framework with custom infrastructure. Keep framework
 objects behind Heptalogos-owned contracts.
 
+Before implementing generic mechanics:
+
+1. search the target package and workspace for an existing owner/primitive;
+2. read the target package README and `packages/INDEX.md` for ownership;
+3. consult dependency-routing / implementation-routing for an adopted provider;
+4. prefer a Standard/Node/OS facility or the adopted mature provider;
+5. if the existing owner lacks a primitive, extend the owner instead of copying it;
+6. custom generic implementation requires explicit evidence in the governing plan or
+   current change rationale.
+
+Existing code is not evidence that a duplicate mechanic is legitimate. Do not
+preserve a local implementation merely to minimize diff size.
+
 Any process-memory background work must have an owner and bounded
 cancel/drain/dispose behavior. Anything that must survive restart requires the
 Foundation-owned durable primitive specified by the Corpus/plan.

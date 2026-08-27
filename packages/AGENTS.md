@@ -20,5 +20,21 @@ If a change requires moving Authority, introducing a new cross-package
 dependency, adding compatibility behavior, or contradicting the Corpus, stop
 with `PLAN_GAP`.
 
+## Mechanics Ownership Preflight
+
+Before adding a helper, class, or adapter for schema/parsing, discovery,
+processes, concurrency, retry/timeout, graphs, state machines, disposal,
+serialization, database, queue, observability, or protocol mechanics, use:
+
+```text
+package search → workspace exports → packages/INDEX.md + README
+→ dependency route → reuse/extend owner → custom only with evidence
+```
+
+Examples: use/extend `schema-runtime` for Ajv/TypeBox; adopted XState for a
+complex local FSM; repo-kit process, YAML, and discovery helpers for repository
+tooling (backed by Execa, `yaml`, and `tinyglobby`). Do not create package-local
+`AGENTS.md` files.
+
 Run the package's focused verification targets and all affected repository
 gates before claiming completion.

@@ -1,15 +1,18 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   authority,
   readPackageManagerBaseline,
+  readYamlFile,
   validateNodeVersionProjections,
   readWorkspaceCatalog,
   readWorkspaceSection,
+  repositoryToolingPackages,
   resolveExpectedInstalledPackageVersions,
+  routes,
   runPnpm,
   runProcessChecked,
 } from "@heptalogos/repo-kit";
@@ -17,7 +20,13 @@ import {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const require = createRequire(import.meta.url);
 const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-const workspace = readFileSync(join(root, "pnpm-workspace.yaml"), "utf8");
+const workspacePath = join(root, "pnpm-workspace.yaml");
+let workspaceDocument;
+try {
+  workspaceDocument = readYamlFile(workspacePath);
+} catch (error) {
+  workspaceDocument = {};
+}
 const baseTsconfig = JSON.parse(readFileSync(join(root, "tsconfig.base.json"), "utf8"));
 const nxConfig = JSON.parse(readFileSync(join(root, "nx.json"), "utf8"));
 const errors = [];
@@ -46,7 +55,7 @@ async function run(label, command, args) {
       command === "pnpm"
         ? await runPnpm(args, { cwd: root })
         : await runProcessChecked(command, args, { cwd: root });
-    return `${result.stdout}${result.stderr}`.trim();
+    return result.stdout.trim();
   } catch (error) {
     const result = error.result;
     const detail = result ? `${result.stdout}${result.stderr}`.trim() : error.message;
@@ -57,7 +66,13 @@ async function run(label, command, args) {
 
 function packageVersion(name) {
   try {
-    const packagePath = require.resolve(`${name}/package.json`);
+    let packagePath;
+    try {
+      packagePath = require.resolve(`${name}/package.json`);
+    } catch {
+      packagePath = resolve(root, "node_modules", ...name.split("/"), "package.json");
+      if (!existsSync(packagePath)) throw new Error("package metadata is missing");
+    }
     return JSON.parse(readFileSync(packagePath, "utf8")).version;
   } catch (error) {
     fail(`${name}: unable to resolve package metadata (${error.message})`);
@@ -91,17 +106,13 @@ try {
 }
 
 const toolchainPackageNames = [
-  "@nx/js",
-  "@nx/eslint-plugin",
-  "@types/node",
-  "@typescript/native",
-  "eslint",
-  "nx",
-  "prettier",
-  "typescript",
-  "typescript-eslint",
-  "vitest",
-];
+  ...new Set([
+    ...(routes.get("tooling.build")?.packages ?? []),
+    ...repositoryToolingPackages,
+  ]),
+]
+  .filter((name) => packageJson.devDependencies?.[name] === "catalog:")
+  .sort();
 try {
   expectedInstalledVersions = resolveExpectedInstalledPackageVersions({
     root,
@@ -119,22 +130,22 @@ if (!Number.isInteger(minimumReleaseAge) || minimumReleaseAge < 0) {
 expectEqual("node", process.versions.node, baseline?.node);
 expectEqual("packageManager", packageJson.packageManager, baseline?.packageManager);
 expectEqual("engines.node", packageJson.engines?.node, baseline?.node);
-if (!/^catalogMode:\s+strict$/m.test(workspace)) {
+if (workspaceDocument.catalogMode !== "strict") {
   fail("workspace catalogMode: expected strict");
 }
-if (!/^strictPeerDependencies:\s+true$/m.test(workspace)) {
+if (workspaceDocument.strictPeerDependencies !== true) {
   fail("workspace strictPeerDependencies: expected true");
 }
-if (!/^engineStrict:\s+true$/m.test(workspace)) {
+if (workspaceDocument.engineStrict !== true) {
   fail("workspace engineStrict: expected true");
 }
 if (
   Number.isInteger(minimumReleaseAge) &&
-  !new RegExp(`^minimumReleaseAge:\\s+${minimumReleaseAge}$`, "m").test(workspace)
+  workspaceDocument.minimumReleaseAge !== minimumReleaseAge
 ) {
   fail(`workspace minimumReleaseAge: expected ${minimumReleaseAge}`);
 }
-if (/^nodeLinker:/m.test(workspace)) {
+if (Object.hasOwn(workspaceDocument, "nodeLinker")) {
   fail("workspace nodeLinker: expected pnpm default isolated");
 }
 const pnpmConfigOutput = await run("pnpm.config", "pnpm", ["config", "list", "--json"]);
@@ -167,7 +178,10 @@ expectEqual(
   overrides?.["@types/node"],
   catalog?.["@types/node"],
 );
-if (!/^  esbuild:\s+true$/m.test(workspace) || !/^  nx:\s+true$/m.test(workspace)) {
+if (
+  JSON.stringify(workspaceDocument.allowBuilds) !==
+  JSON.stringify({ esbuild: true, nx: true })
+) {
   fail("workspace allowBuilds: expected only esbuild and nx");
 }
 

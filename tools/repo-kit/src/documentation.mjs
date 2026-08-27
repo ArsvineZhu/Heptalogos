@@ -1,10 +1,13 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { basename, dirname, join, resolve } from "node:path";
 import { containsDevelopmentProvenance } from "./current-tree-hygiene.mjs";
+import { findRepositoryFilesSync } from "./discovery.mjs";
+import { markdownLinks, markdownTargets } from "./markdown.mjs";
+import {
+  isWithinPath as isWithin,
+  normalizeRepositoryPath as normalize,
+} from "./paths.mjs";
 import { CURRENT_MACHINE_AUTHORITIES } from "./repository-governance.mjs";
-
-const repositoryRoot = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 
 const requiredEntrypoints = [
   "docs/README.md",
@@ -41,52 +44,12 @@ const provenanceStandingDocuments = new Set([
 const authorityReferencePattern =
   /(?<![A-Za-z0-9_./\\-])(?:\.\.?\/|[A-Za-z0-9_.-]+\/)+[A-Za-z0-9_.-]+\.json\b/gu;
 
-function normalize(root, path) {
-  return relative(root, path).replaceAll("\\", "/");
-}
-
-function isWithin(root, path) {
-  const rootPath = resolve(root);
-  const candidate = resolve(path);
-  const remainder = relative(rootPath, candidate);
-  return remainder === "" || (!remainder.startsWith("..") && !isAbsolute(remainder));
-}
-
-function walkFiles(directory) {
-  if (!existsSync(directory) || !statSync(directory).isDirectory()) return [];
-  const files = [];
-  for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) files.push(...walkFiles(path));
-    else if (entry.isFile()) files.push(path);
-  }
-  return files;
-}
-
 function localMarkdownLinks(text) {
-  const links = [];
-  const linkPattern = /\[[^\]]*\]\((<[^>]+>|[^)\s]+)(?:\s+["'][^)]*["'])?\)/gu;
-  for (const match of text.matchAll(linkPattern)) {
-    let target = match[1];
-    if (target.startsWith("<") && target.endsWith(">")) {
-      target = target.slice(1, -1);
-    }
-    if (
-      target.startsWith("http://") ||
-      target.startsWith("https://") ||
-      target.startsWith("mailto:") ||
-      target.startsWith("#")
-    ) {
-      continue;
-    }
-    const path = target.split("#", 1)[0];
-    if (path) links.push({ target: path });
-  }
-  return links;
+  return markdownLinks(text, { ignoreFencedCode: true });
 }
 
 function localMarkdownTargets(text) {
-  return localMarkdownLinks(text).map(({ target }) => target);
+  return markdownTargets(text, { ignoreFencedCode: true });
 }
 
 function isHistoricalPlan(relativePath) {
@@ -342,9 +305,10 @@ function validateArchitectureIndex(docsRoot, repository, errors) {
           entry.isFile() && entry.name.endsWith(".md") && entry.name !== "README.md",
       )
       .map((entry) => join(architectureRoot, entry.name)),
-    ...walkFiles(join(architectureRoot, "contracts")).filter((path) =>
-      path.endsWith(".md"),
-    ),
+    ...findRepositoryFilesSync({
+      root: repository,
+      patterns: ["docs/architecture/contracts/**/*.md"],
+    }),
   ].sort();
   const counts = new Map(expected.map((path) => [normalize(repository, path), 0]));
   for (const target of localMarkdownTargets(readFileSync(indexPath, "utf8"))) {
@@ -372,7 +336,7 @@ function validateArchitectureIndex(docsRoot, repository, errors) {
   }
 }
 
-export function validateDocumentation({ root = repositoryRoot } = {}) {
+export function validateDocumentation({ root = process.cwd() } = {}) {
   const repository = resolve(root);
   const docsRoot = join(repository, "docs");
   const errors = [];
@@ -382,7 +346,10 @@ export function validateDocumentation({ root = repositoryRoot } = {}) {
     return { errors, markdownCount: 0, jsonCount: 0 };
   }
 
-  const files = walkFiles(docsRoot);
+  const files = findRepositoryFilesSync({
+    root: repository,
+    patterns: ["docs/**/*.md", "docs/**/*.json"],
+  });
   const markdownFiles = files.filter((path) => path.endsWith(".md"));
   const jsonFiles = files.filter((path) => path.endsWith(".json"));
   validateJson(jsonFiles, repository, errors);
@@ -399,18 +366,4 @@ export function validateDocumentation({ root = repositoryRoot } = {}) {
     ),
   );
   return { errors, markdownCount: markdownFiles.length, jsonCount: jsonFiles.length };
-}
-
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const result = validateDocumentation();
-  if (result.errors.length > 0) {
-    for (const error of result.errors) {
-      console.error(`FAIL ${error.code} ${error.path}: ${error.message}`);
-    }
-    process.exitCode = 1;
-  } else {
-    console.log(
-      `PASS documentation structure: markdown=${result.markdownCount} json=${result.jsonCount}`,
-    );
-  }
 }

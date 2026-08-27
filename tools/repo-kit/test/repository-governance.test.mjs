@@ -27,7 +27,8 @@ const workflowPrefix = [
   "  contents: read",
   "",
   "DISPATCHED_SHA: $" + "{{ github.sha }}",
-  "process.env.DISPATCHED_SHA",
+  "verification-script: |",
+  "  process.env.DISPATCHED_SHA",
   "",
 ].join("\n");
 const baseOutput = "      base_sha: $" + "{{ steps.resolve.outputs.base_sha }}\n";

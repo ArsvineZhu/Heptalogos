@@ -3,7 +3,7 @@
 The scripts tree is the repository control plane:
 
 - `verify/` — permanent, independently runnable leaf gates.
-- `gates/` — aggregate gate-graph orchestration only.
+- Aggregate repository orchestration belongs to Nx project targets.
 - `maintenance/` — safe repository mutation and cleanup commands.
 - `tools/repo-kit/` — reusable implementation, tests, and process mechanics.
 

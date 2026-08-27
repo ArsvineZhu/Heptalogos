@@ -1,29 +1,16 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { section } from "./markdown.mjs";
+import {
+  isWithinPath as isWithin,
+  normalizeRepositoryPath as normalize,
+} from "./paths.mjs";
 import { discoverProductPackages } from "./workspace.mjs";
 
 const PACKAGE_INDEX_PATH = "packages/INDEX.md";
 
-function normalize(root, path) {
-  return relative(root, path).replaceAll("\\", "/");
-}
-
-function isWithin(root, path) {
-  const remainder = relative(resolve(root), resolve(path));
-  return remainder === "" || (!remainder.startsWith("..") && !isAbsolute(remainder));
-}
-
 function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
-}
-
-function section(source, heading) {
-  const marker = `## ${heading}`;
-  const start = source.indexOf(marker);
-  if (start < 0) return "";
-  const body = source.slice(start + marker.length);
-  const nextHeading = body.search(/^##\s+/mu);
-  return nextHeading < 0 ? body : body.slice(0, nextHeading);
 }
 
 function purposeSummary(source) {

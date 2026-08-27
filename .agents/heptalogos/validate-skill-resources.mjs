@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { findRepositoryFilesSync, parseYaml } from '@heptalogos/repo-kit';
 
 const scriptFile = fileURLToPath(import.meta.url);
 const scriptDir = path.dirname(scriptFile);
@@ -50,13 +51,16 @@ function parseFrontmatter(text, file) {
     return null;
   }
 
-  const result = {};
-  for (const line of match[1].split('\n')) {
-    const index = line.indexOf(':');
-    if (index < 0) continue;
-    const key = line.slice(0, index).trim();
-    const value = line.slice(index + 1).trim().replace(/^['"]|['"]$/g, '');
-    result[key] = value;
+  let result;
+  try {
+    result = parseYaml(match[1], file);
+  } catch (error) {
+    fail(`Invalid YAML frontmatter: ${path.relative(repoRoot, file)}: ${error.message}`);
+    return null;
+  }
+  if (!result || typeof result !== 'object' || Array.isArray(result)) {
+    fail(`YAML frontmatter must be a mapping: ${path.relative(repoRoot, file)}`);
+    return null;
   }
   return result;
 }
@@ -162,10 +166,11 @@ const routeNames = new Set(Object.keys(routesDoc?.routes ?? {}));
 const skillNames = new Set();
 
 if (fs.existsSync(skillsDir)) {
-  for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    const skillName = entry.name;
-    const skillFile = path.join(skillsDir, skillName, 'SKILL.md');
+  for (const skillFile of findRepositoryFilesSync({
+    root: skillsDir,
+    patterns: ['*/SKILL.md'],
+  })) {
+    const skillName = path.basename(path.dirname(skillFile));
     if (!requireFile(skillFile)) continue;
 
     skillNames.add(skillName);

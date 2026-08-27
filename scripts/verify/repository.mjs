@@ -1,9 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   discoverProductPackages,
+  findRepositoryFiles,
+  parseYaml,
   validateMachineAuthorityConsumers,
   validatePackageDocumentation,
   validatePackageIndex,
@@ -14,63 +16,57 @@ import {
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 
 export async function findSourceTestFiles({ root, productPackages } = {}) {
-  const findings = [];
-  const visit = (directory) => {
-    if (!existsSync(directory)) return;
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      const path = join(directory, entry.name);
-      if (entry.isDirectory()) {
-        visit(path);
-      } else if (entry.isFile() && /\.test\.tsx?$/u.test(entry.name)) {
-        findings.push(path);
+  const packages = productPackages ?? (await discoverProductPackages({ root }));
+  if (packages.length === 0) return [];
+  return findRepositoryFiles({
+    root: join(resolve(root), "packages"),
+    patterns: packages.map(
+      ({ directoryName }) => `${directoryName}/src/**/*.test.{ts,tsx}`,
+    ),
+  });
+}
+
+function workflowUses(workflow) {
+  const uses = [];
+  for (const job of Object.values(workflow?.jobs ?? {})) {
+    if (!job || typeof job !== "object" || !Array.isArray(job.steps)) continue;
+    for (const step of job.steps) {
+      if (step && typeof step === "object" && typeof step.uses === "string") {
+        uses.push(step.uses);
       }
     }
-  };
-  const packages = productPackages ?? (await discoverProductPackages({ root }));
-  for (const packageInfo of packages) {
-    visit(join(packageInfo.directory, "src"));
   }
-  return findings.sort();
+  return uses;
 }
 
-function workflowDispatchInputs(workflow) {
-  const lines = workflow.split(/\r?\n/u);
-  const dispatchIndex = lines.findIndex((line) =>
-    /^ {2}workflow_dispatch:\s*$/u.test(line),
+function normalizeGitHubExpressionsForYaml(workflow) {
+  return workflow.replace(
+    /(:\s*)\$\{\{[^}\r\n]*\}\}(?=\s*(?:#.*)?$)/gmu,
+    '$1"__github_expression__"',
   );
-  if (dispatchIndex < 0) return "";
-  const inputsIndex = lines.findIndex(
-    (line, index) => index > dispatchIndex && /^ {4}inputs:\s*$/u.test(line),
-  );
-  if (inputsIndex < 0) return "";
-
-  const block = [];
-  for (const line of lines.slice(inputsIndex + 1)) {
-    if (line.length > 0 && !/^\s/u.test(line)) break;
-    block.push(line);
-  }
-  return block.join("\n");
-}
-
-function workflowOnDirectKeys(workflow) {
-  const lines = workflow.split(/\r?\n/u);
-  const onIndex = lines.findIndex((line) => /^on:\s*(?:#.*)?$/u.test(line));
-  if (onIndex < 0) return [];
-
-  const keys = [];
-  for (const line of lines.slice(onIndex + 1)) {
-    if (line.length > 0 && !/^\s/u.test(line)) break;
-    const match = line.match(/^ {2}([A-Za-z0-9_-]+):(?:\s.*)?$/u);
-    if (match !== null) keys.push(match[1]);
-  }
-  return keys;
 }
 
 export function validateVerifyWorkflow(workflow) {
   const errors = [];
   const fail = (message) => errors.push(message);
 
-  if (!/^\s{2}workflow_dispatch:\s*$/mu.test(workflow)) {
+  let document;
+  try {
+    document = parseYaml(
+      normalizeGitHubExpressionsForYaml(workflow),
+      "verify workflow",
+    );
+  } catch (error) {
+    fail(`verify workflow YAML is invalid: ${error.message}`);
+    return errors;
+  }
+
+  const workflowOn = document?.on;
+  if (!workflowOn || typeof workflowOn !== "object" || Array.isArray(workflowOn)) {
+    fail("verify workflow must expose workflow_dispatch");
+  }
+  const onDirectKeys = new Set(Object.keys(workflowOn ?? {}));
+  if (!onDirectKeys.has("workflow_dispatch")) {
     fail("verify workflow must expose workflow_dispatch");
   }
 
@@ -84,21 +80,20 @@ export function validateVerifyWorkflow(workflow) {
     "workflow_call",
   ];
 
-  const onDirectKeys = new Set(workflowOnDirectKeys(workflow));
   for (const trigger of forbiddenTriggers) {
     if (onDirectKeys.has(trigger)) {
       fail(`verify workflow must not auto-trigger via ${trigger}`);
     }
   }
 
-  for (const input of ["pr_number:", "reason:"]) {
-    if (!workflow.includes(input)) {
-      fail(`verify workflow missing manual input: ${input}`);
+  const inputs = workflowOn?.workflow_dispatch?.inputs;
+  for (const input of ["pr_number", "reason"]) {
+    if (!inputs || typeof inputs !== "object" || !Object.hasOwn(inputs, input)) {
+      fail(`verify workflow missing manual input: ${input}:`);
     }
   }
-  const inputsBlock = workflowDispatchInputs(workflow);
   for (const input of ["base_sha", "target_sha"]) {
-    if (new RegExp(`^ {6}${input}:`, "mu").test(inputsBlock)) {
+    if (inputs && typeof inputs === "object" && Object.hasOwn(inputs, input)) {
       fail(`verify workflow must not expose revision input: ${input}:`);
     }
   }
@@ -110,8 +105,10 @@ export function validateVerifyWorkflow(workflow) {
     fail("verify workflow must validate the dispatch-bound candidate revision");
   }
 
-  const usesLines = [...workflow.matchAll(/^\s*-\s+uses:\s+([^@\s]+)@([^\s]+)\s*$/gmu)];
-  for (const [, action, ref] of usesLines) {
+  for (const use of workflowUses(document)) {
+    const separator = use.lastIndexOf("@");
+    const action = separator > 0 ? use.slice(0, separator) : use;
+    const ref = separator > 0 ? use.slice(separator + 1) : "";
     if (!/^[0-9a-f]{40}$/u.test(ref)) {
       fail(`GitHub Action must be pinned to a full commit SHA: ${action}@${ref}`);
     }
@@ -143,18 +140,6 @@ async function main() {
 
   for (const error of validateRootPackageIdentity({ root })) fail(error);
 
-  const ignoredDirectories = new Set([
-    ".git",
-    ".nx",
-    ".pnpm-store",
-    ".vite",
-    ".cache",
-    "coverage",
-    "dist",
-    "node_modules",
-    "test-results",
-    "tmp",
-  ]);
   const forbiddenLockfiles = new Set([
     "package-lock.json",
     "yarn.lock",
@@ -163,17 +148,24 @@ async function main() {
     "bun.lockb",
   ]);
 
-  function walk(directory) {
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      const path = join(directory, entry.name);
-      if (entry.isDirectory()) {
-        if (!ignoredDirectories.has(entry.name)) walk(path);
-      } else if (forbiddenLockfiles.has(entry.name)) {
-        fail(`forbidden second package-resolution file: ${path}`);
-      }
-    }
+  for (const path of await findRepositoryFiles({
+    root,
+    patterns: [...forbiddenLockfiles].map((name) => `**/${name}`),
+    ignore: [
+      ".git/**",
+      ".nx/**",
+      ".pnpm-store/**",
+      ".vite/**",
+      ".cache/**",
+      "coverage/**",
+      "dist/**",
+      "node_modules/**",
+      "test-results/**",
+      "tmp/**",
+    ],
+  })) {
+    fail(`forbidden second package-resolution file: ${path}`);
   }
-  walk(root);
 
   for (const path of await findSourceTestFiles({ root })) {
     fail(`package test must live under a package test plane, not src: ${path}`);

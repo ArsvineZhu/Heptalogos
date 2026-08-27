@@ -29,7 +29,8 @@
         ],
         "implementation-entry": [
           "docs/README.md",
-          "docs/INDEX.md"
+          "docs/INDEX.md",
+          "docs/engineering/playbooks/mechanics-ownership-and-library-first.md"
         ]
       }
     },
@@ -174,7 +175,8 @@
         "docs/qualification/dependencies.md",
         "docs/qualification/dependency-status.json",
         "docs/dependencies/dependency-routing.json",
-        "docs/qualification/evidence/dependency-baseline-2026-08-20.md"
+        "docs/qualification/evidence/dependency-baseline-2026-08-20.md",
+        "docs/engineering/playbooks/mechanics-ownership-and-library-first.md"
       ],
       "conditional": {
         "deferred-role": [

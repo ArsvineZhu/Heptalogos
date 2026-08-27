@@ -8,7 +8,7 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint packages/foundation-contracts"
+        "command": "oxlint --type-aware packages/foundation-contracts"
       }
     },
     "test": {

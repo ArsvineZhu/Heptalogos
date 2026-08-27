@@ -8,7 +8,7 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint packages/bootstrap-runtime"
+        "command": "oxlint --type-aware packages/bootstrap-runtime"
       }
     },
     "test": {

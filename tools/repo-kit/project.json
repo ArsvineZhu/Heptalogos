@@ -7,7 +7,7 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint tools/repo-kit"
+        "command": "oxlint --type-aware tools/repo-kit"
       }
     },
     "test": {
