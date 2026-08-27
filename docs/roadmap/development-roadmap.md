@@ -343,21 +343,23 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 ```yaml
 H3: OPEN
 H3A: ACTIVE
-H3A_1: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+H3A_1: ACTIVE
 H3A_2: NOT_ELIGIBLE
 H3B: NOT_ELIGIBLE
 H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
-candidateFreeze: PASS
+candidateFreeze: BLOCKED
 independentReview: NOT_RUN
 activeImplementationPlan: docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md
 ```
 
 The current H3A-1 implementation includes complete creation-request envelope
-snapshotting and the canonical fair-scan projection index. Fresh focused
-suites, the explicit PostgreSQL 18.6 Ubuntu integration, and the final
-repository gate passed, so candidate freeze is `PASS`. The out-of-band
-Independent Review remains `NOT_RUN`, and H3A-2 remains `NOT_ELIGIBLE`.
+snapshotting and the canonical fair-scan projection index. The previous final
+cross-platform candidate run exposed two Windows-only bootstrap-runtime test
+timeouts, so the candidate is reopened for a bounded test-budget correction.
+Fresh full-head qualification, renewed out-of-band Independent Review, and
+final manual CI are pending; candidate freeze is `BLOCKED`. H3A-2 remains
+`NOT_ELIGIBLE`.
 
 ### Implementation decomposition
 

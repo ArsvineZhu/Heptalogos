@@ -42,7 +42,7 @@ import { resolveBootstrapPathProfile } from "./roots.js";
 
 const directories: string[] = [];
 const LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
-const PROCESS_INSPECTION_TEST_TIMEOUT_MS = 15_000;
+const PROCESS_INSPECTION_TEST_TIMEOUT_MS = 30_000;
 
 async function makeFixture() {
   const anchorRoot = await mkdtemp(join(tmpdir(), "heptalogos-recovery-inspect-"));

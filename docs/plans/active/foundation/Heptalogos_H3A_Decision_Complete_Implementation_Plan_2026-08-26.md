@@ -19,21 +19,23 @@
 ```yaml
 H3: OPEN
 H3A: ACTIVE
-H3A_1: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+H3A_1: ACTIVE
 H3A_2: NOT_ELIGIBLE
-candidateFreeze: PASS
+candidateFreeze: BLOCKED
 independentReview: NOT_RUN
 ```
 
 H3A-1 remains bounded to the current engine-neutral WorkQueue, WorkHandler,
 Signal, reconciliation, admission, cancellation, and lineage semantics. The
 current implementation includes complete creation-request envelope
-snapshotting and the canonical fair-scan projection index; fresh focused and
-real PostgreSQL qualification and the final repository gate have passed, so
-the current candidate is frozen. The DBOS real engine and process-crash
-boundaries remain deferred to H3A-2. Historical implementation sequence and
-superseded development text belong in Git history and qualification history;
-this active plan is the single current specification.
+snapshotting and the canonical fair-scan projection index. The previous final
+cross-platform candidate run exposed two Windows-only bootstrap-runtime test
+timeouts, so this candidate is reopened for a bounded test-budget correction;
+fresh full-head qualification, renewed Independent Review, and final manual CI
+are pending. The DBOS real engine and process-crash boundaries remain deferred
+to H3A-2. Historical implementation sequence and superseded development text
+belong in Git history and qualification history; this active plan is the
+single current specification.
 
 ---
 
