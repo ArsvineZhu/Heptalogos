@@ -250,8 +250,8 @@ RoleDecision = ADOPTED
 机器可读状态与实现路由分别由：
 
 ```text
-qualification/dependency-status.json
-references/dependency-routing.json
+docs/qualification/dependency-status.json
+docs/dependencies/dependency-routing.json
 ```
 
 实现仓库还必须用 pnpm Catalog + `catalogMode: strict` 集中依赖版本，并用 Nx/ESLint/route gate 机械约束 adapter import boundaries；不能只依赖开发者记得读文档。

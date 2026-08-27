@@ -2,7 +2,7 @@
 
 本文件冻结 Foundation implementation repository 的语言、模块、编译、包管理和工具链责任边界。它不是“最低兼容版本”清单，而是当前项目应采用的默认实现路线。
 
-机器可读依赖状态见 `../../qualification/dependency-status.json`；实现路由见 `../../dependencies/dependency-routing.json`。
+机器可读依赖状态见 `docs/qualification/dependency-status.json`；实现路由见 `docs/dependencies/dependency-routing.json`。
 
 ---
 
@@ -290,6 +290,12 @@ qualification records         → observed evidence only
 
 Semantic schema, payload, protocol, and migration versions remain with their
 owning contract; they are not globalized into this graph.
+
+For dependency/runtime compatibility, `docs/dependencies/dependency-routing.json`
+stores machine-readable `versionConstraint` or
+`packageVersionConstraints` values on the owning route. The dependency gate
+checks the exact Node selection and exact Catalog selections against those
+major/optional-minor lines; it does not infer constraints from prose.
 
 ## 10. Repository enforcement
 

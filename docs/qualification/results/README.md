@@ -1,6 +1,6 @@
 # Foundation 依赖资格证据
 
-本目录保存当前 Architecture decision 所依据的 Q/C property evidence。**Evidence record 不是 RoleDecision Authority**；角色状态只读取 `../dependency-status.json`，实现路由只读取 `../../references/dependency-routing.json`。
+本目录保存当前 Architecture decision 所依据的 Q/C property evidence。**Evidence record 不是 RoleDecision Authority**；角色状态只读取 `docs/qualification/dependency-status.json`，实现路由只读取 `docs/dependencies/dependency-routing.json`。
 
 当前 Foundation pre-implementation provider selection 已关闭。Q 系列记录中的 `NOT_RUN` 表示某些 platform/native/source-less/product property 尚待实现期验证，不表示 role 仍为候选。
 
@@ -30,14 +30,14 @@ Product qualification deferred to implementation
   Q-PERSISTENCE-01
 ```
 
-Machine-readable property ledger: `qualification-status.json`。
+Machine-readable property ledger: `docs/qualification/results/qualification-status.json`。
 
-`qualification-status.json` is the current property ledger. Historical sections
+`docs/qualification/results/qualification-status.json` is the current property ledger. Historical sections
 in `Q-*.md` are evidence history, not the current behavior contract.
 Independent review, final CI, and squash merge are external candidate-closure
 evidence; they must not be self-recorded by a post-review repository commit.
 
-`qualificationState` 只描述该证据记录的剩余 qualification 完整度：`CLOSED` 表示该记录要求的 property 已关闭，`PARTIAL/OPEN` 表示仍有 implementation/product property 未运行；它**不表示 RoleDecision 重新开放**。RoleDecision 是否开放只读取 `dependency-status.json` / `preImplementationDecisionState`。
+`qualificationState` 只描述该证据记录的剩余 qualification 完整度：`CLOSED` 表示该记录要求的 property 已关闭，`PARTIAL/OPEN` 表示仍有 implementation/product property 未运行；它**不表示 RoleDecision 重新开放**。RoleDecision 是否开放只读取 `docs/qualification/dependency-status.json` / `preImplementationDecisionState`。
 
 | ID                    | Evidence                                             |
 | --------------------- | ---------------------------------------------------- |

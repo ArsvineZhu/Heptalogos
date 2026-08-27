@@ -1,6 +1,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { containsDevelopmentProvenance } from "./current-tree-hygiene.mjs";
+import { CURRENT_MACHINE_AUTHORITIES } from "./repository-governance.mjs";
 
 const repositoryRoot = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 
@@ -15,6 +17,29 @@ const requiredEntrypoints = [
   "docs/dependencies/dependency-routing.json",
   "docs/qualification/dependency-status.json",
 ];
+
+const currentAuthorityByFilename = new Map(
+  CURRENT_MACHINE_AUTHORITIES.map((entry) => [basename(entry.path), entry]),
+);
+
+const provenanceStandingDocumentRoots = Object.freeze([
+  "docs/architecture/",
+  "docs/governance/",
+  "docs/product/",
+  "docs/reference/",
+  "docs/dependencies/",
+  "docs/engineering/repository/",
+  "docs/engineering/playbooks/",
+  "docs/engineering/gotchas/repository/",
+]);
+
+const provenanceStandingDocuments = new Set([
+  "docs/engineering/README.md",
+  "docs/engineering/PLAYBOOK.md",
+]);
+
+const authorityReferencePattern =
+  /(?<![A-Za-z0-9_./\\-])(?:\.\.?\/|[A-Za-z0-9_.-]+\/)+[A-Za-z0-9_.-]+\.json\b/gu;
 
 function normalize(root, path) {
   return relative(root, path).replaceAll("\\", "/");
@@ -38,8 +63,8 @@ function walkFiles(directory) {
   return files;
 }
 
-function localMarkdownTargets(text) {
-  const targets = [];
+function localMarkdownLinks(text) {
+  const links = [];
   const linkPattern = /\[[^\]]*\]\((<[^>]+>|[^)\s]+)(?:\s+["'][^)]*["'])?\)/gu;
   for (const match of text.matchAll(linkPattern)) {
     let target = match[1];
@@ -55,9 +80,13 @@ function localMarkdownTargets(text) {
       continue;
     }
     const path = target.split("#", 1)[0];
-    if (path) targets.push(path);
+    if (path) links.push({ target: path });
   }
-  return targets;
+  return links;
+}
+
+function localMarkdownTargets(text) {
+  return localMarkdownLinks(text).map(({ target }) => target);
 }
 
 function isHistoricalPlan(relativePath) {
@@ -66,6 +95,87 @@ function isHistoricalPlan(relativePath) {
 
 function isStandingDocument(relativePath) {
   return !isHistoricalPlan(relativePath);
+}
+
+function isAuthorityStandingDocument(relativePath) {
+  if (!isStandingDocument(relativePath)) return false;
+  if (
+    relativePath.startsWith("docs/plans/") ||
+    relativePath.startsWith("docs/roadmap/") ||
+    relativePath.startsWith("docs/qualification/evidence/") ||
+    (relativePath.startsWith("docs/qualification/results/") &&
+      relativePath !== "docs/qualification/results/README.md")
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function isProvenanceStandingDocument(relativePath) {
+  return (
+    provenanceStandingDocuments.has(relativePath) ||
+    provenanceStandingDocumentRoots.some((root) => relativePath.startsWith(root))
+  );
+}
+
+function authorityForReference(reference) {
+  return currentAuthorityByFilename.get(basename(reference.replaceAll("\\", "/")));
+}
+
+function resolveAuthorityReference(repository, sourcePath, reference) {
+  const normalized = reference.replaceAll("\\", "/");
+  const target = normalized.startsWith("docs/")
+    ? resolve(repository, normalized)
+    : resolve(dirname(sourcePath), normalized);
+  return normalize(repository, target);
+}
+
+function validateCanonicalAuthorityReference(
+  repository,
+  sourcePath,
+  reference,
+  errors,
+  reported,
+) {
+  const authority = authorityForReference(reference);
+  if (!authority) return;
+  const resolvedTarget = resolveAuthorityReference(repository, sourcePath, reference);
+  if (resolvedTarget === authority.path) return;
+
+  const key = `${authority.path}|${reference}|${resolvedTarget}`;
+  if (reported.has(key)) return;
+  reported.add(key);
+  addError(
+    errors,
+    "noncanonical-authority-reference",
+    normalize(repository, sourcePath),
+    `current Authority ${authority.path} must be referenced from its canonical home; ${reference} resolves to ${resolvedTarget}`,
+  );
+}
+
+function validateCanonicalAuthorityReferences(sourcePath, source, repository, errors) {
+  const reported = new Set();
+  for (const { target } of localMarkdownLinks(source)) {
+    validateCanonicalAuthorityReference(
+      repository,
+      sourcePath,
+      target,
+      errors,
+      reported,
+    );
+  }
+
+  for (const match of source.matchAll(authorityReferencePattern)) {
+    const prefix = source.slice(Math.max(0, match.index - 12), match.index);
+    if (/(?:https?:|mailto:)[^\s]*$/iu.test(prefix)) continue;
+    validateCanonicalAuthorityReference(
+      repository,
+      sourcePath,
+      match[0],
+      errors,
+      reported,
+    );
+  }
 }
 
 function addError(errors, code, path, message) {
@@ -153,6 +263,9 @@ function validateStandingLinks(markdownFiles, repository, errors) {
         "current documentation must link the compatibility register from docs/governance/compatibility-obligations.json",
       );
     }
+    if (isAuthorityStandingDocument(relativePath)) {
+      validateCanonicalAuthorityReferences(path, source, repository, errors);
+    }
     for (const target of localMarkdownTargets(source)) {
       const resolvedTarget = resolve(dirname(path), target);
       if (!isWithin(repository, resolvedTarget)) {
@@ -170,6 +283,22 @@ function validateStandingLinks(markdownFiles, repository, errors) {
           `local documentation link does not resolve: ${target}`,
         );
       }
+    }
+  }
+}
+
+function validateStandingProvenance(markdownFiles, repository, errors) {
+  for (const path of markdownFiles) {
+    const relativePath = normalize(repository, path);
+    if (!isProvenanceStandingDocument(relativePath)) continue;
+    const source = readFileSync(path, "utf8");
+    if (containsDevelopmentProvenance(source, { ignoreQualificationIds: true })) {
+      addError(
+        errors,
+        "development-provenance",
+        relativePath,
+        "standing documentation must not contain development milestone, PR, session, or corrective-cycle provenance",
+      );
     }
   }
 }
@@ -260,6 +389,7 @@ export function validateDocumentation({ root = repositoryRoot } = {}) {
   validateTranslationPolicy(files, repository, errors);
   validateNestedAgents(files, repository, errors);
   validateStandingLinks(markdownFiles, repository, errors);
+  validateStandingProvenance(markdownFiles, repository, errors);
   validateDocumentationIndex(docsRoot, repository, errors);
   validateArchitectureIndex(docsRoot, repository, errors);
 

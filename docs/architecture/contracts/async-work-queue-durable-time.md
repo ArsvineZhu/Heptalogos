@@ -417,7 +417,7 @@ RUNNING
 → terminalization remains owned by the attempt-fenced commit
 
 WAITING_RESTORE_RECONCILIATION
-→ H3A-1 does not terminalize the WorkItem
+→ restore reconciliation does not terminalize the WorkItem
 → restore reconciliation remains its owner
 ```
 

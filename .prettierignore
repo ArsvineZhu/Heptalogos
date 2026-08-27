@@ -10,6 +10,5 @@ test-results/
 pnpm-lock.yaml
 .agents/
 AGENTS.md
-REPOSITORY_GENESIS_PLAN.md
 docs/plans/
 .codegraph/

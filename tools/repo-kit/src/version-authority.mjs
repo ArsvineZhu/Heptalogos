@@ -33,6 +33,70 @@ function parsePackageManager(value) {
 }
 
 const NODE_VERSION_PROJECTION_FILES = Object.freeze([".node-version", ".nvmrc"]);
+const DEPENDENCY_ROUTING_PATH = "docs/dependencies/dependency-routing.json";
+const STANDING_DEPENDENCY_DOCUMENTS = Object.freeze([
+  DEPENDENCY_ROUTING_PATH,
+  "docs/dependencies/implementation-routing.md",
+  "docs/dependencies/decision-ledger.md",
+  "docs/qualification/dependency-matrix.md",
+  "docs/qualification/dependencies.md",
+  "docs/qualification/dependency-status.json",
+  "docs/engineering/repository/toolchain.md",
+  "docs/engineering/gotchas/bootstrap/proper-lockfile-stale-reclaim.md",
+]);
+
+const EXACT_VERSION_PATTERN =
+  /^(?:v)?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u;
+
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function parseExactVersion(value) {
+  if (typeof value !== "string") return undefined;
+  const match = value.trim().match(EXACT_VERSION_PATTERN);
+  if (match === null) return undefined;
+  return {
+    major: Number(match[1]),
+    minor: Number(match[2]),
+    patch: Number(match[3]),
+  };
+}
+
+function validateVersionConstraint(constraint, label) {
+  if (!isRecord(constraint)) {
+    return [`${label} must be an object with an integer major and optional minor`];
+  }
+  const errors = [];
+  for (const key of Object.keys(constraint)) {
+    if (key !== "major" && key !== "minor") {
+      errors.push(`${label} contains unsupported field: ${key}`);
+    }
+  }
+  if (!Number.isInteger(constraint.major) || constraint.major < 0) {
+    errors.push(`${label}.major must be a non-negative integer`);
+  }
+  if (
+    constraint.minor !== undefined &&
+    (!Number.isInteger(constraint.minor) || constraint.minor < 0)
+  ) {
+    errors.push(`${label}.minor must be a non-negative integer when present`);
+  }
+  return errors;
+}
+
+function constraintDescription(constraint) {
+  return constraint.minor === undefined
+    ? `major ${constraint.major}`
+    : `major ${constraint.major}, minor ${constraint.minor}`;
+}
+
+function exactVersionSatisfies(version, constraint) {
+  return (
+    version.major === constraint.major &&
+    (constraint.minor === undefined || version.minor === constraint.minor)
+  );
+}
 
 export function readPackageManagerBaseline({ root = process.cwd() } = {}) {
   const packageJson = readJson(root, "package.json");
@@ -124,3 +188,197 @@ export function resolveExpectedInstalledPackageVersions({
     }),
   );
 }
+
+export function validateVersionAuthority({
+  root = process.cwd(),
+  dependencyRouting,
+  catalog,
+  packageManagerBaseline,
+} = {}) {
+  const repositoryRoot = resolve(root);
+  const errors = [];
+  let routing = dependencyRouting;
+  if (routing === undefined) {
+    try {
+      routing = readJson(repositoryRoot, DEPENDENCY_ROUTING_PATH);
+    } catch (error) {
+      return [`dependency routing Authority is unreadable: ${error.message}`];
+    }
+  }
+
+  let catalogValues = catalog;
+  if (catalogValues === undefined) {
+    try {
+      catalogValues = readWorkspaceCatalog({ root: repositoryRoot });
+    } catch (error) {
+      errors.push(`workspace catalog Authority is unreadable: ${error.message}`);
+      catalogValues = {};
+    }
+  }
+
+  let baseline = packageManagerBaseline;
+  if (baseline === undefined) {
+    try {
+      baseline = readPackageManagerBaseline({ root: repositoryRoot });
+    } catch (error) {
+      errors.push(`package manager Authority is unreadable: ${error.message}`);
+      baseline = undefined;
+    }
+  }
+
+  if (!Array.isArray(routing?.routes)) {
+    errors.push("dependency routing Authority must declare routes[]");
+    return errors;
+  }
+
+  const nodeRoute = routing.routes.find((route) => route?.roleId === "runtime.node");
+  if (nodeRoute === undefined) {
+    errors.push(
+      "dependency route missing machine-readable runtime.node version constraint",
+    );
+  } else if (baseline?.node !== undefined) {
+    const nodeConstraint = nodeRoute.versionConstraint;
+    errors.push(
+      ...validateVersionConstraint(
+        nodeConstraint,
+        "dependency route runtime.node versionConstraint",
+      ),
+    );
+    const nodeVersion = parseExactVersion(baseline.node);
+    if (nodeVersion === undefined) {
+      errors.push(
+        `package.json engines.node must be an exact semver selection for runtime.node validation: ${baseline.node}`,
+      );
+    } else if (
+      isRecord(nodeConstraint) &&
+      validateVersionConstraint(nodeConstraint, "runtime.node").length === 0 &&
+      !exactVersionSatisfies(nodeVersion, nodeConstraint)
+    ) {
+      errors.push(
+        `package.json engines.node ${baseline.node} is outside the adopted runtime.node line (${constraintDescription(nodeConstraint)})`,
+      );
+    }
+  }
+
+  const validatePackageSelection = (route, packageName, constraint) => {
+    const label = `dependency route ${route.roleId} package ${packageName} versionConstraint`;
+    errors.push(...validateVersionConstraint(constraint, label));
+    if (!Object.hasOwn(catalogValues, packageName)) return;
+
+    let selectedVersion;
+    try {
+      selectedVersion = resolveCatalogVersion(catalogValues[packageName], packageName);
+    } catch (error) {
+      errors.push(
+        `catalog selection for ${packageName} is unreadable: ${error.message}`,
+      );
+      return;
+    }
+    const parsedVersion = parseExactVersion(selectedVersion);
+    if (parsedVersion === undefined) {
+      errors.push(
+        `catalog selection for ${packageName} must be an exact semver for route-line validation: ${selectedVersion}`,
+      );
+      return;
+    }
+    if (
+      validateVersionConstraint(constraint, label).length === 0 &&
+      !exactVersionSatisfies(parsedVersion, constraint)
+    ) {
+      errors.push(
+        `catalog selection for ${packageName} ${selectedVersion} is outside the adopted ${route.roleId} line (${constraintDescription(constraint)})`,
+      );
+    }
+  };
+
+  for (const route of routing.routes) {
+    if (route?.roleId === "runtime.node") continue;
+    const packages = Array.isArray(route?.packages) ? route.packages : [];
+    if (route?.versionConstraint !== undefined) {
+      if (packages.length !== 1) {
+        errors.push(
+          `dependency route ${route?.roleId} versionConstraint requires exactly one package identity`,
+        );
+      } else {
+        validatePackageSelection(route, packages[0], route.versionConstraint);
+      }
+    }
+
+    if (route?.packageVersionConstraints === undefined) continue;
+    if (!isRecord(route.packageVersionConstraints)) {
+      errors.push(
+        `dependency route ${route?.roleId} packageVersionConstraints must be an object`,
+      );
+      continue;
+    }
+    for (const [packageName, constraint] of Object.entries(
+      route.packageVersionConstraints,
+    )) {
+      if (!packages.includes(packageName)) {
+        errors.push(
+          `dependency route ${route?.roleId} constrains a package not listed in packages[]: ${packageName}`,
+        );
+        continue;
+      }
+      validatePackageSelection(route, packageName, constraint);
+    }
+  }
+
+  return errors;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+}
+
+function packageExactVersionPattern(packageName) {
+  return new RegExp(
+    `(?<![A-Za-z0-9_./-])${escapeRegExp(packageName)}(?:@|\\s*(?:=|:)\\s*|\\s+)v?(\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?)(?![0-9A-Za-z.-])`,
+    "giu",
+  );
+}
+
+const exactNodeVersionPattern =
+  /\bnode(?:\.js)?(?:@|\s*(?:=|:)\s*|\s+)v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)(?![0-9A-Za-z.-])/giu;
+
+export function validateStandingDependencyDocuments({
+  root = process.cwd(),
+  packageNames = [],
+} = {}) {
+  const repositoryRoot = resolve(root);
+  const errors = [];
+  for (const relativePath of STANDING_DEPENDENCY_DOCUMENTS) {
+    const path = join(repositoryRoot, relativePath);
+    if (!readFileSyncSafely(path)) {
+      errors.push(`standing dependency document is missing: ${relativePath}`);
+      continue;
+    }
+    const source = readFileSync(path, "utf8");
+    for (const packageName of packageNames) {
+      if (typeof packageName !== "string" || packageName.length === 0) continue;
+      const pattern = packageExactVersionPattern(packageName);
+      for (const match of source.matchAll(pattern)) {
+        errors.push(
+          `${relativePath}: exact selected version for ${packageName} (${match[1]}) must remain in the pnpm-workspace.yaml Catalog, not a standing dependency document`,
+        );
+      }
+    }
+    for (const match of source.matchAll(exactNodeVersionPattern)) {
+      errors.push(
+        `${relativePath}: exact Node selection (${match[1]}) must remain in package.json engines.node, not a standing dependency document`,
+      );
+    }
+  }
+  return errors;
+}
+
+function readFileSyncSafely(path) {
+  try {
+    readFileSync(path, "utf8");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export { DEPENDENCY_ROUTING_PATH, STANDING_DEPENDENCY_DOCUMENTS };

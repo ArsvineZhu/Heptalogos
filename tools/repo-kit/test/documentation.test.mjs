@@ -88,6 +88,9 @@ function hasCode(result, code) {
   return result.errors.some((error) => error.code === code);
 }
 
+const pullRequestMarker = ["PR ", "#", "29"].join("");
+const sessionMarker = ["session", "-", "2"].join("");
+
 describe("documentation topology verification", () => {
   it("accepts a complete current documentation graph", async () => {
     const result = await fixtureTree(async () => {});
@@ -150,6 +153,61 @@ describe("documentation topology verification", () => {
       );
     });
     expect(hasCode(result, "stale-current-home")).toBe(true);
+  });
+
+  it("accepts a Markdown link that resolves to the canonical dependency Authority", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/README.md",
+        "[dependency routing](dependencies/dependency-routing.json)\n",
+      );
+    });
+    expect(result.errors).toEqual([]);
+  });
+
+  it("accepts a canonical repository-root Authority path in a code fence", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/dependencies/implementation-routing.md",
+        "```text\ndocs/dependencies/dependency-routing.json\n```\n",
+      );
+    });
+    expect(result.errors).toEqual([]);
+  });
+
+  it("rejects a noncanonical dependency Authority home in inline code", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/dependencies/implementation-routing.md",
+        "查询 `references/dependency-routing.json`。\n",
+      );
+    });
+    expect(hasCode(result, "noncanonical-authority-reference")).toBe(true);
+  });
+
+  it("rejects a dependency status Authority referenced from the wrong home", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/README.md",
+        "[status](wrong/dependency-status.json)\n",
+      );
+    });
+    expect(hasCode(result, "noncanonical-authority-reference")).toBe(true);
+  });
+
+  it("allows historical Authority paths in completed plans", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/plans/completed/historical.md",
+        "Historical route: references/dependency-routing.json\n",
+      );
+    });
+    expect(result.errors).toEqual([]);
   });
 
   it("rejects a current link to the removed Corpus home", async () => {
@@ -241,5 +299,36 @@ describe("documentation topology verification", () => {
       await writeFixtureFile(root, "docs/README.zh.md", "# translation\n");
     });
     expect(hasCode(result, "translation-disabled")).toBe(true);
+  });
+
+  it("rejects provenance in standing architecture, governance, and reference docs", async () => {
+    const correctiveCycle = ["corrective", "-", "cycle", "-", "3"].join("");
+    const cases = [
+      ["docs/architecture/system.md", pullRequestMarker],
+      ["docs/governance/constitution.md", sessionMarker],
+      ["docs/reference/glossary.md", correctiveCycle],
+    ];
+    for (const [relativePath, marker] of cases) {
+      const result = await fixtureTree(async (root) => {
+        await writeFixtureFile(root, relativePath, marker);
+      });
+      expect(hasCode(result, "development-provenance")).toBe(true);
+    }
+  });
+
+  it("allows chronology in active plans and historical qualification evidence", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/plans/active/current.md",
+        `Stage 2 review for ${pullRequestMarker}; ${sessionMarker} chronology.\n`,
+      );
+      await writeFixtureFile(
+        root,
+        "docs/qualification/results/historical.md",
+        `Exercised package at 5.0.0 during ${pullRequestMarker}.\n`,
+      );
+    });
+    expect(result.errors).toEqual([]);
   });
 });

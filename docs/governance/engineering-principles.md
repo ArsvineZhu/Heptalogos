@@ -107,7 +107,7 @@ Adapter 用于：
 
 ## 5. 依赖决策使用两个正交维度
 
-机器可读 Authority：`qualification/dependency-status.json`。
+机器可读 Authority：`docs/qualification/dependency-status.json`。
 
 ### `ADOPTED` 的实现含义
 
@@ -115,7 +115,7 @@ Adapter 用于：
 
 ```text
 ADOPTED role encountered in implementation
-→ consult references/dependency-routing.json
+→ consult `docs/dependencies/dependency-routing.json`
 → use selected dependency through the declared adapter boundary
 ```
 

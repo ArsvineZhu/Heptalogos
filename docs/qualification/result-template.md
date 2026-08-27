@@ -139,7 +139,7 @@ reopenConditions:
 结果写入：
 
 ```text
-qualification/dependency-status.json
+docs/qualification/dependency-status.json
 ../dependencies/decision-ledger.md
 qualification/依赖资格矩阵.md
 ```

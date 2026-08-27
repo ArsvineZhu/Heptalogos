@@ -29,26 +29,43 @@ const TRANSIENT_ROOTS = new Set([
 
 const TOPOLOGY_DOCUMENT = "docs/engineering/README.md";
 const CURRENT_REPOSITORY_PACKAGE_NAME = "heptalogos";
-const MACHINE_AUTHORITY_CONSUMERS = Object.freeze([
+const CURRENT_MACHINE_AUTHORITIES = Object.freeze([
   {
-    authority: "docs/governance/compatibility-obligations.json",
+    id: "compatibility-obligations",
+    path: "docs/governance/compatibility-obligations.json",
     consumers: [
       "tools/repo-kit/src/documentation.mjs",
       "tools/repo-kit/src/current-tree-hygiene.mjs",
     ],
   },
   {
-    authority: "docs/dependencies/dependency-routing.json",
+    id: "dependency-routing",
+    path: "docs/dependencies/dependency-routing.json",
     consumers: [
       "tools/repo-kit/src/dependency-authority.mjs",
       "scripts/verify/dependencies.mjs",
     ],
   },
   {
-    authority: "docs/qualification/dependency-status.json",
+    id: "dependency-status",
+    path: "docs/qualification/dependency-status.json",
     consumers: ["scripts/verify/dependencies.mjs"],
   },
+  {
+    id: "qualification-status",
+    path: "docs/qualification/results/qualification-status.json",
+    consumers: ["docs/qualification/results/README.md"],
+  },
 ]);
+
+const MACHINE_AUTHORITY_CONSUMERS = Object.freeze(
+  CURRENT_MACHINE_AUTHORITIES.filter((entry) => entry.consumers.length > 0).map(
+    (entry) => ({
+      authority: entry.path,
+      consumers: entry.consumers,
+    }),
+  ),
+);
 
 function topologyRoots(source) {
   const heading = source.indexOf("## Current responsibility roots");
@@ -164,6 +181,7 @@ export function validateMachineAuthorityConsumers({ root = process.cwd() } = {})
 
 export {
   CURRENT_REPOSITORY_PACKAGE_NAME,
+  CURRENT_MACHINE_AUTHORITIES,
   MACHINE_AUTHORITY_CONSUMERS,
   RESPONSIBILITY_ROOTS,
 };

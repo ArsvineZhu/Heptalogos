@@ -1,6 +1,6 @@
 # Foundation Dependency Qualification
 
-本文件定义当前 Architecture Corpus 的依赖资格边界。机器可读角色 Authority 为 `dependency-status.json`；实现路由 Authority 为 `../references/dependency-routing.json`。
+本文件定义当前 Architecture Corpus 的依赖资格边界。机器可读角色 Authority 为 `docs/qualification/dependency-status.json`；实现路由 Authority 为 `docs/dependencies/dependency-routing.json`。
 
 ## 1. Current State
 

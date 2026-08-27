@@ -4,7 +4,7 @@
 
 > **当代码需要某类 generic mechanics 时，应当使用什么标准/库/框架，以及该依赖允许出现在哪一层。**
 
-机器可读路由见 `dependency-routing.json`；角色状态 Authority 仍为 `../qualification/dependency-status.json`。
+机器可读路由见 `docs/dependencies/dependency-routing.json`；角色状态 Authority 仍为 `docs/qualification/dependency-status.json`。
 
 ---
 
@@ -131,6 +131,12 @@ Do not choose exact versions from model memory. At first Catalog freeze and ever
 
 A prerelease/RC/beta/0.x candidate is not prohibited by label. It may be selected when current evidence shows it is the best capable line and its maintenance, tests, blast radius, exact-pin and rollback properties are acceptable. Conversely, do not move to a prerelease merely because it is newer when the stable line already satisfies the role.
 
+Numeric compatibility lines are machine-readable on the same Authority: a route
+uses `versionConstraint` for a single package/runtime selection and
+`packageVersionConstraints` when package identities on one route have different
+lines. The dependency gate compares exact Node/Catalog selections with these
+major and optional-minor constraints; it never parses a line out of this prose.
+
 ## 3. Adapter / import discipline
 
 已采用 dependency 不等于允许全库任意 import。
@@ -168,8 +174,8 @@ Chokidar              → bounded watch adapter only
 实现任何 generic mechanics 前按以下顺序：
 
 ```text
-1. 查询 references/dependency-routing.json。
-2. 查询 qualification/dependency-status.json。
+1. 查询 `docs/dependencies/dependency-routing.json`。
+2. 查询 `docs/qualification/dependency-status.json`。
 3. ADOPTED：直接走 selected route；缺 adapter 就实现 adapter。
 4. 当前 baseline 不应出现 PRIMARY_CANDIDATE / UNRESOLVED；若新 role 临时进入该状态，必须在 Implementation Plan 接受前收敛或明确 DEFERRED。
 5. REJECTED_FOR_ROLE：不得用于该角色。
@@ -191,7 +197,7 @@ catalogMode: strict
 
 Workspace `package.json` files consume catalog-managed dependencies through `catalog:` references instead of independently choosing versions. The Catalog MUST exact-pin selected direct toolchain/Foundation dependency versions after current registry/upstream evidence is refreshed; `pnpm-lock.yaml` pins the resolved closure. Architecture line names are not permission to guess an exact patch.
 
-The repository MUST also establish a dependency-route gate using Nx/ESLint and a small project-governance check driven by `references/dependency-routing.json`:
+The repository MUST also establish a dependency-route gate using Nx/ESLint and a small project-governance check driven by `docs/dependencies/dependency-routing.json`:
 
 ```text
 package dependency declared

@@ -10,8 +10,9 @@ import {
   readWorkspaceCatalog,
   readWorkspaceSection,
   repositoryToolingPackages,
-  resolveExpectedInstalledPackageVersions,
   routes,
+  validateStandingDependencyDocuments,
+  validateVersionAuthority,
 } from "@heptalogos/repo-kit";
 
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
@@ -54,13 +55,6 @@ try {
   packageManagerBaseline = readPackageManagerBaseline({ root });
 } catch (error) {
   fail(`package manager Authority is unreadable: ${error.message}`);
-}
-
-let catalogVersions = {};
-try {
-  catalogVersions = resolveExpectedInstalledPackageVersions({ root });
-} catch (error) {
-  fail(`catalog version Authority is unreadable: ${error.message}`);
 }
 
 function fail(message) {
@@ -204,42 +198,26 @@ for (const name of externalDependencyNames) {
   }
 }
 
+for (const error of validateVersionAuthority({
+  root,
+  dependencyRouting: authority,
+  catalog: workspaceCatalog,
+  packageManagerBaseline,
+})) {
+  fail(error);
+}
+
 for (const name of externalDependencyNames) {
   if (!Object.hasOwn(workspaceCatalog, name)) {
     fail(`catalog entry missing for direct external dependency: ${name}`);
   }
 }
 
-const standingDependencyDocuments = [
-  "docs/dependencies/dependency-routing.json",
-  "docs/dependencies/implementation-routing.md",
-  "docs/dependencies/decision-ledger.md",
-  "docs/qualification/dependency-matrix.md",
-  "docs/qualification/dependencies.md",
-  "docs/qualification/dependency-status.json",
-  "docs/engineering/repository/toolchain.md",
-  "docs/engineering/gotchas/bootstrap/proper-lockfile-stale-reclaim.md",
-];
-for (const relativePath of standingDependencyDocuments) {
-  const path = join(root, relativePath);
-  if (!existsSync(path)) {
-    fail(`standing dependency document is missing: ${relativePath}`);
-    continue;
-  }
-  const source = readFileSync(path, "utf8");
-  for (const [name, version] of Object.entries(catalogVersions)) {
-    const exactReferences = [`${name} ${version}`, `${name}@${version}`];
-    if (exactReferences.some((reference) => source.includes(reference))) {
-      fail(
-        `${relativePath}: exact npm selection for ${name} must remain in pnpm-workspace.yaml Catalog, not a standing dependency document`,
-      );
-    }
-  }
-  if (packageManagerBaseline?.node && source.includes(packageManagerBaseline.node)) {
-    fail(
-      `${relativePath}: exact Node selection must remain in package.json engines.node, not a standing dependency document`,
-    );
-  }
+for (const error of validateStandingDependencyDocuments({
+  root,
+  packageNames: [...packageRoutes.keys()],
+})) {
+  fail(error);
 }
 
 if (!/^catalogMode:\s+strict$/m.test(workspace)) fail("catalogMode is not strict");

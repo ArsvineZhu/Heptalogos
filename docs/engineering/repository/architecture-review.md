@@ -30,7 +30,7 @@
 - 是否把 Architecture Selection 与 L3 Product Qualification 混淆？
 - `RoleDecision` 与 `ImplementationQualification` 是否分别正确？
 - `dependency-status.json` 与 Markdown 是否一致？
-- 若 `RoleDecision = ADOPTED`，实现是否实际使用 `references/dependency-routing.json` 指定的 route，而不是自写/换库？
+- 若 `RoleDecision = ADOPTED`，实现是否实际使用 `docs/dependencies/dependency-routing.json` 指定的 route，而不是自写/换库？
 - 若已采用 route 的 adapter 尚不存在，是否实现了 adapter，而不是用“暂不新增依赖”为理由造 temporary custom mechanics？
 - 是否存在两个库/两个 custom implementation 同时竞争同一个已经冻结的 generic role？若有，是否正式 reopen qualification？
 - 已采用 npm dependency 是否在 `pnpm-workspace.yaml` Catalog 中集中声明，并由 workspace package 使用 `catalog:`？

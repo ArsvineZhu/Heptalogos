@@ -3,7 +3,7 @@
 本文件是 Architecture Corpus 的人类可读依赖视图。机器可读状态 Authority 为：
 
 ```text
-qualification/dependency-status.json
+docs/qualification/dependency-status.json
 ```
 
 依赖决策使用两个正交维度：

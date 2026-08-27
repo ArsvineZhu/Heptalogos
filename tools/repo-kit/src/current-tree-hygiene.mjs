@@ -16,6 +16,25 @@ const CORRECTIVE_CYCLE_PATTERN =
 const HISTORICAL_COMPATIBILITY_PATTERN =
   /\b(?:legacy|obsolete|deprecated|upcast|downcast)\b|\bbackward[- ]compat(?:ibility)?\b|\b(?:compatibility\s+(?:shim|bridge|alias)|(?:shim|bridge|alias)\s+compatibility)\b|\b(?:old|previous)\s+(?:schema|format|payload|field|api)\b/iu;
 
+const CURRENT_QUALIFICATION_ID_PATTERN = /\b(?:C|Q)-[A-Z0-9]+(?:-[A-Z0-9]+)*-\d+\b/giu;
+
+export const DEVELOPMENT_PROVENANCE_PATTERNS = Object.freeze([
+  DEVELOPMENT_IDENTITY_PATTERN,
+  PR_ID_PATTERN,
+  CORRECTIVE_CYCLE_PATTERN,
+]);
+
+export function containsDevelopmentProvenance(
+  value,
+  { ignoreQualificationIds = false } = {},
+) {
+  if (typeof value !== "string") return false;
+  const scanValue = ignoreQualificationIds
+    ? value.replace(CURRENT_QUALIFICATION_ID_PATTERN, "")
+    : value;
+  return DEVELOPMENT_PROVENANCE_PATTERNS.some((pattern) => pattern.test(scanValue));
+}
+
 const SCAN_ROOTS = [
   "AGENTS.md",
   ".agents",
@@ -179,12 +198,8 @@ export function scanCurrentTree({ root = process.cwd(), trackedPaths } = {}) {
     }
 
     if (
-      DEVELOPMENT_IDENTITY_PATTERN.test(relativePath) ||
-      DEVELOPMENT_IDENTITY_PATTERN.test(content) ||
-      PR_ID_PATTERN.test(relativePath) ||
-      PR_ID_PATTERN.test(content) ||
-      CORRECTIVE_CYCLE_PATTERN.test(relativePath) ||
-      CORRECTIVE_CYCLE_PATTERN.test(content)
+      containsDevelopmentProvenance(relativePath) ||
+      containsDevelopmentProvenance(content)
     ) {
       addFinding(
         findings,

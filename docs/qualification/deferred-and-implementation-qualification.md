@@ -1,6 +1,6 @@
 # 延期角色与实现期资格边界
 
-正式机器状态见 `../qualification/dependency-status.json`；实现路由见 `dependency-routing.json`。
+正式机器状态见 `docs/qualification/dependency-status.json`；实现路由见 `docs/dependencies/dependency-routing.json`。
 
 当前 Foundation provider selection 已收敛：**不存在 `PRIMARY_CANDIDATE` 或 `UNRESOLVED` 的 Foundation role**。本文件只记录两类不会阻断 Implementation Plan 的边界：明确 `DEFERRED` 的未来角色，以及 `ADOPTED` role 尚未完成的 implementation/product qualification。
 

@@ -17,6 +17,7 @@ decision.
 
 The Version Authority graph is split by ownership: `package.json` owns the exact
 Node and pnpm baseline, `pnpm-workspace.yaml` owns exact npm catalog selections,
-`dependency-routing.json` owns independent dependency policy values, and each
-domain owns non-npm runtime selections. Verification reads these Authorities;
-qualification records only describe what was exercised.
+`dependency-routing.json` owns independent dependency policy values including
+machine-readable major/optional-minor compatibility lines, and each domain owns
+non-npm runtime selections. Verification reads these Authorities; qualification
+records only describe what was exercised.

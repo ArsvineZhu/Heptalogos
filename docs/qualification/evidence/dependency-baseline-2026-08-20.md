@@ -1,6 +1,6 @@
 # Foundation 依赖证据基线（2026-08-20）
 
-本文件记录当前 Architecture Corpus 依赖判断所依据的 L0 技术事实与剩余资格边界。正式角色状态以 `../qualification/dependency-status.json` 为 Authority；编码路由以 `dependency-routing.json` 为 Authority。
+本文件记录当前 Architecture Corpus 依赖判断所依据的 L0 技术事实与剩余资格边界。正式角色状态以 `docs/qualification/dependency-status.json` 为 Authority；编码路由以 `docs/dependencies/dependency-routing.json` 为 Authority。
 
 ## Runtime / Repository
 
