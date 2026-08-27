@@ -72,6 +72,18 @@ describe("current-tree hygiene scanner", () => {
     expect(hasCode(result, "development-provenance")).toBe(true);
   });
 
+  it("rejects historical compatibility wording in the tests root", async () => {
+    const result = await fixtureTree(async (root) => {
+      await mkdir(join(root, "tests/qualification"), { recursive: true });
+      await writeFile(
+        join(root, "tests/qualification/compatibility.test.ts"),
+        "it('rejects a legacy shape', () => {});\n",
+      );
+    });
+
+    expect(hasCode(result, "historical-compatibility")).toBe(true);
+  });
+
   it("rejects a phase token in a test constant or value", async () => {
     const result = await fixtureTree(async (root) => {
       await mkdir(join(root, "packages/example"), { recursive: true });

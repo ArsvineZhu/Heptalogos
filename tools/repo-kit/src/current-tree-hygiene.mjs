@@ -195,7 +195,7 @@ export function scanCurrentTree({ root = process.cwd(), trackedPaths } = {}) {
     }
 
     if (
-      (relativePath.startsWith("packages/") || relativePath.startsWith("fixtures/")) &&
+      (relativePath.startsWith("packages/") || relativePath.startsWith("tests/")) &&
       HISTORICAL_COMPATIBILITY_PATTERN.test(content)
     ) {
       addFinding(
