@@ -285,7 +285,23 @@ state rollback/reopen conditions
 
 ---
 
-## 9. Repository enforcement
+## 9. Version Authority graph
+
+Repository verification reads version selections from their owners rather than
+maintaining a second executable catalog:
+
+```text
+package.json                 → exact Node and pnpm baseline
+pnpm-workspace.yaml#catalog  → exact npm direct dependency selections
+dependency-routing.json      → independent dependency policy values
+domain-owned manifests/code   → non-npm runtime selections
+qualification records         → observed evidence only
+```
+
+Semantic schema, payload, protocol, and migration versions remain with their
+owning contract; they are not globalized into this graph.
+
+## 10. Repository enforcement
 
 Implementation repository 必须使上述基线可机械检查：
 
@@ -306,7 +322,7 @@ skipLibCheck=false dependency compatibility gate
 
 ---
 
-## 10. Qualification boundary
+## 11. Qualification boundary
 
 `C-TOOLCHAIN-01` 在 Implementation Plan 前验证：
 

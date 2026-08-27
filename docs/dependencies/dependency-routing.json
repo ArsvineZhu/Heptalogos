@@ -7,6 +7,7 @@
     "packageVersionAuthority": "pnpm-workspace.yaml Catalog exact direct-version pins selected from current registry/upstream evidence",
     "catalogMode": "strict",
     "packageReferences": "workspace package.json uses catalog: references; pnpm-lock.yaml owns exact resolved closure",
+    "minimumReleaseAge": 1440,
     "packageIdentity": "routes[].packages is the exact npm package identity authority for each adopted route; an empty array means the route is not an npm package dependency",
     "repositoryToolingPackages": ["knip", "prettier"],
     "boundaryEnforcement": [

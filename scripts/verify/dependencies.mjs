@@ -6,6 +6,8 @@ import {
   authority,
   discoverWorkspacePackages,
   packageRoutes,
+  readWorkspaceCatalog,
+  readWorkspaceSection,
   repositoryToolingPackages,
   routes,
 } from "@heptalogos/repo-kit";
@@ -32,6 +34,19 @@ const dependencySections = [
   "optionalDependencies",
   "peerDependencies",
 ];
+
+let workspaceCatalog = {};
+let workspaceOverrides = {};
+try {
+  workspaceCatalog = readWorkspaceCatalog({ root });
+} catch (error) {
+  fail(`workspace catalog Authority is unreadable: ${error.message}`);
+}
+try {
+  workspaceOverrides = readWorkspaceSection({ root, section: "overrides" });
+} catch (error) {
+  fail(`workspace overrides Authority is unreadable: ${error.message}`);
+}
 
 function fail(message) {
   errors.push(message);
@@ -91,6 +106,10 @@ if (
 }
 if (!materialization?.packageIdentity?.includes("routes[].packages")) {
   fail("dependency routing package identity authority is not present");
+}
+const minimumReleaseAge = materialization?.minimumReleaseAge;
+if (!Number.isInteger(minimumReleaseAge) || minimumReleaseAge < 0) {
+  fail("dependency routing minimumReleaseAge must be a non-negative integer");
 }
 
 const workspacePackages = await discoverWorkspacePackages({ cwd: root });
@@ -170,13 +189,8 @@ for (const name of externalDependencyNames) {
   }
 }
 
-function hasCatalogEntry(name) {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`^\\s*(?:["']${escaped}["']|${escaped}):\\s+`, "m").test(workspace);
-}
-
 for (const name of externalDependencyNames) {
-  if (!hasCatalogEntry(name)) {
+  if (!Object.hasOwn(workspaceCatalog, name)) {
     fail(`catalog entry missing for direct external dependency: ${name}`);
   }
 }
@@ -188,14 +202,19 @@ if (!/^strictPeerDependencies:\s+true$/m.test(workspace)) {
 if (!/^engineStrict:\s+true$/m.test(workspace)) {
   fail("engineStrict must be explicitly enabled");
 }
-if (!/^minimumReleaseAge:\s+1440$/m.test(workspace)) {
-  fail("minimumReleaseAge must be explicitly pinned to 1440 minutes");
+if (
+  Number.isInteger(minimumReleaseAge) &&
+  !new RegExp(`^minimumReleaseAge:\\s+${minimumReleaseAge}$`, "m").test(workspace)
+) {
+  fail(`minimumReleaseAge must be explicitly pinned to ${minimumReleaseAge} minutes`);
 }
 if (/^nodeLinker:/m.test(workspace)) {
   fail("nodeLinker must remain pnpm's explicit default: isolated");
 }
-if (!/^  ["']?@types\/node["']?:\s+24\.13\.3\s*$/m.test(workspace)) {
-  fail("@types/node override is not pinned to 24.13.3");
+if (workspaceOverrides["@types/node"] !== workspaceCatalog["@types/node"]) {
+  fail(
+    `@types/node override must match catalog Authority (expected ${workspaceCatalog["@types/node"]})`,
+  );
 }
 if (!existsSync(join(root, "pnpm-lock.yaml"))) fail("pnpm-lock.yaml is missing");
 

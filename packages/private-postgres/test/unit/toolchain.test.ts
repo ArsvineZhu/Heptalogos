@@ -1,6 +1,8 @@
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   parsePostgresVersion,
@@ -44,6 +46,31 @@ describe("parsePostgresVersion", () => {
 
   it("rejects arbitrary output", () => {
     expect(() => parsePostgresVersion("garbage")).toThrowError();
+  });
+});
+
+describe("private PostgreSQL version Authority", () => {
+  it("derives public type and diagnostic versions from package constants", () => {
+    const contracts = readFileSync(
+      fileURLToPath(new URL("../../src/contracts.ts", import.meta.url)),
+      "utf8",
+    );
+    const toolchain = readFileSync(
+      fileURLToPath(new URL("../../src/toolchain.ts", import.meta.url)),
+      "utf8",
+    );
+
+    expect(contracts).toContain(
+      "readonly version: typeof PRIVATE_POSTGRES_QUALIFIED_VERSION;",
+    );
+    expect(contracts).toContain(
+      "readonly major: typeof PRIVATE_POSTGRES_ARCHITECTURE_MAJOR;",
+    );
+    expect(contracts).not.toContain('readonly version: "18.6";');
+    expect(contracts).not.toContain("readonly major: 18;");
+    expect(toolchain).toContain("PRIVATE_POSTGRES_QUALIFIED_VERSION");
+    expect(toolchain).toContain("PRIVATE_POSTGRES_ARCHITECTURE_MAJOR");
+    expect(toolchain).not.toContain("exact qualified version 18.6");
   });
 });
 

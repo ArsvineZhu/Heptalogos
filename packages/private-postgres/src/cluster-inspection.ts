@@ -15,7 +15,7 @@ export interface ParsedPgControldata {
 }
 
 export interface PrivatePostgresClusterInspection extends ParsedPgControldata {
-  readonly postgresMajor: 18;
+  readonly postgresMajor: typeof PRIVATE_POSTGRES_ARCHITECTURE_MAJOR;
 }
 
 function inspectionProblem(
@@ -84,7 +84,9 @@ export function parsePgControldata(output: string): ParsedPgControldata {
   });
 }
 
-export async function readPrivatePostgresMajor(dataDirectory: string): Promise<18> {
+export async function readPrivatePostgresMajor(
+  dataDirectory: string,
+): Promise<typeof PRIVATE_POSTGRES_ARCHITECTURE_MAJOR> {
   if (!isAbsolute(dataDirectory)) {
     throw inspectionProblem(
       "private-postgres.cluster.pg_version_mismatch",
@@ -109,10 +111,10 @@ export async function readPrivatePostgresMajor(dataDirectory: string): Promise<1
     throw inspectionProblem(
       "private-postgres.cluster.pg_version_mismatch",
       "PostgreSQL cluster major is not supported",
-      "The PostgreSQL cluster must report architecture major 18 in PG_VERSION",
+      `The PostgreSQL cluster must report architecture major ${PRIVATE_POSTGRES_ARCHITECTURE_MAJOR} in PG_VERSION`,
     );
   }
-  return 18;
+  return PRIVATE_POSTGRES_ARCHITECTURE_MAJOR;
 }
 
 export async function inspectPrivatePostgresCluster(

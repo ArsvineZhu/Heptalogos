@@ -3,6 +3,7 @@ import { isAbsolute as isPosixAbsolute, join as posixJoin } from "node:path/posi
 import { isAbsolute as isWindowsAbsolute, join as windowsJoin } from "node:path/win32";
 import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
 import {
+  PRIVATE_POSTGRES_ARCHITECTURE_MAJOR,
   PRIVATE_POSTGRES_QUALIFIED_VERSION,
   type PrivatePostgresToolchain,
 } from "./contracts.js";
@@ -27,8 +28,8 @@ export interface PrivatePostgresExecutablePaths {
 }
 
 export interface ParsedPostgresVersion {
-  readonly major: 18;
-  readonly version: "18.6";
+  readonly major: typeof PRIVATE_POSTGRES_ARCHITECTURE_MAJOR;
+  readonly version: typeof PRIVATE_POSTGRES_QUALIFIED_VERSION;
 }
 
 function toolchainProblem(
@@ -128,10 +129,13 @@ export function parsePostgresVersion(output: string): ParsedPostgresVersion {
     throw toolchainProblem(
       "private-postgres.toolchain.invalid_version",
       "PostgreSQL tool version is not qualified",
-      "Every private PostgreSQL tool must report the exact qualified version 18.6",
+      `Every private PostgreSQL tool must report the exact qualified version ${PRIVATE_POSTGRES_QUALIFIED_VERSION}`,
     );
   }
-  return Object.freeze({ major: 18, version: "18.6" });
+  return Object.freeze({
+    major: PRIVATE_POSTGRES_ARCHITECTURE_MAJOR,
+    version: PRIVATE_POSTGRES_QUALIFIED_VERSION,
+  });
 }
 
 export async function resolvePrivatePostgresToolchain(
@@ -164,8 +168,8 @@ export async function resolvePrivatePostgresToolchain(
   }
 
   return Object.freeze({
-    version: "18.6",
-    major: 18,
+    version: PRIVATE_POSTGRES_QUALIFIED_VERSION,
+    major: PRIVATE_POSTGRES_ARCHITECTURE_MAJOR,
     binDirectory,
     postgres: paths.postgres,
     initdb: paths.initdb,

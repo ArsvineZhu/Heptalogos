@@ -8,3 +8,4 @@ export * from "./gates.mjs";
 export * from "./workspace.mjs";
 export * from "./package-index.mjs";
 export * from "./repository-governance.mjs";
+export * from "./version-authority.mjs";

@@ -14,8 +14,8 @@ export type PrivatePostgresInitializationProfileRevision =
   ContentDigest<"PrivatePostgresInitializationProfileRevision">;
 
 export interface PrivatePostgresToolchain {
-  readonly version: "18.6";
-  readonly major: 18;
+  readonly version: typeof PRIVATE_POSTGRES_QUALIFIED_VERSION;
+  readonly major: typeof PRIVATE_POSTGRES_ARCHITECTURE_MAJOR;
   readonly binDirectory: string;
   readonly postgres: string;
   readonly initdb: string;
@@ -34,13 +34,13 @@ export interface PrivatePostgresPlacement {
 export interface PrivatePostgresClusterIdentity {
   readonly bootstrapRoleName: string;
   readonly clusterSystemIdentifier: string;
-  readonly postgresMajor: 18;
+  readonly postgresMajor: typeof PRIVATE_POSTGRES_ARCHITECTURE_MAJOR;
 }
 
 export interface PrivatePostgresExpectedIdentity {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
-  readonly postgresMajor: 18;
+  readonly postgresMajor: typeof PRIVATE_POSTGRES_ARCHITECTURE_MAJOR;
   readonly bootstrapRoleName: string;
   readonly placement: Omit<PrivatePostgresPlacement, "canonicalDataDirectory">;
   readonly persistedPort: number;
