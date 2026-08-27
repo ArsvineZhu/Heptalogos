@@ -12,12 +12,12 @@ import type {
 } from "@heptalogos/foundation-contracts";
 import type { BootstrapKeyProvider } from "./bootstrap-key-provider.js";
 
-export interface CanonicalHostAdmissionAuthority {
+interface CanonicalHostAdmissionAuthority {
   readonly signal: AbortSignal;
   assertHeld(): void;
 }
 
-export interface CanonicalHostAdmissionHostLease {
+interface CanonicalHostAdmissionHostLease {
   readonly signal: AbortSignal;
   assertActive(): void;
 }

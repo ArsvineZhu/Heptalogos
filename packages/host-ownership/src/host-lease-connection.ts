@@ -35,7 +35,7 @@ export interface HostLeaseClientFactory {
   create(options: HostLeaseClientOptions): HostLeaseClient;
 }
 
-export interface HostLeasePasswordProvider {
+interface HostLeasePasswordProvider {
   withHostLeasePassword<T>(use: (passwordUtf8: Uint8Array) => Promise<T>): Promise<T>;
 }
 

@@ -1,8 +1,4 @@
-import type {
-  ActivationResourceScope,
-  RuntimeSubstrateFailure,
-  SubstrateActivationHandle,
-} from "@heptalogos/runtime-substrate";
+import type { ActivationResourceScope } from "@heptalogos/runtime-substrate";
 import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
 import type {
   RuntimeWorkHandler,
@@ -19,15 +15,7 @@ import type {
   ServiceId,
 } from "@heptalogos/foundation-contracts";
 
-export type {
-  CapabilityId,
-  MicroSystemId,
-  MicroSystemInstanceId,
-  PackageGenerationId,
-  ProductGenerationId,
-  ProviderId,
-  ServiceId,
-};
+export type { CapabilityId, MicroSystemId, ProviderId, ServiceId };
 
 export type ContractVersion = Branded<string, "ContractVersion">;
 export type ContractVersionRange = {
@@ -199,9 +187,4 @@ export interface ReadinessResult {
   readonly missingServices: readonly ServiceId[];
   readonly missingRequiredCapabilities: readonly CapabilityId[];
   readonly missingOptionalCapabilities: readonly CapabilityId[];
-}
-
-export interface RuntimeSubstrateActivation {
-  readonly handle: SubstrateActivationHandle;
-  readonly failures: readonly RuntimeSubstrateFailure[];
 }

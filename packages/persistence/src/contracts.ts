@@ -57,5 +57,3 @@ export interface PersistenceService {
   ): Promise<T>;
   close(): Promise<void>;
 }
-
-export type PersistenceAuthority = HostPersistenceAuthority;

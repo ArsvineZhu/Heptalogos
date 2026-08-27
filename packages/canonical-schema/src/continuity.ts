@@ -10,7 +10,7 @@ import type { CanonicalDatabase } from "./migration-pool.js";
 import { assertCanonicalAuthority } from "./migration-pool.js";
 import { canonicalSchemaProblem } from "./problems.js";
 
-export interface ObservedContinuityRow {
+interface ObservedContinuityRow {
   readonly singleton: unknown;
   readonly instance_id: unknown;
   readonly continuity_epoch_id: unknown;

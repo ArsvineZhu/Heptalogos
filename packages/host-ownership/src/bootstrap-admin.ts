@@ -17,7 +17,7 @@ import {
   matchesPostgresScramSha256Verifier,
 } from "./scram-verifier.js";
 
-export interface BootstrapAdminQueryResult<Row> {
+interface BootstrapAdminQueryResult<Row> {
   readonly rows: readonly Row[];
 }
 
@@ -29,7 +29,7 @@ export interface BootstrapAdminClient {
   end(): Promise<void>;
 }
 
-export interface BootstrapAdminConnectionOptions {
+interface BootstrapAdminConnectionOptions {
   readonly host: "127.0.0.1";
   readonly port: number;
   readonly database: string;

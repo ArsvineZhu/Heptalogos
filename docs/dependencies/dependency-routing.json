@@ -8,7 +8,7 @@
     "catalogMode": "strict",
     "packageReferences": "workspace package.json uses catalog: references; pnpm-lock.yaml owns exact resolved closure",
     "packageIdentity": "routes[].packages is the exact npm package identity authority for each adopted route; an empty array means the route is not an npm package dependency",
-    "repositoryToolingPackages": ["prettier"],
+    "repositoryToolingPackages": ["knip", "prettier"],
     "boundaryEnforcement": [
       "Nx module boundaries",
       "ESLint import restrictions",

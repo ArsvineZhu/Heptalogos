@@ -24,10 +24,8 @@ import {
   type ResourceAdmissionClassId,
   type WorkQueueProfileId,
 } from "../../src/index.js";
-import {
-  createWorkQueueRepository,
-  type WorkItemMutationResult,
-} from "../../src/foundation-repository.js";
+import { createWorkQueueRepository } from "../../src/foundation-repository.js";
+import type { WorkItemMutationResult } from "../../src/repository.js";
 import type { WorkItem } from "../../src/contracts.js";
 
 const mocks = vi.hoisted(() => ({

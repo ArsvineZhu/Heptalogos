@@ -73,7 +73,7 @@ const readyMaintenanceDescriptors = new WeakMap<
   PrivatePostgresMaintenanceDescriptor
 >();
 
-export type PrivatePostgresSessionState =
+type PrivatePostgresSessionState =
   | "QUIESCENT"
   | "TRANSITIONING"
   | "READY"

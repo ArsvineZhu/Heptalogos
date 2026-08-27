@@ -57,12 +57,12 @@ export interface HostOwnershipHandoffOptions {
   readonly bootstrapHeartbeatMs?: number;
 }
 
-export interface CanonicalHostInitializationContext {
+interface CanonicalHostInitializationContext {
   readonly authority: HostCanonicalMigrationAuthority;
   readonly expectedContinuityEpochId: ContinuityEpochId;
 }
 
-export type CanonicalHostInitializer = (
+type CanonicalHostInitializer = (
   context: CanonicalHostInitializationContext,
 ) => Promise<void>;
 

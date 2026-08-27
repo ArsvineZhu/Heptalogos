@@ -1,6 +1,6 @@
 import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
 
-export function lineageProblem(
+function lineageProblem(
   problemCode: string,
   title: string,
   detail: string,

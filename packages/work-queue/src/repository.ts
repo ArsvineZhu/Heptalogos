@@ -106,7 +106,7 @@ const WORK_ITEM_STATES = new Set<WorkItemState>([
   ...TERMINAL_STATES,
 ]);
 
-export type WorkItemMutationStatus = "APPLIED" | "STALE" | "NOT_FOUND" | "TERMINAL";
+type WorkItemMutationStatus = "APPLIED" | "STALE" | "NOT_FOUND" | "TERMINAL";
 
 export interface WorkItemMutationResult {
   readonly status: WorkItemMutationStatus;
@@ -118,7 +118,7 @@ export interface WorkItemInsertResult {
   readonly item: WorkItem;
 }
 
-export interface WorkItemInsertOptions {
+interface WorkItemInsertOptions {
   readonly onWithinTransaction?: (
     result: WorkItemInsertResult,
     transaction: PersistenceMutationTransactionContext,
@@ -130,13 +130,13 @@ export interface WorkItemScanCursor {
   readonly workItemId: WorkItemId;
 }
 
-export interface WorkItemDedupLookup {
+interface WorkItemDedupLookup {
   readonly handlerMicroSystemId: MicroSystemId;
   readonly handlerContributionId: ContributionId;
   readonly dedupKey: string;
 }
 
-export interface MarkRunningInput {
+interface MarkRunningInput {
   readonly workItemId: WorkItemId;
   readonly expectedDispatchRevision: number;
   readonly activeAttemptId: DispatchAttemptId;
@@ -144,20 +144,20 @@ export interface MarkRunningInput {
   readonly onApplied?: MutationAppliedHook;
 }
 
-export interface MarkWaitingDependencyInput {
+interface MarkWaitingDependencyInput {
   readonly workItemId: WorkItemId;
   readonly expectedDispatchRevision: number;
   readonly updatedAt: Instant;
   readonly onApplied?: MutationAppliedHook;
 }
 
-export interface WakeDependencyInput {
+interface WakeDependencyInput {
   readonly workItemId: WorkItemId;
   readonly expectedDispatchRevision: number;
   readonly updatedAt: Instant;
 }
 
-export interface MarkRetryWaitInput {
+interface MarkRetryWaitInput {
   readonly workItemId: WorkItemId;
   readonly expectedDispatchRevision: number;
   readonly expectedState: "PENDING" | "RUNNING";
@@ -169,14 +169,14 @@ export interface MarkRetryWaitInput {
   readonly onApplied?: MutationAppliedHook;
 }
 
-export interface WakeDueRetryInput {
+interface WakeDueRetryInput {
   readonly workItemId: WorkItemId;
   readonly expectedDispatchRevision: number;
   readonly now: Instant;
   readonly updatedAt: Instant;
 }
 
-export interface RequestCancelInput {
+interface RequestCancelInput {
   readonly workItemId: WorkItemId;
   readonly expectedDispatchRevision: number;
   readonly expectedState: Exclude<
@@ -188,11 +188,11 @@ export interface RequestCancelInput {
   readonly reasonCode: string;
 }
 
-export interface RequestSupersedeInput extends Omit<RequestCancelInput, "reasonCode"> {
+interface RequestSupersedeInput extends Omit<RequestCancelInput, "reasonCode"> {
   readonly supersededBy: WorkItemId;
 }
 
-export interface CommitTerminalInput {
+interface CommitTerminalInput {
   readonly workItemId: WorkItemId;
   readonly expectedDispatchRevision: number;
   readonly expectedState: "PENDING" | "RUNNING" | "RETRY_WAIT" | "WAITING_DEPENDENCY";

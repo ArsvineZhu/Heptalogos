@@ -29,12 +29,12 @@ export interface HostQuiescenceLease {
   resumeAfterAbort(): Promise<void>;
 }
 
-export interface PrivatePostgresMaintenanceResultRestarted {
+interface PrivatePostgresMaintenanceResultRestarted {
   readonly kind: "RESTARTED";
   readonly host: BootstrapManagedHostContext;
 }
 
-export interface PrivatePostgresMaintenanceResultStopped {
+interface PrivatePostgresMaintenanceResultStopped {
   readonly kind: "STOPPED";
 }
 
@@ -190,13 +190,4 @@ export function markManagedHostTerminal(managed: BootstrapManagedHostContext): v
   const record = managedHostRecords.get(managed);
   if (record === undefined) throw invalidCapability();
   record.terminal = true;
-}
-
-export function rawHostForManagedContext(
-  managed: BootstrapManagedHostContext,
-): HostOwnershipContext {
-  assertManagedHostContext(managed);
-  const record = managedHostRecords.get(managed);
-  if (record === undefined) throw invalidCapability();
-  return record.raw;
 }

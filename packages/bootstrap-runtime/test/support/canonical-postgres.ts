@@ -39,7 +39,7 @@ export const describeRealPostgres = qualifiedPgBin === undefined ? undefined : t
 const execFileAsync = promisify(execFile);
 const directories: string[] = [];
 const postgresDataDirectories: string[] = [];
-export const LIFECYCLE = {
+const LIFECYCLE = {
   startupTimeoutMs: 60_000,
   shutdownTimeoutMs: 30_000,
   readinessPollIntervalMs: 100,
@@ -58,7 +58,7 @@ export const CANONICAL_OPTIONS = {
   onBackgroundError() {},
 } as const;
 export const BOOTSTRAP_PASSWORD = "CANONICAL_PG_TEST_BOOTSTRAP_PASSWORD_0123456789";
-export const HOST_LEASE_PASSWORD = "CANONICAL_PG_TEST_HOST_LEASE_PASSWORD_0123456789";
+const HOST_LEASE_PASSWORD = "CANONICAL_PG_TEST_HOST_LEASE_PASSWORD_0123456789";
 export const RUNTIME_PASSWORD = "CANONICAL_PG_TEST_RUNTIME_PASSWORD_0123456789";
 export const MIGRATION_PASSWORD = "CANONICAL_PG_TEST_MIGRATION_PASSWORD_0123456789";
 
@@ -83,7 +83,7 @@ export interface BootResult {
   readonly epoch: BootstrapStateBodyV1["continuityEpochId"];
 }
 
-export function selection() {
+function selection() {
   return {
     activeBootstrapRuntimeGeneration: asContentDigest(
       "BootstrapRuntimeGenerationId",

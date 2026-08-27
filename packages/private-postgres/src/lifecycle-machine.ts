@@ -1,10 +1,10 @@
 import { initialTransition, setup, transition, type SnapshotFrom } from "xstate";
 import { ProblemError } from "@heptalogos/foundation-contracts";
 
-export type PrivatePostgresLifecycleState =
+type PrivatePostgresLifecycleState =
   "STOPPED" | "STARTING" | "READY" | "STOPPING" | "UNCERTAIN";
 
-export type PrivatePostgresLifecycleDetail =
+type PrivatePostgresLifecycleDetail =
   | "stopped"
   | "startCommandPending"
   | "startedPendingReady"

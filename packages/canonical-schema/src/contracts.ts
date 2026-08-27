@@ -9,7 +9,7 @@ export interface CanonicalSchemaRuntimeOptions {
   readonly onBackgroundError: (error: unknown) => void;
 }
 
-export interface CanonicalSchemaInitializationContext {
+interface CanonicalSchemaInitializationContext {
   readonly authority: HostCanonicalMigrationAuthority;
   readonly expectedContinuityEpochId: ContinuityEpochId;
 }

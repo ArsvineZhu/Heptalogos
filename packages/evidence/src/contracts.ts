@@ -6,7 +6,6 @@ import type {
   Sensitivity,
 } from "@heptalogos/foundation-contracts";
 import type { PersistenceMutationTransactionContext } from "@heptalogos/persistence";
-import type { TimeService } from "@heptalogos/time-service";
 
 export interface EvidenceDraft {
   readonly evidenceKind: string;
@@ -30,5 +29,3 @@ export interface EvidenceService {
     draft: EvidenceDraft,
   ): Promise<EvidenceRecord>;
 }
-
-export type EvidenceTimeService = TimeService;

@@ -27,6 +27,7 @@ const staticGates = () => [
   node("hygiene", "scripts/verify/current-tree-hygiene.mjs"),
   node("dependencies", "scripts/verify/dependencies.mjs"),
   node("boundaries", "scripts/verify/boundaries.mjs"),
+  pnpm("unused", "check:unused"),
   node("toolchain", "scripts/verify/toolchain.mjs"),
   pnpm("format:check", "format:check"),
   pnpm("lint", "lint"),
@@ -41,6 +42,7 @@ const repositoryGates = () => [
   node("hygiene", "scripts/verify/current-tree-hygiene.mjs"),
   node("dependencies", "scripts/verify/dependencies.mjs"),
   node("boundaries", "scripts/verify/boundaries.mjs"),
+  pnpm("unused", "check:unused"),
   node("toolchain", "scripts/verify/toolchain.mjs"),
 ];
 

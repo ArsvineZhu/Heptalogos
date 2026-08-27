@@ -20,9 +20,6 @@
     },
     {
       "path": "../private-postgres/tsconfig.build.json"
-    },
-    {
-      "path": "../bootstrap-state/tsconfig.build.json"
     }
   ]
 }
