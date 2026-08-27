@@ -27,7 +27,7 @@ export interface PrivatePostgresToolchain {
 export interface PrivatePostgresPlacement {
   readonly rootId: "DATA";
   readonly relativePath: "private-postgres";
-  readonly dataLayoutVersion: 1;
+  readonly dataLayoutVersion: typeof PRIVATE_POSTGRES_DATA_LAYOUT_VERSION;
   readonly canonicalDataDirectory: string;
 }
 

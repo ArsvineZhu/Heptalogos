@@ -66,8 +66,12 @@ describe("private PostgreSQL version Authority", () => {
     expect(contracts).toContain(
       "readonly major: typeof PRIVATE_POSTGRES_ARCHITECTURE_MAJOR;",
     );
+    expect(contracts).toContain(
+      "readonly dataLayoutVersion: typeof PRIVATE_POSTGRES_DATA_LAYOUT_VERSION;",
+    );
     expect(contracts).not.toContain('readonly version: "18.6";');
     expect(contracts).not.toContain("readonly major: 18;");
+    expect(contracts).not.toContain("readonly dataLayoutVersion: 1;");
     expect(toolchain).toContain("PRIVATE_POSTGRES_QUALIFIED_VERSION");
     expect(toolchain).toContain("PRIVATE_POSTGRES_ARCHITECTURE_MAJOR");
     expect(toolchain).not.toContain("exact qualified version 18.6");

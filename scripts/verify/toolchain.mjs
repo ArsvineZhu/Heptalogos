@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import {
   authority,
   readPackageManagerBaseline,
+  validateNodeVersionProjections,
   readWorkspaceCatalog,
   readWorkspaceSection,
   resolveExpectedInstalledPackageVersions,
@@ -72,6 +73,11 @@ try {
   baseline = readPackageManagerBaseline({ root });
 } catch (error) {
   fail(`package manager Authority is unreadable: ${error.message}`);
+}
+try {
+  for (const error of validateNodeVersionProjections({ root })) fail(error);
+} catch (error) {
+  fail(`Node version projections are unreadable: ${error.message}`);
 }
 try {
   catalog = readWorkspaceCatalog({ root });

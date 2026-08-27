@@ -8,6 +8,7 @@ import {
 } from "../../../scripts/verify/repository.mjs";
 import {
   validateMachineAuthorityConsumers,
+  validateRootPackageIdentity,
   validateRootTopology,
 } from "../src/repository-governance.mjs";
 
@@ -41,6 +42,26 @@ const forbiddenTriggers = [
 ];
 
 describe("repository workflow governance", () => {
+  it("requires the private root workspace to use the current repository identity", async () => {
+    const root = await mkdtemp(join(tmpdir(), "heptalogos-root-identity-"));
+    try {
+      await writeFile(
+        join(root, "package.json"),
+        JSON.stringify({ name: "heptalogos-clean-room", private: true }),
+      );
+      expect(validateRootPackageIdentity({ root })).toEqual([
+        expect.stringContaining("current repository identity"),
+      ]);
+      await writeFile(
+        join(root, "package.json"),
+        JSON.stringify({ name: "heptalogos", private: true }),
+      );
+      expect(validateRootPackageIdentity({ root })).toEqual([]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("finds product package tests that remain under src", async () => {
     const root = await mkdtemp(join(tmpdir(), "heptalogos-repository-governance-"));
     try {

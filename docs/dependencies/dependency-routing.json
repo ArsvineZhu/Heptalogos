@@ -374,14 +374,14 @@
     },
     {
       "roleId": "bootstrap.lock",
-      "route": "@bybrave/proper-lockfile2 5.0.0",
+      "route": "@bybrave/proper-lockfile2 5.x package line; exact selection is owned by the pnpm Catalog",
       "boundary": "Bootstrap ownership adapter; pre-PostgreSQL window only",
       "directive": "USE",
       "packages": ["@bybrave/proper-lockfile2"]
     },
     {
       "roleId": "bootstrap.process-liveness",
-      "route": "Node process.kill(pid, 0) + pidusage 4.0.1",
+      "route": "Node process.kill(pid, 0) + pidusage 4.x package line; exact selection is owned by the pnpm Catalog",
       "boundary": "Abandoned bootstrap-owner process-generation identity adapter",
       "directive": "USE",
       "packages": ["pidusage", "@types/pidusage"]

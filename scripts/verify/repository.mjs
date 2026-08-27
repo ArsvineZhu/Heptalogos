@@ -7,6 +7,7 @@ import {
   validateMachineAuthorityConsumers,
   validatePackageDocumentation,
   validatePackageIndex,
+  validateRootPackageIdentity,
   validateRootTopology,
 } from "@heptalogos/repo-kit";
 
@@ -139,6 +140,8 @@ async function main() {
     if (!existsSync(join(root, file)))
       fail(`required repository file missing: ${file}`);
   }
+
+  for (const error of validateRootPackageIdentity({ root })) fail(error);
 
   const ignoredDirectories = new Set([
     ".git",

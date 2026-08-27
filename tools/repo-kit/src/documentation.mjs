@@ -60,8 +60,12 @@ function localMarkdownTargets(text) {
   return targets;
 }
 
+function isHistoricalPlan(relativePath) {
+  return relativePath.startsWith("docs/plans/completed/");
+}
+
 function isStandingDocument(relativePath) {
-  return !relativePath.startsWith("docs/plans/");
+  return !isHistoricalPlan(relativePath);
 }
 
 function addError(errors, code, path, message) {

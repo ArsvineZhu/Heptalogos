@@ -82,7 +82,7 @@ The target after this reset is intentionally small:
 The following are explicitly **not** permanent root responsibilities after this reset:
 
 ```text
-Architecture_Corpus/         # removed after Authority migration
+former physical Corpus root          # removed after Authority migration
 .codegraph/                  # remove tracked placeholder because no current executable consumer exists
 fixtures/                    # current root fixture is re-homed under tests/toolchain/
 phase/stage script roots     # forbidden as historical storage
@@ -195,7 +195,7 @@ At minimum the inventory must cover:
 .agents/
 .codegraph/
 .github/
-Architecture_Corpus/
+former physical Corpus root
 docs/
 fixtures/
 packages/
@@ -217,7 +217,7 @@ fixtures/ts6-api-lane.ts
   purpose: repository toolchain/API compatibility test input
   disposition: move to tests/toolchain/ts6-api-lane.ts and update tsconfig.ts6.json / lint-ignore references
 
-Architecture_Corpus/
+former physical Corpus root
   current normative documentation Authority root
   disposition: decompose/migrate into docs/ during RS-1, then remove root
 
@@ -263,7 +263,7 @@ Expected:
 
 ## Objective
 
-Eliminate `Architecture_Corpus/` as a physical root while preserving Architecture Corpus as the logical authoritative knowledge closure used by agents and implementation plans.
+Eliminate the former physical Corpus root while preserving Architecture Corpus as the logical authoritative knowledge closure used by agents and implementation plans.
 
 ## Target documentation topology
 
@@ -332,35 +332,35 @@ docs/
 
 | Current path | Target path |
 |---|---|
-| `Architecture_Corpus/00-项目宪法与工程宪法.md` | `docs/governance/constitution.md` |
-| `Architecture_Corpus/01-产品目标与差异化.md` | `docs/product/product-goals.md` |
-| `Architecture_Corpus/02-架构原则与反NIH约束.md` | `docs/governance/engineering-principles.md` |
-| `Architecture_Corpus/03-核心概念与Authority.md` | `docs/architecture/authority-and-core-concepts.md` |
-| `Architecture_Corpus/04-总体系统架构.md` | `docs/architecture/system-architecture.md` |
-| `Architecture_Corpus/05-整机执行模型.md` | `docs/architecture/execution-model.md` |
-| `Architecture_Corpus/06-MicroSystem与Extension架构.md` | `docs/architecture/extensions.md` |
-| `Architecture_Corpus/07-Foundation系统服务目录.md` | `docs/architecture/foundation-services.md` |
-| `Architecture_Corpus/08-Subject与认知系统.md` | `docs/architecture/subject.md` |
-| `Architecture_Corpus/09-Messaging与Subject-Chat.md` | `docs/architecture/messaging.md` |
-| `Architecture_Corpus/10-AI-Runtime-Capability-MCP.md` | `docs/architecture/ai-runtime.md` |
-| `Architecture_Corpus/11-System-Authority与Operator-Assistant.md` | `docs/architecture/management-authority.md` |
-| `Architecture_Corpus/12-数据-证据-内容与持久化.md` | `docs/architecture/data-evidence-persistence.md` |
-| `Architecture_Corpus/13-备份-Subject可移植性-更新与恢复.md` | `docs/architecture/backup-portability-update-recovery.md` |
-| `Architecture_Corpus/14-跨平台产品运行与分发.md` | `docs/architecture/platform-distribution.md` |
-| `Architecture_Corpus/15-技术与依赖决策账本.md` | `docs/dependencies/decision-ledger.md` |
-| `Architecture_Corpus/16-验证与资格认定体系.md` | `docs/qualification/verification-system.md` |
-| `Architecture_Corpus/17-高级研究子系统接入地图.md` | `docs/architecture/research-subsystem-integration.md` |
-| `Architecture_Corpus/18-接口-CLI-Web与Presentation.md` | `docs/architecture/management-presentation.md` |
-| `Architecture_Corpus/19-术语表.md` | `docs/reference/glossary.md` |
-| `Architecture_Corpus/20-架构审查清单.md` | `docs/engineering/repository/architecture-review.md` |
-| `Architecture_Corpus/21-配置治理与Configuration-Surface.md` | `docs/architecture/configuration.md` |
-| `Architecture_Corpus/22-Execution-Lineage与可观测执行.md` | `docs/architecture/execution-lineage.md` |
-| `Architecture_Corpus/23-存储拓扑-生命周期根与DataOwner.md` | `docs/architecture/storage-lifecycle.md` |
-| `Architecture_Corpus/24-依赖使用与实现路由.md` | `docs/dependencies/implementation-routing.md` |
-| `Architecture_Corpus/25-TypeScript与仓库工具链.md` | `docs/engineering/repository/toolchain.md` |
-| `Architecture_Corpus/26-开发阶段闭包-稳定化与兼容性治理.md` | `docs/governance/pre-production-evolution.md` |
+| `former physical Corpus root/00-项目宪法与工程宪法.md` | `docs/governance/constitution.md` |
+| `former physical Corpus root/01-产品目标与差异化.md` | `docs/product/product-goals.md` |
+| `former physical Corpus root/02-架构原则与反NIH约束.md` | `docs/governance/engineering-principles.md` |
+| `former physical Corpus root/03-核心概念与Authority.md` | `docs/architecture/authority-and-core-concepts.md` |
+| `former physical Corpus root/04-总体系统架构.md` | `docs/architecture/system-architecture.md` |
+| `former physical Corpus root/05-整机执行模型.md` | `docs/architecture/execution-model.md` |
+| `former physical Corpus root/06-MicroSystem与Extension架构.md` | `docs/architecture/extensions.md` |
+| `former physical Corpus root/07-Foundation系统服务目录.md` | `docs/architecture/foundation-services.md` |
+| `former physical Corpus root/08-Subject与认知系统.md` | `docs/architecture/subject.md` |
+| `former physical Corpus root/09-Messaging与Subject-Chat.md` | `docs/architecture/messaging.md` |
+| `former physical Corpus root/10-AI-Runtime-Capability-MCP.md` | `docs/architecture/ai-runtime.md` |
+| `former physical Corpus root/11-System-Authority与Operator-Assistant.md` | `docs/architecture/management-authority.md` |
+| `former physical Corpus root/12-数据-证据-内容与持久化.md` | `docs/architecture/data-evidence-persistence.md` |
+| `former physical Corpus root/13-备份-Subject可移植性-更新与恢复.md` | `docs/architecture/backup-portability-update-recovery.md` |
+| `former physical Corpus root/14-跨平台产品运行与分发.md` | `docs/architecture/platform-distribution.md` |
+| `former physical Corpus root/15-技术与依赖决策账本.md` | `docs/dependencies/decision-ledger.md` |
+| `former physical Corpus root/16-验证与资格认定体系.md` | `docs/qualification/verification-system.md` |
+| `former physical Corpus root/17-高级研究子系统接入地图.md` | `docs/architecture/research-subsystem-integration.md` |
+| `former physical Corpus root/18-接口-CLI-Web与Presentation.md` | `docs/architecture/management-presentation.md` |
+| `former physical Corpus root/19-术语表.md` | `docs/reference/glossary.md` |
+| `former physical Corpus root/20-架构审查清单.md` | `docs/engineering/repository/architecture-review.md` |
+| `former physical Corpus root/21-配置治理与Configuration-Surface.md` | `docs/architecture/configuration.md` |
+| `former physical Corpus root/22-Execution-Lineage与可观测执行.md` | `docs/architecture/execution-lineage.md` |
+| `former physical Corpus root/23-存储拓扑-生命周期根与DataOwner.md` | `docs/architecture/storage-lifecycle.md` |
+| `former physical Corpus root/24-依赖使用与实现路由.md` | `docs/dependencies/implementation-routing.md` |
+| `former physical Corpus root/25-TypeScript与仓库工具链.md` | `docs/engineering/repository/toolchain.md` |
+| `former physical Corpus root/26-开发阶段闭包-稳定化与兼容性治理.md` | `docs/governance/pre-production-evolution.md` |
 
-### `Architecture_Corpus/README.md`
+### Former physical Corpus README
 
 Do not move it wholesale.
 
@@ -370,7 +370,7 @@ Split its responsibilities:
 - architecture overview / Foundation scope / architecture reading path → `docs/architecture/README.md`
 - duplicated text already owned by constitution/architecture documents → delete from the README rather than copy again
 
-### `Architecture_Corpus/INDEX.md`
+### Former physical Corpus index
 
 Do not preserve as a second index.
 
@@ -440,29 +440,29 @@ Do not add S-numbers to new filenames. Those numbers are an editorial ordering d
 ## 1.3 Qualification migration
 
 ```text
-Architecture_Corpus/qualification/DEPENDENCY-QUALIFICATION.md
+former physical Corpus root/qualification/DEPENDENCY-QUALIFICATION.md
 → docs/qualification/dependencies.md
 
-Architecture_Corpus/qualification/dependency-status.json
+former physical Corpus root/qualification/dependency-status.json
 → docs/qualification/dependency-status.json
 
-Architecture_Corpus/qualification/依赖资格矩阵.md
+former physical Corpus root/qualification/依赖资格矩阵.md
 → docs/qualification/dependency-matrix.md
 
-Architecture_Corpus/qualification/验证结果模板.md
+former physical Corpus root/qualification/验证结果模板.md
 → docs/qualification/result-template.md
 
-Architecture_Corpus/qualification/results/**
+former physical Corpus root/qualification/results/**
 → docs/qualification/results/**
 ```
 
 Move evidence/reference material:
 
 ```text
-Architecture_Corpus/references/Foundation依赖证据基线-2026-08-20.md
+former physical Corpus root/references/Foundation依赖证据基线-2026-08-20.md
 → docs/qualification/evidence/dependency-baseline-2026-08-20.md
 
-Architecture_Corpus/references/延期与实现期资格.md
+former physical Corpus root/references/延期与实现期资格.md
 → docs/qualification/deferred-and-implementation-qualification.md
 ```
 
@@ -473,13 +473,13 @@ Apply these decisions:
 ### Keep as machine Authority
 
 ```text
-Architecture_Corpus/references/compatibility-obligations.json
+former compatibility-register source
 → docs/governance/compatibility-obligations.json
 
-Architecture_Corpus/references/dependency-routing.json
+former physical Corpus root/references/dependency-routing.json
 → docs/dependencies/dependency-routing.json
 
-Architecture_Corpus/qualification/dependency-status.json
+former physical Corpus root/qualification/dependency-status.json
 → docs/qualification/dependency-status.json
 ```
 
@@ -491,9 +491,9 @@ Rationale:
 ### Delete as manually duplicated current-tree projection
 
 ```text
-Architecture_Corpus/references/constitution.json
-Architecture_Corpus/references/configuration-governance.json
-Architecture_Corpus/references/storage-governance.json
+former physical Corpus root/references/constitution.json
+former physical Corpus root/references/configuration-governance.json
+former physical Corpus root/references/storage-governance.json
 ```
 
 Before deletion:
@@ -567,7 +567,7 @@ The route validator must assert:
 3. target is under an allowed current knowledge root (`docs/`);
 4. active route targets do not point into `docs/plans/completed/`;
 5. no duplicate path occurs inside one route list;
-6. no route contains `Architecture_Corpus/`;
+6. no route contains the former physical Corpus root marker;
 7. JSON parses under the checked-in schema/version.
 
 ## 1.7 Replace `corpus-structure.mjs`
@@ -610,7 +610,7 @@ It must verify:
   - `docs/dependencies/dependency-routing.json`
   - `docs/qualification/dependency-status.json`
 - local Markdown links in current standing docs resolve;
-- active/current docs do not link to deleted `Architecture_Corpus/`;
+- active/current docs do not link to the deleted former physical Corpus root;
 - completed plans are allowed to retain historical literal paths;
 - JSON Authority files parse;
 - `docs/INDEX.md` links each first-level documentation area exactly once;
@@ -625,8 +625,8 @@ Add failing fixtures for:
 1. route to missing doc;
 2. route to completed historical plan;
 3. broken current Markdown link;
-4. current doc links to `Architecture_Corpus/`;
-5. completed plan contains historical `Architecture_Corpus/` text and is accepted;
+4. current doc links to the deleted former physical Corpus root;
+5. completed plan contains historical former-Corpus-root text and is accepted;
 6. unindexed architecture contract;
 7. forbidden nested docs AGENTS;
 8. forbidden translation sidecar.
@@ -655,7 +655,7 @@ Expected: no current-tree match except an explicitly justified historical record
 
 ## RS-1 exit
 
-- root `Architecture_Corpus/` no longer exists;
+- the former physical Corpus root no longer exists;
 - Architecture Corpus continues to exist as a logical route/Authority concept;
 - no compatibility alias exists;
 - no translation machinery exists;
@@ -1501,7 +1501,7 @@ H3A-2 may begin only when all of the following are true:
 
 ```text
 [x] H3A-1 governance recovery is closed.
-[x] Architecture_Corpus/ no longer exists.
+[x] former physical Corpus root no longer exists.
 [x] all current Authority routes resolve under docs/.
 [x] documentation gate passes.
 [x] repository gate graph is active.
@@ -1616,7 +1616,7 @@ Repository stabilization is complete only when the repository satisfies all of t
 ### Topology
 
 ```text
-[x] no root Architecture_Corpus/
+[x] no former physical Corpus root
 [x] docs/ is the complete knowledge system
 [x] scripts/ has responsibility-based structure
 [x] tools/repo-kit owns reusable repo mechanics only
@@ -1765,21 +1765,45 @@ Review; final manual CI remains prohibited until that review returns `PASS`.
 | IR-08 | `IMPLEMENTED`; scheduler concurrency semantics use an injected deterministic barrier. |
 | IR-09 | `SEQUENCING`; candidate transport and external review remain outside local code remediation. |
 
-**Plan status:** `READY_AFTER_H3A1_RECOVERY`
+**Plan status:** `ROUND2_REQUEST_CHANGES_IN_PROGRESS`
 
 **Local execution state (2026-08-27):** H3A-1 recovery remains `CLOSED`;
-P0 and RS-1 through RS-5 are locally complete, and IR-02 through IR-08 are
-implemented on the stabilization branch. The RS-6 local closure candidate is
-locally requalified after these corrections: two frozen-install/clean cycles
-and two full `pnpm verify` runs completed with every local gate `PASS`. Focused
-repo-kit, private-postgres, documentation, repository, dependency, boundary,
-and toolchain checks also completed `PASS`. A qualified PostgreSQL runtime is
-not present on this host, so affected real-PostgreSQL/L3 evidence remains
-`NOT_RUN` as recorded by the qualification ledger. Cross-platform CI,
-stabilization Independent Review, final manual CI, and merge/reconciliation
-remain `NOT_RUN`.
+P0 and RS-1 through RS-5 are locally complete, and IR-02 through IR-08 were
+implemented on the prior stabilization candidate. Round 2 returned
+`REQUEST_CHANGES`; the candidate is back in Draft while R2-01 through R2-04
+are corrected. The prior local qualification remains evidence for the prior
+candidate; it will be rerun for this corrected candidate. A qualified
+PostgreSQL runtime is not present on this host, so affected real-PostgreSQL/L3
+evidence remains `NOT_RUN` as recorded by the qualification ledger.
+Cross-platform CI, stabilization Independent Review, final manual CI, and
+merge/reconciliation remain `NOT_RUN`.
 H3A-2 remains `BLOCKED_BY_REPOSITORY_STABILIZATION`.
 
 **Execution ordering:** `separate H3A-1 recovery CLOSED → P0 → RS-1 → RS-2 → RS-3 → RS-4 → RS-5 → RS-6 → H3A-2 refresh`
 
 **Primary principle:** this reset is successful only if the repository becomes simpler to reason about, harder to drift, and cheaper for future agents to navigate. New machinery that merely moves complexity from one hand-maintained file to another is not an improvement.
+
+---
+
+## External review disposition — Round 2 (2026-08-27)
+
+The attached external Independent Review for Round 2 returned
+`REQUEST_CHANGES`. It is out-of-band governance evidence, not a GitHub review
+object, and it does not authorize final manual CI. The first-round IR-01
+correction remains `WITHDRAWN`; H3A-1 non-destructive governance reconciliation
+remains `CLOSED`. The candidate was returned to Draft before mutation.
+
+Round 2 required only these four corrections:
+
+| Finding | Disposition |
+| --- | --- |
+| R2-01 | `IMPLEMENTED`; root private package identity is current-semantic and repository-gated. |
+| R2-02 | `IMPLEMENTED`; `docs/plans/README.md` and `docs/plans/active/**` are current documents, while only completed plans receive historical-path exemption. |
+| R2-03 | `IMPLEMENTED`; Node projections and standing dependency records are checked against their owning Authorities, and package-local data-layout typing derives from its constant. |
+| R2-04 | `IMPLEMENTED`; generic dependency/import analysis is delegated to Knip, ESLint/Nx, and dependency governance; the custom boundary gate retains Heptalogos-specific checks. |
+
+The corrected candidate must complete focused tests, a frozen install/clean
+cycle, and full local `pnpm verify` before it is frozen and returned to Ready
+for a new external Independent Review. Final manual CI remains `NOT_RUN` until
+that new review returns `PASS`; merge and post-merge reconciliation remain
+outside the current candidate.

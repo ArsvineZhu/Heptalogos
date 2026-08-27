@@ -174,6 +174,50 @@ describe("documentation topology verification", () => {
     expect(result.errors).toEqual([]);
   });
 
+  it("validates broken links in active plans", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/plans/active/current.md",
+        "[missing](missing.md)\n",
+      );
+    });
+    expect(hasCode(result, "broken-current-link")).toBe(true);
+  });
+
+  it("validates removed current homes in active plans", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/plans/active/current.md",
+        "Architecture_Corpus/00.md\n",
+      );
+    });
+    expect(hasCode(result, "removed-corpus-path")).toBe(true);
+  });
+
+  it("validates the plans index as a current navigation document", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/plans/README.md",
+        "[missing active plan](active/missing.md)\n",
+      );
+    });
+    expect(hasCode(result, "broken-current-link")).toBe(true);
+  });
+
+  it("allows historical links in completed plans", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/plans/completed/historical.md",
+        "[historical home](../../Architecture_Corpus/00.md)\n",
+      );
+    });
+    expect(result.errors).toEqual([]);
+  });
+
   it("rejects an architecture contract missing from its README", async () => {
     const result = await fixtureTree(async (root) => {
       await writeFixtureFile(

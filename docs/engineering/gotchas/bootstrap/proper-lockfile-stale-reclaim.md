@@ -13,7 +13,11 @@
 
 `proper-lockfile@4.1.2` is not a qualified pre-PostgreSQL Authority fence: the deterministic delayed-reclaimer probe reproduces issue #121. The normal Host Authority remains the PostgreSQL advisory lease plus `HostOwnershipFence` and `HostOwnershipToken`; the bootstrap lock only covers the bounded pre-PostgreSQL window.
 
-The selected M5B route is `@bybrave/proper-lockfile2@5.0.0`. It claims a stale lock by atomically renaming it to a unique path, verifies the claimed mtime, and restores a changed lock rather than removing a winner's fresh lock. Its required M5B provider properties are recorded in `Q-BOOT-01`.
+The selected route is the `@bybrave/proper-lockfile2` 5.x package line; its
+exact selection is owned by the pnpm Catalog. It claims a stale lock by
+atomically renaming it to a unique path, verifies the claimed mtime, and
+restores a changed lock rather than removing a winner's fresh lock. Its
+required provider properties are recorded in `Q-BOOT-01`.
 
 ## Supported M2 rule
 

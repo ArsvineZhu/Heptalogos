@@ -32,6 +32,8 @@ function parsePackageManager(value) {
   };
 }
 
+const NODE_VERSION_PROJECTION_FILES = Object.freeze([".node-version", ".nvmrc"]);
+
 export function readPackageManagerBaseline({ root = process.cwd() } = {}) {
   const packageJson = readJson(root, "package.json");
   const packageManager = parsePackageManager(packageJson.packageManager);
@@ -40,6 +42,31 @@ export function readPackageManagerBaseline({ root = process.cwd() } = {}) {
     throw new Error("package.json engines.node must be a non-empty string");
   }
   return { node, ...packageManager };
+}
+
+export function readNodeVersionProjections({ root = process.cwd() } = {}) {
+  const repositoryRoot = resolve(root);
+  return Object.fromEntries(
+    NODE_VERSION_PROJECTION_FILES.map((name) => {
+      const value = readFileSync(join(repositoryRoot, name), "utf8").trim();
+      if (value.length === 0) {
+        throw new Error(`${name} must contain a non-empty Node version`);
+      }
+      return [name, value];
+    }),
+  );
+}
+
+export function validateNodeVersionProjections({ root = process.cwd() } = {}) {
+  const repositoryRoot = resolve(root);
+  const { node } = readPackageManagerBaseline({ root: repositoryRoot });
+  const projections = readNodeVersionProjections({ root: repositoryRoot });
+  return Object.entries(projections)
+    .filter(([, value]) => value !== node)
+    .map(
+      ([name, value]) =>
+        `${name} must match package.json engines.node (${node}); got ${value}`,
+    );
 }
 
 export function readWorkspaceSection({ root = process.cwd(), section } = {}) {

@@ -28,6 +28,7 @@ const TRANSIENT_ROOTS = new Set([
 ]);
 
 const TOPOLOGY_DOCUMENT = "docs/engineering/README.md";
+const CURRENT_REPOSITORY_PACKAGE_NAME = "heptalogos";
 const MACHINE_AUTHORITY_CONSUMERS = Object.freeze([
   {
     authority: "docs/governance/compatibility-obligations.json",
@@ -109,6 +110,34 @@ function consumerMentionsAuthority(source, authority) {
   return segments.every((segment) => source.includes(segment));
 }
 
+export function validateRootPackageIdentity({ root = process.cwd() } = {}) {
+  const repositoryRoot = resolve(root);
+  const packagePath = join(repositoryRoot, "package.json");
+  if (!existsSync(packagePath) || !statSync(packagePath).isFile()) {
+    return [
+      "root package.json is missing; current repository identity cannot be verified",
+    ];
+  }
+
+  let packageJson;
+  try {
+    packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
+  } catch (error) {
+    return [`root package.json is unreadable: ${error.message}`];
+  }
+
+  const errors = [];
+  if (packageJson.private !== true) {
+    errors.push("root package.json must remain private");
+  }
+  if (packageJson.name !== CURRENT_REPOSITORY_PACKAGE_NAME) {
+    errors.push(
+      `root package.json name must equal the current repository identity ${CURRENT_REPOSITORY_PACKAGE_NAME}; got ${JSON.stringify(packageJson.name)}`,
+    );
+  }
+  return errors;
+}
+
 export function validateMachineAuthorityConsumers({ root = process.cwd() } = {}) {
   const repositoryRoot = resolve(root);
   const errors = [];
@@ -133,4 +162,8 @@ export function validateMachineAuthorityConsumers({ root = process.cwd() } = {})
   return errors;
 }
 
-export { MACHINE_AUTHORITY_CONSUMERS, RESPONSIBILITY_ROOTS };
+export {
+  CURRENT_REPOSITORY_PACKAGE_NAME,
+  MACHINE_AUTHORITY_CONSUMERS,
+  RESPONSIBILITY_ROOTS,
+};

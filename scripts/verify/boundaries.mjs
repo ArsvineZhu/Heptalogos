@@ -1,15 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  discoverWorkspacePackages,
-  packageRoutes,
-  repositoryToolingPackages,
-} from "@heptalogos/repo-kit";
 
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const errors = [];
-const packageJsonCache = new Map();
 const ignoredDirectories = new Set([
   ".git",
   ".nx",
@@ -177,43 +171,6 @@ function collect(directory, matcher, files = []) {
   return files;
 }
 
-function packageName(specifier) {
-  if (specifier.startsWith("@")) return specifier.split("/").slice(0, 2).join("/");
-  return specifier.split("/")[0];
-}
-
-const workspacePackages = await discoverWorkspacePackages({ cwd: root });
-const workspacePackageNames = new Set(
-  workspacePackages
-    .map(({ name }) => name)
-    .filter((name) => typeof name === "string" && name.length > 0),
-);
-function packageJsonFor(file) {
-  let directory = dirname(file);
-  while (directory === root || directory.startsWith(`${root}${sep}`)) {
-    if (packageJsonCache.has(directory)) return packageJsonCache.get(directory);
-    const packagePath = join(directory, "package.json");
-    if (existsSync(packagePath)) {
-      const value = JSON.parse(readFileSync(packagePath, "utf8"));
-      packageJsonCache.set(directory, value);
-      return value;
-    }
-    const parent = dirname(directory);
-    if (parent === directory) break;
-    directory = parent;
-  }
-  return {};
-}
-
-function declaredDependencies(manifest) {
-  return new Set([
-    ...Object.keys(manifest.dependencies ?? {}),
-    ...Object.keys(manifest.devDependencies ?? {}),
-    ...Object.keys(manifest.optionalDependencies ?? {}),
-    ...Object.keys(manifest.peerDependencies ?? {}),
-  ]);
-}
-
 const sourcePaths = collect(root, (sourcePath) => /\.(?:ts|tsx)$/u.test(sourcePath));
 for (const path of sourcePaths) {
   const relativePath = relative(root, path).replaceAll("\\", "/");
@@ -287,41 +244,6 @@ for (const path of sourcePaths) {
     errors.push(
       `${relativePath}: raw pg imports are restricted to the Host ownership adapters or tests`,
     );
-  }
-  const projectPackage = packageJsonFor(path);
-  const declared = declaredDependencies(projectPackage);
-  const importPattern =
-    /(?:from\s+|import\s*\(\s*|import\s+|require\s*\(\s*)(["'])([^"']+)\1/g;
-
-  for (const match of source.matchAll(importPattern)) {
-    const specifier = match[2];
-    if (specifier.startsWith(".")) continue;
-    if (specifier.startsWith("node:")) continue;
-
-    const dependency = packageName(specifier);
-    const isWorkspaceDependency = workspacePackageNames.has(dependency);
-    if (!declared.has(dependency) && dependency !== projectPackage.name) {
-      errors.push(
-        `${relativePath}: undeclared ${isWorkspaceDependency ? "workspace" : "external"} import: ${specifier}`,
-      );
-      continue;
-    }
-    if (isWorkspaceDependency) {
-      continue;
-    }
-    if (repositoryToolingPackages.has(dependency)) {
-      errors.push(
-        `${relativePath}: repository tooling import must not enter source: ${specifier}`,
-      );
-      continue;
-    }
-
-    const route = packageRoutes.get(dependency);
-    if (!route) {
-      errors.push(
-        `${relativePath}: external import has no Corpus package identity: ${specifier}`,
-      );
-    }
   }
 }
 

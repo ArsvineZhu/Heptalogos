@@ -4,8 +4,10 @@ import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import {
   readPackageManagerBaseline,
+  readNodeVersionProjections,
   readWorkspaceCatalog,
   readWorkspaceSection,
+  validateNodeVersionProjections,
   resolveExpectedInstalledPackageVersions,
 } from "../src/version-authority.mjs";
 
@@ -49,6 +51,23 @@ describe("repository version Authorities", () => {
         packageManagerName: "pnpm",
         packageManagerVersion: "11.22.0",
       });
+    });
+  });
+
+  it("requires Node version-manager projections to match package.json", async () => {
+    await fixtureTree(async (root) => {
+      await writeFile(join(root, ".node-version"), "24.19.0\n");
+      await writeFile(join(root, ".nvmrc"), "24.19.0\n");
+      expect(readNodeVersionProjections({ root })).toEqual({
+        ".node-version": "24.19.0",
+        ".nvmrc": "24.19.0",
+      });
+      expect(validateNodeVersionProjections({ root })).toEqual([]);
+
+      await writeFile(join(root, ".nvmrc"), "24.19.1\n");
+      expect(validateNodeVersionProjections({ root })).toEqual([
+        ".nvmrc must match package.json engines.node (24.19.0); got 24.19.1",
+      ]);
     });
   });
 

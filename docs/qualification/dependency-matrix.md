@@ -4,17 +4,17 @@
 
 ## A. Frozen Foundation Routes
 
-| Role                         | Selected route                                                                  | RoleDecision | ImplementationQualification | 剩余边界                                      |
-| ---------------------------- | ------------------------------------------------------------------------------- | -----------: | --------------------------: | --------------------------------------------- |
-| trusted in-process lifecycle | `cordis` active 4.x package line                                                |      ADOPTED |                    REQUIRED | exact package/runtime/source-less             |
-| runtime dependency graph     | `@dagrejs/graphlib` 4.x                                                         |      ADOPTED |                NOT_REQUIRED | ordinary graph property tests                 |
-| WorkQueue scheduling         | DBOS Queue                                                                      |      ADOPTED |                    REQUIRED | crash/restart/source-less/product             |
-| OneBot/Milky interop         | direct thin adapters                                                            |      ADOPTED |                    REQUIRED | real live protocol conformance                |
-| Cedar binding                | `@cedar-policy/cedar-wasm`                                                      |      ADOPTED |                    REQUIRED | WASM loading/source-less/fail-closed product  |
-| Secret backend               | platform OS provider composition; `@napi-rs/keyring` preferred where applicable |      ADOPTED |                    REQUIRED | Windows/macOS/Linux + service/headless/native |
-| Bootstrap lock               | `@bybrave/proper-lockfile2` 5.0.0                                               |      ADOPTED |                    REQUIRED | power-loss/platform/source-less               |
-| Bootstrap process liveness   | Node `process.kill(pid, 0)` + `pidusage` 4.0.1                                  |      ADOPTED |                    REQUIRED | process-generation/platform qualification     |
-| Windows SCM wrapper          | first L3 comparator WinSW                                                       |     DEFERRED |                    DEFERRED | shipping Windows service implementation only  |
+| Role                         | Selected route                                                                                    | RoleDecision | ImplementationQualification | 剩余边界                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------- | -----------: | --------------------------: | --------------------------------------------- |
+| trusted in-process lifecycle | `cordis` active 4.x package line                                                                  |      ADOPTED |                    REQUIRED | exact package/runtime/source-less             |
+| runtime dependency graph     | `@dagrejs/graphlib` 4.x                                                                           |      ADOPTED |                NOT_REQUIRED | ordinary graph property tests                 |
+| WorkQueue scheduling         | DBOS Queue                                                                                        |      ADOPTED |                    REQUIRED | crash/restart/source-less/product             |
+| OneBot/Milky interop         | direct thin adapters                                                                              |      ADOPTED |                    REQUIRED | real live protocol conformance                |
+| Cedar binding                | `@cedar-policy/cedar-wasm`                                                                        |      ADOPTED |                    REQUIRED | WASM loading/source-less/fail-closed product  |
+| Secret backend               | platform OS provider composition; `@napi-rs/keyring` preferred where applicable                   |      ADOPTED |                    REQUIRED | Windows/macOS/Linux + service/headless/native |
+| Bootstrap lock               | `@bybrave/proper-lockfile2` 5.x package line; exact selection is in the pnpm Catalog              |      ADOPTED |                    REQUIRED | power-loss/platform/source-less               |
+| Bootstrap process liveness   | Node `process.kill(pid, 0)` + `pidusage` 4.x package line; exact selection is in the pnpm Catalog |      ADOPTED |                    REQUIRED | process-generation/platform qualification     |
+| Windows SCM wrapper          | first L3 comparator WinSW                                                                         |     DEFERRED |                    DEFERRED | shipping Windows service implementation only  |
 
 ## B. Adopted-role Conformance Evidence
 

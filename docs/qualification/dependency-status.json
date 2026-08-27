@@ -21,7 +21,7 @@
     {
       "id": "runtime.node",
       "role": "primary JavaScript runtime",
-      "candidate": "Node.js 24 LTS line; exact shipping patch pinned; current L0 baseline 24.19.0",
+      "candidate": "Node.js 24 LTS line; exact shipping patch is owned by package.json engines.node",
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
       "qualification": "exact release/platform/source-less qualification"
@@ -423,20 +423,20 @@
     {
       "id": "bootstrap.lock",
       "role": "pre-PostgreSQL single-instance/bootstrap lock",
-      "candidate": "@bybrave/proper-lockfile2 5.0.0 for the bounded pre-PostgreSQL ownership window",
+      "candidate": "@bybrave/proper-lockfile2 5.x package line for the bounded pre-PostgreSQL ownership window; exact selection is owned by the pnpm Catalog",
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
       "qualification": "bootstrap crash/power-loss/platform/source-less qualification",
-      "decisionBasis": "proper-lockfile 4.1.2 failed the deterministic delayed-stale-reclaimer race; proper-lockfile2 5.0.0 passed atomic stale-claim, process, and path qualification; PostgreSQL Host lease remains normal Host authority"
+      "decisionBasis": "proper-lockfile 4.1.2 failed the deterministic delayed-stale-reclaimer race; the adopted proper-lockfile2 route passed atomic stale-claim, process, and path qualification; PostgreSQL Host lease remains normal Host authority"
     },
     {
       "id": "bootstrap.process-liveness",
       "role": "abandoned bootstrap-owner process-generation liveness",
-      "candidate": "Node process.kill(pid, 0) + pidusage 4.0.1",
+      "candidate": "Node process.kill(pid, 0) + pidusage 4.x package line; exact selection is owned by the pnpm Catalog",
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
       "qualification": "self/live/dead/reused/unknown process identity qualification",
-      "decisionBasis": "Node kill(pid, 0) provides the first liveness probe and pidusage provides process start-time evidence; Heptalogos owns the four-state fail-closed semantics and fixed 5 second tolerance"
+      "decisionBasis": "Node kill(pid, 0) provides the first liveness probe and the adopted pidusage route provides process start-time evidence; Heptalogos owns the four-state fail-closed semantics and fixed 5 second tolerance"
     },
     {
       "id": "sandbox.wasm",

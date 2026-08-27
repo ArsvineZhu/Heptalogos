@@ -31,6 +31,21 @@ function restrictExactImportsOutside(specifier, allowedFiles, message) {
 
 const restrictedImportRules = [
   restrictPackageImportsOutside(
+    "@heptalogos/repo-kit",
+    [],
+    "Repository tooling must not enter product package source.",
+  ),
+  restrictPackageImportsOutside(
+    "knip",
+    [],
+    "Repository analysis tooling must not enter product package source.",
+  ),
+  restrictPackageImportsOutside(
+    "prettier",
+    [],
+    "Repository formatting tooling must not enter product package source.",
+  ),
+  restrictPackageImportsOutside(
     "ajv",
     [
       "packages/schema-runtime/**",

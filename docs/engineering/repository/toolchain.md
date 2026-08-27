@@ -2,7 +2,7 @@
 
 本文件冻结 Foundation implementation repository 的语言、模块、编译、包管理和工具链责任边界。它不是“最低兼容版本”清单，而是当前项目应采用的默认实现路线。
 
-机器可读依赖状态见 `qualification/dependency-status.json`；实现路由见 `references/dependency-routing.json`。
+机器可读依赖状态见 `../../qualification/dependency-status.json`；实现路由见 `../../dependencies/dependency-routing.json`。
 
 ---
 
@@ -22,20 +22,10 @@ JavaScript target        ESNext
 Node ambient types       @types/node 24.x, aligned to shipping Node major
 ```
 
-当前 L0 evidence baseline（2026-08-20）观测到：
-
-```text
-Node.js                  24.19.0 LTS
-pnpm                     11.21.0
-TypeScript               7.0.2
-@typescript/typescript6  6.0.2
-Nx                       23.1.1
-ESLint                   10.8.1
-typescript-eslint        8.67.0
-@types/node Node-24 line 24.13.3
-```
-
-这些 patch 值是证据基线，不是允许 Agent 凭记忆复制的永久版本号。实现仓库建立 Catalog 或执行依赖升级时，必须重新读取 registry/upstream 当前状态并记录证据，然后 exact-pin 实际使用版本。
+当前 L0 exact observation 保存在
+[qualification evidence baseline](../../qualification/evidence/dependency-baseline-2026-08-20.md)。
+本文件只保留实现路线和版本 Authority 所有权，不重复手工维护 patch 值。
+实现仓库建立 Catalog 或执行依赖升级时，必须重新读取 registry/upstream 当前状态并记录证据，然后由 `package.json` / pnpm Catalog exact-pin 实际使用版本。
 
 ---
 
