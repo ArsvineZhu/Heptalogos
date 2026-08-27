@@ -1770,8 +1770,14 @@ Review; final manual CI remains prohibited until that review returns `PASS`.
 **Local execution state (2026-08-27):** H3A-1 recovery remains `CLOSED`;
 P0 and RS-1 through RS-5 are locally complete, and IR-02 through IR-08 are
 implemented on the stabilization branch. The RS-6 local closure candidate is
-being requalified after these corrections. Cross-platform CI, stabilization
-Independent Review, final manual CI, and merge/reconciliation remain `NOT_RUN`.
+locally requalified after these corrections: two frozen-install/clean cycles
+and two full `pnpm verify` runs completed with every local gate `PASS`. Focused
+repo-kit, private-postgres, documentation, repository, dependency, boundary,
+and toolchain checks also completed `PASS`. A qualified PostgreSQL runtime is
+not present on this host, so affected real-PostgreSQL/L3 evidence remains
+`NOT_RUN` as recorded by the qualification ledger. Cross-platform CI,
+stabilization Independent Review, final manual CI, and merge/reconciliation
+remain `NOT_RUN`.
 H3A-2 remains `BLOCKED_BY_REPOSITORY_STABILIZATION`.
 
 **Execution ordering:** `separate H3A-1 recovery CLOSED → P0 → RS-1 → RS-2 → RS-3 → RS-4 → RS-5 → RS-6 → H3A-2 refresh`
