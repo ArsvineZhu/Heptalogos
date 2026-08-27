@@ -27,9 +27,10 @@ framework, database, or process adapter.
 
 The entry point exports canonicalization and digest helpers, branded identity
 constructors/parsers, lifecycle-root IDs, Problem types, retry classes, and
-data-governance types. Public values must retain the semantic distinctions that
-their names communicate; do not flatten authority or lifecycle roots into
-untyped strings.
+data-governance types. `createProblem` and `createProblemError` are the shared
+construction seam for canonical Problem envelopes. Public values must retain
+the semantic distinctions that their names communicate; do not flatten
+authority or lifecycle roots into untyped strings.
 
 ## Dependencies and boundaries
 

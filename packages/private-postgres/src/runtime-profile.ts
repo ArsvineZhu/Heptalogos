@@ -1,8 +1,13 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  type Problem,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
 import type { PrivatePostgresToolchain } from "./contracts.js";
 import { runPostgresTool } from "./process-adapter.js";
+import { assertPrivatePostgresPort } from "./port.js";
 
 export interface EffectivePrivatePostgresProfile {
   readonly listenAddress: string;
@@ -19,8 +24,7 @@ function profileProblem(
   detail: string,
   category: Problem["category"] = "integrity",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",
@@ -29,19 +33,8 @@ function profileProblem(
   });
 }
 
-function assertPort(port: number): void {
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw profileProblem(
-      "private-postgres.cluster.invalid_port",
-      "Private PostgreSQL port is invalid",
-      "The private PostgreSQL port must be an integer from 1 through 65535",
-      "validation",
-    );
-  }
-}
-
 export function createCanonicalRuntimeProfile(port: number): string {
-  assertPort(port);
+  assertPrivatePostgresPort(port);
   return [
     "listen_addresses = '127.0.0.1'",
     "unix_socket_directories = ''",
@@ -136,7 +129,7 @@ export async function inspectEffectivePrivatePostgresProfile(
     timeoutMs,
   );
   const port = Number(portText);
-  assertPort(port);
+  assertPrivatePostgresPort(port);
   const passwordEncryption = await queryEffectiveSetting(
     toolchain,
     dataDirectory,

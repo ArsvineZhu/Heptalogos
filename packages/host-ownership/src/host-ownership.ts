@@ -1,11 +1,11 @@
 import {
+  createProblemError,
   parseBootId,
   parseHostOwnershipToken,
   ProblemError,
   type BootId,
   type HostOwnershipToken,
   type InstanceId,
-  type Problem,
 } from "@heptalogos/foundation-contracts";
 import { HOST_OWNERSHIP_FENCE_TABLE, HOST_OWNERSHIP_SCHEMA } from "./contracts.js";
 import type { HostLeaseConnection } from "./host-lease-connection.js";
@@ -64,15 +64,13 @@ function publicationProblem(
   title: string,
   detail: string,
 ): ProblemError {
-  const problem: Problem = {
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category: "host-ownership",
     retryClass: "manual",
     title,
     detail,
-  };
-  return new ProblemError(problem);
+  });
 }
 
 function invalidFenceProblem(): ProblemError {

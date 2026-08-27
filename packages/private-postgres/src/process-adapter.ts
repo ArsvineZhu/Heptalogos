@@ -1,6 +1,11 @@
 import { execa } from "execa";
 import { isAbsolute } from "node:path";
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  type Problem,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
+import { hasNodeErrorCode } from "./error-code.js";
 
 export interface PostgresProcessResult {
   readonly exitCode: number;
@@ -35,8 +40,7 @@ function processProblem(
   category: Problem["category"] = "unavailable",
   retryClass: Problem["retryClass"] = "backoff",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass,
@@ -50,7 +54,7 @@ function isTimeoutError(error: unknown): boolean {
     typeof error === "object" &&
     error !== null &&
     (("timedOut" in error && error.timedOut === true) ||
-      ("code" in error && error.code === "ETIMEDOUT"))
+      hasNodeErrorCode(error, "ETIMEDOUT"))
   );
 }
 

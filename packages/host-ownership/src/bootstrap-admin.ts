@@ -1,6 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { Client } from "pg";
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
 import {
   HOST_LEASE_ROLE,
   HOST_LEASE_SCRAM_ITERATIONS,
@@ -230,15 +233,13 @@ function provisioningProblem(
   title: string,
   detail: string,
 ): ProblemError {
-  const problem: Problem = {
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category: "host-ownership",
     retryClass: "manual",
     title,
     detail,
-  };
-  return new ProblemError(problem);
+  });
 }
 
 function incompatibleRoleProblem(roleName: string): ProblemError {

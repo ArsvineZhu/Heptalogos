@@ -1,7 +1,12 @@
 import { lstat, realpath, unlink, writeFile } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import { isAbsolute, join } from "node:path";
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  ProblemError,
+  type Problem,
+} from "@heptalogos/foundation-contracts";
+import { hasNodeErrorCode } from "./error-code.js";
 
 const PASSWORD_FILE_PREFIX = "heptalogos-private-pg-";
 // IMPLEMENTATION_CONSTANT: Node's portable restrictive file-mode request.
@@ -13,8 +18,7 @@ function credentialProblem(
   detail: string,
   category: Problem["category"] = "unavailable",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",
@@ -113,12 +117,7 @@ export async function withRestrictedPasswordFile<T>(
     try {
       await unlink(passwordFilePath);
     } catch (error) {
-      if (!(
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        error.code === "ENOENT"
-      )) {
+      if (!hasNodeErrorCode(error, "ENOENT")) {
         throw credentialProblem(
           "private-postgres.credential_file.cleanup_failed",
           "Private PostgreSQL password file cleanup failed",

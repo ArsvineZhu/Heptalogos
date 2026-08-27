@@ -3,7 +3,7 @@
 ## Purpose
 
 `schema-runtime` provides generic runtime schema compilation and validation
-mechanics used by Foundation contracts. It wraps the adopted AJV and TypeBox
+mechanics used by Foundation contracts. It wraps the adopted Ajv and TypeBox
 route behind a small typed result interface so callers can validate data without
 coupling their public contracts to a validator implementation. It is a generic
 mechanics package, not a product schema Authority.
@@ -26,11 +26,12 @@ mechanics package, not a product schema Authority.
 The root entry point exports schema validation issue/result/validator types and
 `compileSchema`. The `./typebox` subpath exposes the explicitly routed TypeBox
 mechanics. Consumers should translate results into their own domain contracts
-without exposing AJV internals as product Authority.
+without exposing Ajv internals as product Authority; direct Ajv/TypeBox imports
+outside this package are prohibited.
 
 ## Dependencies and boundaries
 
-It depends on AJV and TypeBox only. Keep it deterministic and side-effect free;
+It depends on Ajv and TypeBox only. Keep it deterministic and side-effect free;
 do not add database, filesystem, framework, or network behavior. Current
 PRE_PRODUCTION shapes are defined by their owning package, and unsupported
 shapes must fail according to that package's contract.

@@ -1,7 +1,9 @@
-import { CompiledQuery } from "kysely";
 import { createEvidenceId, type Instant } from "@heptalogos/foundation-contracts";
-import type { PersistenceInternalTransaction } from "@heptalogos/persistence/foundation-repository";
-import { useFoundationMutationTransaction } from "@heptalogos/persistence/foundation-repository";
+import {
+  executeFoundationSql,
+  type PersistenceInternalTransaction,
+  useFoundationMutationTransaction,
+} from "@heptalogos/persistence/foundation-repository";
 import type { PersistenceMutationTransactionContext } from "@heptalogos/persistence";
 import type { EvidenceDraft, EvidenceRecord, EvidenceService } from "./contracts.js";
 import {
@@ -57,7 +59,7 @@ async function executeSql(
   parameters: readonly unknown[],
 ): Promise<void> {
   try {
-    await transaction.executeQuery(CompiledQuery.raw(text, [...parameters]));
+    await executeFoundationSql(transaction, text, parameters);
   } catch (error) {
     if (
       typeof error === "object" &&

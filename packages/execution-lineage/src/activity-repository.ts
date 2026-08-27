@@ -1,4 +1,3 @@
-import { CompiledQuery } from "kysely";
 import {
   formatInstant,
   parseActivityId,
@@ -6,7 +5,10 @@ import {
 } from "@heptalogos/foundation-contracts";
 import type { PersistenceMutationTransactionContext } from "@heptalogos/persistence";
 import type { PersistenceInternalTransaction } from "@heptalogos/persistence/foundation-repository";
-import { useFoundationMutationTransaction } from "@heptalogos/persistence/foundation-repository";
+import {
+  executeFoundationSql as executeSql,
+  useFoundationMutationTransaction,
+} from "@heptalogos/persistence/foundation-repository";
 import type {
   ActivityCompletion,
   BootstrapRetainedActivityDraft,
@@ -26,17 +28,6 @@ import {
   completionConflictProblem,
 } from "./problems.js";
 import { runWithLineageSuppressed } from "./suppression.js";
-
-async function executeSql(
-  transaction: PersistenceInternalTransaction,
-  text: string,
-  parameters: readonly unknown[] = [],
-): Promise<readonly Record<string, unknown>[]> {
-  const result = await transaction.executeQuery<Record<string, unknown>>(
-    CompiledQuery.raw(text, [...parameters]),
-  );
-  return result.rows;
-}
 
 function utf8Length(value: string): number {
   return new TextEncoder().encode(value).byteLength;

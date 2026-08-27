@@ -1,4 +1,5 @@
 import {
+  createProblemError,
   parseBootId,
   parseHostOwnershipToken,
   ProblemError,
@@ -18,6 +19,7 @@ import {
   withBootstrapAdminClient,
 } from "./bootstrap-admin.js";
 import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
+import { queryWithAuthority as authorizedQuery } from "./authorized-query.js";
 
 export interface HostOwnershipRevocationResult {
   readonly previousRevision: string;
@@ -63,8 +65,7 @@ function revocationProblem(
   title: string,
   detail: string,
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",
@@ -156,18 +157,6 @@ function assertSourceFence(
     );
   }
   return previousRevision;
-}
-
-async function authorizedQuery<Row = never>(
-  client: BootstrapAdminClient,
-  authority: BootstrapMutationAuthority,
-  text: string,
-  values?: readonly unknown[],
-): Promise<{ readonly rows: readonly Row[] }> {
-  authority.assertCurrent();
-  const result = await client.query<Row>(text, values);
-  authority.assertCurrent();
-  return result;
 }
 
 function assertRevokedFence(

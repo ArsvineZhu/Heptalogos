@@ -1,5 +1,9 @@
 import { Client } from "pg";
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  type Problem,
+  ProblemError,
+} from "@heptalogos/foundation-contracts";
 import type { HostAdvisoryKey } from "./advisory-key.js";
 import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
 import { HOST_LEASE_ROLE, type HostOwnershipConnectionTarget } from "./contracts.js";
@@ -71,8 +75,7 @@ function leaseProblem(
   detail: string,
   retryClass: Problem["retryClass"] = "manual",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category: "host-ownership",
     retryClass,

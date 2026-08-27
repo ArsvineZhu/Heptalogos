@@ -1,13 +1,18 @@
 import { lstat } from "node:fs/promises";
 import { isAbsolute as isPosixAbsolute, join as posixJoin } from "node:path/posix";
 import { isAbsolute as isWindowsAbsolute, join as windowsJoin } from "node:path/win32";
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  type Problem,
+  ProblemError,
+} from "@heptalogos/foundation-contracts";
 import {
   PRIVATE_POSTGRES_ARCHITECTURE_MAJOR,
   PRIVATE_POSTGRES_QUALIFIED_VERSION,
   type PrivatePostgresToolchain,
 } from "./contracts.js";
 import { runPostgresTool } from "./process-adapter.js";
+import { hasNodeErrorCode } from "./error-code.js";
 
 // IMPLEMENTATION_CONSTANT: bounded internal version-probe budget; not an installation setting.
 const TOOLCHAIN_VERSION_TIMEOUT_MS = 30_000;
@@ -39,8 +44,7 @@ function toolchainProblem(
   category: Problem["category"] = "validation",
   retryClass: Problem["retryClass"] = "manual",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass,
@@ -98,12 +102,7 @@ async function requireRegularTool(path: string, name: string): Promise<void> {
     }
   } catch (error) {
     if (error instanceof ProblemError) throw error;
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      error.code === "ENOENT"
-    ) {
+    if (hasNodeErrorCode(error, "ENOENT")) {
       throw toolchainProblem(
         "private-postgres.toolchain.tool_missing",
         "Required PostgreSQL tool is missing",

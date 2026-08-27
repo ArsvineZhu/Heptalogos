@@ -1,6 +1,7 @@
 import {
-  ProblemError,
-  type Problem,
+  createProblemError,
+  type ProblemInit,
+  type ProblemError,
   type RetryClass,
 } from "@heptalogos/foundation-contracts";
 
@@ -59,13 +60,12 @@ export function signalProblem(
     retryClass: "after-change" as const,
     title: "Signal operation failed",
   };
-  const problem: Problem = {
-    schemaVersion: 1,
+  const problem: ProblemInit = {
     problemCode,
     category: spec.category,
     retryClass: spec.retryClass,
     title: spec.title,
     detail,
   };
-  return new ProblemError(problem, cause === undefined ? undefined : { cause });
+  return createProblemError(problem, cause === undefined ? undefined : { cause });
 }

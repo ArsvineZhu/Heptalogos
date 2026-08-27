@@ -1,9 +1,9 @@
 import {
+  createProblemError,
   parseBootId,
   parseHostOwnershipToken,
-  ProblemError,
+  type ProblemError,
   type InstanceId,
-  type Problem,
 } from "@heptalogos/foundation-contracts";
 import {
   HOST_LEASE_ROLE,
@@ -21,6 +21,7 @@ import {
   withBootstrapAdminClient,
 } from "./bootstrap-admin.js";
 import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
+import { queryWithAuthority as authorizedMutation } from "./authorized-query.js";
 
 export interface OwnershipSchemaOptions {
   readonly port: number;
@@ -220,15 +221,13 @@ function schemaProblem(
   title: string,
   detail: string,
 ): ProblemError {
-  const problem: Problem = {
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category: "host-ownership",
     retryClass: "manual",
     title,
     detail,
-  };
-  return new ProblemError(problem);
+  });
 }
 
 function incompatibleSchemaProblem(detail: string): ProblemError {
@@ -291,18 +290,6 @@ function assertAclExact(
   ) {
     throw incompatibleSchemaProblem(detail);
   }
-}
-
-async function authorizedMutation<Row = never>(
-  client: BootstrapAdminClient,
-  authority: BootstrapMutationAuthority,
-  text: string,
-  values?: readonly unknown[],
-): Promise<{ readonly rows: readonly Row[] }> {
-  authority.assertCurrent();
-  const result = await client.query<Row>(text, values);
-  authority.assertCurrent();
-  return result;
 }
 
 function assertExactColumns(rows: readonly ColumnRow[]): void {

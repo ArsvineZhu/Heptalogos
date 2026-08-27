@@ -1,5 +1,8 @@
 import { initialTransition, setup, transition, type SnapshotFrom } from "xstate";
-import { ProblemError } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
 
 export type HostLeaseLifecycleState =
   "ACQUIRING" | "ACTIVE" | "FENCED" | "CLOSING" | "CLOSED";
@@ -73,14 +76,29 @@ function invalidTransition(
   state: HostLeaseLifecycleState,
   event: HostLeaseLifecycleEvent,
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode: "host-ownership.lifecycle.invalid_transition",
     category: "conflict",
     retryClass: "manual",
     title: "Host ownership lifecycle transition is invalid",
     detail: `The Host ownership lifecycle cannot accept ${event.type} while it is ${state}`,
   });
+}
+
+function advanceHostLeaseSnapshot(
+  snapshot: HostLeaseSnapshot,
+  event: HostLeaseLifecycleEvent,
+): HostLeaseSnapshot {
+  return transition(hostLeaseMachine, snapshot, event)[0];
+}
+
+function sendHostLeaseEvent(
+  snapshot: HostLeaseSnapshot,
+  event: HostLeaseLifecycleEvent,
+): HostLeaseSnapshot {
+  const state = stateOf(snapshot);
+  if (!snapshot.can(event)) throw invalidTransition(state, event);
+  return advanceHostLeaseSnapshot(snapshot, event);
 }
 
 export function createHostLeaseLifecycleTracker(): HostLeaseLifecycleTracker {
@@ -94,9 +112,7 @@ export function createHostLeaseLifecycleTracker(): HostLeaseLifecycleTracker {
       return snapshot.can(event);
     },
     send(event) {
-      const state = stateOf(snapshot);
-      if (!snapshot.can(event)) throw invalidTransition(state, event);
-      snapshot = transition(hostLeaseMachine, snapshot, event)[0];
+      snapshot = sendHostLeaseEvent(snapshot, event);
     },
   };
 }

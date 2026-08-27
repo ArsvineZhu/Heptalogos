@@ -1,4 +1,3 @@
-import { CompiledQuery } from "kysely";
 import {
   canonicalizeJson,
   formatInstant,
@@ -30,6 +29,7 @@ import type {
 import {
   useFoundationMutationTransaction,
   useFoundationReadTransaction,
+  executeFoundationSql as executeSql,
   type PersistenceInternalTransaction,
 } from "@heptalogos/persistence/foundation-repository";
 import type {
@@ -718,17 +718,6 @@ function updateGuard(
           expectedActiveAttemptId,
         ],
       };
-}
-
-async function executeSql(
-  transaction: PersistenceInternalTransaction,
-  text: string,
-  parameters: readonly unknown[] = [],
-): Promise<readonly Record<string, unknown>[]> {
-  const result = await transaction.executeQuery<Record<string, unknown>>(
-    CompiledQuery.raw(text, [...parameters]),
-  );
-  return result.rows;
 }
 
 function readContext(

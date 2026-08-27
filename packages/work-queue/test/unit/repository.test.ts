@@ -9,7 +9,6 @@ import {
   createUuidV7Id,
   createWorkItemId,
   digestCanonicalJson,
-  formatInstant,
   type ContinuityEpochId,
   type Instant,
   type ProductGenerationId,
@@ -33,6 +32,16 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@heptalogos/persistence/foundation-repository", () => ({
+  executeFoundationSql: async (
+    transaction: {
+      executeQuery: (query: unknown) => Promise<{ readonly rows: readonly unknown[] }>;
+    },
+    text: string,
+    parameters: readonly unknown[] = [],
+  ) =>
+    transaction
+      .executeQuery({ sql: text, parameters: [...parameters] })
+      .then((result) => result.rows),
   useFoundationMutationTransaction: async (
     _context: unknown,
     operation: (transaction: unknown) => Promise<unknown>,

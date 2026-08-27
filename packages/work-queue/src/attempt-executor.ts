@@ -241,6 +241,20 @@ function outcomeForActivity(item: WorkItem): "SUCCEEDED" | "FAILED" | "CANCELLED
   return "FAILED";
 }
 
+function completeActivityHook(
+  options: WorkAttemptExecutorOptions,
+  activity: ExecutionContext,
+  outcomeRef?: string,
+): MutationAppliedHook {
+  return async (transaction, completed) => {
+    await options.lineage.completeCurrent(transaction, activity, {
+      endedAt: options.time.now(),
+      outcome: outcomeForActivity(completed),
+      ...(outcomeRef === undefined ? {} : { outcomeRef }),
+    });
+  };
+}
+
 function earlyActivityHook(
   options: WorkAttemptExecutorOptions,
   activity: ExecutionContext,
@@ -603,13 +617,7 @@ export function createWorkAttemptExecutor(
                 reasonCode: decision.reasonCode,
                 notBefore: decision.notBefore,
                 updatedAt: options.time.now(),
-                onApplied: async (transaction, completed) => {
-                  await options.lineage.completeCurrent(transaction, activity, {
-                    endedAt: options.time.now(),
-                    outcome: outcomeForActivity(completed),
-                    outcomeRef: decision.reasonCode,
-                  });
-                },
+                onApplied: completeActivityHook(options, activity, decision.reasonCode),
               });
               return resultForMutation(retried);
             }
@@ -625,13 +633,7 @@ export function createWorkAttemptExecutor(
                 reasonCode: decision.reasonCode,
               },
               updatedAt: options.time.now(),
-              onApplied: async (transaction, completed) => {
-                await options.lineage.completeCurrent(transaction, activity, {
-                  endedAt: options.time.now(),
-                  outcome: outcomeForActivity(completed),
-                  outcomeRef: decision.reasonCode,
-                });
-              },
+              onApplied: completeActivityHook(options, activity, decision.reasonCode),
             });
             return resultForMutation(failed);
           }
@@ -642,12 +644,7 @@ export function createWorkAttemptExecutor(
             expectedActiveAttemptId: running.activeAttemptId,
             outcome: successOutcome,
             updatedAt: options.time.now(),
-            onApplied: async (transaction, completed) => {
-              await options.lineage.completeCurrent(transaction, activity, {
-                endedAt: options.time.now(),
-                outcome: outcomeForActivity(completed),
-              });
-            },
+            onApplied: completeActivityHook(options, activity),
           });
           return resultForMutation(committed);
         },

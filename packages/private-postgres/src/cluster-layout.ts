@@ -1,11 +1,16 @@
 import { lstat, opendir } from "node:fs/promises";
-import { isAbsolute, join, relative, resolve } from "node:path";
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import { isAbsolute, relative, resolve } from "node:path";
+import {
+  createProblemError,
+  type Problem,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
 import {
   PRIVATE_POSTGRES_DATA_LAYOUT_VERSION,
   PRIVATE_POSTGRES_RELATIVE_DATA_PATH,
   type PrivatePostgresPlacement,
 } from "./contracts.js";
+import { hasNodeErrorCode } from "./error-code.js";
 
 export type ClusterDirectoryState =
   | { readonly kind: "ABSENT" }
@@ -18,8 +23,7 @@ function layoutProblem(
   detail: string,
   category: Problem["category"] = "validation",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",
@@ -66,15 +70,6 @@ export function resolvePrivatePostgresPlacement(
   });
 }
 
-function isNodeError(error: unknown, code: string): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === code
-  );
-}
-
 export async function classifyClusterDirectory(
   directory: string,
 ): Promise<ClusterDirectoryState> {
@@ -82,7 +77,7 @@ export async function classifyClusterDirectory(
   try {
     entry = await lstat(directory);
   } catch (error) {
-    if (isNodeError(error, "ENOENT")) return { kind: "ABSENT" };
+    if (hasNodeErrorCode(error, "ENOENT")) return { kind: "ABSENT" };
     throw layoutProblem(
       "private-postgres.layout.inspect_failed",
       "Private PostgreSQL target could not be inspected",

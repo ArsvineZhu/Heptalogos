@@ -1,4 +1,8 @@
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  type Problem,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
 
 export type CanonicalSchemaProblemCode =
   | "canonical-schema.authority_lost"
@@ -24,8 +28,7 @@ export function canonicalSchemaProblem(
   detail: string,
   category: Problem["category"] = "integrity",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",

@@ -1,6 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  type Problem,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
 import {
   PRIVATE_POSTGRES_ARCHITECTURE_MAJOR,
   type PrivatePostgresToolchain,
@@ -24,8 +28,7 @@ function inspectionProblem(
   detail: string,
   category: Problem["category"] = "integrity",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",

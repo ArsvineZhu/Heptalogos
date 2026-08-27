@@ -22,7 +22,6 @@
     "@heptalogos/runtime-kernel": "workspace:*",
     "@heptalogos/signal": "workspace:*",
     "@heptalogos/time-service": "workspace:*",
-    "kysely": "catalog:",
     "xstate": "catalog:"
   },
   "devDependencies": {

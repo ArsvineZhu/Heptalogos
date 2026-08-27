@@ -1,4 +1,9 @@
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  type Problem,
+  type ProblemError,
+  type ProblemInit,
+} from "@heptalogos/foundation-contracts";
 
 interface WorkQueueProblemSpec {
   readonly category: string;
@@ -160,13 +165,12 @@ export function workQueueProblem(
   cause?: unknown,
 ): ProblemError {
   const spec = problemSpec(problemCode);
-  const problem: Problem = {
-    schemaVersion: 1,
+  const problem: ProblemInit = {
     problemCode,
     category: spec.category,
     retryClass: spec.retryClass,
     title: spec.title,
     detail,
   };
-  return new ProblemError(problem, cause === undefined ? undefined : { cause });
+  return createProblemError(problem, cause === undefined ? undefined : { cause });
 }

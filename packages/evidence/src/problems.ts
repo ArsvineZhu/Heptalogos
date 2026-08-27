@@ -1,4 +1,8 @@
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  type Problem,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
 
 function evidenceProblem(
   problemCode: string,
@@ -6,8 +10,7 @@ function evidenceProblem(
   title: string,
   detail: string,
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "never",

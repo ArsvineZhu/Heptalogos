@@ -1,4 +1,8 @@
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  type Problem,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
 import type {
   PrivatePostgresExpectedIdentity,
   PrivatePostgresLifecycleOptions,
@@ -30,8 +34,7 @@ function operationProblem(
   detail: string,
   category: Problem["category"] = "integrity",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",

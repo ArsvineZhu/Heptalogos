@@ -1,5 +1,8 @@
 import { initialTransition, setup, transition, type SnapshotFrom } from "xstate";
-import { ProblemError } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
 
 type PrivatePostgresLifecycleState =
   "STOPPED" | "STARTING" | "READY" | "STOPPING" | "UNCERTAIN";
@@ -116,8 +119,7 @@ function invalidTransition(
   detail: PrivatePostgresLifecycleDetail,
   event: PrivatePostgresLifecycleEvent,
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode: "private-postgres.lifecycle.invalid_transition",
     category: "conflict",
     retryClass: "manual",

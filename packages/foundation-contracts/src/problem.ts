@@ -22,6 +22,19 @@ export interface Problem {
   readonly metadata?: Readonly<Record<string, CanonicalJsonValue>>;
 }
 
+export type ProblemInit = Omit<Problem, "schemaVersion">;
+
+export function createProblem(init: ProblemInit): Problem {
+  return { schemaVersion: 1, ...init };
+}
+
+export function createProblemError(
+  init: ProblemInit,
+  options?: ErrorOptions,
+): ProblemError {
+  return new ProblemError(createProblem(init), options);
+}
+
 export class ProblemError extends Error {
   readonly problem: Problem;
 
