@@ -3,4 +3,6 @@ export * from "./current-tree-hygiene.mjs";
 export * from "./process.mjs";
 export * from "./package-docs.mjs";
 export * from "./documentation.mjs";
+export * from "./clean.mjs";
+export * from "./gates.mjs";
 export * from "./workspace.mjs";

@@ -23,7 +23,10 @@
     "check:dependencies": "node scripts/verify/dependencies.mjs",
     "check:boundaries": "node scripts/verify/boundaries.mjs",
     "toolchain:check": "node scripts/verify/toolchain.mjs",
-    "verify": "pnpm check:agents && pnpm check:documentation && pnpm check:repository && pnpm check:hygiene && pnpm check:dependencies && pnpm check:boundaries && pnpm toolchain:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm tsc6 && pnpm test && pnpm build"
+    "verify": "node scripts/gates/run.mjs verify",
+    "check:static": "node scripts/gates/run.mjs static",
+    "check:repo": "node scripts/gates/run.mjs repository",
+    "clean": "node scripts/maintenance/clean.mjs"
   },
   "nx": {
     "includedScripts": []
