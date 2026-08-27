@@ -57,6 +57,16 @@ export interface ReconcileInput {
   readonly currentCapabilityBindings?: ReadonlyMap<CapabilityId, ProviderId>;
 }
 
+function shutdownActions(
+  microSystemId: MicroSystemId,
+  reason: string,
+): readonly ReconcileAction[] {
+  return [
+    { kind: "QUIESCE", microSystemId, reason },
+    { kind: "STOP", microSystemId, reason },
+  ];
+}
+
 export class RuntimeReconciler {
   plan(input: ReconcileInput): ReconcilePlan {
     const definitions = [...input.definitions].sort((left, right) =>
@@ -199,16 +209,12 @@ export class RuntimeReconciler {
           blocked.has(definition.microSystemId))
       ) {
         if (stopped.has(definition.microSystemId)) continue;
-        actions.push({
-          kind: "QUIESCE",
-          microSystemId: definition.microSystemId,
-          reason: blocked.get(definition.microSystemId) ?? "desired-stopped",
-        });
-        actions.push({
-          kind: "STOP",
-          microSystemId: definition.microSystemId,
-          reason: blocked.get(definition.microSystemId) ?? "desired-stopped",
-        });
+        actions.push(
+          ...shutdownActions(
+            definition.microSystemId,
+            blocked.get(definition.microSystemId) ?? "desired-stopped",
+          ),
+        );
         stopped.add(definition.microSystemId);
       }
     }
@@ -220,16 +226,12 @@ export class RuntimeReconciler {
           !resolvable.has(definition)) &&
         !stopped.has(definition.microSystemId)
       ) {
-        actions.push({
-          kind: "QUIESCE",
-          microSystemId: definition.microSystemId,
-          reason: blocked.get(definition.microSystemId) ?? "desired-stopped",
-        });
-        actions.push({
-          kind: "STOP",
-          microSystemId: definition.microSystemId,
-          reason: blocked.get(definition.microSystemId) ?? "desired-stopped",
-        });
+        actions.push(
+          ...shutdownActions(
+            definition.microSystemId,
+            blocked.get(definition.microSystemId) ?? "desired-stopped",
+          ),
+        );
         stopped.add(definition.microSystemId);
       }
     }

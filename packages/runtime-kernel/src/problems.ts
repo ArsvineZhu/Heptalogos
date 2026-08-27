@@ -1,6 +1,8 @@
 import {
-  ProblemError,
+  createProblem,
+  createProblemError,
   type Problem,
+  type ProblemError,
   type RetryClass,
 } from "@heptalogos/foundation-contracts";
 
@@ -266,6 +268,11 @@ const runtimeProblemSpecs: Readonly<Record<string, RuntimeProblemSpec>> = {
     retryClass: "after-change",
     title: "Runtime supervisor close failed",
   },
+  "runtime.supervisor.invalid_transition": {
+    category: "conflict",
+    retryClass: "manual",
+    title: "Runtime supervisor lifecycle transition is invalid",
+  },
   "runtime.supervisor.invalid_revision": {
     category: "validation",
     retryClass: "never",
@@ -310,14 +317,13 @@ function fallbackSpec(problemCode: string): RuntimeProblemSpec {
 
 function runtimeProblem(problemCode: string, detail: string): Problem {
   const spec = runtimeProblemSpecs[problemCode] ?? fallbackSpec(problemCode);
-  return {
-    schemaVersion: 1,
+  return createProblem({
     problemCode,
     category: spec.category,
     retryClass: spec.retryClass,
     title: spec.title,
     detail,
-  };
+  });
 }
 
 export function runtimeKernelProblem(
@@ -325,7 +331,7 @@ export function runtimeKernelProblem(
   detail: string,
   cause?: unknown,
 ): ProblemError {
-  return new ProblemError(
+  return createProblemError(
     runtimeProblem(problemCode, detail),
     cause === undefined ? undefined : { cause },
   );

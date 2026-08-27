@@ -11,6 +11,7 @@ import { compileSchema, type SchemaValidator } from "@heptalogos/schema-runtime"
 import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
 import { GenerationFence } from "./generation-fence.js";
 import { runtimeKernelProblem } from "./problems.js";
+import { RegistryStore, retireRegistryGeneration } from "./registry-store.js";
 import {
   type RuntimeWorkHandler,
   type RuntimeWorkHandlerInvocation,
@@ -363,7 +364,7 @@ function createLease(
 }
 
 export class WorkHandlerRegistry {
-  private readonly registrations = new Map<string, CompiledWorkHandlerRegistration>();
+  private readonly registrations = new RegistryStore<CompiledWorkHandlerRegistration>();
 
   register(
     owner: WorkHandlerRegistrationOwner,
@@ -429,12 +430,7 @@ export class WorkHandlerRegistry {
     fence: GenerationFence,
     settleTimeoutMs: number,
   ): Promise<void> {
-    const owned = [...this.registrations.entries()].filter(
-      ([, registration]) => registration.fence === fence,
-    );
-    if (owned.length === 0) return;
-    for (const [key] of owned) this.registrations.delete(key);
-    await fence.retire(settleTimeoutMs);
+    await retireRegistryGeneration(this.registrations, fence, settleTimeoutMs);
   }
 
   size(): number {

@@ -3,20 +3,25 @@ import type {
   CapabilityProvisionDescriptor,
   CapabilityRequirement,
 } from "./contracts.js";
-import { ContractCompatibilityRegistry } from "./contract-compatibility.js";
-import { GenerationFence } from "./generation-fence.js";
-import { createFencedProxy } from "./fenced-proxy.js";
-import { validateSupportedContractShape } from "./contract-shape.js";
-import { runtimeKernelProblem } from "./problems.js";
+import {
+  activeRegistryBindings,
+  invokeRegistryBinding,
+  RegistryStore,
+  registryProviderIds,
+  retireRegistryGeneration,
+  type RegistryBinding,
+} from "./registry-store.js";
+import {
+  ContractCompatibilityRegistry,
+  createFencedProxy,
+  GenerationFence,
+  runtimeKernelProblem,
+  validateSupportedContractShape,
+} from "./registry-mechanics.js";
 import type { ProviderId } from "@heptalogos/foundation-contracts";
 import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
 
-interface CapabilityBinding {
-  readonly descriptor: CapabilityProvisionDescriptor;
-  readonly implementation: object;
-  readonly fence: GenerationFence;
-  readonly runtimeActivity?: RuntimeActivityRunner;
-}
+type CapabilityBinding = RegistryBinding<CapabilityProvisionDescriptor>;
 
 function bindingKey(
   capabilityId: CapabilityProvisionDescriptor["capabilityId"],
@@ -26,7 +31,7 @@ function bindingKey(
 }
 
 export class CapabilityRegistry {
-  private readonly bindings = new Map<string, CapabilityBinding>();
+  private readonly bindings = new RegistryStore<CapabilityBinding>();
   private readonly compatibility = new ContractCompatibilityRegistry();
 
   register<TContract extends object>(
@@ -62,14 +67,14 @@ export class CapabilityRegistry {
     requirement: CapabilityRequirement,
     explicitProviderId?: ProviderId,
   ): boolean {
-    return this.selectBinding(requirement, explicitProviderId, false) !== undefined;
+    return this.selectBinding(requirement, explicitProviderId) !== undefined;
   }
 
   resolve<TContract extends object>(
     requirement: CapabilityRequirement,
     explicitProviderId?: ProviderId,
   ): CapabilityLease<TContract> | undefined {
-    const binding = this.selectBinding(requirement, explicitProviderId, true);
+    const binding = this.selectBinding(requirement, explicitProviderId);
     if (binding === undefined) return undefined;
     const proxy = createFencedProxy(
       binding.implementation,
@@ -84,24 +89,18 @@ export class CapabilityRegistry {
         operationId: string,
         call: (capability: TContract) => TResult | Promise<TResult>,
       ): Promise<TResult> {
-        const invoke = () => binding.fence.invoke(operationId, () => call(proxy));
-        binding.fence.assertActive();
-        if (binding.runtimeActivity === undefined) return invoke();
-        return binding.runtimeActivity.runActivity(
-          {
-            kind: "capability.invoke",
-            importance: "routine",
-            retentionClass: "ephemeral",
-            sensitivity: "operational",
-            semantic: {
-              operationId,
-              capabilityId: binding.descriptor.capabilityId,
-              providerId: binding.descriptor.providerId,
-              contractVersion: binding.descriptor.contractVersion,
-            },
+        return invokeRegistryBinding(binding, operationId, () => call(proxy), {
+          kind: "capability.invoke",
+          importance: "routine",
+          retentionClass: "ephemeral",
+          sensitivity: "operational",
+          semantic: {
+            operationId,
+            capabilityId: binding.descriptor.capabilityId,
+            providerId: binding.descriptor.providerId,
+            contractVersion: binding.descriptor.contractVersion,
           },
-          async () => invoke(),
-        );
+        });
       },
     });
   }
@@ -109,33 +108,27 @@ export class CapabilityRegistry {
   providerIds(
     capabilityId: CapabilityProvisionDescriptor["capabilityId"],
   ): readonly ProviderId[] {
-    return [...this.bindings.values()]
-      .filter((binding) => binding.descriptor.capabilityId === capabilityId)
-      .map((binding) => binding.descriptor.providerId)
-      .sort();
+    return registryProviderIds(
+      this.bindings,
+      (descriptor) => descriptor.capabilityId === capabilityId,
+    );
   }
 
   async retireGeneration(
     ownerFence: GenerationFence,
     settleTimeoutMs: number,
   ): Promise<void> {
-    const bindings = [...this.bindings.entries()].filter(
-      ([, binding]) => binding.fence === ownerFence,
-    );
-    if (bindings.length === 0) return;
-    for (const [key] of bindings) this.bindings.delete(key);
-    await ownerFence.retire(settleTimeoutMs);
+    await retireRegistryGeneration(this.bindings, ownerFence, settleTimeoutMs);
   }
 
   private selectBinding(
     requirement: CapabilityRequirement,
     explicitProviderId: ProviderId | undefined,
-    throwOnFailure: boolean,
   ): CapabilityBinding | undefined {
-    const candidates = [...this.bindings.values()].filter(
+    const candidates = activeRegistryBindings(
+      this.bindings,
       (binding) =>
         binding.descriptor.capabilityId === requirement.capabilityId &&
-        binding.fence.state === "ACTIVE" &&
         this.compatibility.isCompatible(
           requirement.contract,
           binding.descriptor.contractVersion,
@@ -148,7 +141,7 @@ export class CapabilityRegistry {
       if (explicit !== undefined) return explicit;
       return undefined;
     }
-    const selected = candidates.sort((left, right) => {
+    const selected = [...candidates].sort((left, right) => {
       if (left.descriptor.priority !== right.descriptor.priority) {
         return right.descriptor.priority - left.descriptor.priority;
       }

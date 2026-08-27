@@ -39,6 +39,7 @@ import { RuntimeGraph } from "./runtime-graph.js";
 import { evaluateReadiness } from "./readiness.js";
 import { ServiceRegistry } from "./service-registry.js";
 import type { RuntimeLifecycleLineage } from "./lifecycle-lineage.js";
+import { createSupervisorLifecycleTracker } from "./supervisor-lifecycle.js";
 import {
   WorkHandlerRegistry,
   workHandlerDescriptorsEqual,
@@ -77,9 +78,6 @@ export interface MicroSystemSupervisorOptions {
   readonly ownerLifecycle?: RuntimeOwnerLifecycle;
 }
 
-type SupervisorLifecycleState =
-  "ACTIVE" | "QUIESCING" | "QUIESCED" | "RESUMING" | "CLOSING" | "CLOSED";
-
 function captureDesiredRuntimeSnapshot(
   input: DesiredRuntimeSnapshot,
 ): DesiredRuntimeSnapshot {
@@ -112,7 +110,7 @@ export class MicroSystemSupervisor {
   private readonly capabilityBindings = new Map<CapabilityId, ProviderId>();
   private operatingMode: import("./contracts.js").OperatingMode = "NORMAL";
   private mutationChain: Promise<void> = Promise.resolve();
-  private lifecycleState: SupervisorLifecycleState = "ACTIVE";
+  private readonly lifecycle = createSupervisorLifecycleTracker();
   private capturedDesired: DesiredRuntimeSnapshot | undefined;
   private readonly startingFences = new Set<GenerationFence>();
   private readonly startingActivationControllers = new Set<AbortController>();
@@ -196,8 +194,8 @@ export class MicroSystemSupervisor {
     phase: "ACTIVE" | "RESUMING",
   ): Promise<ReconcilePlan> {
     if (
-      (phase === "ACTIVE" && this.lifecycleState !== "ACTIVE") ||
-      (phase === "RESUMING" && this.lifecycleState !== "RESUMING")
+      (phase === "ACTIVE" && this.lifecycle.state !== "ACTIVE") ||
+      (phase === "RESUMING" && this.lifecycle.state !== "RESUMING")
     ) {
       throw runtimeKernelProblem(
         "runtime.supervisor.not_active",
@@ -391,7 +389,7 @@ export class MicroSystemSupervisor {
   }
 
   quiesce(): Promise<RuntimeQuiescenceLease> {
-    if (this.lifecycleState !== "ACTIVE") {
+    if (this.lifecycle.state !== "ACTIVE") {
       return Promise.reject(
         runtimeKernelProblem(
           "runtime.supervisor.not_active",
@@ -399,10 +397,10 @@ export class MicroSystemSupervisor {
         ),
       );
     }
-    this.lifecycleState = "QUIESCING";
+    this.lifecycle.send({ type: "BEGIN_QUIESCE" });
     this.closeGenerationAdmission();
     return this.enqueueMutation(async () => {
-      if (this.lifecycleState !== "QUIESCING") {
+      if (this.lifecycle.state !== "QUIESCING") {
         throw runtimeKernelProblem(
           "runtime.supervisor.not_active",
           "Runtime supervisor quiescence was superseded by terminal close",
@@ -416,7 +414,7 @@ export class MicroSystemSupervisor {
           failures.push(error);
         }
       }
-      if (this.lifecycleState !== "QUIESCING") {
+      if (this.lifecycle.state !== "QUIESCING") {
         throw runtimeKernelProblem(
           "runtime.supervisor.not_active",
           "Runtime supervisor quiescence was superseded by terminal close",
@@ -435,7 +433,7 @@ export class MicroSystemSupervisor {
           new AggregateError(failures, "Runtime supervisor quiescence failed"),
         );
       }
-      this.lifecycleState = "QUIESCED";
+      this.lifecycle.send({ type: "QUIESCE_COMPLETED" });
       let used = false;
       return Object.freeze({
         resumeAfterAbort: (): Promise<void> => {
@@ -459,7 +457,7 @@ export class MicroSystemSupervisor {
   }
 
   private resumeAfterAbort(): Promise<void> {
-    if (this.lifecycleState !== "QUIESCED") {
+    if (this.lifecycle.state !== "QUIESCED") {
       return Promise.reject(
         runtimeKernelProblem(
           "runtime.supervisor.resume_invalid",
@@ -467,9 +465,9 @@ export class MicroSystemSupervisor {
         ),
       );
     }
-    this.lifecycleState = "RESUMING";
+    this.lifecycle.send({ type: "BEGIN_RESUME" });
     return this.enqueueMutation(async () => {
-      if (this.lifecycleState !== "RESUMING") {
+      if (this.lifecycle.state !== "RESUMING") {
         throw runtimeKernelProblem(
           "runtime.supervisor.resume_invalid",
           "Runtime supervisor resume was superseded by terminal close",
@@ -486,13 +484,13 @@ export class MicroSystemSupervisor {
         } else {
           await this.reconcileAcceptedSnapshot(this.capturedDesired, "RESUMING");
         }
-        if (this.lifecycleState !== "RESUMING") {
+        if (this.lifecycle.state !== "RESUMING") {
           throw runtimeKernelProblem(
             "runtime.supervisor.resume_invalid",
             "Runtime supervisor resume was superseded by terminal close",
           );
         }
-        this.lifecycleState = "ACTIVE";
+        this.lifecycle.send({ type: "RESUME_COMPLETED" });
       } catch (error) {
         const closePromise = this.beginTerminalClose(false);
         void closePromise.catch(() => undefined);
@@ -510,16 +508,16 @@ export class MicroSystemSupervisor {
       }
       return this.terminalClosePromise;
     }
-    this.lifecycleState = "CLOSING";
+    this.lifecycle.send({ type: "BEGIN_CLOSE" });
     this.closeGenerationAdmission();
     const cleanup = this.enqueueMutation(() => this.performClose());
     this.terminalClosePromise = cleanup.then(
       () => {
-        this.lifecycleState = "CLOSED";
+        this.lifecycle.send({ type: "CLOSE_COMPLETED" });
         this.removeOwnerAbortListener();
       },
       (error) => {
-        this.lifecycleState = "CLOSED";
+        this.lifecycle.send({ type: "CLOSE_COMPLETED" });
         this.removeOwnerAbortListener();
         throw error;
       },
@@ -596,11 +594,11 @@ export class MicroSystemSupervisor {
   }
 
   private acceptsStartAdmission(): boolean {
-    return this.lifecycleState === "ACTIVE" || this.lifecycleState === "RESUMING";
+    return this.lifecycle.state === "ACTIVE" || this.lifecycle.state === "RESUMING";
   }
 
   private assertActive(): void {
-    if (this.lifecycleState !== "ACTIVE") {
+    if (this.lifecycle.state !== "ACTIVE") {
       throw runtimeKernelProblem(
         "runtime.supervisor.not_active",
         "Runtime supervisor does not admit this operation in its current lifecycle state",

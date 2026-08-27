@@ -17,11 +17,13 @@ not the Bootstrap or PostgreSQL owner.
 - Generation fences, readiness evaluation, and lifecycle lineage.
 - Runtime contract matching and compatibility evaluation.
 - Generation-pinned WorkHandler declaration, validation, publication, and lookup.
+- Supervisor lifecycle transition legality, using XState behind this package boundary.
 
 ## Does not own
 
 - Bootstrap state, Host lease, private PostgreSQL, or process control.
 - Cordis-specific resource mechanics.
+- XState types or statechart objects in the public contract.
 - Product durable WorkItem state, WorkQueue, DBOS, or external-effect semantics.
 - A second persistence or recovery Authority.
 
@@ -36,7 +38,8 @@ retirement rather than retaining private supervisor state.
 ## Dependencies and boundaries
 
 It depends on `foundation-contracts`, `execution-lineage`, `persistence`,
-`runtime-substrate`, `time-service`, and Graphlib. The substrate supplies
+`runtime-substrate`, `time-service`, Graphlib, and the adopted XState route. The
+package-private graph, registry, generation, and lifecycle adapters own those
 mechanics while this package owns runtime meaning. Bootstrap production source
 must remain outside this dependency path; integration composition belongs at
 the higher Host/product boundary.

@@ -31,11 +31,13 @@ must not leak into package contracts.
 
 ## Dependencies and boundaries
 
-It depends on `foundation-contracts` and the adopted `cordis` route. Runtime
-Kernel owns the semantic lifecycle around this adapter. Any process-memory task
-created here must have an owner and bounded cancel/drain/dispose behavior; work
-that must survive restart belongs to a Foundation durable primitive in a later
-stage.
+It depends on `foundation-contracts` and the adopted `cordis` route. The Cordis
+Fiber owns plugin activation, effects, and disposal; RuntimeSubstrate retains
+only Heptalogos-specific task admission, failure projection, and settlement
+policy. Runtime Kernel owns the semantic lifecycle around this adapter. Any
+process-memory task created here must have an owner and bounded
+cancel/drain/dispose behavior; work that must survive restart belongs to a
+Foundation durable primitive in a later stage.
 
 ## Change constraints
 

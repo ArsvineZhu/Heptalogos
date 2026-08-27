@@ -1,6 +1,8 @@
 import {
-  ProblemError,
+  createProblem,
+  createProblemError,
   type Problem,
+  type ProblemError,
   type RetryClass,
 } from "@heptalogos/foundation-contracts";
 
@@ -58,14 +60,13 @@ function fallbackSpec(problemCode: string): SubstrateProblemSpec {
 
 function substrateProblem(problemCode: string, detail: string): Problem {
   const spec = substrateProblemSpecs[problemCode] ?? fallbackSpec(problemCode);
-  return {
-    schemaVersion: 1,
+  return createProblem({
     problemCode,
     category: spec.category,
     retryClass: spec.retryClass,
     title: spec.title,
     detail,
-  };
+  });
 }
 
 export function runtimeSubstrateProblem(
@@ -73,7 +74,7 @@ export function runtimeSubstrateProblem(
   detail: string,
   cause?: unknown,
 ): ProblemError {
-  return new ProblemError(
+  return createProblemError(
     substrateProblem(problemCode, detail),
     cause === undefined ? undefined : { cause },
   );
