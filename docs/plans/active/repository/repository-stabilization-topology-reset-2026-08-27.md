@@ -1753,12 +1753,24 @@ treated as candidate-transport and closure sequencing: after local corrections
 and qualification, freeze the candidate and obtain a new external Independent
 Review; final manual CI remains prohibited until that review returns `PASS`.
 
+| Finding | Candidate disposition |
+| --- | --- |
+| IR-01 | `WITHDRAWN / reviewer correction`; the operator-approved non-destructive H3A-1 reconciliation remains current. |
+| IR-02 | `IMPLEMENTED`; standing links are repository-contained and target existence is checked. |
+| IR-03 | `IMPLEMENTED`; moved current-home references are rejected and the standing governance links are current. |
+| IR-04 | `IMPLEMENTED`; generic import rules are owned by ESLint/Nx and the custom gate retains semantic checks. |
+| IR-05 | `IMPLEMENTED`; repository/domain version Authorities are read instead of duplicated in verification. |
+| IR-06 | `IMPLEMENTED`; product package consumers use one workspace-derived discovery operation. |
+| IR-07 | `IMPLEMENTED`; documentation, repository, and hygiene gates have distinct declared coverage. |
+| IR-08 | `IMPLEMENTED`; scheduler concurrency semantics use an injected deterministic barrier. |
+| IR-09 | `SEQUENCING`; candidate transport and external review remain outside local code remediation. |
+
 **Plan status:** `READY_AFTER_H3A1_RECOVERY`
 
 **Local execution state (2026-08-27):** H3A-1 recovery remains `CLOSED`;
 P0 and RS-1 through RS-5 are locally complete, and IR-02 through IR-08 are
-being remediated on the stabilization branch. The RS-6 local closure candidate
-must be requalified after these corrections. Cross-platform CI, stabilization
+implemented on the stabilization branch. The RS-6 local closure candidate is
+being requalified after these corrections. Cross-platform CI, stabilization
 Independent Review, final manual CI, and merge/reconciliation remain `NOT_RUN`.
 H3A-2 remains `BLOCKED_BY_REPOSITORY_STABILIZATION`.
 

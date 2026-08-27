@@ -13,6 +13,7 @@ dependency.
 
 - Thin process-runner mechanics used by repository commands.
 - Current-tree hygiene scanning and finding normalization.
+- Version Authority readers for the package-manager baseline and workspace catalog.
 - Repo-kit tests for process, boundary, Corpus, and hygiene behavior.
 - Small reusable helpers that have a concrete repeated repository need.
 
