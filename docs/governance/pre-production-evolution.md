@@ -63,7 +63,7 @@ PRE_PRODUCTION development history creates no compatibility obligation.
 ```
 
 当前 obligations 的唯一 machine-readable owner 是
-`references/compatibility-obligations.json`。`VERSIONED != HISTORICALLY COMPATIBLE`。
+[compatibility-obligations.json](compatibility-obligations.json)。`VERSIONED != HISTORICALLY COMPATIBLE`。
 在 `CompatibilityEpoch = PRE_PRODUCTION` 下，merged commit、旧 developer DB、local
 fixture、previous build 与旧开发格式不能成为兼容 consumer。不得为其新增 V2/V3、
 legacy reader、upcaster/downcaster、bridge migration、alias、shim、dual reader/writer

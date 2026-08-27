@@ -19,9 +19,11 @@ no declared compatibility obligation = rewrite/reset/reject/delete
 
 The hygiene gate scans current source, tests, fixtures, scripts, tooling,
 configuration, workflow definitions, manifests, permanent verification, Skills,
-and current agent instructions. It does not scan `docs/**`,
-`docs/**`, lockfiles, dependencies, build output, coverage, temporary caches, or
-generated artifacts excluded by the gate.
+and current agent instructions. It does not scan `docs/**`, lockfiles,
+dependencies, build output, coverage, temporary caches, or generated artifacts
+excluded by the gate. Standing-document links and moved current-home references
+are owned by `check:documentation`; root topology and machine-Authority
+consumer ownership are owned by `check:repository`.
 
 Historical documents may retain exact milestone/PR/session identifiers because
 chronology is their purpose. They must not be copied back into executable

@@ -552,7 +552,7 @@ COMPATIBILITY REQUIRES A DECLARED OBLIGATION.
 当前项目的 `CompatibilityEpoch = PRE_PRODUCTION`。版本字段仍然是 durable contract 的强制身份；但 merged commit、内部 retained developer DB、local fixture、previous dev build 或曾经存在的开发格式本身都不构成历史兼容义务。当前最佳 durable shape 必须保持一个 canonical V1 并在原地重写；obsolete development shape 必须 reset/reject。不得仅为 repository/development history 新增 V2/V3、legacy reader、upcaster、bridge migration、alias、shim 或 dual format。只有明确保留的 durable state 或明确的 external consumer 才能建立 compatibility obligation；进入 production compatibility epoch 必须经过显式 architecture decision。
 
 当前 compatibility obligations 只有在
-`references/compatibility-obligations.json` 中声明时才具有 Authority。
+[compatibility-obligations.json](compatibility-obligations.json) 中声明时才具有 Authority。
 没有匹配声明，就没有 compatibility obligation。
 
 在首次 production compatibility 之前，migration history 本身也是可重写的 development material；当前 baseline 变化时应 squash/rewrite 并重建 dev/test state，而不是为旧开发数据库添加兼容迁移。

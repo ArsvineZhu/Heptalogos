@@ -25,6 +25,10 @@ async function writeFixtureFile(root, relativePath, text) {
 async function fixtureTree(setup) {
   const root = await mkdtemp(join(tmpdir(), "heptalogos-documentation-"));
   try {
+    await writeFixtureFile(root, "AGENTS.md", "# Repository Agent Contract\n");
+    await writeFixtureFile(root, "package.json", "{}\n");
+    await writeFixtureFile(root, "packages/example/README.md", "# Example\n");
+    await writeFixtureFile(root, "tools/example.mjs", "export {};\n");
     await writeFixtureFile(root, "docs/README.md", "# Documentation\n");
     await writeFixtureFile(
       root,
@@ -97,6 +101,55 @@ describe("documentation topology verification", () => {
       await writeFixtureFile(root, "docs/README.md", "[missing](missing.md)\n");
     });
     expect(hasCode(result, "broken-current-link")).toBe(true);
+  });
+
+  it("accepts current links to repository artifacts outside docs", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/README.md",
+        [
+          "[package README](../packages/example/README.md)",
+          "[root instructions](../AGENTS.md)",
+          "[manifest](../package.json)",
+          "[tool](../tools/example.mjs)",
+        ].join("\n"),
+      );
+    });
+    expect(result.errors).toEqual([]);
+  });
+
+  it("rejects a missing repository artifact link", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/README.md",
+        "[missing repository artifact](../tools/missing.mjs)\n",
+      );
+    });
+    expect(hasCode(result, "broken-current-link")).toBe(true);
+  });
+
+  it("rejects a current link that escapes the repository", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/README.md",
+        "[outside repository](../../outside.md)\n",
+      );
+    });
+    expect(hasCode(result, "link-outside-repository")).toBe(true);
+  });
+
+  it("rejects a stale reference to a moved current home", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/governance/pre-production-evolution.md",
+        "The compatibility register is references/compatibility-obligations.json.\n",
+      );
+    });
+    expect(hasCode(result, "stale-current-home")).toBe(true);
   });
 
   it("rejects a current link to the removed Corpus home", async () => {

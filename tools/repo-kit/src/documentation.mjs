@@ -128,7 +128,7 @@ function validateNestedAgents(files, repository, errors) {
   }
 }
 
-function validateStandingLinks(markdownFiles, repository, docsRoot, errors) {
+function validateStandingLinks(markdownFiles, repository, errors) {
   for (const path of markdownFiles) {
     const relativePath = normalize(repository, path);
     if (!isStandingDocument(relativePath)) continue;
@@ -141,14 +141,22 @@ function validateStandingLinks(markdownFiles, repository, docsRoot, errors) {
         "current documentation must not reference the removed Architecture_Corpus/ home",
       );
     }
+    if (source.includes("references/compatibility-obligations.json")) {
+      addError(
+        errors,
+        "stale-current-home",
+        relativePath,
+        "current documentation must link the compatibility register from docs/governance/compatibility-obligations.json",
+      );
+    }
     for (const target of localMarkdownTargets(source)) {
       const resolvedTarget = resolve(dirname(path), target);
-      if (!isWithin(docsRoot, resolvedTarget)) {
+      if (!isWithin(repository, resolvedTarget)) {
         addError(
           errors,
-          "link-outside-docs",
+          "link-outside-repository",
           relativePath,
-          `local documentation link escapes docs/: ${target}`,
+          `local documentation link escapes repository: ${target}`,
         );
       } else if (!existsSync(resolvedTarget)) {
         addError(
@@ -247,7 +255,7 @@ export function validateDocumentation({ root = repositoryRoot } = {}) {
   validateJson(jsonFiles, repository, errors);
   validateTranslationPolicy(files, repository, errors);
   validateNestedAgents(files, repository, errors);
-  validateStandingLinks(markdownFiles, repository, docsRoot, errors);
+  validateStandingLinks(markdownFiles, repository, errors);
   validateDocumentationIndex(docsRoot, repository, errors);
   validateArchitectureIndex(docsRoot, repository, errors);
 

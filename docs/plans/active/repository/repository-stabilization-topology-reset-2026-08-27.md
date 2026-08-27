@@ -1332,18 +1332,20 @@ Do **not** block legitimate future `apps/`, `native/`, `vendor/`, etc. forever. 
 
 ## 5.3 Hygiene scanner scope
 
-Continue using the existing current-tree hygiene scanner as the single semantic hygiene mechanism.
-
-Extend it to detect in executable/current files:
+Continue using the existing current-tree hygiene scanner as the semantic hygiene
+mechanism for executable/current surfaces. Keep standing-document link and
+current-home correctness in `check:documentation`, and root topology/machine
+Authority ownership in `check:repository`. Extend hygiene itself to detect in
+executable/current files:
 
 - phase/milestone/PR/session provenance in stable identifiers;
 - undeclared compatibility patterns;
-- references to removed current homes;
-- obsolete `Architecture_Corpus/` paths outside historical records;
 - forbidden phase-tools directories;
 - duplicate old/new path bridges.
 
-Do not make it scan completed historical plans as though they were current product truth.
+Standing-document references to removed homes are checked by
+`check:documentation`; do not make either gate scan completed historical plans as
+though they were current product truth.
 
 ## 5.4 Machine Authority consumer tests
 
@@ -1654,7 +1656,7 @@ Repository stabilization is complete only when the repository satisfies all of t
 [x] pnpm verify no longer relies on one long && chain
 [x] clean is derived and fail-closed
 [x] package navigation completeness is mechanically checked
-[x] current-tree hygiene covers old-path/provenance/compatibility residue
+[x] documentation, repository, and current-tree hygiene gates collectively cover old-path/provenance/compatibility residue
 ```
 
 ### Governance
@@ -1735,14 +1737,30 @@ After RS-1, replace item 5 with the new `docs/` authoritative homes.
 
 ---
 
+## External review disposition (2026-08-27)
+
+The supplied external review returned `REQUEST_CHANGES`. Its IR-01 finding is
+marked `WITHDRAWN / reviewer correction`: the operator-approved recovery model
+is the non-destructive post-merge governance reconciliation already recorded in
+`docs/plans/completed/foundation/h3a1-premature-merge-governance-recovery.md`.
+The constraints that stopped v1 RS-0, prohibited revert/re-land, preserved the
+merged H3A-1 baseline, and kept Independent Review/final manual CI as `NOT_RUN`
+are the explicit recovery authorization. No new recovery branch or PR is
+required, and the H3A-1 record must not be rewritten.
+
+IR-02 through IR-08 are active corrective work in this candidate. IR-09 is
+treated as candidate-transport and closure sequencing: after local corrections
+and qualification, freeze the candidate and obtain a new external Independent
+Review; final manual CI remains prohibited until that review returns `PASS`.
+
 **Plan status:** `READY_AFTER_H3A1_RECOVERY`
 
-**Local execution state (2026-08-27):** H3A-1 recovery is recorded as `CLOSED`;
-P0 and RS-1 through RS-5 are locally complete, and the RS-6 local closure
-candidate passed frozen install, safe clean, and full `pnpm verify` in the same
-worktree. Cross-platform CI, stabilization Independent Review, final manual CI,
-and merge/reconciliation remain `NOT_RUN` under the explicit no-push/no-merge
-execution boundary. H3A-2 remains `BLOCKED_BY_REPOSITORY_STABILIZATION`.
+**Local execution state (2026-08-27):** H3A-1 recovery remains `CLOSED`;
+P0 and RS-1 through RS-5 are locally complete, and IR-02 through IR-08 are
+being remediated on the stabilization branch. The RS-6 local closure candidate
+must be requalified after these corrections. Cross-platform CI, stabilization
+Independent Review, final manual CI, and merge/reconciliation remain `NOT_RUN`.
+H3A-2 remains `BLOCKED_BY_REPOSITORY_STABILIZATION`.
 
 **Execution ordering:** `separate H3A-1 recovery CLOSED → P0 → RS-1 → RS-2 → RS-3 → RS-4 → RS-5 → RS-6 → H3A-2 refresh`
 
