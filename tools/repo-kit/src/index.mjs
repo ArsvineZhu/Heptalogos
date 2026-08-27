@@ -6,3 +6,5 @@ export * from "./documentation.mjs";
 export * from "./clean.mjs";
 export * from "./gates.mjs";
 export * from "./workspace.mjs";
+export * from "./package-index.mjs";
+export * from "./repository-governance.mjs";

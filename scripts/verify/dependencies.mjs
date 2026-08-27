@@ -13,6 +13,12 @@ import {
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const workspacePath = join(root, "pnpm-workspace.yaml");
 const workspace = readFileSync(workspacePath, "utf8");
+const qualificationStatusPath = join(
+  root,
+  "docs",
+  "qualification",
+  "dependency-status.json",
+);
 const errors = [];
 const nodeBuiltinNames = new Set([
   ...builtinModules,
@@ -31,11 +37,45 @@ function fail(message) {
   errors.push(message);
 }
 
+let qualificationStatus;
+try {
+  qualificationStatus = JSON.parse(readFileSync(qualificationStatusPath, "utf8"));
+} catch (error) {
+  fail(`dependency qualification Authority is unreadable: ${error.message}`);
+}
+
+const roleDecisionValues = new Set(qualificationStatus?.roleDecisionValues ?? []);
+const qualificationDecisions = new Map();
+if (!Array.isArray(qualificationStatus?.decisions)) {
+  fail("dependency qualification Authority must declare decisions[]");
+} else {
+  for (const decision of qualificationStatus.decisions) {
+    if (typeof decision?.id !== "string" || qualificationDecisions.has(decision.id)) {
+      fail(
+        "dependency qualification Authority contains a duplicate or invalid decision id",
+      );
+      continue;
+    }
+    qualificationDecisions.set(decision.id, decision);
+    if (!roleDecisionValues.has(decision.roleDecision)) {
+      fail(
+        `dependency qualification Authority has invalid roleDecision: ${decision.id}`,
+      );
+    }
+  }
+}
+
 for (const roleId of ["runtime.node", "tooling.build", "testing.foundation"]) {
   const route = routes.get(roleId);
   if (!route) fail(`dependency route missing: ${roleId}`);
   else if (route.directive !== "USE") {
     fail(`required dependency route is not adopted for use: ${roleId}`);
+  }
+}
+
+for (const roleId of routes.keys()) {
+  if (!qualificationDecisions.has(roleId)) {
+    fail(`dependency route has no qualification decision: ${roleId}`);
   }
 }
 

@@ -2,7 +2,12 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { validatePackageDocumentation } from "@heptalogos/repo-kit";
+import {
+  validateMachineAuthorityConsumers,
+  validatePackageDocumentation,
+  validatePackageIndex,
+  validateRootTopology,
+} from "@heptalogos/repo-kit";
 
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 
@@ -114,7 +119,7 @@ export function validateVerifyWorkflow(workflow) {
   return errors;
 }
 
-function main() {
+async function main() {
   const errors = [];
   const fail = (message) => errors.push(message);
 
@@ -172,6 +177,21 @@ function main() {
   }
 
   for (const error of validatePackageDocumentation({ root }).errors) fail(error);
+  try {
+    const packageIndex = join(root, "packages", "INDEX.md");
+    if (existsSync(packageIndex)) {
+      for (const error of await validatePackageIndex({
+        root,
+        text: readFileSync(packageIndex, "utf8"),
+      })) {
+        fail(error);
+      }
+    }
+  } catch (error) {
+    fail(`package index validation failed: ${error.message}`);
+  }
+  for (const error of validateRootTopology({ root })) fail(error);
+  for (const error of validateMachineAuthorityConsumers({ root })) fail(error);
 
   const implementationFiles = ["package.json", "pnpm-workspace.yaml"];
   for (const relativePath of implementationFiles) {
@@ -203,5 +223,8 @@ function main() {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main();
+  main().catch((error) => {
+    console.error(`FAIL repository verification failed: ${error.message}`);
+    process.exitCode = 1;
+  });
 }

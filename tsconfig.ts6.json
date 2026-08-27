@@ -15,5 +15,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["fixtures/ts6-api-lane.ts"]
+  "include": ["tests/toolchain/ts6-api-lane.ts"]
 }

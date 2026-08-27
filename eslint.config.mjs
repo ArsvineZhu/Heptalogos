@@ -11,7 +11,7 @@ export default [
       ".vite/**",
       ".cache/**",
       ".agents/**",
-      "fixtures/ts6-api-lane.ts",
+      "tests/toolchain/ts6-api-lane.ts",
     ],
   },
   {

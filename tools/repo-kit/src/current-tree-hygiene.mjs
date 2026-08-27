@@ -20,7 +20,7 @@ const SCAN_ROOTS = [
   "AGENTS.md",
   ".agents",
   ".github",
-  "fixtures",
+  "tests",
   "packages",
   "scripts/README.md",
   "scripts/verify",

@@ -1,11 +1,15 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import {
   findSourceTestFiles,
   validateVerifyWorkflow,
 } from "../../../scripts/verify/repository.mjs";
+import {
+  validateMachineAuthorityConsumers,
+  validateRootTopology,
+} from "../src/repository-governance.mjs";
 
 const workflowPrefix = [
   "name: verify-manual",
@@ -48,6 +52,52 @@ describe("repository workflow governance", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
+  });
+
+  it("rejects a new responsibility root without a topology update", async () => {
+    const root = await mkdtemp(join(tmpdir(), "heptalogos-root-topology-"));
+    try {
+      for (const directory of [
+        ".agents",
+        ".github",
+        "docs",
+        "packages",
+        "scripts",
+        "tests",
+        "tools",
+      ]) {
+        await mkdir(join(root, directory), { recursive: true });
+      }
+      await mkdir(join(root, "docs", "engineering"), { recursive: true });
+      await mkdir(join(root, "apps"));
+      await writeFile(
+        join(root, "docs", "engineering", "README.md"),
+        [
+          "# Engineering knowledge",
+          "",
+          "## Current responsibility roots",
+          "",
+          "```text",
+          ".agents/",
+          ".github/",
+          "docs/",
+          "packages/",
+          "scripts/",
+          "tests/",
+          "tools/",
+          "```",
+          "",
+        ].join("\n"),
+      );
+
+      expect(validateRootTopology({ root })).toEqual([expect.stringContaining("apps")]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("proves every retained machine Authority has a current consumer", () => {
+    expect(validateMachineAuthorityConsumers({ root: resolve(".") })).toEqual([]);
   });
 
   it("allows machine-internal base_sha outputs while rejecting no inputs", () => {
