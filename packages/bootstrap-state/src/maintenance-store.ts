@@ -1,7 +1,8 @@
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
   canonicalizeJson,
+  createProblem,
   parseUuidV7Id,
   ProblemError,
   type CanonicalJsonValue,
@@ -20,6 +21,8 @@ import type {
   MaintenanceOperationId,
 } from "./maintenance-model.js";
 import { writeAtomicPublishedFile } from "./atomic-file.js";
+import { KeyedAsyncSerializer } from "./keyed-serialization.js";
+import { readOptionalTextFile } from "./file-io.js";
 
 const CURRENT_FILENAME = "maintenance-state.json";
 const PREVIOUS_FILENAME = "maintenance-state.previous.json";
@@ -30,14 +33,13 @@ type Candidate =
   | { readonly kind: "VALID"; readonly value: MaintenanceJournalEnvelopeV1 };
 
 function storeProblem(problemCode: string, title: string, detail: string): Problem {
-  return {
-    schemaVersion: 1,
+  return createProblem({
     problemCode,
     category: "integrity",
     retryClass: "manual",
     title,
     detail,
-  };
+  });
 }
 
 function operationId(value: unknown): MaintenanceOperationId {
@@ -63,7 +65,7 @@ function stateText(value: MaintenanceJournalEnvelopeV1): string {
 }
 
 export class MaintenanceJournalStore {
-  private readonly operationTails = new Map<string, Promise<void>>();
+  private readonly operationSerializer = new KeyedAsyncSerializer();
 
   constructor(
     private readonly instanceRoot: string,
@@ -73,7 +75,7 @@ export class MaintenanceJournalStore {
   async load(operation: MaintenanceOperationId): Promise<MaintenanceJournalLoadResult> {
     this.assertAuthority?.();
     const id = operationId(operation);
-    return this.withOperationLock(id, () => {
+    return this.operationSerializer.run(id, () => {
       this.assertAuthority?.();
       return this.loadUnlocked(id);
     });
@@ -84,7 +86,7 @@ export class MaintenanceJournalStore {
   ): Promise<MaintenanceJournalRecoveryHead> {
     this.assertAuthority?.();
     const id = operationId(operation);
-    return this.withOperationLock(id, () => {
+    return this.operationSerializer.run(id, () => {
       this.assertAuthority?.();
       return this.loadRecoveryHeadUnlocked(id);
     });
@@ -92,7 +94,7 @@ export class MaintenanceJournalStore {
 
   async create(body: MaintenanceJournalBodyV1): Promise<MaintenanceJournalEnvelopeV1> {
     const id = operationId(body.operationId);
-    return this.withOperationLock(id, async () => {
+    return this.operationSerializer.run(id, async () => {
       this.assertAuthority?.();
       const existing = await this.loadUnlocked(id);
       if (existing.status !== "EMPTY") {
@@ -119,7 +121,7 @@ export class MaintenanceJournalStore {
 
   async advance(body: MaintenanceJournalBodyV1): Promise<MaintenanceJournalEnvelopeV1> {
     const id = operationId(body.operationId);
-    return this.withOperationLock(id, async () => {
+    return this.operationSerializer.run(id, async () => {
       this.assertAuthority?.();
       const current = await this.loadUnlocked(id);
       if (current.status === "EMPTY") {
@@ -328,42 +330,12 @@ export class MaintenanceJournalStore {
   }
 
   private async readCandidate(path: string): Promise<Candidate> {
-    let text: string;
-    try {
-      text = await readFile(path, "utf8");
-    } catch (error) {
-      if (
-        error &&
-        typeof error === "object" &&
-        "code" in error &&
-        error.code === "ENOENT"
-      ) {
-        return { kind: "MISSING" };
-      }
-      throw error;
-    }
+    const text = await readOptionalTextFile(path);
+    if (text === undefined) return { kind: "MISSING" };
 
     const parsed = parseMaintenanceJournal(text);
     return parsed.ok
       ? { kind: "VALID", value: parsed.value }
       : { kind: "INVALID", problem: parsed.problem };
-  }
-
-  private withOperationLock<T>(
-    id: MaintenanceOperationId,
-    operation: () => Promise<T>,
-  ): Promise<T> {
-    const previous = this.operationTails.get(id) ?? Promise.resolve();
-    const current = previous.then(operation, operation);
-    const barrier = current.then(
-      () => undefined,
-      () => undefined,
-    );
-    this.operationTails.set(id, barrier);
-    return current.finally(() => {
-      if (this.operationTails.get(id) === barrier) {
-        this.operationTails.delete(id);
-      }
-    });
   }
 }

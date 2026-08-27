@@ -10,6 +10,7 @@ import {
   type MaintenanceOperationId,
 } from "@heptalogos/bootstrap-state";
 import {
+  createProblem,
   ProblemError,
   createBootId,
   createUuidV7Id,
@@ -35,6 +36,8 @@ import {
 } from "./local-installation-owner.js";
 import { loadBootstrapLocator } from "./locator.js";
 import { resolveBootstrapPathProfile } from "./roots.js";
+import { hasNodeErrorCode } from "./error-code.js";
+import { problemCodeOf } from "./problem-code.js";
 import {
   inspectMaintenanceObligation,
   type MaintenanceObligationInspection,
@@ -96,14 +99,13 @@ function problem(
   detail: string,
   category: Problem["category"] = "integrity",
 ): Problem {
-  return {
-    schemaVersion: 1,
+  return createProblem({
     problemCode,
     category,
     retryClass: "manual",
     title,
     detail,
-  };
+  });
 }
 
 function recoveryConflict(
@@ -115,26 +117,6 @@ function recoveryConflict(
   return new ProblemError(value);
 }
 
-function isCode(error: unknown, code: string): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === code
-  );
-}
-
-function problemCodeOf(error: unknown): string | undefined {
-  if (typeof error !== "object" || error === null || !("problem" in error)) {
-    return undefined;
-  }
-  const value = error.problem;
-  if (typeof value !== "object" || value === null || !("problemCode" in value)) {
-    return undefined;
-  }
-  return typeof value.problemCode === "string" ? value.problemCode : undefined;
-}
-
 async function observeLock(instanceRoot: string): Promise<LockObservation> {
   try {
     const entry = await stat(join(instanceRoot, BOOTSTRAP_LOCK_DIRECTORY));
@@ -143,7 +125,7 @@ async function observeLock(instanceRoot: string): Promise<LockObservation> {
       ageMs: Math.max(0, Date.now() - entry.mtimeMs),
     };
   } catch (error) {
-    if (isCode(error, "ENOENT")) return { present: false };
+    if (hasNodeErrorCode(error, "ENOENT")) return { present: false };
     return {
       present: false,
       problem: problem(

@@ -1,5 +1,6 @@
 import {
-  ProblemError,
+  createProblemError,
+  type ProblemError,
   type BootId,
   type ContinuityEpochId,
   type HostOwnershipToken,
@@ -92,8 +93,7 @@ const managedHostRecords = new WeakMap<
 >();
 
 function invalidCapability(): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode: "bootstrap.host.invalid_managed_capability",
     category: "integrity",
     retryClass: "manual",
@@ -103,8 +103,7 @@ function invalidCapability(): ProblemError {
 }
 
 function terminalProblem(): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode: "bootstrap.host.managed_host_terminal",
     category: "conflict",
     retryClass: "manual",

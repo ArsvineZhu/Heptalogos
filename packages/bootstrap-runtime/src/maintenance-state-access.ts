@@ -18,6 +18,7 @@ import {
 } from "./bootstrap-state-access.js";
 import type { BootstrapPathProfile } from "./roots.js";
 import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import { createProblem } from "@heptalogos/foundation-contracts";
 
 export interface OwnedMaintenanceStateAccess {
   readonly journal: MaintenanceJournalStore;
@@ -32,14 +33,13 @@ function stateProblem(
   title: string,
   detail: string,
 ): ProblemError {
-  const problem: Problem = {
-    schemaVersion: 1,
+  const problem: Problem = createProblem({
     problemCode,
     category: "integrity",
     retryClass: "manual",
     title,
     detail,
-  };
+  });
   return new ProblemError(problem);
 }
 

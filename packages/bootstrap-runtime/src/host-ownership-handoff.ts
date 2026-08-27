@@ -1,6 +1,8 @@
 import {
   createHostOwnershipToken,
-  ProblemError,
+  createProblemError,
+  formatInstant,
+  type ProblemError,
   type ContinuityEpochId,
   type HostOwnershipToken,
 } from "@heptalogos/foundation-contracts";
@@ -28,7 +30,6 @@ import type {
 import type { BootstrapOwnershipLease } from "./bootstrap-ownership.js";
 import type { BootstrapKeyProvider } from "./bootstrap-key-provider.js";
 import {
-  assertReadyPrivatePostgresSession,
   getPrivatePostgresMaintenanceDescriptor,
   type PrivatePostgresSessionToken,
   type PrivatePostgresSessionTracker,
@@ -44,10 +45,11 @@ import {
 import { admitCanonicalHost } from "./canonical-host-admission.js";
 import {
   createHostMaintenanceOperations,
-  createRestartPrivatePostgresEnteredWindowExecutor,
-  createStopPrivatePostgresEnteredWindowExecutor,
+  executeHostMaintenanceWindow,
   type HostMaintenanceOperationProvenance,
 } from "./host-maintenance.js";
+import { problemCodeOf } from "./problem-code.js";
+import { recordBootstrapStage } from "./journal-stage.js";
 
 export interface HostOwnershipHandoffOptions {
   readonly keyProvider: BootstrapKeyProvider;
@@ -103,29 +105,13 @@ const STAGE_FORWARD_HANDOFF_COMPLETED = "bootstrap.host.forward_handoff_complete
 const STAGE_EXISTING_OWNER_DETECTED = "bootstrap.host.existing_owner_detected";
 const STAGE_HANDOFF_FAILED = "bootstrap.host.handoff_failed";
 
-function instant(): string {
-  return new Date().toISOString();
-}
-
-function problemCodeOf(error: unknown): string | undefined {
-  if (typeof error !== "object" || error === null || !("problem" in error)) {
-    return undefined;
-  }
-  const problem = error.problem;
-  if (typeof problem !== "object" || problem === null || !("problemCode" in problem)) {
-    return undefined;
-  }
-  return typeof problem.problemCode === "string" ? problem.problemCode : undefined;
-}
-
 function handoffProblem(
   problemCode: string,
   title: string,
   detail: string,
   category: "conflict" | "integrity" | "unavailable" = "integrity",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",
@@ -176,17 +162,13 @@ async function recordStage(
   outcome: "STARTED" | "SUCCEEDED" | "FAILED",
   problemCode?: string,
 ): Promise<void> {
-  await context.journal.checkpoint({
-    schemaVersion: 1,
-    bootId: context.bootId,
-    bootstrapActivityId: context.bootstrapActivityId,
-    installationId: context.installationId,
-    instanceId: context.instanceId,
+  await recordBootstrapStage(
+    context,
     stage,
-    at: instant(),
+    formatInstant(new Date()),
     outcome,
-    ...(problemCode ? { problemCode } : {}),
-  });
+    problemCode,
+  );
 }
 
 function passwordProvider(
@@ -564,12 +546,8 @@ export async function handoffPrivatePostgresToManagedHostForOwnedPrelude(
       host,
       createHostMaintenanceOperations({
         ...provenance,
-        executeEnteredWindow: async (window) => {
-          if (window.request.kind === "STOP_PRIVATE_POSTGRES") {
-            return createStopPrivatePostgresEnteredWindowExecutor(provenance)(window);
-          }
-          return createRestartPrivatePostgresEnteredWindowExecutor(provenance)(window);
-        },
+        executeEnteredWindow: (window) =>
+          executeHostMaintenanceWindow(provenance, window),
       }),
       {
         continuityEpochId: handoff.continuityEpochId,

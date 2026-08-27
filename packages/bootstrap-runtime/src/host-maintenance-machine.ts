@@ -1,5 +1,8 @@
 import { initialTransition, setup, transition, type SnapshotFrom } from "xstate";
-import { ProblemError } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
 
 export type HostMaintenanceState =
   | "PREPARED"
@@ -119,8 +122,7 @@ function invalidTransition(
   state: HostMaintenanceState,
   event: HostMaintenanceEvent,
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode: "bootstrap.maintenance.invalid_transition",
     category: "conflict",
     retryClass: "manual",

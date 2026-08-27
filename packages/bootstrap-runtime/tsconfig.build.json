@@ -13,6 +13,9 @@
   "exclude": ["test/**/*.ts"],
   "references": [
     {
+      "path": "../schema-runtime/tsconfig.build.json"
+    },
+    {
       "path": "../private-postgres/tsconfig.build.json"
     },
     {

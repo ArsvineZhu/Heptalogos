@@ -4,7 +4,6 @@ import {
   BootstrapStateStore,
   type BootstrapActivityId,
   type BootstrapRuntimeGenerationId,
-  type BootstrapJournalCheckpointV1,
   type BootstrapStateEnvelope,
   type BootstrapStateLoadResult,
   type BootstrapStageOutcome,
@@ -13,7 +12,9 @@ import {
 import {
   createBootId,
   createContinuityEpochId,
+  formatInstant,
   createUuidV7Id,
+  createProblemError,
   ProblemError,
   type BootId,
   type InstallationId,
@@ -44,6 +45,8 @@ import {
   type HostOwnershipHandoffOptions,
 } from "./host-ownership-handoff.js";
 import type { BootstrapManagedHostContext } from "./managed-host.js";
+import { problemCodeOf } from "./problem-code.js";
+import { recordBootstrapStage } from "./journal-stage.js";
 
 export interface PreparedBootstrapPrelude {
   readonly installationId: InstallationId;
@@ -99,24 +102,8 @@ const STAGE_STATE_AUTHORITATIVE_RELOAD = "bootstrap.state.authoritative_reload";
 const STAGE_PRELUDE_OWNED = "bootstrap.prelude.owned";
 const STAGE_PRELUDE_RELEASED = "bootstrap.prelude.released";
 
-function instant(): string {
-  return new Date().toISOString();
-}
-
-function problemCodeOf(error: unknown): string | undefined {
-  if (typeof error !== "object" || error === null || !("problem" in error)) {
-    return undefined;
-  }
-  const problem = error.problem;
-  if (typeof problem !== "object" || problem === null || !("problemCode" in problem)) {
-    return undefined;
-  }
-  return typeof problem.problemCode === "string" ? problem.problemCode : undefined;
-}
-
 function currentBootstrapStateAuthorityRequired(): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode: "bootstrap.state.current_authority_required",
     category: "integrity",
     retryClass: "manual",
@@ -133,8 +120,7 @@ function assertMaintenanceObligationClear(
     throw new ProblemError(obligation.problem);
   }
   if (!obligation.incomplete) return;
-  throw new ProblemError({
-    schemaVersion: 1,
+  throw createProblemError({
     problemCode: "bootstrap.recovery.maintenance_required",
     category: "conflict",
     retryClass: "manual",
@@ -144,29 +130,6 @@ function assertMaintenanceObligationClear(
         ? "BootstrapState references an incomplete maintenance obligation that must be recovered before normal bootstrap"
         : `MaintenanceJournal operation ${obligation.operationId} is incomplete and must be recovered before normal bootstrap`,
   });
-}
-
-function checkpoint(
-  installationId: InstallationId,
-  instanceId: InstanceId,
-  bootId: BootId,
-  bootstrapActivityId: BootstrapActivityId,
-  stage: string,
-  at: string,
-  outcome: BootstrapStageOutcome,
-  problemCode?: string,
-): BootstrapJournalCheckpointV1 {
-  return {
-    schemaVersion: 1,
-    bootId,
-    bootstrapActivityId,
-    installationId,
-    instanceId,
-    stage,
-    at,
-    outcome,
-    ...(problemCode ? { problemCode } : {}),
-  };
 }
 
 async function record(
@@ -180,17 +143,12 @@ async function record(
   outcome: BootstrapStageOutcome,
   problemCode?: string,
 ): Promise<void> {
-  await journal.checkpoint(
-    checkpoint(
-      installationId,
-      instanceId,
-      bootId,
-      bootstrapActivityId,
-      stage,
-      at,
-      outcome,
-      problemCode,
-    ),
+  await recordBootstrapStage(
+    { journal, installationId, instanceId, bootId, bootstrapActivityId },
+    stage,
+    at,
+    outcome,
+    problemCode,
   );
 }
 
@@ -232,7 +190,7 @@ async function materializeOwnedBootstrapPrelude(
       context.bootId,
       context.bootstrapActivityId,
       STAGE_STATE_AUTHORITATIVE_RELOAD,
-      instant(),
+      formatInstant(new Date()),
       "SUCCEEDED",
     );
     await record(
@@ -242,7 +200,7 @@ async function materializeOwnedBootstrapPrelude(
       context.bootId,
       context.bootstrapActivityId,
       STAGE_PRELUDE_OWNED,
-      instant(),
+      formatInstant(new Date()),
       "SUCCEEDED",
     );
 
@@ -362,7 +320,7 @@ async function materializeOwnedBootstrapPrelude(
             context.bootId,
             context.bootstrapActivityId,
             STAGE_PRELUDE_RELEASED,
-            instant(),
+            formatInstant(new Date()),
             "SUCCEEDED",
           );
         })();
@@ -417,12 +375,12 @@ export async function prepareBootstrapPrelude(
 ): Promise<PreparedBootstrapPrelude> {
   const bootId = createBootId();
   const bootstrapActivityId = createUuidV7Id("ActivityId");
-  const startedAt = instant();
+  const startedAt = formatInstant(new Date());
 
   const locator: BootstrapLocatorV1 = await loadBootstrapLocator(anchorRoot);
-  const locatorResolvedAt = instant();
+  const locatorResolvedAt = formatInstant(new Date());
   const paths = await resolveBootstrapPathProfile(locator, BOOTSTRAP_PRELUDE_ROOTS);
-  const rootsResolvedAt = instant();
+  const rootsResolvedAt = formatInstant(new Date());
   const installationId = locator.installationId;
   const instanceId = locator.instanceId;
   const journal = new BootstrapJournal(paths.resolve("INSTANCE").canonicalPath);
@@ -476,7 +434,7 @@ export async function prepareBootstrapPrelude(
       bootId,
       bootstrapActivityId,
       STAGE_STATE_PRELIMINARY_READ,
-      instant(),
+      formatInstant(new Date()),
       "FAILED",
       problemCodeOf(error),
     );
@@ -489,7 +447,7 @@ export async function prepareBootstrapPrelude(
     bootId,
     bootstrapActivityId,
     STAGE_STATE_PRELIMINARY_READ,
-    instant(),
+    formatInstant(new Date()),
     "SUCCEEDED",
   );
 
@@ -523,7 +481,7 @@ export async function prepareBootstrapPrelude(
         bootId,
         bootstrapActivityId,
         STAGE_OWNERSHIP_BLOCKED,
-        instant(),
+        formatInstant(new Date()),
         "FAILED",
         problemCodeOf(error),
       );
@@ -538,7 +496,7 @@ export async function prepareBootstrapPrelude(
         bootId,
         bootstrapActivityId,
         STAGE_OWNERSHIP_ACQUIRED,
-        instant(),
+        formatInstant(new Date()),
         "SUCCEEDED",
       );
     } catch (error) {

@@ -1,7 +1,8 @@
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
   canonicalizeJson,
+  createProblem,
   ProblemError,
   type CanonicalJsonValue,
   type Problem,
@@ -9,6 +10,7 @@ import {
 import { parseBootstrapState, sealBootstrapState } from "./codec.js";
 import { writeAtomicPublishedFile } from "./atomic-file.js";
 import type { BootstrapStateBody, BootstrapStateEnvelope } from "./model.js";
+import { readOptionalTextFile } from "./file-io.js";
 
 const CURRENT_FILENAME = "bootstrap-state.json";
 const PREVIOUS_FILENAME = "bootstrap-state.previous.json";
@@ -29,14 +31,13 @@ type Candidate =
   | { readonly kind: "VALID"; readonly value: BootstrapStateEnvelope };
 
 function storeProblem(problemCode: string, title: string, detail: string): Problem {
-  return {
-    schemaVersion: 1,
+  return createProblem({
     problemCode,
     category: "integrity",
     retryClass: "manual",
     title,
     detail,
-  };
+  });
 }
 
 function stateText(value: BootstrapStateEnvelope): string {
@@ -159,20 +160,8 @@ export class BootstrapStateStore {
   }
 
   private async readCandidate(path: string): Promise<Candidate> {
-    let text: string;
-    try {
-      text = await readFile(path, "utf8");
-    } catch (error) {
-      if (
-        error &&
-        typeof error === "object" &&
-        "code" in error &&
-        error.code === "ENOENT"
-      ) {
-        return { kind: "MISSING" };
-      }
-      throw error;
-    }
+    const text = await readOptionalTextFile(path);
+    if (text === undefined) return { kind: "MISSING" };
 
     const result = parseBootstrapState(text);
     return result.ok

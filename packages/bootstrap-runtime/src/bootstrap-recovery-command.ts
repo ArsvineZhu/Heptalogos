@@ -1,7 +1,8 @@
 import { type MaintenanceOperationId } from "@heptalogos/bootstrap-state";
 import {
+  createProblemError,
   parseUuidV7Id,
-  ProblemError,
+  type ProblemError,
   type Problem,
 } from "@heptalogos/foundation-contracts";
 import {
@@ -59,8 +60,7 @@ function commandProblem(
   detail: string,
   category: Problem["category"] = "validation",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",

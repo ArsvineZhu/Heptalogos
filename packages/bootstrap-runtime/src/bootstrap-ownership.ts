@@ -4,6 +4,8 @@ import "@bybrave/proper-lockfile2";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import {
+  createProblem,
+  formatInstant,
   ProblemError,
   type BootId,
   type Problem,
@@ -15,6 +17,7 @@ import {
 } from "@heptalogos/bootstrap-state";
 import type { ResolvedLifecycleRoot } from "./roots.js";
 import { currentBootstrapProcessIdentity } from "./bootstrap-process-identity.js";
+import { nodeErrorCode } from "./error-code.js";
 
 type ProperLockOptions = {
   readonly stale: number;
@@ -66,21 +69,13 @@ function ownershipProblem(
   title: string,
   detail: string,
 ): Problem {
-  return {
-    schemaVersion: 1,
+  return createProblem({
     problemCode,
     category,
     retryClass,
     title,
     detail,
-  };
-}
-
-function errorCode(error: unknown): string | undefined {
-  if (typeof error !== "object" || error === null || !("code" in error)) {
-    return undefined;
-  }
-  return typeof error.code === "string" ? error.code : undefined;
+  });
 }
 
 function assertHeartbeat(heartbeatMs: number): void {
@@ -191,7 +186,7 @@ async function acquireBootstrapOwnershipWithStalePolicy(
   const witnessStore = new BootstrapOwnerWitnessStore(instanceRoot.canonicalPath);
   const lockGenerationId = createBootstrapLockGenerationId();
   const processIdentity = currentBootstrapProcessIdentity();
-  const createdAt = new Date().toISOString();
+  const createdAt = formatInstant(new Date());
   const attemptWitness: BootstrapOwnerWitnessBodyV1 = {
     schemaVersion: 1,
     phase: "ATTEMPT",
@@ -237,7 +232,7 @@ async function acquireBootstrapOwnershipWithStalePolicy(
         ),
       );
     }
-    if (errorCode(error) === "ELOCKED") {
+    if (nodeErrorCode(error) === "ELOCKED") {
       throw new ProblemError(lockPresentProblem());
     }
     throw new ProblemError(

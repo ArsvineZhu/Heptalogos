@@ -30,10 +30,12 @@ versioned where the architecture requires durable contract evolution.
 
 ## Dependencies and boundaries
 
-It depends on `foundation-contracts`, AJV, TypeBox, and atomic file writing.
-Stores own their file mutation path and must remain bounded and crash-safe.
-Callers should use the exported models and stores rather than reaching into
-codec or file details. It does not import normal Runtime or Host packages.
+It depends on `foundation-contracts`, `schema-runtime`, and atomic file
+writing. SchemaRuntime owns Ajv/TypeBox mechanics; BootstrapState owns durable
+shape semantics, keyed file serialization, and crash-safe store mutation. Stores
+own their file mutation path and must remain bounded and crash-safe. Callers
+should use the exported models and stores rather than reaching into codec or
+file details. It does not import normal Runtime or Host packages.
 
 ## Change constraints
 

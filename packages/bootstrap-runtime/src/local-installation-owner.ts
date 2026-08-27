@@ -3,6 +3,7 @@ import { constants } from "node:fs";
 import { access, lstat, open, stat, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  createProblemError,
   ProblemError,
   type InstallationId,
   type InstanceId,
@@ -10,6 +11,7 @@ import {
 } from "@heptalogos/foundation-contracts";
 import { loadBootstrapLocator } from "./locator.js";
 import { resolveBootstrapPathProfile } from "./roots.js";
+import { hasNodeErrorCode } from "./error-code.js";
 
 export interface LocalInstallationOwnerRecoveryPrincipal {
   readonly kind: "LOCAL_INSTALLATION_OWNER";
@@ -34,23 +36,13 @@ function recoveryProblem(
   title: string,
   detail: string,
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",
     title,
     detail,
   });
-}
-
-function isNodeCode(error: unknown, code: string): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === code
-  );
 }
 
 async function assertAnchorIsCanonicalDirectory(anchorRoot: string): Promise<void> {
@@ -135,7 +127,7 @@ async function proveInstanceWrite(instanceRoot: string): Promise<void> {
     try {
       await unlink(probePath);
     } catch (error) {
-      if (!isNodeCode(error, "ENOENT")) failure ??= error;
+      if (!hasNodeErrorCode(error, "ENOENT")) failure ??= error;
     }
   }
   if (failure !== undefined) {

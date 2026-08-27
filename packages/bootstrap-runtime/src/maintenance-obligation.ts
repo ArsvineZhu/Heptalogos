@@ -4,7 +4,12 @@ import {
   type MaintenanceJournalLoadResult,
   type MaintenanceOperationId,
 } from "@heptalogos/bootstrap-state";
-import { parseUuidV7Id, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  createProblem,
+  parseUuidV7Id,
+  type Problem,
+} from "@heptalogos/foundation-contracts";
+import { problemCodeOf } from "./problem-code.js";
 
 const MAINTENANCE_OPERATION_REF_PREFIX = "maintenance-journal/v1/";
 
@@ -21,25 +26,13 @@ function problem(
   detail: string,
   category: Problem["category"] = "integrity",
 ): Problem {
-  return {
-    schemaVersion: 1,
+  return createProblem({
     problemCode,
     category,
     retryClass: "manual",
     title,
     detail,
-  };
-}
-
-function problemCodeOf(error: unknown): string | undefined {
-  if (typeof error !== "object" || error === null || !("problem" in error)) {
-    return undefined;
-  }
-  const value = error.problem;
-  if (typeof value !== "object" || value === null || !("problemCode" in value)) {
-    return undefined;
-  }
-  return typeof value.problemCode === "string" ? value.problemCode : undefined;
+  });
 }
 
 function operationIdFromReference(

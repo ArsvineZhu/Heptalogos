@@ -1,4 +1,5 @@
 import pidusage from "pidusage";
+import { nodeErrorCode } from "./error-code.js";
 
 const PROCESS_START_IDENTITY_TOLERANCE_MS = 5_000;
 
@@ -10,15 +11,8 @@ export interface BootstrapProcessIdentity {
 export type BootstrapProcessIdentityStatus =
   "SAME_PROCESS" | "PROCESS_DEAD" | "UNKNOWN";
 
-function errorCode(error: unknown): string | undefined {
-  if (typeof error !== "object" || error === null || !("code" in error)) {
-    return undefined;
-  }
-  return typeof error.code === "string" ? error.code : undefined;
-}
-
 function isDefinitelyMissingProcess(error: unknown): boolean {
-  const code = errorCode(error);
+  const code = nodeErrorCode(error);
   return code === "ESRCH" || code === "ENOENT";
 }
 

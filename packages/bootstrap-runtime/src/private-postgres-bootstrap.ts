@@ -8,6 +8,8 @@ import {
   type PrivatePostgresBootstrapStateV1,
 } from "@heptalogos/bootstrap-state";
 import {
+  createProblemError,
+  formatInstant,
   ProblemError,
   type BootId,
   type InstallationId,
@@ -36,6 +38,8 @@ import {
 } from "./bootstrap-ownership.js";
 import type { OwnedBootstrapStateStore } from "./bootstrap-state-access.js";
 import type { BootstrapPathProfile } from "./roots.js";
+import { problemCodeOf } from "./problem-code.js";
+import { recordBootstrapStage } from "./journal-stage.js";
 
 export interface PreparePrivatePostgresOptions {
   readonly toolchainBinDirectory: string;
@@ -134,21 +138,6 @@ const STAGE_START_STARTED = "bootstrap.postgres.start_started";
 const STAGE_READY = "bootstrap.postgres.ready";
 const STAGE_FAILED = "bootstrap.postgres.failed";
 
-function instant(): string {
-  return new Date().toISOString();
-}
-
-function problemCodeOf(error: unknown): string | undefined {
-  if (typeof error !== "object" || error === null || !("problem" in error)) {
-    return undefined;
-  }
-  const problem = error.problem;
-  if (typeof problem !== "object" || problem === null || !("problemCode" in problem)) {
-    return undefined;
-  }
-  return typeof problem.problemCode === "string" ? problem.problemCode : undefined;
-}
-
 function isPrivatePostgresCleanupUncertain(error: unknown): boolean {
   return problemCodeOf(error) === "private-postgres.lifecycle.start_cleanup_uncertain";
 }
@@ -160,8 +149,7 @@ function bootstrapProblem(
   category: Problem["category"] = "integrity",
   retryClass: Problem["retryClass"] = "manual",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass,
@@ -359,17 +347,13 @@ async function recordStage(
   outcome: BootstrapStageOutcome,
   problemCode?: string,
 ): Promise<void> {
-  await context.journal.checkpoint({
-    schemaVersion: 1,
-    bootId: context.bootId,
-    bootstrapActivityId: context.bootstrapActivityId,
-    installationId: context.installationId,
-    instanceId: context.instanceId,
+  await recordBootstrapStage(
+    context,
     stage,
-    at: instant(),
+    formatInstant(new Date()),
     outcome,
-    ...(problemCode ? { problemCode } : {}),
-  });
+    problemCode,
+  );
 }
 
 async function recordFailure(

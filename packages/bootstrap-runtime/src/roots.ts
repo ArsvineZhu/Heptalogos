@@ -1,11 +1,13 @@
 import { lstat, realpath } from "node:fs/promises";
 import {
-  ProblemError,
+  createProblemError,
+  type ProblemError,
   type InstallationId,
   type InstanceId,
   type LifecycleRootId,
 } from "@heptalogos/foundation-contracts";
 import type { BootstrapLocatorV1 } from "./locator.js";
+import { hasNodeErrorCode } from "./error-code.js";
 
 export interface ResolvedLifecycleRoot {
   readonly id: LifecycleRootId;
@@ -21,23 +23,13 @@ export interface BootstrapPathProfile {
 }
 
 function rootProblem(problemCode: string, title: string, detail: string): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category: "integrity",
     retryClass: "manual",
     title,
     detail,
   });
-}
-
-function hasCode(error: unknown, code: string): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === code
-  );
 }
 
 async function resolveRoot(
@@ -48,7 +40,7 @@ async function resolveRoot(
   try {
     entry = await lstat(configuredPath);
   } catch (error) {
-    if (hasCode(error, "ENOENT")) {
+    if (hasNodeErrorCode(error, "ENOENT")) {
       throw rootProblem(
         "bootstrap.root.not_found",
         "Bootstrap lifecycle root is missing",
