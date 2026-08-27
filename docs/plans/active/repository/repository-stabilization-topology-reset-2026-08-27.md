@@ -1765,18 +1765,21 @@ Review; final manual CI remains prohibited until that review returns `PASS`.
 | IR-08 | `IMPLEMENTED`; scheduler concurrency semantics use an injected deterministic barrier. |
 | IR-09 | `SEQUENCING`; candidate transport and external review remain outside local code remediation. |
 
-**Plan status:** `ROUND2_REQUEST_CHANGES_IN_PROGRESS`
+**Plan status:** `READY_FOR_ROUND3_EXTERNAL_REVIEW`
 
 **Local execution state (2026-08-27):** H3A-1 recovery remains `CLOSED`;
 P0 and RS-1 through RS-5 are locally complete, and IR-02 through IR-08 were
 implemented on the prior stabilization candidate. Round 2 returned
-`REQUEST_CHANGES`; the candidate is back in Draft while R2-01 through R2-04
-are corrected. The prior local qualification remains evidence for the prior
-candidate; it will be rerun for this corrected candidate. A qualified
-PostgreSQL runtime is not present on this host, so affected real-PostgreSQL/L3
-evidence remains `NOT_RUN` as recorded by the qualification ledger.
-Cross-platform CI, stabilization Independent Review, final manual CI, and
-merge/reconciliation remain `NOT_RUN`.
+`REQUEST_CHANGES`; R2-01 through R2-04 are now implemented on this corrected
+candidate. Focused repo-kit/private-postgres tests and documentation,
+repository, hygiene, dependency, boundary, and toolchain checks are `PASS`.
+Two frozen-install/clean cycles completed, and both full `pnpm verify` runs
+reported all 14 local gates `PASS` (agents, documentation, repository, hygiene,
+dependencies, boundaries, unused, toolchain, format:check, lint, typecheck,
+tsc6, test, and build). A qualified PostgreSQL runtime is not present on this
+host, so affected real-PostgreSQL/L3 evidence remains `NOT_RUN` as recorded by
+the qualification ledger. Cross-platform CI, stabilization Independent
+Review, final manual CI, and merge/reconciliation remain `NOT_RUN`.
 H3A-2 remains `BLOCKED_BY_REPOSITORY_STABILIZATION`.
 
 **Execution ordering:** `separate H3A-1 recovery CLOSED → P0 → RS-1 → RS-2 → RS-3 → RS-4 → RS-5 → RS-6 → H3A-2 refresh`
