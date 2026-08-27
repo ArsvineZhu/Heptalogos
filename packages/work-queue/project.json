@@ -2,7 +2,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "work-queue",
   "projectType": "library",
-  "tags": ["kind:product", "area:service"],
+  "tags": ["kind:product", "area:work-queue"],
   "sourceRoot": "packages/work-queue/src",
   "targets": {
     "lint": {

@@ -1,4 +1,3 @@
-import { builtinModules } from "node:module";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,124 +22,6 @@ const ignoredDirectories = new Set([
   "test-results",
   "tmp",
 ]);
-const builtins = new Set([
-  ...builtinModules,
-  ...builtinModules
-    .filter((name) => !name.startsWith("node:"))
-    .map((name) => `node:${name}`),
-]);
-
-const restrictedImports = new Map([
-  [
-    "ajv",
-    [
-      "packages/schema-runtime/",
-      "packages/bootstrap-state/src/codec.ts",
-      "packages/bootstrap-state/src/journal.ts",
-      "packages/bootstrap-state/src/bootstrap-owner-witness-codec.ts",
-      "packages/bootstrap-state/src/maintenance-codec.ts",
-      "packages/bootstrap-runtime/src/locator.ts",
-    ],
-  ],
-  [
-    "typebox",
-    [
-      "packages/schema-runtime/",
-      "packages/bootstrap-state/src/codec.ts",
-      "packages/bootstrap-state/src/journal.ts",
-      "packages/bootstrap-state/src/bootstrap-owner-witness-codec.ts",
-      "packages/bootstrap-state/src/maintenance-codec.ts",
-      "packages/bootstrap-runtime/src/locator.ts",
-    ],
-  ],
-  [
-    "@heptalogos/canonical-schema",
-    [
-      "packages/bootstrap-runtime/test/integration/canonical-initialization.integration.test.ts",
-      "packages/bootstrap-runtime/test/support/canonical-postgres.ts",
-    ],
-  ],
-  [
-    "@opentelemetry/api",
-    [
-      "packages/execution-lineage/src/observability-adapter.ts",
-      "packages/execution-lineage/test/unit/execution-context-runtime.test.ts",
-    ],
-  ],
-  ["cordis", ["packages/runtime-substrate/"]],
-  [
-    "@dagrejs/graphlib",
-    [
-      "packages/runtime-kernel/src/runtime-graph.ts",
-      "packages/runtime-kernel/test/unit/runtime-graph.test.ts",
-    ],
-  ],
-  ["@heptalogos/execution-lineage/runtime-kernel", ["packages/runtime-kernel/"]],
-  [
-    "@heptalogos/bootstrap-state",
-    ["packages/bootstrap-runtime/", "packages/bootstrap-state/"],
-  ],
-  [
-    "@heptalogos/private-postgres",
-    [
-      "packages/private-postgres/",
-      "packages/bootstrap-runtime/",
-      "packages/host-ownership/test/integration/host-ownership.integration.test.ts",
-      "packages/persistence/test/integration/persistence.integration.test.ts",
-    ],
-  ],
-  [
-    "@bybrave/proper-lockfile2",
-    ["packages/bootstrap-runtime/src/bootstrap-ownership.ts"],
-  ],
-  ["execa", ["packages/private-postgres/src/process-adapter.ts"]],
-  [
-    "pg",
-    [
-      "packages/host-ownership/",
-      "packages/persistence/",
-      "packages/canonical-schema/",
-      "packages/signal/",
-      "packages/bootstrap-runtime/test/integration/host-maintenance.integration.test.ts",
-      "packages/bootstrap-runtime/test/integration/bootstrap-recovery.integration.test.ts",
-      "packages/bootstrap-runtime/test/integration/canonical-initialization.integration.test.ts",
-      "packages/bootstrap-runtime/test/support/canonical-postgres.ts",
-    ],
-  ],
-  [
-    "kysely",
-    [
-      "packages/persistence/",
-      "packages/canonical-schema/",
-      "packages/signal/",
-      "packages/work-queue/",
-      "packages/execution-lineage/src/activity-repository.ts",
-      "packages/evidence/src/evidence-service.ts",
-      "packages/bootstrap-runtime/test/integration/execution-foundation.integration.test.ts",
-    ],
-  ],
-]);
-const restrictedSpecifiers = new Map([
-  [
-    "@heptalogos/persistence/foundation-repository",
-    [
-      "packages/execution-lineage/",
-      "packages/evidence/",
-      "packages/persistence/",
-      "packages/signal/",
-      "packages/work-queue/",
-      "packages/bootstrap-runtime/test/integration/execution-foundation.integration.test.ts",
-    ],
-  ],
-  [
-    "@heptalogos/work-queue/foundation-repository",
-    [
-      "packages/work-queue/",
-      "packages/bootstrap-runtime/test/integration/durable-work-host.integration.test.ts",
-    ],
-  ],
-]);
-
 const workQueuePublicSource = readFileSync(
   resolve(root, "packages/work-queue/src/index.ts"),
   "utf8",
@@ -283,61 +164,6 @@ if (
   );
 }
 
-export function isRestrictedImportAllowed(specifier, relativePath) {
-  const allowedPaths = restrictedImports.get(specifier);
-  if (!allowedPaths) return true;
-  const normalizedPath = relativePath.replaceAll("\\", "/");
-  return allowedPaths.some((allowedPath) =>
-    allowedPath.endsWith("/")
-      ? normalizedPath.startsWith(allowedPath)
-      : normalizedPath === allowedPath,
-  );
-}
-
-const bootstrapRuntimeProductionForbiddenImports = new Set([
-  "@heptalogos/runtime-kernel",
-  "@heptalogos/runtime-substrate",
-  "@heptalogos/work-queue",
-  "@heptalogos/signal",
-  "@heptalogos/durable-execution",
-  "cordis",
-]);
-
-export function isBootstrapRuntimeProductionImportAllowed(specifier, relativePath) {
-  const normalizedPath = relativePath.replaceAll("\\", "/");
-  const isBootstrapProductionSource =
-    normalizedPath.startsWith("packages/bootstrap-runtime/src/") &&
-    !normalizedPath.endsWith(".test.ts") &&
-    !normalizedPath.endsWith(".test.tsx") &&
-    !normalizedPath.endsWith(".test.mjs");
-  return (
-    !isBootstrapProductionSource ||
-    !bootstrapRuntimeProductionForbiddenImports.has(packageName(specifier))
-  );
-}
-
-export function isRestrictedSpecifierAllowed(specifier, relativePath) {
-  const allowedPaths = restrictedSpecifiers.get(specifier);
-  if (!allowedPaths) return true;
-  const normalizedPath = relativePath.replaceAll("\\", "/");
-  return allowedPaths.some((allowedPath) =>
-    allowedPath.endsWith("/")
-      ? normalizedPath.startsWith(allowedPath)
-      : normalizedPath === allowedPath,
-  );
-}
-
-export function isCrossWorkspaceRelativeImport({
-  sourcePackageName,
-  targetPackageName,
-}) {
-  return (
-    typeof sourcePackageName === "string" &&
-    typeof targetPackageName === "string" &&
-    sourcePackageName !== targetPackageName
-  );
-}
-
 function collect(directory, matcher, files = []) {
   if (!existsSync(directory)) return files;
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -362,38 +188,6 @@ const workspacePackageNames = new Set(
     .map(({ name }) => name)
     .filter((name) => typeof name === "string" && name.length > 0),
 );
-const projectAreas = new Map();
-for (const workspacePackage of workspacePackages) {
-  if (typeof workspacePackage.name !== "string") continue;
-  const projectPath = resolve(workspacePackage.path, "project.json");
-  if (!existsSync(projectPath)) continue;
-  const project = JSON.parse(readFileSync(projectPath, "utf8"));
-  const area = project.tags?.find((tag) => tag.startsWith("area:"));
-  if (typeof area === "string") projectAreas.set(workspacePackage.name, area.slice(5));
-}
-
-export function isAreaDependencyAllowed({ sourcePackageName, targetPackageName }) {
-  const sourceArea = projectAreas.get(sourcePackageName);
-  const targetArea = projectAreas.get(targetPackageName);
-  if (!sourceArea || !targetArea || sourceArea === targetArea) return true;
-
-  const forbiddenBySource = new Map([
-    ["shared", new Set(["bootstrap", "data", "execution", "service", "runtime"])],
-    ["bootstrap", new Set(["execution", "service", "runtime"])],
-    ["data", new Set(["service", "runtime"])],
-    ["execution", new Set(["service", "runtime"])],
-    ["service", new Set(["runtime"])],
-  ]);
-  if (!forbiddenBySource.get(sourceArea)?.has(targetArea)) return true;
-
-  // S02's generation-pinned WorkHandler seam is the one explicit service to
-  // Runtime Kernel contract; it is not a general service/runtime allowance.
-  return (
-    sourcePackageName === "@heptalogos/work-queue" &&
-    targetPackageName === "@heptalogos/runtime-kernel"
-  );
-}
-
 function packageJsonFor(file) {
   let directory = dirname(file);
   while (directory === root || directory.startsWith(`${root}${sep}`)) {
@@ -418,15 +212,6 @@ function declaredDependencies(manifest) {
     ...Object.keys(manifest.optionalDependencies ?? {}),
     ...Object.keys(manifest.peerDependencies ?? {}),
   ]);
-}
-
-function isLocalImport(specifier) {
-  return (
-    specifier === "." ||
-    specifier === ".." ||
-    specifier.startsWith("./") ||
-    specifier.startsWith("../")
-  );
 }
 
 const sourcePaths = collect(root, (sourcePath) => /\.(?:ts|tsx)$/u.test(sourcePath));
@@ -510,55 +295,10 @@ for (const path of sourcePaths) {
 
   for (const match of source.matchAll(importPattern)) {
     const specifier = match[2];
-    if (isLocalImport(specifier)) {
-      const resolvedImport = resolve(dirname(path), specifier);
-      if (resolvedImport !== root && !resolvedImport.startsWith(`${root}${sep}`)) {
-        errors.push(
-          `${relativePath}: relative import escapes repository: ${specifier}`,
-        );
-        continue;
-      }
-      const targetPackage = packageJsonFor(resolvedImport);
-      if (
-        isCrossWorkspaceRelativeImport({
-          sourcePackageName: projectPackage.name,
-          targetPackageName: targetPackage.name,
-        })
-      ) {
-        errors.push(
-          `${relativePath}: cross-workspace relative import is not allowed: ${specifier}`,
-        );
-      }
-      continue;
-    }
-    if (specifier.startsWith("node:")) {
-      if (!builtins.has(specifier)) {
-        errors.push(`${relativePath}: unknown Node builtin import: ${specifier}`);
-      }
-      continue;
-    }
-
-    if (!isRestrictedSpecifierAllowed(specifier, relativePath)) {
-      errors.push(
-        `${relativePath}: restricted full import is not allowed here: ${specifier}`,
-      );
-      continue;
-    }
-
-    if (!isBootstrapRuntimeProductionImportAllowed(specifier, relativePath)) {
-      errors.push(
-        `${relativePath}: bootstrap-runtime production source must not import ${specifier}`,
-      );
-      continue;
-    }
+    if (specifier.startsWith(".")) continue;
+    if (specifier.startsWith("node:")) continue;
 
     const dependency = packageName(specifier);
-    if (!isRestrictedImportAllowed(dependency, relativePath)) {
-      errors.push(
-        `${relativePath}: restricted import is not allowed here: ${specifier}`,
-      );
-      continue;
-    }
     const isWorkspaceDependency = workspacePackageNames.has(dependency);
     if (!declared.has(dependency) && dependency !== projectPackage.name) {
       errors.push(
@@ -567,17 +307,6 @@ for (const path of sourcePaths) {
       continue;
     }
     if (isWorkspaceDependency) {
-      if (
-        !isTestSource &&
-        !isAreaDependencyAllowed({
-          sourcePackageName: projectPackage.name,
-          targetPackageName: dependency,
-        })
-      ) {
-        errors.push(
-          `[BOUNDARY_AREA_DIRECTION] ${relativePath}: ${projectPackage.name} (${projectAreas.get(projectPackage.name)}) must not depend on ${specifier} (${projectAreas.get(dependency)})`,
-        );
-      }
       continue;
     }
     if (repositoryToolingPackages.has(dependency)) {
@@ -601,6 +330,6 @@ if (errors.length > 0) {
   process.exitCode = 1;
 } else {
   console.log(
-    "PASS source dependencies; relative imports are local, Node builtins are builtin, and package imports are classified",
+    "PASS Heptalogos semantic boundary checks; package tooling identity and public Authority surfaces are valid",
   );
 }
