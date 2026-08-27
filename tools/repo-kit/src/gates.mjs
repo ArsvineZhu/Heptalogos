@@ -146,12 +146,16 @@ export async function runGateGraph({
   gates,
   concurrency = 1,
   cwd = process.cwd(),
+  executeGate: executeGateFn = executeGate,
   onResult,
 } = {}) {
   if (!Number.isInteger(concurrency) || concurrency < 1) {
     throw new RangeError(
       "gate concurrency must be an integer greater than or equal to 1",
     );
+  }
+  if (typeof executeGateFn !== "function") {
+    throw new TypeError("executeGate must be a function");
   }
 
   const validated = validateGateGraph(gates ?? []);
@@ -189,7 +193,7 @@ export async function runGateGraph({
 
       if (running.size >= concurrency) continue;
       state.set(gate.id, "running");
-      const task = executeGate(gate, cwd).then(async (result) => {
+      const task = executeGateFn(gate, cwd).then(async (result) => {
         await publish(result);
         return result;
       });

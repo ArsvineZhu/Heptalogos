@@ -13,21 +13,52 @@ const nodeGate = (id, script, options = {}) =>
 describe("repository gate graph", () => {
   it("runs independent gates concurrently", async () => {
     const events = [];
-    const result = await runGateGraph({
+    const entered = [];
+    let signalBothEntered;
+    const bothEntered = new Promise((resolve) => {
+      signalBothEntered = resolve;
+    });
+    let releaseBoth;
+    const release = new Promise((resolve) => {
+      releaseBoth = resolve;
+    });
+    const executeGate = async (gate) => {
+      entered.push(gate.id);
+      if (entered.length === 2) signalBothEntered();
+      await release;
+      return {
+        id: gate.id,
+        label: gate.label,
+        status: "passed",
+        exitCode: 0,
+        signal: null,
+        stdout: "",
+        stderr: "",
+        durationMs: 0,
+        startedAt: 0,
+        finishedAt: 0,
+        allowFailure: false,
+      };
+    };
+
+    const running = runGateGraph({
       gates: [
-        nodeGate("alpha", "setTimeout(() => process.stdout.write('alpha'), 500)"),
-        nodeGate("beta", "setTimeout(() => process.stdout.write('beta'), 500)"),
+        defineGate({ id: "alpha", label: "alpha", command: "unused" }),
+        defineGate({ id: "beta", label: "beta", command: "unused" }),
       ],
       concurrency: 2,
+      executeGate,
       onResult: (entry) => events.push(entry.id),
     });
+
+    await bothEntered;
+    expect(entered).toEqual(["alpha", "beta"]);
+    releaseBoth();
+    const result = await running;
 
     expect(result.ok).toBe(true);
     expect(result.results.map((entry) => entry.id)).toEqual(["alpha", "beta"]);
     expect(new Set(events)).toEqual(new Set(["alpha", "beta"]));
-    expect(
-      Math.abs(result.results[0].startedAt - result.results[1].startedAt),
-    ).toBeLessThan(300);
   });
 
   it("waits for needs dependencies before running a gate", async () => {
