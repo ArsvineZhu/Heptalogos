@@ -45,6 +45,9 @@
     },
     {
       "path": "./packages/work-queue"
+    },
+    {
+      "path": "./packages/durable-execution"
     }
   ]
 }

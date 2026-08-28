@@ -30,6 +30,8 @@ overview when a change crosses package boundaries.
 - `signal` — PostgreSQL LISTEN/NOTIFY wakeup hints and reconnect/rescan mechanics.
 - `work-queue` — canonical durable WorkItem contracts, reconciliation, and
   engine-neutral attempt execution.
+- `durable-execution` — the DBOS package/process adapter and later Host-bound
+  durable execution runtime.
 
 ## Runtime composition
 
