@@ -14,7 +14,6 @@ import {
   HOST_OWNERSHIP_SCHEMA,
 } from "./contracts.js";
 import {
-  type BootstrapAdminClient,
   type BootstrapAdminPasswordProvider,
   withBootstrapAdminClient,
 } from "./bootstrap-admin.js";

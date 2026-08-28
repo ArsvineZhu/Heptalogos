@@ -20,7 +20,7 @@ import {
   type PersistenceTransactionContext,
   type PersistenceTransactionMode,
 } from "./contracts.js";
-import { createKyselyAdapter, type PersistenceDatabase } from "./kysely-adapter.js";
+import { createKyselyAdapter } from "./kysely-adapter.js";
 import { executeFoundationSql } from "./foundation-repository.js";
 import { createPersistencePool } from "./pg-pool.js";
 import {

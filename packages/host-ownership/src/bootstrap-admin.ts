@@ -277,7 +277,7 @@ function quoteLiteral(value: string): string {
 function decodeUtf8(bytes: Uint8Array): string {
   try {
     return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  } catch (error) {
+  } catch {
     throw provisioningProblem(
       "host-ownership.bootstrap_admin.invalid_bootstrap_credential",
       "Bootstrap credential is invalid UTF-8",

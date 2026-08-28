@@ -3,7 +3,6 @@ import {
   ProblemError,
   snapshotCanonicalJson,
   type CanonicalJsonValue,
-  type Instant,
 } from "@heptalogos/foundation-contracts";
 import type {
   ExecutionContext,
@@ -12,10 +11,7 @@ import type {
   LineageContextRefV1,
 } from "@heptalogos/execution-lineage";
 import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
-import type {
-  RuntimeWorkHandlerInvocationReservation,
-  RuntimeWorkHandlerLease,
-} from "@heptalogos/runtime-kernel";
+import type { RuntimeWorkHandlerInvocationReservation } from "@heptalogos/runtime-kernel";
 import type { TimeService } from "@heptalogos/time-service";
 import { createDispatchAttemptId } from "./attempt-identity.js";
 import type {
@@ -537,7 +533,7 @@ export function createWorkAttemptExecutor(
               expectedDispatchRevision: item.dispatchRevision,
               activeAttemptId: attemptId,
               updatedAt: options.time.now(),
-              onApplied: async (transaction, running) => {
+              onApplied: async (transaction, _running) => {
                 await options.lineage.retainCurrent(transaction, activity);
               },
             });

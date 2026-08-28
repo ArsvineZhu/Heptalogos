@@ -1,10 +1,9 @@
-import { createEvidenceId, type Instant } from "@heptalogos/foundation-contracts";
+import { createEvidenceId } from "@heptalogos/foundation-contracts";
 import {
   executeFoundationSql,
   type PersistenceInternalTransaction,
   useFoundationMutationTransaction,
 } from "@heptalogos/persistence/foundation-repository";
-import type { PersistenceMutationTransactionContext } from "@heptalogos/persistence";
 import type { EvidenceDraft, EvidenceRecord, EvidenceService } from "./contracts.js";
 import {
   evidenceActivityRequiredProblem,

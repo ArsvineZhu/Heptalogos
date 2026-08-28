@@ -367,7 +367,7 @@ export function createFencedProxy<TContract extends object>(
           findSupportedContractMember(rawValue, property) !== undefined
         );
       },
-      getPrototypeOf(shadow) {
+      getPrototypeOf(_shadow) {
         fence.assertActive();
         return null;
       },

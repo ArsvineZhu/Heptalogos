@@ -10,7 +10,6 @@ import {
   type Instant,
 } from "@heptalogos/foundation-contracts";
 import type {
-  ExecutionContext,
   ExecutionContextRuntime,
   ExecutionLineageService,
 } from "@heptalogos/execution-lineage";

@@ -10,12 +10,6 @@ import type { CanonicalDatabase } from "./migration-pool.js";
 import { assertCanonicalAuthority } from "./migration-pool.js";
 import { canonicalSchemaProblem } from "./problems.js";
 
-interface ObservedContinuityRow {
-  readonly singleton: unknown;
-  readonly instance_id: unknown;
-  readonly continuity_epoch_id: unknown;
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

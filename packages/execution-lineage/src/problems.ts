@@ -1,6 +1,5 @@
 import {
   createProblemError,
-  type Problem,
   type ProblemError,
 } from "@heptalogos/foundation-contracts";
 

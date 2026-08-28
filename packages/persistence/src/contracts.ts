@@ -6,8 +6,6 @@ import type {
   InstallationId,
   InstanceId,
 } from "@heptalogos/foundation-contracts";
-import type { HostPersistenceAuthority } from "@heptalogos/host-ownership";
-
 export interface PersistenceExecutionMetadata {
   readonly activityId: ActivityId;
   readonly installationId: InstallationId;

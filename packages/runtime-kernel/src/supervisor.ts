@@ -14,7 +14,6 @@ import { GenerationFence } from "./generation-fence.js";
 import type {
   CapabilityId,
   CapabilityProvisionDescriptor,
-  CapabilityRequirement,
   DesiredRuntimeSnapshot,
   MicroSystemActivationContext,
   MicroSystemActualState,
@@ -26,7 +25,6 @@ import type {
   RuntimeQuiescenceLease,
   ServiceId,
   ServiceProvisionDescriptor,
-  ServiceRequirement,
 } from "./contracts.js";
 import type {
   RuntimeWorkHandler,

@@ -70,7 +70,7 @@ export interface CanonicalDatabase {
     readonly cancel_requested_at: Date | string | null;
     readonly cancellation_reason_code: string | null;
     readonly superseded_by: string | null;
-    readonly outcome: unknown | null;
+    readonly outcome: unknown;
     readonly created_at: Date | string;
     readonly updated_at: Date | string;
   };
