@@ -5,10 +5,7 @@
  */
 
 import { createRequire } from "node:module";
-import {
-  ProblemError,
-  type WorkItemId,
-} from "@heptalogos/foundation-contracts";
+import { ProblemError, type WorkItemId } from "@heptalogos/foundation-contracts";
 import type {
   WorkAttemptExecutionStatus,
   WorkAttemptExecutor,
@@ -19,13 +16,10 @@ import { durableExecutionProblem } from "./problems.js";
 export interface EngineAttemptDisposition {
   readonly workItemId: WorkItemId;
   readonly dispatchRevision: number;
-  readonly disposition: Exclude<
-    WorkAttemptExecutionStatus,
-    "NOT_FOUND"
-  > | "STALE_NOOP";
+  readonly disposition: Exclude<WorkAttemptExecutionStatus, "NOT_FOUND"> | "STALE_NOOP";
 }
 
-type RegisteredDispatchWorkflow = (
+export type RegisteredDispatchWorkflow = (
   workItemId: WorkItemId,
   dispatchRevision: number,
 ) => Promise<EngineAttemptDisposition>;
@@ -156,6 +150,17 @@ export function bindWorkAttemptExecutor(
       if (activeBinding?.token === binding.token) activeBinding = undefined;
     },
   };
+}
+
+/** Returns the process-global static workflow without exposing DBOS objects. */
+export function getRegisteredDispatchWorkflow(): RegisteredDispatchWorkflow {
+  if (processRegistration === undefined) {
+    throw durableExecutionProblem(
+      "durable.execution.binding.missing",
+      "DBOS dispatch was requested before the static workflow was registered",
+    );
+  }
+  return processRegistration.workflow;
 }
 
 /** Tests only: clears package binding state after all test runtimes are closed. */

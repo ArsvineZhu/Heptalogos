@@ -18,3 +18,8 @@ export {
 export { resolveDbosPackage } from "./dbos-package.js";
 export { createDurableExecutionSchemaProvisioner } from "./dbos-schema-provisioner.js";
 export { createDurableExecutionRuntime } from "./dbos-runtime.js";
+export {
+  createDurableDispatchPort,
+  type DurableDispatchPortOptions,
+} from "./dbos-dispatch-port.js";
+export { createDbosAttemptInspectionPort } from "./dbos-attempt-inspection.js";

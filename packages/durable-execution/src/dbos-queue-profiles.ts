@@ -11,7 +11,7 @@ import {
 } from "@heptalogos/work-queue";
 import { durableExecutionProblem } from "./problems.js";
 
-/** The only queue conflict behavior permitted by the H3A runtime. */
+/** The only queue conflict behavior permitted by the durable runtime. */
 const DBOS_QUEUE_CONFLICT_POLICY = "never_update" as const;
 
 /** DBOS rate-limit shape kept behind the durable-execution boundary. */

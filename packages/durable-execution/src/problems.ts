@@ -116,6 +116,36 @@ const specs: Readonly<
     retryClass: "after-change",
     title: "DurableExecution dispatch admission is closed",
   },
+  "durable.execution.dispatch.invalid_request": {
+    category: "validation",
+    retryClass: "never",
+    title: "DurableExecution dispatch request is invalid",
+  },
+  "durable.execution.dispatch.profile_missing": {
+    category: "integrity",
+    retryClass: "after-change",
+    title: "DurableExecution queue profile is unavailable",
+  },
+  "durable.execution.dispatch.partition_required": {
+    category: "validation",
+    retryClass: "never",
+    title: "DurableExecution partition key is required",
+  },
+  "durable.execution.dispatch.partition_not_supported": {
+    category: "validation",
+    retryClass: "never",
+    title: "DurableExecution partition key is not supported",
+  },
+  "durable.execution.inspection.invalid_request": {
+    category: "validation",
+    retryClass: "never",
+    title: "DurableExecution inspection request is invalid",
+  },
+  "durable.execution.inspection.failed": {
+    category: "unavailable",
+    retryClass: "backoff",
+    title: "DBOS workflow inspection failed",
+  },
   "durable_execution.queue_profile_mismatch": {
     category: "integrity",
     retryClass: "manual",
