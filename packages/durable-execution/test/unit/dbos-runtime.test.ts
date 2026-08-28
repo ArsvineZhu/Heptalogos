@@ -1,0 +1,410 @@
+import {
+  createBootId,
+  createContinuityEpochId,
+  createHostOwnershipToken,
+  createInstallationId,
+  createInstanceId,
+  createMicroSystemId,
+  parseDurableCodeVersion,
+  type InstanceId,
+} from "@heptalogos/foundation-contracts";
+import {
+  HOST_DURABLE_EXECUTION_ROLE,
+  HOST_OWNERSHIP_CANONICAL_DATABASE,
+  type HostDurableExecutionAuthority,
+} from "@heptalogos/host-ownership";
+import {
+  createWorkQueueProfileCatalog,
+  type WorkAttemptExecutor,
+  type WorkQueueProfileId,
+} from "@heptalogos/work-queue";
+import type {
+  DurableExecutionPoolOptions,
+  DurableExecutionRuntimeOptions,
+} from "../../src/contracts.js";
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+  resetDbosBindingForTests,
+  type BindingDriver,
+} from "../../src/dbos-binding.js";
+import {
+  assertDurableExecutionDispatchOpen,
+  createDurableExecutionRuntimeForTests,
+} from "../../src/dbos-runtime.js";
+
+const profileId = createMicroSystemId("default-work") as unknown as WorkQueueProfileId;
+const profiles = createWorkQueueProfileCatalog([
+  { profileId, minPollingIntervalMs: 100 },
+]);
+const durableCodeVersion = parseDurableCodeVersion("a".repeat(64));
+if (durableCodeVersion === undefined) {
+  throw new Error("Test durable code version is invalid");
+}
+
+const runtimeOptions: DurableExecutionRuntimeOptions = {
+  durableCodeVersion,
+  systemPool: {
+    maxConnections: 3,
+    idleTimeoutMs: 4_000,
+    connectionTimeoutMs: 5_000,
+    statementTimeoutMs: 6_000,
+    idleInTransactionSessionTimeoutMs: 7_000,
+  },
+  systemDatabasePollingConcurrency: 2,
+  maxConcurrentQueueDispatches: 2,
+  workflowMaxRecoveryAttempts: 4,
+  shutdownDrainTimeoutMs: 8_000,
+  profiles,
+  onBackgroundError() {},
+};
+
+interface AuthorityFixture {
+  readonly authority: HostDurableExecutionAuthority;
+  readonly controller: AbortController;
+  setActive(active: boolean): void;
+}
+
+function authorityFixture(
+  instanceId: InstanceId = createInstanceId(),
+): AuthorityFixture {
+  const controller = new AbortController();
+  let active = true;
+  const authority: HostDurableExecutionAuthority = {
+    installationId: createInstallationId(),
+    instanceId,
+    bootId: createBootId(),
+    continuityEpochId: createContinuityEpochId(),
+    token: createHostOwnershipToken(),
+    target: {
+      host: "127.0.0.1",
+      port: 55432,
+      database: HOST_OWNERSHIP_CANONICAL_DATABASE,
+      user: HOST_DURABLE_EXECUTION_ROLE,
+    },
+    signal: controller.signal,
+    assertActive() {
+      if (!active || controller.signal.aborted) {
+        throw new Error("Host authority is inactive");
+      }
+    },
+    async withDurableExecutionDatabasePassword(use) {
+      const password = new TextEncoder().encode("D".repeat(32));
+      try {
+        return await use(password);
+      } finally {
+        password.fill(0);
+      }
+    },
+  };
+  return {
+    authority,
+    controller,
+    setActive(value) {
+      active = value;
+    },
+  };
+}
+
+interface PoolFixture {
+  readonly end: () => Promise<void>;
+  readonly ended: () => boolean;
+}
+
+interface RuntimeFixture {
+  readonly dependencies: {
+    readonly createPool: (
+      authority: HostDurableExecutionAuthority,
+      options: DurableExecutionPoolOptions,
+      onBackgroundError: (error: unknown) => void,
+    ) => PoolFixture;
+    readonly dbos: {
+      setConfig(config: unknown): void;
+      launch(): Promise<void>;
+      shutdown(options: {
+        readonly workflowCompletionTimeoutMS: number;
+      }): Promise<void>;
+    };
+    readonly bindingDriver: BindingDriver;
+  };
+  readonly pools: PoolFixture[];
+  readonly configs: Record<string, unknown>[];
+  readonly registrations: number[];
+  readonly trace: string[];
+}
+
+function runtimeFixture(): RuntimeFixture {
+  const pools: PoolFixture[] = [];
+  const configs: Record<string, unknown>[] = [];
+  const registrations: number[] = [];
+  const trace: string[] = [];
+  const dependencies: RuntimeFixture["dependencies"] = {
+    createPool() {
+      let isEnded = false;
+      const pool: PoolFixture = {
+        async end() {
+          trace.push("pool.end");
+          isEnded = true;
+        },
+        ended() {
+          return isEnded;
+        },
+      };
+      pools.push(pool);
+      trace.push("pool.create");
+      return pool;
+    },
+    dbos: {
+      setConfig(config) {
+        configs.push(config as Record<string, unknown>);
+        trace.push("dbos.setConfig");
+      },
+      async launch() {
+        trace.push("dbos.launch");
+      },
+      async shutdown() {
+        trace.push("dbos.shutdown");
+      },
+    },
+    bindingDriver: {
+      registerWorkflow(_maxRecoveryAttempts, execute) {
+        registrations.push(_maxRecoveryAttempts);
+        return (workItemId, dispatchRevision) => execute(workItemId, dispatchRevision);
+      },
+    },
+  };
+  return { dependencies, pools, configs, registrations, trace };
+}
+
+function executor(): WorkAttemptExecutor {
+  return {
+    async execute() {
+      return { status: "SUCCEEDED" };
+    },
+  };
+}
+
+beforeEach(() => {
+  resetDbosBindingForTests();
+});
+
+describe.sequential("Host-bound DurableExecution runtime", () => {
+  it("uses InstanceId as the stable DBOS executor identity across BootIds", async () => {
+    const firstAuthority = authorityFixture();
+    const firstFixture = runtimeFixture();
+    const first = createDurableExecutionRuntimeForTests(
+      firstAuthority.authority,
+      runtimeOptions,
+      executor(),
+      firstFixture.dependencies,
+    );
+    await first.start();
+    const firstConfig = firstFixture.configs[0];
+    expect(firstAuthority.authority.bootId).toBeDefined();
+    await first.close();
+
+    const secondAuthority = authorityFixture(firstAuthority.authority.instanceId);
+    const secondFixture = runtimeFixture();
+    const second = createDurableExecutionRuntimeForTests(
+      secondAuthority.authority,
+      runtimeOptions,
+      executor(),
+      secondFixture.dependencies,
+    );
+    await second.start();
+    const secondConfig = secondFixture.configs[0];
+
+    expect(secondAuthority.authority.bootId).not.toBe(firstAuthority.authority.bootId);
+    expect(firstConfig?.executorID).toBe(firstAuthority.authority.instanceId);
+    expect(secondConfig?.executorID).toBe(firstAuthority.authority.instanceId);
+    expect(secondConfig?.executorID).toBe(firstConfig?.executorID);
+    await second.close();
+
+    const thirdAuthority = authorityFixture();
+    const thirdFixture = runtimeFixture();
+    const third = createDurableExecutionRuntimeForTests(
+      thirdAuthority.authority,
+      runtimeOptions,
+      executor(),
+      thirdFixture.dependencies,
+    );
+    await third.start();
+    expect(thirdFixture.configs[0]?.executorID).toBe(
+      thirdAuthority.authority.instanceId,
+    );
+    expect(thirdFixture.configs[0]?.executorID).not.toBe(firstConfig?.executorID);
+    await third.close();
+  });
+
+  it("uses the exact DBOS lifecycle configuration and closes DBOS before the pool", async () => {
+    const authority = authorityFixture();
+    const fixture = runtimeFixture();
+    const runtime = createDurableExecutionRuntimeForTests(
+      authority.authority,
+      runtimeOptions,
+      executor(),
+      fixture.dependencies,
+    );
+
+    await runtime.start();
+    expect(fixture.configs[0]).toMatchObject({
+      name: "heptalogos",
+      applicationVersion: durableCodeVersion,
+      executorID: authority.authority.instanceId,
+      systemDatabaseSchemaName: "dbos",
+      systemDatabasePollingConcurrency: 2,
+      runMigrations: false,
+      runAdminServer: false,
+      listenQueues: ["heptalogos.queue.default-work"],
+      maxConcurrentQueueDispatches: 2,
+    });
+    expect(fixture.configs[0]).toHaveProperty("systemDatabasePool");
+    expect(fixture.configs[0]).not.toHaveProperty("systemDatabaseUrl");
+
+    await runtime.close();
+    await runtime.close();
+    expect(fixture.trace.indexOf("dbos.shutdown")).toBeGreaterThan(-1);
+    expect(fixture.trace.indexOf("dbos.shutdown")).toBeLessThan(
+      fixture.trace.indexOf("pool.end"),
+    );
+    expect(fixture.trace.filter((entry) => entry === "dbos.shutdown")).toHaveLength(1);
+    expect(fixture.pools[0]?.ended()).toBe(true);
+  });
+
+  it("rejects dispatch outside OPEN and after the Host authority is fenced", async () => {
+    const authority = authorityFixture();
+    const fixture = runtimeFixture();
+    const runtime = createDurableExecutionRuntimeForTests(
+      authority.authority,
+      runtimeOptions,
+      executor(),
+      fixture.dependencies,
+    );
+
+    expect(() =>
+      assertDurableExecutionDispatchOpen(runtime.state, authority.authority),
+    ).toThrowError(
+      expect.objectContaining({
+        problem: expect.objectContaining({
+          problemCode: "durable.execution.dispatch.not_open",
+        }),
+      }),
+    );
+    await runtime.start();
+    expect(() =>
+      assertDurableExecutionDispatchOpen(runtime.state, authority.authority),
+    ).not.toThrow();
+
+    authority.setActive(false);
+    expect(() =>
+      assertDurableExecutionDispatchOpen("OPEN", authority.authority),
+    ).toThrowError(
+      expect.objectContaining({
+        problem: expect.objectContaining({
+          problemCode: "durable.execution.runtime.authority_lost",
+        }),
+      }),
+    );
+    await runtime.close();
+    expect(() =>
+      assertDurableExecutionDispatchOpen(runtime.state, authority.authority),
+    ).toThrowError(
+      expect.objectContaining({
+        problem: expect.objectContaining({
+          problemCode: "durable.execution.dispatch.not_open",
+        }),
+      }),
+    );
+  });
+
+  it("closes admission and drains on Host abort", async () => {
+    const authority = authorityFixture();
+    const fixture = runtimeFixture();
+    const backgroundErrors: unknown[] = [];
+    const runtime = createDurableExecutionRuntimeForTests(
+      authority.authority,
+      { ...runtimeOptions, onBackgroundError: (error) => backgroundErrors.push(error) },
+      executor(),
+      fixture.dependencies,
+    );
+    await runtime.start();
+
+    authority.controller.abort();
+    for (let attempt = 0; attempt < 10 && runtime.state !== "CLOSED"; attempt += 1) {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    }
+
+    expect(runtime.state).toBe("CLOSED");
+    expect(fixture.pools[0]?.ended()).toBe(true);
+    expect(backgroundErrors).toHaveLength(0);
+  });
+
+  it("rejects a second active binding but permits rebind after quiescence", async () => {
+    const firstAuthority = authorityFixture();
+    const firstFixture = runtimeFixture();
+    const first = createDurableExecutionRuntimeForTests(
+      firstAuthority.authority,
+      runtimeOptions,
+      executor(),
+      firstFixture.dependencies,
+    );
+    await first.start();
+
+    const secondAuthority = authorityFixture();
+    const secondFixture = runtimeFixture();
+    const second = createDurableExecutionRuntimeForTests(
+      secondAuthority.authority,
+      runtimeOptions,
+      executor(),
+      secondFixture.dependencies,
+    );
+    await expect(second.start()).rejects.toMatchObject({
+      problem: { problemCode: "durable.execution.binding.active" },
+    });
+    expect(second.state).toBe("FAILED");
+    await second.close();
+    await first.quiesce();
+
+    const reboundAuthority = authorityFixture();
+    const reboundFixture = runtimeFixture();
+    const rebound = createDurableExecutionRuntimeForTests(
+      reboundAuthority.authority,
+      runtimeOptions,
+      executor(),
+      reboundFixture.dependencies,
+    );
+    await rebound.start();
+    expect(firstFixture.registrations).toHaveLength(1);
+    expect(reboundFixture.registrations).toHaveLength(0);
+    await rebound.close();
+    await first.close();
+  });
+
+  it("keeps the process-global recovery budget fixed", async () => {
+    const firstAuthority = authorityFixture();
+    const firstFixture = runtimeFixture();
+    const first = createDurableExecutionRuntimeForTests(
+      firstAuthority.authority,
+      runtimeOptions,
+      executor(),
+      firstFixture.dependencies,
+    );
+    await first.start();
+    await first.close();
+
+    const secondAuthority = authorityFixture();
+    const secondFixture = runtimeFixture();
+    const second = createDurableExecutionRuntimeForTests(
+      secondAuthority.authority,
+      { ...runtimeOptions, workflowMaxRecoveryAttempts: 5 },
+      executor(),
+      secondFixture.dependencies,
+    );
+    await expect(second.start()).rejects.toMatchObject({
+      problem: { problemCode: "durable.execution.binding.recovery_budget_mismatch" },
+    });
+    expect(second.state).toBe("FAILED");
+    await second.close();
+    expect(firstFixture.registrations).toHaveLength(1);
+    expect(secondFixture.registrations).toHaveLength(0);
+  });
+});

@@ -81,6 +81,41 @@ const specs: Readonly<
     retryClass: "manual",
     title: "DBOS schema verification failed",
   },
+  "durable.execution.runtime.invalid_options": {
+    category: "validation",
+    retryClass: "never",
+    title: "DurableExecution runtime options are invalid",
+  },
+  "durable.execution.runtime.invalid_transition": {
+    category: "conflict",
+    retryClass: "manual",
+    title: "DurableExecution lifecycle transition is invalid",
+  },
+  "durable.execution.runtime.authority_lost": {
+    category: "conflict",
+    retryClass: "after-change",
+    title: "DurableExecution Host authority is no longer active",
+  },
+  "durable.execution.binding.active": {
+    category: "conflict",
+    retryClass: "after-change",
+    title: "A DurableExecution binding is already active",
+  },
+  "durable.execution.binding.recovery_budget_mismatch": {
+    category: "integrity",
+    retryClass: "manual",
+    title: "Process-global DBOS recovery budget does not match",
+  },
+  "durable.execution.binding.missing": {
+    category: "unavailable",
+    retryClass: "after-change",
+    title: "No active DurableExecution binding exists",
+  },
+  "durable.execution.dispatch.not_open": {
+    category: "conflict",
+    retryClass: "after-change",
+    title: "DurableExecution dispatch admission is closed",
+  },
 };
 
 /** Creates a stable durable-execution Problem with an optional operational cause. */

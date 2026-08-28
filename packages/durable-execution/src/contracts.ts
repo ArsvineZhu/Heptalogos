@@ -4,7 +4,12 @@
  * @module contracts
  */
 
-import type { HostCanonicalMigrationAuthority } from "@heptalogos/host-ownership";
+import type {
+  HostCanonicalMigrationAuthority,
+  HostDurableExecutionAuthority,
+} from "@heptalogos/host-ownership";
+import type { WorkQueueProfileCatalog } from "@heptalogos/work-queue";
+import type { DurableCodeVersion } from "@heptalogos/foundation-contracts";
 
 /** Exact DBOS package identity adopted by the durable-execution boundary. */
 export const DBOS_PACKAGE_NAME = "@dbos-inc/dbos-sdk" as const;
@@ -47,3 +52,48 @@ export interface DurableExecutionSchemaProvisionerOptions {
   readonly connectionTimeoutMs: number;
   readonly statementTimeoutMs: number;
 }
+
+/** Bounds the caller-owned PostgreSQL pool used by DBOS system operations. */
+export interface DurableExecutionPoolOptions {
+  readonly maxConnections: number;
+  readonly idleTimeoutMs: number;
+  readonly connectionTimeoutMs: number;
+  readonly statementTimeoutMs: number;
+  readonly idleInTransactionSessionTimeoutMs: number;
+}
+
+/** Configures one Host-bound DurableExecution runtime. */
+export interface DurableExecutionRuntimeOptions {
+  readonly durableCodeVersion: DurableCodeVersion;
+  readonly systemPool: DurableExecutionPoolOptions;
+  readonly systemDatabasePollingConcurrency: number;
+  readonly maxConcurrentQueueDispatches: number;
+  readonly workflowMaxRecoveryAttempts: number;
+  readonly shutdownDrainTimeoutMs: number;
+  readonly profiles: WorkQueueProfileCatalog;
+  readonly onBackgroundError: (error: unknown) => void;
+}
+
+/** Public lifecycle state of the Host-bound durable runtime. */
+export type DurableExecutionLifecycleState =
+  | "CREATED"
+  | "STARTING"
+  | "OPEN"
+  | "QUIESCING"
+  | "QUIESCED"
+  | "RESUMING"
+  | "CLOSING"
+  | "CLOSED"
+  | "FAILED";
+
+/** Exposes lifecycle operations without leaking DBOS or pool implementation types. */
+export interface DurableExecutionRuntime {
+  readonly state: DurableExecutionLifecycleState;
+  start(): Promise<void>;
+  quiesce(): Promise<void>;
+  resume(): Promise<void>;
+  close(): Promise<void>;
+}
+
+/** Identifies the Host authority consumed by a DurableExecution runtime. */
+export type DurableExecutionAuthority = HostDurableExecutionAuthority;

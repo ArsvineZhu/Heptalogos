@@ -16,6 +16,10 @@
     "packages/persistence": {
       "entry": ["src/foundation-repository.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
+    },
+    "packages/durable-execution": {
+      "project": ["src/**/*.ts", "test/**/*.ts"],
+      "ignoreDependencies": ["^@dbos-inc/dbos-sdk$"]
     }
   }
 }
