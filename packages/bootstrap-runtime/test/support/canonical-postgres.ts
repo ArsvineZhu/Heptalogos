@@ -235,6 +235,13 @@ export async function stopManagedHostWithoutRuntime(
   });
 }
 
+/** Stops the fixture PostgreSQL cluster after a child process was killed. */
+export async function stopFixturePrivatePostgres(fixture: Fixture): Promise<void> {
+  if (qualifiedPgBin === undefined) return;
+  const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
+  await stopCluster(toolchain, join(fixture.roots.DATA, "private-postgres"));
+}
+
 export async function queryAs(
   fixture: Fixture,
   user: string,

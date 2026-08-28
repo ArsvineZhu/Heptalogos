@@ -243,6 +243,9 @@ importers:
       '@types/pidusage':
         specifier: 'catalog:'
         version: 2.0.5
+      execa:
+        specifier: 'catalog:'
+        version: 10.0.1
       kysely:
         specifier: 'catalog:'
         version: 0.29.5

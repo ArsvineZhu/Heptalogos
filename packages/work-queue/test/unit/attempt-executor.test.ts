@@ -331,7 +331,10 @@ describe("engine-neutral WorkAttemptExecutor", () => {
 
   it("recovers a RUNNING item through the same attempt without claiming it again", async () => {
     const pending = item(context());
-    const attemptId = createDispatchAttemptId(pending.workItemId, pending.dispatchRevision);
+    const attemptId = createDispatchAttemptId(
+      pending.workItemId,
+      pending.dispatchRevision,
+    );
     const value = {
       ...pending,
       state: "RUNNING" as const,
@@ -340,12 +343,15 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     const handler = vi.fn(async () => ({ outcome: { ok: true } as never }));
     const attempt = fixture(value, handler);
 
-    await expect(attempt.executor.execute(value.workItemId, value.dispatchRevision)).resolves.toMatchObject({
+    await expect(
+      attempt.executor.execute(value.workItemId, value.dispatchRevision),
+    ).resolves.toMatchObject({
       status: "SUCCEEDED",
     });
 
     expect(Reflect.get(attempt.repository, "markRunning")).not.toHaveBeenCalled();
     expect(handler).toHaveBeenCalledTimes(1);
+    expect(attempt.retainCurrent).toHaveBeenCalledTimes(1);
     expect(Reflect.get(attempt.repository, "commitTerminal")).toHaveBeenCalledWith(
       expect.objectContaining({
         expectedState: "RUNNING",

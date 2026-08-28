@@ -252,8 +252,12 @@ function completeActivityHook(
   options: WorkAttemptExecutorOptions,
   activity: ExecutionContext,
   outcomeRef?: string,
+  retainBeforeComplete = false,
 ): MutationAppliedHook {
   return async (transaction, completed) => {
+    if (retainBeforeComplete) {
+      await options.lineage.retainCurrent(transaction, activity);
+    }
     await options.lineage.completeCurrent(transaction, activity, {
       endedAt: options.time.now(),
       outcome: outcomeForActivity(completed),
@@ -579,7 +583,11 @@ export function createWorkAttemptExecutor(
                     workItemId: item.workItemId,
                     expectedDispatchRevision: item.dispatchRevision,
                     updatedAt: options.time.now(),
-                    onApplied: earlyActivityHook(options, activity, "WAITING_DEPENDENCY"),
+                    onApplied: earlyActivityHook(
+                      options,
+                      activity,
+                      "WAITING_DEPENDENCY",
+                    ),
                   }),
                 );
               }
@@ -679,7 +687,12 @@ export function createWorkAttemptExecutor(
                 reasonCode: decision.reasonCode,
                 notBefore: decision.notBefore,
                 updatedAt: options.time.now(),
-                onApplied: completeActivityHook(options, activity, decision.reasonCode),
+                onApplied: completeActivityHook(
+                  options,
+                  activity,
+                  decision.reasonCode,
+                  recoveringRunning,
+                ),
               });
               return resultForMutation(retried);
             }
@@ -695,7 +708,12 @@ export function createWorkAttemptExecutor(
                 reasonCode: decision.reasonCode,
               },
               updatedAt: options.time.now(),
-              onApplied: completeActivityHook(options, activity, decision.reasonCode),
+              onApplied: completeActivityHook(
+                options,
+                activity,
+                decision.reasonCode,
+                recoveringRunning,
+              ),
             });
             return resultForMutation(failed);
           }
@@ -706,7 +724,12 @@ export function createWorkAttemptExecutor(
             expectedActiveAttemptId: expectedAttemptId,
             outcome: successOutcome,
             updatedAt: options.time.now(),
-            onApplied: completeActivityHook(options, activity),
+            onApplied: completeActivityHook(
+              options,
+              activity,
+              undefined,
+              recoveringRunning,
+            ),
           });
           return resultForMutation(committed);
         },

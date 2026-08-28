@@ -32,6 +32,7 @@
     "@heptalogos/runtime-substrate": "workspace:*",
     "@heptalogos/time-service": "workspace:*",
     "@types/pg": "catalog:",
+    "execa": "catalog:",
     "kysely": "catalog:",
     "@types/pidusage": "catalog:",
     "pg": "catalog:",
