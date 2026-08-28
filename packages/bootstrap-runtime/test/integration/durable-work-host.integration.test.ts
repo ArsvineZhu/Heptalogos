@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  asDurableCodeVersion,
   asContentDigest,
   createContributionId,
   createMicroSystemId,
@@ -10,6 +11,13 @@ import {
   type PackageGenerationId,
   type ProductGenerationId,
 } from "@heptalogos/foundation-contracts";
+import {
+  createDurableExecutionRuntime,
+  createDurableExecutionSchemaProvisioner,
+  createDurableDispatchPort,
+  createDbosAttemptInspectionPort,
+  type DurableExecutionRuntime,
+} from "@heptalogos/durable-execution";
 import {
   createExecutionContextRuntime,
   createExecutionLineageService,
@@ -41,8 +49,11 @@ import {
   createWorkQueueReconciler,
   createWorkQueueService,
   type WorkAdmissionPort,
+  type DurableDispatchRequest,
+  type DurableAttemptInspectionPort,
   type WorkErrorClassifier,
   type WorkItem,
+  type WorkQueueProfileCatalog,
   type WorkQueueRepository,
   type WorkQueueRuntimeOptions,
 } from "@heptalogos/work-queue";
@@ -55,6 +66,8 @@ import {
 } from "@heptalogos/signal";
 import {
   BOOTSTRAP_PASSWORD,
+  CANONICAL_OPTIONS,
+  DURABLE_EXECUTION_PASSWORD,
   MIGRATION_PASSWORD,
   boot,
   cleanupCanonicalPostgresFixtures,
@@ -63,6 +76,7 @@ import {
   queryAs,
   stopManagedHostWithoutRuntime,
 } from "../support/canonical-postgres.js";
+import { createCanonicalSchemaInitializer } from "@heptalogos/canonical-schema";
 
 const describePostgres = describeRealPostgres === undefined ? describe.skip : describe;
 const initialTime = "2026-08-26T12:00:00.000Z" as Instant;
@@ -77,6 +91,37 @@ const resourceAdmissionClass = createMicroSystemId(
 const PROFILE_CATALOG = createWorkQueueProfileCatalog([
   { profileId: queueProfileId, minPollingIntervalMs: 100 },
 ]);
+const DURABLE_CODE_VERSION = asDurableCodeVersion(
+  digestCanonicalJson("test.durable-execution-code/v1", { version: "current" }),
+);
+const DURABLE_OPTIONS = {
+  durableCodeVersion: DURABLE_CODE_VERSION,
+  systemPool: {
+    maxConnections: 4,
+    idleTimeoutMs: 5_000,
+    connectionTimeoutMs: 10_000,
+    statementTimeoutMs: 10_000,
+    idleInTransactionSessionTimeoutMs: 30_000,
+  },
+  systemDatabasePollingConcurrency: 2,
+  maxConcurrentQueueDispatches: 4,
+  workflowMaxRecoveryAttempts: 4,
+  shutdownDrainTimeoutMs: 10_000,
+  profiles: PROFILE_CATALOG,
+  onBackgroundError() {},
+} as const;
+const durableSchemaProvisioner = createDurableExecutionSchemaProvisioner({
+  processTimeoutMs: 120_000,
+  connectionTimeoutMs: 10_000,
+  statementTimeoutMs: 10_000,
+});
+const canonicalInitializer = createCanonicalSchemaInitializer(CANONICAL_OPTIONS);
+const initializeCanonicalAndDurable = async (
+  context: Parameters<typeof canonicalInitializer>[0],
+): Promise<void> => {
+  await canonicalInitializer(context);
+  await durableSchemaProvisioner.ensureCurrent(context.authority);
+};
 
 const PERSISTENCE_OPTIONS = {
   maxConnections: 2,
@@ -127,6 +172,11 @@ interface Composition {
   readonly work: ReturnType<typeof createWorkQueueService>;
   readonly reconciler: ReturnType<typeof createWorkQueueReconciler>;
   readonly executor: ReturnType<typeof createWorkAttemptExecutor>;
+  readonly durable?: DurableExecutionRuntime;
+  readonly durableDispatch: {
+    dispatch(request: DurableDispatchRequest): Promise<void>;
+  };
+  readonly durableInspection?: DurableAttemptInspectionPort;
   readonly target: WorkHandlerTarget;
   readonly descriptor: WorkHandlerProvisionDescriptor;
   readonly handlerCalls: RuntimeWorkHandlerInvocation[];
@@ -142,8 +192,16 @@ interface Composition {
 
 async function createComposition(
   fixture: Awaited<ReturnType<typeof makeFixture>>,
+  options: {
+    readonly durableExecution?: boolean;
+    readonly profiles?: WorkQueueProfileCatalog;
+  } = {},
 ): Promise<Composition> {
-  const bootResult = await boot(fixture);
+  const bootResult = await boot(
+    fixture,
+    options.durableExecution ? initializeCanonicalAndDurable : undefined,
+  );
+  const profileCatalog = options.profiles ?? PROFILE_CATALOG;
   const time = createFakeTimeService(parseInstant(initialTime)!);
   const runtime = createExecutionContextRuntime(
     {
@@ -249,18 +307,6 @@ async function createComposition(
     SIGNAL_OPTIONS,
   );
   const repository = createWorkQueueRepository(persistence);
-  const dispatches: Composition["dispatches"] = [];
-  let dispatchUnavailable = false;
-  const durableDispatch = {
-    async dispatch(request: {
-      readonly workItemId: WorkItem["workItemId"];
-      readonly dispatchRevision: number;
-      readonly dispatchAttemptId: string;
-    }) {
-      dispatches.push(request);
-      if (dispatchUnavailable) throw new Error("dispatch adapter unavailable");
-    },
-  };
   const admission: WorkAdmissionPort = {
     beforeCreate: async () => ({ decision: "ALLOW" }),
     beforeDispatch: async () => ({ decision: "ALLOW" }),
@@ -281,18 +327,7 @@ async function createComposition(
     time,
     signalPublisher: postgresSignalPublisher,
     admission,
-    profiles: PROFILE_CATALOG,
-    runtimeOptions: WORK_OPTIONS,
-    onBackgroundError() {},
-  });
-  const reconciler = createWorkQueueReconciler({
-    repository,
-    durableDispatch,
-    handlerRegistry: supervisor.workHandlers,
-    admission,
-    signal,
-    execution: runtime,
-    time,
+    profiles: profileCatalog,
     runtimeOptions: WORK_OPTIONS,
     onBackgroundError() {},
   });
@@ -304,6 +339,47 @@ async function createComposition(
     time,
     classifier,
     runtimeOptions: WORK_OPTIONS,
+  });
+  const durable = options.durableExecution
+    ? createDurableExecutionRuntime(
+        bootResult.host.durableExecution,
+        { ...DURABLE_OPTIONS, profiles: profileCatalog },
+        executor,
+      )
+    : undefined;
+  const durableInspection = durable
+    ? createDbosAttemptInspectionPort({
+        durableCodeVersion: DURABLE_CODE_VERSION,
+      })
+    : undefined;
+  const realDurableDispatch = durable
+    ? createDurableDispatchPort({
+        authority: bootResult.host.durableExecution,
+        lifecycle: durable,
+        durableCodeVersion: DURABLE_CODE_VERSION,
+        profiles: profileCatalog,
+        now: () => time.now(),
+      })
+    : undefined;
+  const dispatches: Composition["dispatches"] = [];
+  let dispatchUnavailable = false;
+  const durableDispatch = {
+    async dispatch(request: DurableDispatchRequest) {
+      dispatches.push(request);
+      if (dispatchUnavailable) throw new Error("dispatch adapter unavailable");
+      await realDurableDispatch?.dispatch(request);
+    },
+  };
+  const reconciler = createWorkQueueReconciler({
+    repository,
+    durableDispatch,
+    handlerRegistry: supervisor.workHandlers,
+    admission,
+    signal,
+    execution: runtime,
+    time,
+    runtimeOptions: WORK_OPTIONS,
+    onBackgroundError() {},
   });
   return {
     fixture,
@@ -318,6 +394,9 @@ async function createComposition(
     work,
     reconciler,
     executor,
+    durable,
+    durableDispatch,
+    durableInspection,
     target,
     descriptor,
     handlerCalls,
@@ -336,6 +415,7 @@ async function createWork(
   options: {
     readonly dedupKey?: string;
     readonly notBefore?: Instant;
+    readonly partitionKey?: string;
   } = {},
 ) {
   return composition.runtime.runActivity(
@@ -354,6 +434,9 @@ async function createWork(
         priority: 100,
         ...(options.dedupKey === undefined ? {} : { dedupKey: options.dedupKey }),
         ...(options.notBefore === undefined ? {} : { notBefore: options.notBefore }),
+        ...(options.partitionKey === undefined
+          ? {}
+          : { partitionKey: options.partitionKey }),
       }),
   );
 }
@@ -388,6 +471,7 @@ async function waitUntil(
 
 async function closeComposition(composition: Composition): Promise<void> {
   await composition.reconciler.stop().catch(() => undefined);
+  await composition.durable?.close().catch(() => undefined);
   await composition.supervisor.close().catch(() => undefined);
   await composition.persistence.close().catch(() => undefined);
   await stopManagedHostWithoutRuntime(composition.bootResult.host).catch(
@@ -403,6 +487,46 @@ afterEach(async () => {
   if (composition !== undefined) await closeComposition(composition);
   await cleanupCanonicalPostgresFixtures();
 }, 180_000);
+
+function durableRequest(item: WorkItem): DurableDispatchRequest {
+  return {
+    workItemId: item.workItemId,
+    dispatchRevision: item.dispatchRevision,
+    dispatchAttemptId: createDispatchAttemptId(item.workItemId, item.dispatchRevision),
+    queueProfileId: item.queueProfileId,
+    priority: item.priority,
+    ...(item.partitionKey === undefined ? {} : { partitionKey: item.partitionKey }),
+    ...(item.notBefore === undefined ? {} : { notBefore: item.notBefore }),
+  };
+}
+
+async function durableWorkflowRow(
+  fixture: Awaited<ReturnType<typeof makeFixture>>,
+  workflowID: string,
+): Promise<Record<string, unknown> | undefined> {
+  return (
+    await queryAs(
+      fixture,
+      "heptalogos_bootstrap",
+      BOOTSTRAP_PASSWORD,
+      `SELECT workflow_uuid, status, application_version, executor_id, queue_name,
+              priority, queue_partition_key, delay_until_epoch_ms
+         FROM "dbos"."workflow_status"
+        WHERE workflow_uuid = $1`,
+      [workflowID],
+    )
+  ).rows[0];
+}
+
+async function requireDurable(
+  composition: Composition,
+): Promise<DurableExecutionRuntime> {
+  if (composition.durable === undefined) {
+    throw new Error("durable execution was not enabled for this composition");
+  }
+  await composition.durable.start();
+  return composition.durable;
+}
 
 describePostgres.sequential("Canonical durable WorkItem qualification", () => {
   it("W1 canonical creation commits lineage and wakes dispatch reconciliation", async () => {
@@ -1724,4 +1848,493 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
       }),
     );
   }, 180_000);
+});
+
+describePostgres.sequential("Real DBOS durable execution qualification", () => {
+  it("D1 recovers a lost immediate projection through anti-entropy", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture, { durableExecution: true });
+    const composition = activeComposition;
+    await requireDurable(composition);
+    composition.setDispatchUnavailable(true);
+    await composition.reconciler.start();
+    const created = await createWork(composition, composition.target, {
+      dedupKey: "dbos-d1-lost-projection",
+    });
+    await waitUntil(() => composition.dispatches.length >= 1);
+    composition.setDispatchUnavailable(false);
+    await composition.reconciler.scan();
+
+    await waitUntil(
+      async () =>
+        (await composition.repository.getWorkItem(created.item.workItemId))?.state ===
+        "SUCCEEDED",
+    );
+    const attemptId = createDispatchAttemptId(created.item.workItemId, 1);
+    const workflowID = `heptalogos.work.${attemptId}`;
+    await expect(durableWorkflowRow(fixture, workflowID)).resolves.toMatchObject({
+      workflow_uuid: workflowID,
+      status: "SUCCESS",
+      application_version: DURABLE_CODE_VERSION,
+      queue_name: "heptalogos.queue.work.default",
+    });
+    expect(composition.handlerCalls).toHaveLength(1);
+    expect(composition.dispatches.length).toBeGreaterThanOrEqual(2);
+  }, 180_000);
+
+  it("D2 collapses duplicate projection of one WorkItem revision", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture, { durableExecution: true });
+    const composition = activeComposition;
+    await requireDurable(composition);
+    const created = await createWork(composition, composition.target, {
+      dedupKey: "dbos-d2-duplicate",
+    });
+    const dispatch = durableRequest(created.item);
+    await Promise.all([
+      composition.durableDispatch.dispatch(dispatch),
+      composition.durableDispatch.dispatch(dispatch),
+    ]);
+    await waitUntil(
+      async () =>
+        (await composition.repository.getWorkItem(created.item.workItemId))?.state ===
+        "SUCCEEDED",
+    );
+
+    const workflowID = `heptalogos.work.${dispatch.dispatchAttemptId}`;
+    const rows = await queryAs(
+      fixture,
+      "heptalogos_bootstrap",
+      BOOTSTRAP_PASSWORD,
+      `SELECT workflow_uuid, status, application_version
+         FROM "dbos"."workflow_status"
+        WHERE workflow_uuid = $1`,
+      [workflowID],
+    );
+    expect(rows.rows).toHaveLength(1);
+    expect(rows.rows[0]).toMatchObject({
+      workflow_uuid: workflowID,
+      status: "SUCCESS",
+      application_version: DURABLE_CODE_VERSION,
+    });
+    expect(composition.handlerCalls).toHaveLength(1);
+  }, 180_000);
+
+  it("D3 projects notBefore as a DBOS delay while canonical time remains authoritative", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture, { durableExecution: true });
+    const composition = activeComposition;
+    await requireDurable(composition);
+    const created = await createWork(composition, composition.target, {
+      dedupKey: "dbos-d3-not-before",
+      notBefore: futureTime,
+    });
+    const dispatch = durableRequest(created.item);
+    await composition.durableDispatch.dispatch(dispatch);
+    const workflowID = `heptalogos.work.${dispatch.dispatchAttemptId}`;
+    await waitUntil(
+      async () => (await durableWorkflowRow(fixture, workflowID)) !== undefined,
+    );
+
+    await expect(durableWorkflowRow(fixture, workflowID)).resolves.toMatchObject({
+      status: "DELAYED",
+      application_version: DURABLE_CODE_VERSION,
+      delay_until_epoch_ms: expect.anything(),
+    });
+    const delayedRow = await durableWorkflowRow(fixture, workflowID);
+    expect(Number(delayedRow?.delay_until_epoch_ms)).toBeGreaterThan(Date.now());
+    expect(composition.handlerCalls).toHaveLength(0);
+    await expect(
+      composition.repository.getWorkItem(created.item.workItemId),
+    ).resolves.toMatchObject({ state: "PENDING", dispatchRevision: 1 });
+    await expect(
+      composition.durableInspection!.inspect(dispatch),
+    ).resolves.toMatchObject({
+      kind: "ACTIVE",
+      applicationVersion: DURABLE_CODE_VERSION,
+    });
+  }, 180_000);
+
+  it("D4 increments the canonical revision before projecting a retry", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture, { durableExecution: true });
+    const composition = activeComposition;
+    await requireDurable(composition);
+    const created = await createWork(composition, composition.target, {
+      dedupKey: "dbos-d4-retry-revision",
+      notBefore: futureTime,
+    });
+    const firstDispatch = durableRequest(created.item);
+    await composition.durableDispatch.dispatch(firstDispatch);
+    const firstWorkflowID = `heptalogos.work.${firstDispatch.dispatchAttemptId}`;
+    await waitUntil(
+      async () => (await durableWorkflowRow(fixture, firstWorkflowID)) !== undefined,
+    );
+
+    await runCanonicalMutation(composition, "qualification.dbos.retry", () =>
+      composition.repository.markRetryWait({
+        workItemId: created.item.workItemId,
+        expectedDispatchRevision: 1,
+        expectedState: "PENDING",
+        retryClass: "transient",
+        reasonCode: "qualification.dbos.retry",
+        notBefore: futureTime,
+        updatedAt: initialTime,
+      }),
+    );
+    composition.time.advanceWallClock(5 * 60 * 1_000);
+    await composition.reconciler.scan();
+    await waitUntil(
+      async () =>
+        (await composition.repository.getWorkItem(created.item.workItemId))?.state ===
+        "SUCCEEDED",
+    );
+
+    const secondAttemptId = createDispatchAttemptId(created.item.workItemId, 2);
+    const secondWorkflowID = `heptalogos.work.${secondAttemptId}`;
+    expect(secondAttemptId).not.toBe(firstDispatch.dispatchAttemptId);
+    expect(composition.dispatches).toContainEqual(
+      expect.objectContaining({
+        dispatchRevision: 2,
+        dispatchAttemptId: secondAttemptId,
+      }),
+    );
+    await expect(durableWorkflowRow(fixture, firstWorkflowID)).resolves.toMatchObject({
+      status: "DELAYED",
+    });
+    await expect(durableWorkflowRow(fixture, secondWorkflowID)).resolves.toMatchObject({
+      status: "SUCCESS",
+      application_version: DURABLE_CODE_VERSION,
+    });
+    expect(composition.handlerCalls).toHaveLength(1);
+  }, 180_000);
+
+  it("D5 never binds a current generation to an item pinned to a missing generation", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture, { durableExecution: true });
+    const composition = activeComposition;
+    const packageB = generation("PackageGenerationId", "package-b");
+    const registry = new WorkHandlerRegistry();
+    const handlerBExecute = vi.fn(async () => ({ outcome: { accepted: true } }));
+    const handlerB: RuntimeWorkHandler = {
+      execute: handlerBExecute,
+    };
+    registry.register(
+      {
+        microSystemId: composition.target.microSystemId,
+        productGenerationId: composition.target.productGenerationId,
+        packageGenerationId: packageB,
+      },
+      composition.descriptor,
+      handlerB,
+      createGenerationFence(),
+    );
+    const alternateExecutor = createWorkAttemptExecutor({
+      repository: composition.repository,
+      handlerRegistry: registry,
+      execution: composition.runtime,
+      lineage: composition.lineage,
+      time: composition.time,
+      classifier: {
+        classify: () => ({
+          kind: "TERMINAL" as const,
+          retryClass: "permanent" as const,
+          reasonCode: "qualification.dbos.generation",
+        }),
+      },
+      runtimeOptions: WORK_OPTIONS,
+    });
+    const durable = createDurableExecutionRuntime(
+      composition.bootResult.host.durableExecution,
+      DURABLE_OPTIONS,
+      alternateExecutor,
+    );
+    const dispatch = createDurableDispatchPort({
+      authority: composition.bootResult.host.durableExecution,
+      lifecycle: durable,
+      durableCodeVersion: DURABLE_CODE_VERSION,
+      profiles: PROFILE_CATALOG,
+      now: () => composition.time.now(),
+    });
+
+    try {
+      await durable.start();
+      const created = await createWork(composition, composition.target, {
+        dedupKey: "dbos-d5-generation",
+      });
+      await dispatch.dispatch(durableRequest(created.item));
+      await waitUntil(
+        async () =>
+          (await composition.repository.getWorkItem(created.item.workItemId))?.state ===
+          "WAITING_DEPENDENCY",
+      );
+      expect(handlerBExecute).not.toHaveBeenCalled();
+
+      const handlerAExecute = vi.fn(async () => ({ outcome: { accepted: true } }));
+      const handlerA: RuntimeWorkHandler = {
+        execute: handlerAExecute,
+      };
+      registry.register(
+        {
+          microSystemId: composition.target.microSystemId,
+          productGenerationId: composition.target.productGenerationId,
+          packageGenerationId: composition.target.packageGenerationId,
+        },
+        composition.descriptor,
+        handlerA,
+        createGenerationFence(),
+      );
+      const wake = await runCanonicalMutation(
+        composition,
+        "qualification.dbos.generation",
+        () =>
+          composition.repository.wakeDependency({
+            workItemId: created.item.workItemId,
+            expectedDispatchRevision: 1,
+            updatedAt: initialTime,
+          }),
+      );
+      if (wake.item === undefined)
+        throw new Error("dependency wake did not return WorkItem");
+      expect(wake.item.dispatchRevision).toBe(2);
+      await dispatch.dispatch(durableRequest(wake.item));
+      await waitUntil(
+        async () =>
+          (await composition.repository.getWorkItem(created.item.workItemId))?.state ===
+          "SUCCEEDED",
+      );
+      expect(handlerBExecute).not.toHaveBeenCalled();
+      expect(handlerAExecute).toHaveBeenCalledTimes(1);
+    } finally {
+      await durable.close().catch(() => undefined);
+    }
+  }, 180_000);
+
+  it("D6 keeps DBOS on its dedicated role while WorkAttemptExecutor uses persistence", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture, { durableExecution: true });
+    const composition = activeComposition;
+    await requireDurable(composition);
+    const created = await createWork(composition, composition.target, {
+      dedupKey: "dbos-d6-role-isolation",
+    });
+    await composition.durableDispatch.dispatch(durableRequest(created.item));
+    await waitUntil(
+      async () =>
+        (await composition.repository.getWorkItem(created.item.workItemId))?.state ===
+        "SUCCEEDED",
+    );
+
+    await expect(
+      queryAs(
+        fixture,
+        "heptalogos_durable_execution",
+        DURABLE_EXECUTION_PASSWORD,
+        `SELECT count(*)::integer AS workflow_count FROM "dbos"."workflow_status"`,
+      ),
+    ).resolves.toMatchObject({ rows: [{ workflow_count: expect.anything() }] });
+    await expect(
+      queryAs(
+        fixture,
+        "heptalogos_durable_execution",
+        DURABLE_EXECUTION_PASSWORD,
+        `SELECT count(*) FROM "heptalogos"."work_item"`,
+      ),
+    ).rejects.toBeDefined();
+    await expect(
+      queryAs(
+        fixture,
+        "heptalogos_bootstrap",
+        BOOTSTRAP_PASSWORD,
+        `SELECT state FROM "heptalogos"."work_item" WHERE work_item_id = $1`,
+        [created.item.workItemId],
+      ),
+    ).resolves.toMatchObject({ rows: [{ state: "SUCCEEDED" }] });
+  }, 180_000);
+
+  it("D7 fails closed on a persisted queue-profile mismatch without overwriting it", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture, { durableExecution: true });
+    const composition = activeComposition;
+    await requireDurable(composition);
+    await composition.durable!.close();
+    await queryAs(
+      fixture,
+      "heptalogos_migration",
+      MIGRATION_PASSWORD,
+      `UPDATE "dbos"."queues" SET concurrency = 999
+        WHERE name = 'heptalogos.queue.work.default'`,
+      [],
+      "-c role=heptalogos_owner",
+    );
+
+    const restarted = createDurableExecutionRuntime(
+      composition.bootResult.host.durableExecution,
+      DURABLE_OPTIONS,
+      composition.executor,
+    );
+    try {
+      await expect(restarted.start()).rejects.toMatchObject({
+        problem: { problemCode: "durable_execution.queue_profile_mismatch" },
+      });
+      expect(restarted.state).toBe("FAILED");
+      await expect(
+        queryAs(
+          fixture,
+          "heptalogos_bootstrap",
+          BOOTSTRAP_PASSWORD,
+          `SELECT concurrency FROM "dbos"."queues"
+            WHERE name = 'heptalogos.queue.work.default'`,
+        ),
+      ).resolves.toMatchObject({ rows: [{ concurrency: 999 }] });
+    } finally {
+      await restarted.close().catch(() => undefined);
+    }
+  }, 180_000);
+
+  it("D8 does not auto-repair a missing vendor schema during normal launch", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture, { durableExecution: true });
+    const composition = activeComposition;
+    if (composition.durable === undefined) throw new Error("durable runtime missing");
+    await queryAs(
+      fixture,
+      "heptalogos_migration",
+      MIGRATION_PASSWORD,
+      `DROP SCHEMA "dbos" CASCADE`,
+      [],
+      "-c role=heptalogos_owner",
+    );
+
+    await expect(composition.durable.start()).rejects.toBeDefined();
+    expect(composition.durable.state).toBe("FAILED");
+    await expect(
+      queryAs(
+        fixture,
+        "heptalogos_bootstrap",
+        BOOTSTRAP_PASSWORD,
+        `SELECT count(*)::integer AS schema_count
+           FROM information_schema.schemata
+          WHERE schema_name = 'dbos'`,
+      ),
+    ).resolves.toMatchObject({ rows: [{ schema_count: 0 }] });
+  }, 180_000);
+
+  it("D9 persists partition limits and executes work from two explicit partitions", async () => {
+    const fixture = await makeFixture();
+    const partitionedProfiles = createWorkQueueProfileCatalog([
+      {
+        profileId: queueProfileId,
+        minPollingIntervalMs: 100,
+        partition: { concurrency: 1 },
+      },
+    ]);
+    activeComposition = await createComposition(fixture, {
+      durableExecution: true,
+      profiles: partitionedProfiles,
+    });
+    const composition = activeComposition;
+    await requireDurable(composition);
+    const first = await createWork(composition, composition.target, {
+      dedupKey: "dbos-d9-partition-a",
+      partitionKey: "tenant-a",
+    });
+    const second = await createWork(composition, composition.target, {
+      dedupKey: "dbos-d9-partition-b",
+      partitionKey: "tenant-b",
+    });
+    const firstDispatch = durableRequest(first.item);
+    const secondDispatch = durableRequest(second.item);
+    await Promise.all([
+      composition.durableDispatch.dispatch(firstDispatch),
+      composition.durableDispatch.dispatch(secondDispatch),
+    ]);
+    await waitUntil(
+      async () =>
+        (await composition.repository.getWorkItem(first.item.workItemId))?.state ===
+          "SUCCEEDED" &&
+        (await composition.repository.getWorkItem(second.item.workItemId))?.state ===
+          "SUCCEEDED",
+    );
+
+    await expect(
+      queryAs(
+        fixture,
+        "heptalogos_bootstrap",
+        BOOTSTRAP_PASSWORD,
+        `SELECT partition_queue, partition_concurrency
+           FROM "dbos"."queues"
+          WHERE name = 'heptalogos.queue.work.default'`,
+      ),
+    ).resolves.toMatchObject({
+      rows: [{ partition_queue: true, partition_concurrency: 1 }],
+    });
+    const rows = await queryAs(
+      fixture,
+      "heptalogos_bootstrap",
+      BOOTSTRAP_PASSWORD,
+      `SELECT queue_partition_key
+         FROM "dbos"."workflow_status"
+        WHERE workflow_uuid IN ($1, $2)
+        ORDER BY queue_partition_key`,
+      [
+        `heptalogos.work.${firstDispatch.dispatchAttemptId}`,
+        `heptalogos.work.${secondDispatch.dispatchAttemptId}`,
+      ],
+    );
+    expect(rows.rows).toEqual([
+      { queue_partition_key: "tenant-a" },
+      { queue_partition_key: "tenant-b" },
+    ]);
+    expect(composition.handlerCalls).toHaveLength(2);
+  }, 180_000);
+
+  it("D10 keeps DBOS executorID stable across a new BootId", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture, { durableExecution: true });
+    const first = activeComposition;
+    await requireDurable(first);
+    const firstWork = await createWork(first, first.target, {
+      dedupKey: "dbos-d10-first-boot",
+    });
+    const firstDispatch = durableRequest(firstWork.item);
+    await first.durableDispatch.dispatch(firstDispatch);
+    await waitUntil(
+      async () =>
+        (await first.repository.getWorkItem(firstWork.item.workItemId))?.state ===
+        "SUCCEEDED",
+    );
+    const firstRow = await durableWorkflowRow(
+      fixture,
+      `heptalogos.work.${firstDispatch.dispatchAttemptId}`,
+    );
+    if (firstRow === undefined) throw new Error("first DBOS workflow row missing");
+    const firstBootId = first.bootResult.host.bootId;
+    await closeComposition(first);
+    activeComposition = undefined;
+
+    activeComposition = await createComposition(fixture, { durableExecution: true });
+    const second = activeComposition;
+    await requireDurable(second);
+    const secondWork = await createWork(second, second.target, {
+      dedupKey: "dbos-d10-second-boot",
+    });
+    const secondDispatch = durableRequest(secondWork.item);
+    await second.durableDispatch.dispatch(secondDispatch);
+    await waitUntil(
+      async () =>
+        (await second.repository.getWorkItem(secondWork.item.workItemId))?.state ===
+        "SUCCEEDED",
+    );
+    const secondRow = await durableWorkflowRow(
+      fixture,
+      `heptalogos.work.${secondDispatch.dispatchAttemptId}`,
+    );
+    if (secondRow === undefined) throw new Error("second DBOS workflow row missing");
+
+    expect(second.bootResult.host.bootId).not.toBe(firstBootId);
+    expect(second.bootResult.host.instanceId).toBe(first.bootResult.host.instanceId);
+    expect(firstRow.executor_id).toBe(first.bootResult.host.instanceId);
+    expect(secondRow.executor_id).toBe(firstRow.executor_id);
+  }, 240_000);
 });
