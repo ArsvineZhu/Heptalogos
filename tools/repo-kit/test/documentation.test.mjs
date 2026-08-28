@@ -155,6 +155,17 @@ describe("documentation topology verification", () => {
     expect(hasCode(result, "stale-current-home")).toBe(true);
   });
 
+  it("rejects the removed qualification matrix home", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/qualification/result-template.md",
+        "Authority Sync: qualification/依赖资格矩阵.md\n",
+      );
+    });
+    expect(hasCode(result, "stale-current-home")).toBe(true);
+  });
+
   it("accepts a Markdown link that resolves to the canonical dependency Authority", async () => {
     const result = await fixtureTree(async (root) => {
       await writeFixtureFile(
@@ -216,6 +227,17 @@ describe("documentation topology verification", () => {
         root,
         "docs/plans/completed/historical.md",
         "Historical route: references/dependency-routing.json\n",
+      );
+    });
+    expect(result.errors).toEqual([]);
+  });
+
+  it("allows historical Authority paths in superseded plans", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/plans/superseded/historical.md",
+        "Historical route: qualification/依赖资格矩阵.md\n",
       );
     });
     expect(result.errors).toEqual([]);

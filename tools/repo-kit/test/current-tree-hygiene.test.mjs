@@ -236,7 +236,7 @@ describe("current-tree hygiene scanner", () => {
   it("fails a missing or malformed compatibility register", async () => {
     const root = await mkdtemp(join(tmpdir(), "heptalogos-hygiene-register-"));
     try {
-      const missing = await scanCurrentTree({ root, trackedPaths: [] });
+      const missing = scanCurrentTree({ root, trackedPaths: [] });
       expect(hasCode(missing, "compatibility-register")).toBe(true);
 
       await mkdir(join(root, "docs/governance"), { recursive: true });
@@ -244,7 +244,7 @@ describe("current-tree hygiene scanner", () => {
         join(root, "docs/governance/compatibility-obligations.json"),
         "{ malformed\n",
       );
-      const malformed = await scanCurrentTree({
+      const malformed = scanCurrentTree({
         root,
         trackedPaths: ["docs/governance/compatibility-obligations.json"],
       });
@@ -266,7 +266,7 @@ describe("current-tree hygiene scanner", () => {
           obligations: [{ id: "external-consumer" }],
         }),
       );
-      const result = await scanCurrentTree({ root, trackedPaths: [] });
+      const result = scanCurrentTree({ root, trackedPaths: [] });
       expect(hasCode(result, "compatibility-register")).toBe(true);
     } finally {
       await rm(root, { recursive: true, force: true });

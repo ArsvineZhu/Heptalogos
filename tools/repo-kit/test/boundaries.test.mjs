@@ -14,6 +14,10 @@ const oxlintSource = readFileSync(
   fileURLToPath(new URL("../../../.oxlintrc.json", import.meta.url)),
   "utf8",
 );
+const schemaOwnerOxlintSource = readFileSync(
+  fileURLToPath(new URL("../../../.oxlintrc-schema-owner.json", import.meta.url)),
+  "utf8",
+);
 const dependencySource = readFileSync(
   fileURLToPath(new URL("../../../scripts/verify/dependencies.mjs", import.meta.url)),
   "utf8",
@@ -28,8 +32,8 @@ describe("repository boundary ownership", () => {
     expect(oxlintSource).toContain("no-restricted-imports");
     expect(oxlintSource).toContain('"@heptalogos/repo-kit"');
     expect(oxlintSource).toContain("@heptalogos/persistence/foundation-repository");
-    expect(oxlintSource).toContain('"ajv"');
-    expect(oxlintSource).toContain('"typebox"');
+    expect(schemaOwnerOxlintSource).toContain('"ajv"');
+    expect(schemaOwnerOxlintSource).toContain('"typebox"');
     expect(eslintSource).toContain("@nx/enforce-module-boundaries");
   });
 

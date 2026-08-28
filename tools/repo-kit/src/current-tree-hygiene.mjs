@@ -1,6 +1,6 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { runGitSync } from "./process.mjs";
 
 const SELF_EXEMPTIONS = new Set([
   "tools/repo-kit/src/current-tree-hygiene.mjs",
@@ -82,12 +82,8 @@ function pathExists(path) {
 }
 
 export function listTrackedPaths({ root = process.cwd() } = {}) {
-  const output = execFileSync("git", ["ls-files", "-z"], {
-    cwd: resolve(root),
-    encoding: "buffer",
-  });
+  const output = runGitSync(["ls-files", "-z"], { cwd: resolve(root) }).stdout;
   return output
-    .toString("utf8")
     .split("\0")
     .filter((path) => path.length > 0)
     .map(normalizeTrackedPath);
@@ -161,7 +157,9 @@ export function scanCurrentTree({ root = process.cwd(), trackedPaths } = {}) {
     );
   }
 
-  for (const relativePath of [...files].sort()) {
+  for (const relativePath of [...files].sort((left, right) =>
+    left.localeCompare(right),
+  )) {
     if (SELF_EXEMPTIONS.has(relativePath)) continue;
     const file = join(repositoryRoot, relativePath);
     let stats;

@@ -4,7 +4,14 @@ import { fileURLToPath } from "node:url";
 import { mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runNode, runPnpm, runProcessChecked } from "../src/process.mjs";
+import {
+  runGitSync,
+  runNode,
+  runPnpm,
+  runProcessChecked,
+  runProcessSync,
+} from "../src/process.mjs";
+import { readPackageManagerBaseline } from "../src/version-authority.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixture = resolve(here, "fixtures/echo-argv.mjs");
@@ -25,7 +32,9 @@ describe("repository process runner", () => {
 
   it("runs the repository pnpm shim without cmd.exe command-string construction", async () => {
     const result = await runPnpm(["--version"], { cwd: repoRoot });
-    expect(result.stdout.trim()).toBe("11.22.0");
+    expect(result.stdout.trim()).toBe(
+      readPackageManagerBaseline({ root: repoRoot }).packageManagerVersion,
+    );
   });
 
   it("returns structured non-zero results when rejection is disabled", async () => {
@@ -39,6 +48,21 @@ describe("repository process runner", () => {
     );
     expect(result.exitCode).toBe(7);
     expect(result.failed).toBe(true);
+  });
+
+  it("normalizes synchronous process results and preserves non-zero outcomes", () => {
+    const result = runProcessSync(process.execPath, ["-e", "process.exit(7)"], {
+      cwd: repoRoot,
+      reject: false,
+    });
+    expect(result.exitCode).toBe(7);
+    expect(result.failed).toBe(true);
+    expect(result.stdout).toBe("");
+  });
+
+  it("routes synchronous repository commands through the process owner", async () => {
+    const result = runGitSync(["rev-parse", "--show-toplevel"], { cwd: repoRoot });
+    expect(await realpath(result.stdout.trim())).toBe(repoRoot);
   });
 
   it("passes environment variables to the child process", async () => {

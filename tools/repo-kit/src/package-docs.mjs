@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { markdownTargets, section } from "./markdown.mjs";
+import { markdownTargets, markdownTargetsInSection } from "./markdown.mjs";
 import {
   isWithinPath as isWithin,
   normalizeRepositoryPath as normalize,
@@ -37,6 +37,7 @@ export async function validatePackageDocumentation({
   const repositoryRoot = resolve(root);
   const packagesRoot = join(repositoryRoot, "packages");
   const docsRoot = join(repositoryRoot, "docs");
+  const architectureRoot = join(docsRoot, "architecture");
   const errors = [];
   const packages =
     productPackages ?? (await discoverProductPackages({ root: repositoryRoot }));
@@ -105,8 +106,9 @@ export async function validatePackageDocumentation({
       }
 
       let corpusLinks = 0;
-      for (const target of markdownTargets(
-        section(source, "Architecture references"),
+      for (const target of markdownTargetsInSection(
+        source,
+        "Architecture references",
       )) {
         const resolvedTarget = resolve(dirname(readme), target);
         if (!isWithin(docsRoot, resolvedTarget)) continue;
@@ -114,7 +116,7 @@ export async function validatePackageDocumentation({
           errors.push(
             `${normalize(repositoryRoot, readme)}: broken architecture documentation link: ${target}`,
           );
-        } else {
+        } else if (isWithin(architectureRoot, resolvedTarget)) {
           corpusLinks += 1;
         }
       }

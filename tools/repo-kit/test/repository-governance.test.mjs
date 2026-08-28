@@ -1,5 +1,5 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import {
@@ -7,7 +7,7 @@ import {
   validateVerifyWorkflow,
 } from "../../../scripts/verify/repository.mjs";
 import {
-  validateMachineAuthorityConsumers,
+  CURRENT_MACHINE_AUTHORITIES,
   validateRootPackageIdentity,
   validateRootTopology,
 } from "../src/repository-governance.mjs";
@@ -133,8 +133,19 @@ describe("repository workflow governance", () => {
     }
   });
 
-  it("proves every retained machine Authority has a current consumer", () => {
-    expect(validateMachineAuthorityConsumers({ root: resolve(".") })).toEqual([]);
+  it("classifies executable Authorities separately from evidence projections", () => {
+    expect(CURRENT_MACHINE_AUTHORITIES).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "dependency-routing",
+          kind: "EXECUTABLE_MACHINE_AUTHORITY",
+        }),
+        expect.objectContaining({
+          id: "qualification-status",
+          kind: "CURRENT_EVIDENCE_PROJECTION",
+        }),
+      ]),
+    );
   });
 
   it("allows machine-internal base_sha outputs while rejecting no inputs", () => {
@@ -143,6 +154,22 @@ describe("repository workflow governance", () => {
     );
 
     expect(errors).toEqual([]);
+  });
+
+  it("validates reusable workflow job-level uses pins", () => {
+    const unpinned = validateVerifyWorkflow(
+      workflowPrefix +
+        "jobs:\n  reusable:\n    uses: owner/repo/.github/workflows/verify.yml@main\n",
+    );
+    expect(unpinned).toContain(
+      "GitHub Action must be pinned to a full commit SHA: owner/repo/.github/workflows/verify.yml@main",
+    );
+
+    const pinned = validateVerifyWorkflow(
+      workflowPrefix +
+        "jobs:\n  reusable:\n    uses: owner/repo/.github/workflows/verify.yml@0123456789abcdef0123456789abcdef01234567\n",
+    );
+    expect(pinned).toEqual([]);
   });
 
   it("rejects base_sha and target_sha workflow-dispatch inputs", () => {

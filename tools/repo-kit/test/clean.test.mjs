@@ -35,7 +35,7 @@ describe("repository cleaner", () => {
       await writeFile(join(rootPath, "dist", "generated.js"), "generated\n");
     });
     try {
-      const result = await cleanRepository({ root, dryRun: true });
+      const result = cleanRepository({ root, dryRun: true });
       expect(result.targets).toContain(join(root, "dist"));
       await expect(readFile(join(root, "dist", "generated.js"), "utf8")).resolves.toBe(
         "generated\n",
@@ -52,7 +52,7 @@ describe("repository cleaner", () => {
       await writeFile(join(rootPath, "dist", "generated.js"), "generated\n");
     });
     try {
-      const result = await cleanRepository({ root });
+      const result = cleanRepository({ root });
       expect(result.removed).toContain(join(root, "dist"));
       await expect(
         readFile(join(root, "dist", "generated.js"), "utf8"),
@@ -71,7 +71,7 @@ describe("repository cleaner", () => {
       );
     });
     try {
-      const result = await cleanRepository({ root });
+      const result = cleanRepository({ root });
       expect(result.removed).toContain(join(root, "packages", "orphan"));
     } finally {
       await rm(root, { recursive: true, force: true });

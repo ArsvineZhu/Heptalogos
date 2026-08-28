@@ -3,7 +3,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { findRepositoryFilesSync, parseYaml } from '@heptalogos/repo-kit';
+import {
+  findRepositoryFilesSync,
+  isWithinPath,
+  markdownLinks,
+  parseYaml,
+} from '@heptalogos/repo-kit';
 
 const scriptFile = fileURLToPath(import.meta.url);
 const scriptDir = path.dirname(scriptFile);
@@ -37,11 +42,6 @@ function requireFile(file, label = path.relative(repoRoot, file)) {
     return false;
   }
   return true;
-}
-
-function isWithin(root, candidate) {
-  const remainder = path.relative(path.resolve(root), path.resolve(candidate));
-  return remainder === '' || (!remainder.startsWith('..') && !path.isAbsolute(remainder));
 }
 
 function parseFrontmatter(text, file) {
@@ -96,7 +96,7 @@ function validateRouteValue(skillName, routeValue, seen) {
   seen.add(routeValue);
 
   const target = path.resolve(repoRoot, routeValue);
-  if (!isWithin(docsRoot, target)) {
+  if (!isWithinPath(docsRoot, target)) {
     fail(`Documentation route escapes docs/ for ${skillName}: ${routeValue}`);
     return;
   }
@@ -126,11 +126,11 @@ function walkRouteLists(value, skillName) {
 }
 
 function validateSkillLinks(skillName, skillFile, text) {
-  const linkRegex = /\]\((?:<)?(\.\.\/\.\.\/\.\.\/docs\/[^)>\s]+)(?:>)?\)/gu;
-  for (const match of text.matchAll(linkRegex)) {
-    const resolved = path.resolve(path.dirname(skillFile), decodeURI(match[1]));
-    if (!isWithin(docsRoot, resolved) || !requireFile(resolved, match[1])) {
-      fail(`Broken direct documentation link in ${skillName}: ${match[1]}`);
+  for (const { target } of markdownLinks(text, { ignoreFencedCode: true })) {
+    if (!target.startsWith('../../../docs/')) continue;
+    const resolved = path.resolve(path.dirname(skillFile), decodeURI(target));
+    if (!isWithinPath(docsRoot, resolved) || !requireFile(resolved, target)) {
+      fail(`Broken direct documentation link in ${skillName}: ${target}`);
     }
   }
 }

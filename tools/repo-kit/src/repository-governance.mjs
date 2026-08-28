@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { codeBlocksInSection } from "./markdown.mjs";
 
 const RESPONSIBILITY_ROOTS = Object.freeze([
   ".agents",
@@ -32,52 +33,30 @@ const CURRENT_REPOSITORY_PACKAGE_NAME = "heptalogos";
 const CURRENT_MACHINE_AUTHORITIES = Object.freeze([
   {
     id: "compatibility-obligations",
+    kind: "EXECUTABLE_MACHINE_AUTHORITY",
     path: "docs/governance/compatibility-obligations.json",
-    consumers: [
-      "tools/repo-kit/src/documentation.mjs",
-      "tools/repo-kit/src/current-tree-hygiene.mjs",
-    ],
   },
   {
     id: "dependency-routing",
+    kind: "EXECUTABLE_MACHINE_AUTHORITY",
     path: "docs/dependencies/dependency-routing.json",
-    consumers: [
-      "tools/repo-kit/src/dependency-authority.mjs",
-      "scripts/verify/dependencies.mjs",
-    ],
   },
   {
     id: "dependency-status",
+    kind: "EXECUTABLE_MACHINE_AUTHORITY",
     path: "docs/qualification/dependency-status.json",
-    consumers: ["scripts/verify/dependencies.mjs"],
   },
   {
     id: "qualification-status",
+    kind: "CURRENT_EVIDENCE_PROJECTION",
     path: "docs/qualification/results/qualification-status.json",
-    consumers: ["docs/qualification/results/README.md"],
   },
 ]);
 
-const MACHINE_AUTHORITY_CONSUMERS = Object.freeze(
-  CURRENT_MACHINE_AUTHORITIES.filter((entry) => entry.consumers.length > 0).map(
-    (entry) => ({
-      authority: entry.path,
-      consumers: entry.consumers,
-    }),
-  ),
-);
-
 function topologyRoots(source) {
-  const heading = source.indexOf("## Current responsibility roots");
-  if (heading < 0) return [];
-  const fence = "```";
-  const opening = source.indexOf(`${fence}text`, heading);
-  if (opening < 0) return [];
-  const contentStart = source.indexOf("\n", opening);
-  const closing = contentStart < 0 ? -1 : source.indexOf(fence, contentStart + 1);
-  if (contentStart < 0 || closing < 0) return [];
-  return source
-    .slice(contentStart + 1, closing)
+  const block = codeBlocksInSection(source, "Current responsibility roots")[0];
+  if (block === undefined) return [];
+  return block
     .split(/\r?\n/u)
     .map((line) => line.trim().replace(/\/$/u, ""))
     .filter((line) => line.length > 0);
@@ -122,11 +101,6 @@ export function validateRootTopology({ root = process.cwd() } = {}) {
   return errors;
 }
 
-function consumerMentionsAuthority(source, authority) {
-  const segments = authority.split("/");
-  return segments.every((segment) => source.includes(segment));
-}
-
 export function validateRootPackageIdentity({ root = process.cwd() } = {}) {
   const repositoryRoot = resolve(root);
   const packagePath = join(repositoryRoot, "package.json");
@@ -155,33 +129,8 @@ export function validateRootPackageIdentity({ root = process.cwd() } = {}) {
   return errors;
 }
 
-export function validateMachineAuthorityConsumers({ root = process.cwd() } = {}) {
-  const repositoryRoot = resolve(root);
-  const errors = [];
-  for (const entry of MACHINE_AUTHORITY_CONSUMERS) {
-    const authorityPath = join(repositoryRoot, entry.authority);
-    if (!existsSync(authorityPath) || !statSync(authorityPath).isFile()) {
-      errors.push(`machine Authority is missing: ${entry.authority}`);
-      continue;
-    }
-    const consumerFound = entry.consumers.some((consumer) => {
-      const consumerPath = join(repositoryRoot, consumer);
-      if (!existsSync(consumerPath) || !statSync(consumerPath).isFile()) return false;
-      return consumerMentionsAuthority(
-        readFileSync(consumerPath, "utf8"),
-        entry.authority,
-      );
-    });
-    if (!consumerFound) {
-      errors.push(`machine Authority has no current consumer: ${entry.authority}`);
-    }
-  }
-  return errors;
-}
-
 export {
   CURRENT_REPOSITORY_PACKAGE_NAME,
   CURRENT_MACHINE_AUTHORITIES,
-  MACHINE_AUTHORITY_CONSUMERS,
   RESPONSIBILITY_ROOTS,
 };

@@ -36,6 +36,7 @@ async function fixtureTree(setup) {
   try {
     await mkdir(join(root, "packages/example"), { recursive: true });
     await mkdir(join(root, "docs/architecture"), { recursive: true });
+    await mkdir(join(root, "docs/plans"), { recursive: true });
     await writeFile(
       join(root, "packages/AGENTS.md"),
       "# Package Workspace Agent Contract\n",
@@ -54,6 +55,7 @@ async function fixtureTree(setup) {
       join(root, "docs/architecture/authority-and-core-concepts.md"),
       "# Architecture\n",
     );
+    await writeFile(join(root, "docs/plans/current.md"), "# Current plan\n");
     await setup(root);
     return validatePackageDocumentation({
       root,
@@ -125,6 +127,21 @@ describe("package documentation topology", () => {
         packageReadme.replace(
           "- [Architecture](../../docs/architecture/authority-and-core-concepts.md)\n",
           "",
+        ),
+      );
+    });
+    expect(hasError(result, "must contain an architecture documentation link")).toBe(
+      true,
+    );
+  });
+
+  it("does not treat a plan link as an architecture reference", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFile(
+        join(root, "packages/example/README.md"),
+        packageReadme.replace(
+          "- [Architecture](../../docs/architecture/authority-and-core-concepts.md)",
+          "- [Plan](../../docs/plans/current.md)",
         ),
       );
     });

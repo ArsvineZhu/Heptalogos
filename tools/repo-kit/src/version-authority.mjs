@@ -74,6 +74,25 @@ function validateVersionConstraint(constraint, label) {
   return errors;
 }
 
+function validatePackageManagerConstraint(constraint, label) {
+  if (!isRecord(constraint)) {
+    return [`${label} must be an object with name and major`];
+  }
+  const errors = [];
+  for (const key of Object.keys(constraint)) {
+    if (key !== "name" && key !== "major") {
+      errors.push(`${label} contains unsupported field: ${key}`);
+    }
+  }
+  if (typeof constraint.name !== "string" || constraint.name.length === 0) {
+    errors.push(`${label}.name must be a non-empty string`);
+  }
+  if (!Number.isInteger(constraint.major) || constraint.major < 0) {
+    errors.push(`${label}.major must be a non-negative integer`);
+  }
+  return errors;
+}
+
 function constraintDescription(constraint) {
   return constraint.minor === undefined
     ? `major ${constraint.major}`
@@ -248,6 +267,47 @@ export function validateVersionAuthority({
       errors.push(
         `package.json engines.node ${baseline.node} is outside the adopted runtime.node line (${constraintDescription(nodeConstraint)})`,
       );
+    }
+  }
+
+  const toolingRoute = routing.routes.find(
+    (route) => route?.roleId === "tooling.build",
+  );
+  if (toolingRoute === undefined) {
+    errors.push(
+      "dependency route missing machine-readable tooling.build package-manager constraint",
+    );
+  } else {
+    const packageManagerConstraint = toolingRoute.packageManagerConstraint;
+    errors.push(
+      ...validatePackageManagerConstraint(
+        packageManagerConstraint,
+        "dependency route tooling.build packageManagerConstraint",
+      ),
+    );
+    if (baseline !== undefined) {
+      const managerVersion = parseExactVersion(baseline.packageManagerVersion);
+      if (baseline.packageManagerName !== packageManagerConstraint?.name) {
+        errors.push(
+          `package.json packageManager must use ${packageManagerConstraint?.name ?? "the adopted package manager"}; got ${baseline.packageManagerName}`,
+        );
+      }
+      if (managerVersion === undefined) {
+        errors.push(
+          `package.json packageManager version must be an exact semver selection: ${baseline.packageManagerVersion}`,
+        );
+      } else if (
+        isRecord(packageManagerConstraint) &&
+        validatePackageManagerConstraint(
+          packageManagerConstraint,
+          "tooling.build packageManagerConstraint",
+        ).length === 0 &&
+        managerVersion.major !== packageManagerConstraint.major
+      ) {
+        errors.push(
+          `package.json packageManager ${baseline.packageManager} is outside the adopted package-manager line (major ${packageManagerConstraint.major})`,
+        );
+      }
     }
   }
 

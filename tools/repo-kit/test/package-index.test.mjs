@@ -1,5 +1,8 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import {
   collectPackageIndex,
@@ -14,8 +17,10 @@ describe("generated package index", () => {
   it("discovers product packages from the workspace boundary", async () => {
     const packages = await discoverProductPackages({ root });
 
-    expect(packages).toHaveLength(15);
     expect(packages.every((entry) => entry.directoryName.length > 0)).toBe(true);
+    expect(new Set(packages.map((entry) => entry.directoryName)).size).toBe(
+      packages.length,
+    );
     expect(packages.map((entry) => entry.manifestName)).toContain(
       "@heptalogos/foundation-contracts",
     );
@@ -24,7 +29,6 @@ describe("generated package index", () => {
   it("collects every pnpm workspace package under packages", async () => {
     const model = await collectPackageIndex({ root });
 
-    expect(model.packages).toHaveLength(15);
     expect(model.packages.map((entry) => entry.name)).toContain(
       "@heptalogos/foundation-contracts",
     );
@@ -52,32 +56,51 @@ describe("generated package index", () => {
     ).resolves.toEqual([]);
   });
 
-  it("rejects a missing, duplicate, or mismatched package row", async () => {
+  it("rejects any non-rendered package index", async () => {
     const model = await collectPackageIndex({ root });
     const rendered = renderPackageIndex(model);
-    const withoutFirst = rendered.replace(
-      "[@heptalogos/bootstrap-runtime](./bootstrap-runtime/README.md)",
-      "",
-    );
-    const withDuplicate =
-      rendered.replace(
-        "| [@heptalogos/bootstrap-runtime](./bootstrap-runtime/README.md) |",
-        "| [@heptalogos/bootstrap-runtime](./bootstrap-runtime/README.md) |",
-      ) +
-      "\n| [@heptalogos/bootstrap-runtime](./bootstrap-runtime/README.md) | kind:product, area:bootstrap | duplicate |\n";
-    const withWrongTags = rendered.replace(
-      "| [@heptalogos/bootstrap-runtime](./bootstrap-runtime/README.md) | kind:product, area:bootstrap |",
-      "| [@heptalogos/bootstrap-runtime](./bootstrap-runtime/README.md) | kind:product, area:shared |",
-    );
+    const changed = rendered.replace("# Package index", "# Stale package index");
+    await expect(validatePackageIndex({ root, text: changed })).resolves.toEqual([
+      expect.stringContaining("packages/INDEX.md is stale"),
+    ]);
+  });
 
-    await expect(validatePackageIndex({ root, text: withoutFirst })).resolves.toEqual(
-      expect.arrayContaining([expect.stringContaining("missing package row")]),
-    );
-    await expect(validatePackageIndex({ root, text: withDuplicate })).resolves.toEqual(
-      expect.arrayContaining([expect.stringContaining("duplicate")]),
-    );
-    await expect(validatePackageIndex({ root, text: withWrongTags })).resolves.toEqual(
-      expect.arrayContaining([expect.stringContaining("tags")]),
-    );
+  it("rejects README Purpose drift even when the old index row remains", async () => {
+    const fixtureRoot = await mkdtemp(join(tmpdir(), "heptalogos-package-index-"));
+    try {
+      const directory = join(fixtureRoot, "packages", "example");
+      await mkdir(directory, { recursive: true });
+      await writeFile(
+        join(directory, "package.json"),
+        JSON.stringify({ name: "@heptalogos/example" }),
+      );
+      await writeFile(
+        join(directory, "project.json"),
+        JSON.stringify({ tags: ["kind:product"] }),
+      );
+      const readme = ["# Example", "", "## Purpose", "Original purpose.", ""].join(
+        "\n",
+      );
+      await writeFile(join(directory, "README.md"), readme);
+      const productPackages = [
+        {
+          directory,
+          directoryName: "example",
+          manifestName: "@heptalogos/example",
+        },
+      ];
+      const initial = renderPackageIndex(
+        await collectPackageIndex({ root: fixtureRoot, productPackages }),
+      );
+      await writeFile(
+        join(directory, "README.md"),
+        readme.replace("Original", "Changed"),
+      );
+      await expect(
+        validatePackageIndex({ root: fixtureRoot, text: initial, productPackages }),
+      ).resolves.toEqual([expect.stringContaining("packages/INDEX.md is stale")]);
+    } finally {
+      await rm(fixtureRoot, { recursive: true, force: true });
+    }
   });
 });

@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -6,11 +5,11 @@ import {
   discoverProductPackages,
   findRepositoryFiles,
   parseYaml,
-  validateMachineAuthorityConsumers,
   validatePackageDocumentation,
   validatePackageIndex,
   validateRootPackageIdentity,
   validateRootTopology,
+  runGitSync,
 } from "@heptalogos/repo-kit";
 
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
@@ -29,10 +28,13 @@ export async function findSourceTestFiles({ root, productPackages } = {}) {
 function workflowUses(workflow) {
   const uses = [];
   for (const job of Object.values(workflow?.jobs ?? {})) {
-    if (!job || typeof job !== "object" || !Array.isArray(job.steps)) continue;
-    for (const step of job.steps) {
-      if (step && typeof step === "object" && typeof step.uses === "string") {
-        uses.push(step.uses);
+    if (!job || typeof job !== "object") continue;
+    if (typeof job.uses === "string") uses.push(job.uses);
+    if (Array.isArray(job.steps)) {
+      for (const step of job.steps) {
+        if (step && typeof step === "object" && typeof step.uses === "string") {
+          uses.push(step.uses);
+        }
       }
     }
   }
@@ -123,10 +125,7 @@ async function main() {
 
   try {
     const top = resolve(
-      execFileSync("git", ["rev-parse", "--show-toplevel"], {
-        cwd: root,
-        encoding: "utf8",
-      }).trim(),
+      runGitSync(["rev-parse", "--show-toplevel"], { cwd: root }).stdout.trim(),
     );
     if (top !== root) fail(`git top-level is not current repository: ${top}`);
   } catch (error) {
@@ -187,7 +186,6 @@ async function main() {
     fail(`package index validation failed: ${error.message}`);
   }
   for (const error of validateRootTopology({ root })) fail(error);
-  for (const error of validateMachineAuthorityConsumers({ root })) fail(error);
 
   const implementationFiles = ["package.json", "pnpm-workspace.yaml"];
   for (const relativePath of implementationFiles) {

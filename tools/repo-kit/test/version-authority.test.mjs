@@ -67,6 +67,11 @@ async function writeRoutingAuthority(root) {
           packages: [],
         },
         {
+          roleId: "tooling.build",
+          packageManagerConstraint: { name: "pnpm", major: 11 },
+          packages: [],
+        },
+        {
           roleId: "bootstrap.lock",
           versionConstraint: { major: 5 },
           packages: ["@bybrave/proper-lockfile2"],
@@ -172,6 +177,33 @@ describe("repository version Authorities", () => {
         expect.stringContaining(
           "package.json engines.node 25.0.0 is outside the adopted runtime.node line",
         ),
+      ]);
+    });
+  });
+
+  it("validates package-manager identity and adopted major", async () => {
+    await fixtureTree(async (root) => {
+      await writeRoutingAuthority(root);
+      expect(validateVersionAuthority({ root })).toEqual([]);
+
+      const packagePath = join(root, "package.json");
+      const packageJson = JSON.parse(await readFile(packagePath, "utf8"));
+      packageJson.packageManager = "npm@11.24.0";
+      await writeFile(packagePath, JSON.stringify(packageJson));
+      expect(validateVersionAuthority({ root })).toEqual([
+        expect.stringContaining("must use pnpm"),
+      ]);
+
+      packageJson.packageManager = "pnpm@12.0.0";
+      await writeFile(packagePath, JSON.stringify(packageJson));
+      expect(validateVersionAuthority({ root })).toEqual([
+        expect.stringContaining("outside the adopted package-manager line"),
+      ]);
+
+      packageJson.packageManager = "pnpm@11.24";
+      await writeFile(packagePath, JSON.stringify(packageJson));
+      expect(validateVersionAuthority({ root })).toEqual([
+        expect.stringContaining("exact semver"),
       ]);
     });
   });

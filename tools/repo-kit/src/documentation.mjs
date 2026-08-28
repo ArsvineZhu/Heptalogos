@@ -53,7 +53,7 @@ function localMarkdownTargets(text) {
 }
 
 function isHistoricalPlan(relativePath) {
-  return relativePath.startsWith("docs/plans/completed/");
+  return /^docs\/plans\/(?:completed|superseded|abandoned)\//u.test(relativePath);
 }
 
 function isStandingDocument(relativePath) {
@@ -226,6 +226,14 @@ function validateStandingLinks(markdownFiles, repository, errors) {
         "current documentation must link the compatibility register from docs/governance/compatibility-obligations.json",
       );
     }
+    if (source.includes("qualification/依赖资格矩阵.md")) {
+      addError(
+        errors,
+        "stale-current-home",
+        relativePath,
+        "current documentation must link dependency qualification state from docs/qualification/dependency-status.json and docs/qualification/dependency-matrix.md",
+      );
+    }
     if (isAuthorityStandingDocument(relativePath)) {
       validateCanonicalAuthorityReferences(path, source, repository, errors);
     }
@@ -272,7 +280,7 @@ function validateDocumentationIndex(docsRoot, repository, errors) {
   const expectedAreas = readdirSync(docsRoot, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
     .map((entry) => entry.name)
-    .sort();
+    .sort((left, right) => left.localeCompare(right));
   const counts = new Map(expectedAreas.map((area) => [area, 0]));
   for (const target of localMarkdownTargets(readFileSync(indexPath, "utf8"))) {
     const resolvedTarget = resolve(dirname(indexPath), target);
@@ -309,7 +317,7 @@ function validateArchitectureIndex(docsRoot, repository, errors) {
       root: repository,
       patterns: ["docs/architecture/contracts/**/*.md"],
     }),
-  ].sort();
+  ].sort((left, right) => left.localeCompare(right));
   const counts = new Map(expected.map((path) => [normalize(repository, path), 0]));
   for (const target of localMarkdownTargets(readFileSync(indexPath, "utf8"))) {
     const resolvedTarget = resolve(dirname(indexPath), target);

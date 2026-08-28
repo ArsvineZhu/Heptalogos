@@ -6,7 +6,12 @@ import {
   realpathSync,
   rmSync,
 } from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { findRepositoryFilesSync } from "./discovery.mjs";
+import {
+  isWithinPath as isWithin,
+  normalizeRepositoryPath as normalized,
+} from "./paths.mjs";
 
 const GENERATED_DIRECTORY_NAMES = new Set([
   ".cache",
@@ -16,27 +21,6 @@ const GENERATED_DIRECTORY_NAMES = new Set([
   "dist",
   "test-results",
 ]);
-const CONFIG_DIRECTORY_NAMES = new Set([
-  ".git",
-  ".nx",
-  ".pnpm-store",
-  ".vite",
-  ".cache",
-  "coverage",
-  "dist",
-  "node_modules",
-  "test-results",
-]);
-
-function normalized(root, target) {
-  return relative(root, target).replaceAll("\\", "/");
-}
-
-function isWithin(root, target) {
-  const remainder = relative(resolve(root), resolve(target));
-  return remainder === "" || (!remainder.startsWith("..") && !isAbsolute(remainder));
-}
-
 function readJson(path) {
   try {
     return JSON.parse(readFileSync(path, "utf8"));
@@ -60,25 +44,23 @@ function rootGeneratedNames(root) {
 }
 
 function configFiles(root) {
-  const files = [];
-  const visit = (directory) => {
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      if (entry.isSymbolicLink()) continue;
-      const path = join(directory, entry.name);
-      if (entry.isDirectory()) {
-        if (!CONFIG_DIRECTORY_NAMES.has(entry.name)) visit(path);
-        continue;
-      }
-      if (
-        entry.isFile() &&
-        (entry.name === "project.json" || /^tsconfig(?:\..+)?\.json$/u.test(entry.name))
-      ) {
-        files.push(path);
-      }
-    }
-  };
-  visit(root);
-  return files.sort();
+  return findRepositoryFilesSync({
+    root,
+    patterns: ["**/project.json", "**/tsconfig*.json"],
+    ignore: [
+      ".git/**",
+      ".codegraph/**",
+      ".nx/**",
+      ".pnpm-store/**",
+      ".vite/**",
+      ".cache/**",
+      "coverage/**",
+      "dist/**",
+      "node_modules/**",
+      "test-results/**",
+      "tmp/**",
+    ],
+  });
 }
 
 function configuredOutputs(root) {

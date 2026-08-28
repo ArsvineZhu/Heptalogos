@@ -1,10 +1,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { section } from "./markdown.mjs";
-import {
-  isWithinPath as isWithin,
-  normalizeRepositoryPath as normalize,
-} from "./paths.mjs";
+import { join, resolve } from "node:path";
+import { firstSectionParagraph } from "./markdown.mjs";
+import { normalizeRepositoryPath as normalize } from "./paths.mjs";
 import { discoverProductPackages } from "./workspace.mjs";
 
 const PACKAGE_INDEX_PATH = "packages/INDEX.md";
@@ -14,9 +11,7 @@ function readJson(path) {
 }
 
 function purposeSummary(source) {
-  const paragraph = section(source, "Purpose")
-    .trim()
-    .split(/\r?\n\s*\r?\n/u, 1)[0]
+  const paragraph = firstSectionParagraph(source, "Purpose")
     .replace(/\s+/gu, " ")
     .trim();
   return paragraph.length > 0
@@ -28,48 +23,54 @@ function escapeTableCell(value) {
   return value.replaceAll("|", "\\|");
 }
 
-export async function collectPackageIndex({ root = process.cwd() } = {}) {
+export async function collectPackageIndex({
+  root = process.cwd(),
+  productPackages,
+} = {}) {
   const repositoryRoot = resolve(root);
-  const productPackages = await discoverProductPackages({ root: repositoryRoot });
-  const packages = productPackages.map(({ directory, directoryName, manifestName }) => {
-    const manifestPath = join(directory, "package.json");
-    const projectPath = join(directory, "project.json");
-    const readmePath = join(directory, "README.md");
-    if (!existsSync(manifestPath)) {
-      throw new Error(
-        `${normalize(repositoryRoot, directory)} is missing package.json`,
-      );
-    }
-    if (!existsSync(projectPath)) {
-      throw new Error(
-        `${normalize(repositoryRoot, directory)} is missing project.json`,
-      );
-    }
-    if (!existsSync(readmePath) || !statSync(readmePath).isFile()) {
-      throw new Error(`${normalize(repositoryRoot, directory)} is missing README.md`);
-    }
-    const manifest = readJson(manifestPath);
-    const project = readJson(projectPath);
-    if (typeof manifest.name !== "string" || manifest.name.length === 0) {
-      throw new Error(`${normalize(repositoryRoot, manifestPath)} must declare name`);
-    }
-    if (
-      !Array.isArray(project.tags) ||
-      !project.tags.every((tag) => typeof tag === "string")
-    ) {
-      throw new Error(
-        `${normalize(repositoryRoot, projectPath)} must declare string tags[]`,
-      );
-    }
-    return {
-      directoryName,
-      name: manifestName,
-      readmePath,
-      readmeLink: `./${directoryName}/README.md`,
-      tags: project.tags,
-      purpose: purposeSummary(readFileSync(readmePath, "utf8")),
-    };
-  });
+  const packagesToCollect =
+    productPackages ?? (await discoverProductPackages({ root: repositoryRoot }));
+  const packages = packagesToCollect.map(
+    ({ directory, directoryName, manifestName }) => {
+      const manifestPath = join(directory, "package.json");
+      const projectPath = join(directory, "project.json");
+      const readmePath = join(directory, "README.md");
+      if (!existsSync(manifestPath)) {
+        throw new Error(
+          `${normalize(repositoryRoot, directory)} is missing package.json`,
+        );
+      }
+      if (!existsSync(projectPath)) {
+        throw new Error(
+          `${normalize(repositoryRoot, directory)} is missing project.json`,
+        );
+      }
+      if (!existsSync(readmePath) || !statSync(readmePath).isFile()) {
+        throw new Error(`${normalize(repositoryRoot, directory)} is missing README.md`);
+      }
+      const manifest = readJson(manifestPath);
+      const project = readJson(projectPath);
+      if (typeof manifest.name !== "string" || manifest.name.length === 0) {
+        throw new Error(`${normalize(repositoryRoot, manifestPath)} must declare name`);
+      }
+      if (
+        !Array.isArray(project.tags) ||
+        !project.tags.every((tag) => typeof tag === "string")
+      ) {
+        throw new Error(
+          `${normalize(repositoryRoot, projectPath)} must declare string tags[]`,
+        );
+      }
+      return {
+        directoryName,
+        name: manifestName,
+        readmePath,
+        readmeLink: `./${directoryName}/README.md`,
+        tags: project.tags,
+        purpose: purposeSummary(readFileSync(readmePath, "utf8")),
+      };
+    },
+  );
 
   return { root: repositoryRoot, packages };
 }
@@ -78,95 +79,41 @@ export function renderPackageIndex(model) {
   const packages = Array.isArray(model) ? model : model.packages;
   if (!Array.isArray(packages))
     throw new TypeError("package index model must contain packages[]");
-  const rows = packages.map(
-    (entry) =>
-      `| [${entry.name}](${entry.readmeLink}) | ${escapeTableCell(entry.tags.join(", "))} | ${escapeTableCell(entry.purpose)} |`,
+  const rows = packages.map((entry) => [
+    `[${entry.name}](${entry.readmeLink})`,
+    escapeTableCell(entry.tags.join(", ")),
+    escapeTableCell(entry.purpose),
+  ]);
+  const headers = ["Package", "Semantic tags", "Responsibility"];
+  const widths = headers.map((header, index) =>
+    Math.max(header.length, ...rows.map((row) => row[index].length)),
   );
+  const renderRow = (cells) =>
+    `| ${cells.map((cell, index) => cell.padEnd(widths[index])).join(" | ")} |`;
   return [
     "# Package index",
     "",
-    "| Package | Semantic tags | Responsibility |",
-    "| --- | --- | --- |",
-    ...rows,
+    renderRow(headers),
+    renderRow(widths.map((width) => "-".repeat(width))),
+    ...rows.map(renderRow),
     "",
   ].join("\n");
 }
 
-function tableRows(text) {
-  const rows = [];
-  for (const line of text.split(/\r?\n/u)) {
-    const match = line.match(/^\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*$/u);
-    if (match === null) continue;
-    if (match[1].toLowerCase() === "package") continue;
-    if (/^[-: ]+$/u.test(match[1])) continue;
-    rows.push({
-      packageCell: match[1],
-      tagsCell: match[2],
-      responsibilityCell: match[3],
-    });
-  }
-  return rows;
-}
-
-export async function validatePackageIndex({ root = process.cwd(), text } = {}) {
+export async function validatePackageIndex({
+  root = process.cwd(),
+  text,
+  productPackages,
+} = {}) {
   const repositoryRoot = resolve(root);
-  const packagesRoot = join(repositoryRoot, "packages");
-  const source = text ?? readFileSync(join(repositoryRoot, PACKAGE_INDEX_PATH), "utf8");
-  const model = await collectPackageIndex({ root: repositoryRoot });
-  const expected = new Map(model.packages.map((entry) => [entry.directoryName, entry]));
-  const errors = [];
-  const seen = new Set();
-
-  for (const row of tableRows(source)) {
-    const link = row.packageCell.match(/^\[([^\]]+)\]\(([^)]+)\)$/u);
-    if (link === null) {
-      errors.push("packages/INDEX.md contains a malformed package row");
-      continue;
-    }
-    const [, label, target] = link;
-    const resolvedTarget = resolve(
-      dirname(join(repositoryRoot, PACKAGE_INDEX_PATH)),
-      target,
-    );
-    if (!isWithin(packagesRoot, resolvedTarget)) {
-      errors.push(`packages/INDEX.md package link escapes packages/: ${target}`);
-      continue;
-    }
-    const targetRelative = normalize(packagesRoot, resolvedTarget);
-    const directoryName = targetRelative.endsWith("/README.md")
-      ? targetRelative.slice(0, -"/README.md".length)
-      : undefined;
-    const entry = directoryName === undefined ? undefined : expected.get(directoryName);
-    if (entry === undefined) {
-      errors.push(`packages/INDEX.md links nonexistent package README: ${target}`);
-      continue;
-    }
-    if (seen.has(entry.directoryName)) {
-      errors.push(`packages/INDEX.md contains duplicate package row: ${entry.name}`);
-      continue;
-    }
-    seen.add(entry.directoryName);
-    if (label !== entry.name) {
-      errors.push(
-        `packages/INDEX.md package label does not match manifest name: ${entry.name}`,
-      );
-    }
-    if (resolve(resolvedTarget) !== resolve(entry.readmePath)) {
-      errors.push(
-        `packages/INDEX.md package link does not point to README: ${entry.name}`,
-      );
-    }
-    if (row.tagsCell !== entry.tags.join(", ")) {
-      errors.push(
-        `packages/INDEX.md semantic tags do not match Nx metadata: ${entry.name}`,
-      );
-    }
-  }
-
-  for (const entry of model.packages) {
-    if (!seen.has(entry.directoryName)) {
-      errors.push(`packages/INDEX.md missing package row: ${entry.name}`);
-    }
-  }
-  return errors;
+  const model = await collectPackageIndex({ root: repositoryRoot, productPackages });
+  const expected = renderPackageIndex(model).replace(/\r\n?/gu, "\n");
+  const actual = (
+    text ?? readFileSync(join(repositoryRoot, PACKAGE_INDEX_PATH), "utf8")
+  ).replace(/\r\n?/gu, "\n");
+  return actual === expected
+    ? []
+    : [
+        "packages/INDEX.md is stale; regenerate it from workspace manifests, Nx tags, and package README Purpose sections",
+      ];
 }
