@@ -24,7 +24,7 @@ const workspacePath = join(root, "pnpm-workspace.yaml");
 let workspaceDocument;
 try {
   workspaceDocument = readYamlFile(workspacePath);
-} catch (error) {
+} catch {
   workspaceDocument = {};
 }
 const baseTsconfig = JSON.parse(readFileSync(join(root, "tsconfig.base.json"), "utf8"));
@@ -112,7 +112,7 @@ const toolchainPackageNames = [
   ]),
 ]
   .filter((name) => packageJson.devDependencies?.[name] === "catalog:")
-  .sort();
+  .sort((left, right) => left.localeCompare(right));
 try {
   expectedInstalledVersions = resolveExpectedInstalledPackageVersions({
     root,

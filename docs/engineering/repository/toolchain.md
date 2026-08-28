@@ -33,6 +33,7 @@ Knip                      unused files/exports/dependencies
 jscpd                     copy/paste clone detection
 Prettier                  formatting
 Nx                        project/task graph and task scheduling
+SchemaRuntime lint lane   `.oxlintrc-schema-owner.json` keeps Ajv/TypeBox imports in SchemaRuntime
 ```
 
 当前 L0 exact observation 保存在
@@ -322,6 +323,7 @@ pnpm-lock.yaml only
 Nx project graph / affected tasks
 Oxlint primary JS/TS lint and import restrictions
 ESLint residual Nx module-boundary rules
+SchemaRuntime-owned Ajv/TypeBox restrictions via `repository:schema:lint`
 jscpd clone detection
 Nx project graph / affected tasks and task scheduling
 TypeScript 7 canonical typecheck

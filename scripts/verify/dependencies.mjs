@@ -239,6 +239,11 @@ if (workspaceDocument.strictPeerDependencies !== true) {
 if (workspaceDocument.engineStrict !== true) {
   fail("engineStrict must be explicitly enabled");
 }
+if (Object.hasOwn(workspaceDocument, "minimumReleaseAgeExclude")) {
+  fail(
+    "minimumReleaseAgeExclude must be absent from the PRE_PRODUCTION workspace policy",
+  );
+}
 if (
   Number.isInteger(minimumReleaseAge) &&
   workspaceDocument.minimumReleaseAge !== minimumReleaseAge

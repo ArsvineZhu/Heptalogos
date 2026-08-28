@@ -1,6 +1,5 @@
 {
   "schemaVersion": 4,
-  "asOf": "2026-08-28",
   "authority": "Current implementation routing for Foundation generic mechanics. All Foundation provider selections in scope are frozen; deferred L3 roles are intentionally absent from mandatory routes.",
   "rule": "ADOPTED is an implementation directive. Use the selected route behind the designated Heptalogos boundary. Residual product qualification does not authorize an unapproved parallel implementation.",
   "repositoryMaterialization": {
@@ -12,6 +11,7 @@
     "repositoryToolingPackages": [
       "jscpd",
       "knip",
+      "mdast-util-from-markdown",
       "oxlint",
       "oxlint-tsgolint",
       "prettier",
@@ -55,6 +55,10 @@
       ],
       "boundary": "Repository/toolchain; TypeScript 7 owns canonical build/typecheck; TS6 only serves compiler-API-dependent tooling",
       "directive": "USE",
+      "packageManagerConstraint": {
+        "name": "pnpm",
+        "major": 11
+      },
       "packageVersionConstraints": {
         "@nx/js": {
           "major": 23

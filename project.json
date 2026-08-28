@@ -70,11 +70,24 @@
         "command": "eslint packages"
       }
     },
-    "lint": {
-      "dependsOn": ["boundary"],
+    "tooling:lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "nx run-many -t lint --all --exclude=repository"
+        "command": "oxlint --type-aware .agents scripts tools eslint.config.mjs"
+      }
+    },
+    "schema:lint": {
+      "dependsOn": ["typecheck"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "oxlint --type-aware --config .oxlintrc-schema-owner.json packages"
+      }
+    },
+    "lint": {
+      "dependsOn": ["boundary", "tooling:lint", "schema:lint"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nx run-many -t lint --all --exclude=repository,repo-kit"
       }
     },
     "typecheck": {

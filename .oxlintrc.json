@@ -3,6 +3,7 @@
   "plugins": ["typescript", "import"],
   "options": {
     "typeAware": true,
+    "denyWarnings": true,
     "reportUnusedDisableDirectives": "deny"
   },
   "ignorePatterns": [
@@ -20,6 +21,33 @@
   },
   "overrides": [
     {
+      "files": [
+        "scripts/**/*.mjs",
+        "scripts/**/*.js",
+        "scripts/**/*.ts",
+        "tools/**/*.mjs",
+        "tools/**/*.js",
+        "tools/**/*.ts",
+        ".agents/**/*.mjs",
+        ".agents/**/*.js",
+        ".agents/**/*.ts"
+      ],
+      "excludeFiles": ["tools/repo-kit/src/process.mjs"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "node:child_process",
+                "message": "Repository subprocesses belong behind repo-kit process ownership."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["packages/**/*.ts"],
       "excludeFiles": ["packages/schema-runtime/**"],
       "rules": {
@@ -27,14 +55,6 @@
           "error",
           {
             "paths": [
-              {
-                "name": "ajv",
-                "message": "Ajv mechanics belong behind SchemaRuntime."
-              },
-              {
-                "name": "typebox",
-                "message": "TypeBox mechanics belong behind SchemaRuntime."
-              },
               {
                 "name": "@heptalogos/repo-kit",
                 "message": "Repository tooling must not enter product package source."
@@ -50,13 +70,7 @@
             ],
             "patterns": [
               {
-                "group": [
-                  "ajv/**",
-                  "typebox/**",
-                  "@heptalogos/repo-kit/**",
-                  "knip/**",
-                  "prettier/**"
-                ],
+                "group": ["@heptalogos/repo-kit/**", "knip/**", "prettier/**"],
                 "message": "This implementation dependency is restricted to its owning adapter."
               }
             ]
@@ -507,33 +521,6 @@
               {
                 "name": "@heptalogos/work-queue/foundation-repository",
                 "message": "The WorkQueue foundation repository is an explicit internal adapter subpath."
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "files": ["packages/**/*.ts"],
-      "excludeFiles": ["packages/schema-runtime/**"],
-      "rules": {
-        "no-restricted-imports": [
-          "error",
-          {
-            "paths": [
-              {
-                "name": "ajv",
-                "message": "Ajv mechanics belong behind SchemaRuntime."
-              },
-              {
-                "name": "typebox",
-                "message": "TypeBox mechanics belong behind SchemaRuntime."
-              }
-            ],
-            "patterns": [
-              {
-                "group": ["ajv/**", "typebox/**"],
-                "message": "Schema mechanics belong behind SchemaRuntime."
               }
             ]
           }
