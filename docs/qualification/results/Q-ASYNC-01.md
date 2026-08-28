@@ -127,26 +127,31 @@ evidence:
   h3a2_recovery_budget_fail_closed: PASS
   h3a2_admission_and_queue_mechanics: PASS
   h3_windows_real_dbos: PASS
-  h3a2_ubuntu_postgres_18_6_real_dbos: NOT_RUN
+  h3a2_ubuntu_postgres_18_6_real_dbos: PASS
   real_resource_governor_pressure_snapshot: NOT_RUN
   h3a2_candidate_freeze: NOT_RUN
   h3a2_independent_review: NOT_RUN
   h3a2_final_manual_ci: NOT_RUN
 ```
 
-The current implementation evidence was produced on Windows with the
-repository's Node 24/pnpm 11 toolchain and an explicit PostgreSQL 18.6 binary
-directory. The real DBOS qualification passed the Bootstrap integration target
-(9 files, 106/106 tests), the process recovery target (8/8 tests), the Host
-lifecycle Q1-Q5 target (5/5 tests), and the Task 12 admission/queue target
-(6/6 tests). This proves the Windows execution environment only; it does not
-promote the Ubuntu property. `real_resource_governor_pressure_snapshot` is
-intentionally `NOT_RUN` because ResourceGovernor is H8-owned and is not part
-of H3A-2. The repository-wide `pnpm verify` gate also passed locally after the
-qualification and documentation updates.
+The current implementation evidence was produced on Windows and Ubuntu/Linux
+with explicit PostgreSQL 18.6 toolchains. On Windows, the real DBOS
+qualification passed the Bootstrap integration target (9 files, 106/106 tests),
+the process recovery target (8/8 tests), the Host lifecycle Q1-Q5 target (5/5
+tests), and the Task 12 admission/queue target (6/6 tests). On Ubuntu 26.04 LTS
+x86_64 with Node 24.20.0, pnpm 11.24.0, PostgreSQL 18.6, and DBOS 4.27.6, the
+Bootstrap integration target passed (9 files, 106/106 tests), the process
+recovery target passed (8/8 tests), and Host ownership integration passed
+(11/11 tests). The Bootstrap target includes the Host lifecycle and Task 12
+cases. These results prove only the executed Windows and Ubuntu environments;
+they do not promote macOS, source-less, or service/headless properties.
+`real_resource_governor_pressure_snapshot` is intentionally `NOT_RUN` because
+ResourceGovernor is H8-owned and is not part of H3A-2. The repository-wide
+`pnpm verify` gate also passed locally after the qualification and
+documentation updates.
 
-The Ubuntu PostgreSQL/DBOS run, candidate freeze, Independent Review, and
-final manual CI remain required before H3A-2 closure.
+Candidate freeze, Independent Review, and final manual CI remain required
+before H3A-2 closure.
 
 ## H3A-1 observed implementation evidence
 

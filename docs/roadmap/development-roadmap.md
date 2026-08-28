@@ -364,10 +364,9 @@ The H3A-2 implementation is complete and awaiting its external review gate.
 Current local evidence covers the exact DBOS adapter, canonical WorkItem
 authority, dedicated database role/schema, queue projection and admission
 mechanics, process crash recovery, and Host lifecycle integration. The real
-qualification run was performed on Windows with PostgreSQL 18.6; Ubuntu
-qualification, ResourceGovernor/PressureSnapshot, source-less execution, and
-service/headless execution remain `NOT_RUN` and are not implied by the local
-PASS results.
+qualification passed on Windows and Ubuntu/Linux with PostgreSQL 18.6;
+ResourceGovernor/PressureSnapshot, source-less execution, and service/headless
+execution remain `NOT_RUN` and are not implied by those PASS results.
 
 ### Implementation decomposition
 
