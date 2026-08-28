@@ -8,6 +8,6 @@
 
 > **MicroSystemInstanceId** = [`UuidV7Id`](UuidV7Id.md)\<`"MicroSystemInstanceId"`>\>
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:12
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:15
 
 Identifies one instantiated MicroSystem generation.

@@ -342,9 +342,9 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 
 ```yaml
 H3: OPEN
-H3A: ACTIVE
+H3A: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
 H3A_1: CLOSED
-H3A_2: ACTIVE
+H3A_2: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
 H3B: NOT_ELIGIBLE
 H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
@@ -359,6 +359,15 @@ Draft cross-platform evidence remains preserved, while Independent Review and
 final manual CI remain `NOT_RUN`; they are not inferred from the GitHub merge
 fact. H3A-2 is now active under its decision-complete DBOS durable execution
 and crash recovery plan.
+
+The H3A-2 implementation is complete and awaiting its external review gate.
+Current local evidence covers the exact DBOS adapter, canonical WorkItem
+authority, dedicated database role/schema, queue projection and admission
+mechanics, process crash recovery, and Host lifecycle integration. The real
+qualification run was performed on Windows with PostgreSQL 18.6; Ubuntu
+qualification, ResourceGovernor/PressureSnapshot, source-less execution, and
+service/headless execution remain `NOT_RUN` and are not implied by the local
+PASS results.
 
 ### Implementation decomposition
 

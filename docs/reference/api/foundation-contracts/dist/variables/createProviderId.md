@@ -8,7 +8,7 @@
 
 > `const` **createProviderId**: (`value`) => [`ProviderId`](../type-aliases/ProviderId.md)
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:48
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:55
 
 Creates a validated Provider identity from its canonical name.
 

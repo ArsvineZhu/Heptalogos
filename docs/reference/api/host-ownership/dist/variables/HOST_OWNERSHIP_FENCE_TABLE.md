@@ -8,6 +8,6 @@
 
 > `const` **HOST\_OWNERSHIP\_FENCE\_TABLE**: `"host_ownership_fence"`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:20
+Defined in: packages/host-ownership/dist/contracts.d.ts:22
 
 Table holding the current database-visible Host fence.

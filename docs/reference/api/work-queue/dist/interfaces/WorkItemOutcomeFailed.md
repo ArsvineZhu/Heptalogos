@@ -6,7 +6,7 @@
 
 # Interface: WorkItemOutcomeFailed
 
-Defined in: packages/work-queue/dist/contracts.d.ts:33
+Defined in: packages/work-queue/dist/contracts.d.ts:64
 
 Durable failure outcome with the classifier's retry category and reason.
 
@@ -16,7 +16,7 @@ Durable failure outcome with the classifier's retry category and reason.
 
 > `readonly` **kind**: `"FAILED"`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:35
+Defined in: packages/work-queue/dist/contracts.d.ts:66
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/work-queue/dist/contracts.d.ts:35
 
 > `readonly` **reasonCode**: `string`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:37
+Defined in: packages/work-queue/dist/contracts.d.ts:68
 
 ---
 
@@ -32,7 +32,7 @@ Defined in: packages/work-queue/dist/contracts.d.ts:37
 
 > `readonly` **retryClass**: [`WorkRetryClass`](../type-aliases/WorkRetryClass.md)
 
-Defined in: packages/work-queue/dist/contracts.d.ts:36
+Defined in: packages/work-queue/dist/contracts.d.ts:67
 
 ---
 
@@ -40,4 +40,4 @@ Defined in: packages/work-queue/dist/contracts.d.ts:36
 
 > `readonly` **schemaVersion**: `1`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:34
+Defined in: packages/work-queue/dist/contracts.d.ts:65

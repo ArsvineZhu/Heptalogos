@@ -6,7 +6,7 @@
 
 # Interface: DurableDispatchRequest
 
-Defined in: packages/work-queue/dist/contracts.d.ts:111
+Defined in: packages/work-queue/dist/contracts.d.ts:142
 
 Immutable dispatch envelope passed to the durable execution boundary.
 
@@ -16,7 +16,7 @@ Immutable dispatch envelope passed to the durable execution boundary.
 
 > `readonly` **dispatchAttemptId**: [`DispatchAttemptId`](../type-aliases/DispatchAttemptId.md)
 
-Defined in: packages/work-queue/dist/contracts.d.ts:114
+Defined in: packages/work-queue/dist/contracts.d.ts:145
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/work-queue/dist/contracts.d.ts:114
 
 > `readonly` **dispatchRevision**: `number`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:113
+Defined in: packages/work-queue/dist/contracts.d.ts:144
 
 ---
 
@@ -32,7 +32,7 @@ Defined in: packages/work-queue/dist/contracts.d.ts:113
 
 > `readonly` `optional` **notBefore?**: [`Instant`](../../../foundation-contracts/dist/type-aliases/Instant.md)
 
-Defined in: packages/work-queue/dist/contracts.d.ts:118
+Defined in: packages/work-queue/dist/contracts.d.ts:149
 
 ---
 
@@ -40,7 +40,7 @@ Defined in: packages/work-queue/dist/contracts.d.ts:118
 
 > `readonly` `optional` **partitionKey?**: `string`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:117
+Defined in: packages/work-queue/dist/contracts.d.ts:148
 
 ---
 
@@ -48,7 +48,7 @@ Defined in: packages/work-queue/dist/contracts.d.ts:117
 
 > `readonly` **priority**: `number`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:116
+Defined in: packages/work-queue/dist/contracts.d.ts:147
 
 ---
 
@@ -56,7 +56,7 @@ Defined in: packages/work-queue/dist/contracts.d.ts:116
 
 > `readonly` **queueProfileId**: [`WorkQueueProfileId`](../../../runtime-kernel/dist/type-aliases/WorkQueueProfileId.md)
 
-Defined in: packages/work-queue/dist/contracts.d.ts:115
+Defined in: packages/work-queue/dist/contracts.d.ts:146
 
 ---
 
@@ -64,4 +64,4 @@ Defined in: packages/work-queue/dist/contracts.d.ts:115
 
 > `readonly` **workItemId**: [`WorkItemId`](../../../foundation-contracts/dist/type-aliases/WorkItemId.md)
 
-Defined in: packages/work-queue/dist/contracts.d.ts:112
+Defined in: packages/work-queue/dist/contracts.d.ts:143

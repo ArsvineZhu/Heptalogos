@@ -6,7 +6,7 @@
 
 # Interface: HostOwnershipTimingOptions
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:96
+Defined in: packages/host-ownership/dist/contracts.d.ts:119
 
 Bounds Host connection, fence, and keepalive operations.
 
@@ -16,7 +16,7 @@ Bounds Host connection, fence, and keepalive operations.
 
 > `readonly` **connectionTimeoutMs**: `number`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:97
+Defined in: packages/host-ownership/dist/contracts.d.ts:120
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:97
 
 > `readonly` **fenceLockTimeoutMs**: `number`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:99
+Defined in: packages/host-ownership/dist/contracts.d.ts:122
 
 ---
 
@@ -32,7 +32,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:99
 
 > `readonly` **keepAliveInitialDelayMs**: `number`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:100
+Defined in: packages/host-ownership/dist/contracts.d.ts:123
 
 ---
 
@@ -40,4 +40,4 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:100
 
 > `readonly` **statementTimeoutMs**: `number`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:98
+Defined in: packages/host-ownership/dist/contracts.d.ts:121

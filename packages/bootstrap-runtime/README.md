@@ -19,6 +19,11 @@ Runtime lifecycle without giving Bootstrap product Runtime semantics.
   callback-scoped credential handoff.
 - Bootstrap key-provider and installation-owner projections.
 
+Durable execution is composed at the integration/Host lifecycle boundary. The
+production Bootstrap surface does not import DBOS or own WorkQueue semantics;
+planned reverse handoff drains the durable runtime before Host ownership and
+private PostgreSQL cleanup are released.
+
 ## Does not own
 
 - Runtime Kernel or Cordis mechanics in production source.
@@ -56,7 +61,10 @@ bounded, and never control PostgreSQL from a closed Host.
 
 Run `pnpm nx run bootstrap-runtime:test`, the real PostgreSQL integration target,
 recovery-process targets, and the boundary/dependency gates. Lifecycle changes
-also require claim-matched Host and Runtime qualification.
+also require claim-matched Host and Runtime qualification. The durable-execution qualification's real
+composition covers DBOS queue/admission behavior, process crash recovery, and
+Q1-Q5 Host lifecycle settlement; product platform/source-less claims remain
+separately scoped.
 
 ## Architecture references
 

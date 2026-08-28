@@ -32,6 +32,11 @@ The entry point exposes normalized package-resolution, schema-provisioning, and
 Host-bound runtime contracts. Process and vendor details remain package-
 private; callers do not receive DBOS SDK, Execa, XState, or `pg` objects.
 
+The runtime uses the Host `InstanceId` as DBOS `executorID`, while each BootId
+only scopes the surrounding Host lifecycle. `DurableCodeVersion` is passed as
+DBOS `applicationVersion`; it is an execution-version fence and is not a
+replacement for the canonical WorkItem generation or revision fences.
+
 ## Dependencies and boundaries
 
 The package uses the adopted DBOS 4.27.6, Execa, PostgreSQL driver, and XState
@@ -52,7 +57,11 @@ configuration, and lifecycle mechanics behind Heptalogos-owned contracts.
 Run `pnpm nx run durable-execution:test`, its typecheck and lint targets, and
 the repository dependency, boundary, documentation, and hygiene gates. Real
 DBOS schema, queue, and crash-recovery claims require the PostgreSQL and
-process integration scenarios in the active implementation plan.
+process integration scenarios in the active implementation plan. The current
+qualification covers real DBOS queue/admission mechanics, process
+restart recovery, and Host lifecycle integration on the qualified platform;
+Ubuntu, source-less, and service/headless product claims remain unqualified
+until their corresponding scenarios run.
 
 ## Architecture references
 

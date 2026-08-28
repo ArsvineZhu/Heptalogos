@@ -6,7 +6,7 @@
 
 # Interface: HostOwnershipContext
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:35
+Defined in: packages/host-ownership/dist/contracts.d.ts:37
 
 Represents the Host ownership capability and its fence signal.
 
@@ -16,7 +16,7 @@ Represents the Host ownership capability and its fence signal.
 
 > `readonly` **bootId**: [`BootId`](../../../bootstrap-state/dist/type-aliases/BootId.md)
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:38
+Defined in: packages/host-ownership/dist/contracts.d.ts:40
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:38
 
 > `readonly` **installationId**: [`InstallationId`](../../../foundation-contracts/dist/type-aliases/InstallationId.md)
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:36
+Defined in: packages/host-ownership/dist/contracts.d.ts:38
 
 ---
 
@@ -32,7 +32,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:36
 
 > `readonly` **instanceId**: [`InstanceId`](../../../foundation-contracts/dist/type-aliases/InstanceId.md)
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:37
+Defined in: packages/host-ownership/dist/contracts.d.ts:39
 
 ---
 
@@ -40,7 +40,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:37
 
 > `readonly` **signal**: `AbortSignal`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:41
+Defined in: packages/host-ownership/dist/contracts.d.ts:43
 
 ---
 
@@ -48,7 +48,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:41
 
 > `readonly` **state**: [`HostOwnershipState`](../type-aliases/HostOwnershipState.md)
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:40
+Defined in: packages/host-ownership/dist/contracts.d.ts:42
 
 ---
 
@@ -56,7 +56,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:40
 
 > `readonly` **token**: [`HostOwnershipToken`](../../../foundation-contracts/dist/type-aliases/HostOwnershipToken.md)
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:39
+Defined in: packages/host-ownership/dist/contracts.d.ts:41
 
 ## Methods
 
@@ -64,7 +64,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:39
 
 > **assertActive**(): `void`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:43
+Defined in: packages/host-ownership/dist/contracts.d.ts:45
 
 Throws when the Host fence is no longer active.
 
@@ -78,7 +78,7 @@ Throws when the Host fence is no longer active.
 
 > **close**(): `Promise`\<`void`>\>
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:45
+Defined in: packages/host-ownership/dist/contracts.d.ts:47
 
 Closes the Host lease and publishes the terminal fence state.
 

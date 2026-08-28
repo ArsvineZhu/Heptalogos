@@ -28,10 +28,11 @@ lost notifications or dispatch failures.
 
 The entry point exports WorkItem contracts, dispatch-attempt identity helpers,
 profile catalog validation, state-transition validation, repository/service
-ports, and WorkQueue runtime components. The concrete canonical repository factory is a restricted
-Foundation seam at `@heptalogos/work-queue/foundation-repository`; it is not a
-general root-package API. Engine-specific composition is outside this package;
-callers must use the Persistence and Runtime Kernel ownership boundaries.
+ports, and WorkQueue runtime components. The concrete canonical repository
+factory is a restricted Foundation seam at
+`@heptalogos/work-queue/foundation-repository`; it is not a general
+root-package API. Engine-specific composition is outside this package; callers
+must use the Persistence and Runtime Kernel ownership boundaries.
 
 ## Dependencies and boundaries
 
@@ -53,7 +54,10 @@ contradictions but must not mutate canonical WorkItem outcomes.
 
 Run `pnpm nx run work-queue:test`, lint, typecheck, build, and the repository
 gates. Real PostgreSQL, Host-fence, and crash/recovery claims require the
-qualification scenarios rather than in-memory tests alone.
+qualification scenarios rather than in-memory tests alone. Durable-execution qualification covers
+`beforeCreate`/`beforeDispatch` admission, DBOS queue profiles, and canonical
+obligation retention; ResourceGovernor and `PressureSnapshot` remain H8-owned
+and are not implemented here.
 
 ## Architecture references
 

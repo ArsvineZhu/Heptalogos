@@ -98,6 +98,56 @@ h3a1_projection_index_query_shape: PASS
 These two properties are required for the current candidate and are supported
 by fresh focused and real PostgreSQL qualification.
 
+## H3A-2 current implementation evidence
+
+```yaml
+implementationQualification: REQUIRED
+qualificationState: OPEN
+evidence:
+  h3a2_exact_dbos_4_27_6: PASS
+  h3a2_workitem_product_authority: PASS
+  h3a2_dedicated_engine_principal: PASS
+  h3a2_engine_zero_product_table_privilege: PASS
+  h3a2_dbos_schema_migration_authority: PASS
+  h3a2_normal_runtime_no_ddl: PASS
+  h3a2_static_dispatcher_real_dbos: PASS
+  h3a2_same_revision_engine_idempotency: PASS
+  h3a2_delayed_not_before: PASS
+  h3a2_retry_new_revision: PASS
+  h3a2_queue_profile_projection: PASS
+  h3a2_partition_profile_projection: PASS
+  h3a2_stable_instance_executor_identity: PASS
+  h3a2_application_version_isolation: PASS
+  h3a2_lost_predispatch_process_recovery: PASS
+  h3a2_running_same_attempt_recovery: PASS
+  h3a2_crash_after_terminal_commit_no_duplicate_handler: PASS
+  h3a2_host_loss_fence: PASS
+  h3a2_host_shutdown_settlement: PASS
+  h3a2_same_process_quiesce_resume: PASS
+  h3a2_recovery_budget_fail_closed: PASS
+  h3a2_admission_and_queue_mechanics: PASS
+  h3_windows_real_dbos: PASS
+  h3a2_ubuntu_postgres_18_6_real_dbos: NOT_RUN
+  real_resource_governor_pressure_snapshot: NOT_RUN
+  h3a2_candidate_freeze: NOT_RUN
+  h3a2_independent_review: NOT_RUN
+  h3a2_final_manual_ci: NOT_RUN
+```
+
+The current implementation evidence was produced on Windows with the
+repository's Node 24/pnpm 11 toolchain and an explicit PostgreSQL 18.6 binary
+directory. The real DBOS qualification passed the Bootstrap integration target
+(9 files, 106/106 tests), the process recovery target (8/8 tests), the Host
+lifecycle Q1-Q5 target (5/5 tests), and the Task 12 admission/queue target
+(6/6 tests). This proves the Windows execution environment only; it does not
+promote the Ubuntu property. `real_resource_governor_pressure_snapshot` is
+intentionally `NOT_RUN` because ResourceGovernor is H8-owned and is not part
+of H3A-2. The repository-wide `pnpm verify` gate also passed locally after the
+qualification and documentation updates.
+
+The Ubuntu PostgreSQL/DBOS run, candidate freeze, Independent Review, and
+final manual CI remain required before H3A-2 closure.
+
 ## H3A-1 observed implementation evidence
 
 The pre-correction focused unit suites passed on 2026-08-26: foundation-contracts (26/26), execution-lineage (30/30), canonical-schema (4/4), runtime-kernel (131/131), signal (6/6), and work-queue (33/33). The pre-correction real Ubuntu PostgreSQL 18.6/Host qualification also passed: 9 integration files and 67/67 tests, using the explicit `HEPTALOGOS_TEST_PG_BIN` toolchain path. These remain historical observations only. The previous corrected candidate focused suites passed on 2026-08-27: foundation-contracts (29/29), execution-lineage (30/30), canonical-schema (4/4), runtime-kernel (142/142), signal (10/10), and work-queue (59/59); its explicit bootstrap-runtime PostgreSQL 18.6/Host integration passed 9 files and 82/82 tests. Those remain historical observations after the current mutation. Fresh final focused suites on the previous candidate passed on 2026-08-27: foundation-contracts (29/29), execution-lineage (30/30), canonical-schema (4/4), runtime-kernel (142/142), signal (10/10), and work-queue (60/60). The previous candidate's explicit bootstrap-runtime PostgreSQL 18.6/Host integration passed 9 files and 83/83 tests, including the real query-shape assertion for both fair-scan states, and its local `pnpm verify` passed. Those observations are historical after the current timeout-budget mutation. The first final-pre-merge CI run passed on Ubuntu and macOS but failed on Windows at `bootstrap-runtime:test` because `does not reclaim a heartbeat-refreshed active owner` exceeded 5 seconds and `blocks no-lock inspection when an OWNER witness proves this process` exceeded 15 seconds. After the timeout-budget adjustment, the corrected test head passed local `pnpm verify` and Draft cross-platform regression CI on Ubuntu, macOS, and Windows; those observations predate this documentation-only synchronization. Final manual CI remains pending for the current Ready head. DBOS and process-crash boundaries remain deferred as recorded above.

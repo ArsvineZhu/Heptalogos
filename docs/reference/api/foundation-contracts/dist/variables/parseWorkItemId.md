@@ -8,7 +8,7 @@
 
 > `const` **parseWorkItemId**: (`value`) => [`WorkItemId`](../type-aliases/WorkItemId.md) \| `undefined`
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:40
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:43
 
 Parses a WorkItem UUID-v7 identity.
 

@@ -6,7 +6,7 @@
 
 # Interface: HostOwnershipCanonicalSnapshot
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:101
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:104
 
 Captures the database roles, objects, ACLs, and fence row for qualification.
 
@@ -16,7 +16,7 @@ Captures the database roles, objects, ACLs, and fence row for qualification.
 
 > `readonly` **database**: readonly `object`[]
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:113
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:116
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:113
 
 > `readonly` **fence**: readonly `object`[]
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:129
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:132
 
 ---
 
@@ -32,7 +32,7 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:129
 
 > `readonly` **roles**: readonly `object`[]
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:102
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:105
 
 ---
 
@@ -40,7 +40,7 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:102
 
 > `readonly` **schema**: readonly `object`[]
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:119
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:122
 
 ---
 
@@ -48,4 +48,4 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:119
 
 > `readonly` **table**: readonly `object`[]
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:124
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:127

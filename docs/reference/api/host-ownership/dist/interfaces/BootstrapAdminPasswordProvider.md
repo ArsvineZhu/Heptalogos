@@ -38,6 +38,32 @@ Uses the Bootstrap-admin password without returning it.
 
 ---
 
+### withDurableExecutionPassword()
+
+> **withDurableExecutionPassword**\<`T`>\>(`use`): `Promise`\<`T`>\>
+
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:41
+
+Uses the durable-engine password without returning it.
+
+#### Type Parameters
+
+##### T
+
+`T`
+
+#### Parameters
+
+##### use
+
+(`passwordUtf8`) => `Promise`\<`T`\>
+
+#### Returns
+
+`Promise`\<`T`\>
+
+---
+
 ### withHostLeasePassword()
 
 > **withHostLeasePassword**\<`T`>\>(`use`): `Promise`\<`T`>\>

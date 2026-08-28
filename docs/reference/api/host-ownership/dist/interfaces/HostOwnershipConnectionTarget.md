@@ -6,7 +6,7 @@
 
 # Interface: HostOwnershipConnectionTarget
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:48
+Defined in: packages/host-ownership/dist/contracts.d.ts:50
 
 Identifies the loopback PostgreSQL endpoint used for Host lease setup.
 
@@ -16,7 +16,7 @@ Identifies the loopback PostgreSQL endpoint used for Host lease setup.
 
 > `readonly` **database**: `"heptalogos"`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:51
+Defined in: packages/host-ownership/dist/contracts.d.ts:53
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:51
 
 > `readonly` **host**: `"127.0.0.1"`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:49
+Defined in: packages/host-ownership/dist/contracts.d.ts:51
 
 ---
 
@@ -32,4 +32,4 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:49
 
 > `readonly` **port**: `number`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:50
+Defined in: packages/host-ownership/dist/contracts.d.ts:52

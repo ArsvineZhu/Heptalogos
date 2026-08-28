@@ -8,6 +8,6 @@
 
 > **WorkErrorDecision** = \{ `kind`: `"TERMINAL"`; `reasonCode`: `string`; `retryClass`: [`WorkRetryClass`](WorkRetryClass.md); \} \| \{ `kind`: `"RETRY"`; `notBefore`: [`Instant`](../../../foundation-contracts/dist/type-aliases/Instant.md); `reasonCode`: `string`; `retryClass`: [`WorkRetryClass`](WorkRetryClass.md); \}
 
-Defined in: packages/work-queue/dist/contracts.d.ts:136
+Defined in: packages/work-queue/dist/contracts.d.ts:201
 
 Classifier result selecting terminal completion or a retry time.

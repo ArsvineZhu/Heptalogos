@@ -8,7 +8,7 @@
 
 > **NamespacedId**\<`TBrand`> \> = [`Branded`](Branded.md)\<`string`, `` `namespaced:${TBrand}` ``>\>
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:14
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:17
 
 Brands a normalized namespaced identifier for a semantic owner.
 

@@ -6,7 +6,7 @@
 
 # Interface: HostCanonicalMigrationAuthority
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:68
+Defined in: packages/host-ownership/dist/contracts.d.ts:77
 
 Authorizes canonical schema migration under the current Host fence.
 
@@ -16,7 +16,7 @@ Authorizes canonical schema migration under the current Host fence.
 
 > `readonly` **bootId**: [`BootId`](../../../bootstrap-state/dist/type-aliases/BootId.md)
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:71
+Defined in: packages/host-ownership/dist/contracts.d.ts:80
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:71
 
 > `readonly` **continuityEpochId**: [`ContinuityEpochId`](../../../foundation-contracts/dist/type-aliases/ContinuityEpochId.md)
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:73
+Defined in: packages/host-ownership/dist/contracts.d.ts:82
 
 ---
 
@@ -32,7 +32,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:73
 
 > `readonly` **installationId**: [`InstallationId`](../../../foundation-contracts/dist/type-aliases/InstallationId.md)
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:69
+Defined in: packages/host-ownership/dist/contracts.d.ts:78
 
 ---
 
@@ -40,7 +40,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:69
 
 > `readonly` **instanceId**: [`InstanceId`](../../../foundation-contracts/dist/type-aliases/InstanceId.md)
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:70
+Defined in: packages/host-ownership/dist/contracts.d.ts:79
 
 ---
 
@@ -48,7 +48,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:70
 
 > `readonly` **signal**: `AbortSignal`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:75
+Defined in: packages/host-ownership/dist/contracts.d.ts:84
 
 ---
 
@@ -56,7 +56,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:75
 
 > `readonly` **target**: [`HostMigrationDatabaseTarget`](HostMigrationDatabaseTarget.md)
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:74
+Defined in: packages/host-ownership/dist/contracts.d.ts:83
 
 ---
 
@@ -64,7 +64,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:74
 
 > `readonly` **token**: [`HostOwnershipToken`](../../../foundation-contracts/dist/type-aliases/HostOwnershipToken.md)
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:72
+Defined in: packages/host-ownership/dist/contracts.d.ts:81
 
 ## Methods
 
@@ -72,7 +72,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:72
 
 > **assertCurrent**(): `void`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:77
+Defined in: packages/host-ownership/dist/contracts.d.ts:86
 
 Throws when the migration authority is no longer current.
 
@@ -86,7 +86,7 @@ Throws when the migration authority is no longer current.
 
 > **withMigrationDatabasePassword**\<`T`>\>(`use`): `Promise`\<`T`>\>
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:79
+Defined in: packages/host-ownership/dist/contracts.d.ts:88
 
 Uses the migration credential only within the supplied callback.
 

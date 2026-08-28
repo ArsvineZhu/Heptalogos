@@ -8,6 +8,6 @@
 
 > **ServiceId** = [`NamespacedId`](NamespacedId.md)\<`"ServiceId"`>\>
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:18
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:21
 
 Identifies a Runtime Service contract.

@@ -6,7 +6,7 @@
 
 # Interface: HostRuntimeDatabaseTarget
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:54
+Defined in: packages/host-ownership/dist/contracts.d.ts:56
 
 Identifies the normal runtime database endpoint and role.
 
@@ -16,7 +16,7 @@ Identifies the normal runtime database endpoint and role.
 
 > `readonly` **database**: `"heptalogos"`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:57
+Defined in: packages/host-ownership/dist/contracts.d.ts:59
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:57
 
 > `readonly` **host**: `"127.0.0.1"`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:55
+Defined in: packages/host-ownership/dist/contracts.d.ts:57
 
 ---
 
@@ -32,7 +32,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:55
 
 > `readonly` **port**: `number`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:56
+Defined in: packages/host-ownership/dist/contracts.d.ts:58
 
 ---
 
@@ -40,4 +40,4 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:56
 
 > `readonly` **user**: `"heptalogos_runtime"`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:58
+Defined in: packages/host-ownership/dist/contracts.d.ts:60

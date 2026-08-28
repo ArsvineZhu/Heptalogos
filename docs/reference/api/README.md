@@ -9,6 +9,7 @@
 - [bootstrap-runtime/dist](bootstrap-runtime/dist/README.md)
 - [bootstrap-state/dist](bootstrap-state/dist/README.md)
 - [canonical-schema/dist](canonical-schema/dist/README.md)
+- [durable-execution/dist](durable-execution/dist/README.md)
 - [evidence/dist](evidence/dist/README.md)
 - [execution-lineage/dist](execution-lineage/dist/README.md)
 - [foundation-contracts/dist](foundation-contracts/dist/README.md)

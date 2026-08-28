@@ -8,7 +8,7 @@
 
 > `const` **parseProviderId**: (`value`) => [`ProviderId`](../type-aliases/ProviderId.md) \| `undefined`
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:36
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:39
 
 Parses a Provider identity and rejects malformed namespace syntax.
 

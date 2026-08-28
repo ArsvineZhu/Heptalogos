@@ -6,7 +6,7 @@
 
 # Interface: WorkQueueRuntimeOptions
 
-Defined in: packages/work-queue/dist/contracts.d.ts:152
+Defined in: packages/work-queue/dist/contracts.d.ts:217
 
 Bounded runtime policy controlling payloads, scans, and anti-entropy.
 
@@ -16,7 +16,7 @@ Bounded runtime policy controlling payloads, scans, and anti-entropy.
 
 > `readonly` **antiEntropyIntervalMs**: `number`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:156
+Defined in: packages/work-queue/dist/contracts.d.ts:221
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/work-queue/dist/contracts.d.ts:156
 
 > `readonly` **maxInlinePayloadBytes**: `number`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:153
+Defined in: packages/work-queue/dist/contracts.d.ts:218
 
 ---
 
@@ -32,7 +32,7 @@ Defined in: packages/work-queue/dist/contracts.d.ts:153
 
 > `readonly` **maxOutcomeBytes**: `number`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:154
+Defined in: packages/work-queue/dist/contracts.d.ts:219
 
 ---
 
@@ -40,4 +40,4 @@ Defined in: packages/work-queue/dist/contracts.d.ts:154
 
 > `readonly` **reconciliationBatchSize**: `number`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:155
+Defined in: packages/work-queue/dist/contracts.d.ts:220

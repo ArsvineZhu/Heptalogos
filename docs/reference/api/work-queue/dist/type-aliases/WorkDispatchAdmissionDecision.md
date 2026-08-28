@@ -8,6 +8,6 @@
 
 > **WorkDispatchAdmissionDecision** = \{ `decision`: `"ALLOW"`; \} \| \{ `decision`: `"DELAY"`; `reasonCode`: `string`; \} \| \{ `decision`: `"THROTTLE"`; `reasonCode`: `string`; \}
 
-Defined in: packages/work-queue/dist/contracts.d.ts:101
+Defined in: packages/work-queue/dist/contracts.d.ts:132
 
 Policy result applied immediately before dispatch.

@@ -2650,14 +2650,14 @@ h3a2_host_loss_fence: PASS
 h3a2_host_shutdown_settlement: PASS
 h3a2_same_process_quiesce_resume: PASS
 h3a2_recovery_budget_fail_closed: PASS
-h3a2_ubuntu_postgres_18_6_real_dbos: PASS
+h3a2_ubuntu_postgres_18_6_real_dbos: NOT_RUN
 
 h3a1_independent_review: NOT_RUN
 h3a1_final_manual_ci: NOT_RUN
 
 real_config_pinned_revision_resolution: NOT_RUN
 real_resource_governor_pressure_snapshot: NOT_RUN
-h3_windows_real_dbos: NOT_RUN
+h3_windows_real_dbos: PASS
 h3_macos_real_dbos: NOT_RUN
 h3_source_less_durable_execution: NOT_RUN
 h3_service_headless_durable_execution: NOT_RUN

@@ -8,6 +8,6 @@
 
 > `const` **HOST\_OWNERSHIP\_FENCE\_LOCK\_FUNCTION**: `"lock_host_ownership_fence"`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:22
+Defined in: packages/host-ownership/dist/contracts.d.ts:24
 
 Function that acquires the Host ownership fence inside PostgreSQL.

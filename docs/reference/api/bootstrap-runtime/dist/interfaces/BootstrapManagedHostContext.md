@@ -28,6 +28,14 @@ Defined in: packages/bootstrap-runtime/dist/managed-host.d.ts:52
 
 ---
 
+### durableExecution
+
+> `readonly` **durableExecution**: [`HostDurableExecutionAuthority`](../../../host-ownership/dist/interfaces/HostDurableExecutionAuthority.md)
+
+Defined in: packages/bootstrap-runtime/dist/managed-host.d.ts:57
+
+---
+
 ### installationId
 
 > `readonly` **installationId**: [`InstallationId`](../../../foundation-contracts/dist/type-aliases/InstallationId.md)
@@ -80,7 +88,7 @@ Defined in: packages/bootstrap-runtime/dist/managed-host.d.ts:53
 
 > **assertActive**(): `void`
 
-Defined in: packages/bootstrap-runtime/dist/managed-host.d.ts:58
+Defined in: packages/bootstrap-runtime/dist/managed-host.d.ts:59
 
 Throws when the managed Host has been closed or its fence is inactive.
 
@@ -94,7 +102,7 @@ Throws when the managed Host has been closed or its fence is inactive.
 
 > **preparePrivatePostgresMaintenance**(`request`): `Promise`\<[`PreparedPrivatePostgresMaintenance`](PreparedPrivatePostgresMaintenance.md)>\>
 
-Defined in: packages/bootstrap-runtime/dist/managed-host.d.ts:60
+Defined in: packages/bootstrap-runtime/dist/managed-host.d.ts:61
 
 Prepares a bounded private PostgreSQL maintenance operation.
 
@@ -114,7 +122,7 @@ Prepares a bounded private PostgreSQL maintenance operation.
 
 > **shutdownKeepingPrivatePostgres**(`quiescence`): `Promise`\<`void`>\>
 
-Defined in: packages/bootstrap-runtime/dist/managed-host.d.ts:62
+Defined in: packages/bootstrap-runtime/dist/managed-host.d.ts:63
 
 Quiesces and closes Host while preserving the maintenance handoff order.
 

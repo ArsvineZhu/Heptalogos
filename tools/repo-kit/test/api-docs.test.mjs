@@ -14,6 +14,7 @@ const packageNames = [
   "bootstrap-runtime",
   "bootstrap-state",
   "canonical-schema",
+  "durable-execution",
   "evidence",
   "execution-lineage",
   "foundation-contracts",
@@ -54,8 +55,8 @@ describe("API documentation ownership", () => {
       resolvePackageTypesEntryPoint({ root, packageInfo }),
     );
 
-    expect(discovered).toHaveLength(15);
-    expect(entrypoints).toHaveLength(15);
+    expect(discovered).toHaveLength(16);
+    expect(entrypoints).toHaveLength(16);
     expect(entrypoints.map(({ packageName }) => packageName)).toContain(
       "@heptalogos/bootstrap-runtime",
     );
@@ -72,13 +73,13 @@ describe("API documentation ownership", () => {
     ).toEqual([]);
   });
 
-  it("fails closed when one of fifteen discovered packages is absent from TypeDoc", () => {
+  it("fails closed when one of sixteen discovered packages is absent from TypeDoc", () => {
     const packages = expectedPackages();
     const reflection = reflectionFor(packages.slice(1));
 
     expect(validateApiReflection({ root, packages, reflection })).toEqual([
       expect.stringContaining(
-        "TypeDoc reflection package count differs from product discovery: expected 15, actual 14",
+        "TypeDoc reflection package count differs from product discovery: expected 16, actual 15",
       ),
       expect.stringContaining(
         "TypeDoc reflection is missing product package @heptalogos/bootstrap-runtime",

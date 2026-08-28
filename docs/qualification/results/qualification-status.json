@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-27T15:49:28+08:00",
+  "recordedAt": "2026-08-29T06:23:58+08:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": ["PASS", "FAIL", "NOT_RUN", "BLOCKED"],
@@ -148,7 +148,7 @@
     },
     {
       "qualificationId": "Q-ASYNC-01",
-      "testedProperty": "Static dispatcher semantics plus real DBOS/PostgreSQL queue, generation pinning, revision attempts, restart, and terminal retry effect fencing",
+      "testedProperty": "Static dispatcher semantics plus real DBOS/PostgreSQL queue, generation pinning, revision attempts, process restart, Host lifecycle, admission, and terminal retry effect fencing",
       "evidenceStatus": "PASS",
       "qualificationState": "OPEN",
       "candidateFreeze": "PASS",
@@ -196,7 +196,35 @@
         "h3a1_work_creation_envelope_snapshot": "PASS",
         "h3a1_projection_index_query_shape": "PASS",
         "h3a1_final_cross_platform_ci": "NOT_RUN",
-        "h3a1_cross_platform_regression_ci": "PASS"
+        "h3a1_cross_platform_regression_ci": "PASS",
+        "h3a2_exact_dbos_4_27_6": "PASS",
+        "h3a2_workitem_product_authority": "PASS",
+        "h3a2_dedicated_engine_principal": "PASS",
+        "h3a2_engine_zero_product_table_privilege": "PASS",
+        "h3a2_dbos_schema_migration_authority": "PASS",
+        "h3a2_normal_runtime_no_ddl": "PASS",
+        "h3a2_static_dispatcher_real_dbos": "PASS",
+        "h3a2_same_revision_engine_idempotency": "PASS",
+        "h3a2_delayed_not_before": "PASS",
+        "h3a2_retry_new_revision": "PASS",
+        "h3a2_queue_profile_projection": "PASS",
+        "h3a2_partition_profile_projection": "PASS",
+        "h3a2_stable_instance_executor_identity": "PASS",
+        "h3a2_application_version_isolation": "PASS",
+        "h3a2_lost_predispatch_process_recovery": "PASS",
+        "h3a2_running_same_attempt_recovery": "PASS",
+        "h3a2_crash_after_terminal_commit_no_duplicate_handler": "PASS",
+        "h3a2_host_loss_fence": "PASS",
+        "h3a2_host_shutdown_settlement": "PASS",
+        "h3a2_same_process_quiesce_resume": "PASS",
+        "h3a2_recovery_budget_fail_closed": "PASS",
+        "h3a2_admission_and_queue_mechanics": "PASS",
+        "h3_windows_real_dbos": "PASS",
+        "h3a2_ubuntu_postgres_18_6_real_dbos": "NOT_RUN",
+        "real_resource_governor_pressure_snapshot": "NOT_RUN",
+        "h3a2_candidate_freeze": "NOT_RUN",
+        "h3a2_independent_review": "NOT_RUN",
+        "h3a2_final_manual_ci": "NOT_RUN"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
@@ -209,7 +237,18 @@
         "h3a1_merge": "PASS (PR #28 merged into current master)",
         "h3a1_governance_recovery": "PASS (separate documentation-only current-truth decision)",
         "h3a1_independent_review": "NOT_RUN (not inferred from GitHub merge state)",
-        "h3a1_final_manual_ci": "NOT_RUN"
+        "h3a1_final_manual_ci": "NOT_RUN",
+        "h3a2_real_dbos_environment": "Windows / Node 24.19.0 / pnpm 11.22.0 with the explicit PostgreSQL 18.6 toolchain; no Ubuntu claim is made",
+        "h3a2_bootstrap_runtime_real_dbos": "PASS (bootstrap-runtime:test:integration; 9 files, 106/106 tests)",
+        "h3a2_process_crash_recovery": "PASS (bootstrap-runtime:test:durable-recovery-process; 8/8 tests)",
+        "h3a2_host_lifecycle": "PASS (runtime-host-lifecycle Q1-Q5; 5/5 tests)",
+        "h3a2_admission_queue": "PASS (durable-work-host T12; 6/6 tests)",
+        "h3a2_repository_gates": "PASS (pnpm verify; local repository static, test, and build closure)",
+        "h3a2_ubuntu_postgres_18_6_real_dbos": "NOT_RUN (the current execution environment is Windows)",
+        "real_resource_governor_pressure_snapshot": "NOT_RUN (H8-owned ResourceGovernor is outside H3A-2)",
+        "h3a2_candidate_freeze": "NOT_RUN (the development branch remains mutable)",
+        "h3a2_independent_review": "NOT_RUN (external governance verdict is not inferred)",
+        "h3a2_final_manual_ci": "NOT_RUN"
       },
       "historicalEvidence": {
         "preCorrectionH3A1": {
@@ -240,7 +279,12 @@
       "notRunReasons": {
         "crash_after_terminal_commit": "No process-level crash was injected after the canonical terminal commit; only a real DBOS retry attempt was exercised.",
         "h3a1_dbos_real_engine": "H3A-1 deliberately implements engine-neutral WorkQueue semantics; DBOS integration is deferred to H3A-2.",
-        "h3a1_process_crash_after_terminal_commit": "H3A-1 has no process-level crash harness or DBOS engine checkpoint to exercise this boundary; it remains deferred to H3A-2."
+        "h3a1_process_crash_after_terminal_commit": "H3A-1 has no process-level crash harness or DBOS engine checkpoint to exercise this boundary; it remains deferred to H3A-2.",
+        "h3a2_ubuntu_postgres_18_6_real_dbos": "The current local execution environment is Windows; Ubuntu evidence requires the designated Ubuntu qualification environment.",
+        "real_resource_governor_pressure_snapshot": "ResourceGovernor and PressureSnapshot are H8-owned and are explicitly outside this H3A-2 plan.",
+        "h3a2_candidate_freeze": "The implementation branch is still mutable before the external review gate.",
+        "h3a2_independent_review": "Independent Review is an out-of-band governance verdict and has not been supplied.",
+        "h3a2_final_manual_ci": "Final manual CI runs only after Independent Review PASS on the frozen Ready candidate."
       },
       "preImplementationDecisionState": "CLOSED",
       "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification unless explicitly promoted by a future blocker."

@@ -8,7 +8,7 @@
 
 > **createWorkQueueService**(`options`): [`WorkQueueService`](../interfaces/WorkQueueService.md)
 
-Defined in: packages/work-queue/dist/service.d.ts:61
+Defined in: packages/work-queue/dist/service.d.ts:62
 
 Create the WorkQueue service with explicit admission, handler, and signal owners.
 

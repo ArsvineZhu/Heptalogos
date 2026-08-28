@@ -19,6 +19,11 @@ loss into a database-visible fence rather than relying on process-local state.
 - The fenced `HostDurableExecutionAuthority` contract and its callback-scoped
   database credential boundary.
 
+The durable-execution consumer receives only the fenced durable database target
+and password callback. It cannot use this contract to reach canonical
+`heptalogos.*` tables; DBOS schema mechanics and lifecycle remain owned by the
+separate durable-execution adapter.
+
 ## Does not own
 
 - Bootstrap orchestration or private PostgreSQL process control.
@@ -55,7 +60,8 @@ semantics.
 
 Run `pnpm nx run host-ownership:test`, its integration target against real
 PostgreSQL, and the repository type, boundary, and hygiene gates for boundary
-changes.
+changes. Durable-execution qualification also exercises the durable role's schema/data privilege
+isolation through the real Host composition.
 
 ## Architecture references
 

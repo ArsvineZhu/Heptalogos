@@ -8,6 +8,6 @@
 
 > **WorkConfigurationBinding** = \{ `configRevisionRef?`: `undefined`; `policy`: `"LATEST_COMPATIBLE_AT_ATTEMPT"`; \} \| \{ `configRevisionRef`: `string`; `policy`: `"CONFIG_PINNED"`; \}
 
-Defined in: packages/work-queue/dist/contracts.d.ts:19
+Defined in: packages/work-queue/dist/contracts.d.ts:50
 
 Selects whether a handler attempt resolves current or pinned configuration.

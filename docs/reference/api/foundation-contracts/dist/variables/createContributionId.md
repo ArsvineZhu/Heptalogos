@@ -8,7 +8,7 @@
 
 > `const` **createContributionId**: (`value`) => [`ContributionId`](../type-aliases/ContributionId.md)
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:50
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:57
 
 Creates a validated Contribution identity from its canonical name.
 

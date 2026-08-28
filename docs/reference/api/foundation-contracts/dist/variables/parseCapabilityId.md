@@ -8,7 +8,7 @@
 
 > `const` **parseCapabilityId**: (`value`) => [`CapabilityId`](../type-aliases/CapabilityId.md) \| `undefined`
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:34
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:37
 
 Parses a Capability identity and rejects malformed namespace syntax.
 

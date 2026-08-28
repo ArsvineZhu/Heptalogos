@@ -8,7 +8,7 @@
 
 > `const` **parseMicroSystemInstanceId**: (`value`) => [`MicroSystemInstanceId`](../type-aliases/MicroSystemInstanceId.md) \| `undefined`
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:56
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:63
 
 Parses a MicroSystem instance UUID-v7 identity.
 

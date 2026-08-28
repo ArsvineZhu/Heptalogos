@@ -6,7 +6,7 @@
 
 # Interface: BootstrapHostReservation
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:143
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:146
 
 Represents a temporary Bootstrap Host advisory reservation.
 
@@ -16,7 +16,7 @@ Represents a temporary Bootstrap Host advisory reservation.
 
 > **release**(): `Promise`\<`void`>\>
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:145
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:148
 
 Releases the reservation and closes its administrative connection.
 

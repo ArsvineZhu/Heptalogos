@@ -8,7 +8,7 @@
 
 > `const` **parseServiceId**: (`value`) => [`ServiceId`](../type-aliases/ServiceId.md) \| `undefined`
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:32
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:35
 
 Parses a Service identity and rejects malformed namespace syntax.
 

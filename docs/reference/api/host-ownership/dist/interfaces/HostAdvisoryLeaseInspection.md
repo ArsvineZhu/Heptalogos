@@ -6,7 +6,7 @@
 
 # Interface: HostAdvisoryLeaseInspection
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:96
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:99
 
 Reports live Host lease backends matching the canonical advisory key.
 
@@ -16,7 +16,7 @@ Reports live Host lease backends matching the canonical advisory key.
 
 > `readonly` **backendPids**: readonly `number`[]
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:98
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:101
 
 ---
 
@@ -24,4 +24,4 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:98
 
 > `readonly` **live**: `boolean`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:97
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:100

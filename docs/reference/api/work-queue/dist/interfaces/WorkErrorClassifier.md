@@ -6,7 +6,7 @@
 
 # Interface: WorkErrorClassifier
 
-Defined in: packages/work-queue/dist/contracts.d.ts:147
+Defined in: packages/work-queue/dist/contracts.d.ts:212
 
 Converts handler failures into the queue's durable retry decision.
 
@@ -16,7 +16,7 @@ Converts handler failures into the queue's durable retry decision.
 
 > **classify**(`input`): [`WorkErrorDecision`](../type-aliases/WorkErrorDecision.md)
 
-Defined in: packages/work-queue/dist/contracts.d.ts:149
+Defined in: packages/work-queue/dist/contracts.d.ts:214
 
 Classify one failed attempt without mutating queue state.
 

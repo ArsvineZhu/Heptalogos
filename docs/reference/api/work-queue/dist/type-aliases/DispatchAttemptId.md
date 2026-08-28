@@ -8,6 +8,6 @@
 
 > **DispatchAttemptId** = [`ContentDigest`](../../../foundation-contracts/dist/type-aliases/ContentDigest.md)\<`"DispatchAttemptId"`>\>
 
-Defined in: packages/work-queue/dist/contracts.d.ts:159
+Defined in: packages/work-queue/dist/contracts.d.ts:224
 
 Content-derived identity for one WorkItem dispatch revision.

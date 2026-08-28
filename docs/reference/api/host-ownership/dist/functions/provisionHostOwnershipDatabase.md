@@ -8,7 +8,7 @@
 
 > **provisionHostOwnershipDatabase**(`options`): `Promise`\<[`BootstrapAdminProvisioningResult`](../interfaces/BootstrapAdminProvisioningResult.md)>\>
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:158
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:161
 
 Provisions the canonical Host roles, database, and ownership prerequisites.
 

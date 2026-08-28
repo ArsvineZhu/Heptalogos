@@ -8,6 +8,6 @@
 
 > **WorkCreationAdmissionDecision** = \{ `decision`: `"ALLOW"`; \} \| \{ `decision`: `"DELAY"`; `notBefore`: [`Instant`](../../../foundation-contracts/dist/type-aliases/Instant.md); `reasonCode`: `string`; \} \| \{ `decision`: `"THROTTLE"`; `notBefore?`: [`Instant`](../../../foundation-contracts/dist/type-aliases/Instant.md); `reasonCode`: `string`; \} \| \{ `decision`: `"REJECT_OPTIONAL"`; `reasonCode`: `string`; \} \| \{ `decision`: `"REJECT_NEW_WORK"`; `reasonCode`: `string`; \}
 
-Defined in: packages/work-queue/dist/contracts.d.ts:83
+Defined in: packages/work-queue/dist/contracts.d.ts:114
 
 Policy result applied while creating a WorkItem.

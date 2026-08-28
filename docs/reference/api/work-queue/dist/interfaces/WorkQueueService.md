@@ -6,7 +6,7 @@
 
 # Interface: WorkQueueService
 
-Defined in: packages/work-queue/dist/service.d.ts:54
+Defined in: packages/work-queue/dist/service.d.ts:55
 
 Admits and persists WorkItems through the owning persistence and lineage seams.
 
@@ -16,7 +16,7 @@ Admits and persists WorkItems through the owning persistence and lineage seams.
 
 > **create**(`request`): `Promise`\<[`WorkCreationResult`](WorkCreationResult.md)>\>
 
-Defined in: packages/work-queue/dist/service.d.ts:56
+Defined in: packages/work-queue/dist/service.d.ts:57
 
 Validate, admit, deduplicate, persist, and signal one WorkItem request.
 

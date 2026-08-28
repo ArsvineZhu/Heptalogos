@@ -8,7 +8,7 @@
 
 > `const` **createCapabilityId**: (`value`) => [`CapabilityId`](../type-aliases/CapabilityId.md)
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:46
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:53
 
 Creates a validated Capability identity from its canonical name.
 

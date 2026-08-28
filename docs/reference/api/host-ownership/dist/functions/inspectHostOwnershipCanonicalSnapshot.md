@@ -8,7 +8,7 @@
 
 > **inspectHostOwnershipCanonicalSnapshot**(`options`): `Promise`\<[`HostOwnershipCanonicalSnapshot`](../interfaces/HostOwnershipCanonicalSnapshot.md)>\>
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:156
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:159
 
 Reads the canonical roles, schema, fence, and ACL projection for qualification.
 

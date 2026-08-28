@@ -8,7 +8,7 @@
 
 > **validateWorkQueueRuntimeOptions**(`options`): `void`
 
-Defined in: packages/work-queue/dist/service.d.ts:59
+Defined in: packages/work-queue/dist/service.d.ts:60
 
 Validate all positive bounded runtime controls before starting queue services.
 

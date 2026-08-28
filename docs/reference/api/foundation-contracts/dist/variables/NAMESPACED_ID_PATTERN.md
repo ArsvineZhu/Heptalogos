@@ -8,6 +8,6 @@
 
 > `const` **NAMESPACED\_ID\_PATTERN**: `"^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$"` = `"^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$"`
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:28
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:31
 
 The syntax accepted for normalized namespaced Runtime identities.

@@ -8,6 +8,6 @@
 
 > **HostOwnershipState** = `"ACTIVE"` \| `"FENCED"` \| `"CLOSING"` \| `"CLOSED"`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:33
+Defined in: packages/host-ownership/dist/contracts.d.ts:35
 
 States whether Host may admit fenced database work.

@@ -6,7 +6,7 @@
 
 # Interface: NormalizedWorkFailure
 
-Defined in: packages/work-queue/dist/contracts.d.ts:126
+Defined in: packages/work-queue/dist/contracts.d.ts:191
 
 Engine-independent failure shape consumed by the work classifier.
 
@@ -16,7 +16,7 @@ Engine-independent failure shape consumed by the work classifier.
 
 > `readonly` `optional` **detail?**: `string`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:128
+Defined in: packages/work-queue/dist/contracts.d.ts:193
 
 ---
 
@@ -24,4 +24,4 @@ Defined in: packages/work-queue/dist/contracts.d.ts:128
 
 > `readonly` **reasonCode**: `string`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:127
+Defined in: packages/work-queue/dist/contracts.d.ts:192
