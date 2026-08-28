@@ -25,7 +25,7 @@ export interface Problem {
 export type ProblemInit = Omit<Problem, "schemaVersion">;
 
 export function createProblem(init: ProblemInit): Problem {
-  return { schemaVersion: 1, ...init };
+  return { ...init, schemaVersion: 1 };
 }
 
 export function createProblemError(

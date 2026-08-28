@@ -313,7 +313,7 @@ export class PostgresSignalService implements SignalService {
     await Promise.all(
       [...this.subscriptions]
         .filter((entry) => !entry.closed && entry.topic === hint.topic)
-        .map((entry) => entry.listener.onWakeup()),
+        .map((entry) => Promise.resolve(entry.listener.onWakeup())),
     );
   }
 

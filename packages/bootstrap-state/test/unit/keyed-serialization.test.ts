@@ -31,15 +31,20 @@ describe("KeyedAsyncSerializer", () => {
     expect(events).toEqual(["first-start", "other", "first-end", "second"]);
   });
 
-  it("continues a key after a rejected operation", async () => {
+  it("continues a queued key in FIFO order after a rejection", async () => {
     const serializer = new KeyedAsyncSerializer();
-    await expect(
-      serializer.run("key", async () => {
-        throw new Error("expected");
-      }),
-    ).rejects.toThrow("expected");
-    await expect(serializer.run("key", async () => "recovered")).resolves.toBe(
-      "recovered",
-    );
+    const events: string[] = [];
+    const rejected = serializer.run("key", async () => {
+      events.push("rejected");
+      throw new Error("expected");
+    });
+    const successor = serializer.run("key", async () => {
+      events.push("successor");
+      return "recovered";
+    });
+
+    await expect(rejected).rejects.toThrow("expected");
+    await expect(successor).resolves.toBe("recovered");
+    expect(events).toEqual(["rejected", "successor"]);
   });
 });

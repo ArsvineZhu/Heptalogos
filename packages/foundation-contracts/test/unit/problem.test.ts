@@ -35,4 +35,17 @@ describe("ProblemError", () => {
       detail: "detail",
     });
   });
+
+  it("owns the supported schema version even when an untyped caller supplies one", () => {
+    const init = {
+      problemCode: "foundation.versioned",
+      category: "validation",
+      retryClass: "never",
+      title: "Versioned problem",
+      schemaVersion: 2,
+    } as never;
+
+    expect(createProblem(init)).toMatchObject({ schemaVersion: 1 });
+    expect(createProblemError(init).problem.schemaVersion).toBe(1);
+  });
 });

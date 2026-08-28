@@ -11,6 +11,7 @@ import {
 } from "@heptalogos/bootstrap-state";
 import {
   createProblem,
+  createProblemError,
   ProblemError,
   createBootId,
   createUuidV7Id,
@@ -113,8 +114,13 @@ function recoveryConflict(
   title: string,
   detail: string,
 ): ProblemError {
-  const value = problem(problemCode, title, detail, "conflict");
-  return new ProblemError(value);
+  return createProblemError({
+    problemCode,
+    category: "conflict",
+    retryClass: "manual",
+    title,
+    detail,
+  });
 }
 
 async function observeLock(instanceRoot: string): Promise<LockObservation> {

@@ -98,6 +98,9 @@ export async function withRestrictedPasswordFile<T>(
   );
   const fileContents = Buffer.concat([Buffer.from(passwordUtf8), Buffer.from("\n")]);
 
+  let result!: T;
+  let operationFailed = false;
+  let operationError: unknown;
   try {
     try {
       await writeFile(passwordFilePath, fileContents, {
@@ -111,19 +114,27 @@ export async function withRestrictedPasswordFile<T>(
         "The restricted ephemeral PostgreSQL password file could not be created",
       );
     }
-    return await use(passwordFilePath);
-  } finally {
-    fileContents.fill(0);
-    try {
-      await unlink(passwordFilePath);
-    } catch (error) {
-      if (!hasNodeErrorCode(error, "ENOENT")) {
-        throw credentialProblem(
-          "private-postgres.credential_file.cleanup_failed",
-          "Private PostgreSQL password file cleanup failed",
-          "The restricted ephemeral PostgreSQL password file could not be removed",
-        );
-      }
+    result = await use(passwordFilePath);
+  } catch (error) {
+    operationFailed = true;
+    operationError = error;
+  }
+
+  fileContents.fill(0);
+  try {
+    await unlink(passwordFilePath);
+  } catch (error) {
+    if (!hasNodeErrorCode(error, "ENOENT")) {
+      const cleanupError = credentialProblem(
+        "private-postgres.credential_file.cleanup_failed",
+        "Private PostgreSQL password file cleanup failed",
+        "The restricted ephemeral PostgreSQL password file could not be removed",
+      );
+      cleanupError.cause = operationError;
+      throw cleanupError;
     }
   }
+
+  if (operationFailed) throw operationError;
+  return result;
 }
