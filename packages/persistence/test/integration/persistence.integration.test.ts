@@ -137,6 +137,14 @@ function makeProvider(): BootstrapAdminPasswordProvider {
         password.fill(0);
       }
     },
+    async withDurableExecutionPassword<T>(use: (password: Uint8Array) => Promise<T>) {
+      const password = new TextEncoder().encode("D".repeat(32));
+      try {
+        return await use(password);
+      } finally {
+        password.fill(0);
+      }
+    },
   };
 }
 

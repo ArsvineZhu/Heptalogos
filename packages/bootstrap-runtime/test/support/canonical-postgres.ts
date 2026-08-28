@@ -60,6 +60,8 @@ export const BOOTSTRAP_PASSWORD = "CANONICAL_PG_TEST_BOOTSTRAP_PASSWORD_01234567
 const HOST_LEASE_PASSWORD = "CANONICAL_PG_TEST_HOST_LEASE_PASSWORD_0123456789";
 export const RUNTIME_PASSWORD = "CANONICAL_PG_TEST_RUNTIME_PASSWORD_0123456789";
 export const MIGRATION_PASSWORD = "CANONICAL_PG_TEST_MIGRATION_PASSWORD_0123456789";
+export const DURABLE_EXECUTION_PASSWORD =
+  "CANONICAL_PG_TEST_DURABLE_EXECUTION_PASSWORD_0123456789";
 
 export interface Fixture {
   readonly anchorRoot: string;
@@ -120,6 +122,12 @@ export function makeKeyProvider(): BootstrapKeyProvider {
       use: (passwordUtf8: Uint8Array) => Promise<T>,
     ): Promise<T> {
       return use(new TextEncoder().encode(MIGRATION_PASSWORD));
+    },
+    async withPrivatePostgresDurableExecutionPassword<T>(
+      _context: BootstrapKeyRequestContext,
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      return use(new TextEncoder().encode(DURABLE_EXECUTION_PASSWORD));
     },
   };
 }

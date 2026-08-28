@@ -17,6 +17,7 @@ import {
 } from "@heptalogos/bootstrap-state";
 import {
   HOST_OWNERSHIP_CANONICAL_DATABASE,
+  HOST_DURABLE_EXECUTION_ROLE,
   HOST_RUNTIME_ROLE,
   type HostOwnershipContext,
 } from "@heptalogos/host-ownership";
@@ -31,6 +32,7 @@ import {
   createManagedHostContext,
   markManagedHostTerminal,
   type BootstrapManagedHostContext,
+  type ManagedHostDurableExecutionOptions,
   type ManagedHostPersistenceOptions,
 } from "../../src/managed-host.js";
 
@@ -45,6 +47,19 @@ const persistenceOptions: ManagedHostPersistenceOptions = {
   },
   async withRuntimeDatabasePassword(use) {
     return use(new TextEncoder().encode("R".repeat(32)));
+  },
+};
+
+const durableExecutionOptions: ManagedHostDurableExecutionOptions = {
+  continuityEpochId: persistenceOptions.continuityEpochId,
+  target: {
+    host: "127.0.0.1",
+    port: 55432,
+    database: HOST_OWNERSHIP_CANONICAL_DATABASE,
+    user: HOST_DURABLE_EXECUTION_ROLE,
+  },
+  async withDurableExecutionDatabasePassword(use) {
+    return use(new TextEncoder().encode("D".repeat(32)));
   },
 };
 
@@ -299,6 +314,12 @@ function makeFixture(): {
       use: (password: Uint8Array) => Promise<T>,
     ) {
       return use(new TextEncoder().encode("M".repeat(32)));
+    },
+    async withPrivatePostgresDurableExecutionPassword<T>(
+      _context: unknown,
+      use: (password: Uint8Array) => Promise<T>,
+    ) {
+      return use(new TextEncoder().encode("D".repeat(32)));
     },
   };
   const handoff: HostOwnershipHandoffOptions = {
@@ -673,7 +694,12 @@ describe("reverse-handoff maintenance preparation and entry", () => {
       },
     };
     const operations = createHostMaintenanceOperations(operationsProvenance);
-    managed = createManagedHostContext(fixture.rawHost, operations, persistenceOptions);
+    managed = createManagedHostContext(
+      fixture.rawHost,
+      operations,
+      persistenceOptions,
+      durableExecutionOptions,
+    );
     const prepared = await managed.preparePrivatePostgresMaintenance({
       kind: "RESTART_PRIVATE_POSTGRES",
     });
@@ -710,7 +736,12 @@ describe("reverse-handoff maintenance preparation and entry", () => {
       },
     };
     const operations = createHostMaintenanceOperations(operationsProvenance);
-    managed = createManagedHostContext(fixture.rawHost, operations, persistenceOptions);
+    managed = createManagedHostContext(
+      fixture.rawHost,
+      operations,
+      persistenceOptions,
+      durableExecutionOptions,
+    );
     const prepared = await managed.preparePrivatePostgresMaintenance({
       kind: "RESTART_PRIVATE_POSTGRES",
     });
@@ -748,7 +779,12 @@ describe("reverse-handoff maintenance preparation and entry", () => {
       },
     };
     const operations = createHostMaintenanceOperations(operationsProvenance);
-    managed = createManagedHostContext(fixture.rawHost, operations, persistenceOptions);
+    managed = createManagedHostContext(
+      fixture.rawHost,
+      operations,
+      persistenceOptions,
+      durableExecutionOptions,
+    );
     const prepared = await managed.preparePrivatePostgresMaintenance({
       kind: "RESTART_PRIVATE_POSTGRES",
     });
@@ -782,7 +818,12 @@ describe("reverse-handoff maintenance preparation and entry", () => {
       },
     };
     const operations = createHostMaintenanceOperations(operationsProvenance);
-    managed = createManagedHostContext(fixture.rawHost, operations, persistenceOptions);
+    managed = createManagedHostContext(
+      fixture.rawHost,
+      operations,
+      persistenceOptions,
+      durableExecutionOptions,
+    );
     const prepared = await managed.preparePrivatePostgresMaintenance({
       kind: "RESTART_PRIVATE_POSTGRES",
     });
@@ -821,7 +862,12 @@ describe("reverse-handoff maintenance preparation and entry", () => {
       },
     };
     const operations = createHostMaintenanceOperations(operationsProvenance);
-    managed = createManagedHostContext(fixture.rawHost, operations, persistenceOptions);
+    managed = createManagedHostContext(
+      fixture.rawHost,
+      operations,
+      persistenceOptions,
+      durableExecutionOptions,
+    );
     const prepared = await managed.preparePrivatePostgresMaintenance({
       kind: "RESTART_PRIVATE_POSTGRES",
     });
@@ -872,7 +918,12 @@ describe("reverse-handoff maintenance preparation and entry", () => {
       },
     };
     const operations = createHostMaintenanceOperations(operationsProvenance);
-    managed = createManagedHostContext(fixture.rawHost, operations, persistenceOptions);
+    managed = createManagedHostContext(
+      fixture.rawHost,
+      operations,
+      persistenceOptions,
+      durableExecutionOptions,
+    );
     const prepared = await managed.preparePrivatePostgresMaintenance({
       kind: "RESTART_PRIVATE_POSTGRES",
     });

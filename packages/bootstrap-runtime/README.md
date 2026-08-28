@@ -15,12 +15,16 @@ Runtime lifecycle without giving Bootstrap product Runtime semantics.
 - Private PostgreSQL startup and authorized maintenance handoff.
 - Bootstrap recovery inspection and command execution.
 - Managed Host lifecycle, quiescence, and handoff contracts.
+- The managed Host's fenced durable-execution database authority and
+  callback-scoped credential handoff.
 - Bootstrap key-provider and installation-owner projections.
 
 ## Does not own
 
 - Runtime Kernel or Cordis mechanics in production source.
 - Normal persistence/schema mutation authority.
+- DBOS lifecycle or workflow mechanics; those belong to the durable-execution
+  package composed by the Host boundary.
 - A second Host lease or private PostgreSQL controller.
 - Later-stage durable work, external effects, or product cognition.
 

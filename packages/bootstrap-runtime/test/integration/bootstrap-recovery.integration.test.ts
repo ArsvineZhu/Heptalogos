@@ -289,6 +289,19 @@ function makeKeyProvider(): BootstrapKeyProvider {
         password.fill(0);
       }
     },
+    async withPrivatePostgresDurableExecutionPassword<T>(
+      _context: BootstrapKeyRequestContext,
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      const password = new TextEncoder().encode(
+        "BOOTSTRAP_RECOVERY_TEST_DURABLE_EXECUTION_PASSWORD_0123456789",
+      );
+      try {
+        return await use(password);
+      } finally {
+        password.fill(0);
+      }
+    },
   };
 }
 
@@ -339,6 +352,17 @@ function passwordProvider(
           instanceId,
           bootId,
           purpose: "private-postgres-migration-role",
+        },
+        use,
+      );
+    },
+    withDurableExecutionPassword(use) {
+      return keyProvider.withPrivatePostgresDurableExecutionPassword(
+        {
+          installationId,
+          instanceId,
+          bootId,
+          purpose: "private-postgres-durable-execution-role",
         },
         use,
       );

@@ -227,6 +227,16 @@ function makeKeyProvider() {
         ),
       );
     },
+    async withPrivatePostgresDurableExecutionPassword<T>(
+      _context: unknown,
+      use: (password: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      return use(
+        new TextEncoder().encode(
+          "BOOTSTRAP_RECOVERY_TEST_DURABLE_EXECUTION_PASSWORD_0123456789",
+        ),
+      );
+    },
   };
 }
 

@@ -20,6 +20,7 @@ import {
   HOST_OWNERSHIP_OWNER_ROLE,
   HOST_OWNERSHIP_SCHEMA,
   HOST_RUNTIME_ROLE,
+  HOST_DURABLE_EXECUTION_ROLE,
 } from "./contracts.js";
 import {
   type BootstrapAdminClient,
@@ -422,6 +423,7 @@ async function ensureDatabasePrivileges(
       `${HOST_LEASE_ROLE}:CONNECT:false`,
       `${HOST_MIGRATION_ROLE}:CONNECT:false`,
       `${HOST_RUNTIME_ROLE}:CONNECT:false`,
+      `${HOST_DURABLE_EXECUTION_ROLE}:CONNECT:false`,
     ]),
     "Unexpected explicit database privilege exists on the canonical database",
   );
@@ -445,6 +447,11 @@ async function ensureDatabasePrivileges(
     authority,
     `GRANT CONNECT ON DATABASE ${quoteIdentifier(HOST_OWNERSHIP_CANONICAL_DATABASE)} TO ${quoteIdentifier(HOST_MIGRATION_ROLE)}`,
   );
+  await authorizedMutation(
+    client,
+    authority,
+    `GRANT CONNECT ON DATABASE ${quoteIdentifier(HOST_OWNERSHIP_CANONICAL_DATABASE)} TO ${quoteIdentifier(HOST_DURABLE_EXECUTION_ROLE)}`,
+  );
   const verified = await client.query<AclRow>(DATABASE_ACL_QUERY, [
     HOST_OWNERSHIP_CANONICAL_DATABASE,
   ]);
@@ -454,6 +461,7 @@ async function ensureDatabasePrivileges(
       `${HOST_LEASE_ROLE}:CONNECT:false`,
       `${HOST_RUNTIME_ROLE}:CONNECT:false`,
       `${HOST_MIGRATION_ROLE}:CONNECT:false`,
+      `${HOST_DURABLE_EXECUTION_ROLE}:CONNECT:false`,
     ]),
     "Canonical database privileges do not match the closed-world contract",
   );

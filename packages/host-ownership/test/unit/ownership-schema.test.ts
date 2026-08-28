@@ -7,6 +7,7 @@ import {
   HOST_OWNERSHIP_OWNER_ROLE,
   HOST_OWNERSHIP_SCHEMA,
   HOST_RUNTIME_ROLE,
+  HOST_DURABLE_EXECUTION_ROLE,
 } from "../../src/contracts.js";
 import {
   type BootstrapAdminClient,
@@ -56,6 +57,15 @@ interface AclFixtureRow {
   readonly is_grantable?: boolean;
 }
 
+function exactDatabaseAcl(): AclFixtureRow[] {
+  return [
+    { grantee: HOST_LEASE_ROLE, privilege_type: "CONNECT" },
+    { grantee: HOST_RUNTIME_ROLE, privilege_type: "CONNECT" },
+    { grantee: HOST_MIGRATION_ROLE, privilege_type: "CONNECT" },
+    { grantee: HOST_DURABLE_EXECUTION_ROLE, privilege_type: "CONNECT" },
+  ];
+}
+
 /*
  * The pre-hardening fixture format intentionally defaults fields added by the
  * PostgreSQL ACL projection. Existing fixtures represent ordinary non-grantable
@@ -87,7 +97,7 @@ function existingSchemaState(overrides: Partial<SchemaState> = {}): SchemaState 
         boot_id: null,
       },
     ],
-    databaseAcl: [{ grantee: HOST_LEASE_ROLE, privilege_type: "CONNECT" }],
+    databaseAcl: exactDatabaseAcl(),
     publicSchemaAcl: [],
     schemaAcl: [{ grantee: HOST_LEASE_ROLE, privilege_type: "USAGE" }],
     tableAcl: [
@@ -289,11 +299,13 @@ class FakeSchemaClient implements BootstrapAdminClient {
         );
       }
       if (normalized.startsWith("GRANT CONNECT ON DATABASE")) {
-        const grantee = normalized.includes(`"${HOST_MIGRATION_ROLE}"`)
-          ? HOST_MIGRATION_ROLE
-          : normalized.includes(`"${HOST_RUNTIME_ROLE}"`)
-            ? HOST_RUNTIME_ROLE
-            : HOST_LEASE_ROLE;
+        const grantee = normalized.includes(`"${HOST_DURABLE_EXECUTION_ROLE}"`)
+          ? HOST_DURABLE_EXECUTION_ROLE
+          : normalized.includes(`"${HOST_MIGRATION_ROLE}"`)
+            ? HOST_MIGRATION_ROLE
+            : normalized.includes(`"${HOST_RUNTIME_ROLE}"`)
+              ? HOST_RUNTIME_ROLE
+              : HOST_LEASE_ROLE;
         this.state.databaseAcl = [
           ...this.state.databaseAcl.filter(
             (row) => !(row.grantee === grantee && row.privilege_type === "CONNECT"),
@@ -426,6 +438,11 @@ function makeOptions(
     ): Promise<T> {
       return use(new TextEncoder().encode("M".repeat(32)));
     },
+    async withDurableExecutionPassword<T>(
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      return use(new TextEncoder().encode("D".repeat(32)));
+    },
   };
   const parsedInstanceId = parseInstanceId(instanceId);
   if (parsedInstanceId === undefined) throw new Error("invalid test InstanceId");
@@ -480,6 +497,9 @@ describe("HostOwnershipFence schema", () => {
     expect(sql).toContain(
       `GRANT CONNECT ON DATABASE "${HOST_OWNERSHIP_CANONICAL_DATABASE}" TO "heptalogos_runtime"`,
     );
+    expect(sql).toContain(
+      `GRANT CONNECT ON DATABASE "${HOST_OWNERSHIP_CANONICAL_DATABASE}" TO "${HOST_DURABLE_EXECUTION_ROLE}"`,
+    );
     expect(sql).toContain(`GRANT USAGE ON SCHEMA "${HOST_OWNERSHIP_SCHEMA}"`);
     expect(sql).toContain(
       `GRANT USAGE ON SCHEMA "${HOST_OWNERSHIP_SCHEMA}" TO "heptalogos_runtime"`,
@@ -513,7 +533,7 @@ describe("HostOwnershipFence schema", () => {
           boot_id: null,
         },
       ],
-      databaseAcl: [{ grantee: HOST_LEASE_ROLE, privilege_type: "CONNECT" }],
+      databaseAcl: exactDatabaseAcl(),
       publicSchemaAcl: [],
       schemaAcl: [{ grantee: HOST_LEASE_ROLE, privilege_type: "USAGE" }],
       tableAcl: [
@@ -548,7 +568,7 @@ describe("HostOwnershipFence schema", () => {
           boot_id: null,
         },
       ],
-      databaseAcl: [{ grantee: HOST_LEASE_ROLE, privilege_type: "CONNECT" }],
+      databaseAcl: exactDatabaseAcl(),
       publicSchemaAcl: [],
       schemaAcl: [{ grantee: HOST_LEASE_ROLE, privilege_type: "USAGE" }],
       tableAcl: [
@@ -576,7 +596,7 @@ describe("HostOwnershipFence schema", () => {
           boot_id: null,
         },
       ],
-      databaseAcl: [{ grantee: HOST_LEASE_ROLE, privilege_type: "CONNECT" }],
+      databaseAcl: exactDatabaseAcl(),
       publicSchemaAcl: [],
       schemaAcl: [{ grantee: HOST_LEASE_ROLE, privilege_type: "USAGE" }],
       tableAcl: [
@@ -665,7 +685,7 @@ describe("HostOwnershipFence schema", () => {
           boot_id: null,
         },
       ],
-      databaseAcl: [{ grantee: HOST_LEASE_ROLE, privilege_type: "CONNECT" }],
+      databaseAcl: exactDatabaseAcl(),
       publicSchemaAcl: [],
       schemaAcl: [{ grantee: HOST_LEASE_ROLE, privilege_type: "USAGE" }],
       tableAcl: [

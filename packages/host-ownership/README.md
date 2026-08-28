@@ -14,12 +14,17 @@ loss into a database-visible fence rather than relying on process-local state.
 - Host token publication, revocation, and inspection.
 - Bootstrap reservation and Host ownership database setup primitives.
 - Lease-bound PostgreSQL connection acquisition.
-- Host ownership schema and role constants required by the contract.
+- Host ownership schema and the five protected role constants required by the
+  contract, including the database-only durable-execution role.
+- The fenced `HostDurableExecutionAuthority` contract and its callback-scoped
+  database credential boundary.
 
 ## Does not own
 
 - Bootstrap orchestration or private PostgreSQL process control.
 - The normal persistence service or canonical schema migration authority.
+- DBOS lifecycle, queue, or workflow mechanics; the durable role is only the
+  Host-owned database boundary for that engine.
 - Runtime Kernel desired/actual reconciliation.
 - Product policy that merely uses a Host ownership context.
 
@@ -28,7 +33,9 @@ loss into a database-visible fence rather than relying on process-local state.
 The public entry point exports Host lease/fence contracts, bootstrap reservation
 and provisioning operations, ownership schema setup, token publication and
 revocation, database inspection, and `acquireHostLeaseConnection`. Consumers
-must carry the typed ownership context through mutation paths.
+must carry the typed ownership context through mutation paths. Durable-engine
+consumers receive `HostDurableExecutionAuthority`; they do not receive product
+schema privileges through it.
 
 ## Dependencies and boundaries
 

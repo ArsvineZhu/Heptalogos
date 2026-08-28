@@ -33,6 +33,7 @@ import {
   deriveHostAdvisoryKey,
   HOST_OWNERSHIP_CANONICAL_DATABASE,
   HOST_RUNTIME_ROLE,
+  HOST_DURABLE_EXECUTION_ROLE,
   inspectHostAdvisoryLease,
   inspectHostOwnershipCanonicalSnapshot,
   publishHostOwnershipToken,
@@ -348,6 +349,17 @@ function passwordProvider(
         use,
       );
     },
+    withDurableExecutionPassword<T>(use: (password: Uint8Array) => Promise<T>) {
+      return options.keyProvider.withPrivatePostgresDurableExecutionPassword(
+        {
+          installationId,
+          instanceId,
+          bootId,
+          purpose: "private-postgres-durable-execution-role",
+        },
+        use,
+      );
+    },
   };
 }
 
@@ -458,6 +470,26 @@ function createRecoveredManagedHost(
               instanceId: bootstrap.instanceId,
               bootId: host.bootId,
               purpose: "private-postgres-runtime-role",
+            },
+            use,
+          );
+        },
+      },
+      {
+        continuityEpochId,
+        target: {
+          host: "127.0.0.1",
+          port: privatePostgres.expectedIdentity.persistedPort,
+          database: HOST_OWNERSHIP_CANONICAL_DATABASE,
+          user: HOST_DURABLE_EXECUTION_ROLE,
+        },
+        withDurableExecutionDatabasePassword(use) {
+          return handoff.keyProvider.withPrivatePostgresDurableExecutionPassword(
+            {
+              installationId: bootstrap.installationId,
+              instanceId: bootstrap.instanceId,
+              bootId: host.bootId,
+              purpose: "private-postgres-durable-execution-role",
             },
             use,
           );

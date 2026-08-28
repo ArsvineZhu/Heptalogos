@@ -183,6 +183,16 @@ function makeKeyProvider(
         password.fill(0);
       }
     },
+    async withPrivatePostgresDurableExecutionPassword<T>(
+      _context: BootstrapKeyRequestContext,
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      return use(
+        new TextEncoder().encode(
+          "HOST_MAINTENANCE_TEST_DURABLE_EXECUTION_PASSWORD_0123456789",
+        ),
+      );
+    },
   };
 }
 
@@ -240,6 +250,17 @@ async function hostOwnershipSnapshot(
           instanceId: host.instanceId,
           bootId: host.bootId,
           purpose: "private-postgres-migration-role",
+        },
+        use,
+      );
+    },
+    withDurableExecutionPassword(use) {
+      return keyProvider.withPrivatePostgresDurableExecutionPassword(
+        {
+          installationId: host.installationId,
+          instanceId: host.instanceId,
+          bootId: host.bootId,
+          purpose: "private-postgres-durable-execution-role",
         },
         use,
       );

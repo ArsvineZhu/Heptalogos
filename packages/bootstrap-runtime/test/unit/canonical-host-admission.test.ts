@@ -38,6 +38,12 @@ function keyProvider(): BootstrapKeyProvider {
     ) {
       return use(new Uint8Array([4]));
     },
+    async withPrivatePostgresDurableExecutionPassword<T>(
+      _context: BootstrapKeyRequestContext,
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ) {
+      return use(new Uint8Array([5]));
+    },
   };
 }
 

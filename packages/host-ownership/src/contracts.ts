@@ -22,6 +22,8 @@ export const HOST_LEASE_ROLE = "heptalogos_host_lease" as const;
 export const HOST_RUNTIME_ROLE = "heptalogos_runtime" as const;
 /** Role used only for canonical schema migration sessions. */
 export const HOST_MIGRATION_ROLE = "heptalogos_migration" as const;
+/** Role used only by the DBOS durable-execution engine projection. */
+export const HOST_DURABLE_EXECUTION_ROLE = "heptalogos_durable_execution" as const;
 /** Schema containing Host ownership and Foundation tables. */
 export const HOST_OWNERSHIP_SCHEMA = "heptalogos" as const;
 /** Table holding the current database-visible Host fence. */
@@ -79,6 +81,14 @@ export interface HostMigrationDatabaseTarget {
   readonly user: typeof HOST_MIGRATION_ROLE;
 }
 
+/** Identifies the dedicated DBOS system-database endpoint and role. */
+export interface HostDurableExecutionDatabaseTarget {
+  readonly host: "127.0.0.1";
+  readonly port: number;
+  readonly database: typeof HOST_OWNERSHIP_CANONICAL_DATABASE;
+  readonly user: typeof HOST_DURABLE_EXECUTION_ROLE;
+}
+
 /** Authorizes canonical schema migration under the current Host fence. */
 export interface HostCanonicalMigrationAuthority {
   readonly installationId: InstallationId;
@@ -109,6 +119,23 @@ export interface HostPersistenceAuthority {
   assertActive(): void;
   /** Uses the runtime credential only within the supplied callback. */
   withRuntimeDatabasePassword<T>(
+    use: (passwordUtf8: Uint8Array) => Promise<T>,
+  ): Promise<T>;
+}
+
+/** Authorizes DBOS engine-private durable execution for the active Host. */
+export interface HostDurableExecutionAuthority {
+  readonly installationId: InstallationId;
+  readonly instanceId: InstanceId;
+  readonly bootId: BootId;
+  readonly continuityEpochId: ContinuityEpochId;
+  readonly token: HostOwnershipToken;
+  readonly target: HostDurableExecutionDatabaseTarget;
+  readonly signal: AbortSignal;
+  /** Throws when the durable-engine authority is no longer active. */
+  assertActive(): void;
+  /** Uses the durable-engine credential only within the supplied callback. */
+  withDurableExecutionDatabasePassword<T>(
     use: (passwordUtf8: Uint8Array) => Promise<T>,
   ): Promise<T>;
 }
