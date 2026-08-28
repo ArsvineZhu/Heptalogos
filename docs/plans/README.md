@@ -27,7 +27,7 @@ An unresolved non-trivial choice is `PLAN_GAP` and stops execution.
 ## Active
 
 - [H3A — Durable Obligation & Signal Spine](active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md) — `ACTIVE` (H3A-1 canonical work, generation-pinned handlers, Signal, and engine-neutral WorkQueue semantics)
-- [Repository Stabilization & Topology Reset v2](active/repository/repository-stabilization-topology-reset-2026-08-27.md) — `ACTIVE` (P0 baseline and repository topology/control-plane reset; H3A-2 remains blocked by this plan)
+- [Repository Stabilization & Topology Reset v2](active/repository/repository-stabilization-topology-reset-2026-08-27.md) — `ACTIVE` (P0 baseline and repository topology/control-plane reset; mechanics/library-first corrections are governed by the named corrective plan)
 - [Mechanics Ownership & Library-First Convergence](active/repository/mechanics-ownership-library-first-convergence-2026-08-28.md) — `ACTIVE` (governing plan for the remaining mechanics/library-first corrective work on the repository stabilization candidate)
 
 ## Completed

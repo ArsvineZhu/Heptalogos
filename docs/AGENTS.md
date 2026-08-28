@@ -18,6 +18,8 @@ AI-facing operational contract; use concise technical English.
 - Do not create nested `AGENTS.md` files under `docs/`.
 - Every current local Markdown link must resolve.
 - Completed historical plans may reference historical paths as historical facts.
+- Executable plans live only under `docs/plans/active/`; completed and
+  superseded plans are historical and must not be used as current routes.
 
 Before changing documentation, identify its audience, canonical facts, and
 current evidence. Update navigation and affected agent routes in the same

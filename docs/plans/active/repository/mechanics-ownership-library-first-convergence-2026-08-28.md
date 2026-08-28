@@ -1,17 +1,22 @@
 # Heptalogos Repository Stabilization — Mechanics Ownership & Library-First Convergence Corrective Plan
 
-**Status:** `ACTIVE` once adopted into the repository  
+**Status:** `ACTIVE`
 **Date:** 2026-08-28  
 **Scope:** Remaining corrective work on the current Repository Stabilization candidate / PR #29  
 **Canonical repository destination:**  
 `docs/plans/active/repository/mechanics-ownership-library-first-convergence-2026-08-28.md`
 
-> This plan is a decision-complete corrective extension to  
-> `docs/plans/active/repository/repository-stabilization-topology-reset-2026-08-27.md`.
+> This plan is the active mechanics/library-first corrective plan for the
+> repository-stabilization candidate. The broader topology-reset plan remains
+> active for its own approved change sets.
 >
 > It does **not** reopen H3A-1 product semantics, does **not** start H3A-2, and does **not** create a new compatibility obligation.
 >
-> The current PR candidate is already Ready. Because this plan requires repository mutation, the executor MUST return the PR to **Draft before the first code/document mutation**. Any previous external Independent Review verdict, if one exists, becomes stale by definition. The executor MUST NOT query GitHub review objects to infer Independent Review state.
+> Because this plan requires repository mutation, the executor MUST keep PR #29
+> in **Draft before and during all correction work**. Any previous external
+> Independent Review verdict, if one exists, becomes stale by definition. The
+> executor MUST NOT query GitHub review objects to infer Independent Review
+> state.
 
 ---
 
@@ -25,29 +30,14 @@ but implementation still sometimes behaves as if every local file/package
 may independently reinvent the same generic mechanic.
 ```
 
-Current examples include:
+The finite correction scope covers:
 
 ```text
-SchemaRuntime exists
-→ bootstrap packages still instantiate/configure Ajv/TypeBox directly
-
-repo-kit exists
-→ repository scripts still implement their own walkers/parsers/helpers
-
-Nx exists
-→ repo-kit implements a second task dependency graph/scheduler
-
-Cordis exists
-→ RuntimeSubstrate duplicates significant Fiber lifecycle/disposal mechanics
-
-XState is adopted
-→ some complex lifecycle legality is still maintained manually
-
-foundation-contracts owns Problem
-→ packages repeatedly rebuild the same Problem envelope boilerplate
-
-existing package primitives exist
-→ local files still recreate equivalent helpers instead of searching the owner
+current-tree and plan topology truth
+repository process, discovery, Markdown, and path ownership
+permanent gate claim-matching and tooling coverage
+version Authority and release-age policy
+small Problem, RuntimeSubstrate, and serializer contract proofs
 ```
 
 This plan therefore has two equally important objectives:
@@ -58,6 +48,56 @@ This plan therefore has two equally important objectives:
 The final repository must make the correct implementation route visible to an Agent **before** it writes a helper.
 
 ---
+
+## Repository Stabilization Closure Corrections
+
+The current candidate received an external `REQUEST_CHANGES`. This plan now
+includes the finite closure correction set `CF-01` through `CF-19`; no
+additional Round, review-correction, or repository-stabilization plan is to be
+created. The corrections address current-tree truth, plan topology, repository
+mechanics ownership, permanent gate claim-matching, version Authority, and the
+small contract proofs described below.
+
+The current state remains `PRE_PRODUCTION`: no historical compatibility path,
+new product capability, H3A-2 implementation, or H3A-1 semantic reopening is
+authorized. Final manual CI is blocked until a renewed out-of-band
+Independent Review returns `PASS`.
+
+Finite required closure set:
+
+```text
+CF-01 qualification-template current homes
+CF-02 active repository-stabilization plan topology remains explicit
+CF-03 release-age exclusion removal
+CF-04 phase-neutral operational identities
+CF-05 complete primary lint coverage and zero warnings
+CF-06 Execa process-owner enforcement
+CF-07 repo-kit path/discovery/Markdown owner reuse
+CF-08 AST-backed Markdown adapter
+CF-09 exact generated package index
+CF-10 semantic machine-Authority validation
+CF-11 package-manager line Authority
+CF-12 Problem schemaVersion and RuntimeSubstrate construction invariants
+CF-13 workflow action and reusable-workflow SHA validation
+CF-14 conditional dated dependency evidence route
+CF-15 removal of dependency-routing asOf
+CF-16 single Oxlint schema-owner restriction
+CF-17 real architecture references in package READMEs
+CF-18 keyed serializer rejection-continuation FIFO proof
+CF-19 eligible exact-patch refresh using current registry evidence
+```
+
+Closure facts are recorded only after their commands run:
+
+```yaml
+implementation: PASS
+localQualification: PASS
+livePostgreSQL: PASS
+independentReview: NOT_RUN
+finalManualCI: NOT_RUN
+merge: NOT_RUN
+H3A_2: BLOCKED_BY_REPOSITORY_STABILIZATION
+```
 
 # 1. Governing invariants
 
@@ -200,13 +240,13 @@ If a local duplicate implementation is replaced:
 
 The executor MUST verify these facts against the current branch before editing rather than treating this section as immutable repository Authority.
 
-At plan authoring time, the active repository candidate has:
+The candidate facts to verify before each freeze are:
 
 ```text
 PR: #29
 base: master
 head: repository-stabilization branch
-candidate state: Ready / mutable only after returning to Draft
+candidate state: Draft while mutable; Ready only after final mutation
 H3A-2: frozen
 ```
 
@@ -216,14 +256,17 @@ Current root tooling includes:
 Nx 23
 TypeScript 7 primary
 TS6 compatibility lane
+Oxlint + oxlint-tsgolint
 ESLint 10 + typescript-eslint
 Knip
+jscpd
+yaml + tinyglobby
 Prettier
 Vitest
 @heptalogos/repo-kit
 ```
 
-Current repo-kit already owns:
+Current repo-kit owns:
 
 ```text
 process execution
@@ -233,43 +276,37 @@ documentation/package validation
 current-tree hygiene
 clean mechanics
 repository governance helpers
-gate graph/scheduler
 ```
 
-The last item is itself a problem: **gate graph/scheduling belongs to Nx and must be removed from repo-kit.**
+Nx owns task graph and scheduling; repo-kit does not own a generic gate scheduler.
 
-Current known direct owner bypass:
+Resolved owner boundaries include:
 
 ```text
 @heptalogos/schema-runtime
   owns Ajv/TypeBox mechanics
 
-packages/bootstrap-state
-  directly depends on ajv + typebox
-
-packages/bootstrap-runtime
-  directly depends on ajv + typebox
-
-eslint.config.mjs
-  explicitly permits those bypasses
+packages/bootstrap-state and packages/bootstrap-runtime
+  use SchemaRuntime rather than direct Ajv/TypeBox imports
 ```
 
-Current known runtime over-wrapper:
+RuntimeSubstrate now delegates generic activation/disposal lifecycle to Cordis
+Fiber and retains only Heptalogos-specific task/effect policy.
 
 ```text
 @heptalogos/runtime-substrate
-  uses Cordis
-  but also implements substantial parallel lifecycle/effect/disposal machinery
+  uses Cordis Fiber for plugin/effect/disposal mechanics
+  retains only Heptalogos-specific tracked-task, failure, and timeout policy
 ```
 
-Current known local state-machine split:
+Adopted lifecycle ownership includes:
 
 ```text
 private-postgres -> XState
 host-ownership -> XState
 bootstrap-runtime host maintenance -> XState
 work-queue -> XState
-runtime-kernel supervisor lifecycle -> manual state legality
+  runtime-kernel supervisor lifecycle -> XState-backed package-private legality
 ```
 
 These are minimum known findings, not the audit ceiling.
@@ -465,7 +502,7 @@ If the operator explicitly tells the executor an external Independent Review alr
 
 ## C0.2 Adopt this plan
 
-Create:
+This plan is already present at:
 
 ```text
 docs/plans/active/repository/mechanics-ownership-library-first-convergence-2026-08-28.md
@@ -473,7 +510,7 @@ docs/plans/active/repository/mechanics-ownership-library-first-convergence-2026-
 
 with this file content.
 
-Modify:
+The current plan index lists this plan as:
 
 ```text
 docs/plans/README.md
@@ -486,15 +523,8 @@ ACTIVE
 governing plan for the remaining mechanics/library-first corrective work on the repository stabilization candidate
 ```
 
-Keep the existing Repository Stabilization v2 plan ACTIVE as the broader topology plan.
-
-Add a short current-state note near the beginning of:
-
-```text
-docs/plans/active/repository/repository-stabilization-topology-reset-2026-08-27.md
-```
-
-stating that remaining mechanics/library-first corrective work is governed by this named corrective plan.
+`ACTIVE`, as the mechanics/library-first corrective plan. The broader v2 plan
+remains an active executable route for its approved topology change sets.
 
 Do not duplicate this plan elsewhere.
 
@@ -880,39 +910,13 @@ Do not rely only on “the command happened to pass the current tree.”
 
 ---
 
-# 7. Remove the second task scheduler: Nx owns task orchestration
+# 7. Repository task orchestration is owned by Nx
 
-## C3.1 Delete repo-kit gate graph/scheduler
+## C3.1 Completed scheduler ownership correction
 
-Delete:
-
-```text
-tools/repo-kit/src/gates.mjs
-```
-
-and its dedicated tests.
-
-Remove its export from:
-
-```text
-tools/repo-kit/src/index.mjs
-```
-
-Delete:
-
-```text
-scripts/gates/run.mjs
-```
-
-Remove references to:
-
-```text
-defineGate
-validateGateGraph
-runGateGraph
-```
-
-No compatibility wrapper.
+The former repo-kit scheduler and its dedicated tests were deleted. The root
+verification aliases now delegate to Nx project targets, and no compatibility
+wrapper or alternate scheduler remains.
 
 ## C3.2 Use Nx root/project tasks instead
 
@@ -2029,17 +2033,11 @@ pnpm typecheck
 focused negative lint fixtures
 ```
 
-## Change Set C — Remove custom gate scheduler
+## Change Set C — Nx task orchestration (completed)
 
-Delete:
-
-```text
-tools/repo-kit/src/gates.mjs
-scripts/gates/run.mjs
-their tests
-```
-
-Replace orchestration with Nx.
+Nx owns repository task graphs, dependency ordering, scheduling, failure status,
+and project discovery. Repository scripts remain individual claim-specific
+checks.
 
 Exit:
 

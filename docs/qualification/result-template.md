@@ -138,11 +138,9 @@ reopenConditions:
 
 结果写入：
 
-```text
-docs/qualification/dependency-status.json
-../dependencies/decision-ledger.md
-qualification/依赖资格矩阵.md
-```
+[dependency-status.json](./dependency-status.json)、
+[decision-ledger.md](../dependencies/decision-ledger.md)、以及
+[dependency-matrix.md](./dependency-matrix.md)。
 
 三者状态必须一致。Q evidence 可以存在 NOT_RUN product properties，但不得与当前 `RoleDecision` 冲突；`ImplementationQualification` 单独表达真实产品资格是否完成。
 

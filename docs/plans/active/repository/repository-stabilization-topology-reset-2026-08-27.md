@@ -1,5 +1,7 @@
 # Heptalogos Repository Stabilization & Topology Reset — Master Implementation Plan v2
 
+**Status:** `ACTIVE`
+
 > **SUPERSEDES / INVALIDATES:** `Heptalogos_Repository_Stabilization_Master_Plan_2026-08-27.md` v1. The v1 RS-0 revert/re-land sequence MUST NOT be executed. If an executor created a local RS-0A branch from v1, stop it before push/merge and discard that branch after confirming remote `master` is unchanged.
 
 
@@ -449,7 +451,7 @@ former physical Corpus root/qualification/DEPENDENCY-QUALIFICATION.md
 former physical Corpus root/qualification/dependency-status.json
 → docs/qualification/dependency-status.json
 
-former physical Corpus root/qualification/依赖资格矩阵.md
+former physical Corpus root/qualification/dependency-matrix.md
 → docs/qualification/dependency-matrix.md
 
 former physical Corpus root/qualification/验证结果模板.md
@@ -666,19 +668,18 @@ Expected: no current-tree match except an explicitly justified historical record
 
 ---
 
-# RS-2 — Repository Scripts & Gate Control Plane
+# RS-2 — Repository Scripts & Control Plane
 
 ## Objective
 
-Turn repository verification from a growing shell chain into a small explicit gate graph while preserving independently runnable leaf commands.
+Keep repository verification as independently runnable leaf checks composed by
+the Nx project task graph.
 
 ## Target scripts layout
 
 ```text
 scripts/
 ├── README.md
-├── gates/
-│   └── run.mjs
 ├── verify/
 │   ├── documentation.mjs
 │   ├── repository.mjs
@@ -692,115 +693,12 @@ scripts/
 
 Do not create other directories until a real script exists.
 
-## 2.1 Gate scheduler belongs in repo-kit
+## 2.1 Nx owns repository task orchestration
 
-### Create
-
-- `tools/repo-kit/src/gates.mjs`
-- `tools/repo-kit/test/gates.test.mjs`
-
-### Export
-
-```js
-defineGate(spec)
-validateGateGraph(gates)
-runGateGraph({ gates, concurrency, cwd, onResult })
-```
-
-### Gate shape
-
-```js
-{
-  id: string,
-  label: string,
-  command: string,
-  args: string[],
-  needs?: string[],       // dependency must PASS
-  after?: string[],       // dependency must settle
-  env?: Record<string, string>,
-  allowFailure?: boolean
-}
-```
-
-### Required graph validation
-
-Reject:
-
-- duplicate IDs;
-- missing referenced dependencies;
-- self-dependency;
-- dependency cycles;
-- empty command;
-- `needs` and `after` duplicate relationships;
-- invalid concurrency `< 1`.
-
-### Required scheduler semantics
-
-- ready gates run concurrently up to the configured limit;
-- a failed `needs` dependency causes dependent gate to be `skipped`;
-- `after` waits for settlement but does not require PASS;
-- non-allowed failure makes the aggregate fail;
-- results contain duration, exit status, and captured stdout/stderr;
-- output order is deterministic in final summary even when execution is parallel.
-
-## 2.2 Thin aggregate entrypoint
-
-Create `scripts/gates/run.mjs`.
-
-Supported modes:
-
-```text
-static
-repository
-verify
-```
-
-### `static`
-
-```text
-documentation
-repository
-hygiene
-dependencies
-boundaries
-toolchain
-format:check
-lint
-typecheck
-tsc6
-```
-
-### `repository`
-
-```text
-documentation
-repository
-hygiene
-dependencies
-boundaries
-toolchain
-unused/dead-surface (after RS-3 adds it)
-```
-
-### `verify`
-
-```text
-all static gates
-test
-build
-```
-
-`verify` must preserve current semantics: it is locally runnable and exhaustive enough for a completion claim. Developers/agents should run focused leaf gates during edits.
-
-## 2.3 Simplify root `package.json`
-
-Replace the long `&&` aggregate with:
-
-```json
-"verify": "node scripts/gates/run.mjs verify",
-"check:static": "node scripts/gates/run.mjs static",
-"check:repo": "node scripts/gates/run.mjs repository"
-```
+The former repo-kit gate scheduler and `scripts/gates/run.mjs` aggregate
+entrypoint were removed. Nx owns project discovery, task dependency graphs,
+parallel scheduling, failure status, and aggregate execution through the root
+project targets.
 
 Keep leaf scripts such as:
 
@@ -813,11 +711,13 @@ Keep leaf scripts such as:
 "toolchain:check": "node scripts/verify/toolchain.mjs"
 ```
 
-`check:repo` is the repository aggregate. `check:repository` remains the single repository-correctness leaf gate; do not overload one public script name with both meanings.
+`check:repo` is the repository aggregate. `check:repository` remains the single
+repository-correctness leaf gate; do not overload one public script name with
+both meanings.
 
 Do not hide leaf behavior behind an aggregate-only interface.
 
-## 2.4 Clean command
+## 2.2 Clean command
 
 Create:
 
@@ -1466,7 +1366,7 @@ The review must explicitly assess:
 3. machine Authorities are not duplicated manually;
 4. no old-path compatibility remains;
 5. scripts are grouped by responsibility and repo-kit does not become product runtime;
-6. gate graph semantics are correct;
+6. Nx task graph and aggregate target semantics are correct;
 7. Nx/ESLint rules replace generic custom scans rather than duplicate them;
 8. Knip cleanup did not remove real entrypoints;
 9. test-plane migration did not change product behavior;
@@ -1507,7 +1407,7 @@ H3A-2 may begin only when all of the following are true:
 [x] former physical Corpus root no longer exists.
 [x] all current Authority routes resolve under docs/.
 [x] documentation gate passes.
-[x] repository gate graph is active.
+[x] Nx repository task graph is active.
 [x] package tests are outside src/.
 [x] Nx/ESLint generic boundaries are active.
 [x] custom boundary scanner is reduced to Heptalogos-specific semantics.
@@ -1655,7 +1555,7 @@ Repository stabilization is complete only when the repository satisfies all of t
 
 ```text
 [x] leaf gates remain directly runnable
-[x] aggregate gate graph is validated and tested
+[x] Nx aggregate targets are validated and tested
 [x] pnpm verify no longer relies on one long && chain
 [x] clean is derived and fail-closed
 [x] package navigation completeness is mechanically checked

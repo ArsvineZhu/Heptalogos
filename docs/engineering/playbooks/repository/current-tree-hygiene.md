@@ -6,7 +6,7 @@ ensuring that the checkout describes the system as it is now.
 
 ## Purpose
 
-Use this playbook during every Hn-S stabilization and whenever a current
+Use this playbook during every pre-production stabilization and whenever a current
 contract changes during `CompatibilityEpoch = PRE_PRODUCTION`.
 
 ```text
@@ -93,7 +93,7 @@ The gate is one permanent repository check and is wired into `pnpm verify` after
 surface is reported as `symbolic-link-residue`; the scanner does not follow it
 and provides no symlink allowlist. A skipped or blocked gate is not `PASS`.
 
-## Hn-S zero-residue checklist
+## Pre-production stabilization zero-residue checklist
 
 - [ ] `pnpm check:hygiene` passes on the final candidate.
 - [ ] development provenance residue is zero in current executable surfaces.

@@ -175,7 +175,6 @@
         "docs/qualification/dependencies.md",
         "docs/qualification/dependency-status.json",
         "docs/dependencies/dependency-routing.json",
-        "docs/qualification/evidence/dependency-baseline-2026-08-20.md",
         "docs/engineering/playbooks/mechanics-ownership-and-library-first.md"
       ],
       "conditional": {
@@ -185,6 +184,9 @@
         "qualification-matrix": [
           "docs/qualification/dependency-matrix.md",
           "docs/qualification/result-template.md"
+        ],
+        "baseline-evidence": [
+          "docs/qualification/evidence/dependency-baseline-2026-08-20.md"
         ],
         "release-native-closure": [
           "docs/architecture/platform-distribution.md",
