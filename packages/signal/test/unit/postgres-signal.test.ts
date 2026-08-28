@@ -20,7 +20,6 @@ import {
   type SignalClient,
   type SignalClientFactory,
   type SignalNotification,
-  type SignalTopic,
 } from "../../src/index.js";
 
 class FakeSignalClient implements SignalClient {

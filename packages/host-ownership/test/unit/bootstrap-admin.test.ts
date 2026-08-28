@@ -174,9 +174,9 @@ class FakeClient implements BootstrapAdminClient {
       return { rows: [] };
     }
     if (normalized.startsWith("CREATE ROLE")) {
-      const host = normalized.includes(`\"${HOST_LEASE_ROLE}\"`);
-      const runtime = normalized.includes(`\"${HOST_RUNTIME_ROLE}\"`);
-      const migration = normalized.includes(`\"${HOST_MIGRATION_ROLE}\"`);
+      const host = normalized.includes(`"${HOST_LEASE_ROLE}"`);
+      const runtime = normalized.includes(`"${HOST_RUNTIME_ROLE}"`);
+      const migration = normalized.includes(`"${HOST_MIGRATION_ROLE}"`);
       if (host && this.fault === "before-host-role-create") {
         this.fault = undefined;
         throw new Error("injected before host role create");
@@ -358,8 +358,8 @@ describe("bootstrap host ownership database provisioning", () => {
     });
 
     const sql = fixture.client.calls.map((call) => call.text).join("\n");
-    expect(sql).toContain(`CREATE ROLE \"${HOST_OWNERSHIP_OWNER_ROLE}\"`);
-    expect(sql).toContain(`CREATE ROLE \"${HOST_LEASE_ROLE}\"`);
+    expect(sql).toContain(`CREATE ROLE "${HOST_OWNERSHIP_OWNER_ROLE}"`);
+    expect(sql).toContain(`CREATE ROLE "${HOST_LEASE_ROLE}"`);
     expect(sql).toContain('CREATE ROLE "heptalogos_migration"');
     expect(sql).toContain(
       "NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT",
@@ -367,9 +367,9 @@ describe("bootstrap host ownership database provisioning", () => {
     expect(sql).toContain(
       "LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT CONNECTION LIMIT 1",
     );
-    expect(sql).toContain(`CREATE DATABASE \"${HOST_OWNERSHIP_CANONICAL_DATABASE}\"`);
+    expect(sql).toContain(`CREATE DATABASE "${HOST_OWNERSHIP_CANONICAL_DATABASE}"`);
     expect(sql).toContain(
-      `REVOKE CONNECT ON DATABASE \"${HOST_OWNERSHIP_CANONICAL_DATABASE}\" FROM PUBLIC`,
+      `REVOKE CONNECT ON DATABASE "${HOST_OWNERSHIP_CANONICAL_DATABASE}" FROM PUBLIC`,
     );
     expect(sql).toContain("GRANT CONNECT ON DATABASE");
     expect(sql).toContain(HOST_MIGRATION_ROLE);

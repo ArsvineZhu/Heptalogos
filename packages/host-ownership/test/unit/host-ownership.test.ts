@@ -3,7 +3,6 @@ import {
   createBootId,
   createHostOwnershipToken,
   parseInstanceId,
-  type HostOwnershipToken,
   type InstanceId,
 } from "@heptalogos/foundation-contracts";
 import { publishHostOwnershipToken } from "../../src/host-ownership.js";

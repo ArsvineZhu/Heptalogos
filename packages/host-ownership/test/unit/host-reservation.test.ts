@@ -10,8 +10,6 @@ import {
   type BootstrapHostReservationOptions,
 } from "../../src/bootstrap-admin.js";
 
-const mutationAuthority = { assertCurrent(): void {} };
-
 class FakeReservationClient implements BootstrapAdminClient {
   readonly queries: Array<{
     readonly text: string;

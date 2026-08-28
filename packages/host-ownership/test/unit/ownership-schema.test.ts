@@ -150,7 +150,7 @@ class FakeSchemaClient implements BootstrapAdminClient {
 
   constructor(
     private readonly state: SchemaState,
-    private fault: SchemaFault | undefined = undefined,
+    private fault?: SchemaFault,
   ) {}
 
   clearFault(): void {
@@ -289,9 +289,9 @@ class FakeSchemaClient implements BootstrapAdminClient {
         );
       }
       if (normalized.startsWith("GRANT CONNECT ON DATABASE")) {
-        const grantee = normalized.includes(`\"${HOST_MIGRATION_ROLE}\"`)
+        const grantee = normalized.includes(`"${HOST_MIGRATION_ROLE}"`)
           ? HOST_MIGRATION_ROLE
-          : normalized.includes(`\"${HOST_RUNTIME_ROLE}\"`)
+          : normalized.includes(`"${HOST_RUNTIME_ROLE}"`)
             ? HOST_RUNTIME_ROLE
             : HOST_LEASE_ROLE;
         this.state.databaseAcl = [
@@ -315,7 +315,7 @@ class FakeSchemaClient implements BootstrapAdminClient {
         );
       }
       if (normalized.startsWith("GRANT USAGE ON SCHEMA")) {
-        const grantee = normalized.includes(`\"${HOST_RUNTIME_ROLE}\"`)
+        const grantee = normalized.includes(`"${HOST_RUNTIME_ROLE}"`)
           ? HOST_RUNTIME_ROLE
           : HOST_LEASE_ROLE;
         this.state.schemaAcl = [
@@ -467,22 +467,22 @@ describe("HostOwnershipFence schema", () => {
     });
 
     const sql = fixture.client.calls.map((call) => call.text).join("\n");
-    expect(sql).toContain(`CREATE SCHEMA \"${HOST_OWNERSHIP_SCHEMA}\"`);
+    expect(sql).toContain(`CREATE SCHEMA "${HOST_OWNERSHIP_SCHEMA}"`);
     expect(sql).toContain("CREATE TABLE");
     expect(sql).toContain(
-      `ALTER TABLE \"${HOST_OWNERSHIP_SCHEMA}\".\"host_ownership_fence\" OWNER TO \"${HOST_OWNERSHIP_OWNER_ROLE}\"`,
+      `ALTER TABLE "${HOST_OWNERSHIP_SCHEMA}"."host_ownership_fence" OWNER TO "${HOST_OWNERSHIP_OWNER_ROLE}"`,
     );
     expect(sql).toContain("REVOKE ALL ON DATABASE");
     expect(sql).toContain("REVOKE ALL ON SCHEMA");
     expect(sql).toContain(
-      `GRANT CONNECT ON DATABASE \"${HOST_OWNERSHIP_CANONICAL_DATABASE}\"`,
+      `GRANT CONNECT ON DATABASE "${HOST_OWNERSHIP_CANONICAL_DATABASE}"`,
     );
     expect(sql).toContain(
-      `GRANT CONNECT ON DATABASE \"${HOST_OWNERSHIP_CANONICAL_DATABASE}\" TO \"heptalogos_runtime\"`,
+      `GRANT CONNECT ON DATABASE "${HOST_OWNERSHIP_CANONICAL_DATABASE}" TO "heptalogos_runtime"`,
     );
-    expect(sql).toContain(`GRANT USAGE ON SCHEMA \"${HOST_OWNERSHIP_SCHEMA}\"`);
+    expect(sql).toContain(`GRANT USAGE ON SCHEMA "${HOST_OWNERSHIP_SCHEMA}"`);
     expect(sql).toContain(
-      `GRANT USAGE ON SCHEMA \"${HOST_OWNERSHIP_SCHEMA}\" TO \"heptalogos_runtime\"`,
+      `GRANT USAGE ON SCHEMA "${HOST_OWNERSHIP_SCHEMA}" TO "heptalogos_runtime"`,
     );
     expect(sql).toContain("GRANT SELECT, UPDATE ON");
     expect(sql).toContain(

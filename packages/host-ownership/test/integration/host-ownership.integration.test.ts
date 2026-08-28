@@ -9,7 +9,6 @@ import { Client } from "pg";
 import {
   createBootId,
   createHostOwnershipToken,
-  createInstallationId,
   createInstanceId,
   type InstanceId,
 } from "@heptalogos/foundation-contracts";

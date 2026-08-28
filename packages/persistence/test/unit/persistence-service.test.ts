@@ -96,8 +96,8 @@ function fakeDatabase(
   authorityValue: HostPersistenceAuthority,
   order: string[],
   onFenceVerified: () => void = () => undefined,
-  fenceRows: readonly Record<string, unknown>[] | undefined = undefined,
-  completionError: unknown = undefined,
+  fenceRows?: readonly Record<string, unknown>[],
+  completionError?: unknown,
   onDestroy: () => void = () => undefined,
 ) {
   const transaction = {

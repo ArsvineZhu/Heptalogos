@@ -11,8 +11,6 @@ import {
 const instanceId = parseInstanceId("0197cfe0-0000-7000-8000-000000000001");
 if (instanceId === undefined) throw new Error("invalid test InstanceId");
 const testInstanceId = instanceId;
-const mutationAuthority = { assertCurrent(): void {} };
-
 class FakeClient implements HostLeaseClient {
   readonly queries: Array<{
     readonly text: string;
