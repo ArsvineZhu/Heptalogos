@@ -41,11 +41,18 @@ not universally required to have JSDoc.
 
 The TypeScript export graph owns API structure. TSDoc/JSDoc beside declarations
 owns API descriptions. Package READMEs and Nx metadata own package navigation;
-`packages/INDEX.md` remains its separate generated package projection. If the
-approved TypeDoc probe is adopted, TypeDoc owns reflection and
-`typedoc-plugin-markdown` owns Markdown/navigation; generated output under
-`docs/reference/api/` is derived and is never edited as a semantic source.
+`packages/INDEX.md` remains its separate generated package projection. TypeDoc
+owns reflection and `typedoc-plugin-markdown` owns Markdown/navigation; the
+repository product-package discovery owner supplies the expected package set,
+and each package's public `exports["."].types` supplies its declaration
+entrypoint. The verifier writes a temporary declaration-only TS config, checks
+each entrypoint before conversion, and checks TypeDoc's structured JSON
+reflection for one top-level module per expected package before accepting
+generated output under `docs/reference/api/`. Generated API files are derived
+and are never edited as a semantic source.
 
 When generated API documentation is enabled, generation writes to a temporary
 directory, runs the repository formatter, compares the result with tracked
-`docs/reference/api/`, and fails when the projection is stale.
+`docs/reference/api/`, and fails when the projection is stale. TypeDoc warnings
+and validation warnings are fatal; freshness alone is not a completeness
+proof.

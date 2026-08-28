@@ -46,7 +46,7 @@ Defined in: packages/bootstrap-state/dist/bootstrap-owner-witness-model.d.ts:15
 
 ### phase
 
-> `readonly` **phase**: `"ATTEMPT"` \| `"OWNER"` \| `"RELEASING"`
+> `readonly` **phase**: `"RELEASING"` \| `"ATTEMPT"` \| `"OWNER"`
 
 Defined in: packages/bootstrap-state/dist/bootstrap-owner-witness-model.d.ts:14
 

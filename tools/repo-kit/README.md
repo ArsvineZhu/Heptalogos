@@ -14,6 +14,7 @@ dependency.
 - Thin process-runner mechanics used by repository commands.
 - Current-tree hygiene scanning and finding normalization.
 - Version Authority readers for the package-manager baseline and workspace catalog.
+- Public package declaration-entrypoint and structured TypeDoc reflection checks.
 - Repo-kit tests for process, boundary, Corpus, and hygiene behavior.
 - Small reusable helpers that have a concrete repeated repository need.
 
@@ -30,7 +31,8 @@ dependency.
 ## Public surface
 
 The package exports the reusable mechanics from `src/index.mjs`, including the
-current-tree scanner and process helper modules. Verification entrypoints under
+current-tree scanner, process helper, package-export, and TypeDoc reflection
+modules. Verification entrypoints under
 `scripts/verify` call these helpers and remain responsible for command-line
 exit status and claim-specific policy. Tests live under `test/` and exercise the
 public helper behavior with temporary fixtures.
@@ -41,7 +43,9 @@ The package uses the adopted `execa`, `yaml`, and `tinyglobby` routes with Node
 standard-library mechanics. It may inspect repository files and run bounded
 repository commands, but it must not become a second production execution
 layer. Nx owns project discovery, task graphs, and scheduling; repo-kit only
-composes adopted mechanics with repository policy. Gate findings must remain
+composes adopted mechanics with repository policy. API verification consumes
+the product package set discovered by the workspace owner and checks TypeDoc's
+structured reflection before accepting generated Markdown. Gate findings must remain
 actionable and must not silently ignore symlinks, provenance, or compatibility
 residue.
 

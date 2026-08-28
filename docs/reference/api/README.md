@@ -6,6 +6,7 @@
 
 ## Modules
 
+- [bootstrap-runtime/dist](bootstrap-runtime/dist/README.md)
 - [bootstrap-state/dist](bootstrap-state/dist/README.md)
 - [canonical-schema/dist](canonical-schema/dist/README.md)
 - [evidence/dist](evidence/dist/README.md)

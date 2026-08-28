@@ -1,8 +1,9 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "entryPoints": ["packages/*/dist/index.d.ts"],
   "entryPointStrategy": "expand",
   "plugin": ["typedoc-plugin-markdown"],
   "readme": "none",
-  "excludeInternal": true
+  "excludeInternal": true,
+  "treatWarningsAsErrors": true,
+  "treatValidationWarningsAsErrors": true
 }

@@ -105,7 +105,9 @@ Closure facts are recorded only after their commands run:
 implementation: PASS
 localQualification: PASS
 livePostgreSQL: PASS
+documentationEngineeringCorrection: PASS
 independentReview: NOT_RUN
+previousIndependentReview: REQUEST_CHANGES
 finalManualCI: NOT_RUN
 merge: NOT_RUN
 H3A_2: BLOCKED_BY_REPOSITORY_STABILIZATION
@@ -113,7 +115,10 @@ H3A_2: BLOCKED_BY_REPOSITORY_STABILIZATION
 
 #### Current closure evidence (2026-08-28)
 
-The current candidate has the following executable evidence:
+The following evidence was captured for the previous Ready candidate. The final
+Independent Review returned `REQUEST_CHANGES` because the TypeDoc/API
+completeness claim was not proven; the NDR-04/NDR-05 statements below are
+superseded until the narrow documentation correction is requalified.
 
 - `CF-02` and `CF-04`: `PASS`; the topology-reset plan is superseded and the
   operational closure playbook uses semantic pre-production stabilization
@@ -124,12 +129,13 @@ The current candidate has the following executable evidence:
   required headers, no header is missing, direct source-doc lint passes with
   `eslint-plugin-jsdoc` `64.2.1`, and the negative repo-kit suite passes
   `110/110` tests.
-- `NDR-04` and `NDR-05`: `PASS`; TypeDoc `0.28.20` with
+- `NDR-04` and `NDR-05`: `FAIL / PARTIAL`; TypeDoc `0.28.20` with
   `typedoc-plugin-markdown` `4.13.0` generates the declaration-first API
-  projection from `packages/*/dist/index.d.ts` into `docs/reference/api`.
-  The fresh-output check passes for `429` Markdown files. The direct TypeDoc
-  source probe against TypeScript `7.0.2` remains an upstream API failure, so
-  declaration-first generation is the adopted route.
+  projection from a filesystem glob into `docs/reference/api`, but the previous
+  freshness check did not prove that all discovered product packages entered
+  the TypeDoc reflection. The direct TypeDoc source probe against TypeScript
+  `7.0.2` remains an upstream API failure, so declaration-first generation
+  remains the adopted route.
 - `NDR-06`: `PASS`; concise source-documentation rules are present in root,
   package, and docs Agent guidance and in the repository playbook.
 - Markdown structure scan: `PASS`; no tracked-relevant Markdown file has
@@ -145,7 +151,47 @@ The current candidate has the following executable evidence:
   `bootstrap-runtime:test:recovery-process` `4/4`, and
   `bootstrap-runtime:test:recovery-process:postgres` `2/2`; all are `PASS`.
 - `H3A-2`: untouched and blocked by Repository Stabilization closure.
-  External Independent Review, final manual CI, and merge remain `NOT_RUN`.
+  The new documentation correction is `NOT_RUN`; final manual CI and merge
+  remain `NOT_RUN`.
+
+The required narrow correction is:
+
+- derive the expected product package set through `discoverProductPackages`;
+- resolve each package's public `exports["."].types` declaration and verify the
+  file before invoking TypeDoc;
+- invoke TypeDoc with explicit discovered declaration entrypoints and a
+  temporary declaration-only TS config;
+- validate one top-level TypeDoc JSON reflection/module for every expected
+  package before comparing generated Markdown;
+- enable fatal TypeDoc warning and validation-warning handling; and
+- keep a negative repo-kit fixture proving that fifteen expected packages with
+  one missing reflection fail closed.
+
+#### Documentation correction requalification (2026-08-28)
+
+The narrow documentation correction is complete. The current implementation
+now derives `15` expected product packages through `discoverProductPackages`,
+resolves and verifies every package's public `exports["."].types` declaration
+entrypoint before TypeDoc, and passes those explicit declaration entrypoints to
+TypeDoc with a temporary declaration-only TS config. Both
+`treatWarningsAsErrors` and `treatValidationWarningsAsErrors` are enabled.
+
+The TypeDoc structured JSON reflection contains exactly one top-level module
+for each expected package (`15/15`), including `@heptalogos/bootstrap-runtime`.
+The negative repo-kit fixture removes one of fifteen modules and receives the
+expected fail-closed count/missing-module errors. The regenerated tracked API
+projection contains `466` Markdown files, including
+`docs/reference/api/bootstrap-runtime/dist/README.md`, and
+`repository:docs:api:check` reports the projection fresh for all `15` packages.
+
+Focused repo-kit verification is `PASS` (`14` files, `115/115` tests), full
+static verification and `pnpm verify` are `PASS`, and the six live PostgreSQL
+18.6 targets are `PASS`: private-postgres `20/20`, host-ownership `10/10`,
+persistence `9/9`, bootstrap-runtime integration `83/83`, process recovery
+`4/4`, and PostgreSQL process recovery `2/2`. The previous Ready candidate's
+Independent Review remains `REQUEST_CHANGES`; this requalified candidate has
+not received a new external Independent Review, so final manual CI and merge
+remain `NOT_RUN`.
 
 ## 1. Governing invariants
 
@@ -1007,12 +1053,18 @@ duplicate, or non-initial file headers. Oxlint remains the primary correctness
 and type-aware lint owner; the ESLint lane owns source documentation and Nx
 module boundaries as separate checks.
 
-The adopted API route is declaration-first: build canonical `dist/*.d.ts`, run
-TypeDoc with `typedoc-plugin-markdown`, format the temporary output with
-Prettier, and compare it to `docs/reference/api`. Generated Markdown is never
-hand-edited; stale output fails `repository:docs:api:check`. The direct source
-TypeDoc probe is retained as evidence only when the selected TypeDoc line does
-not support the canonical TypeScript compiler API.
+The adopted API route is declaration-first: derive the expected product package
+set through `discoverProductPackages`, resolve each public
+`exports["."].types` declaration, build canonical `dist/*.d.ts`, and pass the
+explicit declaration entrypoints to TypeDoc with a temporary declaration-only
+TS config. Validate TypeDoc's structured JSON reflection has exactly one
+top-level module per expected package, enable fatal warning/validation-warning
+handling, format the temporary Markdown with Prettier, and compare it to
+`docs/reference/api`. Generated Markdown is never hand-edited; stale or
+incomplete output fails `repository:docs:api:check`. A negative fixture must
+prove that one missing module from a fifteen-package expected set fails closed.
+The direct source TypeDoc probe is retained as evidence only when the selected
+TypeDoc line does not support the canonical TypeScript compiler API.
 
 Update:
 
@@ -2060,6 +2112,7 @@ Oxlint primary lint
 ESLint Nx boundary lint
 ESLint source-documentation lint
 TypeDoc declaration-first API generation and freshness check
+TypeDoc structured reflection completeness against discovered product packages
 TypeScript 7 typecheck
 TS6 compiler-API lane
 tests
