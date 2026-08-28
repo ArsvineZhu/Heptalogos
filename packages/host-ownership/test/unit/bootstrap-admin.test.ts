@@ -135,10 +135,7 @@ function exactProvisionedState(
       [HOST_LEASE_ROLE, exactRole(HOST_LEASE_ROLE, true, 1)],
       [HOST_RUNTIME_ROLE, exactRole(HOST_RUNTIME_ROLE, true, -1)],
       [HOST_MIGRATION_ROLE, migrationRole],
-      [
-        HOST_DURABLE_EXECUTION_ROLE,
-        exactRole(HOST_DURABLE_EXECUTION_ROLE, true, -1),
-      ],
+      [HOST_DURABLE_EXECUTION_ROLE, exactRole(HOST_DURABLE_EXECUTION_ROLE, true, -1)],
     ]),
     databases: new Map([[HOST_OWNERSHIP_CANONICAL_DATABASE, exactDatabase()]]),
     membershipRows,
@@ -193,9 +190,7 @@ class FakeClient implements BootstrapAdminClient {
       const host = normalized.includes(`"${HOST_LEASE_ROLE}"`);
       const runtime = normalized.includes(`"${HOST_RUNTIME_ROLE}"`);
       const migration = normalized.includes(`"${HOST_MIGRATION_ROLE}"`);
-      const durableExecution = normalized.includes(
-        `"${HOST_DURABLE_EXECUTION_ROLE}"`,
-      );
+      const durableExecution = normalized.includes(`"${HOST_DURABLE_EXECUTION_ROLE}"`);
       if (host && this.fault === "before-host-role-create") {
         this.fault = undefined;
         throw new Error("injected before host role create");
@@ -203,12 +198,12 @@ class FakeClient implements BootstrapAdminClient {
       const name = host
         ? HOST_LEASE_ROLE
         : runtime
-        ? HOST_RUNTIME_ROLE
-        : migration
-          ? HOST_MIGRATION_ROLE
-          : durableExecution
-            ? HOST_DURABLE_EXECUTION_ROLE
-            : HOST_OWNERSHIP_OWNER_ROLE;
+          ? HOST_RUNTIME_ROLE
+          : migration
+            ? HOST_MIGRATION_ROLE
+            : durableExecution
+              ? HOST_DURABLE_EXECUTION_ROLE
+              : HOST_OWNERSHIP_OWNER_ROLE;
       this.state.roles.set(
         name,
         exactRole(
@@ -520,10 +515,7 @@ describe("bootstrap host ownership database provisioning", () => {
         [HOST_LEASE_ROLE, exactRole(HOST_LEASE_ROLE, true, 1)],
         [HOST_RUNTIME_ROLE, exactRole(HOST_RUNTIME_ROLE, true, -1)],
         [HOST_MIGRATION_ROLE, exactRole(HOST_MIGRATION_ROLE, true, 1)],
-        [
-          HOST_DURABLE_EXECUTION_ROLE,
-          exactRole(HOST_DURABLE_EXECUTION_ROLE, true, -1),
-        ],
+        [HOST_DURABLE_EXECUTION_ROLE, exactRole(HOST_DURABLE_EXECUTION_ROLE, true, -1)],
       ]),
       databases: new Map([[HOST_OWNERSHIP_CANONICAL_DATABASE, exactDatabase()]]),
       membershipRows: [

@@ -34,18 +34,27 @@ export interface DbosQueueRegistrationOptions {
 
 /** Minimal queue readback used to verify the DBOS persisted projection. */
 export interface DbosQueueHandle {
+  /** Read the persisted queue-wide concurrency limit. */
   getGlobalConcurrency(): Promise<number | undefined>;
+  /** Read the persisted per-worker concurrency limit. */
   getWorkerConcurrency(): Promise<number | undefined>;
+  /** Read the persisted queue-wide rate limit. */
   getRateLimit(): Promise<DbosQueueRateLimit | undefined>;
+  /** Read the persisted per-partition concurrency limit. */
   getPartitionConcurrency(): Promise<number | undefined>;
+  /** Read the persisted per-worker partition concurrency limit. */
   getPartitionWorkerConcurrency(): Promise<number | undefined>;
+  /** Read the persisted per-partition rate limit. */
   getPartitionRateLimit(): Promise<DbosQueueRateLimit | undefined>;
+  /** Read whether the persisted queue has partition mechanics enabled. */
   getPartitionQueue(): Promise<boolean>;
+  /** Read the persisted minimum queue polling interval. */
   getMinPollingIntervalMs(): Promise<number | undefined>;
 }
 
 /** Queue-registration seam used by the runtime without exposing DBOS types. */
 export interface DbosQueueRegistrationDriver {
+  /** Register or read one named DBOS queue with the supplied parameters. */
   registerQueue(
     name: string,
     options: DbosQueueRegistrationOptions,

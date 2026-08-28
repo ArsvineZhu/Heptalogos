@@ -47,9 +47,7 @@ describe("WorkQueue profile catalog", () => {
       ]),
     ).toThrow();
     expect(() =>
-      createWorkQueueProfileCatalog([
-        profile({ minPollingIntervalMs: 0 }),
-      ]),
+      createWorkQueueProfileCatalog([profile({ minPollingIntervalMs: 0 })]),
     ).toThrow();
   });
 

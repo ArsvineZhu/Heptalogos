@@ -51,8 +51,12 @@ function runningItem(): WorkItem {
       payloadVersion: 1,
     },
     payload: { value: "hello" },
-    queueProfileId: createMicroSystemId("default-work") as unknown as WorkQueueProfileId,
-    resourceAdmissionClass: createMicroSystemId("normal") as unknown as ResourceAdmissionClassId,
+    queueProfileId: createMicroSystemId(
+      "default-work",
+    ) as unknown as WorkQueueProfileId,
+    resourceAdmissionClass: createMicroSystemId(
+      "normal",
+    ) as unknown as ResourceAdmissionClassId,
     priority: 1,
     createdContinuityEpochId: continuityEpochId,
     lineageContextRef: {
@@ -93,9 +97,7 @@ describe("WorkQueue RUNNING recovery coordinator", () => {
       const errors: unknown[] = [];
       const inspection: DurableAttemptInspectionPort = {
         inspect: vi.fn(async () =>
-          kind === "VERSION_MISMATCH"
-            ? { kind, applicationVersion: "b" }
-            : { kind },
+          kind === "VERSION_MISMATCH" ? { kind, applicationVersion: "b" } : { kind },
         ),
       };
       const coordinator = createWorkQueueRecoveryCoordinator({
@@ -126,7 +128,10 @@ describe("WorkQueue RUNNING recovery coordinator", () => {
     const inspection: DurableAttemptInspectionPort = {
       inspect: vi.fn(async () => ({
         kind: "ACTIVE" as const,
-        applicationVersion: digest("ProductGenerationId", "not-a-durable-version") as never,
+        applicationVersion: digest(
+          "ProductGenerationId",
+          "not-a-durable-version",
+        ) as never,
       })),
     };
     const coordinator = createWorkQueueRecoveryCoordinator({

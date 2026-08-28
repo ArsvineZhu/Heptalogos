@@ -26,6 +26,7 @@ export interface DbosDispatchStartOptions {
 
 /** Minimal DBOS start-workflow seam kept behind the adapter boundary. */
 export interface DbosStartWorkflowDriver {
+  /** Bind the static workflow to a DBOS queue start function. */
   startWorkflow(
     workflow: RegisteredDispatchWorkflow,
     options: DbosDispatchStartOptions,
@@ -41,6 +42,7 @@ export interface DbosDispatchStartRequest {
 
 /** Starts the statically registered workflow and discards the vendor handle. */
 export interface DbosStaticDispatcher {
+  /** Enqueue one canonical WorkItem attempt in DBOS. */
   dispatch(request: DbosDispatchStartRequest): Promise<void>;
 }
 

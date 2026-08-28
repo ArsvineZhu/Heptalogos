@@ -184,7 +184,9 @@ describe("managed Host capability", () => {
       managed.persistence.withRuntimeDatabasePassword(async () => "not-called"),
     ).rejects.toThrow();
     await expect(
-      managed.durableExecution.withDurableExecutionDatabasePassword(async () => "not-called"),
+      managed.durableExecution.withDurableExecutionDatabasePassword(
+        async () => "not-called",
+      ),
     ).rejects.toThrow();
   });
 

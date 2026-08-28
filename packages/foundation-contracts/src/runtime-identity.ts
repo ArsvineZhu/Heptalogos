@@ -96,9 +96,8 @@ export const parseDurableCodeVersion = (
   isSha256Hex(value) ? (value as DurableCodeVersion) : undefined;
 
 /** Brands a validated canonical digest as a durable-code application version. */
-export const asDurableCodeVersion = (
-  digest: Sha256Digest,
-): DurableCodeVersion => asContentDigest("DurableCodeVersion", digest);
+export const asDurableCodeVersion = (digest: Sha256Digest): DurableCodeVersion =>
+  asContentDigest("DurableCodeVersion", digest);
 
 /** Creates a validated MicroSystem identity from its canonical name. */
 export const createMicroSystemId = (value: string): MicroSystemId =>

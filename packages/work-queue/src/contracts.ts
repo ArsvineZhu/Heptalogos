@@ -70,7 +70,10 @@ function positiveSafeInteger(value: unknown, field: string): number {
   return value as number;
 }
 
-function optionalPositiveSafeInteger(value: unknown, field: string): number | undefined {
+function optionalPositiveSafeInteger(
+  value: unknown,
+  field: string,
+): number | undefined {
   return value === undefined ? undefined : positiveSafeInteger(value, field);
 }
 
@@ -83,7 +86,10 @@ function cloneRateLimit(
     return profileProblem(`${field} must be an object`);
   }
   return Object.freeze({
-    limitPerPeriod: positiveSafeInteger(value.limitPerPeriod, `${field}.limitPerPeriod`),
+    limitPerPeriod: positiveSafeInteger(
+      value.limitPerPeriod,
+      `${field}.limitPerPeriod`,
+    ),
     periodSeconds: positiveSafeInteger(value.periodSeconds, `${field}.periodSeconds`),
   });
 }
@@ -91,7 +97,11 @@ function cloneRateLimit(
 function cloneDefinition(
   definition: WorkQueueProfileDefinition,
 ): WorkQueueProfileDefinition {
-  if (typeof definition !== "object" || definition === null || Array.isArray(definition)) {
+  if (
+    typeof definition !== "object" ||
+    definition === null ||
+    Array.isArray(definition)
+  ) {
     return profileProblem("profile definition must be an object");
   }
   if (parseMicroSystemId(definition.profileId) === undefined) {
@@ -396,9 +406,8 @@ export type DurableAttemptProjection =
 
 /** Reads engine-private state for WorkQueue-owned recovery reconciliation. */
 export interface DurableAttemptInspectionPort {
-  inspect(
-    request: DurableAttemptInspectionRequest,
-  ): Promise<DurableAttemptProjection>;
+  /** Inspect one engine attempt without mutating canonical WorkItem state. */
+  inspect(request: DurableAttemptInspectionRequest): Promise<DurableAttemptProjection>;
 }
 
 /** Engine-independent failure shape consumed by the work classifier. */

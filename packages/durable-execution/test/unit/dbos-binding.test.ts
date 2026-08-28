@@ -1,7 +1,4 @@
-import {
-  createWorkItemId,
-  type WorkItemId,
-} from "@heptalogos/foundation-contracts";
+import { createWorkItemId, type WorkItemId } from "@heptalogos/foundation-contracts";
 import { describe, expect, it, beforeEach } from "vitest";
 import {
   bindWorkAttemptExecutor,
@@ -39,8 +36,7 @@ function driverFixture(): {
   const driver: BindingDriver = {
     registerWorkflow(maxRecoveryAttempts, execute) {
       registrations.push({ maxRecoveryAttempts, execute });
-      return (workItemId, dispatchRevision) =>
-        execute(workItemId, dispatchRevision);
+      return (workItemId, dispatchRevision) => execute(workItemId, dispatchRevision);
     },
   };
   return { driver, registrations };

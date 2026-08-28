@@ -19,12 +19,15 @@ export interface EngineAttemptDisposition {
   readonly disposition: Exclude<WorkAttemptExecutionStatus, "NOT_FOUND"> | "STALE_NOOP";
 }
 
+/** Invokes one generation-pinned WorkItem attempt in the durable engine. */
 export type RegisteredDispatchWorkflow = (
   workItemId: WorkItemId,
   dispatchRevision: number,
 ) => Promise<EngineAttemptDisposition>;
 
+/** Supplies the process-global workflow registration mechanism to the adapter. */
 export interface BindingDriver {
+  /** Register the process-global static workflow with the durable engine. */
   registerWorkflow(
     maxRecoveryAttempts: number,
     execute: RegisteredDispatchWorkflow,

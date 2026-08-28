@@ -844,10 +844,13 @@ export async function provisionHostOwnershipDatabase(
                   return options.passwordProvider.withDurableExecutionPassword(
                     async (durableExecutionPasswordUtf8) => {
                       const durableExecutionVerifier =
-                        encodePostgresScramSha256Verifier(durableExecutionPasswordUtf8, {
-                          iterations: HOST_LEASE_SCRAM_ITERATIONS,
-                          salt: randomBytes(HOST_LEASE_SCRAM_SALT_BYTES),
-                        });
+                        encodePostgresScramSha256Verifier(
+                          durableExecutionPasswordUtf8,
+                          {
+                            iterations: HOST_LEASE_SCRAM_ITERATIONS,
+                            salt: randomBytes(HOST_LEASE_SCRAM_SALT_BYTES),
+                          },
+                        );
                       const durableExecutionRoleCreated = await ensureRole(
                         admin,
                         options.mutationAuthority,

@@ -43,6 +43,7 @@ export interface DurableExecutionProcessResult {
 
 /** Owns provisioning of the current DBOS vendor schema under migration Authority. */
 export interface DurableExecutionSchemaProvisioner {
+  /** Ensure the installed DBOS schema is current using the supplied Authority. */
   ensureCurrent(authority: HostCanonicalMigrationAuthority): Promise<void>;
 }
 
@@ -89,9 +90,13 @@ export type DurableExecutionLifecycleState =
 /** Exposes lifecycle operations without leaking DBOS or pool implementation types. */
 export interface DurableExecutionRuntime {
   readonly state: DurableExecutionLifecycleState;
+  /** Start the Host-bound DBOS runtime and verify its queue projections. */
   start(): Promise<void>;
+  /** Drain DBOS work and release runtime resources while retaining the Host. */
   quiesce(): Promise<void>;
+  /** Resume a previously quiesced DBOS runtime under the same Host authority. */
   resume(): Promise<void>;
+  /** Close the runtime and release all owned DBOS resources. */
   close(): Promise<void>;
 }
 

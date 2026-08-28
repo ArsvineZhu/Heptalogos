@@ -27,6 +27,7 @@ export interface DbosWorkflowStatus {
 
 /** Status lookup seam kept behind the durable-execution boundary. */
 export interface DbosWorkflowStatusDriver {
+  /** Read one DBOS workflow status without exposing the vendor client type. */
   getWorkflowStatus(workflowID: string): Promise<DbosWorkflowStatus | null>;
 }
 

@@ -528,7 +528,7 @@ Use the current 4.27 API:
 ```ts
 DBOS.shutdown({
   workflowCompletionTimeoutMS: explicitShutdownDrainTimeoutMs,
-})
+});
 ```
 
 Do not use:
@@ -668,7 +668,7 @@ The catalog is immutable Host composition input. H4 later owns configurable acti
 Extend `WorkQueueServiceOptions` with mandatory:
 
 ```ts
-profiles: WorkQueueProfileCatalog
+profiles: WorkQueueProfileCatalog;
 ```
 
 During creation:
@@ -781,9 +781,7 @@ export type DurableAttemptProjection =
   | { readonly kind: "VERSION_MISMATCH"; readonly applicationVersion: string };
 
 export interface DurableAttemptInspectionPort {
-  inspect(
-    request: DurableAttemptInspectionRequest,
-  ): Promise<DurableAttemptProjection>;
+  inspect(request: DurableAttemptInspectionRequest): Promise<DurableAttemptProjection>;
 }
 ```
 
@@ -799,7 +797,7 @@ createWorkQueueRecoveryCoordinator({
   durableInspection,
   onBackgroundError,
   batchSize,
-})
+});
 ```
 
 Add a repository scan for canonical `RUNNING` rows using the existing current projection index shape:
@@ -1366,13 +1364,10 @@ No hardcoded production default.
 Call:
 
 ```ts
-DBOS.runStep(
-  () => currentBinding.execute(workItemId, dispatchRevision),
-  {
-    name: "executeWorkAttempt",
-    retriesAllowed: false,
-  },
-)
+DBOS.runStep(() => currentBinding.execute(workItemId, dispatchRevision), {
+  name: "executeWorkAttempt",
+  retriesAllowed: false,
+});
 ```
 
 Why `retriesAllowed:false`:
@@ -1463,7 +1458,7 @@ Call after DBOS launch:
 DBOS.registerQueue(name, {
   ...mappedOptions,
   onConflict: "never_update",
-})
+});
 ```
 
 Then use returned/readback queue getters to compare every expected field with persisted configuration.
@@ -2826,36 +2821,36 @@ No new behavior Independent Review exists solely to record already-proven post-m
 
 Every `REQUIRED` H3A-2 row must be PASS before H3A closes.
 
-| ID | Property | Evidence |
-| --- | --- | --- |
-| A2-01 | WorkItem remains the only product durable-work Authority | code/API audit + real PG |
-| A2-02 | DBOS 4.27.6 is the only durable engine | package/runtime evidence |
-| A2-03 | DBOS role has zero `heptalogos.*` data privileges | real PG ACL |
-| A2-04 | DBOS schema changes only under migration Authority | fresh/restart real PG |
-| A2-05 | normal DBOS runtime performs no DDL | `runMigrations:false` + missing-schema failure |
-| A2-06 | static dispatcher is the only DBOS WorkItem workflow | static audit + runtime |
-| A2-07 | same WorkItem/revision maps to one DBOS workflow ID | real DBOS duplicate projection |
-| A2-08 | retry/wakeup increments revision before new engine identity | real DBOS + PG |
-| A2-09 | canonical `notBefore` remains final time Authority | delayed DBOS + executor recheck |
-| A2-10 | queue profiles project exactly to current DBOS Queue API | readback |
-| A2-11 | partition profile/key contract is fail-closed | WorkQueue + real DBOS |
-| A2-12 | DBOS executor identity survives BootId change | process restart |
-| A2-13 | applicationVersion is an orthogonal durable-code axis | A/B process test |
-| A2-14 | crash after WorkItem commit before dispatch recovers | process kill |
-| A2-15 | crash after engine projection before RUNNING recovers | process kill |
-| A2-16 | RUNNING same revision/attempt re-enters after process death | process kill |
-| A2-17 | crash after terminal commit before DBOS checkpoint does not re-run logical work | deterministic barrier |
-| A2-18 | stale revision cannot commit after recovery | real PG CAS |
-| A2-19 | exact pinned generation remains mandatory during recovery | A/B generation |
-| A2-20 | engine SUCCESS/ERROR/CANCELLED never directly determines WorkItem terminal truth | projection reconciliation tests |
-| A2-21 | recovery budget exhaustion fails closed | repeated crash |
-| A2-22 | Host lease loss prevents terminal product commit | authentic lease kill |
-| A2-23 | planned Host shutdown settles DBOS before ownership release | authentic Host |
-| A2-24 | maintenance pre-entry abort can resume same-process durable runtime | real DBOS |
-| A2-25 | committed obligation survives admission delay/throttle | real row + queue mechanics |
-| A2-26 | no consequential external-effect path exists | static API/source audit |
-| A2-27 | no development-history compatibility path exists | hygiene/source audit |
-| A2-28 | new durable-execution package is covered by package/API navigation owners | repository/API-doc gates |
+| ID    | Property                                                                         | Evidence                                       |
+| ----- | -------------------------------------------------------------------------------- | ---------------------------------------------- |
+| A2-01 | WorkItem remains the only product durable-work Authority                         | code/API audit + real PG                       |
+| A2-02 | DBOS 4.27.6 is the only durable engine                                           | package/runtime evidence                       |
+| A2-03 | DBOS role has zero `heptalogos.*` data privileges                                | real PG ACL                                    |
+| A2-04 | DBOS schema changes only under migration Authority                               | fresh/restart real PG                          |
+| A2-05 | normal DBOS runtime performs no DDL                                              | `runMigrations:false` + missing-schema failure |
+| A2-06 | static dispatcher is the only DBOS WorkItem workflow                             | static audit + runtime                         |
+| A2-07 | same WorkItem/revision maps to one DBOS workflow ID                              | real DBOS duplicate projection                 |
+| A2-08 | retry/wakeup increments revision before new engine identity                      | real DBOS + PG                                 |
+| A2-09 | canonical `notBefore` remains final time Authority                               | delayed DBOS + executor recheck                |
+| A2-10 | queue profiles project exactly to current DBOS Queue API                         | readback                                       |
+| A2-11 | partition profile/key contract is fail-closed                                    | WorkQueue + real DBOS                          |
+| A2-12 | DBOS executor identity survives BootId change                                    | process restart                                |
+| A2-13 | applicationVersion is an orthogonal durable-code axis                            | A/B process test                               |
+| A2-14 | crash after WorkItem commit before dispatch recovers                             | process kill                                   |
+| A2-15 | crash after engine projection before RUNNING recovers                            | process kill                                   |
+| A2-16 | RUNNING same revision/attempt re-enters after process death                      | process kill                                   |
+| A2-17 | crash after terminal commit before DBOS checkpoint does not re-run logical work  | deterministic barrier                          |
+| A2-18 | stale revision cannot commit after recovery                                      | real PG CAS                                    |
+| A2-19 | exact pinned generation remains mandatory during recovery                        | A/B generation                                 |
+| A2-20 | engine SUCCESS/ERROR/CANCELLED never directly determines WorkItem terminal truth | projection reconciliation tests                |
+| A2-21 | recovery budget exhaustion fails closed                                          | repeated crash                                 |
+| A2-22 | Host lease loss prevents terminal product commit                                 | authentic lease kill                           |
+| A2-23 | planned Host shutdown settles DBOS before ownership release                      | authentic Host                                 |
+| A2-24 | maintenance pre-entry abort can resume same-process durable runtime              | real DBOS                                      |
+| A2-25 | committed obligation survives admission delay/throttle                           | real row + queue mechanics                     |
+| A2-26 | no consequential external-effect path exists                                     | static API/source audit                        |
+| A2-27 | no development-history compatibility path exists                                 | hygiene/source audit                           |
+| A2-28 | new durable-execution package is covered by package/API navigation owners        | repository/API-doc gates                       |
 
 Residual product properties remain `NOT_RUN` rather than blocking H3A:
 

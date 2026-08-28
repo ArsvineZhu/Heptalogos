@@ -38,10 +38,12 @@ function report(
   }
 }
 
-function projectionProblem(projection: DurableAttemptProjection): {
-  readonly problemCode: string;
-  readonly detail: string;
-} | undefined {
+function projectionProblem(projection: DurableAttemptProjection):
+  | {
+      readonly problemCode: string;
+      readonly detail: string;
+    }
+  | undefined {
   switch (projection.kind) {
     case "ACTIVE":
       return undefined;
@@ -73,7 +75,8 @@ function projectionProblem(projection: DurableAttemptProjection): {
     case "RECOVERY_EXHAUSTED":
       return {
         problemCode: "work.recovery.recovery_exhausted",
-        detail: "Engine recovery budget was exhausted while canonical work remains RUNNING",
+        detail:
+          "Engine recovery budget was exhausted while canonical work remains RUNNING",
       };
   }
 }

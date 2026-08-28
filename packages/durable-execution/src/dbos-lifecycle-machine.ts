@@ -48,7 +48,9 @@ const lifecycleMachine = createMachine({
 /** Hides XState while exposing a bounded local lifecycle state machine. */
 export interface DurableExecutionLifecycleMachine {
   readonly state: DurableExecutionLifecycleState;
+  /** Apply one semantic lifecycle event to the package-private machine. */
   send(event: DurableExecutionLifecycleEvent): void;
+  /** Stop the package-private lifecycle actor. */
   stop(): void;
 }
 
