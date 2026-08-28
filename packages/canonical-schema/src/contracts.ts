@@ -1,6 +1,13 @@
+/**
+ * Defines the schema initializer contract and runtime options without exposing
+ * connection-pool or migration-provider ownership to callers.
+ * @module contracts
+ */
+
 import type { ContinuityEpochId } from "@heptalogos/foundation-contracts";
 import type { HostCanonicalMigrationAuthority } from "@heptalogos/host-ownership";
 
+/** Supplies bounded connection and diagnostic policy for schema initialization. */
 export interface CanonicalSchemaRuntimeOptions {
   readonly connectionTimeoutMs: number;
   readonly statementTimeoutMs: number;
@@ -9,11 +16,12 @@ export interface CanonicalSchemaRuntimeOptions {
   readonly onBackgroundError: (error: unknown) => void;
 }
 
-export interface CanonicalSchemaInitializationContext {
+interface CanonicalSchemaInitializationContext {
   readonly authority: HostCanonicalMigrationAuthority;
   readonly expectedContinuityEpochId: ContinuityEpochId;
 }
 
+/** Invokes canonical schema initialization under an authorized Host context. */
 export interface CanonicalSchemaInitializer {
   (context: CanonicalSchemaInitializationContext): Promise<void>;
 }

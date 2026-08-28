@@ -7,7 +7,10 @@
     ".": "./src/index.mjs"
   },
   "dependencies": {
-    "execa": "catalog:"
+    "execa": "catalog:",
+    "mdast-util-from-markdown": "catalog:",
+    "tinyglobby": "catalog:",
+    "yaml": "catalog:"
   },
   "devDependencies": {
     "vitest": "catalog:"

@@ -1,3 +1,9 @@
+/**
+ * Public PostgreSQL Signal contracts, codecs, and service construction for
+ * wakeup hints; listener client and query mechanics remain internal.
+ * @packageDocumentation
+ */
+
 export {
   SIGNAL_CHANNEL,
   SIGNAL_HINT_MAX_BYTES,

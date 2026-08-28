@@ -1,5 +1,12 @@
+/**
+ * Defines the managed Host lifecycle and maintenance contracts shared across
+ * handoff, quiescence, and recovery without exposing controller mechanics.
+ * @module managed-host
+ */
+
 import {
-  ProblemError,
+  createProblemError,
+  type ProblemError,
   type BootId,
   type ContinuityEpochId,
   type HostOwnershipToken,
@@ -15,42 +22,53 @@ import type {
 } from "@heptalogos/host-ownership";
 import type { HostMaintenanceState } from "./host-maintenance-machine.js";
 
+/** Selects the private PostgreSQL maintenance operation requested by Host. */
 export type PrivatePostgresMaintenanceRequest =
   | { readonly kind: "RESTART_PRIVATE_POSTGRES" }
   | { readonly kind: "STOP_PRIVATE_POSTGRES" };
 
+/** Mirrors the maintenance tracker state exposed before window execution. */
 export type PreparedMaintenanceState = HostMaintenanceState;
 
+/** Provides the quiescence proof required before Host maintenance begins. */
 export interface HostMaintenanceQuiescence {
+  /** Drains owned work and returns a lease that can resume on pre-entry abort. */
   quiesce(): Promise<HostQuiescenceLease>;
 }
 
+/** Represents a reversible quiescence lease before the point of no return. */
 export interface HostQuiescenceLease {
+  /** Resumes the old Host after a maintenance operation aborts before entry. */
   resumeAfterAbort(): Promise<void>;
 }
 
-export interface PrivatePostgresMaintenanceResultRestarted {
+interface PrivatePostgresMaintenanceResultRestarted {
   readonly kind: "RESTARTED";
   readonly host: BootstrapManagedHostContext;
 }
 
-export interface PrivatePostgresMaintenanceResultStopped {
+interface PrivatePostgresMaintenanceResultStopped {
   readonly kind: "STOPPED";
 }
 
+/** Reports the terminal result of private PostgreSQL maintenance. */
 export type PrivatePostgresMaintenanceResult =
   PrivatePostgresMaintenanceResultRestarted | PrivatePostgresMaintenanceResultStopped;
 
+/** Represents a prepared maintenance window bound to one operation journal. */
 export interface PreparedPrivatePostgresMaintenance {
   readonly operationId: MaintenanceOperationId;
   readonly state: PreparedMaintenanceState;
   readonly signal: AbortSignal;
+  /** Executes the entered window after quiescence has been proved. */
   execute(
     quiescence: HostMaintenanceQuiescence,
   ): Promise<PrivatePostgresMaintenanceResult>;
+  /** Cancels preparation before the durable point of no return. */
   abortBeforeEntry(): Promise<void>;
 }
 
+/** Managed Host context that fences all persistence and maintenance operations. */
 export interface BootstrapManagedHostContext {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
@@ -60,23 +78,30 @@ export interface BootstrapManagedHostContext {
   readonly state: HostOwnershipState;
   readonly signal: AbortSignal;
   readonly persistence: HostPersistenceAuthority;
+  /** Throws when the managed Host has been closed or its fence is inactive. */
   assertActive(): void;
+  /** Prepares a bounded private PostgreSQL maintenance operation. */
   preparePrivatePostgresMaintenance(
     request: PrivatePostgresMaintenanceRequest,
   ): Promise<PreparedPrivatePostgresMaintenance>;
+  /** Quiesces and closes Host while preserving the maintenance handoff order. */
   shutdownKeepingPrivatePostgres(quiescence: HostMaintenanceQuiescence): Promise<void>;
 }
 
+/** Supplies persistence identity and callback-scoped runtime credentials. */
 export interface ManagedHostPersistenceOptions {
   readonly continuityEpochId: ContinuityEpochId;
   readonly target: HostRuntimeDatabaseTarget;
   readonly withRuntimeDatabasePassword: HostPersistenceAuthority["withRuntimeDatabasePassword"];
 }
 
+/** Operations retained by the managed Host wrapper for maintenance control. */
 export interface ManagedHostOperations {
+  /** Prepares a maintenance window through the Bootstrap authority. */
   preparePrivatePostgresMaintenance(
     request: PrivatePostgresMaintenanceRequest,
   ): Promise<PreparedPrivatePostgresMaintenance>;
+  /** Closes the old Host after quiescence while leaving PostgreSQL controllable. */
   shutdownKeepingPrivatePostgres(quiescence: HostMaintenanceQuiescence): Promise<void>;
 }
 
@@ -92,8 +117,7 @@ const managedHostRecords = new WeakMap<
 >();
 
 function invalidCapability(): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode: "bootstrap.host.invalid_managed_capability",
     category: "integrity",
     retryClass: "manual",
@@ -103,8 +127,7 @@ function invalidCapability(): ProblemError {
 }
 
 function terminalProblem(): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode: "bootstrap.host.managed_host_terminal",
     category: "conflict",
     retryClass: "manual",
@@ -113,6 +136,7 @@ function terminalProblem(): ProblemError {
   });
 }
 
+/** Validates that a value is an authentic managed Host capability. */
 export function assertManagedHostContext(
   value: unknown,
 ): asserts value is BootstrapManagedHostContext {
@@ -125,6 +149,7 @@ export function assertManagedHostContext(
   }
 }
 
+/** Creates the terminal-aware managed Host wrapper around raw ownership. */
 export function createManagedHostContext(
   raw: HostOwnershipContext,
   operations: ManagedHostOperations,
@@ -185,18 +210,10 @@ export function createManagedHostContext(
   return managed;
 }
 
+/** Marks managed Host terminal so no later operation can authorize work. */
 export function markManagedHostTerminal(managed: BootstrapManagedHostContext): void {
   assertManagedHostContext(managed);
   const record = managedHostRecords.get(managed);
   if (record === undefined) throw invalidCapability();
   record.terminal = true;
-}
-
-export function rawHostForManagedContext(
-  managed: BootstrapManagedHostContext,
-): HostOwnershipContext {
-  assertManagedHostContext(managed);
-  const record = managedHostRecords.get(managed);
-  if (record === undefined) throw invalidCapability();
-  return record.raw;
 }

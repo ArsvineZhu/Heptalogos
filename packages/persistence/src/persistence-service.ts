@@ -1,10 +1,16 @@
+/**
+ * Implements the Host-fenced persistence service and bounded pool lifecycle,
+ * rejecting mutations after ownership loss through the canonical fence.
+ * @module persistence-service
+ */
+
 import {
+  createProblemError,
   parseBootId,
   parseHostOwnershipToken,
   parseInstanceId,
   ProblemError,
 } from "@heptalogos/foundation-contracts";
-import { CompiledQuery } from "kysely";
 import {
   HOST_OWNERSHIP_FENCE_LOCK_FUNCTION,
   type HostPersistenceAuthority,
@@ -20,7 +26,8 @@ import {
   type PersistenceTransactionContext,
   type PersistenceTransactionMode,
 } from "./contracts.js";
-import { createKyselyAdapter, type PersistenceDatabase } from "./kysely-adapter.js";
+import { createKyselyAdapter } from "./kysely-adapter.js";
+import { executeFoundationSql } from "./foundation-repository.js";
 import { createPersistencePool } from "./pg-pool.js";
 import {
   persistenceServiceCloseFailedProblem,
@@ -67,25 +74,13 @@ SELECT singleton,
 FROM "heptalogos"."${HOST_OWNERSHIP_FENCE_LOCK_FUNCTION}"()
 `;
 
-async function executeSql<Row>(
-  transaction: PersistenceInternalTransaction,
-  sql: string,
-  parameters: readonly unknown[] = [],
-): Promise<readonly Row[]> {
-  const result = await transaction.executeQuery<Row>(
-    CompiledQuery.raw(sql, [...parameters]),
-  );
-  return result.rows;
-}
-
 function isValidRevision(value: unknown): boolean {
   if (typeof value === "string") return /^(0|[1-9][0-9]*)$/u.test(value);
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
 function incompatibleFenceProblem(): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode: "persistence.host_fence.incompatible",
     category: "integrity",
     retryClass: "manual",
@@ -96,8 +91,7 @@ function incompatibleFenceProblem(): ProblemError {
 }
 
 function staleOwnerProblem(): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode: "persistence.host_fence.stale_owner",
     category: "conflict",
     retryClass: "after-change",
@@ -275,10 +269,13 @@ function createPersistenceServiceFromDatabase(
     try {
       return await database.transaction().execute(async (transaction) => {
         if (mode === "READ") {
-          await executeSql(transaction, "SET TRANSACTION READ ONLY");
+          await executeFoundationSql(transaction, "SET TRANSACTION READ ONLY");
         } else {
           assertAuthorityActive();
-          const rows = await executeSql<HostFenceRow>(transaction, HOST_FENCE_QUERY);
+          const rows = await executeFoundationSql<HostFenceRow>(
+            transaction,
+            HOST_FENCE_QUERY,
+          );
           verifyHostFence(rows, authority, hooks);
           assertAuthorityActive();
         }
@@ -332,6 +329,7 @@ function createPersistenceServiceFromDatabase(
   };
 }
 
+/** Creates the production persistence service over a Host-authorized pool. */
 export function createPersistenceService(
   authority: HostPersistenceAuthority,
   options: PersistenceRuntimeOptions,
@@ -347,6 +345,7 @@ export function createPersistenceService(
   );
 }
 
+/** Creates a persistence service over a test database seam without changing Authority. */
 export function createPersistenceServiceForTests(
   authority: HostPersistenceAuthority,
   options: PersistenceRuntimeOptions,

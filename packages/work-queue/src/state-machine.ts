@@ -1,7 +1,14 @@
+/**
+ * Encodes legal WorkItem state transitions with XState while retaining retry,
+ * fencing, and durable-work meaning in WorkQueue-owned contracts.
+ * @module state-machine
+ */
+
 import { initialTransition, setup, transition, type SnapshotFrom } from "xstate";
 import type { WorkItemState } from "./contracts.js";
 import { workQueueProblem } from "./problems.js";
 
+/** Events accepted by the durable WorkItem lifecycle state machine. */
 export type WorkItemTransitionEvent =
   | { readonly type: "CLAIM" }
   | { readonly type: "WAIT_DEPENDENCY" }
@@ -72,12 +79,17 @@ function snapshotFor(state: WorkItemState): WorkItemSnapshot {
   return workItemMachine.resolveState({ value: state, context: {} });
 }
 
+/** In-memory transition tracker used to validate one repository state change. */
 export interface WorkItemStateMachine {
+  /** Current lifecycle state represented by the tracker. */
   readonly state: WorkItemState;
+  /** Return whether the event is legal from the current state. */
   can(event: WorkItemTransitionEvent): boolean;
+  /** Apply a legal event and return the resulting lifecycle state. */
   send(event: WorkItemTransitionEvent): WorkItemState;
 }
 
+/** Create a transition tracker starting at the supplied durable state. */
 export function createWorkItemStateMachine(
   initialState: WorkItemState = "PENDING",
 ): WorkItemStateMachine {
@@ -104,6 +116,7 @@ export function createWorkItemStateMachine(
   };
 }
 
+/** Check a transition without allocating a mutable tracker for the caller. */
 export function canTransitionWorkItem(
   state: WorkItemState,
   event: WorkItemTransitionEvent,
@@ -111,6 +124,7 @@ export function canTransitionWorkItem(
   return snapshotFor(state).can(event);
 }
 
+/** Apply one validated lifecycle event and return its resulting state. */
 export function transitionWorkItemState(
   state: WorkItemState,
   event: WorkItemTransitionEvent,

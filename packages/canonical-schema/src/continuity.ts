@@ -1,3 +1,9 @@
+/**
+ * Projects canonical-schema continuity values into validated migration inputs
+ * so schema initialization preserves the current lineage boundary.
+ * @module continuity
+ */
+
 import {
   parseContinuityEpochId,
   parseInstanceId,
@@ -10,16 +16,11 @@ import type { CanonicalDatabase } from "./migration-pool.js";
 import { assertCanonicalAuthority } from "./migration-pool.js";
 import { canonicalSchemaProblem } from "./problems.js";
 
-export interface ObservedContinuityRow {
-  readonly singleton: unknown;
-  readonly instance_id: unknown;
-  readonly continuity_epoch_id: unknown;
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** Verifies the locked continuity singleton against the expected identities. */
 export function verifyObservedContinuityRow(
   row: unknown,
   expectedInstanceId: InstanceId,
@@ -85,6 +86,7 @@ async function materializeContinuityInTransaction(
   verifyObservedContinuityRow(rows[0], expectedInstanceId, expectedContinuityEpochId);
 }
 
+/** Materializes and rechecks canonical continuity inside one transaction. */
 export async function materializeContinuity(
   db: Kysely<CanonicalDatabase>,
   authority: HostCanonicalMigrationAuthority,

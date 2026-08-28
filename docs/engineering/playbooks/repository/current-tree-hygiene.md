@@ -6,7 +6,7 @@ ensuring that the checkout describes the system as it is now.
 
 ## Purpose
 
-Use this playbook during every Hn-S stabilization and whenever a current
+Use this playbook during every pre-production stabilization and whenever a current
 contract changes during `CompatibilityEpoch = PRE_PRODUCTION`.
 
 ```text
@@ -19,9 +19,11 @@ no declared compatibility obligation = rewrite/reset/reject/delete
 
 The hygiene gate scans current source, tests, fixtures, scripts, tooling,
 configuration, workflow definitions, manifests, permanent verification, Skills,
-and current agent instructions. It does not scan `Architecture_Corpus/**`,
-`docs/**`, lockfiles, dependencies, build output, coverage, temporary caches, or
-generated artifacts excluded by the gate.
+and current agent instructions. It does not scan `docs/**`, lockfiles,
+dependencies, build output, coverage, temporary caches, or generated artifacts
+excluded by the gate. Standing-document links and moved current-home references
+are owned by `check:documentation`; root topology and machine-Authority
+consumer ownership are owned by `check:repository`.
 
 Historical documents may retain exact milestone/PR/session identifiers because
 chronology is their purpose. They must not be copied back into executable
@@ -46,7 +48,7 @@ rejection, and the adopted compiler compatibility lane when they are current
 semantics rather than historical product compatibility.
 
 The sole current obligation owner is
-`Architecture_Corpus/references/compatibility-obligations.json`. With an empty
+`docs/governance/compatibility-obligations.json`. With an empty
 PRE_PRODUCTION obligation list, project-history compatibility behavior must be
 removed or rejected.
 
@@ -91,7 +93,7 @@ The gate is one permanent repository check and is wired into `pnpm verify` after
 surface is reported as `symbolic-link-residue`; the scanner does not follow it
 and provides no symlink allowlist. A skipped or blocked gate is not `PASS`.
 
-## Hn-S zero-residue checklist
+## Pre-production stabilization zero-residue checklist
 
 - [ ] `pnpm check:hygiene` passes on the final candidate.
 - [ ] development provenance residue is zero in current executable surfaces.

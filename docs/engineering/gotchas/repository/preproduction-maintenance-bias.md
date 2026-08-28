@@ -18,7 +18,7 @@ Previous milestone is not a compatibility consumer.
 Prepare for future evolution != implement present backward compatibility.
 ```
 
-Check `Architecture_Corpus/references/compatibility-obligations.json` before
+Check `docs/governance/compatibility-obligations.json` before
 preserving a reader, alias, fallback, migration, or dual format. If a real
 external consumer or retained production state is discovered but not declared,
 stop as `PLAN_GAP` and request architecture review. Do not rename compatibility

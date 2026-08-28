@@ -1,3 +1,9 @@
+/**
+ * Reconciles interrupted Host maintenance obligations after authority is
+ * reacquired, preserving the ordering between recovery inspection and cleanup.
+ * @module host-maintenance-recovery
+ */
+
 import {
   BootstrapJournal,
   maintenanceOperationRef,
@@ -12,6 +18,8 @@ import {
 import {
   createBootId,
   createUuidV7Id,
+  createProblemError,
+  formatInstant,
   parseBootId,
   parseHostOwnershipToken,
   ProblemError,
@@ -42,6 +50,8 @@ import {
 import type { BootstrapOwnershipLease } from "./bootstrap-ownership.js";
 import { type PrivatePostgresMaintenanceDescriptor } from "./private-postgres-bootstrap.js";
 import { openMaintenanceStateAccess } from "./maintenance-state-access.js";
+import { problemCodeOf } from "./problem-code.js";
+import { recordBootstrapMaintenanceCompletedBestEffort } from "./journal-stage.js";
 import {
   createManagedHostContext,
   markManagedHostTerminal,
@@ -50,8 +60,7 @@ import {
 } from "./managed-host.js";
 import {
   createHostMaintenanceOperations,
-  createRestartPrivatePostgresEnteredWindowExecutor,
-  createStopPrivatePostgresEnteredWindowExecutor,
+  executeHostMaintenanceWindow,
   type HostMaintenanceBootstrapContext,
   type HostMaintenanceOperationProvenance,
 } from "./host-maintenance.js";
@@ -83,6 +92,7 @@ interface HostOwnershipRecoveryIds {
   readonly instanceId: HostMaintenanceRecoveryOptions["privatePostgres"]["expectedIdentity"]["instanceId"];
 }
 
+/** Supplies owner, identity, timing, and private-PostgreSQL inputs for recovery. */
 export interface HostMaintenanceRecoveryOptions {
   readonly anchorRoot: string;
   readonly principal: import("./local-installation-owner.js").LocalInstallationOwnerRecoveryPrincipal;
@@ -102,25 +112,13 @@ function recoveryProblem(
   detail: string,
   category: Problem["category"] = "integrity",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",
     title,
     detail,
   });
-}
-
-function problemCodeOf(error: unknown): string | undefined {
-  if (typeof error !== "object" || error === null || !("problem" in error)) {
-    return undefined;
-  }
-  const value = error.problem;
-  if (typeof value !== "object" || value === null || !("problemCode" in value)) {
-    return undefined;
-  }
-  return typeof value.problemCode === "string" ? value.problemCode : undefined;
 }
 
 function stageIndex(stage: MaintenanceStage): number {
@@ -442,12 +440,8 @@ function createRecoveredManagedHost(
       host,
       createHostMaintenanceOperations({
         ...provenance,
-        executeEnteredWindow: async (window) => {
-          if (window.request.kind === "STOP_PRIVATE_POSTGRES") {
-            return createStopPrivatePostgresEnteredWindowExecutor(provenance)(window);
-          }
-          return createRestartPrivatePostgresEnteredWindowExecutor(provenance)(window);
-        },
+        executeEnteredWindow: (window) =>
+          executeHostMaintenanceWindow(provenance, window),
       }),
       {
         continuityEpochId,
@@ -673,7 +667,7 @@ function nextBody(
     ...changes,
     revision: body.revision + 1,
     lastCompletedStage: stage,
-    updatedAt: new Date().toISOString(),
+    updatedAt: formatInstant(new Date()),
   };
   const next = nextCandidate;
   if (
@@ -700,6 +694,7 @@ function isUncertainProblem(error: unknown): boolean {
   );
 }
 
+/** Recovers an interrupted maintenance window under reacquired authority. */
 export async function recoverInterruptedHostMaintenance(
   options: HostMaintenanceRecoveryOptions,
 ): Promise<PrivatePostgresMaintenanceResult> {
@@ -819,6 +814,25 @@ export async function recoverInterruptedHostMaintenance(
       progress = stage;
     };
 
+    const stopReadyPrivatePostgres = async (): Promise<void> => {
+      if (controller.state !== "READY") return;
+      if (hostLeaseConnection === undefined) {
+        hostLeaseConnection = await normalizeHistoricalFence(
+          options,
+          provider,
+          lease,
+          body,
+          historicalBootId,
+          hostLeaseConnection,
+          markMutation,
+        );
+      }
+      markMutation();
+      await controller.stop();
+      await hostLeaseConnection.close().catch(() => undefined);
+      hostLeaseConnection = undefined;
+    };
+
     if (controller.state === "READY" && !hasReached(progress, "HOST_LEASE_CLOSED")) {
       hostLeaseConnection = await normalizeHistoricalFence(
         options,
@@ -838,23 +852,7 @@ export async function recoverInterruptedHostMaintenance(
     }
 
     if (body.operationType === "PRIVATE_POSTGRES_STOP") {
-      if (controller.state === "READY") {
-        if (hostLeaseConnection === undefined) {
-          hostLeaseConnection = await normalizeHistoricalFence(
-            options,
-            provider,
-            lease,
-            body,
-            historicalBootId,
-            hostLeaseConnection,
-            markMutation,
-          );
-        }
-        markMutation();
-        await controller.stop();
-        await hostLeaseConnection.close().catch(() => undefined);
-        hostLeaseConnection = undefined;
-      }
+      await stopReadyPrivatePostgres();
       if (!hasReached(progress, "POSTGRES_STOPPED")) {
         await advance("POSTGRES_STOPPED");
       }
@@ -865,39 +863,12 @@ export async function recoverInterruptedHostMaintenance(
         });
       }
       await lease.release();
-      await bootstrap.journal
-        .checkpoint({
-          schemaVersion: 1,
-          bootId: recoveryBootId,
-          bootstrapActivityId: recoveryActivityId,
-          installationId: locator.installationId,
-          instanceId: locator.instanceId,
-          stage: "bootstrap.maintenance.completed",
-          at: new Date().toISOString(),
-          outcome: "SUCCEEDED",
-        })
-        .catch(() => undefined);
+      await recordBootstrapMaintenanceCompletedBestEffort(bootstrap);
       return { kind: "STOPPED" };
     }
 
     if (!hasReached(progress, "POSTGRES_STOPPED")) {
-      if (controller.state === "READY") {
-        if (hostLeaseConnection === undefined) {
-          hostLeaseConnection = await normalizeHistoricalFence(
-            options,
-            provider,
-            lease,
-            body,
-            historicalBootId,
-            hostLeaseConnection,
-            markMutation,
-          );
-        }
-        markMutation();
-        await controller.stop();
-        await hostLeaseConnection.close().catch(() => undefined);
-        hostLeaseConnection = undefined;
-      }
+      await stopReadyPrivatePostgres();
       await advance("POSTGRES_STOPPED");
     }
 
@@ -1088,18 +1059,7 @@ export async function recoverInterruptedHostMaintenance(
       throw error;
     }
     hostLeaseConnection = undefined;
-    await bootstrap.journal
-      .checkpoint({
-        schemaVersion: 1,
-        bootId: recoveryBootId,
-        bootstrapActivityId: recoveryActivityId,
-        installationId: locator.installationId,
-        instanceId: locator.instanceId,
-        stage: "bootstrap.maintenance.completed",
-        at: new Date().toISOString(),
-        outcome: "SUCCEEDED",
-      })
-      .catch(() => undefined);
+    await recordBootstrapMaintenanceCompletedBestEffort(bootstrap);
     return { kind: "RESTARTED", host: managedHost };
   } catch (error) {
     await hostLeaseConnection?.close().catch(() => undefined);

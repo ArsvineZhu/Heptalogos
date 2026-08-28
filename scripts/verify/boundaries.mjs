@@ -1,146 +1,16 @@
-import { builtinModules } from "node:module";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join, relative, resolve, sep } from "node:path";
+/**
+ * Verifies Heptalogos-specific package boundary and Authority leakage rules
+ * that generic dependency analyzers cannot express as semantic invariants.
+ * @module boundaries
+ */
+
+import { readFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  discoverWorkspacePackages,
-  packageRoutes,
-  repositoryToolingPackages,
-} from "@heptalogos/repo-kit";
+import { findRepositoryFilesSync } from "@heptalogos/repo-kit";
 
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const errors = [];
-const packageJsonCache = new Map();
-const ignoredDirectories = new Set([
-  ".git",
-  ".nx",
-  ".pnpm-store",
-  ".vite",
-  ".cache",
-  "coverage",
-  "dist",
-  "node_modules",
-  "test-results",
-  "tmp",
-]);
-const builtins = new Set([
-  ...builtinModules,
-  ...builtinModules
-    .filter((name) => !name.startsWith("node:"))
-    .map((name) => `node:${name}`),
-]);
-
-const restrictedImports = new Map([
-  [
-    "ajv",
-    [
-      "packages/schema-runtime/",
-      "packages/bootstrap-state/src/codec.ts",
-      "packages/bootstrap-state/src/journal.ts",
-      "packages/bootstrap-state/src/bootstrap-owner-witness-codec.ts",
-      "packages/bootstrap-state/src/maintenance-codec.ts",
-      "packages/bootstrap-runtime/src/locator.ts",
-    ],
-  ],
-  [
-    "typebox",
-    [
-      "packages/schema-runtime/",
-      "packages/bootstrap-state/src/codec.ts",
-      "packages/bootstrap-state/src/journal.ts",
-      "packages/bootstrap-state/src/bootstrap-owner-witness-codec.ts",
-      "packages/bootstrap-state/src/maintenance-codec.ts",
-      "packages/bootstrap-runtime/src/locator.ts",
-    ],
-  ],
-  [
-    "@heptalogos/canonical-schema",
-    [
-      "packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts",
-      "packages/bootstrap-runtime/src/test-support/canonical-postgres.ts",
-    ],
-  ],
-  [
-    "@opentelemetry/api",
-    [
-      "packages/execution-lineage/src/observability-adapter.ts",
-      "packages/execution-lineage/src/execution-context-runtime.test.ts",
-    ],
-  ],
-  ["cordis", ["packages/runtime-substrate/"]],
-  [
-    "@dagrejs/graphlib",
-    [
-      "packages/runtime-kernel/src/runtime-graph.ts",
-      "packages/runtime-kernel/src/runtime-graph.test.ts",
-    ],
-  ],
-  ["@heptalogos/execution-lineage/runtime-kernel", ["packages/runtime-kernel/"]],
-  [
-    "@heptalogos/bootstrap-state",
-    ["packages/bootstrap-runtime/", "packages/bootstrap-state/"],
-  ],
-  [
-    "@heptalogos/private-postgres",
-    [
-      "packages/private-postgres/",
-      "packages/bootstrap-runtime/",
-      "packages/host-ownership/src/host-ownership.integration.test.ts",
-      "packages/persistence/src/persistence.integration.test.ts",
-    ],
-  ],
-  [
-    "@bybrave/proper-lockfile2",
-    ["packages/bootstrap-runtime/src/bootstrap-ownership.ts"],
-  ],
-  ["execa", ["packages/private-postgres/src/process-adapter.ts"]],
-  [
-    "pg",
-    [
-      "packages/host-ownership/",
-      "packages/persistence/",
-      "packages/canonical-schema/",
-      "packages/signal/",
-      "packages/bootstrap-runtime/src/host-maintenance.integration.test.ts",
-      "packages/bootstrap-runtime/src/bootstrap-recovery.integration.test.ts",
-      "packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts",
-      "packages/bootstrap-runtime/src/test-support/canonical-postgres.ts",
-    ],
-  ],
-  [
-    "kysely",
-    [
-      "packages/persistence/",
-      "packages/canonical-schema/",
-      "packages/signal/",
-      "packages/work-queue/",
-      "packages/execution-lineage/src/activity-repository.ts",
-      "packages/evidence/src/evidence-service.ts",
-      "packages/bootstrap-runtime/src/execution-foundation.integration.test.ts",
-    ],
-  ],
-]);
-const restrictedSpecifiers = new Map([
-  [
-    "@heptalogos/persistence/foundation-repository",
-    [
-      "packages/execution-lineage/",
-      "packages/evidence/",
-      "packages/persistence/",
-      "packages/signal/",
-      "packages/work-queue/",
-      "packages/bootstrap-runtime/src/execution-foundation.integration.test.ts",
-    ],
-  ],
-  [
-    "@heptalogos/work-queue/foundation-repository",
-    [
-      "packages/work-queue/",
-      "packages/bootstrap-runtime/src/durable-work-host.integration.test.ts",
-    ],
-  ],
-]);
-
 const workQueuePublicSource = readFileSync(
   resolve(root, "packages/work-queue/src/index.ts"),
   "utf8",
@@ -152,10 +22,6 @@ if (/\bcreateWorkQueueRepository\b/u.test(workQueuePublicSource)) {
 }
 
 const hostOwnershipSourcePrefix = "packages/host-ownership/src/";
-const hostOwnershipAdapterSourcePaths = new Set([
-  "packages/host-ownership/src/bootstrap-admin.ts",
-  "packages/host-ownership/src/host-lease-connection.ts",
-]);
 const hostOwnershipPublicSource = readFileSync(
   resolve(root, "packages/host-ownership/src/index.ts"),
   "utf8",
@@ -254,23 +120,6 @@ if (canonicalSchemaMechanicsPattern.test(canonicalSchemaPublicSource)) {
     "packages/canonical-schema/src/index.ts: concrete pg/Kysely migration mechanics must not leak through the canonical-schema package root",
   );
 }
-for (const match of persistencePublicSource.matchAll(
-  /export\s+\*\s+from\s+["'](\.\/[^"']+)["']/gu,
-)) {
-  const specifier = match[1];
-  const candidatePaths = [
-    resolve(dirname(persistencePublicSourcePath), `${specifier}.ts`),
-    resolve(dirname(persistencePublicSourcePath), `${specifier}.tsx`),
-  ];
-  const targetPath = candidatePaths.find((candidate) => existsSync(candidate));
-  if (!targetPath) continue;
-  const targetSource = readFileSync(targetPath, "utf8");
-  if (/(?:from\s+|import\s*\(\s*)["'](?:pg|kysely)["']/u.test(targetSource)) {
-    errors.push(
-      `packages/persistence/src/index.ts: package-root star export leaks pg/Kysely mechanics from ${specifier}`,
-    );
-  }
-}
 if (
   sensitiveBootstrapAuthorityModules.some((specifier) =>
     new RegExp(`export\\s+\\*\\s+from\\s+["']${specifier}["']`, "u").test(
@@ -283,169 +132,14 @@ if (
   );
 }
 
-export function isRestrictedImportAllowed(specifier, relativePath) {
-  const allowedPaths = restrictedImports.get(specifier);
-  if (!allowedPaths) return true;
-  const normalizedPath = relativePath.replaceAll("\\", "/");
-  return allowedPaths.some((allowedPath) =>
-    allowedPath.endsWith("/")
-      ? normalizedPath.startsWith(allowedPath)
-      : normalizedPath === allowedPath,
-  );
-}
-
-const bootstrapRuntimeProductionForbiddenImports = new Set([
-  "@heptalogos/runtime-kernel",
-  "@heptalogos/runtime-substrate",
-  "@heptalogos/work-queue",
-  "@heptalogos/signal",
-  "@heptalogos/durable-execution",
-  "cordis",
-]);
-
-export function isBootstrapRuntimeProductionImportAllowed(specifier, relativePath) {
-  const normalizedPath = relativePath.replaceAll("\\", "/");
-  const isBootstrapProductionSource =
-    normalizedPath.startsWith("packages/bootstrap-runtime/src/") &&
-    !normalizedPath.endsWith(".test.ts") &&
-    !normalizedPath.endsWith(".test.tsx") &&
-    !normalizedPath.endsWith(".test.mjs");
-  return (
-    !isBootstrapProductionSource ||
-    !bootstrapRuntimeProductionForbiddenImports.has(packageName(specifier))
-  );
-}
-
-export function isRestrictedSpecifierAllowed(specifier, relativePath) {
-  const allowedPaths = restrictedSpecifiers.get(specifier);
-  if (!allowedPaths) return true;
-  const normalizedPath = relativePath.replaceAll("\\", "/");
-  return allowedPaths.some((allowedPath) =>
-    allowedPath.endsWith("/")
-      ? normalizedPath.startsWith(allowedPath)
-      : normalizedPath === allowedPath,
-  );
-}
-
-export function isCrossWorkspaceRelativeImport({
-  sourcePackageName,
-  targetPackageName,
-}) {
-  return (
-    typeof sourcePackageName === "string" &&
-    typeof targetPackageName === "string" &&
-    sourcePackageName !== targetPackageName
-  );
-}
-
-function collect(directory, matcher, files = []) {
-  if (!existsSync(directory)) return files;
-  for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) {
-      if (!ignoredDirectories.has(entry.name)) collect(path, matcher, files);
-    } else if (entry.isFile() && matcher(path, entry.name)) {
-      files.push(path);
-    }
-  }
-  return files;
-}
-
-function packageName(specifier) {
-  if (specifier.startsWith("@")) return specifier.split("/").slice(0, 2).join("/");
-  return specifier.split("/")[0];
-}
-
-const workspacePackageNames = new Set(
-  (await discoverWorkspacePackages({ cwd: root }))
-    .map(({ name }) => name)
-    .filter((name) => typeof name === "string" && name.length > 0),
-);
-
-function packageJsonFor(file) {
-  let directory = dirname(file);
-  while (directory === root || directory.startsWith(`${root}${sep}`)) {
-    if (packageJsonCache.has(directory)) return packageJsonCache.get(directory);
-    const packagePath = join(directory, "package.json");
-    if (existsSync(packagePath)) {
-      const value = JSON.parse(readFileSync(packagePath, "utf8"));
-      packageJsonCache.set(directory, value);
-      return value;
-    }
-    const parent = dirname(directory);
-    if (parent === directory) break;
-    directory = parent;
-  }
-  return {};
-}
-
-function declaredDependencies(manifest) {
-  return new Set([
-    ...Object.keys(manifest.dependencies ?? {}),
-    ...Object.keys(manifest.devDependencies ?? {}),
-    ...Object.keys(manifest.optionalDependencies ?? {}),
-    ...Object.keys(manifest.peerDependencies ?? {}),
-  ]);
-}
-
-function isLocalImport(specifier) {
-  return (
-    specifier === "." ||
-    specifier === ".." ||
-    specifier.startsWith("./") ||
-    specifier.startsWith("../")
-  );
-}
-
-const sourcePaths = collect(root, (sourcePath) => /\.(?:ts|tsx)$/u.test(sourcePath));
+const sourcePaths = findRepositoryFilesSync({
+  root,
+  patterns: ["packages/**/*.ts", "packages/**/*.tsx"],
+  ignore: ["**/dist/**", "**/node_modules/**", "**/.nx/**", "**/coverage/**"],
+});
 for (const path of sourcePaths) {
   const relativePath = relative(root, path).replaceAll("\\", "/");
   const source = readFileSync(path, "utf8");
-  if (relativePath.startsWith("packages/runtime-substrate/")) {
-    if (
-      /(?:from|import\s*\(|require\s*\()(?:\s*["'])(?:@heptalogos\/(?:persistence|execution-lineage)|\.\.\/)/u.test(
-        source,
-      )
-    ) {
-      errors.push(
-        `${relativePath}: runtime-substrate must not depend on PersistenceService or execution-lineage`,
-      );
-    }
-  }
-  if (relativePath.startsWith("packages/runtime-kernel/")) {
-    if (
-      /(?:from|import\s*\(|require\s*\()(?:\s*["'])(?:@heptalogos\/(?:bootstrap-state|host-ownership|canonical-schema)|pg|kysely)(?:["'])/u.test(
-        source,
-      )
-    ) {
-      errors.push(
-        `${relativePath}: runtime-kernel must not import Bootstrap/Host ownership, canonical-schema, pg, or Kysely directly`,
-      );
-    }
-    if (relativePath === "packages/runtime-kernel/src/index.ts") {
-      if (
-        /\b(?:Cordis|Context|Fiber|Kysely|Pool|Client|PostgresDialect)\b/u.test(source)
-      ) {
-        errors.push(
-          "packages/runtime-kernel/src/index.ts: runtime-kernel package root must not leak framework or database objects",
-        );
-      }
-    }
-  }
-  if (relativePath.startsWith(hostOwnershipSourcePrefix)) {
-    for (const forbidden of ["Kysely", "DBOS", "PersistenceService"]) {
-      if (new RegExp(`\\b${forbidden}\\b`, "u").test(source)) {
-        errors.push(
-          `${relativePath}: Host ownership must not materialize ${forbidden}`,
-        );
-      }
-    }
-    if (
-      /(?:from|import\s*\()\s*["'](?:kysely|dbos|@dbos-inc\/dbos-sdk)["']/u.test(source)
-    ) {
-      errors.push(`${relativePath}: Host ownership must not import Kysely or DBOS`);
-    }
-  }
   if (
     source.includes("createHostOwnershipToken") &&
     !(
@@ -460,96 +154,6 @@ for (const path of sourcePaths) {
       `${relativePath}: HostOwnershipToken creation is outside the Host acquisition path`,
     );
   }
-  if (
-    relativePath.startsWith(hostOwnershipSourcePrefix) &&
-    !hostOwnershipAdapterSourcePaths.has(relativePath) &&
-    !relativePath.endsWith(".test.ts") &&
-    /from\s+["']pg["']/u.test(source)
-  ) {
-    errors.push(
-      `${relativePath}: raw pg imports are restricted to the Host ownership adapters or tests`,
-    );
-  }
-  const projectPackage = packageJsonFor(path);
-  const declared = declaredDependencies(projectPackage);
-  const importPattern =
-    /(?:from\s+|import\s*\(\s*|import\s+|require\s*\(\s*)(["'])([^"']+)\1/g;
-
-  for (const match of source.matchAll(importPattern)) {
-    const specifier = match[2];
-    if (isLocalImport(specifier)) {
-      const resolvedImport = resolve(dirname(path), specifier);
-      if (resolvedImport !== root && !resolvedImport.startsWith(`${root}${sep}`)) {
-        errors.push(
-          `${relativePath}: relative import escapes repository: ${specifier}`,
-        );
-        continue;
-      }
-      const targetPackage = packageJsonFor(resolvedImport);
-      if (
-        isCrossWorkspaceRelativeImport({
-          sourcePackageName: projectPackage.name,
-          targetPackageName: targetPackage.name,
-        })
-      ) {
-        errors.push(
-          `${relativePath}: cross-workspace relative import is not allowed: ${specifier}`,
-        );
-      }
-      continue;
-    }
-    if (specifier.startsWith("node:")) {
-      if (!builtins.has(specifier)) {
-        errors.push(`${relativePath}: unknown Node builtin import: ${specifier}`);
-      }
-      continue;
-    }
-
-    if (!isRestrictedSpecifierAllowed(specifier, relativePath)) {
-      errors.push(
-        `${relativePath}: restricted full import is not allowed here: ${specifier}`,
-      );
-      continue;
-    }
-
-    if (!isBootstrapRuntimeProductionImportAllowed(specifier, relativePath)) {
-      errors.push(
-        `${relativePath}: bootstrap-runtime production source must not import ${specifier}`,
-      );
-      continue;
-    }
-
-    const dependency = packageName(specifier);
-    if (!isRestrictedImportAllowed(dependency, relativePath)) {
-      errors.push(
-        `${relativePath}: restricted import is not allowed here: ${specifier}`,
-      );
-      continue;
-    }
-    const isWorkspaceDependency = workspacePackageNames.has(dependency);
-    if (!declared.has(dependency) && dependency !== projectPackage.name) {
-      errors.push(
-        `${relativePath}: undeclared ${isWorkspaceDependency ? "workspace" : "external"} import: ${specifier}`,
-      );
-      continue;
-    }
-    if (isWorkspaceDependency) {
-      continue;
-    }
-    if (repositoryToolingPackages.has(dependency)) {
-      errors.push(
-        `${relativePath}: repository tooling import must not enter source: ${specifier}`,
-      );
-      continue;
-    }
-
-    const route = packageRoutes.get(dependency);
-    if (!route) {
-      errors.push(
-        `${relativePath}: external import has no Corpus package identity: ${specifier}`,
-      );
-    }
-  }
 }
 
 if (errors.length > 0) {
@@ -557,6 +161,6 @@ if (errors.length > 0) {
   process.exitCode = 1;
 } else {
   console.log(
-    "PASS source dependencies; relative imports are local, Node builtins are builtin, and package imports are classified",
+    "PASS Heptalogos semantic boundary checks; package tooling identity and public Authority surfaces are valid",
   );
 }

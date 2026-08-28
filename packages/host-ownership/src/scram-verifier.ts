@@ -1,3 +1,9 @@
+/**
+ * Encodes PostgreSQL SCRAM-SHA-256 verifiers from secret bytes without exposing
+ * plaintext credentials or moving password policy into higher-level services.
+ * @module scram-verifier
+ */
+
 import { createHash, createHmac, pbkdf2Sync } from "node:crypto";
 import {
   HOST_LEASE_SCRAM_ITERATIONS,
@@ -49,6 +55,7 @@ function base64(value: Uint8Array): string {
   return Buffer.from(value).toString("base64");
 }
 
+/** Encodes a PostgreSQL SCRAM verifier from a validated secret and salt. */
 export function encodePostgresScramSha256Verifier(
   passwordAscii: Uint8Array,
   options: PostgresScramVerifierOptions,
@@ -70,6 +77,7 @@ export function encodePostgresScramSha256Verifier(
   return `SCRAM-SHA-256$${options.iterations}:${base64(options.salt)}$${base64(storedKey)}:${base64(serverKey)}`;
 }
 
+/** Checks a secret against a PostgreSQL SCRAM-SHA-256 verifier. */
 export function matchesPostgresScramSha256Verifier(
   passwordAscii: Uint8Array,
   verifier: string | null | undefined,

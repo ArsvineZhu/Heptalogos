@@ -2,12 +2,13 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "private-postgres",
   "projectType": "library",
+  "tags": ["kind:product", "area:bootstrap"],
   "sourceRoot": "packages/private-postgres/src",
   "targets": {
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint packages/private-postgres"
+        "command": "oxlint --type-aware packages/private-postgres"
       }
     },
     "test": {
@@ -19,7 +20,7 @@
     "test:integration": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vitest run --root packages/private-postgres src/controller.integration.test.ts"
+        "command": "vitest run --root packages/private-postgres test/integration/controller.integration.test.ts"
       }
     }
   }

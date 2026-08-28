@@ -2,12 +2,13 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "work-queue",
   "projectType": "library",
+  "tags": ["kind:product", "area:work-queue"],
   "sourceRoot": "packages/work-queue/src",
   "targets": {
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint packages/work-queue"
+        "command": "oxlint --type-aware packages/work-queue"
       }
     },
     "test": {

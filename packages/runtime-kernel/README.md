@@ -17,11 +17,13 @@ not the Bootstrap or PostgreSQL owner.
 - Generation fences, readiness evaluation, and lifecycle lineage.
 - Runtime contract matching and compatibility evaluation.
 - Generation-pinned WorkHandler declaration, validation, publication, and lookup.
+- Supervisor lifecycle transition legality, using XState behind this package boundary.
 
 ## Does not own
 
 - Bootstrap state, Host lease, private PostgreSQL, or process control.
 - Cordis-specific resource mechanics.
+- XState types or statechart objects in the public contract.
 - Product durable WorkItem state, WorkQueue, DBOS, or external-effect semantics.
 - A second persistence or recovery Authority.
 
@@ -36,7 +38,8 @@ retirement rather than retaining private supervisor state.
 ## Dependencies and boundaries
 
 It depends on `foundation-contracts`, `execution-lineage`, `persistence`,
-`runtime-substrate`, `time-service`, and Graphlib. The substrate supplies
+`runtime-substrate`, `time-service`, Graphlib, and the adopted XState route. The
+package-private graph, registry, generation, and lifecycle adapters own those
 mechanics while this package owns runtime meaning. Bootstrap production source
 must remain outside this dependency path; integration composition belongs at
 the higher Host/product boundary.
@@ -57,8 +60,8 @@ Use real PostgreSQL only for claims that cross the runtime/Host integration.
 
 ## Architecture references
 
-- [`S01 — 启动、恢复与运行时监督`](../../Architecture_Corpus/specs/S01-启动-恢复-运行时监督.md)
-- [`S06 — Extension、Package Trust 与 ExecutionDomain`](../../Architecture_Corpus/specs/S06-Extension-Package-Trust-ExecutionDomain.md)
-- [`S13 — Foundation Service/Capability/Readiness`](../../Architecture_Corpus/specs/S13-Foundation-Service-Capability-Readiness-Catalog.md)
-- [`S15 — Foundation 横切合同`](../../Architecture_Corpus/specs/S15-Foundation横切合同.md)
-- [`S16 — Execution Lineage Observability`](../../Architecture_Corpus/specs/S16-Execution-Lineage-Observability.md)
+- [`S01 — 启动、恢复与运行时监督`](../../docs/architecture/contracts/startup-recovery-runtime-supervision.md)
+- [`S06 — Extension、Package Trust 与 ExecutionDomain`](../../docs/architecture/contracts/extension-package-trust-execution-domain.md)
+- [`S13 — Foundation Service/Capability/Readiness`](../../docs/architecture/contracts/foundation-service-capability-readiness-catalog.md)
+- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
+- [`S16 — Execution Lineage Observability`](../../docs/architecture/contracts/execution-lineage-observability.md)

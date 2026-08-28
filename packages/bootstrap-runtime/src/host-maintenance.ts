@@ -1,3 +1,9 @@
+/**
+ * Owns managed Host maintenance preparation, quiescence, and release contracts
+ * while ensuring private PostgreSQL control never occurs under a closed Host.
+ * @module host-maintenance
+ */
+
 import {
   type BootstrapActivityId,
   type BootstrapJournal,
@@ -22,6 +28,8 @@ import {
 import { openPrivatePostgresMaintenanceController } from "@heptalogos/private-postgres";
 import {
   createBootId,
+  createProblemError,
+  formatInstant,
   parseBootId,
   parseHostOwnershipToken,
   ProblemError,
@@ -56,6 +64,8 @@ import type {
 import type { HostOwnershipHandoffOptions } from "./host-ownership-handoff.js";
 import type { PrivatePostgresMaintenanceDescriptor } from "./private-postgres-bootstrap.js";
 import type { BootstrapPathProfile } from "./roots.js";
+import { problemCodeOf } from "./problem-code.js";
+import { recordBootstrapMaintenanceCompletedBestEffort } from "./journal-stage.js";
 
 type CurrentPrivatePostgresStateEnvelope = BootstrapStateEnvelopeV1 & {
   readonly state: BootstrapStateBodyV1 & {
@@ -65,6 +75,7 @@ type CurrentPrivatePostgresStateEnvelope = BootstrapStateEnvelopeV1 & {
 
 const DEFAULT_BOOTSTRAP_HEARTBEAT_MS = 1_000;
 
+/** Captures the Bootstrap context that authorizes a maintenance window. */
 export interface HostMaintenanceBootstrapContext {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
@@ -74,19 +85,23 @@ export interface HostMaintenanceBootstrapContext {
   readonly journal: BootstrapJournal;
 }
 
+/** Represents an entered maintenance window after the point of entry. */
 export interface EnteredMaintenanceWindow {
   readonly operationId: MaintenanceOperationId;
   readonly request: PrivatePostgresMaintenanceRequest;
   readonly lease: BootstrapOwnershipLease;
   readonly access: OwnedMaintenanceStateAccess;
   readonly journal: MaintenanceJournalBodyV1;
+  /** Records a durable maintenance stage before the next side effect. */
   advance(
     stage: MaintenanceStage,
     changes?: Partial<MaintenanceJournalBodyV1>,
   ): Promise<void>;
+  /** Marks the window complete after its terminal outcome is durable. */
   complete(): void;
 }
 
+/** Supplies Host, Bootstrap, handoff, and controller seams for maintenance. */
 export interface HostMaintenanceOperationProvenance {
   readonly host: HostOwnershipContext;
   readonly bootstrap: HostMaintenanceBootstrapContext;
@@ -108,14 +123,24 @@ export interface HostMaintenanceOperationProvenance {
   readonly onOldHostTerminal?: () => void;
 }
 
+/** Dispatches the selected stop or restart operation for an entered window. */
+export function executeHostMaintenanceWindow(
+  provenance: HostMaintenanceOperationProvenance,
+  window: EnteredMaintenanceWindow,
+): Promise<PrivatePostgresMaintenanceResult> {
+  if (window.request.kind === "STOP_PRIVATE_POSTGRES") {
+    return createStopPrivatePostgresEnteredWindowExecutor(provenance)(window);
+  }
+  return createRestartPrivatePostgresEnteredWindowExecutor(provenance)(window);
+}
+
 function maintenanceProblem(
   problemCode: string,
   title: string,
   detail: string,
   category: Problem["category"] = "integrity",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",
@@ -131,17 +156,6 @@ function safeAbortResumeFailureProblem(error: unknown): ProblemError {
     `The pre-point-of-no-return abort could not complete its quiescence resume proof${problemCodeOf(error) === undefined ? "" : ` (${problemCodeOf(error)})`}`,
     "integrity",
   );
-}
-
-function problemCodeOf(error: unknown): string | undefined {
-  if (typeof error !== "object" || error === null || !("problem" in error)) {
-    return undefined;
-  }
-  const problem = error.problem;
-  if (typeof problem !== "object" || problem === null || !("problemCode" in problem)) {
-    return undefined;
-  }
-  return typeof problem.problemCode === "string" ? problem.problemCode : undefined;
 }
 
 function decimalRevision(value: string | number): string {
@@ -370,7 +384,7 @@ function initialJournalBody(
         privatePostgres.initializationProfileRevision,
     },
     lastCompletedStage: "BOOTSTRAP_OWNERSHIP_ACQUIRED",
-    updatedAt: new Date().toISOString(),
+    updatedAt: formatInstant(new Date()),
   };
 }
 
@@ -385,6 +399,7 @@ function isRevocationUncertain(error: unknown): boolean {
   );
 }
 
+/** Creates managed Host operations that enter and close maintenance windows. */
 export function createHostMaintenanceOperations(
   provenance: HostMaintenanceOperationProvenance,
 ): ManagedHostOperations {
@@ -408,6 +423,7 @@ export function createHostMaintenanceOperations(
   };
 }
 
+/** Creates the bounded executor for stopping private PostgreSQL. */
 export function createStopPrivatePostgresEnteredWindowExecutor(
   provenance: HostMaintenanceOperationProvenance,
 ): (window: EnteredMaintenanceWindow) => Promise<PrivatePostgresMaintenanceResult> {
@@ -429,25 +445,13 @@ export function createStopPrivatePostgresEnteredWindowExecutor(
       terminalOutcome: "SUCCEEDED",
     });
     await window.lease.release();
-    await Promise.resolve()
-      .then(() =>
-        provenance.bootstrap.journal.checkpoint({
-          schemaVersion: 1,
-          bootId: provenance.bootstrap.bootId,
-          bootstrapActivityId: provenance.bootstrap.bootstrapActivityId,
-          installationId: provenance.bootstrap.installationId,
-          instanceId: provenance.bootstrap.instanceId,
-          stage: "bootstrap.maintenance.completed",
-          at: new Date().toISOString(),
-          outcome: "SUCCEEDED",
-        }),
-      )
-      .catch(() => undefined);
+    await recordBootstrapMaintenanceCompletedBestEffort(provenance.bootstrap);
     window.complete();
     return { kind: "STOPPED" };
   };
 }
 
+/** Creates the bounded executor for restarting and reacquiring private PostgreSQL. */
 export function createRestartPrivatePostgresEnteredWindowExecutor(
   provenance: HostMaintenanceOperationProvenance,
 ): (window: EnteredMaintenanceWindow) => Promise<PrivatePostgresMaintenanceResult> {
@@ -556,20 +560,7 @@ export function createRestartPrivatePostgresEnteredWindowExecutor(
 
       await window.lease.release();
       rawHost.assertActive();
-      await Promise.resolve()
-        .then(() =>
-          provenance.bootstrap.journal.checkpoint({
-            schemaVersion: 1,
-            bootId: provenance.bootstrap.bootId,
-            bootstrapActivityId: provenance.bootstrap.bootstrapActivityId,
-            installationId: provenance.bootstrap.installationId,
-            instanceId: provenance.bootstrap.instanceId,
-            stage: "bootstrap.maintenance.completed",
-            at: new Date().toISOString(),
-            outcome: "SUCCEEDED",
-          }),
-        )
-        .catch(() => undefined);
+      await recordBootstrapMaintenanceCompletedBestEffort(provenance.bootstrap);
       window.complete();
       const managedHost = provenance.createManagedHost(rawHost);
       returned = true;
@@ -686,7 +677,7 @@ function createPreparedMaintenance(
       ...changes,
       revision: body.revision + 1,
       lastCompletedStage: stage,
-      updatedAt: new Date().toISOString(),
+      updatedAt: formatInstant(new Date()),
     };
     const event = eventForCommittedStage(stage);
     if (event !== undefined) tracker.assertCan(event);

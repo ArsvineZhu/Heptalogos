@@ -1,3 +1,9 @@
+/**
+ * Carries Runtime lifecycle activity lineage through activation and retirement
+ * so supervisor events remain causally correlated with Foundation execution.
+ * @module lifecycle-lineage
+ */
+
 import type {
   ActivityCompletion,
   ActivityRequest,
@@ -13,6 +19,7 @@ import {
 import type { PersistenceService } from "@heptalogos/persistence";
 import type { TimeService } from "@heptalogos/time-service";
 
+/** Supplies execution, persistence, lineage, and time owners for Runtime lifecycle. */
 export interface RuntimeLifecycleLineageOptions {
   readonly execution: ExecutionContextRuntime;
   readonly persistence: PersistenceService;
@@ -20,8 +27,11 @@ export interface RuntimeLifecycleLineageOptions {
   readonly time: TimeService;
 }
 
+/** Runs Runtime lifecycle operations with retained causal Activity records. */
 export interface RuntimeLifecycleLineage {
+  /** Binds a Runtime origin to the shared Activity runner. */
   runner(origin: RuntimeExecutionOrigin): RuntimeActivityRunner;
+  /** Retains, executes, and completes one lifecycle Activity. */
   runRetained<T>(
     origin: RuntimeExecutionOrigin,
     request: ActivityRequest,
@@ -36,6 +46,7 @@ function completion(
   return { endedAt: time.now(), outcome };
 }
 
+/** Creates the Runtime lifecycle lineage adapter over Foundation owners. */
 export function createRuntimeLifecycleLineage(
   options: RuntimeLifecycleLineageOptions,
 ): RuntimeLifecycleLineage {

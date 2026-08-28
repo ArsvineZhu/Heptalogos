@@ -1,12 +1,20 @@
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+/**
+ * Creates shared Problem envelopes for lineage failures so provider and
+ * database details do not leak through the execution-context contract.
+ * @module problems
+ */
 
-export function lineageProblem(
+import {
+  createProblemError,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
+
+function lineageProblem(
   problemCode: string,
   title: string,
   detail: string,
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category: "integrity",
     retryClass: "never",
@@ -15,6 +23,7 @@ export function lineageProblem(
   });
 }
 
+/** Reports a malformed or unsupported durable lineage reference. */
 export function invalidContextRefProblem(detail: string): ProblemError {
   return lineageProblem(
     "lineage.context_ref.invalid",
@@ -23,6 +32,7 @@ export function invalidContextRefProblem(detail: string): ProblemError {
   );
 }
 
+/** Reports lineage that crosses an unexpected instance or continuity epoch. */
 export function discontinuousContextRefProblem(): ProblemError {
   return lineageProblem(
     "lineage.context_ref.discontinuity",
@@ -31,6 +41,7 @@ export function discontinuousContextRefProblem(): ProblemError {
   );
 }
 
+/** Reports an operation that requires a current lineage reference. */
 export function requiredContextRefProblem(): ProblemError {
   return lineageProblem(
     "lineage.context_ref.required",
@@ -39,6 +50,7 @@ export function requiredContextRefProblem(): ProblemError {
   );
 }
 
+/** Reports an Activity context outside the bounded lineage contract. */
 export function invalidActivityProblem(detail: string): ProblemError {
   return lineageProblem(
     "lineage.activity.invalid",
@@ -47,6 +59,7 @@ export function invalidActivityProblem(detail: string): ProblemError {
   );
 }
 
+/** Reports an invalid or incomplete Activity origin. */
 export function invalidOriginProblem(): ProblemError {
   return lineageProblem(
     "lineage.origin.invalid",
@@ -55,6 +68,7 @@ export function invalidOriginProblem(): ProblemError {
   );
 }
 
+/** Reports a transaction Activity that differs from the current context. */
 export function currentActivityMismatchProblem(): ProblemError {
   return lineageProblem(
     "lineage.persistence.current_activity_mismatch",
@@ -63,6 +77,7 @@ export function currentActivityMismatchProblem(): ProblemError {
   );
 }
 
+/** Reports an Activity origin that differs from the transaction origin. */
 export function originMismatchProblem(): ProblemError {
   return lineageProblem(
     "lineage.persistence.origin_mismatch",
@@ -71,6 +86,7 @@ export function originMismatchProblem(): ProblemError {
   );
 }
 
+/** Reports an attempt to retain an ephemeral Activity. */
 export function retentionNotDurableProblem(): ProblemError {
   return lineageProblem(
     "lineage.persistence.retention_not_durable",
@@ -79,6 +95,7 @@ export function retentionNotDurableProblem(): ProblemError {
   );
 }
 
+/** Reports a duplicate retained Activity that is not semantically identical. */
 export function activityAlreadyRetainedProblem(): ProblemError {
   return lineageProblem(
     "lineage.persistence.activity_already_retained",
@@ -87,6 +104,7 @@ export function activityAlreadyRetainedProblem(): ProblemError {
   );
 }
 
+/** Reports completion for an Activity that has not been retained. */
 export function activityNotRetainedProblem(): ProblemError {
   return lineageProblem(
     "lineage.persistence.activity_not_retained",
@@ -95,6 +113,7 @@ export function activityNotRetainedProblem(): ProblemError {
   );
 }
 
+/** Reports a terminal completion that conflicts with existing durable state. */
 export function completionConflictProblem(): ProblemError {
   return lineageProblem(
     "lineage.persistence.completion_conflict",
@@ -103,6 +122,7 @@ export function completionConflictProblem(): ProblemError {
   );
 }
 
+/** Reports an invalid Activity completion payload or terminal outcome. */
 export function invalidCompletionProblem(detail: string): ProblemError {
   return lineageProblem(
     "lineage.persistence.completion_invalid",
@@ -111,6 +131,7 @@ export function invalidCompletionProblem(detail: string): ProblemError {
   );
 }
 
+/** Reports a Bootstrap reference whose lineage identity is discontinuous. */
 export function bootstrapReferenceDiscontinuityProblem(): ProblemError {
   return lineageProblem(
     "lineage.bootstrap_reference.discontinuity",
@@ -119,6 +140,7 @@ export function bootstrapReferenceDiscontinuityProblem(): ProblemError {
   );
 }
 
+/** Reports a Bootstrap reference that conflicts with retained Activity state. */
 export function bootstrapReferenceConflictProblem(): ProblemError {
   return lineageProblem(
     "lineage.bootstrap_reference.conflict",
@@ -127,6 +149,7 @@ export function bootstrapReferenceConflictProblem(): ProblemError {
   );
 }
 
+/** Reports an invalid Bootstrap handoff projection. */
 export function invalidBootstrapHandoffProblem(detail: string): ProblemError {
   return lineageProblem(
     "lineage.bootstrap_handoff.invalid",

@@ -38,7 +38,7 @@
 
 ---
 
-# 0. Baseline truth and accepted M3 debt
+## 0. Baseline truth and accepted M3 debt
 
 M4 begins only after PR #5 is squash-merged **with the stale `ReadyPrivatePostgres` handle/session-generation P1 fixed**.
 
@@ -83,9 +83,9 @@ docs/plans/active/foundation/m4-host-ownership-fence-forward-handoff.md
 
 ---
 
-# 1. M4 capability boundary
+## 1. M4 capability boundary
 
-## 1.1 Input seam
+### 1.1 Input seam
 
 M4 consumes:
 
@@ -107,7 +107,7 @@ bootstrap ownership currently held
 
 It does not grant normal Host Authority.
 
-## 1.2 Successful output seam
+### 1.2 Successful output seam
 
 M4 returns a `HostOwnershipContext` with:
 
@@ -136,7 +136,7 @@ H1                                = STILL OPEN
 
 M5 remains mandatory before H1 closure.
 
-## 1.3 Fixed successful ownership chain
+### 1.3 Fixed successful ownership chain
 
 ```text
 bootstrap lock HELD
@@ -165,9 +165,9 @@ before bootstrap release. There must never be a successful-path interval where n
 
 ---
 
-# 2. Design decisions frozen by this plan
+## 2. Design decisions frozen by this plan
 
-## 2.1 Canonical database and ownership object names
+### 2.1 Canonical database and ownership object names
 
 These are classified implementation/product constants, not user configuration:
 
@@ -185,7 +185,7 @@ Reason: `HostOwnershipFence` must live in the **same canonical database** that H
 
 M4 does **not** create the future runtime/migration/DBOS roles beyond what is required for Host ownership. They enter when their owning milestones need them.
 
-## 2.2 Host lease role is not the M3 bootstrap superuser
+### 2.2 Host lease role is not the M3 bootstrap superuser
 
 The M3 role remains:
 
@@ -197,7 +197,7 @@ Normal Host lease connection must never run as it.
 
 Add a distinct bootstrap key purpose for the Host lease credential. Reusing the bootstrap-superuser credential is forbidden.
 
-## 2.3 Session advisory lock
+### 2.3 Session advisory lock
 
 Use PostgreSQL session-level advisory lock through one dedicated `pg.Client`.
 
@@ -218,7 +218,7 @@ SELECT pg_try_advisory_lock($1::integer, $2::integer) AS acquired;
 
 If it returns false, another Host is authoritative. The loser must not mutate ownership schema, stop PostgreSQL, or attempt automatic takeover.
 
-## 2.4 Advisory key
+### 2.4 Advisory key
 
 Derive the two signed int32 key parts deterministically from:
 
@@ -230,7 +230,7 @@ Read bytes `0..3` and `4..7` as signed big-endian int32 values.
 
 This is not a secret. The domain string is a `PRODUCT_INVARIANT`.
 
-## 2.5 Fresh HostOwnershipToken
+### 2.5 Fresh HostOwnershipToken
 
 Add:
 
@@ -242,7 +242,7 @@ export const createHostOwnershipToken = (): HostOwnershipToken =>
 
 A fresh token is generated for every successful ownership acquisition. Never restore/reuse an old token.
 
-## 2.6 Fence row
+### 2.6 Fence row
 
 Minimum table:
 
@@ -268,7 +268,7 @@ boot_id = current owner BootId or null before first publication
 
 M4 publishes using `FOR UPDATE` in one transaction. H2A will later use `FOR SHARE` + token verification for normal mutating transactions.
 
-## 2.7 Local lifecycle FSM
+### 2.7 Local lifecycle FSM
 
 Use XState pure transitions for the Host lease/context lifecycle:
 
@@ -294,14 +294,13 @@ FENCED → ACTIVE
 
 No reconnect/reacquire/resume in the same Host runtime.
 
-## 2.8 Bootstrap PostgreSQL handle provenance after M4
+### 2.8 Bootstrap PostgreSQL handle provenance after M4
 
 M4 introduces a distinction that M3 did not need before forward handoff existed:
 
 ```ts
 type PrivatePostgresStartupDisposition =
-  | "STARTED_BY_THIS_BOOTSTRAP"
-  | "ALREADY_RUNNING";
+  "STARTED_BY_THIS_BOOTSTRAP" | "ALREADY_RUNNING";
 ```
 
 A second bootstrap process may obtain the filesystem bootstrap lock while a normal Host already owns PostgreSQL. Therefore:
@@ -312,7 +311,7 @@ If `ALREADY_RUNNING`, lifecycle stop/restart must be denied until the caller als
 
 On a lease-contention result that proves another Host owns the advisory lease, the new bootstrap attempt must be able to invalidate/yield its observation and release the bootstrap lock **without stopping the existing Host's PostgreSQL**.
 
-## 2.9 Secret delivery and Host role password verifier
+### 2.9 Secret delivery and Host role password verifier
 
 Extend `BootstrapKeyProvider` with a separate bounded purpose:
 
@@ -349,7 +348,7 @@ No additional low-maintenance third-party SCRAM package is added in M4. Real Pos
 
 ---
 
-# 3. Target repository shape
+## 3. Target repository shape
 
 ```text
 packages/
@@ -405,9 +404,9 @@ Do not create `packages/persistence`, `apps/host`, DBOS packages, runtime kernel
 
 ---
 
-# 4. Public contracts
+## 4. Public contracts
 
-## 4.1 `foundation-contracts`
+### 4.1 `foundation-contracts`
 
 Add only the stable token identity:
 
@@ -420,7 +419,7 @@ export const createHostOwnershipToken = (): HostOwnershipToken =>
 
 No `pg` types.
 
-## 4.2 `@heptalogos/host-ownership`
+### 4.2 `@heptalogos/host-ownership`
 
 Public API must remain framework-free:
 
@@ -467,7 +466,7 @@ bootstrap superuser password
 Host lease role password
 ```
 
-## 4.3 `OwnedBootstrapPrelude`
+### 4.3 `OwnedBootstrapPrelude`
 
 Add one Authority-owned handoff operation:
 
@@ -482,9 +481,9 @@ Do **not** expose a free function that accepts structurally forgeable ownership 
 
 ---
 
-# 5. Task-by-task implementation
+## 5. Task-by-task implementation
 
-## Task 0 — Reconcile post-M3 repository truth
+### Task 0 — Reconcile post-M3 repository truth
 
 **Files**
 
@@ -510,7 +509,7 @@ docs: open Foundation M4 host ownership handoff
 
 ---
 
-## Task 1 — Materialize the adopted `pg` route and package boundary
+### Task 1 — Materialize the adopted `pg` route and package boundary
 
 **Files**
 
@@ -565,7 +564,7 @@ build: materialize pg for host ownership
 
 ---
 
-## Task 2 — Add HostOwnershipToken and deterministic advisory key
+### Task 2 — Add HostOwnershipToken and deterministic advisory key
 
 **Files**
 
@@ -608,7 +607,7 @@ feat: define host ownership identity
 
 ---
 
-## Task 3 — Extend BootstrapKeyProvider and build SCRAM verifier adapter
+### Task 3 — Extend BootstrapKeyProvider and build SCRAM verifier adapter
 
 **Files**
 
@@ -675,7 +674,7 @@ feat: add host lease credential boundary
 
 ---
 
-## Task 4 — Bootstrap-admin connection and least-privilege role/database provisioning
+### Task 4 — Bootstrap-admin connection and least-privilege role/database provisioning
 
 **Files**
 
@@ -722,7 +721,7 @@ feat: provision least privilege host ownership roles
 
 ---
 
-## Task 5 — Create/validate the canonical ownership schema
+### Task 5 — Create/validate the canonical ownership schema
 
 **Files**
 
@@ -762,7 +761,7 @@ feat: establish host ownership fence schema
 
 ---
 
-## Task 6 — Implement HostLeaseConnection with XState local lifecycle
+### Task 6 — Implement HostLeaseConnection with XState local lifecycle
 
 **Files**
 
@@ -802,7 +801,7 @@ feat: add dedicated host lease connection
 
 ---
 
-## Task 7 — Publish and validate HostOwnershipToken under row lock
+### Task 7 — Publish and validate HostOwnershipToken under row lock
 
 **Files**
 
@@ -842,7 +841,7 @@ feat: publish host ownership token
 
 ---
 
-## Task 8 — Evolve M3 private-PG readiness for the post-handoff world
+### Task 8 — Evolve M3 private-PG readiness for the post-handoff world
 
 **Files**
 
@@ -911,7 +910,7 @@ fix: distinguish observed and bootstrap started postgres
 
 ---
 
-## Task 9 — Implement bootstrap → Host forward handoff
+### Task 9 — Implement bootstrap → Host forward handoff
 
 **Files**
 
@@ -922,7 +921,7 @@ fix: distinguish observed and bootstrap started postgres
 
 **Exact orchestration**
 
-### Case A — canonical DB exists
+#### Case A — canonical DB exists
 
 ```text
 bootstrap ownership held
@@ -944,11 +943,11 @@ prove another Host owns lease
 
 If true, current bootstrap temporarily owns the Host lease slot and may continue validation/provisioning.
 
-### Case B — canonical DB absent
+#### Case B — canonical DB absent
 
 Under bootstrap ownership there cannot yet be a valid normal Host using the canonical Host-lease route. Provision the minimal roles/database, then acquire the same bootstrap reservation in the new canonical database before continuing.
 
-### Transfer reservation to dedicated Host lease role
+#### Transfer reservation to dedicated Host lease role
 
 ```text
 validate/provision schema while reservation held
@@ -959,7 +958,7 @@ validate/provision schema while reservation held
 
 If dedicated acquisition returns false, fail closed. Bootstrap lock is still held, so do not publish token or report success.
 
-### Publish and release
+#### Publish and release
 
 ```text
 HostLeaseConnection ACTIVE
@@ -1012,7 +1011,7 @@ feat: hand bootstrap ownership to postgres host fence
 
 ---
 
-## Task 10 — Real PostgreSQL 18.6 concurrency and fencing qualification
+### Task 10 — Real PostgreSQL 18.6 concurrency and fencing qualification
 
 **Files**
 
@@ -1024,7 +1023,7 @@ Use explicit `HEPTALOGOS_TEST_PG_BIN` exact toolchain input. Reject/`BLOCKED` if
 
 Required real-DB scenarios:
 
-### Scenario 1 — first handoff
+#### Scenario 1 — first handoff
 
 ```text
 empty M4 DB artifacts
@@ -1040,7 +1039,7 @@ empty M4 DB artifacts
 
 Prove login session user is `heptalogos_host_lease`, not `heptalogos_bootstrap`.
 
-### Scenario 2 — privilege confinement
+#### Scenario 2 — privilege confinement
 
 Host lease role must fail to:
 
@@ -1054,7 +1053,7 @@ INSERT/DELETE fence singleton row
 
 It may only perform the lease/fence operations granted by contract.
 
-### Scenario 3 — second bootstrap while Host A active
+#### Scenario 3 — second bootstrap while Host A active
 
 ```text
 Host A lease+token ACTIVE
@@ -1067,7 +1066,7 @@ Host A lease+token ACTIVE
 → token unchanged
 ```
 
-### Scenario 4 — old transaction serializes before new token
+#### Scenario 4 — old transaction serializes before new token
 
 Create a test-only bootstrap-superuser/client transaction that models future H2A mutating fence semantics:
 
@@ -1083,7 +1082,7 @@ Host A token A active
 
 This proves already-entered old transactions linearize before ownership transfer.
 
-### Scenario 5 — stale Host cannot start a new canonical mutation after B
+#### Scenario 5 — stale Host cannot start a new canonical mutation after B
 
 ```text
 new transaction with stale token A
@@ -1092,7 +1091,7 @@ new transaction with stale token A
 → test mutation not executed
 ```
 
-### Scenario 6 — lease loss
+#### Scenario 6 — lease loss
 
 Destroy/terminate the dedicated Host lease session from a separate bootstrap-superuser test client or stop PostgreSQL in a controlled fixture:
 
@@ -1104,11 +1103,11 @@ pg Client error/end
 → no same-context reacquire
 ```
 
-### Scenario 7 — handoff release ordering
+#### Scenario 7 — handoff release ordering
 
 Fault inject immediately before bootstrap release and prove both bootstrap lock and Host lease/token are held. Fault inject immediately after release and prove token was already committed.
 
-### Scenario 8 — secret hygiene
+#### Scenario 8 — secret hygiene
 
 Sentinel Host lease password absent from:
 
@@ -1132,7 +1131,7 @@ test: qualify host ownership fencing
 
 ---
 
-## Task 11 — Crash/retry matrix and deterministic partial-initialization recovery
+### Task 11 — Crash/retry matrix and deterministic partial-initialization recovery
 
 M4 provisioning must be restartable without destructive repair.
 
@@ -1176,7 +1175,7 @@ test: cover host ownership handoff recovery matrix
 
 ---
 
-## Task 12 — Boundary enforcement, evidence, and plan closure
+### Task 12 — Boundary enforcement, evidence, and plan closure
 
 **Repository boundaries**
 
@@ -1229,7 +1228,7 @@ docs: record Foundation M4 host ownership evidence
 
 ---
 
-# 6. Verification commands
+## 6. Verification commands
 
 Focused unit/property suite:
 
@@ -1262,7 +1261,7 @@ The M4 branch/PR should follow the repository's normal review/final-CI process u
 
 ---
 
-# 7. M4 acceptance matrix
+## 7. M4 acceptance matrix
 
 Required before calling M4 implementation complete:
 
@@ -1295,7 +1294,7 @@ Cross-platform/source-less/service claims retain `NOT_RUN` where not actually ex
 
 ---
 
-# 8. STOP conditions
+## 8. STOP conditions
 
 Stop and return to architecture review instead of expanding M4 if any proposed implementation requires:
 
@@ -1314,7 +1313,7 @@ Stop and return to architecture review instead of expanding M4 if any proposed i
 
 ---
 
-# 9. Explicit non-goals
+## 9. Explicit non-goals
 
 M4 does not implement:
 
@@ -1339,7 +1338,7 @@ M4 does not implement:
 
 ---
 
-# 10. Next milestone after M4
+## 10. Next milestone after M4
 
 If M4 passes, do **not** jump directly to H2A.
 
@@ -1370,7 +1369,7 @@ Only after M5 closes the remaining H1 exit scenarios may the roadmap authorize H
 
 ---
 
-# Execution record
+## Execution record
 
 Task 0 baseline reconciliation (2026-08-22):
 
@@ -1401,7 +1400,7 @@ M4 merge: NOT_RUN
 M5 reverse handoff / bounded Recovery: OPEN
 ```
 
-## Final closure addendum (2026-08-22)
+### Final closure addendum (2026-08-22)
 
 ```text
 implementation candidate SHA: 49370ac764675640699a30c589a7f8e2e1903125

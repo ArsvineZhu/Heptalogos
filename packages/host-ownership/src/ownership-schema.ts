@@ -1,9 +1,15 @@
+/**
+ * Materializes the Host ownership schema and role prerequisites through the
+ * Bootstrap-authorized path, keeping schema policy out of persistence.
+ * @module ownership-schema
+ */
+
 import {
+  createProblemError,
   parseBootId,
   parseHostOwnershipToken,
-  ProblemError,
+  type ProblemError,
   type InstanceId,
-  type Problem,
 } from "@heptalogos/foundation-contracts";
 import {
   HOST_LEASE_ROLE,
@@ -21,7 +27,9 @@ import {
   withBootstrapAdminClient,
 } from "./bootstrap-admin.js";
 import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
+import { queryWithAuthority as authorizedMutation } from "./authorized-query.js";
 
+/** Supplies authority and connection inputs for ownership schema setup. */
 export interface OwnershipSchemaOptions {
   readonly port: number;
   readonly instanceId: InstanceId;
@@ -30,6 +38,7 @@ export interface OwnershipSchemaOptions {
   readonly clientFactory?: unknown;
 }
 
+/** Reports which ownership schema components were created or initialized. */
 export interface OwnershipSchemaResult {
   readonly schemaCreated: boolean;
   readonly tableCreated: boolean;
@@ -220,15 +229,13 @@ function schemaProblem(
   title: string,
   detail: string,
 ): ProblemError {
-  const problem: Problem = {
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category: "host-ownership",
     retryClass: "manual",
     title,
     detail,
-  };
-  return new ProblemError(problem);
+  });
 }
 
 function incompatibleSchemaProblem(detail: string): ProblemError {
@@ -291,18 +298,6 @@ function assertAclExact(
   ) {
     throw incompatibleSchemaProblem(detail);
   }
-}
-
-async function authorizedMutation<Row = never>(
-  client: BootstrapAdminClient,
-  authority: BootstrapMutationAuthority,
-  text: string,
-  values?: readonly unknown[],
-): Promise<{ readonly rows: readonly Row[] }> {
-  authority.assertCurrent();
-  const result = await client.query<Row>(text, values);
-  authority.assertCurrent();
-  return result;
 }
 
 function assertExactColumns(rows: readonly ColumnRow[]): void {
@@ -770,6 +765,7 @@ VALUES (true, $1, 0, NULL, NULL)
   return true;
 }
 
+/** Ensures the canonical Host ownership schema and initial fence row exist. */
 export async function ensureHostOwnershipSchema(
   options: OwnershipSchemaOptions,
 ): Promise<OwnershipSchemaResult> {

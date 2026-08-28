@@ -1,6 +1,13 @@
+/**
+ * Maps Signal listener and publication failures into shared Problem envelopes
+ * without making PostgreSQL client errors part of the public API.
+ * @module problems
+ */
+
 import {
-  ProblemError,
-  type Problem,
+  createProblemError,
+  type ProblemInit,
+  type ProblemError,
   type RetryClass,
 } from "@heptalogos/foundation-contracts";
 
@@ -49,6 +56,7 @@ const specs: Readonly<
   },
 };
 
+/** Create a stable Signal problem while retaining an optional operational cause. */
 export function signalProblem(
   problemCode: string,
   detail: string,
@@ -59,13 +67,12 @@ export function signalProblem(
     retryClass: "after-change" as const,
     title: "Signal operation failed",
   };
-  const problem: Problem = {
-    schemaVersion: 1,
+  const problem: ProblemInit = {
     problemCode,
     category: spec.category,
     retryClass: spec.retryClass,
     title: spec.title,
     detail,
   };
-  return new ProblemError(problem, cause === undefined ? undefined : { cause });
+  return createProblemError(problem, cause === undefined ? undefined : { cause });
 }

@@ -22,7 +22,6 @@
     "pg": "catalog:"
   },
   "devDependencies": {
-    "@heptalogos/bootstrap-state": "workspace:*",
     "@heptalogos/private-postgres": "workspace:*",
     "@types/pg": "catalog:",
     "vitest": "catalog:"

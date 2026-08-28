@@ -6,7 +6,9 @@
       "@heptalogos/foundation-contracts": [
         "./packages/foundation-contracts/src/index.ts"
       ],
-      "@heptalogos/bootstrap-state": ["./packages/bootstrap-state/src/index.ts"]
+      "@heptalogos/bootstrap-state": ["./packages/bootstrap-state/src/index.ts"],
+      "@heptalogos/schema-runtime": ["./packages/schema-runtime/src/index.ts"],
+      "@heptalogos/schema-runtime/typebox": ["./packages/schema-runtime/src/typebox.ts"]
     },
     "types": ["node"]
   },

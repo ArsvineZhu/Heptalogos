@@ -2,12 +2,13 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "evidence",
   "projectType": "library",
+  "tags": ["kind:product", "area:execution"],
   "sourceRoot": "packages/evidence/src",
   "targets": {
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint packages/evidence"
+        "command": "oxlint --type-aware packages/evidence"
       }
     },
     "test": {

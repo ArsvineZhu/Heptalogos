@@ -1,3 +1,9 @@
+/**
+ * Writes Bootstrap state through a temporary file and atomic replacement so a
+ * crash cannot expose a partially encoded durable record.
+ * @module atomic-file
+ */
+
 import { createRequire } from "node:module";
 import { open } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
@@ -10,6 +16,7 @@ const writeFileAtomic = require("write-file-atomic") as (
   options?: { readonly encoding?: BufferEncoding },
 ) => Promise<void>;
 
+/** Publishes data atomically and syncs the containing directory where supported. */
 export async function writeAtomicPublishedFile(
   filename: string,
   data: string,

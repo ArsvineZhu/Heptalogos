@@ -1,10 +1,15 @@
+/**
+ * Orchestrates Bootstrap locator/state preparation, lease acquisition, private
+ * PostgreSQL setup, and the ordered handoff into Host ownership.
+ * @module bootstrap-prelude
+ */
+
 import { join } from "node:path";
 import {
   BootstrapJournal,
   BootstrapStateStore,
   type BootstrapActivityId,
   type BootstrapRuntimeGenerationId,
-  type BootstrapJournalCheckpointV1,
   type BootstrapStateEnvelope,
   type BootstrapStateLoadResult,
   type BootstrapStageOutcome,
@@ -13,7 +18,9 @@ import {
 import {
   createBootId,
   createContinuityEpochId,
+  formatInstant,
   createUuidV7Id,
+  createProblemError,
   ProblemError,
   type BootId,
   type InstallationId,
@@ -44,7 +51,10 @@ import {
   type HostOwnershipHandoffOptions,
 } from "./host-ownership-handoff.js";
 import type { BootstrapManagedHostContext } from "./managed-host.js";
+import { problemCodeOf } from "./problem-code.js";
+import { recordBootstrapStage } from "./journal-stage.js";
 
+/** Holds Bootstrap preparation evidence before the ownership lease is acquired. */
 export interface PreparedBootstrapPrelude {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
@@ -53,11 +63,13 @@ export interface PreparedBootstrapPrelude {
   readonly paths: BootstrapPathProfile;
   readonly journal: BootstrapJournal;
   readonly preliminaryState: BootstrapStateLoadResult;
+  /** Acquires ownership and upgrades the prepared evidence into an owned prelude. */
   acquireOwnership(
     options: Omit<BootstrapOwnershipOptions, "bootId">,
   ): Promise<OwnedBootstrapPrelude>;
 }
 
+/** Holds Bootstrap state and private-PostgreSQL operations under a live lease. */
 export interface OwnedBootstrapPrelude {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
@@ -68,19 +80,24 @@ export interface OwnedBootstrapPrelude {
   readonly ownershipSignal: AbortSignal;
   readonly state: OwnedBootstrapStateStore;
   readonly authoritativeState: BootstrapStateLoadResult;
+  /** Initializes the current BootstrapState genesis under the owned store. */
   ensureBootstrapStateInitialized(
     selection: BootstrapStateGenesisSelection,
   ): Promise<BootstrapStateEnvelope>;
+  /** Prepares the private PostgreSQL session while Bootstrap authority is held. */
   preparePrivatePostgres(
     options: PreparePrivatePostgresOptions,
   ): Promise<ReadyPrivatePostgres>;
+  /** Transfers the prepared PostgreSQL session into Host ownership. */
   handoffPrivatePostgresToHost(
     ready: ReadyPrivatePostgres,
     options: HostOwnershipHandoffOptions,
   ): Promise<BootstrapManagedHostContext>;
+  /** Releases the prelude and its ownership-bound resources. */
   close(): Promise<void>;
 }
 
+/** Selects the generation values that define a new BootstrapState genesis. */
 export interface BootstrapStateGenesisSelection {
   readonly activeBootstrapRuntimeGeneration: BootstrapRuntimeGenerationId;
   readonly activeProductGeneration: ProductGenerationId;
@@ -99,24 +116,8 @@ const STAGE_STATE_AUTHORITATIVE_RELOAD = "bootstrap.state.authoritative_reload";
 const STAGE_PRELUDE_OWNED = "bootstrap.prelude.owned";
 const STAGE_PRELUDE_RELEASED = "bootstrap.prelude.released";
 
-function instant(): string {
-  return new Date().toISOString();
-}
-
-function problemCodeOf(error: unknown): string | undefined {
-  if (typeof error !== "object" || error === null || !("problem" in error)) {
-    return undefined;
-  }
-  const problem = error.problem;
-  if (typeof problem !== "object" || problem === null || !("problemCode" in problem)) {
-    return undefined;
-  }
-  return typeof problem.problemCode === "string" ? problem.problemCode : undefined;
-}
-
 function currentBootstrapStateAuthorityRequired(): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode: "bootstrap.state.current_authority_required",
     category: "integrity",
     retryClass: "manual",
@@ -133,8 +134,7 @@ function assertMaintenanceObligationClear(
     throw new ProblemError(obligation.problem);
   }
   if (!obligation.incomplete) return;
-  throw new ProblemError({
-    schemaVersion: 1,
+  throw createProblemError({
     problemCode: "bootstrap.recovery.maintenance_required",
     category: "conflict",
     retryClass: "manual",
@@ -144,29 +144,6 @@ function assertMaintenanceObligationClear(
         ? "BootstrapState references an incomplete maintenance obligation that must be recovered before normal bootstrap"
         : `MaintenanceJournal operation ${obligation.operationId} is incomplete and must be recovered before normal bootstrap`,
   });
-}
-
-function checkpoint(
-  installationId: InstallationId,
-  instanceId: InstanceId,
-  bootId: BootId,
-  bootstrapActivityId: BootstrapActivityId,
-  stage: string,
-  at: string,
-  outcome: BootstrapStageOutcome,
-  problemCode?: string,
-): BootstrapJournalCheckpointV1 {
-  return {
-    schemaVersion: 1,
-    bootId,
-    bootstrapActivityId,
-    installationId,
-    instanceId,
-    stage,
-    at,
-    outcome,
-    ...(problemCode ? { problemCode } : {}),
-  };
 }
 
 async function record(
@@ -180,17 +157,12 @@ async function record(
   outcome: BootstrapStageOutcome,
   problemCode?: string,
 ): Promise<void> {
-  await journal.checkpoint(
-    checkpoint(
-      installationId,
-      instanceId,
-      bootId,
-      bootstrapActivityId,
-      stage,
-      at,
-      outcome,
-      problemCode,
-    ),
+  await recordBootstrapStage(
+    { journal, installationId, instanceId, bootId, bootstrapActivityId },
+    stage,
+    at,
+    outcome,
+    problemCode,
   );
 }
 
@@ -232,7 +204,7 @@ async function materializeOwnedBootstrapPrelude(
       context.bootId,
       context.bootstrapActivityId,
       STAGE_STATE_AUTHORITATIVE_RELOAD,
-      instant(),
+      formatInstant(new Date()),
       "SUCCEEDED",
     );
     await record(
@@ -242,7 +214,7 @@ async function materializeOwnedBootstrapPrelude(
       context.bootId,
       context.bootstrapActivityId,
       STAGE_PRELUDE_OWNED,
-      instant(),
+      formatInstant(new Date()),
       "SUCCEEDED",
     );
 
@@ -362,7 +334,7 @@ async function materializeOwnedBootstrapPrelude(
             context.bootId,
             context.bootstrapActivityId,
             STAGE_PRELUDE_RELEASED,
-            instant(),
+            formatInstant(new Date()),
             "SUCCEEDED",
           );
         })();
@@ -379,11 +351,13 @@ async function materializeOwnedBootstrapPrelude(
   }
 }
 
+/** Identifies the recovered boot activity used to rebuild an owned prelude. */
 export interface RecoveredBootstrapPreludeIdentity {
   readonly bootId: BootId;
   readonly bootstrapActivityId: BootstrapActivityId;
 }
 
+/** Rebuilds a Bootstrap prelude from inspected recovery evidence under a lease. */
 export async function adoptRecoveredBootstrapOwnershipForPrelude(
   anchorRoot: string,
   ownership: BootstrapOwnershipLease,
@@ -412,17 +386,18 @@ export async function adoptRecoveredBootstrapOwnershipForPrelude(
   }
 }
 
+/** Prepares locator, paths, state evidence, and a deferred ownership operation. */
 export async function prepareBootstrapPrelude(
   anchorRoot: string,
 ): Promise<PreparedBootstrapPrelude> {
   const bootId = createBootId();
   const bootstrapActivityId = createUuidV7Id("ActivityId");
-  const startedAt = instant();
+  const startedAt = formatInstant(new Date());
 
   const locator: BootstrapLocatorV1 = await loadBootstrapLocator(anchorRoot);
-  const locatorResolvedAt = instant();
+  const locatorResolvedAt = formatInstant(new Date());
   const paths = await resolveBootstrapPathProfile(locator, BOOTSTRAP_PRELUDE_ROOTS);
-  const rootsResolvedAt = instant();
+  const rootsResolvedAt = formatInstant(new Date());
   const installationId = locator.installationId;
   const instanceId = locator.instanceId;
   const journal = new BootstrapJournal(paths.resolve("INSTANCE").canonicalPath);
@@ -476,7 +451,7 @@ export async function prepareBootstrapPrelude(
       bootId,
       bootstrapActivityId,
       STAGE_STATE_PRELIMINARY_READ,
-      instant(),
+      formatInstant(new Date()),
       "FAILED",
       problemCodeOf(error),
     );
@@ -489,7 +464,7 @@ export async function prepareBootstrapPrelude(
     bootId,
     bootstrapActivityId,
     STAGE_STATE_PRELIMINARY_READ,
-    instant(),
+    formatInstant(new Date()),
     "SUCCEEDED",
   );
 
@@ -523,7 +498,7 @@ export async function prepareBootstrapPrelude(
         bootId,
         bootstrapActivityId,
         STAGE_OWNERSHIP_BLOCKED,
-        instant(),
+        formatInstant(new Date()),
         "FAILED",
         problemCodeOf(error),
       );
@@ -538,7 +513,7 @@ export async function prepareBootstrapPrelude(
         bootId,
         bootstrapActivityId,
         STAGE_OWNERSHIP_ACQUIRED,
-        instant(),
+        formatInstant(new Date()),
         "SUCCEEDED",
       );
     } catch (error) {

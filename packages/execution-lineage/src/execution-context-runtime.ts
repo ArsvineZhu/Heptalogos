@@ -1,3 +1,9 @@
+/**
+ * Provides the process-local execution-context carrier while keeping context
+ * propagation separate from durable lineage storage and product scheduling.
+ * @module execution-context-runtime
+ */
+
 import { AsyncLocalStorage } from "node:async_hooks";
 import {
   createActivityId,
@@ -42,12 +48,16 @@ interface ExecutionStore {
   readonly otelContext: LineageTelemetryContext;
 }
 
+/** Internal Runtime Kernel runner contract bound to execution lineage. */
 export interface InternalRuntimeActivityRunner {
+  /** Returns the current process-local execution context. */
   current(): ExecutionContext | undefined;
+  /** Runs a callback under a new Runtime Activity. */
   runActivity<T>(
     request: ActivityRequest,
     operation: (context: ExecutionContext) => Promise<T>,
   ): Promise<T>;
+  /** Resumes a callback from a durable lineage reference. */
   runFromLineageContextRef<T>(
     ref: LineageContextRefV1,
     request: Omit<ActivityRequest, "causationActivityId">,
@@ -234,6 +244,7 @@ function createExecutionContext(
   return Object.freeze(context);
 }
 
+/** Creates the AsyncLocalStorage-backed execution-context runtime. */
 export function createExecutionContextRuntime(
   origin: HostExecutionOrigin,
   time: TimeService,
@@ -264,22 +275,49 @@ export function createExecutionContextRuntime(
     );
   };
 
+  const runActivity = async <T>(
+    request: ActivityRequest,
+    operation: (context: ExecutionContext) => Promise<T>,
+    runtimeOrigin: RuntimeExecutionOrigin | undefined,
+  ): Promise<T> => {
+    const parent = storage.getStore();
+    const parentOtel = parent?.otelContext ?? activeTelemetryContext();
+    return runScope(
+      request,
+      operation,
+      parent?.execution.activityId,
+      request.causationActivityId,
+      parentOtel,
+      runtimeOrigin,
+    );
+  };
+
+  const runFromLineageContextRef = async <T>(
+    ref: LineageContextRefV1,
+    request: Omit<ActivityRequest, "causationActivityId">,
+    operation: (context: ExecutionContext) => Promise<T>,
+    runtimeOrigin: RuntimeExecutionOrigin | undefined,
+  ): Promise<T> => {
+    const causationActivityId = causationFromLineageContextRef(ref, trustedOrigin);
+    const parent = storage.getStore();
+    const parentOtel = parent?.otelContext ?? activeTelemetryContext();
+    return runScope(
+      request,
+      operation,
+      undefined,
+      causationActivityId,
+      parentOtel,
+      runtimeOrigin,
+    );
+  };
+
   const runtime: ExecutionContextRuntime = {
     current: () => storage.getStore()?.execution,
-    async runActivity<T>(
+    runActivity<T>(
       request: ActivityRequest,
       operation: (context: ExecutionContext) => Promise<T>,
     ): Promise<T> {
-      const parent = storage.getStore();
-      const parentOtel = parent?.otelContext ?? activeTelemetryContext();
-      return runScope(
-        request,
-        operation,
-        parent?.execution.activityId,
-        request.causationActivityId,
-        parentOtel,
-        undefined,
-      );
+      return runActivity(request, operation, undefined);
     },
     capture<TArgs extends readonly unknown[], TResult>(
       callback: (...args: TArgs) => TResult,
@@ -302,22 +340,12 @@ export function createExecutionContextRuntime(
         ...(current.telemetry ? { telemetry: current.telemetry } : {}),
       });
     },
-    async runFromLineageContextRef<T>(
+    runFromLineageContextRef<T>(
       ref: LineageContextRefV1,
       request: Omit<ActivityRequest, "causationActivityId">,
       operation: (context: ExecutionContext) => Promise<T>,
     ): Promise<T> {
-      const causationActivityId = causationFromLineageContextRef(ref, trustedOrigin);
-      const parent = storage.getStore();
-      const parentOtel = parent?.otelContext ?? activeTelemetryContext();
-      return runScope(
-        request,
-        operation,
-        undefined,
-        causationActivityId,
-        parentOtel,
-        undefined,
-      );
+      return runFromLineageContextRef(ref, request, operation, undefined);
     },
   };
 
@@ -325,37 +353,18 @@ export function createExecutionContextRuntime(
     const trustedRuntimeOrigin = freezeRuntimeOrigin(runtimeOrigin);
     return {
       current: () => storage.getStore()?.execution,
-      async runActivity<T>(
+      runActivity<T>(
         request: ActivityRequest,
         operation: (context: ExecutionContext) => Promise<T>,
       ): Promise<T> {
-        const parent = storage.getStore();
-        const parentOtel = parent?.otelContext ?? activeTelemetryContext();
-        return runScope(
-          request,
-          operation,
-          parent?.execution.activityId,
-          request.causationActivityId,
-          parentOtel,
-          trustedRuntimeOrigin,
-        );
+        return runActivity(request, operation, trustedRuntimeOrigin);
       },
-      async runFromLineageContextRef<T>(
+      runFromLineageContextRef<T>(
         ref: LineageContextRefV1,
         request: Omit<ActivityRequest, "causationActivityId">,
         operation: (context: ExecutionContext) => Promise<T>,
       ): Promise<T> {
-        const causationActivityId = causationFromLineageContextRef(ref, trustedOrigin);
-        const parent = storage.getStore();
-        const parentOtel = parent?.otelContext ?? activeTelemetryContext();
-        return runScope(
-          request,
-          operation,
-          undefined,
-          causationActivityId,
-          parentOtel,
-          trustedRuntimeOrigin,
-        );
+        return runFromLineageContextRef(ref, request, operation, trustedRuntimeOrigin);
       },
     };
   });
@@ -363,6 +372,7 @@ export function createExecutionContextRuntime(
   return runtime;
 }
 
+/** Binds a Runtime origin without widening the public lineage contract. */
 export function bindRuntimeOriginInternal(
   runtime: ExecutionContextRuntime,
   origin: RuntimeExecutionOrigin,

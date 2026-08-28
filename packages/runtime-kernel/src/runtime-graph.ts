@@ -1,3 +1,9 @@
+/**
+ * Builds the deterministic Runtime dependency graph through Graphlib, leaving
+ * graph mechanics behind a semantic plan consumed by reconciliation.
+ * @module runtime-graph
+ */
+
 import { alg, Graph } from "@dagrejs/graphlib";
 import type {
   ContractVersion,
@@ -8,6 +14,7 @@ import type {
 import { ContractCompatibilityRegistry } from "./contract-compatibility.js";
 import { runtimeKernelProblem } from "./problems.js";
 
+/** Reports deterministic start/shutdown order and hard Service dependency edges. */
 export interface RuntimeGraphPlan {
   readonly startOrder: readonly MicroSystemDefinition[];
   readonly shutdownOrder: readonly MicroSystemDefinition[];
@@ -20,6 +27,7 @@ export interface RuntimeGraphPlan {
   }[];
 }
 
+/** Builds the hard Service dependency graph for one desired Runtime set. */
 export class RuntimeGraph {
   private readonly graph = new Graph<{ readonly microSystemId: string }>({
     directed: true,
@@ -28,6 +36,7 @@ export class RuntimeGraph {
   private readonly edges: RuntimeGraphPlan["edges"] = [];
   private readonly compatibility = new ContractCompatibilityRegistry();
 
+  /** Validates definitions and constructs deterministic dependency edges. */
   constructor(
     definitions: readonly MicroSystemDefinition[],
     explicitServiceBindings: ReadonlyMap<ServiceId, ProviderId> = new Map(),
@@ -99,6 +108,7 @@ export class RuntimeGraph {
     }
   }
 
+  /** Returns topological start order and its reverse shutdown order. */
   plan(): RuntimeGraphPlan {
     let orderedIds: string[];
     try {

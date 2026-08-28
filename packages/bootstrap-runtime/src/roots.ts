@@ -1,43 +1,45 @@
+/**
+ * Resolves the canonical Bootstrap path profile and lifecycle roots so every
+ * store and journal uses the same installation-scoped filesystem topology.
+ * @module roots
+ */
+
 import { lstat, realpath } from "node:fs/promises";
 import {
-  ProblemError,
+  createProblemError,
+  type ProblemError,
   type InstallationId,
   type InstanceId,
   type LifecycleRootId,
 } from "@heptalogos/foundation-contracts";
 import type { BootstrapLocatorV1 } from "./locator.js";
+import { hasNodeErrorCode } from "./error-code.js";
 
+/** Holds one canonicalized lifecycle root and its configured source path. */
 export interface ResolvedLifecycleRoot {
   readonly id: LifecycleRootId;
   readonly configuredPath: string;
   readonly canonicalPath: string;
 }
 
+/** Provides the identity-scoped lifecycle root lookup used by Bootstrap stores. */
 export interface BootstrapPathProfile {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
+  /** Returns the canonical path for a required lifecycle root. */
   resolve(root: LifecycleRootId): ResolvedLifecycleRoot;
+  /** Returns all roots resolved for the current Bootstrap operation. */
   list(): readonly ResolvedLifecycleRoot[];
 }
 
 function rootProblem(problemCode: string, title: string, detail: string): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category: "integrity",
     retryClass: "manual",
     title,
     detail,
   });
-}
-
-function hasCode(error: unknown, code: string): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === code
-  );
 }
 
 async function resolveRoot(
@@ -48,7 +50,7 @@ async function resolveRoot(
   try {
     entry = await lstat(configuredPath);
   } catch (error) {
-    if (hasCode(error, "ENOENT")) {
+    if (hasNodeErrorCode(error, "ENOENT")) {
       throw rootProblem(
         "bootstrap.root.not_found",
         "Bootstrap lifecycle root is missing",
@@ -93,6 +95,7 @@ async function resolveRoot(
   return { id, configuredPath, canonicalPath };
 }
 
+/** Resolves and validates the lifecycle roots required by Bootstrap. */
 export async function resolveBootstrapPathProfile(
   locator: BootstrapLocatorV1,
   requiredRoots: readonly LifecycleRootId[],

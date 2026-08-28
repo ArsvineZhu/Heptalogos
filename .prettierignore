@@ -8,9 +8,4 @@ test-results/
 .pnpm-store/
 /tmp/
 pnpm-lock.yaml
-Architecture_Corpus/
-.agents/
-AGENTS.md
-REPOSITORY_GENESIS_PLAN.md
-docs/plans/
 .codegraph/

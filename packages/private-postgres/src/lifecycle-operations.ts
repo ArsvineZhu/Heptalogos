@@ -1,4 +1,14 @@
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+/**
+ * Implements bounded initialize/start/stop lifecycle operations and translates
+ * process outcomes into the private PostgreSQL contract's dispositions.
+ * @module lifecycle-operations
+ */
+
+import {
+  createProblemError,
+  type Problem,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
 import type {
   PrivatePostgresExpectedIdentity,
   PrivatePostgresLifecycleOptions,
@@ -13,6 +23,7 @@ import {
   waitForPrivatePostgresReadiness,
 } from "./lifecycle-process.js";
 
+/** Supplies validated cluster and process-control seams for lifecycle operations. */
 export interface PrivatePostgresLifecycleOperationsOptions {
   readonly toolchain: PrivatePostgresToolchain;
   readonly placement: PrivatePostgresPlacement;
@@ -22,6 +33,7 @@ export interface PrivatePostgresLifecycleOperationsOptions {
   readonly assertControlAuthority: () => void;
 }
 
+/** Reports whether an existing private PostgreSQL process is running. */
 export type ExistingPrivatePostgresProcessStatus = "RUNNING" | "STOPPED";
 
 function operationProblem(
@@ -30,8 +42,7 @@ function operationProblem(
   detail: string,
   category: Problem["category"] = "integrity",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",
@@ -40,6 +51,7 @@ function operationProblem(
   });
 }
 
+/** Validates the cluster and observes its process/readiness state. */
 export async function observeValidatedCluster(
   options: PrivatePostgresLifecycleOperationsOptions,
 ): Promise<ExistingPrivatePostgresProcessStatus> {
@@ -69,6 +81,7 @@ export async function observeValidatedCluster(
   return "RUNNING";
 }
 
+/** Stops a validated cluster and proves the process reached STOPPED. */
 export async function stopValidatedCluster(
   options: PrivatePostgresLifecycleOperationsOptions,
 ): Promise<void> {
@@ -131,6 +144,7 @@ export async function stopValidatedCluster(
   options.assertControlAuthority();
 }
 
+/** Starts a validated cluster and proves loopback readiness. */
 export async function startValidatedCluster(
   options: PrivatePostgresLifecycleOperationsOptions,
 ): Promise<void> {

@@ -1,14 +1,38 @@
+/**
+ * Verifies the declared Node, pnpm, compiler, and toolchain projections against
+ * the repository's machine-readable version Authorities.
+ * @module toolchain
+ */
+
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runPnpm, runProcessChecked } from "@heptalogos/repo-kit";
+import {
+  authority,
+  readPackageManagerBaseline,
+  readYamlFile,
+  validateNodeVersionProjections,
+  readWorkspaceCatalog,
+  readWorkspaceSection,
+  repositoryToolingPackages,
+  resolveExpectedInstalledPackageVersions,
+  routes,
+  runPnpm,
+  runProcessChecked,
+} from "@heptalogos/repo-kit";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const require = createRequire(import.meta.url);
 const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-const workspace = readFileSync(join(root, "pnpm-workspace.yaml"), "utf8");
+const workspacePath = join(root, "pnpm-workspace.yaml");
+let workspaceDocument;
+try {
+  workspaceDocument = readYamlFile(workspacePath);
+} catch {
+  workspaceDocument = {};
+}
 const baseTsconfig = JSON.parse(readFileSync(join(root, "tsconfig.base.json"), "utf8"));
 const nxConfig = JSON.parse(readFileSync(join(root, "nx.json"), "utf8"));
 const errors = [];
@@ -37,7 +61,7 @@ async function run(label, command, args) {
       command === "pnpm"
         ? await runPnpm(args, { cwd: root })
         : await runProcessChecked(command, args, { cwd: root });
-    return `${result.stdout}${result.stderr}`.trim();
+    return result.stdout.trim();
   } catch (error) {
     const result = error.result;
     const detail = result ? `${result.stdout}${result.stderr}`.trim() : error.message;
@@ -48,7 +72,13 @@ async function run(label, command, args) {
 
 function packageVersion(name) {
   try {
-    const packagePath = require.resolve(`${name}/package.json`);
+    let packagePath;
+    try {
+      packagePath = require.resolve(`${name}/package.json`);
+    } catch {
+      packagePath = resolve(root, "node_modules", ...name.split("/"), "package.json");
+      if (!existsSync(packagePath)) throw new Error("package metadata is missing");
+    }
     return JSON.parse(readFileSync(packagePath, "utf8")).version;
   } catch (error) {
     fail(`${name}: unable to resolve package metadata (${error.message})`);
@@ -56,28 +86,72 @@ function packageVersion(name) {
   }
 }
 
-function catalogValue(name) {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = workspace.match(new RegExp(`^  [\"']?${escaped}[\"']?:\\s+(.+)$`, "m"));
-  return match?.[1]?.trim().replace(/^['"]|['"]$/g, "");
+let baseline;
+let catalog;
+let overrides;
+let expectedInstalledVersions = {};
+try {
+  baseline = readPackageManagerBaseline({ root });
+} catch (error) {
+  fail(`package manager Authority is unreadable: ${error.message}`);
+}
+try {
+  for (const error of validateNodeVersionProjections({ root })) fail(error);
+} catch (error) {
+  fail(`Node version projections are unreadable: ${error.message}`);
+}
+try {
+  catalog = readWorkspaceCatalog({ root });
+} catch (error) {
+  fail(`workspace catalog Authority is unreadable: ${error.message}`);
+}
+try {
+  overrides = readWorkspaceSection({ root, section: "overrides" });
+} catch (error) {
+  fail(`workspace overrides Authority is unreadable: ${error.message}`);
 }
 
-expectEqual("node", process.versions.node, "24.19.0");
-expectEqual("packageManager", packageJson.packageManager, "pnpm@11.22.0");
-expectEqual("engines.node", packageJson.engines?.node, "24.19.0");
-if (!/^catalogMode:\s+strict$/m.test(workspace)) {
+const toolchainPackageNames = [
+  ...new Set([
+    ...(routes.get("tooling.build")?.packages ?? []),
+    ...repositoryToolingPackages,
+  ]),
+]
+  .filter((name) => packageJson.devDependencies?.[name] === "catalog:")
+  .sort((left, right) => left.localeCompare(right));
+try {
+  expectedInstalledVersions = resolveExpectedInstalledPackageVersions({
+    root,
+    packageNames: toolchainPackageNames,
+  });
+} catch (error) {
+  fail(`installed-version Authority is unreadable: ${error.message}`);
+}
+
+const minimumReleaseAge = authority.repositoryMaterialization?.minimumReleaseAge;
+if (!Number.isInteger(minimumReleaseAge) || minimumReleaseAge < 0) {
+  fail("dependency routing Authority must declare a non-negative minimumReleaseAge");
+}
+
+expectEqual("node", process.versions.node, baseline?.node);
+expectEqual("packageManager", packageJson.packageManager, baseline?.packageManager);
+expectEqual("engines.node", packageJson.engines?.node, baseline?.node);
+if (workspaceDocument.catalogMode !== "strict") {
   fail("workspace catalogMode: expected strict");
 }
-if (!/^strictPeerDependencies:\s+true$/m.test(workspace)) {
+if (workspaceDocument.strictPeerDependencies !== true) {
   fail("workspace strictPeerDependencies: expected true");
 }
-if (!/^engineStrict:\s+true$/m.test(workspace)) {
+if (workspaceDocument.engineStrict !== true) {
   fail("workspace engineStrict: expected true");
 }
-if (!/^minimumReleaseAge:\s+1440$/m.test(workspace)) {
-  fail("workspace minimumReleaseAge: expected 1440");
+if (
+  Number.isInteger(minimumReleaseAge) &&
+  workspaceDocument.minimumReleaseAge !== minimumReleaseAge
+) {
+  fail(`workspace minimumReleaseAge: expected ${minimumReleaseAge}`);
 }
-if (/^nodeLinker:/m.test(workspace)) {
+if (Object.hasOwn(workspaceDocument, "nodeLinker")) {
   fail("workspace nodeLinker: expected pnpm default isolated");
 }
 const pnpmConfigOutput = await run("pnpm.config", "pnpm", ["config", "list", "--json"]);
@@ -94,55 +168,40 @@ try {
     true,
   );
   expectEqual("pnpm effective engineStrict", pnpmConfig.engineStrict, true);
-  expectEqual("pnpm effective minimumReleaseAge", pnpmConfig.minimumReleaseAge, 1440);
+  expectEqual(
+    "pnpm effective minimumReleaseAge",
+    pnpmConfig.minimumReleaseAge,
+    minimumReleaseAge,
+  );
 } catch (error) {
   fail(`pnpm.config: invalid JSON (${error.message})`);
 }
 if (!nxConfig.plugins?.some((plugin) => plugin.plugin === "@nx/js/typescript")) {
   fail("nx plugin: @nx/js/typescript is not configured");
 }
-if (!/^  "?@types\/node"?:\s+24\.13\.3\s*$/m.test(workspace)) {
-  fail("workspace @types/node override: expected 24.13.3");
-}
-if (!/^  esbuild:\s+true$/m.test(workspace) || !/^  nx:\s+true$/m.test(workspace)) {
+expectEqual(
+  "workspace @types/node override",
+  overrides?.["@types/node"],
+  catalog?.["@types/node"],
+);
+if (
+  JSON.stringify(workspaceDocument.allowBuilds) !==
+  JSON.stringify({ esbuild: true, nx: true })
+) {
   fail("workspace allowBuilds: expected only esbuild and nx");
 }
 
-const expectedCatalog = {
-  "@nx/js": "23.1.1",
-  "@types/node": "24.13.3",
-  "@typescript/native": "npm:typescript@7.0.2",
-  eslint: "10.8.1",
-  nx: "23.1.1",
-  prettier: "3.9.6",
-  typescript: "npm:@typescript/typescript6@6.0.2",
-  "typescript-eslint": "8.67.0",
-  vitest: "4.1.11",
-};
-
-for (const [name, expected] of Object.entries(expectedCatalog)) {
-  expectEqual(`catalog.${name}`, catalogValue(name), expected);
+for (const name of toolchainPackageNames) {
   expectEqual(
     `devDependencies.${name}`,
     packageJson.devDependencies?.[name],
     "catalog:",
   );
-}
-
-const resolvedVersions = {
-  "@nx/js": "23.1.1",
-  "@typescript/native": "7.0.2",
-  typescript: "6.0.2",
-  "@types/node": "24.13.3",
-  nx: "23.1.1",
-  eslint: "10.8.1",
-  "typescript-eslint": "8.67.0",
-  vitest: "4.1.11",
-  prettier: "3.9.6",
-};
-
-for (const [name, expected] of Object.entries(resolvedVersions)) {
-  expectEqual(`installed.${name}`, packageVersion(name), expected);
+  expectEqual(
+    `installed.${name}`,
+    packageVersion(name),
+    expectedInstalledVersions[name],
+  );
 }
 
 expectEqual("tsconfig.target", baseTsconfig.compilerOptions?.target, "ESNext");
@@ -163,12 +222,22 @@ expectEqual("tsconfig.skipLibCheck", baseTsconfig.compilerOptions?.skipLibCheck,
 
 const pnpmCommand = "pnpm";
 const pnpmVersion = await run("pnpm.version", pnpmCommand, ["--version"]);
-expectEqual("pnpm.version", pnpmVersion, "11.22.0");
+expectEqual("pnpm.version", pnpmVersion, baseline?.packageManagerVersion);
 const tsc7Version = await run("tsc7.version", "pnpm", ["exec", "tsc", "--version"]);
-if (!tsc7Version.includes("7.0.2")) fail("tsc7.version: expected 7.0.2");
+if (!tsc7Version.includes(expectedInstalledVersions["@typescript/native"])) {
+  fail(`tsc7.version: expected ${expectedInstalledVersions["@typescript/native"]}`);
+}
 await run("tsc7.compile", "pnpm", ["exec", "tsc", "-p", "tsconfig.toolchain.json"]);
 const tsc6Version = await run("tsc6.version", "pnpm", ["exec", "tsc6", "--version"]);
-if (!/^Version 6\./m.test(tsc6Version)) fail("tsc6.version: expected TypeScript 6");
+const expectedTs6Major = expectedInstalledVersions.typescript?.split(".")[0];
+if (
+  expectedTs6Major === undefined ||
+  !new RegExp(`^Version ${expectedTs6Major}\\.`, "m").test(tsc6Version)
+) {
+  fail(
+    `tsc6.version: expected TypeScript ${expectedTs6Major ?? "6"} compatibility lane`,
+  );
+}
 await run("tsc6.compile", "pnpm", ["exec", "tsc6", "-p", "tsconfig.ts6.json"]);
 
 const lockfile = readFileSync(join(root, "pnpm-lock.yaml"));

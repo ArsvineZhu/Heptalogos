@@ -1,4 +1,11 @@
+/**
+ * Revokes the current Host token and closes its mutation fence so ownership
+ * loss is represented durably before the connection is released.
+ * @module ownership-revocation
+ */
+
 import {
+  createProblemError,
   parseBootId,
   parseHostOwnershipToken,
   ProblemError,
@@ -13,17 +20,19 @@ import {
   HOST_OWNERSHIP_SCHEMA,
 } from "./contracts.js";
 import {
-  type BootstrapAdminClient,
   type BootstrapAdminPasswordProvider,
   withBootstrapAdminClient,
 } from "./bootstrap-admin.js";
 import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
+import { queryWithAuthority as authorizedQuery } from "./authorized-query.js";
 
+/** Reports the fence revision before and after token revocation. */
 export interface HostOwnershipRevocationResult {
   readonly previousRevision: string;
   readonly revokedRevision: string;
 }
 
+/** Supplies Bootstrap-admin and identity inputs for Host token revocation. */
 export interface RevokeHostOwnershipTokenOptions {
   readonly port: number;
   readonly instanceId: InstanceId;
@@ -63,8 +72,7 @@ function revocationProblem(
   title: string,
   detail: string,
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",
@@ -158,18 +166,6 @@ function assertSourceFence(
   return previousRevision;
 }
 
-async function authorizedQuery<Row = never>(
-  client: BootstrapAdminClient,
-  authority: BootstrapMutationAuthority,
-  text: string,
-  values?: readonly unknown[],
-): Promise<{ readonly rows: readonly Row[] }> {
-  authority.assertCurrent();
-  const result = await client.query<Row>(text, values);
-  authority.assertCurrent();
-  return result;
-}
-
 function assertRevokedFence(
   row: FenceRow,
   options: RevokeHostOwnershipTokenOptions,
@@ -186,6 +182,7 @@ function assertRevokedFence(
   }
 }
 
+/** Revokes a Host token through the Bootstrap-authorized database path. */
 export async function revokeHostOwnershipTokenForBootstrap(
   options: RevokeHostOwnershipTokenOptions,
 ): Promise<HostOwnershipRevocationResult> {

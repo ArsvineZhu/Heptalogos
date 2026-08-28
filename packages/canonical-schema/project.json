@@ -2,12 +2,13 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "canonical-schema",
   "projectType": "library",
+  "tags": ["kind:product", "area:data"],
   "sourceRoot": "packages/canonical-schema/src",
   "targets": {
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint packages/canonical-schema"
+        "command": "oxlint --type-aware packages/canonical-schema"
       }
     },
     "test": {

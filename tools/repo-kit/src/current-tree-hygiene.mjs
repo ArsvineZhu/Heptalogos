@@ -1,6 +1,12 @@
-import { execFileSync } from "node:child_process";
+/**
+ * Provides the reusable current-tree hygiene scanner for provenance and
+ * compatibility residue, keeping repository-specific policy in one owner.
+ * @module current-tree-hygiene
+ */
+
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { runGitSync } from "./process.mjs";
 
 const SELF_EXEMPTIONS = new Set([
   "tools/repo-kit/src/current-tree-hygiene.mjs",
@@ -16,14 +22,34 @@ const CORRECTIVE_CYCLE_PATTERN =
 const HISTORICAL_COMPATIBILITY_PATTERN =
   /\b(?:legacy|obsolete|deprecated|upcast|downcast)\b|\bbackward[- ]compat(?:ibility)?\b|\b(?:compatibility\s+(?:shim|bridge|alias)|(?:shim|bridge|alias)\s+compatibility)\b|\b(?:old|previous)\s+(?:schema|format|payload|field|api)\b/iu;
 
+const CURRENT_QUALIFICATION_ID_PATTERN = /\b(?:C|Q)-[A-Z0-9]+(?:-[A-Z0-9]+)*-\d+\b/giu;
+
+/** Patterns identifying development-only identities forbidden in current surfaces. */
+export const DEVELOPMENT_PROVENANCE_PATTERNS = Object.freeze([
+  DEVELOPMENT_IDENTITY_PATTERN,
+  PR_ID_PATTERN,
+  CORRECTIVE_CYCLE_PATTERN,
+]);
+
+/** Detect milestone, PR, session, or corrective-cycle wording in current text. */
+export function containsDevelopmentProvenance(
+  value,
+  { ignoreQualificationIds = false } = {},
+) {
+  if (typeof value !== "string") return false;
+  const scanValue = ignoreQualificationIds
+    ? value.replace(CURRENT_QUALIFICATION_ID_PATTERN, "")
+    : value;
+  return DEVELOPMENT_PROVENANCE_PATTERNS.some((pattern) => pattern.test(scanValue));
+}
+
 const SCAN_ROOTS = [
   "AGENTS.md",
   ".agents",
   ".github",
-  "fixtures",
+  "tests",
   "packages",
-  "scripts/README.md",
-  "scripts/verify",
+  "scripts",
   "tools",
   "package.json",
   "project.json",
@@ -63,25 +89,17 @@ function pathExists(path) {
   }
 }
 
+/** Read tracked repository paths through Git for deterministic hygiene coverage. */
 export function listTrackedPaths({ root = process.cwd() } = {}) {
-  const output = execFileSync("git", ["ls-files", "-z"], {
-    cwd: resolve(root),
-    encoding: "buffer",
-  });
+  const output = runGitSync(["ls-files", "-z"], { cwd: resolve(root) }).stdout;
   return output
-    .toString("utf8")
     .split("\0")
     .filter((path) => path.length > 0)
     .map(normalizeTrackedPath);
 }
 
 function scanCompatibilityRegister(root, findings) {
-  const path = join(
-    root,
-    "Architecture_Corpus",
-    "references",
-    "compatibility-obligations.json",
-  );
+  const path = join(root, "docs", "governance", "compatibility-obligations.json");
   const relativePath = normalize(root, path);
   if (!existsSync(path)) {
     addFinding(
@@ -121,6 +139,7 @@ function scanCompatibilityRegister(root, findings) {
   }
 }
 
+/** Scan canonical executable surfaces for provenance and compatibility residue. */
 export function scanCurrentTree({ root = process.cwd(), trackedPaths } = {}) {
   const repositoryRoot = resolve(root);
   const findings = [];
@@ -148,7 +167,9 @@ export function scanCurrentTree({ root = process.cwd(), trackedPaths } = {}) {
     );
   }
 
-  for (const relativePath of [...files].sort()) {
+  for (const relativePath of [...files].sort((left, right) =>
+    left.localeCompare(right),
+  )) {
     if (SELF_EXEMPTIONS.has(relativePath)) continue;
     const file = join(repositoryRoot, relativePath);
     let stats;
@@ -185,12 +206,8 @@ export function scanCurrentTree({ root = process.cwd(), trackedPaths } = {}) {
     }
 
     if (
-      DEVELOPMENT_IDENTITY_PATTERN.test(relativePath) ||
-      DEVELOPMENT_IDENTITY_PATTERN.test(content) ||
-      PR_ID_PATTERN.test(relativePath) ||
-      PR_ID_PATTERN.test(content) ||
-      CORRECTIVE_CYCLE_PATTERN.test(relativePath) ||
-      CORRECTIVE_CYCLE_PATTERN.test(content)
+      containsDevelopmentProvenance(relativePath) ||
+      containsDevelopmentProvenance(content)
     ) {
       addFinding(
         findings,
@@ -201,7 +218,7 @@ export function scanCurrentTree({ root = process.cwd(), trackedPaths } = {}) {
     }
 
     if (
-      (relativePath.startsWith("packages/") || relativePath.startsWith("fixtures/")) &&
+      (relativePath.startsWith("packages/") || relativePath.startsWith("tests/")) &&
       HISTORICAL_COMPATIBILITY_PATTERN.test(content)
     ) {
       addFinding(
@@ -222,4 +239,5 @@ export function scanCurrentTree({ root = process.cwd(), trackedPaths } = {}) {
   return { root: repositoryRoot, findings };
 }
 
+/** Self-referential scanner paths excluded from their own provenance diagnostics. */
 export const currentTreeHygieneSelfExemptions = [...SELF_EXEMPTIONS];

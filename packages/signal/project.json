@@ -2,12 +2,13 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "signal",
   "projectType": "library",
+  "tags": ["kind:product", "area:service"],
   "sourceRoot": "packages/signal/src",
   "targets": {
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint packages/signal"
+        "command": "oxlint --type-aware packages/signal"
       }
     },
     "test": {

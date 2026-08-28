@@ -10,7 +10,7 @@
     "tsBuildInfoFile": "./dist/tsconfig.build.tsbuildinfo"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts"],
+  "exclude": ["test/**/*.ts"],
   "references": [
     {
       "path": "../host-ownership/tsconfig.build.json"
@@ -20,9 +20,6 @@
     },
     {
       "path": "../private-postgres/tsconfig.build.json"
-    },
-    {
-      "path": "../bootstrap-state/tsconfig.build.json"
     }
   ]
 }

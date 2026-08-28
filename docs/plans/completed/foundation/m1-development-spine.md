@@ -11,6 +11,7 @@
 **Tech Stack:** Node.js 24.19.0, pnpm 11.22.0 strict Catalog, Nx 23.1.1 + `@nx/js/typescript`, TypeScript 7.0.2 canonical compiler, TypeScript 6.0.2 compiler-API lane, ESLint 10.8.1 + typescript-eslint 8.67.0, Vitest 4.1.11, Prettier 3.9.6, Execa, canonicalize, uuid, TypeBox 1.x, Ajv 8, write-file-atomic 8.x.
 
 **Spec / Authority:**
+
 - `AGENTS.md`
 - `Architecture_Corpus/00-项目宪法与工程宪法.md`
 - `Architecture_Corpus/24-依赖使用与实现路由.md`
@@ -175,6 +176,7 @@ Expected: `PASS`. Record this as historical closure evidence. M1 will retire thi
 ### Task 1: Establish `docs/` plan and engineering-knowledge organization
 
 **Files:**
+
 - Create: `docs/README.md`
 - Create: `docs/plans/README.md`
 - Create: `docs/plans/active/foundation/m1-development-spine.md` by saving this exact plan into the repository
@@ -188,6 +190,7 @@ Expected: `PASS`. Record this as historical closure evidence. M1 will retire thi
 - Modify: `.agents/heptalogos/package-manifest.json` only as required to synchronize the changed root `AGENTS.md` metadata
 
 **Interfaces:**
+
 - Consumes: existing root plan-routing rules in `AGENTS.md`.
 - Produces: one unambiguous active-plan location and two cumulative engineering-knowledge indexes.
 
@@ -299,6 +302,7 @@ git commit -m "docs: organize plans and engineering knowledge"
 ### Task 2: Reorganize repository scripts and create the repo-kit package boundary
 
 **Files:**
+
 - Create: `scripts/README.md`
 - Move: `scripts/check-repository.mjs` → `scripts/verify/repository.mjs`
 - Move: `scripts/check-corpus-integrity.mjs` → `scripts/verify/corpus-integrity.mjs`
@@ -316,6 +320,7 @@ git commit -m "docs: organize plans and engineering knowledge"
 - Modify import paths inside moved verification entrypoints
 
 **Interfaces:**
+
 - Produces: `@heptalogos/repo-kit` as a private repository-only package; `scripts/*` become entrypoints rather than reusable libraries.
 - Produces: `dependency-authority.mjs` exporting the existing `authority`, `packageRoutes`, `repositoryToolingPackages`, `routes`, and `routeForDependency()` interface unchanged.
 
@@ -455,6 +460,7 @@ git commit -m "chore: structure repository scripts and tooling"
 ### Task 3: Add the cross-platform process runner and capture the first engineering knowledge
 
 **Files:**
+
 - Create: `tools/repo-kit/src/process.mjs`
 - Create: `tools/repo-kit/src/workspace.mjs`
 - Create: `tools/repo-kit/test/process.test.mjs`
@@ -471,6 +477,7 @@ git commit -m "chore: structure repository scripts and tooling"
 - Modify: `docs/engineering/PLAYBOOK.md`
 
 **Interfaces:**
+
 - Produces these repository-only logical shapes (implemented in `.mjs`; JSDoc is optional but field semantics are fixed):
 
 ```ts
@@ -551,7 +558,13 @@ const repoRoot = resolve(here, "../../..");
 
 describe("repository process runner", () => {
   it("preserves argv without shell parsing", async () => {
-    const argv = ["space value", 'quote\"value', "amp&value", "paren(value)", "caret^value"];
+    const argv = [
+      "space value",
+      'quote\"value',
+      "amp&value",
+      "paren(value)",
+      "caret^value",
+    ];
     const result = await runNode(fixture, argv, { cwd: repoRoot });
     expect(JSON.parse(result.stdout)).toEqual(argv);
   });
@@ -562,10 +575,14 @@ describe("repository process runner", () => {
   });
 
   it("returns structured non-zero results when rejection is disabled", async () => {
-    const result = await runProcessChecked(process.execPath, ["-e", "process.exit(7)"], {
-      cwd: repoRoot,
-      reject: false
-    });
+    const result = await runProcessChecked(
+      process.execPath,
+      ["-e", "process.exit(7)"],
+      {
+        cwd: repoRoot,
+        reject: false,
+      },
+    );
     expect(result.exitCode).toBe(7);
     expect(result.failed).toBe(true);
   });
@@ -701,18 +718,23 @@ Create `docs/engineering/gotchas/process/windows-command-shims.md` with these se
 # Windows command shims from Node subprocesses
 
 ## Scope
+
 Node child process invocation of pnpm/npm-style command shims on Windows.
 
 ## Symptom
+
 Direct ad-hoc spawn logic or manual `cmd.exe /c` strings can fail or corrupt arguments depending on shim resolution and shell quoting.
 
 ## Root cause
+
 Windows command/shim resolution and shell parsing are not POSIX argv semantics. Reconstructing a command line with `args.join(" ")` loses the original argv boundary and introduces quoting/metacharacter bugs.
 
 ## Repository rule
+
 Use `@heptalogos/repo-kit` process helpers. Pass command and argv separately. Ordinary repository subprocesses use `shell: false`. Shell execution must be an explicit, separately reviewed operation.
 
 ## Regression evidence
+
 `tools/repo-kit/test/process.test.mjs` and `scripts/verify/toolchain.mjs`.
 ```
 
@@ -755,6 +777,7 @@ git commit -m "feat: add cross-platform repository process substrate"
 ### Task 4: Transition from Genesis smoke project to the real M1 workspace graph
 
 **Files:**
+
 - Create: `packages/foundation-contracts/package.json`
 - Create: `packages/foundation-contracts/project.json`
 - Create: `packages/foundation-contracts/tsconfig.json`
@@ -772,6 +795,7 @@ git commit -m "feat: add cross-platform repository process substrate"
 - Retain: `scripts/phases/repository-genesis.mjs` and `GENESIS_EVIDENCE.json` as historical evidence/tools. Active root Genesis commands were already retired in Task 1.
 
 **Interfaces:**
+
 - Produces two real private Foundation workspace packages: `@heptalogos/foundation-contracts` and `@heptalogos/bootstrap-state`.
 - Produces repo-wide `lint`, `typecheck`, `test`, and `build` commands that operate over all applicable Nx projects.
 
@@ -1000,6 +1024,7 @@ git commit -m "chore: establish Foundation M1 workspace graph"
 ### Task 5: Implement canonical JSON and domain-separated digest contracts
 
 **Files:**
+
 - Create: `packages/foundation-contracts/src/canonical-json.ts`
 - Create: `packages/foundation-contracts/src/canonical-json.test.ts`
 - Create: `packages/foundation-contracts/src/digest.ts`
@@ -1012,7 +1037,13 @@ git commit -m "chore: establish Foundation M1 workspace graph"
 **Interfaces:**
 
 ```ts
-export type CanonicalJsonValue = null | boolean | number | string | readonly CanonicalJsonValue[] | { readonly [key: string]: CanonicalJsonValue };
+export type CanonicalJsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | readonly CanonicalJsonValue[]
+  | { readonly [key: string]: CanonicalJsonValue };
 export function canonicalizeJson(value: CanonicalJsonValue): string;
 
 export interface Sha256Digest {
@@ -1021,7 +1052,10 @@ export interface Sha256Digest {
   readonly domain: string;
   readonly hex: string;
 }
-export function digestCanonicalJson(domain: string, payload: CanonicalJsonValue): Sha256Digest;
+export function digestCanonicalJson(
+  domain: string,
+  payload: CanonicalJsonValue,
+): Sha256Digest;
 ```
 
 - [x] **Step 1: Refresh and exact-pin `canonicalize`**
@@ -1093,7 +1127,9 @@ describe("digestCanonicalJson", () => {
   });
 
   it("returns lowercase SHA-256 hex", () => {
-    expect(digestCanonicalJson("test.domain/v1", { a: 1 }).hex).toMatch(/^[0-9a-f]{64}$/u);
+    expect(digestCanonicalJson("test.domain/v1", { a: 1 }).hex).toMatch(
+      /^[0-9a-f]{64}$/u,
+    );
   });
 });
 ```
@@ -1142,6 +1178,7 @@ git commit -m "feat: add canonical JSON and digest contracts"
 ### Task 6: Implement generated/content identity primitives and Structured Problem
 
 **Files:**
+
 - Create: `packages/foundation-contracts/src/identity.ts`
 - Create: `packages/foundation-contracts/src/identity.test.ts`
 - Create: `packages/foundation-contracts/src/problem.ts`
@@ -1158,7 +1195,10 @@ export type Branded<T, TBrand extends string> = T & { readonly __brand: TBrand }
 export type UuidV7Id<TBrand extends string> = Branded<string, `uuidv7:${TBrand}`>;
 export type ContentDigest<TBrand extends string> = Branded<string, `sha256:${TBrand}`>;
 export function createUuidV7Id<TBrand extends string>(brand: TBrand): UuidV7Id<TBrand>;
-export function asContentDigest<TBrand extends string>(brand: TBrand, digest: Sha256Digest): ContentDigest<TBrand>;
+export function asContentDigest<TBrand extends string>(
+  brand: TBrand,
+  digest: Sha256Digest,
+): ContentDigest<TBrand>;
 
 export type RetryClass = "never" | "immediate" | "backoff" | "after-change" | "manual";
 export interface FieldError {
@@ -1277,6 +1317,7 @@ git commit -m "feat: add Foundation identity and Problem primitives"
 ### Task 7: Define and validate the BootstrapState v1 contract
 
 **Files:**
+
 - Create: `packages/bootstrap-state/src/model.ts`
 - Create: `packages/bootstrap-state/src/codec.ts`
 - Create: `packages/bootstrap-state/src/codec.test.ts`
@@ -1288,7 +1329,8 @@ git commit -m "feat: add Foundation identity and Problem primitives"
 **Interfaces:**
 
 ```ts
-export type BootstrapRuntimeGenerationId = ContentDigest<"BootstrapRuntimeGenerationId">;
+export type BootstrapRuntimeGenerationId =
+  ContentDigest<"BootstrapRuntimeGenerationId">;
 export type ProductGenerationId = ContentDigest<"ProductGenerationId">;
 
 export interface BootstrapStateBodyV1 {
@@ -1312,7 +1354,9 @@ export type BootstrapStateParseResult =
   | { readonly ok: false; readonly problem: Problem };
 
 export const BOOTSTRAP_STATE_DIGEST_DOMAIN = "heptalogos.bootstrap-state/v1";
-export function sealBootstrapState(state: BootstrapStateBodyV1): BootstrapStateEnvelopeV1;
+export function sealBootstrapState(
+  state: BootstrapStateBodyV1,
+): BootstrapStateEnvelopeV1;
 export function parseBootstrapState(text: string): BootstrapStateParseResult;
 ```
 
@@ -1421,6 +1465,7 @@ git commit -m "feat: add versioned BootstrapState contract"
 ### Task 8: Implement atomic BootstrapStateStore with previous-valid recovery
 
 **Files:**
+
 - Create: `packages/bootstrap-state/src/store.ts`
 - Create: `packages/bootstrap-state/src/store.test.ts`
 - Modify: `packages/bootstrap-state/src/index.ts`
@@ -1434,7 +1479,11 @@ git commit -m "feat: add versioned BootstrapState contract"
 export type BootstrapStateLoadResult =
   | { readonly status: "EMPTY" }
   | { readonly status: "CURRENT"; readonly value: BootstrapStateEnvelopeV1 }
-  | { readonly status: "RECOVERED_PREVIOUS"; readonly value: BootstrapStateEnvelopeV1; readonly problem: Problem }
+  | {
+      readonly status: "RECOVERED_PREVIOUS";
+      readonly value: BootstrapStateEnvelopeV1;
+      readonly problem: Problem;
+    }
   | { readonly status: "CORRUPT"; readonly problem: Problem };
 
 export class BootstrapStateStore {
@@ -1552,6 +1601,7 @@ git commit -m "feat: add recoverable BootstrapStateStore"
 ### Task 9: Implement per-BootId BootstrapJournal without creating a second Authority
 
 **Files:**
+
 - Create: `packages/bootstrap-state/src/journal.ts`
 - Create: `packages/bootstrap-state/src/journal.test.ts`
 - Modify: `packages/bootstrap-state/src/index.ts`
@@ -1654,12 +1704,14 @@ git commit -m "feat: add per-boot BootstrapJournal"
 ### Task 10: Close M1, verify the full workspace, and archive the plan
 
 **Files:**
+
 - Modify: `docs/plans/active/foundation/m1-development-spine.md`
 - Move on successful completion: `docs/plans/active/foundation/m1-development-spine.md` → `docs/plans/completed/foundation/m1-development-spine.md`
 - Modify: `docs/plans/README.md`
 - Modify only if required by actual dependency materialization: `Architecture_Corpus/references/dependency-routing.json`, `Architecture_Corpus/manifest.json`, `Architecture_Corpus/SHA256SUMS.txt`
 
 **Interfaces:**
+
 - Produces: a completed M1 evidence record and a repository ready for M2 (`PathProfile` + bootstrap ownership) without implementing M2.
 
 - [x] **Step 1: Verify there are no accidental out-of-scope dependencies**
@@ -1782,62 +1834,62 @@ Do not place historical execution details into `Architecture_Corpus/`.
 
 ### M1 execution record
 
-| Item | Evidence |
-| --- | --- |
-| Start HEAD | `4470fee47af8d9d027788e37047141cb639600d9` (Genesis governance reset) |
-| Final HEAD before completion commit | `0112b5c54f818d4e023ec324ce6e1d12c293aa8d` |
-| Runtime/toolchain | Node `24.19.0`, pnpm `11.22.0`, TypeScript 7 `7.0.2`, Ubuntu `26.04` / Linux `x86_64` |
-| Exact new Catalog pins | `execa 10.0.1`; `canonicalize 4.0.0`; `uuid 14.0.2`; `ajv 8.20.0`; `typebox 1.3.16`; `write-file-atomic 8.0.0` |
-| New direct dependency identities | repo-kit: `execa`; foundation-contracts: `canonicalize`, `uuid`; bootstrap-state: workspace `@heptalogos/foundation-contracts`, `ajv`, `typebox`, `write-file-atomic` |
-| Out-of-scope direct dependencies | PASS — no PostgreSQL, DBOS, Cordis, proper-lockfile, Fastify, oclif, AI, MCP, or speculative M2 package was materialized |
-| Nx graph | PASS — `foundation-contracts`, `bootstrap-state`, `repo-kit`, `repository`; static edge `bootstrap-state → foundation-contracts`; no future product project |
+| Item                                | Evidence                                                                                                                                                              |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start HEAD                          | `4470fee47af8d9d027788e37047141cb639600d9` (Genesis governance reset)                                                                                                 |
+| Final HEAD before completion commit | `0112b5c54f818d4e023ec324ce6e1d12c293aa8d`                                                                                                                            |
+| Runtime/toolchain                   | Node `24.19.0`, pnpm `11.22.0`, TypeScript 7 `7.0.2`, Ubuntu `26.04` / Linux `x86_64`                                                                                 |
+| Exact new Catalog pins              | `execa 10.0.1`; `canonicalize 4.0.0`; `uuid 14.0.2`; `ajv 8.20.0`; `typebox 1.3.16`; `write-file-atomic 8.0.0`                                                        |
+| New direct dependency identities    | repo-kit: `execa`; foundation-contracts: `canonicalize`, `uuid`; bootstrap-state: workspace `@heptalogos/foundation-contracts`, `ajv`, `typebox`, `write-file-atomic` |
+| Out-of-scope direct dependencies    | PASS — no PostgreSQL, DBOS, Cordis, proper-lockfile, Fastify, oclif, AI, MCP, or speculative M2 package was materialized                                              |
+| Nx graph                            | PASS — `foundation-contracts`, `bootstrap-state`, `repo-kit`, `repository`; static edge `bootstrap-state → foundation-contracts`; no future product project           |
 
 #### Permanent verification
 
-| Gate | Status |
-| --- | --- |
-| `pnpm install --frozen-lockfile` | PASS |
-| `node .agents/heptalogos/validate-skill-resources.mjs` | PASS |
-| `pnpm check:corpus` | PASS |
-| `pnpm check:repository` | PASS |
-| `pnpm check:dependencies` | PASS |
-| `pnpm check:boundaries` | PASS |
-| `pnpm toolchain:check` | PASS |
-| `pnpm format:check` | PASS |
-| `pnpm lint` | PASS |
-| `pnpm typecheck` | PASS |
-| `pnpm tsc6` | PASS |
-| `pnpm test` | PASS |
-| `pnpm build` | PASS |
-| `pnpm verify` | PASS |
+| Gate                                                   | Status |
+| ------------------------------------------------------ | ------ |
+| `pnpm install --frozen-lockfile`                       | PASS   |
+| `node .agents/heptalogos/validate-skill-resources.mjs` | PASS   |
+| `pnpm check:corpus`                                    | PASS   |
+| `pnpm check:repository`                                | PASS   |
+| `pnpm check:dependencies`                              | PASS   |
+| `pnpm check:boundaries`                                | PASS   |
+| `pnpm toolchain:check`                                 | PASS   |
+| `pnpm format:check`                                    | PASS   |
+| `pnpm lint`                                            | PASS   |
+| `pnpm typecheck`                                       | PASS   |
+| `pnpm tsc6`                                            | PASS   |
+| `pnpm test`                                            | PASS   |
+| `pnpm build`                                           | PASS   |
+| `pnpm verify`                                          | PASS   |
 
 #### Focused M1 behavioral evidence
 
-| Claim | Status | Evidence |
-| --- | --- | --- |
-| argv preservation without shell parsing | PASS | repo-kit process tests |
-| pnpm shim invocation on current platform | PASS | repo-kit process tests on Linux |
-| equivalent JSON has equivalent canonical bytes/digest | PASS | foundation-contracts tests |
-| digest domain separation | PASS | foundation-contracts tests |
-| UUIDv7 generated identity and digest content identity remain distinct | PASS | foundation-contracts tests |
-| BootstrapState validation is non-mutating | PASS | codec tests with unknown fields/string revision |
-| revision 1 → revision 2 preserves previous valid state | PASS | store tests |
-| corrupt latest → previous valid revision recovered | PASS | store tests |
-| both state files corrupt → explicit `CORRUPT` | PASS | store tests |
-| BootId journals remain isolated | PASS | journal tests |
-| Windows-specific pnpm shim behavior | NOT_RUN | current executor is Linux |
+| Claim                                                                 | Status  | Evidence                                        |
+| --------------------------------------------------------------------- | ------- | ----------------------------------------------- |
+| argv preservation without shell parsing                               | PASS    | repo-kit process tests                          |
+| pnpm shim invocation on current platform                              | PASS    | repo-kit process tests on Linux                 |
+| equivalent JSON has equivalent canonical bytes/digest                 | PASS    | foundation-contracts tests                      |
+| digest domain separation                                              | PASS    | foundation-contracts tests                      |
+| UUIDv7 generated identity and digest content identity remain distinct | PASS    | foundation-contracts tests                      |
+| BootstrapState validation is non-mutating                             | PASS    | codec tests with unknown fields/string revision |
+| revision 1 → revision 2 preserves previous valid state                | PASS    | store tests                                     |
+| corrupt latest → previous valid revision recovered                    | PASS    | store tests                                     |
+| both state files corrupt → explicit `CORRUPT`                         | PASS    | store tests                                     |
+| BootId journals remain isolated                                       | PASS    | journal tests                                   |
+| Windows-specific pnpm shim behavior                                   | NOT_RUN | current executor is Linux                       |
 
 #### Claims intentionally not proven in M1
 
-| Claim | Status |
-| --- | --- |
+| Claim                                                        | Status  |
+| ------------------------------------------------------------ | ------- |
 | real filesystem power-loss durability on Windows/macOS/Linux | NOT_RUN |
-| symlink/junction/reparse-point root hardening | NOT_RUN |
-| bootstrap ownership/process exclusion | NOT_RUN |
-| private PostgreSQL lifecycle | NOT_RUN |
-| Host advisory lease and HostOwnershipFence | NOT_RUN |
-| source-less/native product closure | NOT_RUN |
-| service/headless qualification | NOT_RUN |
+| symlink/junction/reparse-point root hardening                | NOT_RUN |
+| bootstrap ownership/process exclusion                        | NOT_RUN |
+| private PostgreSQL lifecycle                                 | NOT_RUN |
+| Host advisory lease and HostOwnershipFence                   | NOT_RUN |
+| source-less/native product closure                           | NOT_RUN |
+| service/headless qualification                               | NOT_RUN |
 
 - [x] **Step 7: Move the plan to completed**
 
@@ -1920,42 +1972,42 @@ M1 was developed and verified on Ubuntu/Linux; this addendum records the
 deferred Windows verification, executed on a native Windows 11 host. It covers
 only claims that M1 actually built. No M2 subsystem was started.
 
-| Item | Evidence |
-| --- | --- |
-| Host platform | Windows 11 / win32 |
-| Runtime/toolchain | Node `24.19.0`, pnpm `11.22.0`, TypeScript 7 `7.0.2` (matches M1 pins) |
-| Repository state | clean tree at `06061aacace63cdae9495eee1f02928ffab02b54` |
-| `pnpm install --frozen-lockfile` | PASS |
-| Full `pnpm verify` chain | PASS (agents, corpus, repository, dependencies, boundaries, toolchain, format, lint, typecheck, tsc6, test, build) |
+| Item                             | Evidence                                                                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Host platform                    | Windows 11 / win32                                                                                                 |
+| Runtime/toolchain                | Node `24.19.0`, pnpm `11.22.0`, TypeScript 7 `7.0.2` (matches M1 pins)                                             |
+| Repository state                 | clean tree at `06061aacace63cdae9495eee1f02928ffab02b54`                                                           |
+| `pnpm install --frozen-lockfile` | PASS                                                                                                               |
+| Full `pnpm verify` chain         | PASS (agents, corpus, repository, dependencies, boundaries, toolchain, format, lint, typecheck, tsc6, test, build) |
 
 #### Claim status changes
 
-| Claim | Previous | Now | Evidence |
-| --- | --- | --- | --- |
-| Windows-specific pnpm shim behavior (`runPnpm()` resolves the `.cmd` shim via PATHEXT without shell construction) | NOT_RUN | PASS | `tools/repo-kit/test/process.test.mjs` executed on win32 |
-| argv preservation without shell parsing (Windows host) | PASS (Linux only) | PASS | same suite rerun on win32 |
+| Claim                                                                                                             | Previous          | Now  | Evidence                                                 |
+| ----------------------------------------------------------------------------------------------------------------- | ----------------- | ---- | -------------------------------------------------------- |
+| Windows-specific pnpm shim behavior (`runPnpm()` resolves the `.cmd` shim via PATHEXT without shell construction) | NOT_RUN           | PASS | `tools/repo-kit/test/process.test.mjs` executed on win32 |
+| argv preservation without shell parsing (Windows host)                                                            | PASS (Linux only) | PASS | same suite rerun on win32                                |
 
 #### New Windows/platform coverage added
 
-| Coverage | Scope | Evidence |
-| --- | --- | --- |
-| Environment variable and cwd propagation through `runProcess*` | cross-platform (previously untested) | `tools/repo-kit/test/process.test.mjs` |
-| BootstrapState/Journal commit+load round-trip under a Unicode directory path | cross-platform | `packages/bootstrap-state/src/platform-behavior.test.ts` |
-| Repeated atomic replacement of existing current/previous files across sequential commits r1→r5 (`write-file-atomic` rename-over-existing) | cross-platform | same file |
-| Case-insensitive filename variant resolves to the same state authority | win32-gated (`it.runIf`) | same file |
-| Store/Journal operation through a junctioned storage root with bytes landing in the target directory | win32-gated (`it.runIf`) | same file |
+| Coverage                                                                                                                                  | Scope                                | Evidence                                                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | -------------------------------------------------------- |
+| Environment variable and cwd propagation through `runProcess*`                                                                            | cross-platform (previously untested) | `tools/repo-kit/test/process.test.mjs`                   |
+| BootstrapState/Journal commit+load round-trip under a Unicode directory path                                                              | cross-platform                       | `packages/bootstrap-state/src/platform-behavior.test.ts` |
+| Repeated atomic replacement of existing current/previous files across sequential commits r1→r5 (`write-file-atomic` rename-over-existing) | cross-platform                       | same file                                                |
+| Case-insensitive filename variant resolves to the same state authority                                                                    | win32-gated (`it.runIf`)             | same file                                                |
+| Store/Journal operation through a junctioned storage root with bytes landing in the target directory                                      | win32-gated (`it.runIf`)             | same file                                                |
 
 Test totals on Windows: foundation-contracts 10, bootstrap-state 27, repo-kit 5
 — all PASS.
 
 #### Claims that remain NOT_RUN
 
-| Claim | Status | Reason |
-| --- | --- | --- |
-| Real filesystem power-loss durability on Windows/macOS/Linux | NOT_RUN | Requires real crash/power-loss qualification; unit tests must not claim it |
-| True symlink/junction/reparse-point root hardening | NOT_RUN | Belongs to M2 PathProfile/bootstrap ownership; the junction/symlink traversal tests prove operability, not hardening |
-| Pilot-era oclif CLI shell-quoting claim (`posix_quoting`) | NOT_RUN | Historical pilot claim; no oclif CLI exists in this repository. The current-repo equivalent (argv preservation without shell parsing) is PASS on Linux and on ubuntu-latest CI |
-| POSIX symlink escape / macOS-Linux path behavior | NOT_RUN | Narrowed by the first green matrix run: traversal operability is PASS on ubuntu-latest and macos-latest; only escape/root hardening remains, tracked in the M2 row above |
+| Claim                                                        | Status  | Reason                                                                                                                                                                         |
+| ------------------------------------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Real filesystem power-loss durability on Windows/macOS/Linux | NOT_RUN | Requires real crash/power-loss qualification; unit tests must not claim it                                                                                                     |
+| True symlink/junction/reparse-point root hardening           | NOT_RUN | Belongs to M2 PathProfile/bootstrap ownership; the junction/symlink traversal tests prove operability, not hardening                                                           |
+| Pilot-era oclif CLI shell-quoting claim (`posix_quoting`)    | NOT_RUN | Historical pilot claim; no oclif CLI exists in this repository. The current-repo equivalent (argv preservation without shell parsing) is PASS on Linux and on ubuntu-latest CI |
+| POSIX symlink escape / macOS-Linux path behavior             | NOT_RUN | Narrowed by the first green matrix run: traversal operability is PASS on ubuntu-latest and macos-latest; only escape/root hardening remains, tracked in the M2 row above       |
 
 ### POSIX coverage and CI projection addendum (2026-08-21, same day)
 
@@ -1966,10 +2018,10 @@ by itself; both only make the evidence obtainable.
 **POSIX-gated repository tests added**
 (`packages/bootstrap-state/src/platform-behavior.test.ts`):
 
-| Coverage | Gate | Status |
-| --- | --- | --- |
+| Coverage                                                                                                  | Gate                                     | Status                              |
+| --------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------- |
 | Store/Journal operation through a POSIX-symlinked storage root with bytes landing in the target directory | `it.runIf(process.platform !== "win32")` | PASS (ubuntu-latest + macos-latest) |
-| State authority stays distinct from different-case decoy filenames on case-sensitive filesystems | `it.runIf(process.platform === "linux")` | PASS (ubuntu-latest) |
+| State authority stays distinct from different-case decoy filenames on case-sensitive filesystems          | `it.runIf(process.platform === "linux")` | PASS (ubuntu-latest)                |
 
 On the Windows host these run as explicit skips: 27 passed / 2 skipped.
 
@@ -1982,11 +2034,11 @@ locally runnable gates and is not their sole Authority; every gate remains
 executable in-repo without CI. Action versions were refreshed from upstream
 release feeds at authoring time rather than recalled from memory:
 
-| Action | Pinned major | Verified latest release at authoring |
-| --- | --- | --- |
-| `actions/checkout` | v7 | v7.0.1 (2026-07-20) |
-| `pnpm/action-setup` | v6 | v6.0.10 (2026-08-03); reads the exact pnpm version from `package.json#packageManager` |
-| `actions/setup-node` | v7 | v7.0.0 (2026-07-14); reads Node from `.node-version`, caches the pnpm store |
+| Action               | Pinned major | Verified latest release at authoring                                                  |
+| -------------------- | ------------ | ------------------------------------------------------------------------------------- |
+| `actions/checkout`   | v7           | v7.0.1 (2026-07-20)                                                                   |
+| `pnpm/action-setup`  | v6           | v6.0.10 (2026-08-03); reads the exact pnpm version from `package.json#packageManager` |
+| `actions/setup-node` | v7           | v7.0.0 (2026-07-14); reads Node from `.node-version`, caches the pnpm store           |
 
 The successor `pnpm/setup@v2` action was evaluated and deliberately not
 adopted: it provisions Node through `pnpm runtime` and auto-runs installs,
@@ -2000,21 +2052,21 @@ repository file.
 The deferred POSIX claims were closed by the first matrix execution, triggered
 by Draft PR #1 (`pull_request` event):
 
-| Item | Evidence |
-| --- | --- |
-| Run | `32453808384`, branch `dev/m1-development-spine`, commit `cca53c7` |
-| Result | ubuntu-latest PASS (47s), macos-latest PASS (1m16s), windows-latest PASS (1m47s) |
-| POSIX symlink traversal | executed and passed on ubuntu-latest and macos-latest (`platform-behavior.test.ts`: 6 collected / 2 skipped = exactly the win32-gated pair) |
-| Linux case-sensitive decoy isolation | executed and passed on ubuntu-latest |
-| Windows junction/case-insensitive pair | executed and passed on windows-latest (mirror skip confirmed) |
-| Test totals per platform | foundation-contracts 10, bootstrap-state 27 passed + 2 skipped, repo-kit 5 — identical counts across all three OSes |
+| Item                                   | Evidence                                                                                                                                    |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Run                                    | `32453808384`, branch `dev/m1-development-spine`, commit `cca53c7`                                                                          |
+| Result                                 | ubuntu-latest PASS (47s), macos-latest PASS (1m16s), windows-latest PASS (1m47s)                                                            |
+| POSIX symlink traversal                | executed and passed on ubuntu-latest and macos-latest (`platform-behavior.test.ts`: 6 collected / 2 skipped = exactly the win32-gated pair) |
+| Linux case-sensitive decoy isolation   | executed and passed on ubuntu-latest                                                                                                        |
+| Windows junction/case-insensitive pair | executed and passed on windows-latest (mirror skip confirmed)                                                                               |
+| Test totals per platform               | foundation-contracts 10, bootstrap-state 27 passed + 2 skipped, repo-kit 5 — identical counts across all three OSes                         |
 
 Claim status changes recorded by this run:
 
-| Claim | Previous | Now |
-| --- | --- | --- |
-| POSIX-symlinked storage root operability | NOT_RUN | PASS |
-| Case-sensitive filesystem decoy isolation | NOT_RUN | PASS |
+| Claim                                                               | Previous                                | Now                                  |
+| ------------------------------------------------------------------- | --------------------------------------- | ------------------------------------ |
+| POSIX-symlinked storage root operability                            | NOT_RUN                                 | PASS                                 |
+| Case-sensitive filesystem decoy isolation                           | NOT_RUN                                 | PASS                                 |
 | Cross-platform argv preservation without shell parsing (POSIX host) | PASS (Linux local, pre-rewrite history) | PASS (re-proven on ubuntu-latest CI) |
 
 ---

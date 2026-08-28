@@ -17,7 +17,8 @@
     "@heptalogos/persistence": "workspace:*",
     "@heptalogos/runtime-substrate": "workspace:*",
     "@heptalogos/schema-runtime": "workspace:*",
-    "@heptalogos/time-service": "workspace:*"
+    "@heptalogos/time-service": "workspace:*",
+    "xstate": "catalog:"
   },
   "devDependencies": {
     "vitest": "catalog:"

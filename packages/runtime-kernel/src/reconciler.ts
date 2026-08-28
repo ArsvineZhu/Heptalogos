@@ -1,4 +1,11 @@
+/**
+ * Reconciles desired Runtime snapshots into deterministic graph activation and
+ * retirement operations, with generation fencing at each lifecycle boundary.
+ * @module reconciler
+ */
+
 import type { CapabilityRegistry } from "./capability-registry.js";
+import type { CapabilityId } from "./contracts.js";
 import type {
   DesiredRuntimeSnapshot,
   MicroSystemActualState,
@@ -10,6 +17,7 @@ import type {
 import { RuntimeGraph } from "./runtime-graph.js";
 import type { ServiceRegistry } from "./service-registry.js";
 
+/** Describes one deterministic Runtime reconciliation action. */
 export type ReconcileAction =
   | {
       readonly kind: "QUIESCE";
@@ -33,22 +41,21 @@ export type ReconcileAction =
     }
   | {
       readonly kind: "REBIND_CAPABILITY";
-      readonly capabilityId: import("@heptalogos/foundation-contracts").CapabilityId;
+      readonly capabilityId: CapabilityId;
       readonly providerId: ProviderId | undefined;
     };
 
+/** Reports the ordered actions and bindings produced by reconciliation. */
 export interface ReconcilePlan {
   readonly revision: number;
   readonly actions: readonly ReconcileAction[];
   readonly blocked: ReadonlyMap<MicroSystemId, string>;
   readonly serviceBindings: ReadonlyMap<ServiceId, ProviderId>;
   readonly desiredServiceBindings: ReadonlyMap<ServiceId, ProviderId>;
-  readonly capabilityBindings: ReadonlyMap<
-    import("@heptalogos/foundation-contracts").CapabilityId,
-    ProviderId
-  >;
+  readonly capabilityBindings: ReadonlyMap<CapabilityId, ProviderId>;
 }
 
+/** Supplies desired, actual, registry, and binding state to reconciliation. */
 export interface ReconcileInput {
   readonly definitions: readonly MicroSystemDefinition[];
   readonly desired: DesiredRuntimeSnapshot;
@@ -56,13 +63,22 @@ export interface ReconcileInput {
   readonly services: ServiceRegistry;
   readonly capabilities: CapabilityRegistry;
   readonly currentServiceBindings?: ReadonlyMap<ServiceId, ProviderId>;
-  readonly currentCapabilityBindings?: ReadonlyMap<
-    import("@heptalogos/foundation-contracts").CapabilityId,
-    ProviderId
-  >;
+  readonly currentCapabilityBindings?: ReadonlyMap<CapabilityId, ProviderId>;
 }
 
+function shutdownActions(
+  microSystemId: MicroSystemId,
+  reason: string,
+): readonly ReconcileAction[] {
+  return [
+    { kind: "QUIESCE", microSystemId, reason },
+    { kind: "STOP", microSystemId, reason },
+  ];
+}
+
+/** Plans Runtime activation, rebinding, quiescence, and retirement actions. */
 export class RuntimeReconciler {
+  /** Computes a deterministic plan without mutating Runtime state. */
   plan(input: ReconcileInput): ReconcilePlan {
     const definitions = [...input.definitions].sort((left, right) =>
       left.microSystemId.localeCompare(right.microSystemId),
@@ -204,16 +220,12 @@ export class RuntimeReconciler {
           blocked.has(definition.microSystemId))
       ) {
         if (stopped.has(definition.microSystemId)) continue;
-        actions.push({
-          kind: "QUIESCE",
-          microSystemId: definition.microSystemId,
-          reason: blocked.get(definition.microSystemId) ?? "desired-stopped",
-        });
-        actions.push({
-          kind: "STOP",
-          microSystemId: definition.microSystemId,
-          reason: blocked.get(definition.microSystemId) ?? "desired-stopped",
-        });
+        actions.push(
+          ...shutdownActions(
+            definition.microSystemId,
+            blocked.get(definition.microSystemId) ?? "desired-stopped",
+          ),
+        );
         stopped.add(definition.microSystemId);
       }
     }
@@ -225,16 +237,12 @@ export class RuntimeReconciler {
           !resolvable.has(definition)) &&
         !stopped.has(definition.microSystemId)
       ) {
-        actions.push({
-          kind: "QUIESCE",
-          microSystemId: definition.microSystemId,
-          reason: blocked.get(definition.microSystemId) ?? "desired-stopped",
-        });
-        actions.push({
-          kind: "STOP",
-          microSystemId: definition.microSystemId,
-          reason: blocked.get(definition.microSystemId) ?? "desired-stopped",
-        });
+        actions.push(
+          ...shutdownActions(
+            definition.microSystemId,
+            blocked.get(definition.microSystemId) ?? "desired-stopped",
+          ),
+        );
         stopped.add(definition.microSystemId);
       }
     }

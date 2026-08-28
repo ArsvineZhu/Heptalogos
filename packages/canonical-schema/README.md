@@ -53,7 +53,7 @@ requires the PRE_PRODUCTION reset/recreate procedure and full repository gates.
 
 ## Architecture references
 
-- [`S03 — 持久化、事务与 EffectFence`](../../Architecture_Corpus/specs/S03-持久化-事务-EffectFence.md)
-- [`S12 — 验证、研究与评估`](../../Architecture_Corpus/specs/S12-验证-Research-Evaluation.md)
-- [`S15 — Foundation 横切合同`](../../Architecture_Corpus/specs/S15-Foundation横切合同.md)
-- [`S17 — Storage Workspace 与 DataLifecycle`](../../Architecture_Corpus/specs/S17-Storage-Workspace-DataLifecycle.md)
+- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
+- [`S12 — 验证、研究与评估`](../../docs/architecture/contracts/verification-research-evaluation.md)
+- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
+- [`S17 — Storage Workspace 与 DataLifecycle`](../../docs/architecture/contracts/storage-workspace-data-lifecycle.md)

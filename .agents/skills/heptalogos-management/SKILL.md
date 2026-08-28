@@ -7,16 +7,16 @@ description: Use when changing Heptalogos System Authority, Policy, Approval, Sy
 
 ## Authority route
 
-Corpus root: `../../../Architecture_Corpus/`  
+Documentation root: `../../../docs/`
 Route index: `../../heptalogos/corpus-routes.json`
 
 Read first:
 
-- [System Authority and Operator Assistant](../../../Architecture_Corpus/11-System-Authority与Operator-Assistant.md)
-- [Interfaces / CLI / Web / Presentation](../../../Architecture_Corpus/18-接口-CLI-Web与Presentation.md)
-- [S05 Policy / Approval / Management / Operator](../../../Architecture_Corpus/specs/S05-Policy-Approval-Management-Operator.md)
-- [S14 Canonical end-to-end flows](../../../Architecture_Corpus/specs/S14-Canonical-End-to-End-Flows.md)
-- [S15 Cross-cutting contracts](../../../Architecture_Corpus/specs/S15-Foundation横切合同.md)
+- [System Authority and Operator Assistant](../../../docs/architecture/management-authority.md)
+- [Interfaces / CLI / Web / Presentation](../../../docs/architecture/management-presentation.md)
+- [S05 Policy / Approval / Management / Operator](../../../docs/architecture/contracts/policy-approval-management-operator.md)
+- [S14 Canonical end-to-end flows](../../../docs/architecture/contracts/canonical-end-to-end-flows.md)
+- [S15 Cross-cutting contracts](../../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
 
 ## Procedure
 

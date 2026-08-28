@@ -11,6 +11,7 @@
 **Tech Stack:** Node.js 24.19.0, pnpm 11.22.0, Nx 23.1.1, TypeScript 7.0.2 primary compiler, TypeScript 6.0.2 compiler-API compatibility lane, Vitest 4.1.11, TypeBox + Ajv, `write-file-atomic` 8.x, GitHub Pull Requests, GitHub Actions.
 
 **Authority / Required Reading:**
+
 - `AGENTS.md`
 - `Architecture_Corpus/00-项目宪法与工程宪法.md`
 - `Architecture_Corpus/25-TypeScript与仓库工具链.md`
@@ -21,6 +22,7 @@
 - PR `#1` — `Foundation M1 development spine`
 
 **Review baseline when this plan was authored (2026-08-21):**
+
 - Base: `master` at `6e4c6c81f83c0cefb3f5b9f7abc4d5f3a0cdddfc`
 - Branch: `dev/m1-development-spine`
 - Reviewed HEAD: `7a42ac4faba3456e1ad7849a5d1aafcab8971a09`
@@ -58,7 +60,7 @@
 
 ---
 
-# Target Closure State
+## Target Closure State
 
 The final state machine is:
 
@@ -105,9 +107,9 @@ Do not “reuse” a review or CI run from an older SHA.
 
 ---
 
-# File Map
+## File Map
 
-## Create
+### Create
 
 - `docs/plans/active/foundation/m1-final-corrective-and-closure.md`
   - This exact plan while implementation is active.
@@ -118,7 +120,7 @@ Do not “reuse” a review or CI run from an older SHA.
 - `packages/bootstrap-state/src/atomic-file.test.ts`
   - Adapter tests and bypass regression.
 
-## Modify
+### Modify
 
 - `.github/workflows/verify.yml`
   - Remove automatic triggers; become manual `workflow_dispatch` only; verify an explicit target SHA.
@@ -141,7 +143,7 @@ Do not “reuse” a review or CI run from an older SHA.
 - PR `#1` body
   - Update externally after repository work is complete; this does not change HEAD.
 
-## Repository setting change
+### Repository setting change
 
 - Disable rebase merge.
 - Keep merge commits disabled.
@@ -151,7 +153,7 @@ Do not “reuse” a review or CI run from an older SHA.
 
 ---
 
-# Preflight: Freeze the Corrective Baseline
+## Preflight: Freeze the Corrective Baseline
 
 - [x] **Step 1: Read Authority before editing**
 
@@ -214,9 +216,10 @@ git commit -m "docs: add Foundation M1 final corrective plan"
 
 ---
 
-# Task 1: Replace Automatic CI with Controlled Manual Verification
+## Task 1: Replace Automatic CI with Controlled Manual Verification
 
 **Files:**
+
 - Modify: `.github/workflows/verify.yml`
 - Modify: `AGENTS.md`
 - Modify: `.agents/heptalogos/package-manifest.json`
@@ -225,12 +228,13 @@ git commit -m "docs: add Foundation M1 final corrective plan"
 - Modify: `docs/engineering/PLAYBOOK.md`
 
 **Produces:**
+
 - `verify.yml` can be triggered only by `workflow_dispatch`.
 - The workflow verifies a caller-supplied full commit SHA.
 - Repository verification fails if automatic triggers or mutable Action tags are reintroduced.
 - The branch/PR closure sequence becomes persistent Agent guidance.
 
-## Required final workflow
+### Required final workflow
 
 Replace `.github/workflows/verify.yml` with this shape:
 
@@ -302,7 +306,7 @@ jobs:
 
 The three Action SHAs above are the immutable revisions already exercised successfully by the previous green matrix. Do not replace them with `@v7`, `@v6`, or another mutable tag during this task.
 
-## Repository verification rule
+### Repository verification rule
 
 Extend `scripts/verify/repository.mjs` after the required repository-file checks:
 
@@ -523,11 +527,12 @@ git commit -m "chore: make milestone CI manual and review-gated"
 
 ---
 
-# Task 2: Add the Missing Crash-Safe Publication Adapter
+## Task 2: Add the Missing Crash-Safe Publication Adapter
 
 **Problem to solve:** `write-file-atomic@8` flushes the temporary file and renames it, but does not sync the containing directory after rename. `S15` requires containing-directory flush where supported. Therefore the current M1 implementation has a known mechanics gap; it is not merely “unqualified”.
 
 **Files:**
+
 - Create: `packages/bootstrap-state/src/atomic-file.ts`
 - Create: `packages/bootstrap-state/src/atomic-file.test.ts`
 - Modify: `packages/bootstrap-state/src/store.ts`
@@ -544,7 +549,7 @@ export async function writeAtomicPublishedFile(
 
 This helper stays internal to `bootstrap-state`; do not export it from the package public `index.ts` in M1.
 
-## Required implementation
+### Required implementation
 
 Create `packages/bootstrap-state/src/atomic-file.ts`:
 
@@ -618,9 +623,9 @@ const directories: string[] = [];
 
 afterEach(async () => {
   await Promise.all(
-    directories.splice(0).map((directory) =>
-      rm(directory, { recursive: true, force: true }),
-    ),
+    directories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
   );
 });
 
@@ -630,8 +635,8 @@ describe("writeAtomicPublishedFile", () => {
     directories.push(directory);
     const file = join(directory, "state.json");
 
-    await writeAtomicPublishedFile(file, "{\"revision\":1}");
-    await expect(readFile(file, "utf8")).resolves.toBe("{\"revision\":1}");
+    await writeAtomicPublishedFile(file, '{"revision":1}');
+    await expect(readFile(file, "utf8")).resolves.toBe('{"revision":1}');
   });
 
   it("does not expose platform qualification state", async () => {
@@ -763,19 +768,21 @@ git commit -m "fix: complete bootstrap atomic publication mechanics"
 
 ---
 
-# Task 3: Harden BootstrapJournal Persisted Time and Same-Boot Concurrency
+## Task 3: Harden BootstrapJournal Persisted Time and Same-Boot Concurrency
 
 **Problems to solve:**
+
 1. `BootstrapJournalCheckpointV1.at` currently accepts any non-empty string, although persisted absolute time is an `Instant`.
 2. `checkpoint()` currently performs read → append → write without serializing the whole same-BootId read-modify-write cycle. Two in-process concurrent checkpoints can lose one update.
 
 **Scope boundary:** M1 only prevents same-process lost update. Multi-process exclusivity remains owned by M2 bootstrap ownership and must not be invented here.
 
 **Files:**
+
 - Modify: `packages/bootstrap-state/src/journal.ts`
 - Modify: `packages/bootstrap-state/src/journal.test.ts`
 
-## Canonical M1 Instant representation
+### Canonical M1 Instant representation
 
 For BootstrapJournal v1, persist canonical UTC JavaScript ISO strings:
 
@@ -790,14 +797,14 @@ Example:
 ```
 
 Validation must satisfy both:
+
 - exact canonical shape;
 - `new Date(Date.parse(value)).toISOString() === value`.
 
 Add to `journal.ts`:
 
 ```ts
-const CANONICAL_INSTANT_PATTERN =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
+const CANONICAL_INSTANT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
 function isCanonicalInstant(value: string): boolean {
   if (!CANONICAL_INSTANT_PATTERN.test(value)) return false;
@@ -809,7 +816,7 @@ function isCanonicalInstant(value: string): boolean {
 After Ajv structural validation, reject an entry when:
 
 ```ts
-!isCanonicalInstant(entry.at)
+!isCanonicalInstant(entry.at);
 ```
 
 Use the existing stable problem:
@@ -820,7 +827,7 @@ bootstrap.journal.invalid_entry
 
 Do not expose `Date.parse` diagnostics.
 
-## Same-Boot checkpoint serialization
+### Same-Boot checkpoint serialization
 
 Add:
 
@@ -941,6 +948,7 @@ pnpm exec vitest run --root packages/bootstrap-state src/journal.test.ts
 ```
 
 Expected:
+
 - invalid Instant tests `FAIL` against current code;
 - the concurrency regression should expose the lost-update risk. If timing happens not to reproduce on one run, the implementation change is still required because the read-modify-write critical section is structurally unsynchronized; do not delete the regression.
 
@@ -949,6 +957,7 @@ Expected:
 Add `CANONICAL_INSTANT_PATTERN` and `isCanonicalInstant()`.
 
 Ensure both:
+
 - loaded persisted entries;
 - newly submitted checkpoints
 
@@ -984,9 +993,10 @@ git commit -m "fix: harden BootstrapJournal boundaries"
 
 ---
 
-# Task 4: Repair M1 Completion Evidence
+## Task 4: Repair M1 Completion Evidence
 
 **Files:**
+
 - Modify: `docs/plans/completed/foundation/m1-development-spine.md`
 
 **Goal:** Make the completed M1 execution record match repository reality without rewriting history.
@@ -1002,6 +1012,7 @@ rg -n '\- \[ \] \*\*Step .*Commit' docs/plans/completed/foundation/m1-developmen
 The review found stale unchecked commit steps for multiple tasks even though those commits exist.
 
 For every result:
+
 1. locate the corresponding commit in branch history;
 2. only if the commit exists, change `[ ]` to `[x]`;
 3. if a supposed commit does not exist, do not fabricate completion—record the mismatch.
@@ -1101,7 +1112,7 @@ git commit -m "docs: correct Foundation M1 closure evidence"
 
 ---
 
-# Task 5: Lock Repository Merge Mechanics to Squash-Only
+## Task 5: Lock Repository Merge Mechanics to Squash-Only
 
 **Repository settings; no product code.**
 
@@ -1163,7 +1174,7 @@ The merge authorization procedure is governed by `AGENTS.md` + the milestone PR 
 
 ---
 
-# Task 6: Fresh-Like Local Verification and Corrective Plan Closure
+## Task 6: Fresh-Like Local Verification and Corrective Plan Closure
 
 **Goal:** Produce the exact commit that will be handed to independent review. No repository file may change after this step unless the review cycle is restarted.
 
@@ -1321,6 +1332,7 @@ No generated `dist`, test output, or cache file may be staged.
 - [x] **Step 9: Finalize this corrective plan's repository record**
 
 Before creating the review candidate commit:
+
 - check off all implementation steps actually completed;
 - add a concise execution record with command outcomes;
 - do **not** record independent review or final CI as PASS yet.
@@ -1392,38 +1404,38 @@ No repository changes are allowed after this point without restarting the review
 
 ---
 
-## Corrective execution record
+### Corrective execution record
 
 `COMPLETED` means the corrective implementation and local verification are
 complete. Independent review, final cross-platform CI, and squash merge remain
 external closure gates and are intentionally not recorded as PASS here.
 
-| Item | Evidence |
-| --- | --- |
-| Start HEAD | `7a42ac4faba3456e1ad7849a5d1aafcab8971a09` |
-| Corrective HEAD before this plan's closure commit | `b18ef98` (`docs: bound POSIX durability evidence`) |
-| Runtime | Node `24.19.0`, pnpm `11.22.0`, Windows `win32 x64` |
-| Manual workflow bootstrap | PR #2 squash-merged to `master` as `e74f5331a069b5a33427e1f6396e74f40ed1a92f`; only `.github/workflows/verify.yml` |
-| Baseline install and verify | `pnpm install --frozen-lockfile` PASS; `pnpm verify` PASS |
-| Manual workflow/repository gate | `pnpm check:repository` PASS; no automatic trigger lines; `target_sha` and `reason` present; all Actions pinned to full SHAs |
-| Agent manifest and formatting | `check:agents` PASS; `pnpm format:check` PASS |
-| Publication adapter evidence | atomic-file tests: 3 PASS / 1 POSIX-gated skip on win32; Windows normal atomic publication resolves without qualification state |
-| Journal evidence | journal tests: 11 PASS; same-BootId concurrent checkpoints retained; invalid/non-canonical Instants rejected |
-| Fresh-like permanent gates | every listed `check:*`, toolchain, format, lint, typecheck, tsc6, test, build, and verify command PASS after Nx/dist reset |
-| Real Nx targets | foundation-contracts and bootstrap-state have inferred build/typecheck; repository exposes only the real scripts lint target |
-| Built output | four required package `dist/index.js` / `dist/index.d.ts` paths PASS |
-| Merge settings | `allow_merge_commit=false`, `allow_rebase_merge=false`, `allow_squash_merge=true`, `allow_auto_merge=false` |
-| POSIX containing-directory sync runtime evidence | `NOT_RUN` on current win32 executor; POSIX-gated test requires a POSIX runner |
-| Windows normal atomic publication | `PASS` by win32 test; containing-directory sync is `N/A` and sudden-power-loss durability is `NOT_RUN` |
-| Real filesystem power-loss qualification | `NOT_RUN` |
-| Independent review | `NOT_RUN` — required external gate |
-| Manual final CI (Ubuntu/macOS/Windows) | `NOT_RUN` — must follow independent review on exact SHA |
-| Squash merge and branch deletion | `NOT_RUN` |
-| M2 PathProfile/bootstrap ownership | `NOT_RUN`; no M2 subsystem started |
+| Item                                              | Evidence                                                                                                                        |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Start HEAD                                        | `7a42ac4faba3456e1ad7849a5d1aafcab8971a09`                                                                                      |
+| Corrective HEAD before this plan's closure commit | `b18ef98` (`docs: bound POSIX durability evidence`)                                                                             |
+| Runtime                                           | Node `24.19.0`, pnpm `11.22.0`, Windows `win32 x64`                                                                             |
+| Manual workflow bootstrap                         | PR #2 squash-merged to `master` as `e74f5331a069b5a33427e1f6396e74f40ed1a92f`; only `.github/workflows/verify.yml`              |
+| Baseline install and verify                       | `pnpm install --frozen-lockfile` PASS; `pnpm verify` PASS                                                                       |
+| Manual workflow/repository gate                   | `pnpm check:repository` PASS; no automatic trigger lines; `target_sha` and `reason` present; all Actions pinned to full SHAs    |
+| Agent manifest and formatting                     | `check:agents` PASS; `pnpm format:check` PASS                                                                                   |
+| Publication adapter evidence                      | atomic-file tests: 3 PASS / 1 POSIX-gated skip on win32; Windows normal atomic publication resolves without qualification state |
+| Journal evidence                                  | journal tests: 11 PASS; same-BootId concurrent checkpoints retained; invalid/non-canonical Instants rejected                    |
+| Fresh-like permanent gates                        | every listed `check:*`, toolchain, format, lint, typecheck, tsc6, test, build, and verify command PASS after Nx/dist reset      |
+| Real Nx targets                                   | foundation-contracts and bootstrap-state have inferred build/typecheck; repository exposes only the real scripts lint target    |
+| Built output                                      | four required package `dist/index.js` / `dist/index.d.ts` paths PASS                                                            |
+| Merge settings                                    | `allow_merge_commit=false`, `allow_rebase_merge=false`, `allow_squash_merge=true`, `allow_auto_merge=false`                     |
+| POSIX containing-directory sync runtime evidence  | `NOT_RUN` on current win32 executor; POSIX-gated test requires a POSIX runner                                                   |
+| Windows normal atomic publication                 | `PASS` by win32 test; containing-directory sync is `N/A` and sudden-power-loss durability is `NOT_RUN`                          |
+| Real filesystem power-loss qualification          | `NOT_RUN`                                                                                                                       |
+| Independent review                                | `NOT_RUN` — required external gate                                                                                              |
+| Manual final CI (Ubuntu/macOS/Windows)            | `NOT_RUN` — must follow independent review on exact SHA                                                                         |
+| Squash merge and branch deletion                  | `NOT_RUN`                                                                                                                       |
+| M2 PathProfile/bootstrap ownership                | `NOT_RUN`; no M2 subsystem started                                                                                              |
 
 ---
 
-# Task 7: Update PR #1 and Mark Ready — But Do Not Merge or Run Final CI Yet
+## Task 7: Update PR #1 and Mark Ready — But Do Not Merge or Run Final CI Yet
 
 **External PR metadata only; does not change commit SHA.**
 
@@ -1492,7 +1504,7 @@ Hand the exact `REVIEW_CANDIDATE_SHA` to an independent reviewer.
 
 ---
 
-# Merge Gate A: Independent Review
+## Merge Gate A: Independent Review
 
 This gate cannot be self-approved by the implementing Agent.
 
@@ -1530,7 +1542,7 @@ FAIL
 BLOCKED
 ```
 
-## If review = FAIL
+### If review = FAIL
 
 - fix findings on `dev/m1-development-spine`;
 - run the applicable focused tests;
@@ -1540,7 +1552,7 @@ BLOCKED
 
 Do not reuse the old review.
 
-## If review = PASS
+### If review = PASS
 
 Record externally in PR/review discussion:
 
@@ -1555,7 +1567,7 @@ Only now may final CI be manually triggered.
 
 ---
 
-# Merge Gate B: Manual Final Cross-Platform CI
+## Merge Gate B: Manual Final Cross-Platform CI
 
 **Precondition:** independent review `PASS` on the exact current HEAD.
 
@@ -1575,6 +1587,7 @@ gh pr view 1 --json headRefOid,isDraft,mergeStateStatus
 ```
 
 Required:
+
 - `headRefOid == REVIEWED_SHA`
 - `isDraft == false`
 
@@ -1633,7 +1646,7 @@ PASS target SHA <REVIEWED_SHA>
 
 Do not infer exact checkout solely from the workflow run's branch metadata; the explicit target-SHA assertion is the evidence.
 
-## CI failure handling
+### CI failure handling
 
 If any platform fails:
 
@@ -1655,7 +1668,7 @@ transient GitHub runner/infrastructure failure
 
 ---
 
-# Merge Gate C: Exact-SHA Squash Merge
+## Merge Gate C: Exact-SHA Squash Merge
 
 **All conditions must simultaneously hold:**
 
@@ -1690,6 +1703,7 @@ gh pr merge 1 \
 ```
 
 Do not use:
+
 - `--merge`
 - `--rebase`
 - auto-merge
@@ -1705,6 +1719,7 @@ git log --oneline -5
 ```
 
 Expected:
+
 - one new squash commit on `master` representing the M1 milestone;
 - no partial M1 commit train on `master`;
 - remote `dev/m1-development-spine` deleted.
@@ -1729,7 +1744,7 @@ Do not upgrade real power-loss qualification from `NOT_RUN`.
 
 ---
 
-# Acceptance Criteria
+## Acceptance Criteria
 
 M1 is eligible for squash merge only when all of the following are true:
 
@@ -1763,7 +1778,7 @@ M1 is eligible for squash merge only when all of the following are true:
 
 ---
 
-# Explicit Non-Goals
+## Explicit Non-Goals
 
 Do not use this corrective to implement:
 
@@ -1789,7 +1804,7 @@ Those remain M2+ or later qualification work.
 
 ---
 
-# Agent Stop Conditions
+## Agent Stop Conditions
 
 Stop and report rather than improvising when:
 

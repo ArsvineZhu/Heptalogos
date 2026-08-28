@@ -1,4 +1,14 @@
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+/**
+ * Maps WorkQueue admission, dispatch, and repository failures into shared
+ * Foundation Problems with explicit retry classification.
+ * @module problems
+ */
+
+import {
+  createProblemError,
+  type ProblemError,
+  type ProblemInit,
+} from "@heptalogos/foundation-contracts";
 
 interface WorkQueueProblemSpec {
   readonly category: string;
@@ -154,19 +164,19 @@ function problemSpec(problemCode: string): WorkQueueProblemSpec {
   );
 }
 
+/** Create a stable WorkQueue problem envelope with an optional underlying cause. */
 export function workQueueProblem(
   problemCode: string,
   detail: string,
   cause?: unknown,
 ): ProblemError {
   const spec = problemSpec(problemCode);
-  const problem: Problem = {
-    schemaVersion: 1,
+  const problem: ProblemInit = {
     problemCode,
     category: spec.category,
     retryClass: spec.retryClass,
     title: spec.title,
     detail,
   };
-  return new ProblemError(problem, cause === undefined ? undefined : { cause });
+  return createProblemError(problem, cause === undefined ? undefined : { cause });
 }

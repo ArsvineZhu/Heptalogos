@@ -1,3 +1,9 @@
+/**
+ * Derives deterministic dispatch-attempt identities from canonical WorkItem
+ * inputs so retries and duplicate dispatches remain idempotently addressable.
+ * @module attempt-identity
+ */
+
 import {
   asContentDigest,
   digestCanonicalJson,
@@ -22,6 +28,7 @@ function assertDispatchRevision(dispatchRevision: number): void {
   }
 }
 
+/** Derive the stable attempt identity for one WorkItem dispatch revision. */
 export function createDispatchAttemptId(
   workItemId: WorkItemId,
   dispatchRevision: number,
@@ -36,10 +43,12 @@ export function createDispatchAttemptId(
   );
 }
 
+/** Parse an untrusted attempt identity without manufacturing a digest. */
 export function parseDispatchAttemptId(value: unknown): DispatchAttemptId | undefined {
   return parseContentDigest("DispatchAttemptId", value);
 }
 
+/** Map an attempt digest to the workflow identity used by the execution engine. */
 export function dispatchAttemptIdToWorkflowId(
   dispatchAttemptId: DispatchAttemptId,
 ): string {

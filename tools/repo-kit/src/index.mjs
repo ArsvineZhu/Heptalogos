@@ -1,5 +1,21 @@
+/**
+ * Public repository-tooling mechanics for process execution, discovery,
+ * documentation, dependency authority, and fail-closed governance checks.
+ * @module index
+ */
+
 export * from "./dependency-authority.mjs";
 export * from "./current-tree-hygiene.mjs";
 export * from "./process.mjs";
+export * from "./yaml.mjs";
+export * from "./discovery.mjs";
+export * from "./paths.mjs";
+export * from "./markdown.mjs";
 export * from "./package-docs.mjs";
+export * from "./documentation.mjs";
+export * from "./clean.mjs";
 export * from "./workspace.mjs";
+export * from "./package-index.mjs";
+export * from "./repository-governance.mjs";
+export * from "./version-authority.mjs";
+export * from "./api-docs.mjs";

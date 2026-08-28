@@ -1,3 +1,9 @@
+/**
+ * Public private-PostgreSQL toolchain, cluster, lifecycle, and maintenance
+ * contracts; process and profile mechanics remain behind controller adapters.
+ * @packageDocumentation
+ */
+
 export {
   PRIVATE_POSTGRES_ARCHITECTURE_MAJOR,
   PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME,

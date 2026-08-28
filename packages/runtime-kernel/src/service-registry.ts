@@ -1,23 +1,33 @@
+/**
+ * Owns Service provider registration and generation-pinned leases so Runtime
+ * consumers cannot use a service after its owner retires the generation.
+ * @module service-registry
+ */
+
 import type {
-  ContractVersion,
   ServiceLease,
   ServiceProvisionDescriptor,
   ServiceRequirement,
 } from "./contracts.js";
-import { ContractCompatibilityRegistry } from "./contract-compatibility.js";
-import { GenerationFence } from "./generation-fence.js";
-import { createFencedProxy } from "./fenced-proxy.js";
-import { validateSupportedContractShape } from "./contract-shape.js";
-import { runtimeKernelProblem } from "./problems.js";
+import {
+  activeRegistryBindings,
+  invokeRegistryBinding,
+  RegistryStore,
+  registryProviderIds,
+  retireRegistryGeneration,
+  type RegistryBinding,
+} from "./registry-store.js";
+import {
+  ContractCompatibilityRegistry,
+  createFencedProxy,
+  GenerationFence,
+  runtimeKernelProblem,
+  validateSupportedContractShape,
+} from "./registry-mechanics.js";
 import type { ProviderId } from "@heptalogos/foundation-contracts";
 import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
 
-interface ServiceBinding {
-  readonly descriptor: ServiceProvisionDescriptor;
-  readonly implementation: object;
-  readonly fence: GenerationFence;
-  readonly runtimeActivity?: RuntimeActivityRunner;
-}
+type ServiceBinding = RegistryBinding<ServiceProvisionDescriptor>;
 
 function bindingKey(
   serviceId: ServiceProvisionDescriptor["serviceId"],
@@ -26,10 +36,12 @@ function bindingKey(
   return `${serviceId}\u0000${providerId}`;
 }
 
+/** Owns Service provider registration and generation-pinned resolution. */
 export class ServiceRegistry {
-  private readonly bindings = new Map<string, ServiceBinding>();
+  private readonly bindings = new RegistryStore<ServiceBinding>();
   private readonly compatibility = new ContractCompatibilityRegistry();
 
+  /** Registers a validated Service implementation under a generation fence. */
   register<TContract extends object>(
     descriptor: ServiceProvisionDescriptor,
     implementation: TContract,
@@ -53,6 +65,7 @@ export class ServiceRegistry {
     return fence;
   }
 
+  /** Reports whether an eligible Service provider exists. */
   hasEligible(
     requirement: ServiceRequirement,
     explicitProviderId?: ProviderId,
@@ -60,6 +73,7 @@ export class ServiceRegistry {
     return this.selectBinding(requirement, explicitProviderId, false) !== undefined;
   }
 
+  /** Resolves an eligible Service behind a generation-fenced proxy. */
   resolve<TContract extends object>(
     requirement: ServiceRequirement,
     explicitProviderId?: ProviderId,
@@ -78,47 +92,38 @@ export class ServiceRegistry {
         operationId: string,
         call: (service: TContract) => TResult | Promise<TResult>,
       ): Promise<TResult> {
-        const invoke = () => binding.fence.invoke(operationId, () => call(proxy));
-        binding.fence.assertActive();
-        if (binding.runtimeActivity === undefined) return invoke();
-        return binding.runtimeActivity.runActivity(
-          {
-            kind: "service.call",
-            importance: "routine",
-            retentionClass: "ephemeral",
-            sensitivity: "operational",
-            semantic: {
-              operationId,
-              serviceId: binding.descriptor.serviceId,
-              providerId: binding.descriptor.providerId,
-              contractVersion: binding.descriptor.contractVersion,
-            },
+        return invokeRegistryBinding(binding, operationId, () => call(proxy), {
+          kind: "service.call",
+          importance: "routine",
+          retentionClass: "ephemeral",
+          sensitivity: "operational",
+          semantic: {
+            operationId,
+            serviceId: binding.descriptor.serviceId,
+            providerId: binding.descriptor.providerId,
+            contractVersion: binding.descriptor.contractVersion,
           },
-          async () => invoke(),
-        );
+        });
       },
     });
   }
 
+  /** Lists provider identities registered for a Service. */
   providerIds(
     serviceId: ServiceProvisionDescriptor["serviceId"],
   ): readonly ProviderId[] {
-    return [...this.bindings.values()]
-      .filter((binding) => binding.descriptor.serviceId === serviceId)
-      .map((binding) => binding.descriptor.providerId)
-      .sort();
+    return registryProviderIds(
+      this.bindings,
+      (descriptor) => descriptor.serviceId === serviceId,
+    );
   }
 
+  /** Retires every Service binding owned by the supplied generation fence. */
   async retireGeneration(
     ownerFence: GenerationFence,
     settleTimeoutMs: number,
   ): Promise<void> {
-    const bindings = [...this.bindings.entries()].filter(
-      ([, binding]) => binding.fence === ownerFence,
-    );
-    if (bindings.length === 0) return;
-    for (const [key] of bindings) this.bindings.delete(key);
-    await ownerFence.retire(settleTimeoutMs);
+    await retireRegistryGeneration(this.bindings, ownerFence, settleTimeoutMs);
   }
 
   private selectBinding(
@@ -126,10 +131,10 @@ export class ServiceRegistry {
     explicitProviderId: ProviderId | undefined,
     throwOnFailure: boolean,
   ): ServiceBinding | undefined {
-    const candidates = [...this.bindings.values()].filter(
+    const candidates = activeRegistryBindings(
+      this.bindings,
       (binding) =>
         binding.descriptor.serviceId === requirement.serviceId &&
-        binding.fence.state === "ACTIVE" &&
         this.compatibility.isCompatible(
           requirement.contract,
           binding.descriptor.contractVersion,

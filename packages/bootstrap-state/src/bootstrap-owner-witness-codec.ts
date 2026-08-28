@@ -1,35 +1,33 @@
-import { Ajv2020 } from "ajv/dist/2020.js";
-import { Type } from "typebox";
+/**
+ * Encodes and decodes the Bootstrap owner witness with canonical bytes and
+ * digest validation so recovery can distinguish authentic durable evidence.
+ * @module bootstrap-owner-witness-codec
+ */
+
 import {
   canonicalizeJson,
+  createProblem,
   digestCanonicalJson,
   parseBootId,
+  parseInstant,
   parseUuidV7Id,
-  SHA256_HEX_PATTERN,
   UUID_V7_PATTERN,
   type CanonicalJsonValue,
   type Problem,
 } from "@heptalogos/foundation-contracts";
+import { compileSchema } from "@heptalogos/schema-runtime";
+import { Type } from "@heptalogos/schema-runtime/typebox";
+import { bootstrapDigestSchema } from "./schemas.js";
+import { readSchemaVersion } from "./json-shape.js";
 import type {
   BootstrapOwnerWitnessBodyV1,
   BootstrapOwnerWitnessEnvelopeV1,
   BootstrapOwnerWitnessParseResult,
 } from "./bootstrap-owner-witness-model.js";
 
+/** Names the digest domain so owner witness bytes cannot be reused elsewhere. */
 export const BOOTSTRAP_OWNER_WITNESS_DIGEST_DOMAIN =
   "heptalogos.bootstrap-owner-witness/v1";
-
-const CANONICAL_INSTANT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
-
-const digestSchema = Type.Object(
-  {
-    algorithm: Type.Literal("sha256"),
-    canonicalization: Type.Literal("RFC8785-JCS"),
-    domain: Type.String({ minLength: 1 }),
-    hex: Type.String({ pattern: SHA256_HEX_PATTERN }),
-  },
-  { additionalProperties: false },
-);
 
 const witnessSchema = Type.Object(
   {
@@ -44,7 +42,7 @@ const witnessSchema = Type.Object(
     pid: Type.Integer({ minimum: 1 }),
     processStartedAtMs: Type.Number({ minimum: 0 }),
     heartbeatMs: Type.Integer({ minimum: 1_000 }),
-    createdAt: Type.String({ pattern: CANONICAL_INSTANT_PATTERN.source }),
+    createdAt: Type.String({ minLength: 1 }),
   },
   { additionalProperties: false },
 );
@@ -52,17 +50,12 @@ const witnessSchema = Type.Object(
 const envelopeSchema = Type.Object(
   {
     witness: witnessSchema,
-    digest: digestSchema,
+    digest: bootstrapDigestSchema,
   },
   { additionalProperties: false },
 );
 
-const ajv = new Ajv2020({
-  allErrors: true,
-  removeAdditional: false,
-  useDefaults: false,
-});
-const validateEnvelope = ajv.compile(envelopeSchema);
+const validateEnvelope = compileSchema<BootstrapOwnerWitnessEnvelopeV1>(envelopeSchema);
 
 function problem(
   problemCode: string,
@@ -72,30 +65,14 @@ function problem(
 ): BootstrapOwnerWitnessParseResult {
   return {
     ok: false,
-    problem: {
-      schemaVersion: 1,
+    problem: createProblem({
       problemCode,
       category,
       retryClass: "manual",
       title,
       detail,
-    },
+    }),
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function schemaVersionOf(value: unknown): unknown {
-  if (!isRecord(value) || !isRecord(value.witness)) return undefined;
-  return value.witness.schemaVersion;
-}
-
-function isCanonicalInstant(value: string): boolean {
-  if (!CANONICAL_INSTANT_PATTERN.test(value)) return false;
-  const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) && new Date(timestamp).toISOString() === value;
 }
 
 function hasValidIdentities(witness: BootstrapOwnerWitnessBodyV1): boolean {
@@ -105,6 +82,7 @@ function hasValidIdentities(witness: BootstrapOwnerWitnessBodyV1): boolean {
   );
 }
 
+/** Seals an owner witness with the canonical domain-separated digest. */
 export function sealBootstrapOwnerWitness(
   witness: BootstrapOwnerWitnessBodyV1,
 ): BootstrapOwnerWitnessEnvelopeV1 {
@@ -115,6 +93,7 @@ export function sealBootstrapOwnerWitness(
   return { witness, digest };
 }
 
+/** Parses, validates, and authenticates one persisted owner witness. */
 export function parseBootstrapOwnerWitness(
   text: string,
 ): BootstrapOwnerWitnessParseResult {
@@ -130,7 +109,7 @@ export function parseBootstrapOwnerWitness(
     );
   }
 
-  const version = schemaVersionOf(parsed);
+  const version = readSchemaVersion(parsed, "witness");
   if (typeof version === "number" && version > 1) {
     return problem(
       "bootstrap.owner_witness.unsupported_schema",
@@ -139,7 +118,7 @@ export function parseBootstrapOwnerWitness(
       "The BootstrapOwnerWitness schema version is not supported by this runtime",
     );
   }
-  if (!validateEnvelope(parsed)) {
+  if (!validateEnvelope.validate(parsed).ok) {
     return problem(
       "bootstrap.owner_witness.invalid_schema",
       "validation",
@@ -152,7 +131,7 @@ export function parseBootstrapOwnerWitness(
   if (
     envelope.digest.domain !== BOOTSTRAP_OWNER_WITNESS_DIGEST_DOMAIN ||
     !hasValidIdentities(envelope.witness) ||
-    !isCanonicalInstant(envelope.witness.createdAt)
+    parseInstant(envelope.witness.createdAt) === undefined
   ) {
     return problem(
       "bootstrap.owner_witness.invalid_schema",
@@ -175,6 +154,7 @@ export function parseBootstrapOwnerWitness(
   return { ok: true, value: envelope };
 }
 
+/** Returns canonical JSON text for a validated owner witness envelope. */
 export function canonicalBootstrapOwnerWitnessText(
   envelope: BootstrapOwnerWitnessEnvelopeV1,
 ): string {

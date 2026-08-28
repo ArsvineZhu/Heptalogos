@@ -55,7 +55,7 @@ a separate implementation plan, and H2 remains open.
 
 ---
 
-# Global constraints
+## Global constraints
 
 - `CompatibilityEpoch = PRE_PRODUCTION`: rewrite the current V1/baseline in place; never preserve repository-development history through compatibility code.
 - Adopted dependency routes are directives. Do not add or substitute providers; `@opentelemetry/api` is pinned here at 1.9.1 and no OTel SDK/context-manager/exporter package is authorized by this plan.
@@ -68,7 +68,7 @@ a separate implementation plan, and H2 remains open.
 
 ---
 
-# 1. Milestone outcome and non-goals
+## 1. Milestone outcome and non-goals
 
 H2A-3 must answer this bounded question:
 
@@ -94,7 +94,7 @@ PersistenceMutationTransactionContext
              all in one PostgreSQL transaction where required
 ```
 
-## Explicit non-goals
+### Explicit non-goals
 
 Do **not** implement or pull into H2A-3:
 
@@ -118,9 +118,9 @@ StorageWorkspace remains architecturally valid under S17, but its implementation
 
 ---
 
-# 2. Decision Locks — implementing Agent has no discretion to change these
+## 2. Decision Locks — implementing Agent has no discretion to change these
 
-## DL-01 — package boundaries
+### DL-01 — package boundaries
 
 Create exactly these new workspaces:
 
@@ -156,7 +156,7 @@ evidence
 
 `EvidenceService` is deliberately **not** owned by `execution-lineage`: Evidence and Activity are distinct Authority objects in the Corpus, have different future consumers, and must be able to evolve independently.
 
-## DL-02 — stable primitive additions
+### DL-02 — stable primitive additions
 
 Add to `@heptalogos/foundation-contracts`:
 
@@ -165,18 +165,9 @@ export type ActivityId = UuidV7Id<"ActivityId">;
 export type EvidenceId = UuidV7Id<"EvidenceId">;
 export type Instant = Branded<string, "Instant">;
 
-export type RetentionClass =
-  | "ephemeral"
-  | "operational"
-  | "retained"
-  | "audit";
+export type RetentionClass = "ephemeral" | "operational" | "retained" | "audit";
 
-export type Sensitivity =
-  | "public"
-  | "operational"
-  | "sensitive"
-  | "pii"
-  | "secret";
+export type Sensitivity = "public" | "operational" | "sensitive" | "pii" | "secret";
 
 export const createActivityId: () => ActivityId;
 export const parseActivityId: (value: unknown) => ActivityId | undefined;
@@ -198,7 +189,7 @@ Existing `BootstrapActivityId = UuidV7Id<"ActivityId">` converges to the same pr
 
 `RetentionClass` and `Sensitivity` are placed in `foundation-contracts` because they are cross-cutting governance vocabulary consumed by Activity, Evidence, and later data-lifecycle/security surfaces. Do not make Evidence depend on execution-lineage merely to reuse these two enums. `ActivityImportance` remains owned by execution-lineage.
 
-## DL-03 — TimeService uses Node/Intl only
+### DL-03 — TimeService uses Node/Intl only
 
 Do not add Temporal/polyfill/date-fns/Luxon/Moment/Day.js or another date-time provider in this milestone.
 
@@ -242,7 +233,7 @@ Wall and monotonic fake clocks must be independently movable so tests can simula
 
 H2A-3 does not implement scheduling, recurrence, cron, Commitment semantics, DST recurrence resolution, or human calendar calculations.
 
-## DL-04 — SchemaRuntime route and containment
+### DL-04 — SchemaRuntime route and containment
 
 `schema.typebox-ajv` is already ADOPTED and `C-SCHEMA-01` is CLOSED. Do not re-select the provider.
 
@@ -310,7 +301,7 @@ Validation must not clone or mutate a valid caller object; success returns the o
 
 `@heptalogos/schema-runtime/typebox` may re-export the selected TypeBox authoring surface needed by Foundation schema definitions. This subpath is Foundation implementation tooling, not a stable Extension ABI. `packages/schema-runtime/package.json` must export exactly `.` and `./typebox`; the package root must not star-export or type-export TypeBox framework types.
 
-## DL-05 — ExecutionContext origin is Host-assigned
+### DL-05 — ExecutionContext origin is Host-assigned
 
 H2A-3 trusted normal-host origin is exactly:
 
@@ -328,16 +319,12 @@ The runtime is created with this seed. Activity callers cannot supply or overrid
 
 Do not pre-invent H2B Package/MicroSystem/Contribution generations as authoritative identities in this milestone. The `ExecutionContext` contract may carry a bounded optional semantic section, but future H2B origin fields are added when their actual owners exist.
 
-## DL-06 — Activity model is Heptalogos-owned, not an OTel span
+### DL-06 — Activity model is Heptalogos-owned, not an OTel span
 
 Minimum current contracts:
 
 ```ts
-export type ActivityImportance =
-  | "diagnostic"
-  | "routine"
-  | "significant"
-  | "critical";
+export type ActivityImportance = "diagnostic" | "routine" | "significant" | "critical";
 
 export interface ActivityLink {
   readonly kind: "linked-to" | "supersedes" | "resumes" | "fan-out" | "fan-in";
@@ -375,7 +362,7 @@ export interface ExecutionContext {
 
 The exact semantic optional fields above are permitted, but H2A-3 must not create registries for concepts whose owning H2B/H4 services do not exist.
 
-## DL-07 — one in-process context stack
+### DL-07 — one in-process context stack
 
 `@heptalogos/execution-lineage` owns one Node `AsyncLocalStorage<ExecutionContext>` instance per `ExecutionContextRuntime`.
 
@@ -438,7 +425,7 @@ Internally the ALS store may carry both the Heptalogos `ExecutionContext` and a 
 - Activity creation does not automatically make the record durable;
 - H2A-3 does **not** expose a durable Activity-completion mutation API. `ended_at/outcome` columns are reserved by the current baseline, while the first real lifecycle owner that needs durable completion will add the narrowly owned update path during later Runtime instrumentation. Do not grant UPDATE merely because the columns exist.
 
-## DL-08 — durable `LineageContextRef V1` is causal, not Authority
+### DL-08 — durable `LineageContextRef V1` is causal, not Authority
 
 Use exactly one current PRE_PRODUCTION shape:
 
@@ -475,7 +462,7 @@ valid ref
 
 Validation uses `SchemaRuntime`, is non-mutating, and rejects obsolete/future PRE_PRODUCTION shapes. No V2/upcaster/legacy reader.
 
-## DL-09 — Persistence does not depend on execution-lineage
+### DL-09 — Persistence does not depend on execution-lineage
 
 `@heptalogos/persistence` must not import `@heptalogos/execution-lineage`.
 
@@ -523,7 +510,7 @@ execution-lineage -> persistence
 persistence -X-> execution-lineage
 ```
 
-## DL-10 — mutation requires current execution identity; read does not
+### DL-10 — mutation requires current execution identity; read does not
 
 Replace the generic transaction context with a discriminated pair:
 
@@ -539,8 +526,7 @@ export interface PersistenceMutationTransactionContext {
 }
 
 export type PersistenceTransactionContext =
-  | PersistenceReadTransactionContext
-  | PersistenceMutationTransactionContext;
+  PersistenceReadTransactionContext | PersistenceMutationTransactionContext;
 ```
 
 Update the service signatures:
@@ -579,7 +565,7 @@ This check is an additional stale-work guard. It is **not Authority**. Actual mu
 
 Read transactions may attach a current execution snapshot when one exists, but lack of an execution context does not block a read. If a provider does return metadata for a read, compare the same five origin fields to the active `HostPersistenceAuthority`; mismatch uses `persistence.execution_context.stale_origin` rather than attaching misleading provenance. Both read and mutation transaction contexts receive a copied/frozen metadata snapshot, not the provider object's mutable reference.
 
-## DL-11 — restricted Foundation repository seam exposes Kysely only internally
+### DL-11 — restricted Foundation repository seam exposes Kysely only internally
 
 Add package subpath:
 
@@ -610,7 +596,7 @@ The existing `boundaries.mjs` restricted-import map normalizes imports to packag
 
 Do not create a custom SQL DSL to hide Kysely from trusted Foundation repository implementation code.
 
-## DL-12 — retained Activity and Evidence remain separate services
+### DL-12 — retained Activity and Evidence remain separate services
 
 `ExecutionLineageService` persists Activity facts; `EvidenceService` persists product evidence. The H2A-3 write surface is intentionally narrow: generic callers may retain only the **current transaction Activity**. A separate bounded bootstrap-reference method exists because Early Observability predates the normal Host transaction context.
 
@@ -739,7 +725,7 @@ outcomeRef when present:                 1..1024 UTF-8 bytes
 
 Enforce the same limits in application validation and PostgreSQL `octet_length(...)` CHECK constraints. Do not introduce arbitrary evidence payload JSON, message/model content, Secret plaintext, blob data, or generic `metadata: Record<string, unknown>` in this milestone.
 
-## DL-13 — canonical schema baseline is rewritten, not upgraded
+### DL-13 — canonical schema baseline is rewritten, not upgraded
 
 Rename/squash the current migration to one current baseline:
 
@@ -760,11 +746,11 @@ Do not add `0002_add_lineage` or any compatibility migration from the H2A-2 deve
 
 Old PRE_PRODUCTION database state containing migration metadata for `0001_foundation_continuity` is unsupported and requires reset. A test may prove rejection/fail-closed behavior; it must not implement an upgrade path.
 
-## DL-14 — relational Activity/Evidence shape
+### DL-14 — relational Activity/Evidence shape
 
 Use this current canonical schema semantics.
 
-### `activity_record`
+#### `activity_record`
 
 ```text
 activity_id                 uuid PRIMARY KEY
@@ -809,7 +795,7 @@ Optional semantic IDs/refs, when non-null, must be non-empty after trim and obey
 
 For `retainCurrent`, `ended_at/outcome/outcome_ref` are null in H2A-3. For the bounded Bootstrap summary inserted by `retainBootstrapReference`, `ended_at` and `outcome` are populated from the completed BootstrapJournal projection. H2A-3 creates **no generic UPDATE path** for normal retained Activities; the nullable completion columns are reserved canonical shape for the later concrete lifecycle owner.
 
-### `activity_link`
+#### `activity_link`
 
 ```text
 source_activity_id  uuid NOT NULL REFERENCES activity_record(activity_id)
@@ -820,7 +806,7 @@ PRIMARY KEY (source_activity_id, link_kind, target_activity_id)
 
 Do not FK `target_activity_id`: the linked Activity may be unretained. Add a CHECK that `link_kind` is one of the DL-06 `ActivityLink.kind` values.
 
-### `evidence_record`
+#### `evidence_record`
 
 ```text
 evidence_id               uuid PRIMARY KEY
@@ -839,7 +825,7 @@ The FK from Evidence to Activity is intentional: a required durable Evidence rec
 
 Add CHECK constraints that `evidence_kind` and `evidence_contract_version` are non-empty after trim and at most 128 UTF-8 bytes; any non-null `subject_ref` / `object_ref` / `fact_ref` is non-empty after trim and at most 1024 UTF-8 bytes; persisted Evidence retention is not `ephemeral`. Evidence application validation must match these database invariants.
 
-### Runtime grants
+#### Runtime grants
 
 ```text
 instance_continuity → SELECT only (unchanged)
@@ -850,7 +836,7 @@ evidence_record     → SELECT, INSERT
 
 No normal runtime DELETE or DDL grant is added.
 
-## DL-15 — required atomicity is proved with a test-only canonical fixture
+### DL-15 — required atomicity is proved with a test-only canonical fixture
 
 There is not yet a real H2B/H4 domain table whose Authority transition naturally requires Evidence. Do not invent a fake production domain object just to test atomicity.
 
@@ -872,7 +858,7 @@ Evidence failure → canonical fact absent
 
 This fixture is verification code only and does not enter the canonical migration.
 
-## DL-16 — Bootstrap handoff is a reference/import, not payload duplication
+### DL-16 — Bootstrap handoff is a reference/import, not payload duplication
 
 H2A-3 must connect the existing Bootstrap activity identity to normal lineage without rewriting Bootstrap Closure around normal runtime services.
 
@@ -886,7 +872,7 @@ Rules:
 - bootstrap import failure must not rewrite or corrupt the BootstrapJournal;
 - H2A-3 does not remove Early Observability.
 
-## DL-17 — minimal instrumentation recursion suppression exists but is internal
+### DL-17 — minimal instrumentation recursion suppression exists but is internal
 
 Because lineage/evidence persistence itself uses Persistence transaction mechanics, add an internal suppression scope in `execution-lineage` for observability plumbing. It is not a public business API.
 
@@ -901,7 +887,7 @@ Keep it in a non-exported or mechanically restricted internal module. H2A-3 does
 
 Business code and Extension contracts must not obtain this function.
 
-## DL-18 — no new qualification taxonomy
+### DL-18 — no new qualification taxonomy
 
 Do not invent `Q-LINEAGE-*` or another permanent qualification family inside this implementation plan.
 
@@ -914,13 +900,13 @@ Record H2A-3 evidence in:
 
 Whether a permanent standalone Lineage qualification record is desirable is a separate H2A stabilization/architecture decision.
 
-## DL-19 — H2A-3 merge does not by itself declare H2A CLOSED
+### DL-19 — H2A-3 merge does not by itself declare H2A CLOSED
 
 Successful H2A-3 implementation makes H2A functionally complete and H2B eligible. After squash merge, run a bounded H2A stabilization/closure review. Only that closure may change H2A from OPEN to CLOSED.
 
 Do not add H2B behavior to this PR to “prove” H2A.
 
-## DL-20 — reuse the existing Bootstrap/PostgreSQL integration harness
+### DL-20 — reuse the existing Bootstrap/PostgreSQL integration harness
 
 Do not make `canonical-schema`, `execution-lineage`, and `evidence` each learn how to start/provision/stop private PostgreSQL. The repository already has a real PostgreSQL + Host + canonical initialization harness in `packages/bootstrap-runtime/src/canonical-initialization.integration.test.ts` and related H1/H2A fixtures.
 
@@ -936,7 +922,7 @@ BootstrapJournal → normal lineage handoff
 
 ---
 
-# 3. Target dependency graph
+## 3. Target dependency graph
 
 ```text
 foundation-contracts
@@ -998,11 +984,11 @@ A bootstrap-runtime **integration test/composition seam** may import execution-l
 
 ---
 
-# 4. Target file map
+## 4. Target file map
 
 The Agent may split a listed implementation file if it becomes materially hard to review, but must preserve the responsibility boundary and public signatures in this plan.
 
-## Modify existing
+### Modify existing
 
 ```text
 pnpm-workspace.yaml
@@ -1034,14 +1020,14 @@ Architecture_Corpus/SHA256SUMS.txt
 
 `packages/persistence/src/persistence-service.test.ts` is the existing unit suite for the service internals; extend it rather than creating a duplicate persistence-service unit suite.
 
-## Rename
+### Rename
 
 ```text
 packages/canonical-schema/src/migrations/0001-foundation-continuity.ts
 → packages/canonical-schema/src/migrations/0001-foundation-baseline.ts
 ```
 
-## Create
+### Create
 
 ```text
 packages/foundation-contracts/src/data-governance.ts
@@ -1112,13 +1098,13 @@ If the existing workspace generator/pattern does not use one of the listed `tsco
 
 ---
 
-# 5. Task sequence
+## 5. Task sequence
 
 The tasks below are deliberately coarse enough to preserve development velocity. Each task ends in a coherent, independently reviewable behavior increment. Do not split them into new milestone branches.
 
 ---
 
-# Task 0 — Preflight, active-plan registration, roadmap truth alignment
+## Task 0 — Preflight, active-plan registration, roadmap truth alignment
 
 **Purpose:** bind work to current master, make the plan authoritative for this branch, and remove the known stale roadmap metadata before behavior changes.
 
@@ -1236,7 +1222,7 @@ Open one Draft PR. Ordinary pushes do not dispatch final CI.
 
 ---
 
-# Task 1 — Canonical primitives, SchemaRuntime, and TimeService
+## Task 1 — Canonical primitives, SchemaRuntime, and TimeService
 
 **Purpose:** establish the reusable value/validation/time contracts before execution lineage depends on them.
 
@@ -1254,7 +1240,7 @@ Open one Draft PR. Ordinary pushes do not dispatch final CI.
 
 The exact contracts are fixed by DL-02, DL-03, and DL-04.
 
-### Required tests before implementation
+#### Required tests before implementation
 
 Create tests proving at minimum:
 
@@ -1272,10 +1258,7 @@ it("formats Date to the canonical Instant contract", () => {
 });
 
 it("SchemaRuntime does not mutate, coerce, default, or remove fields", () => {
-  const schema = Type.Object(
-    { count: Type.Number() },
-    { additionalProperties: false },
-  );
+  const schema = Type.Object({ count: Type.Number() }, { additionalProperties: false });
   const validator = compileSchema<{ count: number }>(schema);
   const input = { count: "1", extra: true };
   const before = structuredClone(input);
@@ -1310,7 +1293,7 @@ it("validates IANA timezone identifiers without inventing scheduling semantics",
 
 Use the real project import paths; the snippets show required behavior.
 
-### Implementation steps
+#### Implementation steps
 
 - [x] **1.1 Add `ActivityId`, `EvidenceId`, `Instant`, `RetentionClass`, and `Sensitivity` primitives** exactly as DL-02 specifies; place the two cross-cutting governance unions in `foundation-contracts/src/data-governance.ts` and export them from the package root.
 - [x] **1.2 Make `BootstrapActivityId` an alias of `ActivityId`** without changing the journal file format or making bootstrap depend on new normal-runtime packages.
@@ -1361,7 +1344,7 @@ git commit -m "feat: establish H2A3 time and schema runtime contracts"
 
 ---
 
-# Task 2 — ExecutionContext runtime, Activity semantics, OTel correlation, and durable causal refs
+## Task 2 — ExecutionContext runtime, Activity semantics, OTel correlation, and durable causal refs
 
 **Purpose:** build the normal process-memory execution spine independently of database retention.
 
@@ -1389,7 +1372,7 @@ SchemaRuntime + TypeBox authoring bridge
 The persistence adapter is intentionally NOT part of Task 2. Task 3 creates it only after PersistenceExecutionContextProvider exists. Do not invent a temporary duplicate provider interface.
 ```
 
-### Required unit scenarios
+#### Required unit scenarios
 
 Implement tests equivalent to:
 
@@ -1470,7 +1453,11 @@ it("resumes with current Host origin and old Activity only as causation", async 
 
 it("rejects a ref from another Instance or ContinuityEpoch", async () => {
   await expect(
-    runtime.runFromLineageContextRef(OTHER_EPOCH_REF, ROOT_REQUEST, async () => undefined),
+    runtime.runFromLineageContextRef(
+      OTHER_EPOCH_REF,
+      ROOT_REQUEST,
+      async () => undefined,
+    ),
   ).rejects.toMatchObject({
     problem: { problemCode: "lineage.context_ref.discontinuity" },
   });
@@ -1478,13 +1465,15 @@ it("rejects a ref from another Instance or ContinuityEpoch", async () => {
 
 it("rejects future or obsolete PRE_PRODUCTION LineageContextRef shapes", () => {
   expect(() => decodeLineageContextRef({ schemaVersion: 2 })).toThrow();
-  expect(() => decodeLineageContextRef({ schemaVersion: 1, legacyBootId: "x" })).toThrow();
+  expect(() =>
+    decodeLineageContextRef({ schemaVersion: 1, legacyBootId: "x" }),
+  ).toThrow();
 });
 ```
 
 Add an OTel API-only projection test without installing a ContextManager/SDK: construct an explicit OTel `Context` from `ROOT_CONTEXT` with `trace.setSpanContext(...)`, pass it through an **internal test seam/helper** that uses the same projection logic as the runtime, and prove the valid span context maps to `ExecutionContext.telemetry`. Separately prove that the normal runtime works with the default root/no-span OTel context. Do not claim global OTel async propagation is qualified until an actual ContextManager/SDK exists in the later observability composition.
 
-### Implementation steps
+#### Implementation steps
 
 - [x] **2.1 Implement Activity/ExecutionContext contracts** exactly within DL-05 through DL-08.
 - [x] **2.2 Implement one ALS-based runtime**; use `AsyncLocalStorage.run`, never `enterWith` for normal Activity scopes.
@@ -1514,7 +1503,7 @@ git commit -m "feat: add H2A3 execution context and causal propagation"
 
 ---
 
-# Task 3 — Bind Persistence mutation admission to current ExecutionContext and expose the restricted repository seam
+## Task 3 — Bind Persistence mutation admission to current ExecutionContext and expose the restricted repository seam
 
 **Purpose:** make causal identity mechanically present at every normal canonical mutation while preserving H2A-1 Host/database Authority.
 
@@ -1548,7 +1537,7 @@ Add `package.json` export:
 
 Do not star-export this subpath through `src/index.ts`.
 
-### Required tests
+#### Required tests
 
 Add tests equivalent to:
 
@@ -1608,7 +1597,7 @@ old Host Activity captured
 
 The existing DB fence remains the final Authority proof. The test must show both layers are preserved, not replace the H2A-1 fence with an in-memory check.
 
-### Implementation sequence
+#### Implementation sequence
 
 - [x] **3.1 Introduce discriminated read/mutation transaction context types**.
 - [x] **3.2 Change `PersistenceService` constructors to the exact DL-09 signatures** and update all existing call sites/tests explicitly; do not retain an overload with the old context-free mutation signature.
@@ -1662,7 +1651,7 @@ git commit -m "feat: bind canonical mutations to current execution context"
 
 ---
 
-# Task 4 — Rewrite the current canonical baseline and add retained Activity/Evidence repositories
+## Task 4 — Rewrite the current canonical baseline and add retained Activity/Evidence repositories
 
 **Purpose:** establish the minimum durable records and same-transaction mechanics required by H2A without inventing a complete observability product.
 
@@ -1685,7 +1674,7 @@ ExecutionContext
 ActivityId/EvidenceId/Instant/RetentionClass/Sensitivity
 ```
 
-### Required canonical-schema tests
+#### Required canonical-schema tests
 
 On a fresh database, prove:
 
@@ -1702,7 +1691,7 @@ migration role remains distinct
 
 Add a PRE_PRODUCTION rejection fixture showing a database with old `0001_foundation_continuity` migration metadata is not silently upgraded to the new baseline. Expected result: canonical initialization fails/reset-required; no compatibility code is added.
 
-### Required repository tests
+#### Required repository tests
 
 Execution-lineage integration:
 
@@ -1748,7 +1737,7 @@ it("stores references only and exposes no arbitrary payload field", () => {
 });
 ```
 
-### Implementation sequence
+#### Implementation sequence
 
 - [x] **4.1 Rename and rewrite migration key/file** to `0001_foundation_baseline`. Do not retain the old migration as a second entry.
 - [x] **4.2 Add Activity/Link/Evidence tables and least-privilege grants** exactly as DL-14.
@@ -1782,7 +1771,7 @@ git commit -m "feat: add retained activity and evidence foundation"
 
 ---
 
-# Task 5 — Prove required Activity/Evidence atomicity with canonical mutation
+## Task 5 — Prove required Activity/Evidence atomicity with canonical mutation
 
 **Purpose:** close the core H2A transaction invariant with real PostgreSQL, without introducing a fake production domain.
 
@@ -1808,11 +1797,11 @@ GRANT SELECT, INSERT ON heptalogos.h2a3_atomicity_fixture TO heptalogos_runtime;
 
 Drop it in test teardown. This table must not enter production migration/source.
 
-### Required scenarios
+#### Required scenarios
 
 Use a real `ExecutionContextRuntime`, its persistence provider adapter, real `PersistenceService`, `ExecutionLineageService`, and `EvidenceService`.
 
-#### A1 — successful atomic commit
+##### A1 — successful atomic commit
 
 Inside one `PersistenceService.mutate` callback:
 
@@ -1832,7 +1821,7 @@ evidence_record = present
 same ActivityId links tx.execution and evidence
 ```
 
-#### A2 — failure after all writes
+##### A2 — failure after all writes
 
 Inside the same transaction perform all three writes, then throw a sentinel error.
 
@@ -1844,7 +1833,7 @@ activity_record = absent
 evidence_record = absent
 ```
 
-#### A3 — required Evidence failure blocks canonical commit
+##### A3 — required Evidence failure blocks canonical commit
 
 After the fixture insert and `retainCurrent` have already executed, call `EvidenceService.recordRequired` with `evidenceKind: ""`. The fixed `evidence.invalid_kind` validation failure must escape the callback and roll back the already-issued SQL writes.
 
@@ -1858,15 +1847,15 @@ evidence_record = absent
 
 Do not simulate this with a mocked repository. The EvidenceService validation failure occurs inside the real `PersistenceService.mutate` callback after earlier PostgreSQL writes, so the real transaction rollback is what removes them.
 
-#### A4 — read-only transaction cannot obtain write repository capability
+##### A4 — read-only transaction cannot obtain write repository capability
 
 Pass a real `PersistenceReadTransactionContext` to the Foundation mutation repository helper or Evidence/Lineage write method. Expected stable rejection before any write.
 
-#### A5 — no slow work is introduced inside transaction
+##### A5 — no slow work is introduced inside transaction
 
 The integration code must contain no timer wait, network call, subprocess call, model call, or user-wait simulation inside the transaction. Add a source-level/architectural assertion only if the existing verifier has a natural mechanism; do not build a general static effect system in H2A-3.
 
-### Execution steps
+#### Execution steps
 
 - [x] **5.1 Add the DL-20 devDependencies and test target entry, then write A1-A5 failing scenarios in `h2a3-execution-foundation.integration.test.ts`**.
 - [x] **5.2 Run the explicit Bootstrap integration target with `HEPTALOGOS_TEST_PG_BIN` and verify the new A1-A5 scenarios fail for the expected missing behavior, while existing integration scenarios remain green**.
@@ -1882,7 +1871,7 @@ git commit -m "test: prove H2A3 lineage evidence transaction atomicity"
 
 ---
 
-# Task 6 — Bootstrap → normal execution lineage handoff
+## Task 6 — Bootstrap → normal execution lineage handoff
 
 **Purpose:** connect Early Observability to the normal Activity graph without making Bootstrap Closure depend on the normal lineage runtime.
 
@@ -1932,7 +1921,7 @@ retainBootstrapReference(bootstrap summary)
 
 The historical Bootstrap row may be inserted before the current row because causation is intentionally not an FK. The mutation itself is still admitted by the **current** normal Host Activity/Host fence; the historical bootstrap record grants no Authority.
 
-### Required integration scenarios
+#### Required integration scenarios
 
 ```text
 B1 normal bootstrap journal identity is a valid ActivityId
@@ -1945,7 +1934,7 @@ B6 normal lineage unavailable must not make BootstrapJournal unreadable or rewri
 
 The test may use real PostgreSQL because retained Activity persistence is being proven. It must not require OTel SDK/exporters.
 
-### Execution steps
+#### Execution steps
 
 - [x] **6.1 Write pure projector unit tests for successful, failed, and incomplete BootstrapJournal input, then implement only the bounded summary projection in `execution-lineage/bootstrap-handoff.ts`**.
 - [x] **6.2 Extend the already-registered H2A-3 Bootstrap integration suite with B1-B6 using the same real-PostgreSQL/Host fixture from Task 5**.
@@ -1960,7 +1949,7 @@ git commit -m "feat: connect bootstrap activity to normal execution lineage"
 
 ---
 
-# Task 7 — Mechanical boundaries, local qualification, evidence truth, and review candidate freeze
+## Task 7 — Mechanical boundaries, local qualification, evidence truth, and review candidate freeze
 
 **Purpose:** finish the implementation candidate without claiming external review/CI/merge that has not happened.
 
@@ -2006,7 +1995,7 @@ evidence package root
 → no Kysely/pg object and no arbitrary generic evidence payload contract
 ```
 
-### Required local qualification matrix
+#### Required local qualification matrix
 
 Run and record exact results for:
 
@@ -2039,7 +2028,7 @@ T25 existing H1/H2A-1/H2A-2 regressions
 T26 full pnpm verify
 ```
 
-### `Q-PERSISTENCE-01` update rule
+#### `Q-PERSISTENCE-01` update rule
 
 Add only these genuinely persistence-coupled observed properties, using exact field naming consistent with the current JSON style:
 
@@ -2056,7 +2045,7 @@ Do not change residual Linux/macOS/source-less/service qualification from `NOT_R
 
 Do not create a new Lineage qualification ID.
 
-### Roadmap status before external closure
+#### Roadmap status before external closure
 
 After local implementation qualification passes, update current progress truth to:
 
@@ -2072,7 +2061,7 @@ H2: OPEN
 H2A-3 is closed as an implementation milestone; H2A stabilization/closure
 remains a later bounded joint review and is not pre-claimed here.
 
-### Full local gate
+#### Full local gate
 
 - [x] **7.1 Run every focused test/integration target** and record counts/status in this plan.
 - [x] **7.2 Run Corpus/repository/dependency/boundary gates**:
@@ -2130,7 +2119,7 @@ No code/docs commit may be added after external Independent Review begins withou
 
 ---
 
-# 6. External Independent Review gate
+## 6. External Independent Review gate
 
 Independent Review is external/out-of-band. The implementing Agent must not query GitHub review/approval/comment objects to infer it.
 
@@ -2155,7 +2144,7 @@ The only accepted review states for branch progression are the repository’s ex
 
 ---
 
-# 7. Manual exact-pair final CI
+## 7. Manual exact-pair final CI
 
 Only after external Independent Review PASS on the current exact pair:
 
@@ -2171,7 +2160,7 @@ H2A-3 does not require new Linux/macOS real private PostgreSQL L3 qualification 
 
 ---
 
-# 8. Squash merge and post-merge truth
+## 8. Squash merge and post-merge truth
 
 After exact-pair review PASS and exact-pair final CI PASS:
 
@@ -2194,7 +2183,7 @@ Then create a **small separate H2A stabilization/closure plan**, not another fea
 
 ---
 
-# 9. Stop / escalation conditions — Agent must report, not decide
+## 9. Stop / escalation conditions — Agent must report, not decide
 
 Stop implementation and return to the user/architect if any of the following occurs:
 
@@ -2217,7 +2206,7 @@ The Agent may make ordinary code-organization choices such as private helper nam
 
 ---
 
-# 10. Acceptance checklist
+## 10. Acceptance checklist
 
 H2A-3 is ready for external review only when all are true:
 
@@ -2258,7 +2247,7 @@ H2A-3 is ready for external review only when all are true:
 
 ---
 
-# 11. Evidence record template to fill during execution
+## 11. Evidence record template to fill during execution
 
 Do not pre-fill PASS. The implementing Agent records only observed results.
 
@@ -2304,7 +2293,7 @@ PASS | FAIL | NOT_RUN | BLOCKED
 
 ---
 
-# 12. Architectural rationale retained for future reviewers
+## 12. Architectural rationale retained for future reviewers
 
 These decisions are intentional and should not be “simplified” during implementation:
 

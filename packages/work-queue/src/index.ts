@@ -1,3 +1,9 @@
+/**
+ * Public engine-neutral WorkQueue contracts, reconciliation services, and
+ * generation-fenced attempt components; the concrete repository is restricted.
+ * @packageDocumentation
+ */
+
 export {
   createDispatchAttemptId,
   dispatchAttemptIdToWorkflowId,

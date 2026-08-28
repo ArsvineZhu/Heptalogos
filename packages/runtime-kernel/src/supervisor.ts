@@ -1,3 +1,9 @@
+/**
+ * Owns Runtime Kernel supervision, activation, quiescence, and retirement over
+ * the desired graph while delegating generic resource mechanics to Substrate.
+ * @module supervisor
+ */
+
 import {
   createMicroSystemInstanceId,
   type ContributionId,
@@ -5,14 +11,15 @@ import {
 } from "@heptalogos/foundation-contracts";
 import type { RuntimeExecutionOrigin } from "@heptalogos/execution-lineage/runtime-kernel";
 import type {
+  ActivationResourceScope,
   RuntimeSubstrate,
   SubstrateActivationHandle,
 } from "@heptalogos/runtime-substrate";
 import { CapabilityRegistry } from "./capability-registry.js";
 import { GenerationFence } from "./generation-fence.js";
 import type {
+  CapabilityId,
   CapabilityProvisionDescriptor,
-  CapabilityRequirement,
   DesiredRuntimeSnapshot,
   MicroSystemActivationContext,
   MicroSystemActualState,
@@ -24,7 +31,6 @@ import type {
   RuntimeQuiescenceLease,
   ServiceId,
   ServiceProvisionDescriptor,
-  ServiceRequirement,
 } from "./contracts.js";
 import type {
   RuntimeWorkHandler,
@@ -37,6 +43,7 @@ import { RuntimeGraph } from "./runtime-graph.js";
 import { evaluateReadiness } from "./readiness.js";
 import { ServiceRegistry } from "./service-registry.js";
 import type { RuntimeLifecycleLineage } from "./lifecycle-lineage.js";
+import { createSupervisorLifecycleTracker } from "./supervisor-lifecycle.js";
 import {
   WorkHandlerRegistry,
   workHandlerDescriptorsEqual,
@@ -63,6 +70,7 @@ interface BackgroundFailureEvent {
   readonly cause: unknown;
 }
 
+/** Supplies substrate, registry, lifecycle, and retirement policy to supervision. */
 export interface MicroSystemSupervisorOptions {
   readonly substrate: RuntimeSubstrate;
   readonly settleTimeoutMs: number;
@@ -74,9 +82,6 @@ export interface MicroSystemSupervisorOptions {
   readonly rootRuntimeOrigin?: RuntimeExecutionOrigin;
   readonly ownerLifecycle?: RuntimeOwnerLifecycle;
 }
-
-type SupervisorLifecycleState =
-  "ACTIVE" | "QUIESCING" | "QUIESCED" | "RESUMING" | "CLOSING" | "CLOSED";
 
 function captureDesiredRuntimeSnapshot(
   input: DesiredRuntimeSnapshot,
@@ -96,6 +101,7 @@ function captureDesiredRuntimeSnapshot(
   });
 }
 
+/** Supervises Runtime graph activation, readiness, quiescence, and retirement. */
 export class MicroSystemSupervisor {
   readonly services: ServiceRegistry;
   readonly capabilities: CapabilityRegistry;
@@ -105,21 +111,12 @@ export class MicroSystemSupervisor {
   private readonly running = new Map<MicroSystemId, RunningSystem>();
   private readonly unsettledRetirements = new Map<MicroSystemId, UnsettledRetirement>();
   private readonly reconciler = new RuntimeReconciler();
-  private readonly serviceBindings = new Map<
-    import("@heptalogos/foundation-contracts").ServiceId,
-    ProviderId
-  >();
-  private readonly desiredServiceBindings = new Map<
-    import("@heptalogos/foundation-contracts").ServiceId,
-    ProviderId
-  >();
-  private readonly capabilityBindings = new Map<
-    import("@heptalogos/foundation-contracts").CapabilityId,
-    ProviderId
-  >();
+  private readonly serviceBindings = new Map<ServiceId, ProviderId>();
+  private readonly desiredServiceBindings = new Map<ServiceId, ProviderId>();
+  private readonly capabilityBindings = new Map<CapabilityId, ProviderId>();
   private operatingMode: import("./contracts.js").OperatingMode = "NORMAL";
   private mutationChain: Promise<void> = Promise.resolve();
-  private lifecycleState: SupervisorLifecycleState = "ACTIVE";
+  private readonly lifecycle = createSupervisorLifecycleTracker();
   private capturedDesired: DesiredRuntimeSnapshot | undefined;
   private readonly startingFences = new Set<GenerationFence>();
   private readonly startingActivationControllers = new Set<AbortController>();
@@ -127,6 +124,7 @@ export class MicroSystemSupervisor {
   private readonly ownerAbortListener: (() => void) | undefined;
   private ownerTerminalFailureReported = false;
 
+  /** Creates a supervisor and registers its initial MicroSystem definitions. */
   constructor(private readonly options: MicroSystemSupervisorOptions) {
     this.services = options.serviceRegistry ?? new ServiceRegistry();
     this.capabilities = options.capabilityRegistry ?? new CapabilityRegistry();
@@ -150,6 +148,7 @@ export class MicroSystemSupervisor {
     }
   }
 
+  /** Registers one MicroSystem definition before reconciliation. */
   register(definition: MicroSystemDefinition): void {
     if (this.definitions.has(definition.microSystemId)) {
       throw runtimeKernelProblem(
@@ -161,14 +160,17 @@ export class MicroSystemSupervisor {
     this.actual.set(definition.microSystemId, "STOPPED");
   }
 
+  /** Returns the current observed state for one MicroSystem. */
   getActualState(microSystemId: MicroSystemId): MicroSystemActualState {
     return this.actual.get(microSystemId) ?? "STOPPED";
   }
 
+  /** Returns a snapshot of all observed MicroSystem states. */
   getActualSnapshot(): ReadonlyMap<MicroSystemId, MicroSystemActualState> {
     return new Map(this.actual);
   }
 
+  /** Evaluates a readiness profile against current Runtime bindings. */
   evaluateReadiness(profile: ReadinessProfileDefinition): ReadinessResult {
     return evaluateReadiness(
       profile,
@@ -179,6 +181,7 @@ export class MicroSystemSupervisor {
     );
   }
 
+  /** Returns a registered MicroSystem definition or raises a typed Problem. */
   getDefinition(microSystemId: MicroSystemId): MicroSystemDefinition {
     const definition = this.definitions.get(microSystemId);
     if (definition === undefined) {
@@ -190,6 +193,7 @@ export class MicroSystemSupervisor {
     return definition;
   }
 
+  /** Serializes and applies one desired Runtime reconciliation. */
   async reconcile(input: DesiredRuntimeSnapshot): Promise<ReconcilePlan> {
     this.assertActive();
     const desired = captureDesiredRuntimeSnapshot(input);
@@ -203,8 +207,8 @@ export class MicroSystemSupervisor {
     phase: "ACTIVE" | "RESUMING",
   ): Promise<ReconcilePlan> {
     if (
-      (phase === "ACTIVE" && this.lifecycleState !== "ACTIVE") ||
-      (phase === "RESUMING" && this.lifecycleState !== "RESUMING")
+      (phase === "ACTIVE" && this.lifecycle.state !== "ACTIVE") ||
+      (phase === "RESUMING" && this.lifecycle.state !== "RESUMING")
     ) {
       throw runtimeKernelProblem(
         "runtime.supervisor.not_active",
@@ -397,8 +401,9 @@ export class MicroSystemSupervisor {
     return serviceIds;
   }
 
+  /** Quiesces active MicroSystems and returns a reversible Runtime lease. */
   quiesce(): Promise<RuntimeQuiescenceLease> {
-    if (this.lifecycleState !== "ACTIVE") {
+    if (this.lifecycle.state !== "ACTIVE") {
       return Promise.reject(
         runtimeKernelProblem(
           "runtime.supervisor.not_active",
@@ -406,10 +411,10 @@ export class MicroSystemSupervisor {
         ),
       );
     }
-    this.lifecycleState = "QUIESCING";
+    this.lifecycle.send({ type: "BEGIN_QUIESCE" });
     this.closeGenerationAdmission();
     return this.enqueueMutation(async () => {
-      if (this.lifecycleState !== "QUIESCING") {
+      if (this.lifecycle.state !== "QUIESCING") {
         throw runtimeKernelProblem(
           "runtime.supervisor.not_active",
           "Runtime supervisor quiescence was superseded by terminal close",
@@ -423,7 +428,7 @@ export class MicroSystemSupervisor {
           failures.push(error);
         }
       }
-      if (this.lifecycleState !== "QUIESCING") {
+      if (this.lifecycle.state !== "QUIESCING") {
         throw runtimeKernelProblem(
           "runtime.supervisor.not_active",
           "Runtime supervisor quiescence was superseded by terminal close",
@@ -442,7 +447,7 @@ export class MicroSystemSupervisor {
           new AggregateError(failures, "Runtime supervisor quiescence failed"),
         );
       }
-      this.lifecycleState = "QUIESCED";
+      this.lifecycle.send({ type: "QUIESCE_COMPLETED" });
       let used = false;
       return Object.freeze({
         resumeAfterAbort: (): Promise<void> => {
@@ -461,12 +466,13 @@ export class MicroSystemSupervisor {
     });
   }
 
+  /** Closes the supervisor after draining active and unsettled generations. */
   close(): Promise<void> {
     return this.beginTerminalClose(false);
   }
 
   private resumeAfterAbort(): Promise<void> {
-    if (this.lifecycleState !== "QUIESCED") {
+    if (this.lifecycle.state !== "QUIESCED") {
       return Promise.reject(
         runtimeKernelProblem(
           "runtime.supervisor.resume_invalid",
@@ -474,9 +480,9 @@ export class MicroSystemSupervisor {
         ),
       );
     }
-    this.lifecycleState = "RESUMING";
+    this.lifecycle.send({ type: "BEGIN_RESUME" });
     return this.enqueueMutation(async () => {
-      if (this.lifecycleState !== "RESUMING") {
+      if (this.lifecycle.state !== "RESUMING") {
         throw runtimeKernelProblem(
           "runtime.supervisor.resume_invalid",
           "Runtime supervisor resume was superseded by terminal close",
@@ -493,13 +499,13 @@ export class MicroSystemSupervisor {
         } else {
           await this.reconcileAcceptedSnapshot(this.capturedDesired, "RESUMING");
         }
-        if (this.lifecycleState !== "RESUMING") {
+        if (this.lifecycle.state !== "RESUMING") {
           throw runtimeKernelProblem(
             "runtime.supervisor.resume_invalid",
             "Runtime supervisor resume was superseded by terminal close",
           );
         }
-        this.lifecycleState = "ACTIVE";
+        this.lifecycle.send({ type: "RESUME_COMPLETED" });
       } catch (error) {
         const closePromise = this.beginTerminalClose(false);
         void closePromise.catch(() => undefined);
@@ -517,16 +523,16 @@ export class MicroSystemSupervisor {
       }
       return this.terminalClosePromise;
     }
-    this.lifecycleState = "CLOSING";
+    this.lifecycle.send({ type: "BEGIN_CLOSE" });
     this.closeGenerationAdmission();
     const cleanup = this.enqueueMutation(() => this.performClose());
     this.terminalClosePromise = cleanup.then(
       () => {
-        this.lifecycleState = "CLOSED";
+        this.lifecycle.send({ type: "CLOSE_COMPLETED" });
         this.removeOwnerAbortListener();
       },
       (error) => {
-        this.lifecycleState = "CLOSED";
+        this.lifecycle.send({ type: "CLOSE_COMPLETED" });
         this.removeOwnerAbortListener();
         throw error;
       },
@@ -603,11 +609,11 @@ export class MicroSystemSupervisor {
   }
 
   private acceptsStartAdmission(): boolean {
-    return this.lifecycleState === "ACTIVE" || this.lifecycleState === "RESUMING";
+    return this.lifecycle.state === "ACTIVE" || this.lifecycle.state === "RESUMING";
   }
 
   private assertActive(): void {
-    if (this.lifecycleState !== "ACTIVE") {
+    if (this.lifecycle.state !== "ACTIVE") {
       throw runtimeKernelProblem(
         "runtime.supervisor.not_active",
         "Runtime supervisor does not admit this operation in its current lifecycle state",
@@ -1049,7 +1055,7 @@ export class MicroSystemSupervisor {
     definition: MicroSystemDefinition,
     instanceId: ReturnType<typeof createMicroSystemInstanceId>,
     fence: GenerationFence,
-    scope: import("@heptalogos/runtime-substrate").ActivationResourceScope,
+    scope: ActivationResourceScope,
     serviceProviderIds: ProviderId[],
     capabilityProviderIds: ProviderId[],
     publishedServiceBindings: Set<string>,

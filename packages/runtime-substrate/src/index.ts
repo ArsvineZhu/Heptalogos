@@ -1,3 +1,9 @@
+/**
+ * Public RuntimeSubstrate activation and disposal contracts above Cordis;
+ * framework resource objects remain private to the adapter.
+ * @packageDocumentation
+ */
+
 export type {
   ActivationResourceScope,
   RuntimeDisposer,

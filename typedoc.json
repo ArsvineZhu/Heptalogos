@@ -1,0 +1,9 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPointStrategy": "expand",
+  "plugin": ["typedoc-plugin-markdown"],
+  "readme": "none",
+  "excludeInternal": true,
+  "treatWarningsAsErrors": true,
+  "treatValidationWarningsAsErrors": true
+}

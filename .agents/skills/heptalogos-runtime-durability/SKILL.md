@@ -7,17 +7,17 @@ description: Use when changing Heptalogos boot, recovery, Host ownership, runtim
 
 ## Authority route
 
-Corpus root: `../../../Architecture_Corpus/`  
+Documentation root: `../../../docs/`
 Route index: `../../heptalogos/corpus-routes.json`
 
 Read the route's core files, especially:
 
-- [Execution model](../../../Architecture_Corpus/05-整机执行模型.md)
-- [S01 Boot / recovery / runtime supervision](../../../Architecture_Corpus/specs/S01-启动-恢复-运行时监督.md)
-- [S02 Async / WorkQueue / durable / time](../../../Architecture_Corpus/specs/S02-异步-WorkQueue-Durable-Time.md)
-- [S03 Persistence / transaction / EffectFence](../../../Architecture_Corpus/specs/S03-持久化-事务-EffectFence.md)
-- [S13 Service / Capability / readiness catalog](../../../Architecture_Corpus/specs/S13-Foundation-Service-Capability-Readiness-Catalog.md)
-- [S15 Cross-cutting contracts](../../../Architecture_Corpus/specs/S15-Foundation横切合同.md)
+- [Execution model](../../../docs/architecture/execution-model.md)
+- [S01 Boot / recovery / runtime supervision](../../../docs/architecture/contracts/startup-recovery-runtime-supervision.md)
+- [S02 Async / WorkQueue / durable / time](../../../docs/architecture/contracts/async-work-queue-durable-time.md)
+- [S03 Persistence / transaction / EffectFence](../../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
+- [S13 Service / Capability / readiness catalog](../../../docs/architecture/contracts/foundation-service-capability-readiness-catalog.md)
+- [S15 Cross-cutting contracts](../../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
 
 ## Procedure
 

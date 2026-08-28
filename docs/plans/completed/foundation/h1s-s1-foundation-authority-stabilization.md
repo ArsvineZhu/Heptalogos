@@ -34,6 +34,7 @@ qualification remains a separate `NOT_RUN` S2 gate because
 ### Task 1: Reset BootstrapState/BootstrapJournal/MaintenanceJournal to canonical PRE_PRODUCTION V1
 
 **Files:**
+
 - Modify: `packages/bootstrap-state/src/model.ts`
 - Modify: `packages/bootstrap-state/src/codec.ts`
 - Modify: `packages/bootstrap-state/src/journal.ts`
@@ -56,6 +57,7 @@ qualification remains a separate `NOT_RUN` S2 gate because
 - Modify runtime tests/fixtures that construct schema V2 or legacy target shapes.
 
 **Interfaces:**
+
 - Produces: the exact canonical V1 types in Spec §5.
 - Later tasks assume no V2 type/domain/fallback exists.
 
@@ -73,7 +75,9 @@ it("commits canonical V1 without private PostgreSQL and later adds V1 private Po
   });
   await expect(store.load()).resolves.toMatchObject({
     status: "CURRENT",
-    value: { state: { schemaVersion: 1, revision: 2, privatePostgres: { schemaVersion: 1 } } },
+    value: {
+      state: { schemaVersion: 1, revision: 2, privatePostgres: { schemaVersion: 1 } },
+    },
   });
 });
 
@@ -163,7 +167,7 @@ In `packages/private-postgres/src/controller.ts`, change only the compatibility-
 digestCanonicalJson(
   "heptalogos.private-postgres.initialization-profile/v1",
   profile as unknown as CanonicalJsonValue,
-)
+);
 ```
 
 Delete expectations that treat the current `/v2` digest domain as supported historical input. Update profile-revision unit/integration expectations to the new canonical V1 digest. Do **not** change the profile fields, PostgreSQL 18.6 qualification, or `PRIVATE_POSTGRES_DATA_LAYOUT_VERSION = 1`.
@@ -202,6 +206,7 @@ Do not commit yet. Continue directly to Task 2; canonical V1 shape and the rule 
 ### Task 2: Make previous revisions read-only evidence, never mutation Authority
 
 **Files:**
+
 - Modify: `packages/bootstrap-state/src/store.ts`
 - Modify: `packages/bootstrap-state/src/store.test.ts`
 - Modify: `packages/bootstrap-state/src/maintenance-store.ts`
@@ -215,6 +220,7 @@ Do not commit yet. Continue directly to Task 2; canonical V1 shape and the rule 
 - Modify corresponding tests.
 
 **Interfaces:**
+
 - Produces problem codes `bootstrap.state.current_authority_required` and `maintenance.journal.current_authority_required`.
 
 - [ ] **Step 1: Flip the unsafe BootstrapState regression test**
@@ -310,6 +316,7 @@ git commit -m "refactor: reset canonical state authority"
 ### Task 3: Make lifecycle-root dependencies explicit and minimal
 
 **Files:**
+
 - Modify: `packages/bootstrap-runtime/src/roots.ts`
 - Modify: `packages/bootstrap-runtime/src/roots.test.ts`
 - Modify: `packages/bootstrap-runtime/src/local-installation-owner.ts`
@@ -317,6 +324,7 @@ git commit -m "refactor: reset canonical state authority"
 - Modify every `resolveBootstrapPathProfile(...)` call site in `packages/bootstrap-runtime/` tests/fixtures.
 
 **Interfaces:**
+
 - Produces: `resolveBootstrapPathProfile(locator, requiredRoots)` with no default.
 
 - [ ] **Step 1: Write the resolver isolation test**
@@ -338,7 +346,7 @@ Change signature exactly to:
 export async function resolveBootstrapPathProfile(
   locator: BootstrapLocatorV1,
   requiredRoots: readonly LifecycleRootId[],
-): Promise<BootstrapPathProfile>
+): Promise<BootstrapPathProfile>;
 ```
 
 Resolve only the unique requested IDs. Reject an empty request with `bootstrap.root.empty_requirement` so call sites cannot accidentally create a meaningless profile. An unrequested root queried through `resolve()` throws `bootstrap.root.not_resolved`.
@@ -408,6 +416,7 @@ git commit -m "fix: bound bootstrap lifecycle root dependencies"
 ### Task 4: Close no-lock witness and incomplete-maintenance routing gaps
 
 **Files:**
+
 - Create: `packages/bootstrap-runtime/src/maintenance-obligation.ts`
 - Create/modify tests: `packages/bootstrap-runtime/src/maintenance-obligation.test.ts`
 - Modify: `packages/bootstrap-runtime/src/bootstrap-recovery.ts`
@@ -419,6 +428,7 @@ git commit -m "fix: bound bootstrap lifecycle root dependencies"
 - Modify process fixture/test only as required to reproduce provider-lock cleanup: `packages/bootstrap-runtime/test/fixtures/recovery-owner-process.mjs`, `packages/bootstrap-runtime/src/bootstrap-recovery-process.integration.test.ts`.
 
 **Interfaces:**
+
 - Produces: one shared read-only maintenance obligation inspector.
 - Normal bootstrap and recovery inspection consume the exact same incomplete-operation classification.
 
@@ -439,7 +449,7 @@ export interface MaintenanceObligationInspection {
 export async function inspectMaintenanceObligation(
   instanceRoot: string,
   state: BootstrapStateLoadResult,
-): Promise<MaintenanceObligationInspection>
+): Promise<MaintenanceObligationInspection>;
 ```
 
 `RECOVERED_PREVIOUS` BootstrapState returns a problem, not a maintenance decision.
@@ -527,6 +537,7 @@ Do not commit yet. Continue directly to Task 5; no-lock witness classification a
 ### Task 5: Make ambiguous process identity fail closed instead of claiming PID reuse
 
 **Files:**
+
 - Modify: `packages/bootstrap-runtime/src/bootstrap-process-identity.ts`
 - Modify: `packages/bootstrap-runtime/src/bootstrap-process-identity.test.ts`
 - Modify: `packages/bootstrap-runtime/src/bootstrap-recovery.ts`
@@ -534,6 +545,7 @@ Do not commit yet. Continue directly to Task 5; no-lock witness classification a
 - Modify any test/evidence fixture referring to `PID_REUSED` as a successful reclaim proof.
 
 **Interfaces:**
+
 - Produces status union `SAME_PROCESS | PROCESS_DEAD | UNKNOWN`.
 
 - [ ] **Step 1: Flip the same-PID start mismatch test**
@@ -543,10 +555,12 @@ Change expectation to:
 ```ts
 it("classifies a live PID with start-time mismatch as UNKNOWN", async () => {
   const identity = currentBootstrapProcessIdentity();
-  await expect(inspectBootstrapProcessIdentity({
-    pid: identity.pid,
-    startedAtMs: identity.startedAtMs - 10_000,
-  })).resolves.toBe("UNKNOWN");
+  await expect(
+    inspectBootstrapProcessIdentity({
+      pid: identity.pid,
+      startedAtMs: identity.startedAtMs - 10_000,
+    }),
+  ).resolves.toBe("UNKNOWN");
 });
 ```
 
@@ -604,6 +618,7 @@ git commit -m "fix: close bootstrap recovery adjudication gaps"
 ### Task 6: Collapse Host-maintenance duplicate state and narrow recovery provenance
 
 **Files:**
+
 - Modify: `packages/bootstrap-runtime/src/host-maintenance-machine.ts`
 - Modify: `packages/bootstrap-runtime/src/host-maintenance.ts`
 - Modify: `packages/bootstrap-runtime/src/managed-host.ts`
@@ -613,6 +628,7 @@ git commit -m "fix: close bootstrap recovery adjudication gaps"
 - Modify: `packages/bootstrap-runtime/src/host-maintenance-recovery.test.ts`
 
 **Interfaces:**
+
 - Produces: XState tracker as the sole in-process maintenance state; `HostMaintenanceBootstrapContext` as the shared normal/recovery provenance type.
 
 - [ ] **Step 1: Make `PreparedMaintenanceState` an alias, not a duplicate union**
@@ -628,18 +644,30 @@ export type PreparedMaintenanceState = HostMaintenanceState;
 In `host-maintenance.ts`, define one mapping used only after a successful journal advance:
 
 ```ts
-function eventForCommittedStage(stage: MaintenanceStage): HostMaintenanceEvent | undefined {
+function eventForCommittedStage(
+  stage: MaintenanceStage,
+): HostMaintenanceEvent | undefined {
   switch (stage) {
-    case "HOST_QUIESCED": return { type: "QUIESCENCE_PROVEN" };
-    case "HOST_TOKEN_REVOKED": return { type: "TOKEN_REVOKED" };
-    case "HOST_LEASE_CLOSED": return { type: "WINDOW_ENTERED" };
-    case "POSTGRES_STOPPED": return { type: "POSTGRES_STOPPED" };
-    case "POSTGRES_READY": return { type: "POSTGRES_READY" };
-    case "HOST_LEASE_ACQUIRED": return { type: "HOST_LEASE_ACQUIRED" };
-    case "HOST_TOKEN_PUBLISHED": return { type: "HOST_REACQUIRED" };
-    case "ABORTED": return { type: "ABORTED" };
-    case "RECOVERY_REQUIRED": return { type: "RECOVERY_REQUIRED" };
-    default: return undefined;
+    case "HOST_QUIESCED":
+      return { type: "QUIESCENCE_PROVEN" };
+    case "HOST_TOKEN_REVOKED":
+      return { type: "TOKEN_REVOKED" };
+    case "HOST_LEASE_CLOSED":
+      return { type: "WINDOW_ENTERED" };
+    case "POSTGRES_STOPPED":
+      return { type: "POSTGRES_STOPPED" };
+    case "POSTGRES_READY":
+      return { type: "POSTGRES_READY" };
+    case "HOST_LEASE_ACQUIRED":
+      return { type: "HOST_LEASE_ACQUIRED" };
+    case "HOST_TOKEN_PUBLISHED":
+      return { type: "HOST_REACQUIRED" };
+    case "ABORTED":
+      return { type: "ABORTED" };
+    case "RECOVERY_REQUIRED":
+      return { type: "RECOVERY_REQUIRED" };
+    default:
+      return undefined;
   }
 }
 ```
@@ -692,6 +720,7 @@ git commit -m "refactor: collapse host maintenance state authority"
 ### Task 7: Narrow public Authority surface and finish bounded implementation cleanup
 
 **Files:**
+
 - Modify: `packages/bootstrap-runtime/src/index.ts`
 - Modify internal tests that self-import raw package-root APIs.
 - Modify: `packages/bootstrap-runtime/src/bootstrap-ownership.ts`
@@ -702,6 +731,7 @@ git commit -m "refactor: collapse host maintenance state authority"
 - Modify boundary verifier tests if present.
 
 **Interfaces:**
+
 - Produces: bounded package-root recovery API and semantic permanent boundary names.
 
 - [ ] **Step 1: Remove raw Authority exports from `bootstrap-runtime` package root**
@@ -783,11 +813,13 @@ git commit -m "refactor: narrow Foundation authority surfaces"
 ### Task 8: S1 regression checkpoint and promotion to S2
 
 **Files:**
+
 - Modify: `docs/plans/active/foundation/h1s-control-record.md`
 - Move: `docs/plans/active/foundation/h1s-s1-foundation-authority-stabilization.md` -> `docs/plans/completed/foundation/h1s-s1-foundation-authority-stabilization.md`
 - Modify: `docs/plans/README.md`
 
 **Interfaces:**
+
 - Produces: behavior-complete S1 head and S2 execution gate OPEN.
 
 - [ ] **Step 1: Run all local unit/static gates**

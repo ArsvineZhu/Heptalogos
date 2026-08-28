@@ -77,8 +77,8 @@ its consumers and navigation are updated. Do not create a child `AGENTS.md`.
 Every package README uses these sections: `Purpose`, `Owns`, `Does not own`,
 `Public surface`, `Dependencies and boundaries`, `Change constraints`,
 `Verification`, and `Architecture references`. The last section contains direct
-relative links into `Architecture_Corpus`; package docs do not duplicate the
-Corpus or root agent constitution.
+relative links into `docs/`; package docs do not duplicate the
+Architecture Corpus or root agent constitution.
 
 The semantic layers shown above are directional boundaries, not a strict total
 dependency order. Shared contracts sit below schema/bootstrap/data primitives;

@@ -12,8 +12,7 @@
   },
   "dependencies": {
     "@heptalogos/foundation-contracts": "workspace:*",
-    "ajv": "catalog:",
-    "typebox": "catalog:",
+    "@heptalogos/schema-runtime": "workspace:*",
     "write-file-atomic": "catalog:"
   },
   "devDependencies": {

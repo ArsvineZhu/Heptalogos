@@ -1,7 +1,18 @@
+/**
+ * Creates and removes private PostgreSQL credential files with restrictive
+ * ownership and cleanup behavior so plaintext secrets have a bounded lifetime.
+ * @module credential-file
+ */
+
 import { lstat, realpath, unlink, writeFile } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import { isAbsolute, join } from "node:path";
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  ProblemError,
+  type Problem,
+} from "@heptalogos/foundation-contracts";
+import { hasNodeErrorCode } from "./error-code.js";
 
 const PASSWORD_FILE_PREFIX = "heptalogos-private-pg-";
 // IMPLEMENTATION_CONSTANT: Node's portable restrictive file-mode request.
@@ -13,8 +24,7 @@ function credentialProblem(
   detail: string,
   category: Problem["category"] = "unavailable",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",
@@ -81,6 +91,7 @@ function assertValidBootstrapPassword(passwordUtf8: Uint8Array): void {
   }
 }
 
+/** Runs a callback with an ephemeral restrictive PostgreSQL password file. */
 export async function withRestrictedPasswordFile<T>(
   tempRoot: string,
   passwordUtf8: Uint8Array,
@@ -94,6 +105,9 @@ export async function withRestrictedPasswordFile<T>(
   );
   const fileContents = Buffer.concat([Buffer.from(passwordUtf8), Buffer.from("\n")]);
 
+  let result!: T;
+  let operationFailed = false;
+  let operationError: unknown;
   try {
     try {
       await writeFile(passwordFilePath, fileContents, {
@@ -107,24 +121,27 @@ export async function withRestrictedPasswordFile<T>(
         "The restricted ephemeral PostgreSQL password file could not be created",
       );
     }
-    return await use(passwordFilePath);
-  } finally {
-    fileContents.fill(0);
-    try {
-      await unlink(passwordFilePath);
-    } catch (error) {
-      if (!(
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        error.code === "ENOENT"
-      )) {
-        throw credentialProblem(
-          "private-postgres.credential_file.cleanup_failed",
-          "Private PostgreSQL password file cleanup failed",
-          "The restricted ephemeral PostgreSQL password file could not be removed",
-        );
-      }
+    result = await use(passwordFilePath);
+  } catch (error) {
+    operationFailed = true;
+    operationError = error;
+  }
+
+  fileContents.fill(0);
+  try {
+    await unlink(passwordFilePath);
+  } catch (error) {
+    if (!hasNodeErrorCode(error, "ENOENT")) {
+      const cleanupError = credentialProblem(
+        "private-postgres.credential_file.cleanup_failed",
+        "Private PostgreSQL password file cleanup failed",
+        "The restricted ephemeral PostgreSQL password file could not be removed",
+      );
+      cleanupError.cause = operationError;
+      throw cleanupError;
     }
   }
+
+  if (operationFailed) throw operationError;
+  return result;
 }

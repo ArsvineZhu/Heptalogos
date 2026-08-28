@@ -1,0 +1,334 @@
+# 总体系统架构
+
+## 1. 两套互补视图
+
+Heptalogos 不用一张“插件图”解释所有问题。
+
+### Role / Layer 视图
+
+回答：
+
+> 一个组件在系统中扮演什么角色？
+
+```text
+Bootstrap / Recovery Core
+        ↓
+Kernel
+        ↓
+System Services
+        ↓
+Domain Engines
+        ↓
+Features
+        ↓
+Drivers / Providers
+        ↓
+Applications / Presentation
+```
+
+### Plane 视图
+
+回答：
+
+> 当前行为属于哪种 Authority / flow？
+
+```text
+A. Bootstrap & Recovery Plane
+B. Composition & Supervision Plane
+C. System Authority Plane
+D. Subject Authority & Cognition Plane
+E. Integration & Effect Plane
+F. Execution Lineage, Evidence & Introspection Plane
+G. Presentation Plane
+```
+
+同一个 MicroSystem 可以跨多个 Plane。
+
+---
+
+## 2. Bootstrap / Recovery Core
+
+负责：
+
+```text
+定位 instance
+选择 ProductGeneration
+验证基础 release/bootstrap metadata
+启动/检查 private PostgreSQL
+安全模式
+恢复模式
+last-known-good rollback
+staged restore
+bounded local repair
+```
+
+特点：
+
+```text
+最小
+AI-independent
+third-party Extension-independent
+正常 runtime-independent
+```
+
+它不是普通可安装 Extension。
+
+---
+
+## 3. Kernel
+
+Kernel 只保留真正不可下放的 Heptalogos runtime semantics：
+
+```text
+MicroSystem identity
+generation identity
+runtime supervision contract
+desired/actual reconciliation contract
+Service / Capability registry contract
+Readiness evaluation
+resource ownership
+operating mode
+authority hook points
+```
+
+Kernel 不应自行膨胀为：
+
+```text
+package manager
+workflow engine
+database
+event broker
+HTTP framework
+AI runtime
+```
+
+这些由 System Services + 成熟技术承担。
+
+---
+
+## 4. System Services
+
+Foundation 预计包括：
+
+```text
+PersistenceService
+StorageWorkspaceService
+DataLifecycleRegistry
+BackupCoordinator
+TimeService
+DurableExecutionService
+WorkQueueService
+SignalService
+ConfigurationService
+SecretService
+NetworkAccessService
+ArtifactService
+ExecutionLineageService
+EvidenceService
+PolicyService
+ApprovalService
+ManagementActionService
+ExtensionPackageManager
+MessagingService
+AIRuntimeService
+CapabilityBroker
+ExtensionStateStore (optional managed-state convenience)
+SubjectService
+```
+
+高级 cognition 只预留 optional Service/Contribution families，例如 `subject.persona`、`subject.memory`、`subject.relationship`、`subject.attention`；Foundation 不提供其实现，也不把它们作为 Subject Base readiness dependency。
+
+`ResourceGovernor`、contract compatibility、crypto lifecycle 等属于 Kernel-adjacent/cross-cutting contracts。`StorageWorkspaceService` 提供生命周期 root/workspace mechanics，`DataLifecycleRegistry` 统一 DataOwner/Backup/Purge/usage metadata；二者都不拥有 Extension/Domain 私有数据模型。
+
+是否每个合同都对应独立 npm package/workspace，不由本设计决定。
+
+原则：
+
+```text
+module boundary != workspace boundary
+```
+
+---
+
+## 4.1 Execution Lineage 贯穿所有 Plane
+
+Execution Lineage 不是单独业务层，而是所有 Plane 的可追溯执行合同：
+
+```text
+Bootstrap/Recovery
+→ Runtime lifecycle/reconcile
+→ System/Subject Authority
+→ Integration/Effect
+→ Presentation-triggered requests
+```
+
+Foundation 统一记录 Activity identity、causation、origin/generation、Service/Capability/Provider 和 outcome，并把 Pino/OpenTelemetry/Evidence 映射到同一血缘。
+
+详细见 `execution-lineage.md` 与 `contracts/execution-lineage-observability.md`。
+
+## 5. Domain Engines
+
+承载 Heptalogos 特有认知/交互语义，例如：
+
+```text
+ConversationMailbox
+Reaction / Reactor
+Context
+Prompt
+Behavior
+Review
+Interaction
+Expression
+```
+
+未来：
+
+```text
+Attention
+Relationship
+Living State
+Appraisal
+Epistemic State
+Reflection
+```
+
+Domain Engine 可作为 MicroSystem/Extension，但不能绕过 Subject Authority。
+
+---
+
+## 6. Features
+
+Feature 是用户可感知能力的组合：
+
+```text
+Basic Chat
+Subject Chat
+Operator Assistant
+future Proactive Messaging
+future Diary
+future Voice Conversation
+```
+
+Feature 不等于基础设施。
+
+---
+
+## 7. Driver / Provider
+
+### Driver
+
+处理外部协议和 runtime boundary，例如：
+
+```text
+Milky
+OneBot
+Subject Chat Protocol
+MCP transport
+OS credential backend
+```
+
+### Provider
+
+提供某 Service/Capability 的实现，例如：
+
+```text
+DeepSeek model provider
+OpenAI model provider
+embedding provider
+storage backend
+```
+
+Driver / Provider 不自动拥有领域 Authority。
+
+---
+
+## 8. Applications / Presentation
+
+```text
+Host
+complete reference CLI
+Launcher / Bootstrap
+future Web / GUI clients
+```
+
+Host 承载主 runtime。
+
+Foundation 先完成 canonical Management Contract 与完整 CLI；HTTP/protocol APIs 暴露同一语义。Web/GUI 的视觉、页面、renderer 和 frontend runtime 独立设计，不是 Foundation gate。
+
+Presentation 不成为产品 Authority。
+
+---
+
+## 9. 角色、来源、信任、执行域是不同维度
+
+不要把 `Extension` 当成一个单一“层”。
+
+一个组件至少有多个正交维度：
+
+```text
+role:
+  system-service / domain-engine / feature / driver / provider
+
+origin:
+  core-bundled / first-party / third-party / development
+
+mandatory:
+  true / false
+
+trust:
+  product-trusted / reviewed / sandbox-required / external
+
+execution-domain:
+  in-process / isolated-process / wasm / mcp / network
+
+scope:
+  instance / subject / resource-specific
+```
+
+例如：
+
+```text
+Message Queue
+role = system-service
+origin = product
+mandatory = true
+
+Milky
+role = driver
+origin = bundled-first-party
+mandatory = false
+
+Dream
+role = feature/domain-engine
+origin = optional-first-party
+mandatory = false
+```
+
+---
+
+## 10. Common MicroSystem Model，不等于 Common Runtime Implementation
+
+系统统一的是：
+
+```text
+identity
+generation
+Service
+Capability
+Contribution
+health
+readiness
+resource ownership
+authority ceiling
+```
+
+底层 execution mechanics 可以不同：
+
+```text
+trusted in-process → Cordis primary candidate / explicit-native baseline
+WASM sandbox → contract reserved; runtime deferred
+MCP → official protocol SDK
+external provider → controlled HTTP/provider SDK behind NetworkAccess policy
+```
+
+这避免为了“统一”而自研一套覆盖所有执行域的巨大框架。

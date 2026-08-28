@@ -25,10 +25,12 @@
 ### Task 1: Freeze and qualify the S1 behavior candidate from canonical state
 
 **Files:**
+
 - No production files should change.
 - Test changes are also forbidden unless S1 is reopened.
 
 **Interfaces:**
+
 - Consumes: S1 head.
 - Produces: `behavior_candidate_sha` and raw test outputs used by Task 2 evidence reconciliation.
 
@@ -121,6 +123,7 @@ Only explicit rejected-legacy test literals/history are permitted.
 ### Task 2: Replace obsolete current qualification properties with H1-S evidence
 
 **Files:**
+
 - Modify: `Architecture_Corpus/qualification/results/qualification-status.json`
 - Modify: `Architecture_Corpus/qualification/results/Q-BOOT-01.md`
 - Modify: `Architecture_Corpus/qualification/results/Q-PRIVATE-POSTGRES-01.md`
@@ -134,6 +137,7 @@ Only explicit rejected-legacy test literals/history are permitted.
 - Modify: `docs/plans/README.md`
 
 **Interfaces:**
+
 - Consumes: exact `BEHAVIOR_SHA` and raw test results from Task 1.
 - Produces: the final repository candidate; after this task no repository mutation is allowed unless the candidate is invalidated and S1/S2 are reopened.
 
@@ -270,6 +274,7 @@ This commit is the final pre-review HEAD. From this point onward, **do not commi
 **Files:** none. This is an external gate.
 
 **Interfaces:**
+
 - Produces: independent review PASS/REQUEST_CHANGES bound to `(BASE_SHA, HEAD_SHA)`.
 
 - [ ] **Step 1: Refresh refs and freeze the pair**

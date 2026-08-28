@@ -1,9 +1,14 @@
+/**
+ * Executes one generation-pinned WorkHandler attempt with bounded outcome and
+ * failure classification while keeping engine semantics outside the queue.
+ * @module attempt-executor
+ */
+
 import {
   parseInstant,
   ProblemError,
   snapshotCanonicalJson,
   type CanonicalJsonValue,
-  type Instant,
 } from "@heptalogos/foundation-contracts";
 import type {
   ExecutionContext,
@@ -12,10 +17,7 @@ import type {
   LineageContextRefV1,
 } from "@heptalogos/execution-lineage";
 import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
-import type {
-  RuntimeWorkHandlerInvocationReservation,
-  RuntimeWorkHandlerLease,
-} from "@heptalogos/runtime-kernel";
+import type { RuntimeWorkHandlerInvocationReservation } from "@heptalogos/runtime-kernel";
 import type { TimeService } from "@heptalogos/time-service";
 import { createDispatchAttemptId } from "./attempt-identity.js";
 import type {
@@ -55,6 +57,7 @@ const RETRY_CLASSES = new Set<WorkRetryClass>([
   "external-effect-uncertain",
 ]);
 
+/** Observable result states returned after one generation-pinned attempt. */
 export type WorkAttemptExecutionStatus =
   | "NOT_FOUND"
   | "TERMINAL_REPLAY"
@@ -66,12 +69,14 @@ export type WorkAttemptExecutionStatus =
   | "CANCELLED"
   | "SUPERSEDED";
 
+/** Outcome of executing or replaying one durable dispatch attempt. */
 export interface WorkAttemptExecutionResult {
   readonly status: WorkAttemptExecutionStatus;
   readonly item?: WorkItem;
   readonly outcome?: WorkItemOutcome;
 }
 
+/** Dependencies and bounded policy required by the attempt coordinator. */
 export interface WorkAttemptExecutorOptions {
   readonly repository: WorkQueueRepository;
   readonly handlerRegistry: WorkHandlerResolver;
@@ -82,7 +87,9 @@ export interface WorkAttemptExecutorOptions {
   readonly runtimeOptions: WorkQueueRuntimeOptions;
 }
 
+/** Coordinates one WorkItem attempt through admission, execution, and persistence. */
 export interface WorkAttemptExecutor {
+  /** Execute the expected revision or return a fenced/replay status. */
   execute(
     workItemId: WorkItem["workItemId"],
     expectedRevision: number,
@@ -241,6 +248,20 @@ function outcomeForActivity(item: WorkItem): "SUCCEEDED" | "FAILED" | "CANCELLED
   return "FAILED";
 }
 
+function completeActivityHook(
+  options: WorkAttemptExecutorOptions,
+  activity: ExecutionContext,
+  outcomeRef?: string,
+): MutationAppliedHook {
+  return async (transaction, completed) => {
+    await options.lineage.completeCurrent(transaction, activity, {
+      endedAt: options.time.now(),
+      outcome: outcomeForActivity(completed),
+      ...(outcomeRef === undefined ? {} : { outcomeRef }),
+    });
+  };
+}
+
 function earlyActivityHook(
   options: WorkAttemptExecutorOptions,
   activity: ExecutionContext,
@@ -370,6 +391,7 @@ function monitorCancellation(
   };
 }
 
+/** Create an attempt executor with repository-owned mutation and lifecycle fencing. */
 export function createWorkAttemptExecutor(
   options: WorkAttemptExecutorOptions,
 ): WorkAttemptExecutor {
@@ -523,7 +545,7 @@ export function createWorkAttemptExecutor(
               expectedDispatchRevision: item.dispatchRevision,
               activeAttemptId: attemptId,
               updatedAt: options.time.now(),
-              onApplied: async (transaction, running) => {
+              onApplied: async (transaction, _running) => {
                 await options.lineage.retainCurrent(transaction, activity);
               },
             });
@@ -603,13 +625,7 @@ export function createWorkAttemptExecutor(
                 reasonCode: decision.reasonCode,
                 notBefore: decision.notBefore,
                 updatedAt: options.time.now(),
-                onApplied: async (transaction, completed) => {
-                  await options.lineage.completeCurrent(transaction, activity, {
-                    endedAt: options.time.now(),
-                    outcome: outcomeForActivity(completed),
-                    outcomeRef: decision.reasonCode,
-                  });
-                },
+                onApplied: completeActivityHook(options, activity, decision.reasonCode),
               });
               return resultForMutation(retried);
             }
@@ -625,13 +641,7 @@ export function createWorkAttemptExecutor(
                 reasonCode: decision.reasonCode,
               },
               updatedAt: options.time.now(),
-              onApplied: async (transaction, completed) => {
-                await options.lineage.completeCurrent(transaction, activity, {
-                  endedAt: options.time.now(),
-                  outcome: outcomeForActivity(completed),
-                  outcomeRef: decision.reasonCode,
-                });
-              },
+              onApplied: completeActivityHook(options, activity, decision.reasonCode),
             });
             return resultForMutation(failed);
           }
@@ -642,12 +652,7 @@ export function createWorkAttemptExecutor(
             expectedActiveAttemptId: running.activeAttemptId,
             outcome: successOutcome,
             updatedAt: options.time.now(),
-            onApplied: async (transaction, completed) => {
-              await options.lineage.completeCurrent(transaction, activity, {
-                endedAt: options.time.now(),
-                outcome: outcomeForActivity(completed),
-              });
-            },
+            onApplied: completeActivityHook(options, activity),
           });
           return resultForMutation(committed);
         },

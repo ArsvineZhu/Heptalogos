@@ -16,9 +16,8 @@
     "@heptalogos/foundation-contracts": "workspace:*",
     "@heptalogos/host-ownership": "workspace:*",
     "@heptalogos/private-postgres": "workspace:*",
-    "ajv": "catalog:",
+    "@heptalogos/schema-runtime": "workspace:*",
     "pidusage": "catalog:",
-    "typebox": "catalog:",
     "xstate": "catalog:"
   },
   "devDependencies": {

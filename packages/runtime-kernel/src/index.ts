@@ -1,3 +1,9 @@
+/**
+ * Public Runtime Kernel contracts for graph planning, registries, readiness,
+ * generation fencing, and lifecycle supervision above RuntimeSubstrate.
+ * @packageDocumentation
+ */
+
 export type {
   CapabilityLease,
   CapabilityProvisionDescriptor,

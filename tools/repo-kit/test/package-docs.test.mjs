@@ -28,14 +28,15 @@ Example constraints.
 Example verification.
 
 ## Architecture references
-- [Corpus](../../Architecture_Corpus/00-constitution.md)
+- [Architecture](../../docs/architecture/authority-and-core-concepts.md)
 `;
 
 async function fixtureTree(setup) {
   const root = await mkdtemp(join(tmpdir(), "heptalogos-package-docs-"));
   try {
     await mkdir(join(root, "packages/example"), { recursive: true });
-    await mkdir(join(root, "Architecture_Corpus"), { recursive: true });
+    await mkdir(join(root, "docs/architecture"), { recursive: true });
+    await mkdir(join(root, "docs/plans"), { recursive: true });
     await writeFile(
       join(root, "packages/AGENTS.md"),
       "# Package Workspace Agent Contract\n",
@@ -45,11 +46,31 @@ async function fixtureTree(setup) {
       join(root, "packages/INDEX.md"),
       "| Package | Layer | Responsibility |\n| --- | --- | --- |\n| [example](./example/README.md) | test | example |\n",
     );
-    await writeFile(join(root, "packages/example/package.json"), "{}\n");
+    await writeFile(
+      join(root, "packages/example/package.json"),
+      '{"name":"@heptalogos/example"}\n',
+    );
     await writeFile(join(root, "packages/example/README.md"), packageReadme);
-    await writeFile(join(root, "Architecture_Corpus/00-constitution.md"), "# Corpus\n");
+    await writeFile(
+      join(root, "docs/architecture/authority-and-core-concepts.md"),
+      "# Architecture\n",
+    );
+    await writeFile(join(root, "docs/plans/current.md"), "# Current plan\n");
     await setup(root);
-    return validatePackageDocumentation({ root });
+    return validatePackageDocumentation({
+      root,
+      productPackages: [
+        {
+          directory: join(root, "packages/example"),
+          directoryName: "example",
+          manifestName: "@heptalogos/example",
+          workspacePackage: {
+            name: "@heptalogos/example",
+            path: join(root, "packages/example"),
+          },
+        },
+      ],
+    });
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -99,27 +120,44 @@ describe("package documentation topology", () => {
     expect(hasError(result, 'missing heading "Change constraints"')).toBe(true);
   });
 
-  it("fails when a package README has no Corpus link", async () => {
+  it("fails when a package README has no architecture documentation link", async () => {
     const result = await fixtureTree(async (root) => {
       await writeFile(
         join(root, "packages/example/README.md"),
         packageReadme.replace(
-          "- [Corpus](../../Architecture_Corpus/00-constitution.md)\n",
+          "- [Architecture](../../docs/architecture/authority-and-core-concepts.md)\n",
           "",
         ),
       );
     });
-    expect(hasError(result, "must contain a Corpus link")).toBe(true);
+    expect(hasError(result, "must contain an architecture documentation link")).toBe(
+      true,
+    );
   });
 
-  it("fails when a package Corpus link is broken", async () => {
+  it("does not treat a plan link as an architecture reference", async () => {
     const result = await fixtureTree(async (root) => {
       await writeFile(
         join(root, "packages/example/README.md"),
-        packageReadme.replace("00-constitution.md", "missing.md"),
+        packageReadme.replace(
+          "- [Architecture](../../docs/architecture/authority-and-core-concepts.md)",
+          "- [Plan](../../docs/plans/current.md)",
+        ),
       );
     });
-    expect(hasError(result, "broken Corpus link")).toBe(true);
+    expect(hasError(result, "must contain an architecture documentation link")).toBe(
+      true,
+    );
+  });
+
+  it("fails when a package architecture documentation link is broken", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFile(
+        join(root, "packages/example/README.md"),
+        packageReadme.replace("authority-and-core-concepts.md", "missing.md"),
+      );
+    });
+    expect(hasError(result, "broken architecture documentation link")).toBe(true);
   });
 
   it("fails when INDEX omits an existing package", async () => {

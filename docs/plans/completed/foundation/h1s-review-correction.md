@@ -11,6 +11,7 @@
 **Spec:** `docs/engineering/specs/h1-stabilization-foundation-authority-reset.md`
 
 **Review baseline:**
+
 - Reviewed base: `master@257ad6fe73924bcd1c9a00cad6a15938d6e6a2da`
 - Branch: `dev/h1-stabilization`
 - PR: `#11`
@@ -33,42 +34,43 @@
 
 ---
 
-## Review Findings This Plan Closes
+### Review Findings This Plan Closes
 
-### RC-1 — Successful maintenance is classified as incomplete on the next normal boot
+#### RC-1 — Successful maintenance is classified as incomplete on the next normal boot
 
 Current production success paths leave `MaintenanceJournal.lastCompletedStage = BOOTSTRAP_RELEASE_ARMED` without a terminal outcome, while `inspectMaintenanceObligation()` treats every journal without `terminalOutcome` as incomplete. `BootstrapState.lastCommittedOperationRef` remains pointed at that operation. Therefore a successful STOP/RESTART can cause the next `prepareBootstrapPrelude()` to fail with `bootstrap.recovery.maintenance_required`.
 
 The existing prelude tests construct synthetic `SUCCEEDED`/`ABORTED` journal bodies that the successful production path does not produce, so they do not prove post-maintenance boot continuity.
 
-### RC-2 — Host-maintenance can commit an illegal durable stage before XState rejects it
+#### RC-2 — Host-maintenance can commit an illegal durable stage before XState rejects it
 
 `host-maintenance.ts::advance()` currently:
+
 1. persists the next MaintenanceJournal revision;
 2. updates the local `body`;
 3. only then calls `tracker.send(event)`.
 
 An illegal mapped transition can therefore mutate durable progress before the sole in-process state machine rejects it.
 
-### RC-3 — Recovery error journaling does not require current BootstrapState Authority
+#### RC-3 — Recovery error journaling does not require current BootstrapState Authority
 
 The `recoverInterruptedHostMaintenance()` catch path appends `RECOVERY_REQUIRED` whenever the bootstrap lease is held and the reloaded BootstrapState is merely `!== CORRUPT`. This includes `EMPTY` and `RECOVERED_PREVIOUS`, and it does not re-check that `lastCommittedOperationRef` still selects the same operation.
 
-### RC-4 — Final CI proves ancestry, not that the reviewed base branch is still current
+#### RC-4 — Final CI proves ancestry, not that the reviewed base branch is still current
 
 The current workflow proves `base_sha` is an ancestor of `target_sha`, but does not prove that the current `master` ref still equals `base_sha`.
 
-### RC-5 — H1 closes at merge, but repository truth is forbidden from recording that closure
+#### RC-5 — H1 closes at merge, but repository truth is forbidden from recording that closure
 
 The current control/playbook says post-merge reconciliation is read-only/non-mutating while roadmap/control remain `H1: OPEN / H2: NOT_ELIGIBLE`. Without a bounded post-merge truth reconciliation, the repository remains permanently stale after a successful closure event.
 
-### RC-6 — Bounded guard hardening: package-root raw Authority check can be bypassed by `export *`
+#### RC-6 — Bounded guard hardening: package-root raw Authority check can be bypassed by `export *`
 
 The current verifier scans for raw exported names. A future `export * from "./bootstrap-recovery.js"` could bypass that name scan. The current index is safe; this is a bounded mechanical hardening item.
 
 ---
 
-# Execution Order
+## Execution Order
 
 ```text
 R0 truth/control reopen
@@ -105,12 +107,14 @@ H2 eligible
 ### Task 0: Reopen H1-S Review-Correction Truth
 
 **Files:**
+
 - Create: `docs/plans/active/foundation/h1s-review-correction.md`
 - Move: `docs/plans/completed/foundation/h1s-control-record.md` -> `docs/plans/active/foundation/h1s-control-record.md`
 - Modify: `docs/plans/README.md`
 - Modify: PR #11 body after the commit is pushed
 
 **Interfaces:**
+
 - Consumes: completed S0/S1/S2 records.
 - Produces: one active review-correction plan and an honest control state.
 
@@ -179,9 +183,10 @@ git commit -m "docs: reopen H1 stabilization review correction"
 
 ---
 
-### Task 1: Make MaintenanceJournal Success Terminality Reachable and Canonical
+#### Task 1: Make MaintenanceJournal Success Terminality Reachable and Canonical
 
 **Files:**
+
 - Modify: `packages/bootstrap-state/src/maintenance-codec.ts`
 - Modify: `packages/bootstrap-state/src/maintenance-codec.test.ts`
 - Modify: `packages/bootstrap-runtime/src/maintenance-obligation.ts`
@@ -192,6 +197,7 @@ git commit -m "docs: reopen H1 stabilization review correction"
 - Modify: `docs/engineering/specs/h1-stabilization-foundation-authority-reset.md`
 
 **Interfaces:**
+
 - Consumes: canonical MaintenanceJournal V1.
 - Produces: one reachable, explicit successful durable terminal shape:
   `lastCompletedStage = BOOTSTRAP_RELEASE_ARMED` + `terminalOutcome = SUCCEEDED`.
@@ -274,10 +280,7 @@ if (body.lastCompletedStage === "BOOTSTRAP_RELEASE_ARMED") {
     return "maintenance.journal.invalid_semantics";
   }
 } else if (body.lastCompletedStage === "RECOVERY_REQUIRED") {
-  if (
-    body.terminalOutcome !== "FAILED" &&
-    body.terminalOutcome !== "UNCERTAIN"
-  ) {
+  if (body.terminalOutcome !== "FAILED" && body.terminalOutcome !== "UNCERTAIN") {
     return "maintenance.journal.invalid_semantics";
   }
 } else if (body.terminalOutcome !== undefined) {
@@ -321,8 +324,7 @@ function maintenanceIsIncomplete(value: MaintenanceJournalLoadResult): boolean {
   return !(
     (body.lastCompletedStage === "BOOTSTRAP_RELEASE_ARMED" &&
       body.terminalOutcome === "SUCCEEDED") ||
-    (body.lastCompletedStage === "ABORTED" &&
-      body.terminalOutcome === "ABORTED")
+    (body.lastCompletedStage === "ABORTED" && body.terminalOutcome === "ABORTED")
   );
 }
 ```
@@ -394,12 +396,14 @@ git commit -m "fix: close maintenance completion semantics"
 
 ---
 
-### Task 2: Prove Real Post-Maintenance Bootstrap Continuity
+#### Task 2: Prove Real Post-Maintenance Bootstrap Continuity
 
 **Files:**
+
 - Modify: `packages/bootstrap-runtime/src/host-maintenance.integration.test.ts`
 
 **Interfaces:**
+
 - Consumes: Task 1 terminal semantics.
 - Produces: real PostgreSQL regression evidence that successful maintenance does not poison the next bootstrap.
 
@@ -485,16 +489,19 @@ git commit -m "test: prove post-maintenance bootstrap continuity"
 
 ---
 
-### Task 3: Prevalidate XState Transition Before Durable Journal Mutation
+#### Task 3: Prevalidate XState Transition Before Durable Journal Mutation
 
 **Files:**
+
 - Modify: `packages/bootstrap-runtime/src/host-maintenance-machine.ts`
 - Modify: `packages/bootstrap-runtime/src/host-maintenance-machine.test.ts`
 - Modify: `packages/bootstrap-runtime/src/host-maintenance.ts`
 - Modify: `packages/bootstrap-runtime/src/host-maintenance.test.ts`
 
 **Interfaces:**
-- Produces:
+
+- Produces:、
+
   ```ts
   interface HostMaintenanceTracker {
     readonly state: HostMaintenanceState;
@@ -604,13 +611,15 @@ git commit -m "fix: prevalidate maintenance state transitions"
 
 ---
 
-### Task 4: Fence Recovery Error Journaling by Current BootstrapState Authority
+#### Task 4: Fence Recovery Error Journaling by Current BootstrapState Authority
 
 **Files:**
+
 - Modify: `packages/bootstrap-runtime/src/host-maintenance-recovery.ts`
 - Modify: `packages/bootstrap-runtime/src/host-maintenance-recovery.test.ts`
 
 **Interfaces:**
+
 - Consumes:
   - authentic held bootstrap lease;
   - current BootstrapState;
@@ -708,9 +717,10 @@ git commit -m "fix: fence recovery error journaling"
 
 ---
 
-### Task 5: Close Exact Candidate-Pair and H1 Closure-Governance Gaps
+#### Task 5: Close Exact Candidate-Pair and H1 Closure-Governance Gaps
 
 **Files:**
+
 - Modify: `.github/workflows/verify.yml`
 - Modify: `AGENTS.md`
 - Modify: `Architecture_Corpus/26-开发阶段闭包-稳定化与兼容性治理.md`
@@ -720,6 +730,7 @@ git commit -m "fix: fence recovery error journaling"
 - Modify: `docs/plans/active/foundation/h1s-control-record.md`
 
 **Interfaces:**
+
 - Produces:
   - final CI that verifies both reviewed target identity and current base-ref identity;
   - a bounded post-merge truth-reconciliation protocol;
@@ -750,16 +761,12 @@ Use an exact shell-independent Node check. For example, before the candidate-pai
 Then the Node check must include:
 
 ```js
-const currentBase = execFileSync(
-  "git",
-  ["rev-parse", "refs/remotes/origin/master"],
-  { encoding: "utf8" },
-).trim();
+const currentBase = execFileSync("git", ["rev-parse", "refs/remotes/origin/master"], {
+  encoding: "utf8",
+}).trim();
 
 if (currentBase !== process.env.BASE_SHA) {
-  console.error(
-    `reviewed base ${process.env.BASE_SHA} moved to ${currentBase}`,
-  );
+  console.error(`reviewed base ${process.env.BASE_SHA} moved to ${currentBase}`);
   process.exit(1);
 }
 ```
@@ -866,14 +873,16 @@ git commit -m "fix: close H-stage candidate governance"
 
 ---
 
-### Task 6: Bounded Public Authority Export-Guard Hardening
+#### Task 6: Bounded Public Authority Export-Guard Hardening
 
 **Classification:** B — execute only if it remains a local verifier edit; expected scope is under roughly 30 lines plus focused verification. If it expands beyond that, record/defer it.
 
 **Files:**
+
 - Modify: `scripts/verify/boundaries.mjs`
 
 **Interfaces:**
+
 - Produces: a guard against both named raw exports and `export *` from sensitive bootstrap Authority modules.
 
 - [ ] **Step 1: Keep the existing forbidden-name scan**
@@ -910,9 +919,10 @@ git commit -m "chore: harden bootstrap authority export guard"
 
 ---
 
-### Task 7: Full H1-S Requalification on the Corrected Behavior
+#### Task 7: Full H1-S Requalification on the Corrected Behavior
 
 **Files:**
+
 - Modify: `Architecture_Corpus/qualification/results/Q-BOOT-01.md`
 - Modify: `Architecture_Corpus/qualification/results/Q-PRIVATE-POSTGRES-01.md`
 - Modify: `Architecture_Corpus/qualification/results/qualification-status.json`
@@ -923,6 +933,7 @@ git commit -m "chore: harden bootstrap authority export guard"
 - Modify: `docs/plans/README.md`
 
 **Interfaces:**
+
 - Produces: a new behavior candidate and current evidence ledger.
 - Invalidates: `1640c232a4629644c3588ebd108f887e7c786f77` as the current corrected behavior candidate. It remains historical evidence only.
 
@@ -1039,6 +1050,7 @@ squash_merge: NOT_RUN
 ```
 
 Move:
+
 - `h1s-review-correction.md`
 - `h1s-control-record.md`
 
@@ -1060,6 +1072,7 @@ git rev-parse HEAD
 ```
 
 Required:
+
 - `pnpm verify`: PASS
 - worktree: clean
 - record exact final repository HEAD
@@ -1068,9 +1081,10 @@ No repository mutation after this point until independent re-review is complete.
 
 ---
 
-### Task 8: Freeze the New Review Candidate
+#### Task 8: Freeze the New Review Candidate
 
 **Files:**
+
 - PR #11 metadata only; no repository commit.
 
 - [ ] **Step 1: Fetch the live base**
@@ -1124,7 +1138,7 @@ Any new repository commit or base-branch movement invalidates the review.
 
 ---
 
-### Task 9: Final CI, Squash Merge, and Separate Truth Reconciliation
+#### Task 9: Final CI, Squash Merge, and Separate Truth Reconciliation
 
 **Precondition:** independent review PASS on the exact frozen pair.
 
@@ -1214,31 +1228,31 @@ Only after this repository truth is reconciled may the next H2 implementation pl
 
 ---
 
-# Required Regression Matrix Before Re-Review
+## Required Regression Matrix Before Re-Review
 
-| Property | Required evidence |
-|---|---|
-| Canonical BootstrapState/BootstrapJournal/private-PG V1 | unit + `pnpm verify` |
-| Previous revision never authorizes mutation | unit |
-| INSTANCE-only recovery/root closure | unit/process |
-| Dead no-lock witness does not permanently block | unit + process |
-| UNKNOWN process identity blocks reclaim | unit/process |
-| Incomplete maintenance blocks normal boot | unit |
-| Successful maintenance does not block next boot | **new unit + real PG integration** |
-| Illegal XState transition cannot commit illegal journal stage | **new unit** |
-| Recovery error journaling requires CURRENT BootstrapState | **new unit** |
-| Recovery error journaling requires exact operation pointer | **new unit** |
-| Private PostgreSQL integration | PostgreSQL 18.6 |
-| Host ownership integration | PostgreSQL 18.6 |
-| Bootstrap-runtime integration | PostgreSQL 18.6 |
-| Non-PG real process recovery | process target |
-| PG real process recovery | PostgreSQL 18.6 process target |
-| Exact candidate base/head | workflow + premerge check |
-| Windows/macOS/source-less/ACL/power-loss | remain honest `NOT_RUN` unless actually executed |
+| Property                                                      | Required evidence                                |
+| ------------------------------------------------------------- | ------------------------------------------------ |
+| Canonical BootstrapState/BootstrapJournal/private-PG V1       | unit + `pnpm verify`                             |
+| Previous revision never authorizes mutation                   | unit                                             |
+| INSTANCE-only recovery/root closure                           | unit/process                                     |
+| Dead no-lock witness does not permanently block               | unit + process                                   |
+| UNKNOWN process identity blocks reclaim                       | unit/process                                     |
+| Incomplete maintenance blocks normal boot                     | unit                                             |
+| Successful maintenance does not block next boot               | **new unit + real PG integration**               |
+| Illegal XState transition cannot commit illegal journal stage | **new unit**                                     |
+| Recovery error journaling requires CURRENT BootstrapState     | **new unit**                                     |
+| Recovery error journaling requires exact operation pointer    | **new unit**                                     |
+| Private PostgreSQL integration                                | PostgreSQL 18.6                                  |
+| Host ownership integration                                    | PostgreSQL 18.6                                  |
+| Bootstrap-runtime integration                                 | PostgreSQL 18.6                                  |
+| Non-PG real process recovery                                  | process target                                   |
+| PG real process recovery                                      | PostgreSQL 18.6 process target                   |
+| Exact candidate base/head                                     | workflow + premerge check                        |
+| Windows/macOS/source-less/ACL/power-loss                      | remain honest `NOT_RUN` unless actually executed |
 
 ---
 
-# Stop Rules
+## Stop Rules
 
 STOP and return for architecture review if any correction requires:
 
@@ -1258,7 +1272,7 @@ Also STOP if the review-correction work grows into approximately another full mi
 
 ---
 
-# Expected Commit Sequence
+## Expected Commit Sequence
 
 ```text
 1. docs: reopen H1 stabilization review correction
@@ -1273,7 +1287,7 @@ Also STOP if the review-correction work grows into approximately another full mi
 
 Corrective review commits after this sequence are exceptional; they are not planned work.
 
-# Completion Condition
+## Completion Condition
 
 This correction plan is complete only when:
 
@@ -1290,7 +1304,7 @@ At that point the branch is **ready for independent re-review**, not yet authori
 
 ---
 
-# Execution record (2026-08-23)
+## Execution record (2026-08-23)
 
 ```yaml
 planState: COMPLETED

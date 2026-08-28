@@ -20,3 +20,4 @@ Thumbs.db
 .superpowers/
 .worktrees/
 /tmp/
+.codegraph/

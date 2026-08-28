@@ -1,3 +1,9 @@
+/**
+ * Verifies dependency declarations, roles, and import restrictions against the
+ * repository dependency Authorities rather than maintaining a second graph.
+ * @module dependencies
+ */
+
 import { builtinModules } from "node:module";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -6,13 +12,31 @@ import {
   authority,
   discoverWorkspacePackages,
   packageRoutes,
+  readPackageManagerBaseline,
+  readYamlFile,
+  readWorkspaceCatalog,
+  readWorkspaceSection,
   repositoryToolingPackages,
   routes,
+  validateStandingDependencyDocuments,
+  validateVersionAuthority,
 } from "@heptalogos/repo-kit";
 
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const workspacePath = join(root, "pnpm-workspace.yaml");
-const workspace = readFileSync(workspacePath, "utf8");
+let workspaceDocument;
+try {
+  workspaceDocument = readYamlFile(workspacePath);
+} catch (error) {
+  fail(`workspace YAML Authority is unreadable: ${error.message}`);
+  workspaceDocument = {};
+}
+const qualificationStatusPath = join(
+  root,
+  "docs",
+  "qualification",
+  "dependency-status.json",
+);
 const errors = [];
 const nodeBuiltinNames = new Set([
   ...builtinModules,
@@ -27,8 +51,55 @@ const dependencySections = [
   "peerDependencies",
 ];
 
+let workspaceCatalog = {};
+let workspaceOverrides = {};
+let packageManagerBaseline;
+try {
+  workspaceCatalog = readWorkspaceCatalog({ root });
+} catch (error) {
+  fail(`workspace catalog Authority is unreadable: ${error.message}`);
+}
+try {
+  workspaceOverrides = readWorkspaceSection({ root, section: "overrides" });
+} catch (error) {
+  fail(`workspace overrides Authority is unreadable: ${error.message}`);
+}
+try {
+  packageManagerBaseline = readPackageManagerBaseline({ root });
+} catch (error) {
+  fail(`package manager Authority is unreadable: ${error.message}`);
+}
+
 function fail(message) {
   errors.push(message);
+}
+
+let qualificationStatus;
+try {
+  qualificationStatus = JSON.parse(readFileSync(qualificationStatusPath, "utf8"));
+} catch (error) {
+  fail(`dependency qualification Authority is unreadable: ${error.message}`);
+}
+
+const roleDecisionValues = new Set(qualificationStatus?.roleDecisionValues ?? []);
+const qualificationDecisions = new Map();
+if (!Array.isArray(qualificationStatus?.decisions)) {
+  fail("dependency qualification Authority must declare decisions[]");
+} else {
+  for (const decision of qualificationStatus.decisions) {
+    if (typeof decision?.id !== "string" || qualificationDecisions.has(decision.id)) {
+      fail(
+        "dependency qualification Authority contains a duplicate or invalid decision id",
+      );
+      continue;
+    }
+    qualificationDecisions.set(decision.id, decision);
+    if (!roleDecisionValues.has(decision.roleDecision)) {
+      fail(
+        `dependency qualification Authority has invalid roleDecision: ${decision.id}`,
+      );
+    }
+  }
 }
 
 for (const roleId of ["runtime.node", "tooling.build", "testing.foundation"]) {
@@ -36,6 +107,12 @@ for (const roleId of ["runtime.node", "tooling.build", "testing.foundation"]) {
   if (!route) fail(`dependency route missing: ${roleId}`);
   else if (route.directive !== "USE") {
     fail(`required dependency route is not adopted for use: ${roleId}`);
+  }
+}
+
+for (const roleId of routes.keys()) {
+  if (!qualificationDecisions.has(roleId)) {
+    fail(`dependency route has no qualification decision: ${roleId}`);
   }
 }
 
@@ -51,6 +128,10 @@ if (
 }
 if (!materialization?.packageIdentity?.includes("routes[].packages")) {
   fail("dependency routing package identity authority is not present");
+}
+const minimumReleaseAge = materialization?.minimumReleaseAge;
+if (!Number.isInteger(minimumReleaseAge) || minimumReleaseAge < 0) {
+  fail("dependency routing minimumReleaseAge must be a non-negative integer");
 }
 
 const workspacePackages = await discoverWorkspacePackages({ cwd: root });
@@ -107,9 +188,14 @@ for (const { manifest, path: manifestPath } of manifests) {
   }
 }
 
-for (const name of ["@nx/js", "@typescript/native", "typescript", "nx"]) {
-  if (!externalDependencyNames.has(name)) {
-    fail(`required toolchain dependency missing: ${name}`);
+const toolingRoute = routes.get("tooling.build");
+if (!toolingRoute) {
+  fail("dependency route missing: tooling.build");
+} else {
+  for (const name of toolingRoute.packages) {
+    if (!externalDependencyNames.has(name)) {
+      fail(`required toolchain dependency missing: ${name}`);
+    }
   }
 }
 
@@ -130,32 +216,53 @@ for (const name of externalDependencyNames) {
   }
 }
 
-function hasCatalogEntry(name) {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`^\\s*(?:["']${escaped}["']|${escaped}):\\s+`, "m").test(workspace);
+for (const error of validateVersionAuthority({
+  root,
+  dependencyRouting: authority,
+  catalog: workspaceCatalog,
+  packageManagerBaseline,
+})) {
+  fail(error);
 }
 
 for (const name of externalDependencyNames) {
-  if (!hasCatalogEntry(name)) {
+  if (!Object.hasOwn(workspaceCatalog, name)) {
     fail(`catalog entry missing for direct external dependency: ${name}`);
   }
 }
 
-if (!/^catalogMode:\s+strict$/m.test(workspace)) fail("catalogMode is not strict");
-if (!/^strictPeerDependencies:\s+true$/m.test(workspace)) {
+for (const error of validateStandingDependencyDocuments({
+  root,
+  packageNames: [...packageRoutes.keys()],
+})) {
+  fail(error);
+}
+
+if (workspaceDocument.catalogMode !== "strict") fail("catalogMode is not strict");
+if (workspaceDocument.strictPeerDependencies !== true) {
   fail("strictPeerDependencies must be explicitly enabled");
 }
-if (!/^engineStrict:\s+true$/m.test(workspace)) {
+if (workspaceDocument.engineStrict !== true) {
   fail("engineStrict must be explicitly enabled");
 }
-if (!/^minimumReleaseAge:\s+1440$/m.test(workspace)) {
-  fail("minimumReleaseAge must be explicitly pinned to 1440 minutes");
+if (Object.hasOwn(workspaceDocument, "minimumReleaseAgeExclude")) {
+  fail(
+    "minimumReleaseAgeExclude must be absent from the PRE_PRODUCTION workspace policy",
+  );
 }
-if (/^nodeLinker:/m.test(workspace)) {
+if (
+  Number.isInteger(minimumReleaseAge) &&
+  workspaceDocument.minimumReleaseAge !== minimumReleaseAge
+) {
+  fail(`minimumReleaseAge must be explicitly pinned to ${minimumReleaseAge} minutes`);
+}
+if (Object.hasOwn(workspaceDocument, "nodeLinker")) {
   fail("nodeLinker must remain pnpm's explicit default: isolated");
 }
-if (!/^  ["']?@types\/node["']?:\s+24\.13\.3\s*$/m.test(workspace)) {
-  fail("@types/node override is not pinned to 24.13.3");
+if (workspaceOverrides["@types/node"] !== workspaceCatalog["@types/node"]) {
+  fail(
+    `@types/node override must match catalog Authority (expected ${workspaceCatalog["@types/node"]})`,
+  );
 }
 if (!existsSync(join(root, "pnpm-lock.yaml"))) fail("pnpm-lock.yaml is missing");
 

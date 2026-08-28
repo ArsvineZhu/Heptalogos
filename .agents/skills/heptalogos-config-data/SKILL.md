@@ -7,22 +7,22 @@ description: Use when changing Heptalogos configuration, defaults, secrets, Conf
 
 ## Authority route
 
-Corpus root: `../../../Architecture_Corpus/`  
+Documentation root: `../../../docs/`
 Route index: `../../heptalogos/corpus-routes.json`
 
 Read the route's core files, including:
 
-- [Data / Evidence / content / persistence](../../../Architecture_Corpus/12-数据-证据-内容与持久化.md)
-- [Backup / Subject portability / update / recovery](../../../Architecture_Corpus/13-备份-Subject可移植性-更新与恢复.md)
-- [Configuration governance](../../../Architecture_Corpus/21-配置治理与Configuration-Surface.md)
-- [Storage topology / lifecycle roots / DataOwner](../../../Architecture_Corpus/23-存储拓扑-生命周期根与DataOwner.md)
-- [S04 Configuration / Secret / management surface](../../../Architecture_Corpus/specs/S04-配置-Secret-管理Surface.md)
-- [S17 Storage workspace / data lifecycle](../../../Architecture_Corpus/specs/S17-Storage-Workspace-DataLifecycle.md)
+- [Data / Evidence / content / persistence](../../../docs/architecture/data-evidence-persistence.md)
+- [Backup / Subject portability / update / recovery](../../../docs/architecture/backup-portability-update-recovery.md)
+- [Configuration governance](../../../docs/architecture/configuration.md)
+- [Storage topology / lifecycle roots / DataOwner](../../../docs/architecture/storage-lifecycle.md)
+- [S04 Configuration / Secret / management surface](../../../docs/architecture/contracts/configuration-secret-management-surface.md)
+- [S17 Storage workspace / data lifecycle](../../../docs/architecture/contracts/storage-workspace-data-lifecycle.md)
 
 Machine-readable authorities:
 
-- [configuration-governance.json](../../../Architecture_Corpus/references/configuration-governance.json)
-- [storage-governance.json](../../../Architecture_Corpus/references/storage-governance.json)
+- [configuration-governance.json](../../../docs/architecture/configuration.md)
+- [storage-governance.json](../../../docs/architecture/storage-lifecycle.md)
 
 ## Procedure
 

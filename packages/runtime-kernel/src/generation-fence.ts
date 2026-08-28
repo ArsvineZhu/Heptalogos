@@ -1,9 +1,19 @@
+/**
+ * Owns generation validity checks and retirement markers used to fence stale
+ * services and capabilities during Runtime reconciliation and shutdown.
+ * @module generation-fence
+ */
+
 import { runtimeKernelProblem } from "./problems.js";
 
+/** States whether a Runtime generation can accept new invocations. */
 export type GenerationFenceState = "ACTIVE" | "RETIRING" | "RETIRED";
 
+/** Represents one invocation reservation held against generation retirement. */
 export interface GenerationInvocationReservation {
+  /** Runs the reserved operation exactly once and settles the reservation. */
   run<TResult>(call: () => TResult | Promise<TResult>): TResult | Promise<TResult>;
+  /** Releases an unused reservation. */
   release(): void;
 }
 
@@ -27,20 +37,24 @@ function isPromiseLike<T>(value: T | Promise<T>): value is Promise<T> {
   );
 }
 
+/** Owns invocation admission and bounded retirement for one Runtime generation. */
 export class GenerationFence {
   private currentState: GenerationFenceState = "ACTIVE";
   private inFlight = 0;
   private resolveIdle: (() => void) | undefined;
   private retirementPromise: Promise<void> | undefined;
 
+  /** Returns the current admission state of the generation. */
   get state(): GenerationFenceState {
     return this.currentState;
   }
 
+  /** Returns the number of operations still holding the generation fence. */
   get activeInvocationCount(): number {
     return this.inFlight;
   }
 
+  /** Throws when this generation no longer admits new work. */
   assertActive(): void {
     if (this.currentState !== "ACTIVE") {
       throw runtimeKernelProblem(
@@ -50,6 +64,7 @@ export class GenerationFence {
     }
   }
 
+  /** Reserves one operation while the generation is active. */
   reserve(operationId: string): GenerationInvocationReservation {
     validateOperationId(operationId);
     this.assertActive();
@@ -107,6 +122,7 @@ export class GenerationFence {
     });
   }
 
+  /** Runs one operation through a new generation reservation. */
   invoke<TResult>(
     operationId: string,
     call: () => TResult | Promise<TResult>,
@@ -119,10 +135,12 @@ export class GenerationFence {
     if (this.inFlight === 0) this.resolveIdle?.();
   }
 
+  /** Moves the generation into retiring state and stops new admission. */
   beginRetirement(): void {
     if (this.currentState === "ACTIVE") this.currentState = "RETIRING";
   }
 
+  /** Retires the generation after in-flight invocations settle or timeout. */
   retire(settleTimeoutMs: number): Promise<void> {
     if (this.currentState === "RETIRED") return Promise.resolve();
     if (this.retirementPromise !== undefined) return this.retirementPromise;
@@ -165,6 +183,7 @@ export class GenerationFence {
   }
 }
 
+/** Creates an active generation fence for a Runtime owner. */
 export function createGenerationFence(): GenerationFence {
   return new GenerationFence();
 }

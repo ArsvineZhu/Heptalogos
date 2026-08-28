@@ -1,6 +1,16 @@
-import { initialTransition, setup, transition, type SnapshotFrom } from "xstate";
-import { ProblemError } from "@heptalogos/foundation-contracts";
+/**
+ * Encapsulates the Host maintenance lifecycle state machine and its bounded
+ * transitions while keeping the adopted statechart behind Bootstrap contracts.
+ * @module host-maintenance-machine
+ */
 
+import { initialTransition, setup, transition, type SnapshotFrom } from "xstate";
+import {
+  createProblemError,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
+
+/** Enumerates the legal Host maintenance lifecycle states. */
 export type HostMaintenanceState =
   | "PREPARED"
   | "QUIESCED"
@@ -14,6 +24,7 @@ export type HostMaintenanceState =
   | "ABORTED"
   | "RECOVERY_REQUIRED";
 
+/** Describes one state transition admitted by the maintenance protocol. */
 export type HostMaintenanceEvent =
   | { readonly type: "QUIESCENCE_PROVEN" }
   | { readonly type: "TOKEN_REVOKED" }
@@ -26,10 +37,14 @@ export type HostMaintenanceEvent =
   | { readonly type: "ABORTED" }
   | { readonly type: "RECOVERY_REQUIRED" };
 
+/** Provides query and transition operations for the maintenance state machine. */
 export interface HostMaintenanceTracker {
   readonly state: HostMaintenanceState;
+  /** Reports whether the event is legal in the current state. */
   can(event: HostMaintenanceEvent): boolean;
+  /** Throws a Problem when the event would violate maintenance ordering. */
   assertCan(event: HostMaintenanceEvent): void;
+  /** Advances the tracker after validating the event against current state. */
   send(event: HostMaintenanceEvent): void;
 }
 
@@ -119,8 +134,7 @@ function invalidTransition(
   state: HostMaintenanceState,
   event: HostMaintenanceEvent,
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode: "bootstrap.maintenance.invalid_transition",
     category: "conflict",
     retryClass: "manual",
@@ -129,6 +143,7 @@ function invalidTransition(
   });
 }
 
+/** Creates a Host maintenance tracker backed by the adopted XState machine. */
 export function createHostMaintenanceTracker(): HostMaintenanceTracker {
   let snapshot: Snapshot = initialTransition(machine)[0];
   const currentState = (): HostMaintenanceState => stateByValue[String(snapshot.value)];

@@ -1,3 +1,9 @@
+/**
+ * Registers and resolves generation-pinned WorkHandlers, rejecting stale or
+ * mismatched declarations before an attempt can reach product execution.
+ * @module work-handler-registry
+ */
+
 import {
   canonicalizeJson,
   POSTGRES_INTEGER_MAX,
@@ -11,6 +17,7 @@ import { compileSchema, type SchemaValidator } from "@heptalogos/schema-runtime"
 import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
 import { GenerationFence } from "./generation-fence.js";
 import { runtimeKernelProblem } from "./problems.js";
+import { RegistryStore, retireRegistryGeneration } from "./registry-store.js";
 import {
   type RuntimeWorkHandler,
   type RuntimeWorkHandlerInvocation,
@@ -82,6 +89,7 @@ function normalizedPayloadContracts(
   return [...payloadContracts].sort((left, right) => left.version - right.version);
 }
 
+/** Canonicalizes handler descriptor fields for stable equality and fencing. */
 export function canonicalizeWorkHandlerDescriptor(
   descriptor: WorkHandlerProvisionDescriptor,
 ): string {
@@ -103,6 +111,7 @@ export function canonicalizeWorkHandlerDescriptor(
   });
 }
 
+/** Compares handler descriptors by their canonical semantic representation. */
 export function workHandlerDescriptorsEqual(
   left: WorkHandlerProvisionDescriptor,
   right: WorkHandlerProvisionDescriptor,
@@ -362,9 +371,11 @@ function createLease(
   });
 }
 
+/** Owns generation-pinned WorkHandler registration and lookup. */
 export class WorkHandlerRegistry {
-  private readonly registrations = new Map<string, CompiledWorkHandlerRegistration>();
+  private readonly registrations = new RegistryStore<CompiledWorkHandlerRegistration>();
 
+  /** Registers and validates one handler for an exact Runtime generation. */
   register(
     owner: WorkHandlerRegistrationOwner,
     descriptor: WorkHandlerProvisionDescriptor,
@@ -411,6 +422,7 @@ export class WorkHandlerRegistry {
     return fence;
   }
 
+  /** Resolves a live handler lease for an exact target and payload version. */
   resolve(target: WorkHandlerTarget): RuntimeWorkHandlerLease | undefined {
     const key = `${target.microSystemId}\u0000${target.contributionId}\u0000${target.packageGenerationId}`;
     const registration = this.registrations.get(key);
@@ -425,18 +437,15 @@ export class WorkHandlerRegistry {
     return createLease(registration, target);
   }
 
+  /** Retires all handler registrations owned by one generation fence. */
   async retireGeneration(
     fence: GenerationFence,
     settleTimeoutMs: number,
   ): Promise<void> {
-    const owned = [...this.registrations.entries()].filter(
-      ([, registration]) => registration.fence === fence,
-    );
-    if (owned.length === 0) return;
-    for (const [key] of owned) this.registrations.delete(key);
-    await fence.retire(settleTimeoutMs);
+    await retireRegistryGeneration(this.registrations, fence, settleTimeoutMs);
   }
 
+  /** Reports the number of registered handler targets. */
   size(): number {
     return this.registrations.size;
   }

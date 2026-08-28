@@ -6,13 +6,14 @@
 
 **Goal:** Establish the first executable H1 bootstrap closure segment: a Heptalogos installation can resolve its persistent installation/instance identity and independent lifecycle roots, create a per-boot early-observability chain, acquire exactly one pre-PostgreSQL bootstrap owner, and guard BootstrapState mutation under that ownership without yet starting PostgreSQL.
 
-**Roadmap Position:** H1 — *Own the Machine*, first milestone only. **M2 does not close H1.** It closes the pre-PostgreSQL bootstrap substrate required before private PostgreSQL and Host ownership handoff can be implemented safely.
+**Roadmap Position:** H1 — _Own the Machine_, first milestone only. **M2 does not close H1.** It closes the pre-PostgreSQL bootstrap substrate required before private PostgreSQL and Host ownership handoff can be implemented safely.
 
 **Architecture:** Add a narrow `@heptalogos/bootstrap-runtime` package above the existing `bootstrap-state` primitive. The new package owns bootstrap locator decoding, bootstrap root resolution, pre-PG ownership, and an owned bootstrap prelude/session. Existing `@heptalogos/bootstrap-state` remains the low-level crash-safe state/journal persistence primitive. `proper-lockfile` remains the ADOPTED pre-PG lock mechanics behind one adapter, but M2 deliberately disables automatic stale-lock reclamation because current 4.1.2 source/upstream evidence leaves a double-owner race unresolved; an abandoned lock therefore becomes explicit recovery-required state rather than being automatically stolen.
 
 **Tech Stack:** Current repository baseline Node.js 24.19.0, pnpm 11.22.0 strict Catalog, Nx 23.1.1, TypeScript 7.0.2 canonical compiler, TypeScript 6.0.2 compatibility lane, ESLint 10.8.1 + typescript-eslint 8.67.0, Vitest 4.1.11, TypeBox 1.x + Ajv 8 for strict bootstrap locator schemas, existing `write-file-atomic` 8.x through `bootstrap-state`, and the ADOPTED `proper-lockfile` 4.x route. Current registry evidence on 2026-08-21 is `proper-lockfile@4.1.2`; the executor MUST re-check registry/upstream evidence immediately before pinning it and must not silently leave the adopted 4.x role.
 
 **Spec / Authority:**
+
 - `AGENTS.md`
 - `docs/roadmap/development-roadmap.md` — H1 and plan-derivation guidance
 - `Architecture_Corpus/00-项目宪法与工程宪法.md`
@@ -50,7 +51,7 @@
 - Do not add a fake stale-recovery path, manual `rm -rf` command, PID guessing, or a second lock implementation to make tests green.
 - Verification truth is exactly `PASS | FAIL | NOT_RUN | BLOCKED`.
 
-## Explicitly Out of Scope
+### Explicitly Out of Scope
 
 M2 MUST NOT implement or materialize:
 
@@ -72,7 +73,7 @@ If implementing a task appears to require any item above, STOP and report the de
 
 ---
 
-## Why M2 Is Split From the Rest of H1
+### Why M2 Is Split From the Rest of H1
 
 H1 contains two distinct authority transitions:
 
@@ -111,7 +112,7 @@ Not:
 
 ---
 
-## Known Dependency Risk: `proper-lockfile` Stale Reclaim
+### Known Dependency Risk: `proper-lockfile` Stale Reclaim
 
 Current 2026-08-21 evidence:
 
@@ -139,7 +140,7 @@ The later H1 closure must design/qualify the bounded Recovery path for an abando
 
 ---
 
-## Target Repository Shape After M2
+### Target Repository Shape After M2
 
 The exact file split may be adjusted if existing code makes a smaller boundary clearer, but do not add more product packages than this plan requires.
 
@@ -187,7 +188,7 @@ Do not create `apps/`, installer packages, PostgreSQL packages, runtime-kernel p
 
 ---
 
-# Preflight: Establish the Exact Execution Baseline
+## Preflight: Establish the Exact Execution Baseline
 
 - [ ] Read root `AGENTS.md` before editing.
 - [ ] Read the current Heptalogos architecture/dependency/verification/runtime-durability/config-data skills applicable to this task.
@@ -247,9 +248,10 @@ status of upstream stale-reclaim issue/equivalent behavior
 
 ---
 
-# Task 1: Activate M2 and Materialize the Bootstrap Runtime Package Boundary
+## Task 1: Activate M2 and Materialize the Bootstrap Runtime Package Boundary
 
 **Files:**
+
 - Create: `docs/plans/active/foundation/m2-pre-postgresql-bootstrap-substrate.md` from this exact approved plan
 - Create: `packages/bootstrap-runtime/package.json`
 - Create: `packages/bootstrap-runtime/project.json`
@@ -262,6 +264,7 @@ status of upstream stale-reclaim issue/equivalent behavior
 - Modify: `package.json` only if root project references/scripts genuinely require it
 
 **Interfaces:**
+
 - Produces: private workspace package `@heptalogos/bootstrap-runtime`.
 - Consumes: `@heptalogos/foundation-contracts`, `@heptalogos/bootstrap-state`, TypeBox/Ajv, and `proper-lockfile` behind later adapter code.
 - Does not yet produce bootstrap behavior.
@@ -388,9 +391,10 @@ Stage only paths actually changed; omit root files that did not require modifica
 
 ---
 
-# Task 2: Promote Bootstrap Identities/Lifecycle-Root Names and Evolve Early Journal Semantics
+## Task 2: Promote Bootstrap Identities/Lifecycle-Root Names and Evolve Early Journal Semantics
 
 **Files:**
+
 - Modify: `packages/foundation-contracts/src/identity.ts`
 - Modify: `packages/foundation-contracts/src/identity.test.ts`
 - Create: `packages/foundation-contracts/src/lifecycle-root.ts`
@@ -401,6 +405,7 @@ Stage only paths actually changed; omit root files that did not require modifica
 - Modify: `packages/bootstrap-state/src/index.ts`
 
 **Interfaces:**
+
 - Produces: `InstallationId`, `InstanceId`, `BootId` stable aliases and create/parse helpers from `foundation-contracts`.
 - Produces: stable `LifecycleRootId` / `LIFECYCLE_ROOT_IDS` from `foundation-contracts`, so later Storage/Backup code never needs to depend on `bootstrap-runtime` merely to name a root.
 - Produces: `BootstrapJournalCheckpointV2`, which can record stages before ProductGeneration/BootstrapRuntime generation resolution while retaining V1 read compatibility.
@@ -536,8 +541,7 @@ Define:
 
 ```ts
 export type BootstrapJournalCheckpoint =
-  | BootstrapJournalCheckpointV1
-  | BootstrapJournalCheckpointV2;
+  BootstrapJournalCheckpointV1 | BootstrapJournalCheckpointV2;
 ```
 
 The post-M2 class signatures must be explicit:
@@ -581,20 +585,22 @@ git commit -m "feat: establish installation and early boot identity"
 
 ---
 
-# Task 3: Define and Strictly Decode the Bootstrap Locator
+## Task 3: Define and Strictly Decode the Bootstrap Locator
 
 **Files:**
+
 - Create: `packages/bootstrap-runtime/src/locator.ts`
 - Create: `packages/bootstrap-runtime/src/locator.test.ts`
 - Modify: `packages/bootstrap-runtime/src/index.ts`
 
 **Interfaces:**
+
 - Produces: `BootstrapLocatorV1`, `loadBootstrapLocator(anchorRoot)`, and stable locator Problem codes.
 - Consumes: the stable `LifecycleRootId` family from `foundation-contracts`; `bootstrap-runtime` does not own or duplicate root names.
 - Consumes: `InstallationId`, `InstanceId` and Node filesystem/path primitives.
 - Does not provision or mutate the locator.
 
-## Locator Contract for M2
+### Locator Contract for M2
 
 The M2 runtime consumes a fully materialized, installation-owned JSON locator at:
 
@@ -607,8 +613,11 @@ The installer/platform-default materializer that creates this file is **not** im
 The locator schema is intentionally fixed and bounded:
 
 ```ts
-import type { InstallationId, InstanceId, LifecycleRootId } from
-  "@heptalogos/foundation-contracts";
+import type {
+  InstallationId,
+  InstanceId,
+  LifecycleRootId,
+} from "@heptalogos/foundation-contracts";
 
 export interface BootstrapLocatorV1 {
   readonly schemaVersion: 1;
@@ -700,10 +709,7 @@ Do not include raw file content, stack trace, or unbounded Ajv diagnostics in `P
 `index.ts` may export:
 
 ```ts
-export {
-  loadBootstrapLocator,
-  type BootstrapLocatorV1,
-} from "./locator.js";
+export { loadBootstrapLocator, type BootstrapLocatorV1 } from "./locator.js";
 ```
 
 Do not export validator internals.
@@ -729,14 +735,16 @@ git commit -m "feat: add strict bootstrap locator contract"
 
 ---
 
-# Task 4: Resolve Independent Bootstrap Lifecycle Roots Without Overclaiming Path Security
+## Task 4: Resolve Independent Bootstrap Lifecycle Roots Without Overclaiming Path Security
 
 **Files:**
+
 - Create: `packages/bootstrap-runtime/src/roots.ts`
 - Create: `packages/bootstrap-runtime/src/roots.test.ts`
 - Modify: `packages/bootstrap-runtime/src/index.ts`
 
 **Interfaces:**
+
 - Consumes: `BootstrapLocatorV1`.
 - Produces: `ResolvedLifecycleRoot`, `BootstrapPathProfile`, `resolveBootstrapPathProfile(locator)`.
 - M2 implements only bootstrap root resolution; it does **not** claim full future S17 workspace/data-owner API.
@@ -841,9 +849,10 @@ git commit -m "feat: resolve bootstrap lifecycle roots"
 
 ---
 
-# Task 5: Implement the `proper-lockfile` Bootstrap Ownership Adapter in No-Stale-Takeover Mode
+## Task 5: Implement the `proper-lockfile` Bootstrap Ownership Adapter in No-Stale-Takeover Mode
 
 **Files:**
+
 - Create: `packages/bootstrap-runtime/src/bootstrap-ownership.ts`
 - Create: `packages/bootstrap-runtime/src/bootstrap-ownership.test.ts`
 - Create: `packages/bootstrap-runtime/test/fixtures/lock-contender.mjs`
@@ -852,6 +861,7 @@ git commit -m "feat: resolve bootstrap lifecycle roots"
 - Modify: `packages/bootstrap-runtime/src/index.ts`
 
 **Interfaces:**
+
 - Consumes: resolved `INSTANCE` root and explicit heartbeat interval.
 - Produces: `BootstrapOwnershipLease` and `acquireBootstrapOwnership()`.
 - `proper-lockfile` appears only inside `bootstrap-ownership.ts` in product TypeScript source.
@@ -1039,9 +1049,10 @@ git commit -m "feat: add fail-safe bootstrap ownership"
 
 ---
 
-# Task 6: Bind BootstrapState Mutation to Ownership While Keeping Journal Pre-Ownership
+## Task 6: Bind BootstrapState Mutation to Ownership While Keeping Journal Pre-Ownership
 
 **Files:**
+
 - Create: `packages/bootstrap-runtime/src/bootstrap-state-access.ts`
 - Create: `packages/bootstrap-runtime/src/bootstrap-state-access.test.ts`
 - Modify: `packages/bootstrap-runtime/src/index.ts`
@@ -1049,6 +1060,7 @@ git commit -m "feat: add fail-safe bootstrap ownership"
 - Modify: `tools/repo-kit/test/...` only if the repository verifier has an existing appropriate fixture location and a new fixture is required
 
 **Interfaces:**
+
 - Consumes: `BootstrapStateStore`, `BootstrapJournal`, `BootstrapOwnershipLease`, `BootstrapPathProfile`.
 - Produces: `OwnedBootstrapStateStore`, `openBootstrapStateAccess()`.
 - Journal remains available without ownership; state mutation does not.
@@ -1138,7 +1150,10 @@ Example shape:
 
 ```js
 const restrictedImports = new Map([
-  ["@heptalogos/bootstrap-state", ["packages/bootstrap-runtime/", "packages/bootstrap-state/"]],
+  [
+    "@heptalogos/bootstrap-state",
+    ["packages/bootstrap-runtime/", "packages/bootstrap-state/"],
+  ],
   ["proper-lockfile", ["packages/bootstrap-runtime/src/bootstrap-ownership.ts"]],
 ]);
 ```
@@ -1181,14 +1196,16 @@ Stage `tools/repo-kit` only if a verifier regression fixture/test was actually a
 
 ---
 
-# Task 7: Implement the Executable Pre-PostgreSQL Bootstrap Prelude
+## Task 7: Implement the Executable Pre-PostgreSQL Bootstrap Prelude
 
 **Files:**
+
 - Create: `packages/bootstrap-runtime/src/bootstrap-prelude.ts`
 - Create: `packages/bootstrap-runtime/src/bootstrap-prelude.test.ts`
 - Modify: `packages/bootstrap-runtime/src/index.ts`
 
 **Interfaces:**
+
 - Consumes: locator loader, path resolver, identity helpers, V2 journal, bootstrap ownership, owned state access.
 - Produces: `prepareBootstrapPrelude()` and `PreparedBootstrapPrelude.acquireOwnership()`.
 - This is the M2 system-level executable closure; it still does not start PostgreSQL.
@@ -1336,36 +1353,37 @@ git commit -m "feat: add pre-postgresql bootstrap prelude"
 
 ---
 
-# Task 8: M2 Acceptance, Cross-Platform Evidence Preparation, and Plan Closure
+## Task 8: M2 Acceptance, Cross-Platform Evidence Preparation, and Plan Closure
 
 **Files:**
+
 - Modify: `docs/plans/active/foundation/m2-pre-postgresql-bootstrap-substrate.md` execution record during local verification
 - Move on successful implementation closure: `docs/plans/active/foundation/m2-pre-postgresql-bootstrap-substrate.md` → `docs/plans/completed/foundation/m2-pre-postgresql-bootstrap-substrate.md`
 - Modify: `docs/plans/README.md` only if its current index format requires the completed plan to be listed
 - Modify: `.agents/heptalogos/package-manifest.json` only if a governed resource changed and the existing validator requires synchronization
 - Modify: `Architecture_Corpus` manifests/hashes only if the implementation legitimately changed Corpus current-state documentation; normal M2 code must not do so merely for bookkeeping
 
-## M2 Acceptance Matrix
+### M2 Acceptance Matrix
 
 Before moving the plan to completed, record these claims exactly:
 
-| Claim | Required local evidence before review | Final cross-platform CI expectation |
-|---|---|---|
-| strict locator decoding | PASS | PASS all OS |
-| InstallationId/InstanceId/BootId semantics | PASS | PASS all OS |
-| independent lifecycle roots | PASS | PASS all OS |
-| configured terminal POSIX symlink rejection | current POSIX host PASS or NOT_RUN | Linux/macOS PASS |
-| configured terminal Windows junction rejection | Windows PASS or NOT_RUN | Windows PASS |
-| same-instance cross-process exclusive bootstrap owner | PASS current host | PASS all OS |
-| different-instance concurrent owners | PASS current host | PASS all OS |
-| abandoned lock is not automatically stolen | PASS current host | PASS all OS |
-| BootstrapState commit requires HELD ownership | PASS | PASS all OS |
-| per-BootId blocked contender journal survives | PASS | PASS all OS |
-| full reparse/parent-component TOCTOU resistance | NOT_RUN | NOT_RUN unless separately qualified |
-| abandoned-lock Recovery | NOT_RUN | NOT_RUN — later H1 milestone |
-| private PostgreSQL | NOT_RUN | NOT_RUN — later H1 milestone |
-| Host lease/fence | NOT_RUN | NOT_RUN — later H1 milestone |
-| source-less/service packaging | NOT_RUN | NOT_RUN — later product qualification |
+| Claim                                                 | Required local evidence before review | Final cross-platform CI expectation   |
+| ----------------------------------------------------- | ------------------------------------- | ------------------------------------- |
+| strict locator decoding                               | PASS                                  | PASS all OS                           |
+| InstallationId/InstanceId/BootId semantics            | PASS                                  | PASS all OS                           |
+| independent lifecycle roots                           | PASS                                  | PASS all OS                           |
+| configured terminal POSIX symlink rejection           | current POSIX host PASS or NOT_RUN    | Linux/macOS PASS                      |
+| configured terminal Windows junction rejection        | Windows PASS or NOT_RUN               | Windows PASS                          |
+| same-instance cross-process exclusive bootstrap owner | PASS current host                     | PASS all OS                           |
+| different-instance concurrent owners                  | PASS current host                     | PASS all OS                           |
+| abandoned lock is not automatically stolen            | PASS current host                     | PASS all OS                           |
+| BootstrapState commit requires HELD ownership         | PASS                                  | PASS all OS                           |
+| per-BootId blocked contender journal survives         | PASS                                  | PASS all OS                           |
+| full reparse/parent-component TOCTOU resistance       | NOT_RUN                               | NOT_RUN unless separately qualified   |
+| abandoned-lock Recovery                               | NOT_RUN                               | NOT_RUN — later H1 milestone          |
+| private PostgreSQL                                    | NOT_RUN                               | NOT_RUN — later H1 milestone          |
+| Host lease/fence                                      | NOT_RUN                               | NOT_RUN — later H1 milestone          |
+| source-less/service packaging                         | NOT_RUN                               | NOT_RUN — later product qualification |
 
 - [ ] **Step 1: Run focused M2 suite from a clean build state**
 
@@ -1531,7 +1549,7 @@ Only after all three platform jobs PASS and HEAD remains unchanged may the PR be
 
 ---
 
-# Mandatory STOP Conditions
+## Mandatory STOP Conditions
 
 Stop implementation and report instead of improvising if any of these occur:
 
@@ -1550,7 +1568,7 @@ No custom fallback may be committed behind the selected dependency route when a 
 
 ---
 
-# Expected M2 Product Truth at Completion
+## Expected M2 Product Truth at Completion
 
 If M2 passes, the repository may truthfully claim:
 
@@ -1581,8 +1599,7 @@ full malicious-filesystem/reparse-point hardening complete
 
 The next H1 implementation plan should consume M2's `OwnedBootstrapPrelude` and close the private PostgreSQL + advisory Host lease + `HostOwnershipFence` handoff, including a safe explicit recovery path for an abandoned pre-PG lock. That follow-on scope must be planned separately after M2 evidence exists.
 
-
-## Execution Record
+### Execution Record
 
 - execution base SHA: `fed29824f089f0b5cee96d458c0a4b6124525da7`
 - Node version: `24.19.0`
@@ -1611,7 +1628,7 @@ The next H1 implementation plan should consume M2's `OwnedBootstrapPrelude` and 
 - final cross-platform CI: `NOT_RUN`; independent review: `NOT_RUN`. No final CI was dispatched before review.
 - remaining H1 debt: private PostgreSQL bring-up, dedicated Host lease and HostOwnershipFence handoff, safe abandoned-lock Recovery, and cross-platform/source-less qualification remain for a later plan.
 
-### Independent review correction
+#### Independent review correction
 
 The independent review baseline was `4f0d827825fcdcd36f21371abd1e733fae80c11e` and received `FAIL / REQUEST_CHANGES`. The original candidate used `bootstrap.ownership.already_held` and text asserting that another live bootstrap attempt owned the instance. The no-stale-takeover profile cannot distinguish a live owner from an abandoned lock, so the final candidate reports the bounded `bootstrap.ownership.lock_present` state without inventing liveness.
 

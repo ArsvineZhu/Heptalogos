@@ -12,7 +12,7 @@
     "tsBuildInfoFile": "./dist/tsconfig.build.tsbuildinfo"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts"],
+  "exclude": ["test/**/*.ts"],
   "references": [
     {
       "path": "../time-service/tsconfig.build.json"

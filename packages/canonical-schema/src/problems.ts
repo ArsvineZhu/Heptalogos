@@ -1,5 +1,16 @@
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+/**
+ * Constructs canonical-schema Problem envelopes for initialization failures so
+ * callers receive shared failure semantics instead of driver exceptions.
+ * @module problems
+ */
 
+import {
+  createProblemError,
+  type Problem,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
+
+/** Enumerates canonical-schema Problem codes exposed by this package. */
 export type CanonicalSchemaProblemCode =
   | "canonical-schema.authority_lost"
   | "canonical-schema.schema_precondition_failed"
@@ -19,13 +30,13 @@ const titles: Readonly<Record<CanonicalSchemaProblemCode, string>> = {
   "canonical-schema.close_failed": "Canonical schema resources failed to close",
 };
 
+/** Creates a typed ProblemError for a canonical-schema failure. */
 export function canonicalSchemaProblem(
   problemCode: CanonicalSchemaProblemCode,
   detail: string,
   category: Problem["category"] = "integrity",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",

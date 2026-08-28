@@ -13,8 +13,7 @@
   "dependencies": {
     "@heptalogos/foundation-contracts": "workspace:*",
     "@heptalogos/persistence": "workspace:*",
-    "@heptalogos/time-service": "workspace:*",
-    "kysely": "catalog:"
+    "@heptalogos/time-service": "workspace:*"
   },
   "devDependencies": {
     "vitest": "catalog:"

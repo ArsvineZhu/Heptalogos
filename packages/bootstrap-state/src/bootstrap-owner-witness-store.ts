@@ -1,11 +1,18 @@
+/**
+ * Owns the local durable Bootstrap owner witness store and its bounded cleanup
+ * path, keeping filesystem mutation behind the BootstrapState package boundary.
+ * @module bootstrap-owner-witness-store
+ */
+
 import { mkdir, readFile, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import { createProblemError, ProblemError } from "@heptalogos/foundation-contracts";
 import {
   canonicalBootstrapOwnerWitnessText,
   parseBootstrapOwnerWitness,
   sealBootstrapOwnerWitness,
 } from "./bootstrap-owner-witness-codec.js";
+import { hasNodeErrorCode } from "./file-io.js";
 import type {
   BootstrapLockGenerationId,
   BootstrapOwnerWitnessBodyV1,
@@ -22,15 +29,13 @@ function storeProblem(
   title: string,
   detail: string,
 ): ProblemError {
-  const problem: Problem = {
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category: "integrity",
     retryClass: "manual",
     title,
     detail,
-  };
-  return new ProblemError(problem);
+  });
 }
 
 function requirePhase(
@@ -46,13 +51,26 @@ function requirePhase(
   }
 }
 
+async function jsonFileNames(directory: string): Promise<readonly string[]> {
+  let entries;
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch (error) {
+    if (hasNodeErrorCode(error, "ENOENT")) return [];
+    throw error;
+  }
+  return entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+    .map((entry) => entry.name);
+}
+
 function requireValidEnvelope(
   text: string,
   path: string,
 ): BootstrapOwnerWitnessEnvelopeV1 {
   const parsed = parseBootstrapOwnerWitness(text);
   if (!parsed.ok) {
-    throw new ProblemError({
+    throw createProblemError({
       ...parsed.problem,
       detail: `${parsed.problem.detail ?? parsed.problem.title}: ${path}`,
     });
@@ -60,32 +78,30 @@ function requireValidEnvelope(
   return parsed.value;
 }
 
+/** Stores owner, attempt, and releasing witnesses under one instance root. */
 export class BootstrapOwnerWitnessStore {
   private readonly ownerPath: string;
   private readonly attemptsPath: string;
   private readonly releasingPath: string;
 
+  /** Binds this store to the canonical instance lifecycle root. */
   constructor(private readonly instanceRoot: string) {
     this.ownerPath = join(instanceRoot, OWNER_FILENAME);
     this.attemptsPath = join(instanceRoot, ATTEMPT_DIRECTORY);
     this.releasingPath = join(instanceRoot, RELEASING_DIRECTORY);
   }
 
+  /** Reads the currently published owner witness, if one exists. */
   async readOwner(): Promise<BootstrapOwnerWitnessEnvelopeV1 | undefined> {
     return this.readOptional(this.ownerPath);
   }
 
+  /** Publishes an OWNER witness and verifies the exact durable reload. */
   async publishOwner(
     witness: BootstrapOwnerWitnessBodyV1,
   ): Promise<BootstrapOwnerWitnessEnvelopeV1> {
     requirePhase(witness, "OWNER");
-    const sealed = sealBootstrapOwnerWitness(witness);
-    const validated = requireValidEnvelope(JSON.stringify(sealed), this.ownerPath);
-    await writeAtomicPublishedFile(
-      this.ownerPath,
-      canonicalBootstrapOwnerWitnessText(validated),
-    );
-    const reloaded = await this.readOwner();
+    const { validated, reloaded } = await this.publishWitness(this.ownerPath, witness);
     if (
       reloaded === undefined ||
       reloaded.witness.lockGenerationId !== witness.lockGenerationId ||
@@ -100,49 +116,35 @@ export class BootstrapOwnerWitnessStore {
     return reloaded;
   }
 
+  /** Publishes an ATTEMPT witness before provider lock acquisition. */
   async createAttempt(
     witness: BootstrapOwnerWitnessBodyV1,
   ): Promise<BootstrapOwnerWitnessEnvelopeV1> {
     requirePhase(witness, "ATTEMPT");
     await mkdir(this.attemptsPath, { recursive: true });
     const path = this.attemptPath(witness.lockGenerationId);
-    const sealed = sealBootstrapOwnerWitness(witness);
-    const validated = requireValidEnvelope(JSON.stringify(sealed), path);
-    await writeAtomicPublishedFile(path, canonicalBootstrapOwnerWitnessText(validated));
-    return requireValidEnvelope(await readFile(path, "utf8"), path);
+    return (await this.publishWitness(path, witness)).reloaded;
   }
 
+  /** Lists and validates all outstanding ATTEMPT witnesses. */
   async listAttempts(): Promise<readonly BootstrapOwnerWitnessEnvelopeV1[]> {
-    let entries;
-    try {
-      entries = await readdir(this.attemptsPath, { withFileTypes: true });
-    } catch (error) {
-      if (isCode(error, "ENOENT")) return [];
-      throw error;
-    }
-
     const witnesses = await Promise.all(
-      entries
-        .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
-        .map(async (entry) => {
-          const path = this.attemptPathFromName(entry.name);
-          return requireValidEnvelope(await readFile(path, "utf8"), path);
-        }),
+      (await jsonFileNames(this.attemptsPath)).map(async (name) => {
+        const path = this.attemptPathFromName(name);
+        return requireValidEnvelope(await readFile(path, "utf8"), path);
+      }),
     );
     return witnesses;
   }
 
+  /** Publishes a RELEASING witness before removing the current owner. */
   async publishReleasing(
     witness: BootstrapOwnerWitnessBodyV1 & { readonly phase: "RELEASING" },
   ): Promise<BootstrapOwnerWitnessEnvelopeV1> {
     requirePhase(witness, "RELEASING");
     await mkdir(this.releasingPath, { recursive: true });
     const path = this.releasingPathFor(witness.lockGenerationId);
-    const sealed = sealBootstrapOwnerWitness(witness);
-    const validated = requireValidEnvelope(JSON.stringify(sealed), path);
-    await writeAtomicPublishedFile(path, canonicalBootstrapOwnerWitnessText(validated));
-    const reloaded = await readFile(path, "utf8");
-    const exact = requireValidEnvelope(reloaded, path);
+    const { validated, reloaded: exact } = await this.publishWitness(path, witness);
     if (
       exact.witness.lockGenerationId !== witness.lockGenerationId ||
       exact.digest.hex !== validated.digest.hex
@@ -156,32 +158,39 @@ export class BootstrapOwnerWitnessStore {
     return exact;
   }
 
-  async listReleasing(): Promise<readonly BootstrapOwnerWitnessEnvelopeV1[]> {
-    let entries;
-    try {
-      entries = await readdir(this.releasingPath, { withFileTypes: true });
-    } catch (error) {
-      if (isCode(error, "ENOENT")) return [];
-      throw error;
-    }
+  private async publishWitness(
+    path: string,
+    witness: BootstrapOwnerWitnessBodyV1,
+  ): Promise<{
+    readonly validated: BootstrapOwnerWitnessEnvelopeV1;
+    readonly reloaded: BootstrapOwnerWitnessEnvelopeV1;
+  }> {
+    const sealed = sealBootstrapOwnerWitness(witness);
+    const validated = requireValidEnvelope(JSON.stringify(sealed), path);
+    await writeAtomicPublishedFile(path, canonicalBootstrapOwnerWitnessText(validated));
+    const reloaded = requireValidEnvelope(await readFile(path, "utf8"), path);
+    return { validated, reloaded };
+  }
 
+  /** Lists and validates witnesses left by interrupted release. */
+  async listReleasing(): Promise<readonly BootstrapOwnerWitnessEnvelopeV1[]> {
     const witnesses = await Promise.all(
-      entries
-        .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
-        .map(async (entry) => {
-          const path = this.releasingPathFromName(entry.name);
-          const value = requireValidEnvelope(await readFile(path, "utf8"), path);
-          requirePhase(value.witness, "RELEASING");
-          return value;
-        }),
+      (await jsonFileNames(this.releasingPath)).map(async (name) => {
+        const path = this.releasingPathFromName(name);
+        const value = requireValidEnvelope(await readFile(path, "utf8"), path);
+        requirePhase(value.witness, "RELEASING");
+        return value;
+      }),
     );
     return witnesses;
   }
 
+  /** Removes a releasing witness after its owner transition is complete. */
   async removeReleasing(lockGenerationId: BootstrapLockGenerationId): Promise<void> {
     await rm(this.releasingPathFor(lockGenerationId), { force: true });
   }
 
+  /** Removes the current owner only when its generation still matches. */
   async removeCurrentOwnerWhileHeld(
     lockGenerationId: BootstrapLockGenerationId,
   ): Promise<void> {
@@ -199,6 +208,7 @@ export class BootstrapOwnerWitnessStore {
     await rm(this.ownerPath, { force: true });
   }
 
+  /** Removes one failed or completed ownership attempt witness. */
   async removeAttempt(lockGenerationId: BootstrapLockGenerationId): Promise<void> {
     await rm(this.attemptPath(lockGenerationId), { force: true });
   }
@@ -210,7 +220,7 @@ export class BootstrapOwnerWitnessStore {
     try {
       text = await readFile(path, "utf8");
     } catch (error) {
-      if (isCode(error, "ENOENT")) return undefined;
+      if (hasNodeErrorCode(error, "ENOENT")) return undefined;
       throw error;
     }
     return requireValidEnvelope(text, path);
@@ -231,13 +241,4 @@ export class BootstrapOwnerWitnessStore {
   private releasingPathFromName(name: string): string {
     return join(this.releasingPath, name);
   }
-}
-
-function isCode(error: unknown, code: string): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === code
-  );
 }

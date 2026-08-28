@@ -1,7 +1,14 @@
+/**
+ * Coordinates bounded private PostgreSQL controller operations and verifies
+ * installation identity before process lifecycle actions are admitted.
+ * @module controller
+ */
+
 import { realpath } from "node:fs/promises";
 import { join } from "node:path";
 import {
   asContentDigest,
+  createProblemError,
   digestCanonicalJson,
   ProblemError,
   type CanonicalJsonValue,
@@ -46,7 +53,9 @@ import {
   processTimeoutSeconds,
   type PrivatePostgresProcessStatus,
 } from "./lifecycle-process.js";
+import { assertPrivatePostgresPort } from "./port.js";
 
+/** Supplies inputs for private cluster initialization and control checks. */
 export interface InitializePrivatePostgresClusterOptions {
   readonly toolchain: PrivatePostgresToolchain;
   readonly placement: PrivatePostgresPlacement;
@@ -57,6 +66,7 @@ export interface InitializePrivatePostgresClusterOptions {
   readonly assertControlAuthority: PrivatePostgresControlGuard;
 }
 
+/** Supplies inputs for validating an existing private cluster. */
 export interface ValidateExistingPrivatePostgresClusterOptions {
   readonly toolchain: PrivatePostgresToolchain;
   readonly placement: PrivatePostgresPlacement;
@@ -64,6 +74,7 @@ export interface ValidateExistingPrivatePostgresClusterOptions {
   readonly timeoutMs: number;
 }
 
+/** Supplies inputs for starting a validated private cluster. */
 export interface StartPrivatePostgresClusterOptions {
   readonly toolchain: PrivatePostgresToolchain;
   readonly placement: PrivatePostgresPlacement;
@@ -79,25 +90,13 @@ function controllerProblem(
   detail: string,
   category: Problem["category"] = "integrity",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",
     title,
     detail,
   });
-}
-
-function assertPort(port: number): void {
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw controllerProblem(
-      "private-postgres.cluster.invalid_port",
-      "Private PostgreSQL port is invalid",
-      "The private PostgreSQL port must be an integer from 1 through 65535",
-      "validation",
-    );
-  }
 }
 
 function assertLifecycleOptions(options: PrivatePostgresLifecycleOptions): void {
@@ -118,10 +117,11 @@ function assertLifecycleOptions(options: PrivatePostgresLifecycleOptions): void 
   }
 }
 
+/** Creates the canonical private PostgreSQL initialization profile. */
 export function createPrivatePostgresInitializationProfile(
   port: number,
 ): PrivatePostgresInitializationProfile {
-  assertPort(port);
+  assertPrivatePostgresPort(port);
   return Object.freeze({
     bootstrapRoleName: PRIVATE_POSTGRES_BOOTSTRAP_ROLE_NAME,
     encoding: "UTF8",
@@ -133,6 +133,7 @@ export function createPrivatePostgresInitializationProfile(
   });
 }
 
+/** Derives the content identity of the initialization profile. */
 export function createPrivatePostgresInitializationProfileRevision(
   port: number,
 ): PrivatePostgresInitializationProfileRevision {
@@ -178,10 +179,11 @@ async function assertFirstInitializationTarget(
   }
 }
 
+/** Initializes the private cluster and returns verified identity evidence. */
 export async function initializePrivatePostgresCluster(
   options: InitializePrivatePostgresClusterOptions,
 ): Promise<PrivatePostgresInitializationResult> {
-  assertPort(options.port);
+  assertPrivatePostgresPort(options.port);
   await assertFirstInitializationTarget(options.placement);
 
   const initializationProfileRevision =
@@ -243,6 +245,7 @@ export async function initializePrivatePostgresCluster(
   });
 }
 
+/** Validates existing cluster identity, profile, and layout invariants. */
 export async function validateExistingCluster(
   options: ValidateExistingPrivatePostgresClusterOptions,
 ): Promise<PrivatePostgresInitializationResult> {
@@ -583,12 +586,13 @@ async function stopProcess(options: StartPrivatePostgresClusterOptions): Promise
   );
 }
 
+/** Starts a validated private cluster and proves its ready disposition. */
 export async function startPrivatePostgresCluster(
   options: StartPrivatePostgresClusterOptions,
 ): Promise<import("./contracts.js").ReadyPrivatePostgresMechanics> {
   const lifecycleState = createPrivatePostgresLifecycleTracker();
   options.assertControlAuthority();
-  assertPort(options.expectedIdentity.persistedPort);
+  assertPrivatePostgresPort(options.expectedIdentity.persistedPort);
   assertLifecycleOptions(options.lifecycle);
   if (!/^\//u.test(options.logFilePath) && process.platform !== "win32") {
     throw controllerProblem(

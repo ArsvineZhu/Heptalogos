@@ -1,3 +1,9 @@
+/**
+ * Tracks in-flight private PostgreSQL process operations with elapsed-time
+ * bounds so shutdown and recovery cannot wait indefinitely on a child process.
+ * @module lifecycle-process
+ */
+
 import { performance } from "node:perf_hooks";
 import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
 import type {
@@ -7,6 +13,7 @@ import type {
 } from "./contracts.js";
 import { runPostgresTool } from "./process-adapter.js";
 
+/** Supplies toolchain, placement, port, and timeout inputs to process probes. */
 export interface PrivatePostgresProcessOptions {
   readonly toolchain: PrivatePostgresToolchain;
   readonly placement: PrivatePostgresPlacement;
@@ -14,8 +21,10 @@ export interface PrivatePostgresProcessOptions {
   readonly lifecycle: PrivatePostgresLifecycleOptions;
 }
 
+/** Reports the process status proven by pg_ctl. */
 export type PrivatePostgresProcessStatus = "RUNNING" | "STOPPED";
 
+/** Constructs typed Problems for bounded PostgreSQL process failures. */
 export type PrivatePostgresLifecycleProblem = (
   problemCode: string,
   title: string,
@@ -29,6 +38,7 @@ function timeoutSeconds(timeoutMs: number): string {
   return String(Math.max(1, Math.ceil(timeoutMs / 1000)));
 }
 
+/** Reads process status with a bounded pg_ctl probe. */
 export async function readPrivatePostgresProcessStatus(
   options: PrivatePostgresProcessOptions,
   makeProblem: PrivatePostgresLifecycleProblem,
@@ -48,6 +58,7 @@ export async function readPrivatePostgresProcessStatus(
   );
 }
 
+/** Polls process status and pg_isready until readiness or timeout. */
 export async function waitForPrivatePostgresReadiness(
   options: PrivatePostgresProcessOptions,
   makeProblem: PrivatePostgresLifecycleProblem,
@@ -88,6 +99,7 @@ export async function waitForPrivatePostgresReadiness(
   );
 }
 
+/** Runs pg_ctl through the process owner and rejects non-zero outcomes. */
 export async function runPrivatePostgresCtlChecked(
   options: PrivatePostgresProcessOptions,
   args: readonly string[],
@@ -107,6 +119,7 @@ export async function runPrivatePostgresCtlChecked(
   }
 }
 
+/** Builds the complete process options and requires a persisted port. */
 export function lifecycleProcessOptions(
   options: Pick<
     PrivatePostgresProcessOptions,
@@ -124,6 +137,7 @@ export function lifecycleProcessOptions(
   };
 }
 
+/** Converts a millisecond timeout into the pg_ctl seconds argument. */
 export function processTimeoutSeconds(timeoutMs: number): string {
   return timeoutSeconds(timeoutMs);
 }

@@ -1,7 +1,14 @@
-import { mkdir, readFile } from "node:fs/promises";
+/**
+ * Owns durable maintenance journal storage and atomic record replacement so a
+ * recovery process can observe one coherent operation state at a time.
+ * @module maintenance-store
+ */
+
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
   canonicalizeJson,
+  createProblem,
   parseUuidV7Id,
   ProblemError,
   type CanonicalJsonValue,
@@ -20,6 +27,8 @@ import type {
   MaintenanceOperationId,
 } from "./maintenance-model.js";
 import { writeAtomicPublishedFile } from "./atomic-file.js";
+import { KeyedAsyncSerializer } from "./keyed-serialization.js";
+import { readOptionalTextFile } from "./file-io.js";
 
 const CURRENT_FILENAME = "maintenance-state.json";
 const PREVIOUS_FILENAME = "maintenance-state.previous.json";
@@ -30,14 +39,13 @@ type Candidate =
   | { readonly kind: "VALID"; readonly value: MaintenanceJournalEnvelopeV1 };
 
 function storeProblem(problemCode: string, title: string, detail: string): Problem {
-  return {
-    schemaVersion: 1,
+  return createProblem({
     problemCode,
     category: "integrity",
     retryClass: "manual",
     title,
     detail,
-  };
+  });
 }
 
 function operationId(value: unknown): MaintenanceOperationId {
@@ -62,37 +70,42 @@ function stateText(value: MaintenanceJournalEnvelopeV1): string {
   return canonicalizeJson(value as unknown as CanonicalJsonValue);
 }
 
+/** Owns serialized, atomic MaintenanceJournal revisions for one instance. */
 export class MaintenanceJournalStore {
-  private readonly operationTails = new Map<string, Promise<void>>();
+  private readonly operationSerializer = new KeyedAsyncSerializer();
 
+  /** Binds the journal store to an instance root and optional authority check. */
   constructor(
     private readonly instanceRoot: string,
     private readonly assertAuthority?: () => void,
   ) {}
 
+  /** Loads the current journal result for one operation. */
   async load(operation: MaintenanceOperationId): Promise<MaintenanceJournalLoadResult> {
     this.assertAuthority?.();
     const id = operationId(operation);
-    return this.withOperationLock(id, () => {
+    return this.operationSerializer.run(id, () => {
       this.assertAuthority?.();
       return this.loadUnlocked(id);
     });
   }
 
+  /** Loads current/previous envelopes and the effective recovery progress stage. */
   async loadRecoveryHead(
     operation: MaintenanceOperationId,
   ): Promise<MaintenanceJournalRecoveryHead> {
     this.assertAuthority?.();
     const id = operationId(operation);
-    return this.withOperationLock(id, () => {
+    return this.operationSerializer.run(id, () => {
       this.assertAuthority?.();
       return this.loadRecoveryHeadUnlocked(id);
     });
   }
 
+  /** Creates revision one after confirming the operation does not already exist. */
   async create(body: MaintenanceJournalBodyV1): Promise<MaintenanceJournalEnvelopeV1> {
     const id = operationId(body.operationId);
-    return this.withOperationLock(id, async () => {
+    return this.operationSerializer.run(id, async () => {
       this.assertAuthority?.();
       const existing = await this.loadUnlocked(id);
       if (existing.status !== "EMPTY") {
@@ -117,9 +130,10 @@ export class MaintenanceJournalStore {
     });
   }
 
+  /** Advances one operation serially after checking revision and authority. */
   async advance(body: MaintenanceJournalBodyV1): Promise<MaintenanceJournalEnvelopeV1> {
     const id = operationId(body.operationId);
-    return this.withOperationLock(id, async () => {
+    return this.operationSerializer.run(id, async () => {
       this.assertAuthority?.();
       const current = await this.loadUnlocked(id);
       if (current.status === "EMPTY") {
@@ -328,42 +342,12 @@ export class MaintenanceJournalStore {
   }
 
   private async readCandidate(path: string): Promise<Candidate> {
-    let text: string;
-    try {
-      text = await readFile(path, "utf8");
-    } catch (error) {
-      if (
-        error &&
-        typeof error === "object" &&
-        "code" in error &&
-        error.code === "ENOENT"
-      ) {
-        return { kind: "MISSING" };
-      }
-      throw error;
-    }
+    const text = await readOptionalTextFile(path);
+    if (text === undefined) return { kind: "MISSING" };
 
     const parsed = parseMaintenanceJournal(text);
     return parsed.ok
       ? { kind: "VALID", value: parsed.value }
       : { kind: "INVALID", problem: parsed.problem };
-  }
-
-  private withOperationLock<T>(
-    id: MaintenanceOperationId,
-    operation: () => Promise<T>,
-  ): Promise<T> {
-    const previous = this.operationTails.get(id) ?? Promise.resolve();
-    const current = previous.then(operation, operation);
-    const barrier = current.then(
-      () => undefined,
-      () => undefined,
-    );
-    this.operationTails.set(id, barrier);
-    return current.finally(() => {
-      if (this.operationTails.get(id) === barrier) {
-        this.operationTails.delete(id);
-      }
-    });
   }
 }

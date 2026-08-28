@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript"],
+  "options": {
+    "typeAware": true,
+    "denyWarnings": true,
+    "reportUnusedDisableDirectives": "deny"
+  },
+  "rules": {
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "ajv",
+            "message": "Ajv mechanics belong behind SchemaRuntime."
+          },
+          {
+            "name": "typebox",
+            "message": "TypeBox mechanics belong behind SchemaRuntime."
+          }
+        ],
+        "patterns": [
+          {
+            "group": ["ajv/**", "typebox/**"],
+            "message": "Schema mechanics belong behind SchemaRuntime."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["packages/schema-runtime/**"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
+}

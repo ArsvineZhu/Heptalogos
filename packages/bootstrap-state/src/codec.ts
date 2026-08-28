@@ -1,12 +1,21 @@
-import { Ajv2020 } from "ajv/dist/2020.js";
-import { Type } from "typebox";
+/**
+ * Seals and parses BootstrapState envelopes using canonical JSON and strict
+ * schema validation; malformed or mismatched revisions fail explicitly.
+ * @module codec
+ */
+
 import {
+  createProblem,
   digestCanonicalJson,
   type CanonicalJsonValue,
   type Problem,
   SHA256_HEX_PATTERN,
   UUID_V7_PATTERN,
 } from "@heptalogos/foundation-contracts";
+import { compileSchema } from "@heptalogos/schema-runtime";
+import { Type } from "@heptalogos/schema-runtime/typebox";
+import { bootstrapDigestSchema } from "./schemas.js";
+import { readSchemaVersion } from "./json-shape.js";
 import type {
   BootstrapStateBody,
   BootstrapStateBodyV1,
@@ -15,17 +24,8 @@ import type {
   BootstrapStateParseResult,
 } from "./model.js";
 
+/** Names the digest domain for BootstrapState envelopes. */
 export const BOOTSTRAP_STATE_DIGEST_DOMAIN = "heptalogos.bootstrap-state/v1";
-
-const digestSchema = Type.Object(
-  {
-    algorithm: Type.Literal("sha256"),
-    canonicalization: Type.Literal("RFC8785-JCS"),
-    domain: Type.String({ minLength: 1 }),
-    hex: Type.String({ pattern: SHA256_HEX_PATTERN }),
-  },
-  { additionalProperties: false },
-);
 
 const privatePostgresStateSchemaV1 = Type.Object(
   {
@@ -73,49 +73,35 @@ const stateSchemaV1 = Type.Object(
 const envelopeSchemaV1 = Type.Object(
   {
     state: stateSchemaV1,
-    digest: digestSchema,
+    digest: bootstrapDigestSchema,
   },
   { additionalProperties: false },
 );
 
-const ajv = new Ajv2020({
-  allErrors: true,
-  coerceTypes: false,
-  removeAdditional: false,
-  useDefaults: false,
-  strict: true,
-});
-const validateEnvelopeV1 = ajv.compile(envelopeSchemaV1);
+const validateEnvelopeV1 = compileSchema<BootstrapStateEnvelope>(envelopeSchemaV1);
 
 function problem(
   problemCode: string,
   title: string,
   detail: string,
 ): BootstrapStateParseResult {
-  const value: Problem = {
-    schemaVersion: 1,
+  const value: Problem = createProblem({
     problemCode,
     category: "validation",
     retryClass: "manual",
     title,
     detail,
-  };
+  });
   return { ok: false, problem: value };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function schemaVersionOf(value: unknown): unknown {
-  if (!isRecord(value) || !isRecord(value.state)) return undefined;
-  return value.state.schemaVersion;
-}
-
+/** Seals a BootstrapState body into its canonical versioned envelope. */
 export function sealBootstrapState(
   state: BootstrapStateBodyV1,
 ): BootstrapStateEnvelopeV1;
+/** Seals a BootstrapState body using the same public overload contract. */
 export function sealBootstrapState(state: BootstrapStateBody): BootstrapStateEnvelope;
+/** Implements the canonical BootstrapState envelope construction. */
 export function sealBootstrapState(state: BootstrapStateBody): BootstrapStateEnvelope {
   const digest = digestCanonicalJson(
     BOOTSTRAP_STATE_DIGEST_DOMAIN,
@@ -124,6 +110,7 @@ export function sealBootstrapState(state: BootstrapStateBody): BootstrapStateEnv
   return { state, digest } as BootstrapStateEnvelope;
 }
 
+/** Parses and validates a persisted BootstrapState envelope. */
 export function parseBootstrapState(text: string): BootstrapStateParseResult {
   let parsed: unknown;
   try {
@@ -136,7 +123,7 @@ export function parseBootstrapState(text: string): BootstrapStateParseResult {
     );
   }
 
-  const version = schemaVersionOf(parsed);
+  const version = readSchemaVersion(parsed, "state");
   if (typeof version === "number" && version > 1) {
     return problem(
       "bootstrap.state.unsupported_schema",
@@ -145,7 +132,7 @@ export function parseBootstrapState(text: string): BootstrapStateParseResult {
     );
   }
 
-  if (!validateEnvelopeV1(parsed)) {
+  if (!validateEnvelopeV1.validate(parsed).ok) {
     return problem(
       "bootstrap.state.invalid_schema",
       "Bootstrap state does not match its supported schema",

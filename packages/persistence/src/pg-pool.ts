@@ -1,9 +1,16 @@
+/**
+ * Creates the normal PostgreSQL pool from Host-authorized connection settings
+ * and keeps pool lifecycle ownership inside the persistence adapter.
+ * @module pg-pool
+ */
+
 import { Pool } from "pg";
 import type { HostPersistenceAuthority } from "@heptalogos/host-ownership";
 import type { PersistenceRuntimeOptions } from "./contracts.js";
 
 const UTF8_DECODER = new TextDecoder("utf-8", { fatal: true });
 
+/** Creates the Host-authorized pool and installs permanent background sinks. */
 export function createPersistencePool(
   authority: HostPersistenceAuthority,
   options: PersistenceRuntimeOptions,

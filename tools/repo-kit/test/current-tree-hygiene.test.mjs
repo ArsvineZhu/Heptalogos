@@ -19,10 +19,10 @@ async function collectTrackedPaths(root, directory = root, paths = []) {
 async function fixtureTree(setup) {
   const root = await mkdtemp(join(tmpdir(), "heptalogos-hygiene-"));
   try {
-    await mkdir(join(root, "Architecture_Corpus/references"), { recursive: true });
+    await mkdir(join(root, "docs/governance"), { recursive: true });
     await mkdir(join(root, "docs/plans/completed"), { recursive: true });
     await writeFile(
-      join(root, "Architecture_Corpus/references/compatibility-obligations.json"),
+      join(root, "docs/governance/compatibility-obligations.json"),
       JSON.stringify({
         schemaVersion: 1,
         compatibilityEpoch: "PRE_PRODUCTION",
@@ -52,6 +52,36 @@ describe("current-tree hygiene scanner", () => {
     });
 
     expect(hasCode(result, "development-provenance")).toBe(true);
+  });
+
+  it("scans the dedicated tests responsibility root", async () => {
+    const result = await fixtureTree(async (root) => {
+      await mkdir(join(root, "tests/toolchain"), { recursive: true });
+      await writeFile(join(root, "tests/toolchain/h2a3-api-lane.ts"), "export {};\n");
+    });
+
+    expect(hasCode(result, "development-provenance")).toBe(true);
+  });
+
+  it("scans every permanent scripts responsibility root", async () => {
+    const result = await fixtureTree(async (root) => {
+      await mkdir(join(root, "scripts/gates"), { recursive: true });
+      await writeFile(join(root, "scripts/gates/h2a3-gate.mjs"), "export {};\n");
+    });
+
+    expect(hasCode(result, "development-provenance")).toBe(true);
+  });
+
+  it("rejects historical compatibility wording in the tests root", async () => {
+    const result = await fixtureTree(async (root) => {
+      await mkdir(join(root, "tests/qualification"), { recursive: true });
+      await writeFile(
+        join(root, "tests/qualification/compatibility.test.ts"),
+        "it('rejects a legacy shape', () => {});\n",
+      );
+    });
+
+    expect(hasCode(result, "historical-compatibility")).toBe(true);
   });
 
   it("rejects a phase token in a test constant or value", async () => {
@@ -116,7 +146,7 @@ describe("current-tree hygiene scanner", () => {
         join(root, "packages/generated/untracked.ts"),
         'const marker = "PR #24";\n',
       );
-      return ["Architecture_Corpus/references/compatibility-obligations.json"];
+      return ["docs/governance/compatibility-obligations.json"];
     });
 
     expect(result.findings).toEqual([]);
@@ -176,10 +206,6 @@ describe("current-tree hygiene scanner", () => {
         join(root, "docs/plans/completed/h2b-history.md"),
         "legacy H2B evidence and obsolete development shape\n",
       );
-      await writeFile(
-        join(root, "Architecture_Corpus/h2b-history.md"),
-        "legacy H2B architecture evidence\n",
-      );
     });
 
     expect(result.findings).toEqual([]);
@@ -210,17 +236,17 @@ describe("current-tree hygiene scanner", () => {
   it("fails a missing or malformed compatibility register", async () => {
     const root = await mkdtemp(join(tmpdir(), "heptalogos-hygiene-register-"));
     try {
-      const missing = await scanCurrentTree({ root, trackedPaths: [] });
+      const missing = scanCurrentTree({ root, trackedPaths: [] });
       expect(hasCode(missing, "compatibility-register")).toBe(true);
 
-      await mkdir(join(root, "Architecture_Corpus/references"), { recursive: true });
+      await mkdir(join(root, "docs/governance"), { recursive: true });
       await writeFile(
-        join(root, "Architecture_Corpus/references/compatibility-obligations.json"),
+        join(root, "docs/governance/compatibility-obligations.json"),
         "{ malformed\n",
       );
-      const malformed = await scanCurrentTree({
+      const malformed = scanCurrentTree({
         root,
-        trackedPaths: ["Architecture_Corpus/references/compatibility-obligations.json"],
+        trackedPaths: ["docs/governance/compatibility-obligations.json"],
       });
       expect(hasCode(malformed, "compatibility-register")).toBe(true);
     } finally {
@@ -231,16 +257,16 @@ describe("current-tree hygiene scanner", () => {
   it("rejects non-empty PRE_PRODUCTION obligations", async () => {
     const root = await mkdtemp(join(tmpdir(), "heptalogos-hygiene-obligation-"));
     try {
-      await mkdir(join(root, "Architecture_Corpus/references"), { recursive: true });
+      await mkdir(join(root, "docs/governance"), { recursive: true });
       await writeFile(
-        join(root, "Architecture_Corpus/references/compatibility-obligations.json"),
+        join(root, "docs/governance/compatibility-obligations.json"),
         JSON.stringify({
           schemaVersion: 1,
           compatibilityEpoch: "PRE_PRODUCTION",
           obligations: [{ id: "external-consumer" }],
         }),
       );
-      const result = await scanCurrentTree({ root, trackedPaths: [] });
+      const result = scanCurrentTree({ root, trackedPaths: [] });
       expect(hasCode(result, "compatibility-register")).toBe(true);
     } finally {
       await rm(root, { recursive: true, force: true });

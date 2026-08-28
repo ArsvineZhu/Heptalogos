@@ -7,19 +7,19 @@ description: Use when changing the Heptalogos Subject, Subject Chat, messaging d
 
 ## Authority route
 
-Corpus root: `../../../Architecture_Corpus/`  
+Documentation root: `../../../docs/`
 Route index: `../../heptalogos/corpus-routes.json`
 
 Read the core interaction chain:
 
-- [Subject and cognition](../../../Architecture_Corpus/08-Subject与认知系统.md)
-- [Messaging and Subject Chat](../../../Architecture_Corpus/09-Messaging与Subject-Chat.md)
-- [AI Runtime / Capability / MCP](../../../Architecture_Corpus/10-AI-Runtime-Capability-MCP.md)
-- [Advanced research integration map](../../../Architecture_Corpus/17-高级研究子系统接入地图.md)
-- [S07 Messaging / Subject Chat / drivers](../../../Architecture_Corpus/specs/S07-Messaging-SubjectChat-Drivers.md)
-- [S08 AI / Capability / MCP](../../../Architecture_Corpus/specs/S08-AI-Capability-MCP.md)
-- [S09 Reactor / context / prompt / advanced cognition](../../../Architecture_Corpus/specs/S09-Reactor-Context-Prompt与高级认知接入.md)
-- [S14 Canonical end-to-end flows](../../../Architecture_Corpus/specs/S14-Canonical-End-to-End-Flows.md)
+- [Subject and cognition](../../../docs/architecture/subject.md)
+- [Messaging and Subject Chat](../../../docs/architecture/messaging.md)
+- [AI Runtime / Capability / MCP](../../../docs/architecture/ai-runtime.md)
+- [Advanced research integration map](../../../docs/architecture/research-subsystem-integration.md)
+- [S07 Messaging / Subject Chat / drivers](../../../docs/architecture/contracts/messaging-subject-chat-drivers.md)
+- [S08 AI / Capability / MCP](../../../docs/architecture/contracts/ai-capability-mcp.md)
+- [S09 Reactor / context / prompt / advanced cognition](../../../docs/architecture/contracts/reactor-context-prompt-research-integration.md)
+- [S14 Canonical end-to-end flows](../../../docs/architecture/contracts/canonical-end-to-end-flows.md)
 
 ## Procedure
 

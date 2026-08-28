@@ -2,12 +2,13 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "execution-lineage",
   "projectType": "library",
+  "tags": ["kind:product", "area:execution"],
   "sourceRoot": "packages/execution-lineage/src",
   "targets": {
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint packages/execution-lineage"
+        "command": "oxlint --type-aware packages/execution-lineage"
       }
     },
     "test": {

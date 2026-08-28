@@ -1,9 +1,21 @@
+/**
+ * Reads and writes the canonical private PostgreSQL runtime profile so startup
+ * uses one validated HBA and server configuration projection.
+ * @module runtime-profile
+ */
+
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  type Problem,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
 import type { PrivatePostgresToolchain } from "./contracts.js";
 import { runPostgresTool } from "./process-adapter.js";
+import { assertPrivatePostgresPort } from "./port.js";
 
+/** Reports the effective private PostgreSQL profile read from the cluster. */
 export interface EffectivePrivatePostgresProfile {
   readonly listenAddress: string;
   readonly unixSocketDirectories: string;
@@ -19,8 +31,7 @@ function profileProblem(
   detail: string,
   category: Problem["category"] = "integrity",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",
@@ -29,19 +40,9 @@ function profileProblem(
   });
 }
 
-function assertPort(port: number): void {
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw profileProblem(
-      "private-postgres.cluster.invalid_port",
-      "Private PostgreSQL port is invalid",
-      "The private PostgreSQL port must be an integer from 1 through 65535",
-      "validation",
-    );
-  }
-}
-
+/** Renders the canonical runtime configuration for a private cluster. */
 export function createCanonicalRuntimeProfile(port: number): string {
-  assertPort(port);
+  assertPrivatePostgresPort(port);
   return [
     "listen_addresses = '127.0.0.1'",
     "unix_socket_directories = ''",
@@ -51,6 +52,7 @@ export function createCanonicalRuntimeProfile(port: number): string {
   ].join("\n");
 }
 
+/** Renders the canonical HBA policy for loopback SCRAM authentication. */
 export function createCanonicalHbaProfile(): string {
   return [
     "# Heptalogos private PostgreSQL HBA profile v1",
@@ -59,6 +61,7 @@ export function createCanonicalHbaProfile(): string {
   ].join("\n");
 }
 
+/** Writes the canonical runtime profile and HBA configuration atomically. */
 export async function writeCanonicalPrivatePostgresRuntimeProfile(
   dataDirectory: string,
   port: number,
@@ -112,6 +115,7 @@ async function queryEffectiveSetting(
   return value;
 }
 
+/** Reads the effective profile values needed for identity qualification. */
 export async function inspectEffectivePrivatePostgresProfile(
   toolchain: PrivatePostgresToolchain,
   dataDirectory: string,
@@ -136,7 +140,7 @@ export async function inspectEffectivePrivatePostgresProfile(
     timeoutMs,
   );
   const port = Number(portText);
-  assertPort(port);
+  assertPrivatePostgresPort(port);
   const passwordEncryption = await queryEffectiveSetting(
     toolchain,
     dataDirectory,
@@ -166,6 +170,7 @@ export async function inspectEffectivePrivatePostgresProfile(
   });
 }
 
+/** Reads and validates the canonical HBA profile text. */
 export async function readCanonicalHbaProfile(path: string): Promise<string> {
   try {
     return await readFile(path, "utf8");

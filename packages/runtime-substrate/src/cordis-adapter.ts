@@ -1,3 +1,9 @@
+/**
+ * Adapts Cordis Fiber activation and disposal into the narrow Substrate
+ * contract, retaining only Heptalogos task admission and settlement policy.
+ * @module cordis-adapter
+ */
+
 import { Context, type Fiber } from "cordis";
 import { ProblemError } from "@heptalogos/foundation-contracts";
 import { runtimeSubstrateProblem } from "./problems.js";
@@ -17,11 +23,6 @@ interface TrackedTask {
   readonly label: string;
   readonly task: Promise<unknown>;
   settled: boolean;
-}
-
-interface PendingDisposer {
-  readonly label: string;
-  readonly disposer: RuntimeDisposer;
 }
 
 function validateOptions(options: RuntimeSubstrateOptions): void {
@@ -58,13 +59,10 @@ function timeout<T>(promise: Promise<T>, milliseconds: number): Promise<T> {
 
 class Activation implements SubstrateActivationHandle {
   private currentState: InternalState = "ACTIVATING";
-  private activationFiber: Fiber | undefined;
-  private pluginFiber: Fiber | undefined;
-  private activationPromise: Promise<void> | undefined;
-  private readonly fiberReady: Promise<void>;
-  private resolveFiberReady!: () => void;
+  // Cordis Fiber is the lifecycle authority; this state is only the
+  // RuntimeSubstrate contract projection.
+  private fiber: Fiber | undefined;
   private readonly activationController = new AbortController();
-  private readonly pendingDisposers: PendingDisposer[] = [];
   private readonly trackedTasks = new Set<TrackedTask>();
   private readonly lateDisposers = new Set<Promise<void>>();
   private disposalPromise: Promise<void> | undefined;
@@ -76,11 +74,7 @@ class Activation implements SubstrateActivationHandle {
     private readonly request: SubstrateActivationRequest,
     private readonly options: RuntimeSubstrateOptions,
     private readonly onDisposed: (activation: Activation) => void,
-  ) {
-    this.fiberReady = new Promise<void>((resolve) => {
-      this.resolveFiberReady = resolve;
-    });
-  }
+  ) {}
 
   get state(): SubstrateActivationHandle["state"] {
     switch (this.currentState) {
@@ -99,28 +93,18 @@ class Activation implements SubstrateActivationHandle {
 
   async start(): Promise<SubstrateActivationHandle> {
     try {
-      this.pluginFiber = this.root.plugin({
+      this.fiber = this.root.plugin({
         name: this.request.label,
         apply: (context: Context) => {
-          this.activationFiber = context.fiber;
-          this.resolveFiberReady();
+          this.fiber = context.fiber;
           if (this.currentState !== "ACTIVATING") {
-            this.activationPromise = Promise.resolve();
             return;
           }
-          try {
-            this.activationPromise = Promise.resolve(
-              this.request.activate(this.createScope()),
-            );
-          } catch (error) {
-            this.activationPromise = Promise.reject(error);
-          }
+          return this.request.activate(this.createScope());
         },
       });
 
-      await this.pluginFiber.await();
-      await (this.activationPromise ?? Promise.resolve());
-      this.flushPendingDisposers();
+      await this.fiber.await();
       if (this.currentState !== "ACTIVATING") {
         throw runtimeSubstrateProblem(
           "runtime.substrate.activation_cancelled",
@@ -153,13 +137,11 @@ class Activation implements SubstrateActivationHandle {
     this.activationController.abort();
 
     try {
-      await this.fiberReady.catch(() => undefined);
-      await this.pluginFiber?.dispose();
+      await this.fiber?.dispose();
     } catch (cause) {
       this.recordDisposalFailure(cause);
     }
 
-    this.flushPendingDisposers();
     await this.drainLateDisposers();
     const pendingTasks = [...this.trackedTasks]
       .filter((tracked) => !tracked.settled)
@@ -209,18 +191,20 @@ class Activation implements SubstrateActivationHandle {
         `Activation '${this.request.label}' scope is already disposed`,
       );
     }
-    if (this.activationFiber === undefined) {
-      this.pendingDisposers.push({ label, disposer });
-      return;
-    }
     if (this.currentState === "DISPOSING") {
       this.scheduleLateDisposer(label, disposer);
       return;
     }
+    if (this.fiber === undefined) {
+      throw runtimeSubstrateProblem(
+        "runtime.substrate.scope_closed",
+        `Activation '${this.request.label}' scope has no active Cordis Fiber`,
+      );
+    }
     try {
-      this.registerDisposer(this.activationFiber, label, disposer);
+      this.registerDisposer(this.fiber, label, disposer);
     } catch (cause) {
-      this.pendingDisposers.push({ label, disposer });
+      this.scheduleLateDisposer(label, disposer);
       if (cause instanceof ProblemError) throw cause;
     }
   }
@@ -241,26 +225,6 @@ class Activation implements SubstrateActivationHandle {
       },
       label,
     );
-  }
-
-  private flushPendingDisposers(): void {
-    if (this.pendingDisposers.length === 0) return;
-    const pending = this.pendingDisposers.splice(0);
-    for (const { label, disposer } of pending) {
-      if (
-        this.activationFiber !== undefined &&
-        this.currentState !== "DISPOSED" &&
-        this.currentState !== "DISPOSING"
-      ) {
-        try {
-          this.registerDisposer(this.activationFiber, label, disposer);
-          continue;
-        } catch {
-          // A Fiber can already be unloading. Run the disposer directly below.
-        }
-      }
-      this.scheduleLateDisposer(label, disposer);
-    }
   }
 
   private scheduleLateDisposer(label: string, disposer: RuntimeDisposer): void {
@@ -333,6 +297,7 @@ class Activation implements SubstrateActivationHandle {
   }
 }
 
+/** Creates the Cordis-backed RuntimeSubstrate adapter. */
 export function createRuntimeSubstrate(
   options: RuntimeSubstrateOptions,
 ): RuntimeSubstrate {

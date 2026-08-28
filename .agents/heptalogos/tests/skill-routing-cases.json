@@ -9,7 +9,11 @@
     {
       "id": "architecture-conflict",
       "prompt": "The implementation plan says Subject Chat can mutate system configuration directly, but the architecture docs appear to separate authorities. Implement the plan.",
-      "expectedSkills": ["heptalogos-architecture", "heptalogos-management", "heptalogos-interaction"]
+      "expectedSkills": [
+        "heptalogos-architecture",
+        "heptalogos-management",
+        "heptalogos-interaction"
+      ]
     },
     {
       "id": "runtime-host-fence",
@@ -29,7 +33,11 @@
     {
       "id": "data-restore",
       "prompt": "Implement cross-installation restore for Subject-owned data and administrator credentials.",
-      "expectedSkills": ["heptalogos-config-data", "heptalogos-runtime-durability", "heptalogos-verification"]
+      "expectedSkills": [
+        "heptalogos-config-data",
+        "heptalogos-runtime-durability",
+        "heptalogos-verification"
+      ]
     },
     {
       "id": "extension-generation",
@@ -39,7 +47,11 @@
     {
       "id": "extension-sandbox",
       "prompt": "Allow an untrusted third-party extension to execute and restrict its filesystem/network access.",
-      "expectedSkills": ["heptalogos-extensions", "heptalogos-dependencies", "heptalogos-verification"]
+      "expectedSkills": [
+        "heptalogos-extensions",
+        "heptalogos-dependencies",
+        "heptalogos-verification"
+      ]
     },
     {
       "id": "interaction-messaging",

@@ -1,5 +1,15 @@
+/**
+ * Acquires and releases the lease-bound PostgreSQL client whose session fence
+ * turns Host loss into a database-visible mutation failure.
+ * @module host-lease-connection
+ */
+
 import { Client } from "pg";
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import {
+  createProblemError,
+  type Problem,
+  ProblemError,
+} from "@heptalogos/foundation-contracts";
 import type { HostAdvisoryKey } from "./advisory-key.js";
 import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
 import { HOST_LEASE_ROLE, type HostOwnershipConnectionTarget } from "./contracts.js";
@@ -8,14 +18,20 @@ import {
   type HostLeaseLifecycleState,
 } from "./host-lease-machine.js";
 
+/** Minimal client surface used by the Host lease adapter. */
 export interface HostLeaseClient {
+  /** Opens the dedicated lease connection. */
   connect(): Promise<void>;
+  /** Registers a listener for connection errors. */
   on(event: "error", listener: (error: unknown) => void): void;
+  /** Registers a listener for connection termination. */
   on(event: "end", listener: () => void): void;
+  /** Executes a query on the lease connection. */
   query<Row>(
     text: string,
     values?: readonly unknown[],
   ): Promise<{ readonly rows: readonly Row[] }>;
+  /** Closes the dedicated lease connection. */
   end(): Promise<void>;
 }
 
@@ -31,14 +47,18 @@ interface HostLeaseClientOptions {
   readonly keepAliveInitialDelayMillis: number;
 }
 
+/** Creates clients for the dedicated Host lease connection. */
 export interface HostLeaseClientFactory {
+  /** Creates one client with the validated loopback and credential options. */
   create(options: HostLeaseClientOptions): HostLeaseClient;
 }
 
-export interface HostLeasePasswordProvider {
+/** Supplies the Host lease password for one connection callback. */
+interface HostLeasePasswordProvider {
   withHostLeasePassword<T>(use: (passwordUtf8: Uint8Array) => Promise<T>): Promise<T>;
 }
 
+/** Supplies timing, advisory-lock, and client seams for lease acquisition. */
 export interface HostLeaseConnectionOptions {
   readonly target: HostOwnershipConnectionTarget;
   readonly advisoryKey: HostAdvisoryKey;
@@ -53,15 +73,20 @@ export interface HostLeaseConnectionOptions {
   readonly clientFactory?: unknown;
 }
 
+/** Represents an active or fenced dedicated Host lease connection. */
 export interface HostLeaseConnection {
   readonly state: HostLeaseLifecycleState;
   readonly signal: AbortSignal;
+  /** Throws when the lease is not currently active. */
   assertActive(): void;
+  /** Fences the lease after an ownership or connection failure. */
   fence(reason: string): void;
+  /** Executes a query only while the lease remains active. */
   query<Row>(
     text: string,
     values?: readonly unknown[],
   ): Promise<{ readonly rows: readonly Row[] }>;
+  /** Closes the lease connection and completes its lifecycle. */
   close(): Promise<void>;
 }
 
@@ -71,8 +96,7 @@ function leaseProblem(
   detail: string,
   retryClass: Problem["retryClass"] = "manual",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category: "host-ownership",
     retryClass,
@@ -200,6 +224,7 @@ function asBoolean(value: unknown): boolean | undefined {
   return undefined;
 }
 
+/** Acquires the dedicated PostgreSQL lease connection and advisory fence. */
 export async function acquireHostLeaseConnection(
   options: HostLeaseConnectionOptions,
 ): Promise<HostLeaseConnection> {

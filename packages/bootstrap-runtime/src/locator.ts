@@ -1,8 +1,15 @@
+/**
+ * Loads and validates the installation locator that supplies Bootstrap roots
+ * and identity before any stateful startup action is attempted.
+ * @module locator
+ */
+
 import { readFile, realpath } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
-import { Ajv2020 } from "ajv/dist/2020.js";
-import { Type, type TProperties } from "typebox";
+import { compileSchema } from "@heptalogos/schema-runtime";
+import { Type } from "@heptalogos/schema-runtime/typebox";
 import {
+  createProblemError,
   LIFECYCLE_ROOT_IDS,
   parseInstallationId,
   parseInstanceId,
@@ -11,9 +18,11 @@ import {
   type InstanceId,
   type LifecycleRootId,
 } from "@heptalogos/foundation-contracts";
+import { hasNodeErrorCode } from "./error-code.js";
 
 const BOOTSTRAP_LOCATOR_FILENAME = "heptalogos.bootstrap.json";
 
+/** Describes the validated installation locator and its canonical identity. */
 export interface BootstrapLocatorV1 {
   readonly schemaVersion: 1;
   readonly installationId: InstallationId;
@@ -23,7 +32,7 @@ export interface BootstrapLocatorV1 {
 
 const rootProperties = Object.fromEntries(
   LIFECYCLE_ROOT_IDS.map((id) => [id, Type.String({ minLength: 1 })]),
-) as TProperties;
+) as Parameters<typeof Type.Object>[0];
 
 const locatorSchema = Type.Object(
   {
@@ -35,14 +44,7 @@ const locatorSchema = Type.Object(
   { additionalProperties: false },
 );
 
-const ajv = new Ajv2020({
-  allErrors: true,
-  coerceTypes: false,
-  removeAdditional: false,
-  useDefaults: false,
-  strict: true,
-});
-const validateLocator = ajv.compile(locatorSchema);
+const validateLocator = compileSchema<unknown>(locatorSchema);
 
 function locatorProblem(
   problemCode: string,
@@ -50,8 +52,7 @@ function locatorProblem(
   detail: string,
   category = "validation",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",
@@ -60,20 +61,11 @@ function locatorProblem(
   });
 }
 
-function isNodeError(error: unknown, code: string): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === code
-  );
-}
-
 async function readLocatorFile(anchorRoot: string): Promise<string> {
   try {
     return await readFile(join(anchorRoot, BOOTSTRAP_LOCATOR_FILENAME), "utf8");
   } catch (error) {
-    if (isNodeError(error, "ENOENT")) {
+    if (hasNodeErrorCode(error, "ENOENT")) {
       throw locatorProblem(
         "bootstrap.locator.not_found",
         "Bootstrap locator is not available",
@@ -108,7 +100,7 @@ function requireValidSchema(value: unknown): asserts value is {
   readonly instanceId: string;
   readonly roots: Record<LifecycleRootId, string>;
 } {
-  if (!validateLocator(value)) {
+  if (!validateLocator.validate(value).ok) {
     throw locatorProblem(
       "bootstrap.locator.invalid_schema",
       "Bootstrap locator does not match its schema",
@@ -117,6 +109,7 @@ function requireValidSchema(value: unknown): asserts value is {
   }
 }
 
+/** Loads, parses, and validates the installation locator from its anchor root. */
 export async function loadBootstrapLocator(
   anchorRoot: string,
 ): Promise<BootstrapLocatorV1> {

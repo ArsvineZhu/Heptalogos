@@ -1,4 +1,14 @@
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+/**
+ * Normalizes persistence failures into shared Problem envelopes while retaining
+ * enough classification to distinguish fencing, transaction, and setup errors.
+ * @module problems
+ */
+
+import {
+  createProblemError,
+  type Problem,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
 
 function persistenceProblem(
   problemCode: string,
@@ -7,8 +17,7 @@ function persistenceProblem(
   title: string,
   detail: string,
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass,
@@ -17,6 +26,7 @@ function persistenceProblem(
   });
 }
 
+/** Reports persistence admission after Host fencing. */
 export function persistenceServiceFencedProblem(): ProblemError {
   return persistenceProblem(
     "persistence.service.fenced",
@@ -27,6 +37,7 @@ export function persistenceServiceFencedProblem(): ProblemError {
   );
 }
 
+/** Reports persistence admission after terminal service close. */
 export function persistenceServiceClosedProblem(): ProblemError {
   return persistenceProblem(
     "persistence.service.closed",
@@ -37,6 +48,7 @@ export function persistenceServiceClosedProblem(): ProblemError {
   );
 }
 
+/** Reports a transaction context not issued by persistence. */
 export function persistenceTransactionContextInvalidProblem(): ProblemError {
   return persistenceProblem(
     "persistence.transaction.context_invalid",
@@ -47,6 +59,7 @@ export function persistenceTransactionContextInvalidProblem(): ProblemError {
   );
 }
 
+/** Reports a mutation without current execution identity. */
 export function persistenceExecutionContextRequiredProblem(): ProblemError {
   return persistenceProblem(
     "persistence.execution_context.required",
@@ -57,6 +70,7 @@ export function persistenceExecutionContextRequiredProblem(): ProblemError {
   );
 }
 
+/** Reports execution metadata that no longer matches active Host authority. */
 export function persistenceExecutionContextStaleOriginProblem(): ProblemError {
   return persistenceProblem(
     "persistence.execution_context.stale_origin",
@@ -67,6 +81,7 @@ export function persistenceExecutionContextStaleOriginProblem(): ProblemError {
   );
 }
 
+/** Reports a transaction that failed before completion. */
 export function persistenceTransactionFailedProblem(): ProblemError {
   return persistenceProblem(
     "persistence.transaction.failed",
@@ -77,6 +92,7 @@ export function persistenceTransactionFailedProblem(): ProblemError {
   );
 }
 
+/** Reports a commit whose durable outcome was not acknowledged. */
 export function persistenceTransactionCommitUncertainProblem(): ProblemError {
   return persistenceProblem(
     "persistence.transaction.commit_uncertain",
@@ -87,6 +103,7 @@ export function persistenceTransactionCommitUncertainProblem(): ProblemError {
   );
 }
 
+/** Reports failure to prove persistence resources closed. */
 export function persistenceServiceCloseFailedProblem(): ProblemError {
   return persistenceProblem(
     "persistence.service.close_failed",

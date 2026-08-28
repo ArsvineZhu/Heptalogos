@@ -1,4 +1,14 @@
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+/**
+ * Exposes the bounded maintenance controller used during authorized windows;
+ * it does not acquire Bootstrap authority or create a second process owner.
+ * @module maintenance-controller
+ */
+
+import {
+  createProblemError,
+  type Problem,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
 import type {
   PrivatePostgresControlGuard,
   PrivatePostgresExpectedIdentity,
@@ -13,12 +23,16 @@ import {
   type PrivatePostgresLifecycleOperationsOptions,
 } from "./lifecycle-operations.js";
 
+/** Controls private PostgreSQL only during an authorized maintenance window. */
 export interface PrivatePostgresMaintenanceController {
   readonly state: "READY" | "STOPPED" | "STARTING" | "STOPPING" | "UNCERTAIN";
+  /** Stops the managed cluster and proves its terminal status. */
   stop(): Promise<void>;
+  /** Starts the managed cluster and proves readiness. */
   start(): Promise<void>;
 }
 
+/** Supplies identity, profile, and authority inputs for maintenance control. */
 export interface OpenPrivatePostgresMaintenanceControllerOptions {
   readonly toolchain: PrivatePostgresToolchain;
   readonly placement: PrivatePostgresPlacement;
@@ -34,8 +48,7 @@ function maintenanceProblem(
   detail: string,
   category: Problem["category"] = "conflict",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",
@@ -69,6 +82,7 @@ function alreadyReady(): ProblemError {
   );
 }
 
+/** Opens a bounded private PostgreSQL maintenance controller. */
 export async function openPrivatePostgresMaintenanceController(
   options: OpenPrivatePostgresMaintenanceControllerOptions,
 ): Promise<PrivatePostgresMaintenanceController> {

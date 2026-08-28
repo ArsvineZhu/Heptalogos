@@ -1,7 +1,14 @@
-import { mkdir, readFile } from "node:fs/promises";
+/**
+ * Implements the crash-safe BootstrapState store, combining keyed serialization,
+ * atomic files, and explicit revision loading under one durable owner.
+ * @module store
+ */
+
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
   canonicalizeJson,
+  createProblem,
   ProblemError,
   type CanonicalJsonValue,
   type Problem,
@@ -9,10 +16,12 @@ import {
 import { parseBootstrapState, sealBootstrapState } from "./codec.js";
 import { writeAtomicPublishedFile } from "./atomic-file.js";
 import type { BootstrapStateBody, BootstrapStateEnvelope } from "./model.js";
+import { readOptionalTextFile } from "./file-io.js";
 
 const CURRENT_FILENAME = "bootstrap-state.json";
 const PREVIOUS_FILENAME = "bootstrap-state.previous.json";
 
+/** Reports the current/previous durable BootstrapState revision status. */
 export type BootstrapStateLoadResult =
   | { readonly status: "EMPTY" }
   | { readonly status: "CURRENT"; readonly value: BootstrapStateEnvelope }
@@ -29,29 +38,31 @@ type Candidate =
   | { readonly kind: "VALID"; readonly value: BootstrapStateEnvelope };
 
 function storeProblem(problemCode: string, title: string, detail: string): Problem {
-  return {
-    schemaVersion: 1,
+  return createProblem({
     problemCode,
     category: "integrity",
     retryClass: "manual",
     title,
     detail,
-  };
+  });
 }
 
 function stateText(value: BootstrapStateEnvelope): string {
   return canonicalizeJson(value as unknown as CanonicalJsonValue);
 }
 
+/** Owns atomic current/previous BootstrapState publication for one directory. */
 export class BootstrapStateStore {
   private readonly currentPath: string;
   private readonly previousPath: string;
 
+  /** Binds the store to the BootstrapState directory. */
   constructor(private readonly directory: string) {
     this.currentPath = join(directory, CURRENT_FILENAME);
     this.previousPath = join(directory, PREVIOUS_FILENAME);
   }
 
+  /** Loads current state, recovering a previous valid revision for inspection only. */
   async load(): Promise<BootstrapStateLoadResult> {
     const current = await this.readCandidate(this.currentPath);
     if (current.kind === "VALID") {
@@ -97,6 +108,7 @@ export class BootstrapStateStore {
     };
   }
 
+  /** Commits the next revision and verifies the exact durable reload. */
   async commit(candidate: BootstrapStateBody): Promise<BootstrapStateEnvelope> {
     const sealed = sealBootstrapState(candidate);
     const validated = parseBootstrapState(JSON.stringify(sealed));
@@ -159,20 +171,8 @@ export class BootstrapStateStore {
   }
 
   private async readCandidate(path: string): Promise<Candidate> {
-    let text: string;
-    try {
-      text = await readFile(path, "utf8");
-    } catch (error) {
-      if (
-        error &&
-        typeof error === "object" &&
-        "code" in error &&
-        error.code === "ENOENT"
-      ) {
-        return { kind: "MISSING" };
-      }
-      throw error;
-    }
+    const text = await readOptionalTextFile(path);
+    if (text === undefined) return { kind: "MISSING" };
 
     const result = parseBootstrapState(text);
     return result.ok

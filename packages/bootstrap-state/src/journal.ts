@@ -1,9 +1,17 @@
-import { mkdir, readFile } from "node:fs/promises";
+/**
+ * Appends and reads Bootstrap lifecycle journal checkpoints so recovery can
+ * replay observed progress without treating history as current authority.
+ * @module journal
+ */
+
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { Ajv2020 } from "ajv/dist/2020.js";
-import { Type } from "typebox";
+import { compileSchema } from "@heptalogos/schema-runtime";
+import { Type } from "@heptalogos/schema-runtime/typebox";
+import { readOptionalTextFile } from "./file-io.js";
 import {
   canonicalizeJson,
+  createProblem,
   type BootId,
   type InstallationId,
   type InstanceId,
@@ -12,6 +20,7 @@ import {
   type CanonicalJsonValue,
   type Problem,
   parseBootId,
+  parseInstant,
   parseInstallationId,
   parseInstanceId,
   type ActivityId,
@@ -19,10 +28,14 @@ import {
 } from "@heptalogos/foundation-contracts";
 import type { BootstrapRuntimeGenerationId, ProductGenerationId } from "./model.js";
 import { writeAtomicPublishedFile } from "./atomic-file.js";
+import { KeyedAsyncSerializer } from "./keyed-serialization.js";
 
+/** Gives journal entries the same Activity identity semantics as Foundation. */
 export type BootstrapActivityId = ActivityId;
+/** Enumerates lifecycle checkpoint outcomes recorded for recovery inspection. */
 export type BootstrapStageOutcome = "STARTED" | "SUCCEEDED" | "FAILED";
 
+/** Versioned checkpoint written before and after a Bootstrap lifecycle stage. */
 export interface BootstrapJournalCheckpointV1 {
   readonly schemaVersion: 1;
   readonly bootId: BootId;
@@ -37,6 +50,14 @@ export interface BootstrapJournalCheckpointV1 {
   readonly problemCode?: string;
 }
 
+/** Creates a schema-versioned Bootstrap journal checkpoint. */
+export function createBootstrapJournalCheckpoint(
+  input: Omit<BootstrapJournalCheckpointV1, "schemaVersion">,
+): BootstrapJournalCheckpointV1 {
+  return { schemaVersion: 1, ...input };
+}
+
+/** Current checkpoint shape used by Bootstrap journal consumers. */
 export type BootstrapJournalCheckpoint = BootstrapJournalCheckpointV1;
 
 const checkpointSchemaV1 = Type.Object(
@@ -64,31 +85,16 @@ const checkpointSchemaV1 = Type.Object(
   { additionalProperties: false },
 );
 const journalSchema = Type.Array(checkpointSchemaV1);
-const ajv = new Ajv2020({
-  allErrors: true,
-  coerceTypes: false,
-  removeAdditional: false,
-  useDefaults: false,
-  strict: true,
-});
-const validateJournal = ajv.compile(journalSchema);
-const CANONICAL_INSTANT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
-
-function isCanonicalInstant(value: string): boolean {
-  if (!CANONICAL_INSTANT_PATTERN.test(value)) return false;
-  const time = Date.parse(value);
-  return Number.isFinite(time) && new Date(time).toISOString() === value;
-}
-
+const validateJournal =
+  compileSchema<readonly BootstrapJournalCheckpoint[]>(journalSchema);
 function journalProblem(problemCode: string, title: string, detail: string): Problem {
-  return {
-    schemaVersion: 1,
+  return createProblem({
     problemCode,
     category: "integrity",
     retryClass: "manual",
     title,
     detail,
-  };
+  });
 }
 
 function requireBootId(value: unknown): BootId {
@@ -109,19 +115,22 @@ function journalText(entries: readonly BootstrapJournalCheckpoint[]): string {
   return canonicalizeJson(entries as unknown as CanonicalJsonValue);
 }
 
+/** Appends and reads per-BootId Bootstrap journal checkpoints atomically. */
 export class BootstrapJournal {
   private readonly journalDirectory: string;
-  private readonly checkpointTails = new Map<string, Promise<void>>();
+  private readonly checkpointSerializer = new KeyedAsyncSerializer();
 
+  /** Binds journal files to one Bootstrap lifecycle root. */
   constructor(private readonly directory: string) {
     this.journalDirectory = join(directory, "bootstrap-journal");
   }
 
+  /** Appends a validated checkpoint while serializing same-boot writes. */
   async checkpoint(entry: BootstrapJournalCheckpointV1): Promise<void> {
     const bootId = requireBootId(entry.bootId);
     this.assertValidIdentities(entry);
 
-    await this.serializeCheckpoint(bootId, async () => {
+    await this.checkpointSerializer.run(bootId, async () => {
       const existing = await this.readEntries(bootId);
       const entries = [...existing, entry];
       this.assertValidEntries(entries);
@@ -130,6 +139,7 @@ export class BootstrapJournal {
     });
   }
 
+  /** Reads the validated checkpoint history for one BootId. */
   async read(bootId: BootId): Promise<readonly BootstrapJournalCheckpoint[]> {
     return this.readEntries(requireBootId(bootId));
   }
@@ -139,46 +149,11 @@ export class BootstrapJournal {
     return join(this.journalDirectory, `${validatedBootId}.json`);
   }
 
-  private async serializeCheckpoint(
-    bootId: BootId,
-    operation: () => Promise<void>,
-  ): Promise<void> {
-    const previous = this.checkpointTails.get(bootId) ?? Promise.resolve();
-
-    const current = previous.then(operation, operation);
-    const barrier = current.then(
-      () => undefined,
-      () => undefined,
-    );
-
-    this.checkpointTails.set(bootId, barrier);
-
-    try {
-      await current;
-    } finally {
-      if (this.checkpointTails.get(bootId) === barrier) {
-        this.checkpointTails.delete(bootId);
-      }
-    }
-  }
-
   private async readEntries(
     bootId: BootId,
   ): Promise<readonly BootstrapJournalCheckpoint[]> {
-    let text: string;
-    try {
-      text = await readFile(this.fileFor(bootId), "utf8");
-    } catch (error) {
-      if (
-        error &&
-        typeof error === "object" &&
-        "code" in error &&
-        error.code === "ENOENT"
-      ) {
-        return [];
-      }
-      throw error;
-    }
+    const text = await readOptionalTextFile(this.fileFor(bootId));
+    if (text === undefined) return [];
 
     let parsed: unknown;
     try {
@@ -193,7 +168,7 @@ export class BootstrapJournal {
       );
     }
 
-    if (!validateJournal(parsed)) {
+    if (!validateJournal.validate(parsed).ok) {
       throw new ProblemError(
         journalProblem(
           "bootstrap.journal.invalid_entry",
@@ -204,7 +179,7 @@ export class BootstrapJournal {
     }
 
     const entries = parsed as BootstrapJournalCheckpoint[];
-    if (entries.some((entry) => !isCanonicalInstant(entry.at))) {
+    if (entries.some((entry) => parseInstant(entry.at) === undefined)) {
       throw new ProblemError(
         journalProblem(
           "bootstrap.journal.invalid_entry",
@@ -228,8 +203,8 @@ export class BootstrapJournal {
 
   private assertValidEntries(entries: readonly BootstrapJournalCheckpoint[]): void {
     if (
-      !validateJournal(entries) ||
-      entries.some((entry) => !isCanonicalInstant(entry.at))
+      !validateJournal.validate(entries).ok ||
+      entries.some((entry) => parseInstant(entry.at) === undefined)
     ) {
       throw new ProblemError(
         journalProblem(

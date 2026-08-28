@@ -20,8 +20,7 @@
     "@heptalogos/persistence": "workspace:*",
     "@heptalogos/schema-runtime": "workspace:*",
     "@heptalogos/time-service": "workspace:*",
-    "@opentelemetry/api": "catalog:",
-    "kysely": "catalog:"
+    "@opentelemetry/api": "catalog:"
   },
   "devDependencies": {
     "vitest": "catalog:"

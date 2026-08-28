@@ -3,7 +3,7 @@
 **Status:** LIVING ROADMAP / planning guidance<br>
 **Date:** 2026-08-27<br>
 **Repository baseline:** current `master` integration baseline after H2 post-merge reconciliation and Ubuntu/Linux residual qualification<br>
-**Architecture baseline:** `Architecture_Corpus` design state 2026-08-20
+**Architecture baseline:** `docs/architecture/` design state 2026-08-20
 
 > This document is a roadmap, not an Architecture Corpus authority and not an Implementation Plan. It guides future plan decomposition, sequencing, risk retirement, and acceptance. If it conflicts with the Architecture Corpus, the Corpus wins. If implementation evidence invalidates roadmap assumptions without invalidating architecture semantics, update the roadmap rather than silently changing the Corpus.
 
@@ -188,9 +188,9 @@ merge: PASS
 ```
 
 The H2-S closure evidence is maintained in
-[`Q-RUNTIME-01`](../../Architecture_Corpus/qualification/results/Q-RUNTIME-01.md)
+[`Q-RUNTIME-01`](../qualification/results/Q-RUNTIME-01.md)
 and
-[`Q-PERSISTENCE-01`](../../Architecture_Corpus/qualification/results/Q-PERSISTENCE-01.md).
+[`Q-PERSISTENCE-01`](../qualification/results/Q-PERSISTENCE-01.md).
 The completed implementation/correction plan is
 [`H2-S context-efficient package governance correction`](../plans/completed/foundation/h2s-review-correction-context-efficient-package-governance.md).
 Historical implementation and qualification detail remains in completed plans
@@ -343,22 +343,25 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 ```yaml
 H3: OPEN
 H3A: ACTIVE
-H3A_1: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
-H3A_2: NOT_ELIGIBLE
+H3A_1: CLOSED
+H3A_2: BLOCKED_BY_REPOSITORY_STABILIZATION
 H3B: NOT_ELIGIBLE
 H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
 candidateFreeze: PASS
 independentReview: NOT_RUN
+finalManualCI: NOT_RUN
+prematureMergeRecovery: CLOSED
 activeImplementationPlan: docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md
 ```
 
-The current H3A-1 implementation includes complete creation-request envelope
+The H3A-1 implementation includes complete creation-request envelope
 snapshotting, the canonical fair-scan projection index, and cross-platform
-bootstrap-runtime test budgets. Full local verification and Draft
-cross-platform regression CI passed on Ubuntu, macOS, and Windows. The
-candidate is ready for renewed out-of-band Independent Review; final manual CI
-follows that review. H3A-2 remains `NOT_ELIGIBLE`.
+bootstrap-runtime test budgets. It is accepted as the current product baseline
+by the completed H3A-1 governance recovery record. Existing implementation and
+Draft cross-platform evidence remains preserved, while Independent Review and
+final manual CI remain `NOT_RUN`; they are not inferred from the GitHub merge
+fact. H3A-2 remains blocked by Repository Stabilization and is frozen.
 
 ### Implementation decomposition
 

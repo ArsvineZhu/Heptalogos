@@ -64,7 +64,7 @@ Therefore:
 
 Historical completed plans/specs may document what happened historically. Do not rewrite them to falsify history. They are non-authoritative for current behavior.
 
-### G2 — one continuity identity, several projections
+#### G2 — one continuity identity, several projections
 
 `ContinuityEpochId` is:
 
@@ -77,7 +77,7 @@ logical Instance timeline identity
 
 Normal restart/crash recovery preserves it. Destructive restore/rollback rotates it later under Recovery authority. H2A-2 implements the **normal** initialization/materialization path only; full destructive restore reconciliation remains out of scope.
 
-### G3 — no migration path through normal PersistenceService
+#### G3 — no migration path through normal PersistenceService
 
 `PersistenceService` remains the normal runtime transaction boundary. It must not gain:
 
@@ -87,7 +87,7 @@ Normal restart/crash recovery preserves it. Destructive restore/rollback rotates
 - raw Kysely/pg migration objects;
 - schema-owner authority.
 
-### G4 — distinct PostgreSQL authority
+#### G4 — distinct PostgreSQL authority
 
 Use these fixed role semantics:
 
@@ -114,11 +114,11 @@ heptalogos_migration
 
 `heptalogos_runtime` must not receive membership in `heptalogos_owner` or `heptalogos_migration`.
 
-### G5 — stable Bootstrap Closure does not own ProductGeneration schema definitions
+#### G5 — stable Bootstrap Closure does not own ProductGeneration schema definitions
 
 `bootstrap-runtime` orchestrates the authority window and calls an injected canonical initializer. Production source in `bootstrap-runtime` must not import `@heptalogos/canonical-schema`. An integration test may import it through a devDependency to prove the real composition.
 
-### G6 — migration mechanics are library-first
+#### G6 — migration mechanics are library-first
 
 Use Kysely 0.29.5 `Migrator`/`MigrationProvider` from `kysely/migration`. Do not add:
 
@@ -129,7 +129,7 @@ Use Kysely 0.29.5 `Migrator`/`MigrationProvider` from `kysely/migration`. Do not
 
 Use a static in-code `MigrationProvider` so compiled/source-less ProductGeneration artifacts do not depend on TypeScript source-file discovery.
 
-### G7 — no H2A-3/H2B/H3 scope creep
+#### G7 — no H2A-3/H2B/H3 scope creep
 
 Do not implement:
 
@@ -145,7 +145,7 @@ Do not implement:
 
 H2A-2 only prepares the identity/schema authority required by those later milestones.
 
-### G8 — verification truth
+#### G8 — verification truth
 
 Only:
 
@@ -157,7 +157,7 @@ A repository CI matrix does not prove live PostgreSQL on all platforms. Real Pos
 
 ---
 
-# Current-state facts that this plan must correct/preserve
+## Current-state facts that this plan must correct/preserve
 
 1. `master` is `b306975bba3592a0d8c2e2e6d1649f2523af27bc`.
 2. H2A-1 is merged and closed as an implementation milestone; `Q-PERSISTENCE-01` remains `PARTIAL`.
@@ -171,7 +171,7 @@ A repository CI matrix does not prove live PostgreSQL on all platforms. Real Pos
 
 ---
 
-# Target dependency graph
+## Target dependency graph
 
 ```text
 foundation-contracts
@@ -208,9 +208,9 @@ The future selected ProductGeneration/application wiring supplies the initialize
 
 ---
 
-# Canonical contracts to produce
+## Canonical contracts to produce
 
-## Continuity identity
+### Continuity identity
 
 ```ts
 export type ContinuityEpochId = UuidV7Id<"ContinuityEpochId">;
@@ -218,13 +218,11 @@ export type ContinuityEpochId = UuidV7Id<"ContinuityEpochId">;
 export const createContinuityEpochId = (): ContinuityEpochId =>
   createUuidV7Id("ContinuityEpochId");
 
-export const parseContinuityEpochId = (
-  value: unknown,
-): ContinuityEpochId | undefined =>
+export const parseContinuityEpochId = (value: unknown): ContinuityEpochId | undefined =>
   parseUuidV7Id("ContinuityEpochId", value);
 ```
 
-## Current BootstrapState V1
+### Current BootstrapState V1
 
 ```ts
 export interface BootstrapStateBodyV1 {
@@ -243,7 +241,7 @@ export interface BootstrapStateBodyV1 {
 
 There is no V2 type and no development upgrade reader.
 
-## Migration target/authority
+### Migration target/authority
 
 Add to `@heptalogos/host-ownership`:
 
@@ -273,7 +271,7 @@ export interface HostCanonicalMigrationAuthority {
 
 The object is issued only by bootstrap-runtime while both bootstrap ownership and the provisional Host lease/token remain current.
 
-## Bootstrap Runtime canonical initializer seam
+### Bootstrap Runtime canonical initializer seam
 
 In `host-ownership-handoff.ts`:
 
@@ -296,7 +294,7 @@ readonly initializeCanonicalHost: CanonicalHostInitializer;
 
 It is required, not optional.
 
-## Managed Host identity
+### Managed Host identity
 
 After successful canonical initialization:
 
@@ -315,7 +313,7 @@ export interface BootstrapManagedHostContext {
 
 ---
 
-# Canonical PostgreSQL schema for this milestone
+## Canonical PostgreSQL schema for this milestone
 
 The first current baseline migration creates only the H2A-2 state actually required:
 
@@ -361,7 +359,7 @@ foundation_schema_migration_lock
 
 ---
 
-# Task 0 — Preflight, branch, and active-plan registration
+## Task 0 — Preflight, branch, and active-plan registration
 
 **Files:**
 
@@ -443,7 +441,7 @@ Open a Draft PR for the branch. Ordinary pushes must not dispatch CI.
 
 ---
 
-# Task 1 — Make PRE_PRODUCTION no-compatibility policy consistent everywhere current
+## Task 1 — Make PRE_PRODUCTION no-compatibility policy consistent everywhere current
 
 This task is mandatory before code changes because current Corpus text contradicts the current V1 implementation and project stage.
 
@@ -486,7 +484,7 @@ state. A production compatibility obligation begins only after an explicit
 architecture decision changes the compatibility epoch.
 ```
 
-### Required concrete corrections
+#### Required concrete corrections
 
 - [ ] **Step 1.1 — fix S01 ContinuityEpoch Authority**
 
@@ -696,7 +694,7 @@ git commit -m "docs: enforce pre-production canonical-only contracts"
 
 ---
 
-# Task 2 — Add `ContinuityEpochId` to Foundation identity primitives
+## Task 2 — Add `ContinuityEpochId` to Foundation identity primitives
 
 **Files:**
 
@@ -707,9 +705,9 @@ git commit -m "docs: enforce pre-production canonical-only contracts"
 ### Produces
 
 ```ts
-ContinuityEpochId
-createContinuityEpochId()
-parseContinuityEpochId()
+ContinuityEpochId;
+createContinuityEpochId();
+parseContinuityEpochId();
 ```
 
 - [ ] **Step 2.1 — write failing identity test**
@@ -744,9 +742,7 @@ export type ContinuityEpochId = UuidV7Id<"ContinuityEpochId">;
 export const createContinuityEpochId = (): ContinuityEpochId =>
   createUuidV7Id("ContinuityEpochId");
 
-export const parseContinuityEpochId = (
-  value: unknown,
-): ContinuityEpochId | undefined =>
+export const parseContinuityEpochId = (value: unknown): ContinuityEpochId | undefined =>
   parseUuidV7Id("ContinuityEpochId", value);
 ```
 
@@ -772,7 +768,7 @@ git commit -m "feat: add continuity epoch identity"
 
 ---
 
-# Task 3 — Rewrite the current canonical BootstrapState V1 in place
+## Task 3 — Rewrite the current canonical BootstrapState V1 in place
 
 **Files:**
 
@@ -794,7 +790,7 @@ Current V1 requires:
 readonly continuityEpochId: ContinuityEpochId;
 ```
 
-### TDD
+#### TDD
 
 - [ ] **Step 3.1 — add failing codec cases**
 
@@ -859,8 +855,8 @@ continuityEpochId: Type.String({ pattern: UUID_V7_PATTERN }),
 Do **not** change:
 
 ```ts
-schemaVersion: 1
-BOOTSTRAP_STATE_DIGEST_DOMAIN = "heptalogos.bootstrap-state/v1"
+schemaVersion: 1;
+BOOTSTRAP_STATE_DIGEST_DOMAIN = "heptalogos.bootstrap-state/v1";
 ```
 
 Do not add alternate validators.
@@ -911,8 +907,7 @@ This is a PRE_PRODUCTION canonical reset, not an upgrade migration.
 
 ---
 
-
-# Task 3A — Implement bootstrap-owned initial ContinuityEpoch genesis
+## Task 3A — Implement bootstrap-owned initial ContinuityEpoch genesis
 
 Adding a required field is not enough. H2A-2 must actually prove the S01/S15
 authority rule that a new logical Instance creates exactly one initial epoch
@@ -931,18 +926,18 @@ under bootstrap ownership and that retries reuse the committed value.
 From `@heptalogos/bootstrap-state`:
 
 ```ts
-BootstrapRuntimeGenerationId
-ProductGenerationId
-BootstrapStateEnvelope
+BootstrapRuntimeGenerationId;
+ProductGenerationId;
+BootstrapStateEnvelope;
 ```
 
 From `@heptalogos/foundation-contracts`:
 
 ```ts
-createContinuityEpochId
+createContinuityEpochId;
 ```
 
-### Produces
+#### Produces
 
 Extend `OwnedBootstrapPrelude` with exactly:
 
@@ -963,7 +958,7 @@ export interface OwnedBootstrapPrelude {
 
 The method is an **ensure**, not an upgrade API.
 
-### Exact semantics
+#### Exact semantics
 
 ```text
 load() = EMPTY
@@ -1000,7 +995,7 @@ bootstrap ownership
 
 No process-local mutex is the Authority.
 
-### TDD
+#### TDD
 
 - [ ] **Step 3A.1 — write failing genesis test**
 
@@ -1099,14 +1094,12 @@ For `EMPTY`:
 const committed = await access.state.commit({
   schemaVersion: 1,
   revision: 1,
-  activeBootstrapRuntimeGeneration:
-    selection.activeBootstrapRuntimeGeneration,
+  activeBootstrapRuntimeGeneration: selection.activeBootstrapRuntimeGeneration,
   activeProductGeneration: selection.activeProductGeneration,
   ...(selection.lastKnownGoodProductGeneration === undefined
     ? {}
     : {
-        lastKnownGoodProductGeneration:
-          selection.lastKnownGoodProductGeneration,
+        lastKnownGoodProductGeneration: selection.lastKnownGoodProductGeneration,
       }),
   continuityEpochId: createContinuityEpochId(),
 });
@@ -1153,8 +1146,7 @@ git add packages/bootstrap-runtime
 git commit -m "feat: establish bootstrap continuity genesis"
 ```
 
-
-# Task 4 — Add the migration PostgreSQL principal and credential route
+## Task 4 — Add the migration PostgreSQL principal and credential route
 
 **Files:**
 
@@ -1195,7 +1187,7 @@ WITH INHERIT FALSE, SET TRUE;
 
 No `ADMIN OPTION`.
 
-### TDD
+#### TDD
 
 - [ ] **Step 4.1 — extend bootstrap-admin tests first**
 
@@ -1329,7 +1321,7 @@ git commit -m "feat: add bounded canonical migration principal"
 
 ---
 
-# Task 5 — Add the joint bootstrap + Host migration capability and reorder handoff
+## Task 5 — Add the joint bootstrap + Host migration capability and reorder handoff
 
 **Files:**
 
@@ -1365,7 +1357,7 @@ bootstrap ownership held
 
 No normal managed Host exists before canonical initialization succeeds.
 
-### TDD
+#### TDD
 
 - [ ] **Step 5.1 — add ordering unit test**
 
@@ -1464,7 +1456,7 @@ git commit -m "feat: gate managed host on canonical initialization"
 
 ---
 
-# Task 6 — Create `@heptalogos/canonical-schema` as a narrow migration adapter
+## Task 6 — Create `@heptalogos/canonical-schema` as a narrow migration adapter
 
 **Files:**
 
@@ -1508,7 +1500,7 @@ Use existing package scaffolding conventions from `packages/persistence`; do not
 }
 ```
 
-### Public surface
+#### Public surface
 
 Only export Heptalogos-owned contracts/factory:
 
@@ -1533,7 +1525,7 @@ Migration
 MigrationProvider
 ```
 
-### Runtime options
+#### Runtime options
 
 ```ts
 export interface CanonicalSchemaRuntimeOptions {
@@ -1547,16 +1539,14 @@ export interface CanonicalSchemaRuntimeOptions {
 
 No hidden behavioral timeout defaults.
 
-### Initializer signature
+#### Initializer signature
 
 ```ts
 export interface CanonicalSchemaInitializer {
-  (
-    context: {
-      readonly authority: HostCanonicalMigrationAuthority;
-      readonly expectedContinuityEpochId: ContinuityEpochId;
-    },
-  ): Promise<void>;
+  (context: {
+    readonly authority: HostCanonicalMigrationAuthority;
+    readonly expectedContinuityEpochId: ContinuityEpochId;
+  }): Promise<void>;
 }
 ```
 
@@ -1596,7 +1586,7 @@ git commit -m "feat: add canonical schema adapter workspace"
 
 ---
 
-# Task 7 — Implement the current canonical migration baseline with Kysely
+## Task 7 — Implement the current canonical migration baseline with Kysely
 
 **Files:**
 
@@ -1625,7 +1615,7 @@ bridge SQL
 
 If the H2A-2 schema changes before production, edit/squash the baseline and recreate the dev DB.
 
-### Migration pool
+#### Migration pool
 
 Create `pg.Pool` with:
 
@@ -1653,7 +1643,7 @@ Use fixed PostgreSQL session options equivalent to:
 
 This relies on the explicit migration→owner `SET` membership from Task 4.
 
-### Static MigrationProvider
+#### Static MigrationProvider
 
 Implement:
 
@@ -1673,7 +1663,7 @@ Import `Migration`/`MigrationProvider` from `kysely/migration`.
 
 No filesystem discovery.
 
-### Migration table settings
+#### Migration table settings
 
 Construct Kysely `Migrator` with fixed:
 
@@ -1686,7 +1676,7 @@ allowUnorderedMigrations = false
 
 Before invoking `Migrator`, explicitly verify that `heptalogos` schema already exists and is owned by `heptalogos_owner`. If this H1 precondition is false, fail; do not let the migrator silently create a replacement schema and hide an H1 defect.
 
-### Baseline migration
+#### Baseline migration
 
 Use Kysely schema mechanics to create `heptalogos.instance_continuity`:
 
@@ -1697,10 +1687,7 @@ await db.schema
   .addColumn("singleton", "boolean", (col) => col.notNull().primaryKey())
   .addColumn("instance_id", "uuid", (col) => col.notNull())
   .addColumn("continuity_epoch_id", "uuid", (col) => col.notNull())
-  .addCheckConstraint(
-    "instance_continuity_singleton_check",
-    sql`singleton`,
-  )
+  .addCheckConstraint("instance_continuity_singleton_check", sql`singleton`)
   .execute();
 ```
 
@@ -1713,7 +1700,7 @@ GRANT SELECT ON TABLE "heptalogos"."instance_continuity" TO "heptalogos_runtime"
 
 Do not grant runtime DML.
 
-### Migrator result handling
+#### Migrator result handling
 
 Kysely 0.29.x `migrateToLatest()` returns an error result rather than requiring a thrown exception. Implementation must check both `error` and per-result statuses before declaring migration success.
 
@@ -1753,7 +1740,7 @@ git commit -m "feat: add canonical schema baseline migration"
 
 ---
 
-# Task 8 — Materialize/verify ContinuityEpoch atomically
+## Task 8 — Materialize/verify ContinuityEpoch atomically
 
 **Files:**
 
@@ -1785,7 +1772,7 @@ authority.assertCurrent()
 
 A mismatch is never repaired by `UPDATE` in normal mode.
 
-### Required Problems
+#### Required Problems
 
 ```text
 existing different instance
@@ -1797,7 +1784,7 @@ existing different epoch
 
 Both are fail-closed and manual/recovery class.
 
-### TDD
+#### TDD
 
 - [ ] **Step 8.1 — unit-test decision logic**
 
@@ -1851,7 +1838,7 @@ git commit -m "feat: materialize canonical continuity epoch"
 
 ---
 
-# Task 9 — Mechanically enforce the new dependency/public boundaries
+## Task 9 — Mechanically enforce the new dependency/public boundaries
 
 **Files:**
 
@@ -1941,7 +1928,7 @@ git commit -m "chore: enforce canonical migration boundaries"
 
 ---
 
-# Task 10 — Real PostgreSQL H2A-2 end-to-end qualification
+## Task 10 — Real PostgreSQL H2A-2 end-to-end qualification
 
 **Files:**
 
@@ -1952,9 +1939,9 @@ git commit -m "chore: enforce canonical migration boundaries"
 
 The integration test imports `createCanonicalSchemaInitializer` from the devDependency and passes it into the bootstrap handoff. This is the permitted test-only composition edge.
 
-## Required scenario matrix
+### Required scenario matrix
 
-### C1 — clean first materialization
+#### C1 — clean first materialization
 
 Create a new logical Instance through `OwnedBootstrapPrelude.ensureBootstrapStateInitialized()`, producing epoch `E1`, then continue through private PostgreSQL preparation and Host handoff:
 
@@ -1970,7 +1957,7 @@ bootstrap-owned state genesis commits E1
 
 PASS only on real PostgreSQL.
 
-### C2 — ordinary restart preserves epoch
+#### C2 — ordinary restart preserves epoch
 
 Second boot against same logical instance/database/state:
 
@@ -1981,7 +1968,7 @@ ContinuityEpochId remains E1
 initializer is idempotent
 ```
 
-### C3 — committed epoch, interrupted DB materialization, retry
+#### C3 — committed epoch, interrupted DB materialization, retry
 
 Inject failure after migration but before continuity materialization.
 
@@ -1996,7 +1983,7 @@ materialization succeeds with E1
 
 This is the crash/retry proof H2A-2 needs. It is not a legacy upgrade test.
 
-### C4 — canonical DB epoch mismatch fails closed
+#### C4 — canonical DB epoch mismatch fails closed
 
 After clean initialization, mutate the test DB under explicit bootstrap/test admin authority to `E2 != E1`, then attempt normal handoff with BootstrapState `E1`.
 
@@ -2008,7 +1995,7 @@ no normal managed Host
 no implicit DB overwrite
 ```
 
-### C5 — canonical DB Instance mismatch fails closed
+#### C5 — canonical DB Instance mismatch fails closed
 
 Set DB row `instance_id` to another valid InstanceId.
 
@@ -2018,7 +2005,7 @@ Expected:
 canonical-schema.continuity_instance_mismatch
 ```
 
-### C6 — migration role is correctly separated
+#### C6 — migration role is correctly separated
 
 During migration connection:
 
@@ -2034,7 +2021,7 @@ SET ROLE heptalogos_owner => denied
 SET ROLE heptalogos_migration => denied
 ```
 
-### C7 — runtime continuity ACL is read-only
+#### C7 — runtime continuity ACL is read-only
 
 As `heptalogos_runtime`:
 
@@ -2046,7 +2033,7 @@ DELETE => denied
 CREATE TABLE in heptalogos => denied
 ```
 
-### C8 — migration history corruption fails closed
+#### C8 — migration history corruption fails closed
 
 After current baseline succeeds, corrupt the Kysely migration metadata in the test-only admin window so the executed migration set is inconsistent with the static provider.
 
@@ -2059,7 +2046,7 @@ normal managed Host not returned
 
 Do not add code to “accept” the corrupted development history.
 
-### C9 — obsolete development BootstrapState is rejected before normal handoff
+#### C9 — obsolete development BootstrapState is rejected before normal handoff
 
 Construct bytes with current `schemaVersion: 1` but without `continuityEpochId` and a matching digest.
 
@@ -2071,7 +2058,7 @@ bootstrap.state.invalid_schema
 
 No upgrade/migration path runs.
 
-## Commands
+### Commands
 
 On a host with PostgreSQL 18.6 binaries:
 
@@ -2133,7 +2120,7 @@ git commit -m "test: qualify canonical continuity initialization"
 
 ---
 
-# Task 11 — Full repository verification and H2A-2 evidence record
+## Task 11 — Full repository verification and H2A-2 evidence record
 
 **Files:**
 
@@ -2173,7 +2160,7 @@ service/headless     NOT_RUN unless actually executed
 
 `Q-PERSISTENCE-01` may remain `PARTIAL`.
 
-### Full gates
+#### Full gates
 
 Run:
 
@@ -2195,7 +2182,7 @@ pnpm verify
 
 All repository gates must PASS before candidate freeze.
 
-### PRE_PRODUCTION no-compat scan
+#### PRE_PRODUCTION no-compat scan
 
 Run:
 
@@ -2209,7 +2196,7 @@ Any current implementation/authority match that preserves development history is
 
 The only acceptable `schemaVersion: 2` references are historical/negative-test contexts that explicitly reject obsolete development shapes; do not create a current V2 contract.
 
-### Commit evidence
+#### Commit evidence
 
 ```bash
 git add Architecture_Corpus docs/roadmap \
@@ -2219,7 +2206,7 @@ git commit -m "docs: record H2A2 local qualification"
 
 Rerun `pnpm verify` after this commit.
 
-### Task 11 execution record (2026-08-24)
+#### Task 11 execution record (2026-08-24)
 
 The local behavior candidate is
 `de6c00516ae5fd604ee614a743f3cd6f95dd8e6f`. The exact Windows qualification
@@ -2250,7 +2237,7 @@ unchanged.
 
 ---
 
-# Task 12 — Candidate freeze, plan completion, and external review handoff
+## Task 12 — Candidate freeze, plan completion, and external review handoff
 
 Do not change code after candidate freeze.
 
@@ -2341,7 +2328,7 @@ merge = forbidden
 
 ---
 
-## Review correction cycle (2026-08-24)
+### Review correction cycle (2026-08-24)
 
 The external review of the first frozen candidate returned
 `REQUEST_CHANGES` for the exact pair
@@ -2350,18 +2337,18 @@ The external review of the first frozen candidate returned
 bounded H2A-2 authority scope:
 
 - [x] Extract one package-private canonical Host admission step and use it for
-  normal bootstrap handoff, `RESTART_PRIVATE_POSTGRES`, and interrupted
-  maintenance recovery.
+      normal bootstrap handoff, `RESTART_PRIVATE_POSTGRES`, and interrupted
+      maintenance recovery.
 - [x] Close fresh Host lease/token admission until CURRENT BootstrapState epoch
-  loading, canonical initialization, and joint authority revalidation succeed.
+      loading, canonical initialization, and joint authority revalidation succeed.
 - [x] Bind maintenance runtime credential requests to the returned Host's
-  current `BootId` and add a real-PG regression assertion.
+      current `BootId` and add a real-PG regression assertion.
 - [x] Remove the stale current milestone table from Corpus 26 and refresh its
-  manifest/SHA records.
+      manifest/SHA records.
 - [x] Include `heptalogos_migration` in `HostOwnershipCanonicalSnapshot` and
-  project both bootstrap and Host lease signals through the migration authority.
+      project both bootstrap and Host lease signals through the migration authority.
 - [x] Run the local repository gates and Windows PostgreSQL 18.6 qualification
-  again.
+      again.
 
 The corrected behavior candidate is
 `5a5c221af967a224b4585e644dfa18b2f476ed62`; the later evidence-only commit
@@ -2372,7 +2359,7 @@ review returns `PASS` for the new `(base_sha, head_sha)` pair.
 
 ---
 
-## Review correction cycle 2 (2026-08-24)
+### Review correction cycle 2 (2026-08-24)
 
 The next external review covered exact pair
 `b306975bba3592a0d8c2e2e6d1649f2523af27bc` →
@@ -2381,17 +2368,17 @@ The next external review covered exact pair
 one P2 recovery epoch projection issue:
 
 - [x] Assert the reacquired Host lease after bootstrap ownership release and
-  before completion/checkpoint/managed Host exposure in both maintenance
-  restart and interrupted recovery.
+      before completion/checkpoint/managed Host exposure in both maintenance
+      restart and interrupted recovery.
 - [x] Keep the durable recovery position at `BOOTSTRAP_RELEASE_ARMED` when the
-  post-release Host proof fails; do not report `RESTARTED` or successful
-  completion, and terminalize/close the provisional Host.
+      post-release Host proof fails; do not report `RESTARTED` or successful
+      completion, and terminalize/close the provisional Host.
 - [x] Pass `admission.continuityEpochId` into the recovered managed Host so the
-  just-verified CURRENT epoch is the returned Host projection.
+      just-verified CURRENT epoch is the returned Host projection.
 - [x] Add release-close fault-injection regressions for both reacquisition
-  paths and a reload-epoch projection regression.
+      paths and a reload-epoch projection regression.
 - [x] Rerun the full local gates and Windows PostgreSQL 18.6 bootstrap-runtime
-  integration.
+      integration.
 
 The corrected behavior candidate is
 `00c03f7e635724636dc9fca56c6fc856e6b04603`; the next evidence-only commit
@@ -2401,7 +2388,7 @@ final CI and squash merge remain forbidden until it returns `PASS`.
 
 ---
 
-# Task 13 — Final CI and squash merge only after external review PASS
+## Task 13 — Final CI and squash merge only after external review PASS
 
 Execute only after the user/operator explicitly reports:
 
@@ -2432,7 +2419,7 @@ Require Ubuntu/macOS/Windows repository CI all PASS for the exact reviewed head.
 
 This does **not** convert platform-specific real PostgreSQL `NOT_RUN` claims into PASS.
 
-### Immediately before merge
+#### Immediately before merge
 
 Re-read:
 
@@ -2450,7 +2437,7 @@ Then squash merge.
 
 After merge, if review/CI/merge truth must be written into the repository, use a separate docs/evidence-only reconciliation PR. Do not modify the merged H2A-2 behavior candidate.
 
-## Post-merge truth reconciliation (2026-08-24)
+### Post-merge truth reconciliation (2026-08-24)
 
 This separate docs/evidence-only reconciliation records the closure tuple for
 the immutable H2A-2 behavior candidate:
@@ -2473,7 +2460,7 @@ qualification remain `NOT_RUN`.
 
 ---
 
-# Acceptance criteria
+## Acceptance criteria
 
 H2A-2 is locally implementation-complete only when all of the following are true:
 
@@ -2506,7 +2493,7 @@ H2A-2 is locally implementation-complete only when all of the following are true
 
 ---
 
-# Explicit non-goals / stop conditions
+## Explicit non-goals / stop conditions
 
 Stop and surface a new architecture decision instead of expanding this plan if implementation appears to require:
 
@@ -2524,7 +2511,7 @@ Stop and surface a new architecture decision instead of expanding this plan if i
 
 ---
 
-# Recommended commit sequence
+## Recommended commit sequence
 
 Keep commits reviewable:
 
@@ -2549,7 +2536,7 @@ Do not squash locally. The repository workflow performs one squash merge only af
 
 ---
 
-# Executor self-review before declaring candidate ready
+## Executor self-review before declaring candidate ready
 
 Run all of these checks explicitly:
 
@@ -2563,7 +2550,7 @@ Run all of these checks explicitly:
 - [ ] S16 epoch available for later lineage origin
 - [ ] roadmap H2A scope preserved
 
-### Compatibility hygiene
+#### Compatibility hygiene
 
 - [ ] no V2 current type
 - [ ] no development legacy reader
@@ -2572,7 +2559,7 @@ Run all of these checks explicitly:
 - [ ] no dual schema/digest path
 - [ ] clean-state reset semantics documented
 
-### Authority
+#### Authority
 
 - [ ] bootstrap authority remains held during initializer
 - [ ] Host lease/token is current during initializer
@@ -2580,7 +2567,7 @@ Run all of these checks explicitly:
 - [ ] runtime never gets owner membership
 - [ ] mismatch cannot self-heal outside Recovery
 
-### Library boundary
+#### Library boundary
 
 - [ ] Kysely/pg stay internal
 - [ ] static MigrationProvider
@@ -2588,7 +2575,7 @@ Run all of these checks explicitly:
 - [ ] no bootstrap-runtime production import of canonical-schema
 - [ ] no hidden timeout defaults
 
-### Verification
+#### Verification
 
 - [ ] all unit gates PASS
 - [ ] C1–C9 real-PG matrix recorded

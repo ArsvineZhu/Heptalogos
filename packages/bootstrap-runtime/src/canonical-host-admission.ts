@@ -1,3 +1,9 @@
+/**
+ * Admits canonical persistence work only after the Bootstrap-to-Host handoff
+ * has established the ownership context required by the canonical fence.
+ * @module canonical-host-admission
+ */
+
 import {
   HOST_MIGRATION_ROLE,
   HOST_OWNERSHIP_CANONICAL_DATABASE,
@@ -12,16 +18,17 @@ import type {
 } from "@heptalogos/foundation-contracts";
 import type { BootstrapKeyProvider } from "./bootstrap-key-provider.js";
 
-export interface CanonicalHostAdmissionAuthority {
+interface CanonicalHostAdmissionAuthority {
   readonly signal: AbortSignal;
   assertHeld(): void;
 }
 
-export interface CanonicalHostAdmissionHostLease {
+interface CanonicalHostAdmissionHostLease {
   readonly signal: AbortSignal;
   assertActive(): void;
 }
 
+/** Supplies the Host and canonical-schema context needed for admission. */
 export interface CanonicalHostAdmissionOptions {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
@@ -38,11 +45,13 @@ export interface CanonicalHostAdmissionOptions {
   }) => Promise<void>;
 }
 
+/** Reports the admitted canonical Host context and initialization outcome. */
 export interface CanonicalHostAdmissionResult {
   readonly authority: HostCanonicalMigrationAuthority;
   readonly continuityEpochId: ContinuityEpochId;
 }
 
+/** Admits canonical schema work only after the Host fence is established. */
 export async function admitCanonicalHost(
   options: CanonicalHostAdmissionOptions,
 ): Promise<CanonicalHostAdmissionResult> {

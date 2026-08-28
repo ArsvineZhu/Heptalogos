@@ -1,3 +1,9 @@
+/**
+ * Public shared Foundation vocabulary for canonical values, identities,
+ * lifecycle roots, Problems, and data governance without runtime side effects.
+ * @packageDocumentation
+ */
+
 export {
   canonicalizeJson,
   snapshotCanonicalJson,
@@ -73,8 +79,11 @@ export {
 export { LIFECYCLE_ROOT_IDS, type LifecycleRootId } from "./lifecycle-root.js";
 export { POSTGRES_INTEGER_MAX } from "./numeric.js";
 export {
+  createProblem,
+  createProblemError,
   ProblemError,
   type FieldError,
   type Problem,
+  type ProblemInit,
   type RetryClass,
 } from "./problem.js";

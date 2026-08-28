@@ -1,6 +1,13 @@
+/**
+ * Normalizes substrate admission, disposal, and task failures into Foundation
+ * Problems without exposing Cordis lifecycle errors.
+ * @module problems
+ */
+
 import {
-  ProblemError,
-  type Problem,
+  createProblemError,
+  type ProblemError,
+  type ProblemInit,
   type RetryClass,
 } from "@heptalogos/foundation-contracts";
 
@@ -56,10 +63,9 @@ function fallbackSpec(problemCode: string): SubstrateProblemSpec {
   };
 }
 
-function substrateProblem(problemCode: string, detail: string): Problem {
+function substrateProblem(problemCode: string, detail: string): ProblemInit {
   const spec = substrateProblemSpecs[problemCode] ?? fallbackSpec(problemCode);
   return {
-    schemaVersion: 1,
     problemCode,
     category: spec.category,
     retryClass: spec.retryClass,
@@ -68,12 +74,13 @@ function substrateProblem(problemCode: string, detail: string): Problem {
   };
 }
 
+/** Creates a typed Problem for substrate lifecycle or task failure. */
 export function runtimeSubstrateProblem(
   problemCode: string,
   detail: string,
   cause?: unknown,
 ): ProblemError {
-  return new ProblemError(
+  return createProblemError(
     substrateProblem(problemCode, detail),
     cause === undefined ? undefined : { cause },
   );

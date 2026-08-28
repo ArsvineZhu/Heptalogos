@@ -1,8 +1,15 @@
-import { CompiledQuery } from "kysely";
-import { createEvidenceId, type Instant } from "@heptalogos/foundation-contracts";
-import type { PersistenceInternalTransaction } from "@heptalogos/persistence/foundation-repository";
-import { useFoundationMutationTransaction } from "@heptalogos/persistence/foundation-repository";
-import type { PersistenceMutationTransactionContext } from "@heptalogos/persistence";
+/**
+ * Persists and reads retained Evidence through the caller's persistence and
+ * time authorities, preserving sensitivity and lineage semantics at the seam.
+ * @module evidence-service
+ */
+
+import { createEvidenceId } from "@heptalogos/foundation-contracts";
+import {
+  executeFoundationSql,
+  type PersistenceInternalTransaction,
+  useFoundationMutationTransaction,
+} from "@heptalogos/persistence/foundation-repository";
 import type { EvidenceDraft, EvidenceRecord, EvidenceService } from "./contracts.js";
 import {
   evidenceActivityRequiredProblem,
@@ -57,7 +64,7 @@ async function executeSql(
   parameters: readonly unknown[],
 ): Promise<void> {
   try {
-    await transaction.executeQuery(CompiledQuery.raw(text, [...parameters]));
+    await executeFoundationSql(transaction, text, parameters);
   } catch (error) {
     if (
       typeof error === "object" &&
@@ -71,6 +78,7 @@ async function executeSql(
   }
 }
 
+/** Creates the Evidence service bound to the caller's injectable time source. */
 export function createEvidenceService(time: TimeService): EvidenceService {
   return {
     async recordRequired(transaction, draft): Promise<EvidenceRecord> {

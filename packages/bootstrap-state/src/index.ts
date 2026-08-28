@@ -1,3 +1,10 @@
+/**
+ * Public BootstrapState contracts for versioned envelopes, journals, witnesses,
+ * codecs, and crash-safe stores; file and serialization mechanics stay owned
+ * by their internal modules.
+ * @packageDocumentation
+ */
+
 export {
   BOOTSTRAP_STATE_DIGEST_DOMAIN,
   parseBootstrapState,
@@ -16,7 +23,7 @@ export type {
 } from "./model.js";
 export { BootstrapStateStore } from "./store.js";
 export type { BootstrapStateLoadResult } from "./store.js";
-export { BootstrapJournal } from "./journal.js";
+export { BootstrapJournal, createBootstrapJournalCheckpoint } from "./journal.js";
 export type {
   BootId,
   BootstrapActivityId,

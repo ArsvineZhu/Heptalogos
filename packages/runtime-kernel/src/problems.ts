@@ -1,6 +1,13 @@
+/**
+ * Constructs Runtime Kernel Problem envelopes for illegal topology, lifecycle,
+ * and generation operations without exposing framework failure objects.
+ * @module problems
+ */
+
 import {
-  ProblemError,
-  type Problem,
+  createProblemError,
+  type ProblemError,
+  type ProblemInit,
   type RetryClass,
 } from "@heptalogos/foundation-contracts";
 
@@ -266,6 +273,11 @@ const runtimeProblemSpecs: Readonly<Record<string, RuntimeProblemSpec>> = {
     retryClass: "after-change",
     title: "Runtime supervisor close failed",
   },
+  "runtime.supervisor.invalid_transition": {
+    category: "conflict",
+    retryClass: "manual",
+    title: "Runtime supervisor lifecycle transition is invalid",
+  },
   "runtime.supervisor.invalid_revision": {
     category: "validation",
     retryClass: "never",
@@ -308,10 +320,9 @@ function fallbackSpec(problemCode: string): RuntimeProblemSpec {
   };
 }
 
-function runtimeProblem(problemCode: string, detail: string): Problem {
+function runtimeProblem(problemCode: string, detail: string): ProblemInit {
   const spec = runtimeProblemSpecs[problemCode] ?? fallbackSpec(problemCode);
   return {
-    schemaVersion: 1,
     problemCode,
     category: spec.category,
     retryClass: spec.retryClass,
@@ -320,12 +331,13 @@ function runtimeProblem(problemCode: string, detail: string): Problem {
   };
 }
 
+/** Creates a typed Runtime Kernel Problem from a semantic failure code. */
 export function runtimeKernelProblem(
   problemCode: string,
   detail: string,
   cause?: unknown,
 ): ProblemError {
-  return new ProblemError(
+  return createProblemError(
     runtimeProblem(problemCode, detail),
     cause === undefined ? undefined : { cause },
   );

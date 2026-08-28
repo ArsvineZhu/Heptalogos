@@ -1,19 +1,29 @@
-import { Ajv2020 } from "ajv/dist/2020.js";
-import { Type } from "typebox";
+/**
+ * Encodes and parses versioned maintenance journal records with canonical
+ * serialization so interrupted cleanup remains inspectable and typed.
+ * @module maintenance-codec
+ */
+
 import {
   canonicalizeJson,
   createUuidV7Id,
+  createProblem,
   digestCanonicalJson,
   parseBootId,
   parseHostOwnershipToken,
   parseInstallationId,
   parseInstanceId,
+  parseInstant,
   parseUuidV7Id,
   SHA256_HEX_PATTERN,
   UUID_V7_PATTERN,
   type CanonicalJsonValue,
   type Problem,
 } from "@heptalogos/foundation-contracts";
+import { compileSchema } from "@heptalogos/schema-runtime";
+import { Type } from "@heptalogos/schema-runtime/typebox";
+import { bootstrapDigestSchema } from "./schemas.js";
+import { readSchemaVersion } from "./json-shape.js";
 import type {
   MaintenanceJournalBodyV1,
   MaintenanceJournalEnvelopeV1,
@@ -21,21 +31,11 @@ import type {
   MaintenanceOperationId,
 } from "./maintenance-model.js";
 
+/** Names the digest domain for durable maintenance journal envelopes. */
 export const MAINTENANCE_JOURNAL_DIGEST_DOMAIN =
   "heptalogos.maintenance-journal/v1" as const;
 
-const CANONICAL_INSTANT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 const DECIMAL_REVISION_PATTERN = "^(0|[1-9][0-9]*)$";
-
-const digestSchema = Type.Object(
-  {
-    algorithm: Type.Literal("sha256"),
-    canonicalization: Type.Literal("RFC8785-JCS"),
-    domain: Type.String({ minLength: 1 }),
-    hex: Type.String({ pattern: SHA256_HEX_PATTERN }),
-  },
-  { additionalProperties: false },
-);
 
 const bodySchema = Type.Object(
   {
@@ -75,7 +75,7 @@ const bodySchema = Type.Object(
     ),
     verifiedPrerequisites: Type.Object(
       {
-        bootstrapStateDigest: digestSchema,
+        bootstrapStateDigest: bootstrapDigestSchema,
         privatePostgresInitializationProfileRevision: Type.String({
           pattern: SHA256_HEX_PATTERN,
         }),
@@ -113,19 +113,12 @@ const bodySchema = Type.Object(
 const envelopeSchema = Type.Object(
   {
     state: bodySchema,
-    digest: digestSchema,
+    digest: bootstrapDigestSchema,
   },
   { additionalProperties: false },
 );
 
-const ajv = new Ajv2020({
-  allErrors: true,
-  coerceTypes: false,
-  removeAdditional: false,
-  useDefaults: false,
-  strict: true,
-});
-const validateEnvelope = ajv.compile(envelopeSchema);
+const validateEnvelope = compileSchema<MaintenanceJournalEnvelopeV1>(envelopeSchema);
 
 function problem(
   problemCode: string,
@@ -133,30 +126,14 @@ function problem(
   title: string,
   detail: string,
 ): MaintenanceJournalParseResult {
-  const value: Problem = {
-    schemaVersion: 1,
+  const value: Problem = createProblem({
     problemCode,
     category,
     retryClass: "manual",
     title,
     detail,
-  };
+  });
   return { ok: false, problem: value };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function schemaVersionOf(value: unknown): unknown {
-  if (!isRecord(value) || !isRecord(value.state)) return undefined;
-  return value.state.schemaVersion;
-}
-
-function isCanonicalInstant(value: string): boolean {
-  if (!CANONICAL_INSTANT_PATTERN.test(value)) return false;
-  const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) && new Date(timestamp).toISOString() === value;
 }
 
 function assertUuidIdentities(body: MaintenanceJournalBodyV1): boolean {
@@ -176,7 +153,8 @@ function assertUuidIdentities(body: MaintenanceJournalBodyV1): boolean {
 
 function semanticProblem(body: MaintenanceJournalBodyV1): string | undefined {
   if (!assertUuidIdentities(body)) return "maintenance.journal.invalid_schema";
-  if (!isCanonicalInstant(body.updatedAt)) return "maintenance.journal.invalid_schema";
+  if (parseInstant(body.updatedAt) === undefined)
+    return "maintenance.journal.invalid_schema";
 
   if (body.lastCompletedStage === "BOOTSTRAP_RELEASE_ARMED") {
     if (body.terminalOutcome !== "SUCCEEDED") {
@@ -227,10 +205,12 @@ function semanticProblem(body: MaintenanceJournalBodyV1): string | undefined {
   return undefined;
 }
 
+/** Creates a new durable maintenance operation identity. */
 export function createMaintenanceOperationId(): MaintenanceOperationId {
   return createUuidV7Id("MaintenanceOperationId");
 }
 
+/** Converts an operation identity into the stable journal reference string. */
 export function maintenanceOperationRef(operationId: MaintenanceOperationId): string {
   if (parseUuidV7Id("MaintenanceOperationId", operationId) === undefined) {
     throw new TypeError("MaintenanceOperationId must be a valid UUIDv7");
@@ -238,6 +218,7 @@ export function maintenanceOperationRef(operationId: MaintenanceOperationId): st
   return `maintenance-journal/v1/${operationId}`;
 }
 
+/** Seals maintenance state with the canonical domain-separated digest. */
 export function sealMaintenanceJournal(
   state: MaintenanceJournalBodyV1,
 ): MaintenanceJournalEnvelopeV1 {
@@ -248,6 +229,7 @@ export function sealMaintenanceJournal(
   return { state, digest };
 }
 
+/** Parses, validates, and authenticates one maintenance journal envelope. */
 export function parseMaintenanceJournal(text: string): MaintenanceJournalParseResult {
   let parsed: unknown;
   try {
@@ -261,7 +243,7 @@ export function parseMaintenanceJournal(text: string): MaintenanceJournalParseRe
     );
   }
 
-  const version = schemaVersionOf(parsed);
+  const version = readSchemaVersion(parsed, "state");
   if (typeof version === "number" && version > 1) {
     return problem(
       "maintenance.journal.unsupported_schema",
@@ -270,7 +252,7 @@ export function parseMaintenanceJournal(text: string): MaintenanceJournalParseRe
       "The MaintenanceJournal schema version is not supported by this runtime",
     );
   }
-  if (!validateEnvelope(parsed)) {
+  if (!validateEnvelope.validate(parsed).ok) {
     return problem(
       "maintenance.journal.invalid_schema",
       "validation",
@@ -312,6 +294,7 @@ export function parseMaintenanceJournal(text: string): MaintenanceJournalParseRe
   return { ok: true, value: envelope };
 }
 
+/** Returns canonical JSON text for a validated maintenance journal envelope. */
 export function canonicalMaintenanceJournalText(
   envelope: MaintenanceJournalEnvelopeV1,
 ): string {

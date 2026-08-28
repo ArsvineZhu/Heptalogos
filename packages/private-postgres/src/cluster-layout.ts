@@ -1,12 +1,24 @@
+/**
+ * Classifies the installation-owned PostgreSQL directory layout with fail-closed
+ * traversal so unknown material cannot be mistaken for managed cluster state.
+ * @module cluster-layout
+ */
+
 import { lstat, opendir } from "node:fs/promises";
-import { isAbsolute, join, relative, resolve } from "node:path";
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
+import { isAbsolute, relative, resolve } from "node:path";
+import {
+  createProblemError,
+  type Problem,
+  type ProblemError,
+} from "@heptalogos/foundation-contracts";
 import {
   PRIVATE_POSTGRES_DATA_LAYOUT_VERSION,
   PRIVATE_POSTGRES_RELATIVE_DATA_PATH,
   type PrivatePostgresPlacement,
 } from "./contracts.js";
+import { hasNodeErrorCode } from "./error-code.js";
 
+/** Classifies whether the managed data directory is absent, empty, or occupied. */
 export type ClusterDirectoryState =
   | { readonly kind: "ABSENT" }
   | { readonly kind: "EMPTY" }
@@ -18,8 +30,7 @@ function layoutProblem(
   detail: string,
   category: Problem["category"] = "validation",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass: "manual",
@@ -28,6 +39,7 @@ function layoutProblem(
   });
 }
 
+/** Resolves the canonical private cluster directory below DATA. */
 export function resolvePrivatePostgresPlacement(
   dataRoot: string,
 ): PrivatePostgresPlacement {
@@ -66,15 +78,7 @@ export function resolvePrivatePostgresPlacement(
   });
 }
 
-function isNodeError(error: unknown, code: string): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === code
-  );
-}
-
+/** Enumerates the target directory with bounded fail-closed semantics. */
 export async function classifyClusterDirectory(
   directory: string,
 ): Promise<ClusterDirectoryState> {
@@ -82,7 +86,7 @@ export async function classifyClusterDirectory(
   try {
     entry = await lstat(directory);
   } catch (error) {
-    if (isNodeError(error, "ENOENT")) return { kind: "ABSENT" };
+    if (hasNodeErrorCode(error, "ENOENT")) return { kind: "ABSENT" };
     throw layoutProblem(
       "private-postgres.layout.inspect_failed",
       "Private PostgreSQL target could not be inspected",

@@ -1,12 +1,24 @@
+/**
+ * Resolves the approved PostgreSQL executable/toolchain placement and rejects
+ * ambiguous or unsafe paths before Bootstrap delegates process control.
+ * @module toolchain
+ */
+
 import { lstat } from "node:fs/promises";
 import { isAbsolute as isPosixAbsolute, join as posixJoin } from "node:path/posix";
 import { isAbsolute as isWindowsAbsolute, join as windowsJoin } from "node:path/win32";
-import { ProblemError, type Problem } from "@heptalogos/foundation-contracts";
 import {
+  createProblemError,
+  type Problem,
+  ProblemError,
+} from "@heptalogos/foundation-contracts";
+import {
+  PRIVATE_POSTGRES_ARCHITECTURE_MAJOR,
   PRIVATE_POSTGRES_QUALIFIED_VERSION,
   type PrivatePostgresToolchain,
 } from "./contracts.js";
 import { runPostgresTool } from "./process-adapter.js";
+import { hasNodeErrorCode } from "./error-code.js";
 
 // IMPLEMENTATION_CONSTANT: bounded internal version-probe budget; not an installation setting.
 const TOOLCHAIN_VERSION_TIMEOUT_MS = 30_000;
@@ -18,6 +30,7 @@ const BASE_EXECUTABLE_NAMES = [
   "pg_isready",
 ] as const;
 
+/** Names the platform-specific PostgreSQL executables resolved by the adapter. */
 export interface PrivatePostgresExecutablePaths {
   readonly postgres: string;
   readonly initdb: string;
@@ -26,9 +39,10 @@ export interface PrivatePostgresExecutablePaths {
   readonly pgIsReady: string;
 }
 
+/** Reports the parsed major/patch version of a PostgreSQL executable. */
 export interface ParsedPostgresVersion {
-  readonly major: 18;
-  readonly version: "18.6";
+  readonly major: typeof PRIVATE_POSTGRES_ARCHITECTURE_MAJOR;
+  readonly version: typeof PRIVATE_POSTGRES_QUALIFIED_VERSION;
 }
 
 function toolchainProblem(
@@ -38,8 +52,7 @@ function toolchainProblem(
   category: Problem["category"] = "validation",
   retryClass: Problem["retryClass"] = "manual",
 ): ProblemError {
-  return new ProblemError({
-    schemaVersion: 1,
+  return createProblemError({
     problemCode,
     category,
     retryClass,
@@ -57,6 +70,7 @@ function pathApi(platform: NodeJS.Platform): {
     : { isAbsolute: isPosixAbsolute, join: posixJoin };
 }
 
+/** Resolves approved executable names for the current platform. */
 export function privatePostgresExecutableNames(
   platform: NodeJS.Platform,
 ): readonly string[] {
@@ -65,6 +79,7 @@ export function privatePostgresExecutableNames(
     : BASE_EXECUTABLE_NAMES;
 }
 
+/** Resolves executable paths from an approved PostgreSQL bin directory. */
 export function resolvePrivatePostgresExecutablePaths(
   binDirectory: string,
   platform: NodeJS.Platform = process.platform,
@@ -97,12 +112,7 @@ async function requireRegularTool(path: string, name: string): Promise<void> {
     }
   } catch (error) {
     if (error instanceof ProblemError) throw error;
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      error.code === "ENOENT"
-    ) {
+    if (hasNodeErrorCode(error, "ENOENT")) {
       throw toolchainProblem(
         "private-postgres.toolchain.tool_missing",
         "Required PostgreSQL tool is missing",
@@ -119,6 +129,7 @@ async function requireRegularTool(path: string, name: string): Promise<void> {
   }
 }
 
+/** Parses `postgres --version` output into the supported version contract. */
 export function parsePostgresVersion(output: string): ParsedPostgresVersion {
   const match = /^\S+\s+\(PostgreSQL\)\s+(\d+)\.(\d+)(?:\s+\([^()\r\n]*\))?\s*$/u.exec(
     output,
@@ -128,12 +139,16 @@ export function parsePostgresVersion(output: string): ParsedPostgresVersion {
     throw toolchainProblem(
       "private-postgres.toolchain.invalid_version",
       "PostgreSQL tool version is not qualified",
-      "Every private PostgreSQL tool must report the exact qualified version 18.6",
+      `Every private PostgreSQL tool must report the exact qualified version ${PRIVATE_POSTGRES_QUALIFIED_VERSION}`,
     );
   }
-  return Object.freeze({ major: 18, version: "18.6" });
+  return Object.freeze({
+    major: PRIVATE_POSTGRES_ARCHITECTURE_MAJOR,
+    version: PRIVATE_POSTGRES_QUALIFIED_VERSION,
+  });
 }
 
+/** Resolves and validates the complete private PostgreSQL toolchain. */
 export async function resolvePrivatePostgresToolchain(
   binDirectory: string,
 ): Promise<PrivatePostgresToolchain> {
@@ -164,8 +179,8 @@ export async function resolvePrivatePostgresToolchain(
   }
 
   return Object.freeze({
-    version: "18.6",
-    major: 18,
+    version: PRIVATE_POSTGRES_QUALIFIED_VERSION,
+    major: PRIVATE_POSTGRES_ARCHITECTURE_MAJOR,
     binDirectory,
     postgres: paths.postgres,
     initdb: paths.initdb,

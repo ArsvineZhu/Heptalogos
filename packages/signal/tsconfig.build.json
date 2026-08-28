@@ -10,7 +10,7 @@
     "tsBuildInfoFile": "./dist/tsconfig.build.tsbuildinfo"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts"],
+  "exclude": ["test/**/*.ts"],
   "references": [
     { "path": "../foundation-contracts/tsconfig.build.json" },
     { "path": "../host-ownership/tsconfig.build.json" },

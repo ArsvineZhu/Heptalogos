@@ -2,11 +2,12 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "repo-kit",
   "projectType": "library",
+  "tags": ["kind:tooling", "area:repository"],
   "targets": {
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint tools/repo-kit"
+        "command": "oxlint --type-aware tools/repo-kit"
       }
     },
     "test": {

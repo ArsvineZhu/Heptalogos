@@ -1,3 +1,9 @@
+/**
+ * Implements deterministic fake time for tests while preserving the same
+ * monotonic-versus-wall-clock distinctions as the system service.
+ * @module fake-time-service
+ */
+
 import {
   formatInstant,
   parseInstant,
@@ -9,6 +15,7 @@ import type {
   MonotonicTick,
 } from "./contracts.js";
 
+/** Create an independently controlled clock for deterministic time-sensitive tests. */
 export function createFakeTimeService(
   initialWallClock: Instant,
   initialMonotonic: bigint = 0n,

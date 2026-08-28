@@ -2,12 +2,13 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "time-service",
   "projectType": "library",
+  "tags": ["kind:product", "area:execution"],
   "sourceRoot": "packages/time-service/src",
   "targets": {
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint packages/time-service"
+        "command": "oxlint --type-aware packages/time-service"
       }
     },
     "test": {

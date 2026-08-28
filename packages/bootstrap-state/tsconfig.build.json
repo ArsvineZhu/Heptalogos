@@ -10,8 +10,11 @@
     "tsBuildInfoFile": "./dist/tsconfig.build.tsbuildinfo"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts"],
+  "exclude": ["test/**/*.ts"],
   "references": [
+    {
+      "path": "../schema-runtime/tsconfig.build.json"
+    },
     {
       "path": "../foundation-contracts/tsconfig.build.json"
     }

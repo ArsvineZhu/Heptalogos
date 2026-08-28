@@ -1,9 +1,17 @@
+/**
+ * Evaluates runtime contract versions and ranges at the semantic boundary,
+ * keeping compatibility decisions separate from provider implementation types.
+ * @module contract-compatibility
+ */
+
 import type { ContractVersion, ContractVersionRange } from "./contracts.js";
 import { runtimeKernelProblem } from "./problems.js";
 
+/** Syntax accepted for exact Runtime contract versions. */
 export const CONTRACT_VERSION_PATTERN = "^[a-z0-9][a-z0-9._-]{0,63}$";
 const contractVersionShape = new RegExp(CONTRACT_VERSION_PATTERN, "u");
 
+/** Parses a contract version without widening it into arbitrary text. */
 export function parseContractVersion(value: unknown): ContractVersion | undefined {
   if (
     typeof value !== "string" ||
@@ -16,6 +24,7 @@ export function parseContractVersion(value: unknown): ContractVersion | undefine
   return value as ContractVersion;
 }
 
+/** Creates a validated exact Runtime contract version. */
 export function createContractVersion(value: string): ContractVersion {
   const parsed = parseContractVersion(value);
   if (parsed === undefined) {
@@ -24,11 +33,14 @@ export function createContractVersion(value: string): ContractVersion {
   return parsed;
 }
 
+/** Creates the exact-match range used by current Runtime requirements. */
 export function exactContract(version: ContractVersion): ContractVersionRange {
   return Object.freeze({ kind: "exact", version });
 }
 
+/** Compares Service and Capability provider versions against requirements. */
 export class ContractCompatibilityRegistry {
+  /** Reports whether a provider satisfies the exact requested version. */
   isCompatible(
     requirement: ContractVersionRange,
     providerVersion: ContractVersion,
@@ -37,6 +49,7 @@ export class ContractCompatibilityRegistry {
     return requirement.version === providerVersion;
   }
 
+  /** Throws a typed Problem when a provider version cannot satisfy the request. */
   assertCompatible(
     requirement: ContractVersionRange,
     providerVersion: ContractVersion,

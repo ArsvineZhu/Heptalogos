@@ -1,13 +1,16 @@
+/**
+ * Reads the canonical dependency routing and status Authorities for repository
+ * gates without creating a parallel dependency inventory.
+ * @module dependency-authority
+ */
+
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const authority = JSON.parse(
-  readFileSync(
-    join(root, "Architecture_Corpus", "references", "dependency-routing.json"),
-    "utf8",
-  ),
+  readFileSync(join(root, "docs", "dependencies", "dependency-routing.json"), "utf8"),
 );
 
 const routes = new Map();
@@ -40,6 +43,7 @@ const repositoryToolingPackages = new Set(
 
 export { authority, packageRoutes, repositoryToolingPackages, routes };
 
+/** Return the machine-authority route for one dependency identity. */
 export function routeForDependency(packageName) {
   return packageRoutes.get(packageName);
 }
