@@ -200,7 +200,7 @@ function makeState(): BootstrapStateBodyV1 {
   };
 }
 
-async function makeFixture(port: number): Promise<Fixture> {
+async function makeFixture(_port: number): Promise<Fixture> {
   const anchorRoot = await mkdtemp(
     join(tmpdir(), "heptalogos-bootstrap-recovery-recovery-anchor-"),
   );
@@ -908,6 +908,7 @@ describe.sequential("Bootstrap Recovery PostgreSQL 18.6 recovery qualification",
   it("PG-2 recovers after READY before Host handoff without restarting PostgreSQL", async () => {
     const port = 55541;
     const fixture = await makeFixture(port);
+    const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
     const postgresDataDirectory = join(fixture.roots.DATA, "private-postgres");
     postgresDataDirectories.push(postgresDataDirectory);
     const child = new BootstrapProcessController(
@@ -929,7 +930,6 @@ describe.sequential("Bootstrap Recovery PostgreSQL 18.6 recovery qualification",
     }
     expect(boundary.port).toBe(port);
     expect(boundary.startupDisposition).toBe("STARTED_BY_THIS_BOOTSTRAP");
-    const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
     const placement = resolvePrivatePostgresPlacement(fixture.roots.DATA);
     const stateBefore = await new BootstrapStateStore(
       join(fixture.roots.INSTANCE, "bootstrap-state"),
@@ -1042,7 +1042,6 @@ describe.sequential("Bootstrap Recovery PostgreSQL 18.6 recovery qualification",
 
   it("PG-3 performs one stop/start recovery before durable POSTGRES_STOPPED", async () => {
     const fixture = await makeFixture(55534);
-    const toolchain = await resolvePrivatePostgresToolchain(qualifiedPgBin);
     const interrupted = await makeInterruptedOperation(
       fixture,
       55534,
@@ -1237,7 +1236,6 @@ describe.sequential("Bootstrap Recovery PostgreSQL 18.6 recovery qualification",
       "PRIVATE_POSTGRES_RESTART",
     );
     const descriptor = getPrivatePostgresMaintenanceDescriptor(interrupted.ready);
-    const keyProvider = makeKeyProvider();
     const candidateToken = createHostOwnershipToken();
     const candidateBootId = createBootId();
     await interrupted.host.shutdownKeepingPrivatePostgres({

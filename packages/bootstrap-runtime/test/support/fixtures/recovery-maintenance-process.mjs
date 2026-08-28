@@ -8,7 +8,6 @@ const {
   BootstrapStateStore,
   parseMaintenanceJournal,
 } = require("@heptalogos/bootstrap-state");
-const { createBootId } = require("@heptalogos/foundation-contracts");
 const {
   loadBootstrapLocator,
   prepareBootstrapPrelude,
@@ -113,20 +112,22 @@ async function watchJournalStage(instanceRoot, operationId, stage) {
     "maintenance-state.json",
   );
   let stopped = false;
-  const timer = setInterval(async () => {
-    if (stopped) return;
-    try {
-      const parsed = parseMaintenanceJournal(await readFile(currentPath, "utf8"));
-      if (parsed.ok && parsed.value.state.lastCompletedStage === stage) {
-        stopped = true;
-        clearInterval(timer);
-        send({ type: "durable-stage", operationId, stage }, () =>
-          process.kill(process.pid, "SIGSTOP"),
-        );
+  const timer = setInterval(() => {
+    void (async () => {
+      if (stopped) return;
+      try {
+        const parsed = parseMaintenanceJournal(await readFile(currentPath, "utf8"));
+        if (parsed.ok && parsed.value.state.lastCompletedStage === stage) {
+          stopped = true;
+          clearInterval(timer);
+          send({ type: "durable-stage", operationId, stage }, () =>
+            process.kill(process.pid, "SIGSTOP"),
+          );
+        }
+      } catch {
+        // The parent independently adjudicates the journal; transient reads retry.
       }
-    } catch {
-      // The parent independently adjudicates the journal; transient reads retry.
-    }
+    })();
   }, 10);
   return () => clearInterval(timer);
 }

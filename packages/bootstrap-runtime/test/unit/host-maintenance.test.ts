@@ -957,7 +957,7 @@ describe("reverse-handoff maintenance preparation and entry", () => {
           assertActive() {
             if (connectionState !== "ACTIVE") throw new Error("new Host is not active");
           },
-          close: connection.close,
+          close: () => connection.close(),
         };
         return nextRaw;
       },
@@ -1186,7 +1186,7 @@ describe("reverse-handoff maintenance preparation and entry", () => {
             assertActive() {
               connection.assertActive();
             },
-            close: connection.close,
+            close: () => connection.close(),
           }) satisfies HostOwnershipContext,
       ),
       createManagedHost: vi.fn(() => managedHost),
@@ -1278,8 +1278,8 @@ describe("reverse-handoff maintenance preparation and entry", () => {
               return connectionState === "ACTIVE" ? "ACTIVE" : "CLOSED";
             },
             signal: connection.signal,
-            assertActive: connection.assertActive,
-            close: connection.close,
+            assertActive: () => connection.assertActive(),
+            close: () => connection.close(),
           };
           return rawHost;
         },

@@ -76,16 +76,18 @@ try {
 }
 
 if (release !== undefined) {
-  process.on("message", async (message) => {
-    if (message?.type !== "release") return;
-    try {
-      await release();
-      send({ type: "released" });
-    } catch (error) {
-      send({
-        type: "released",
-        releaseError: error?.code ?? String(error),
-      });
-    }
+  process.on("message", (message) => {
+    void (async () => {
+      if (message?.type !== "release") return;
+      try {
+        await release();
+        send({ type: "released" });
+      } catch (error) {
+        send({
+          type: "released",
+          releaseError: error?.code ?? String(error),
+        });
+      }
+    })();
   });
 }

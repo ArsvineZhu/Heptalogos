@@ -383,7 +383,7 @@ describe("bootstrap to Host ownership handoff", () => {
     async (status) => {
       const fixture = makeContext("STARTED_BY_THIS_BOOTSTRAP");
       const { closeLease } = installSuccessMocks();
-      const stateLoad = fixture.context.state.load as unknown as {
+      const stateLoad = Reflect.get(fixture.context.state, "load") as unknown as {
         mockResolvedValue(value: unknown): void;
       };
       stateLoad.mockResolvedValue(

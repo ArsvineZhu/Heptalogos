@@ -17,13 +17,8 @@ import {
   createInstanceId,
   digestCanonicalJson,
   LIFECYCLE_ROOT_IDS,
-  type BootId,
   type LifecycleRootId,
 } from "@heptalogos/foundation-contracts";
-import {
-  inspectHostOwnershipCanonicalSnapshot,
-  type BootstrapAdminPasswordProvider,
-} from "@heptalogos/host-ownership";
 import {
   resolvePrivatePostgresPlacement,
   resolvePrivatePostgresToolchain,
@@ -230,59 +225,6 @@ function makeKeyProvider() {
         new TextEncoder().encode(
           "BOOTSTRAP_RECOVERY_TEST_MIGRATION_PASSWORD_0123456789",
         ),
-      );
-    },
-  };
-}
-
-function passwordProvider(
-  fixture: Awaited<ReturnType<typeof makeFixture>>,
-  bootId: BootId,
-): BootstrapAdminPasswordProvider {
-  const keyProvider = makeKeyProvider();
-  return {
-    withBootstrapPassword(use) {
-      return keyProvider.withPrivatePostgresBootstrapPassword(
-        {
-          installationId: fixture.installationId,
-          instanceId: fixture.instanceId,
-          bootId,
-          purpose: "private-postgres-bootstrap-superuser",
-        },
-        use,
-      );
-    },
-    withHostLeasePassword(use) {
-      return keyProvider.withPrivatePostgresHostLeasePassword(
-        {
-          installationId: fixture.installationId,
-          instanceId: fixture.instanceId,
-          bootId,
-          purpose: "private-postgres-host-lease-role",
-        },
-        use,
-      );
-    },
-    withRuntimePassword(use) {
-      return keyProvider.withPrivatePostgresRuntimePassword(
-        {
-          installationId: fixture.installationId,
-          instanceId: fixture.instanceId,
-          bootId,
-          purpose: "private-postgres-runtime-role",
-        },
-        use,
-      );
-    },
-    withMigrationPassword(use) {
-      return keyProvider.withPrivatePostgresMigrationPassword(
-        {
-          installationId: fixture.installationId,
-          instanceId: fixture.instanceId,
-          bootId,
-          purpose: "private-postgres-migration-role",
-        },
-        use,
       );
     },
   };

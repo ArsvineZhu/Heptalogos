@@ -1,5 +1,4 @@
 import { createRequire } from "node:module";
-import { join } from "node:path";
 
 const require = createRequire(import.meta.url);
 const { BootstrapOwnerWitnessStore } = require("@heptalogos/bootstrap-state");

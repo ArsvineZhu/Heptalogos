@@ -658,13 +658,15 @@ describe("pre-PostgreSQL bootstrap prelude", () => {
 
     const context = preparePrivatePostgresForOwnedPreludeMock.mock.calls.at(-1)?.[0];
     expect(context).toBeDefined();
+    if (context === undefined)
+      throw new Error("Private PostgreSQL context was not prepared");
     const token = (
-      context?.privatePostgresSession as unknown as {
+      context.privatePostgresSession as unknown as {
         __testSessionToken?: PrivatePostgresSessionToken;
       }
     ).__testSessionToken;
-    context?.privatePostgresSession.beginStop(token as PrivatePostgresSessionToken);
-    context?.privatePostgresSession.markQuiescent(token as PrivatePostgresSessionToken);
+    context.privatePostgresSession.beginStop(token as PrivatePostgresSessionToken);
+    context.privatePostgresSession.markQuiescent(token as PrivatePostgresSessionToken);
 
     await expect(owned.close()).resolves.toBeUndefined();
     expect(owned.ownershipState).toBe("RELEASED");

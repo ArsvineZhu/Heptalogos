@@ -322,7 +322,7 @@ describePostgres.sequential(
       const source = await Promise.all([
         readFile(
           new URL(
-            "../../execution-lineage/src/activity-repository.ts",
+            "../../../execution-lineage/src/activity-repository.ts",
             import.meta.url,
           ),
           "utf8",

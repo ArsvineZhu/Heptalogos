@@ -241,8 +241,10 @@ describe("bootstrap ownership", () => {
       resumeReleaseCleanup = resolve;
     });
     let firstCleanupBlocked = false;
-    const originalRemoveReleasing =
-      BootstrapOwnerWitnessStore.prototype.removeReleasing;
+    const originalRemoveReleasing = Reflect.get(
+      BootstrapOwnerWitnessStore.prototype,
+      "removeReleasing",
+    ) as (this: BootstrapOwnerWitnessStore, generationId: string) => Promise<void>;
     const cleanupSpy = vi
       .spyOn(BootstrapOwnerWitnessStore.prototype, "removeReleasing")
       .mockImplementation(async function (
@@ -254,7 +256,7 @@ describe("bootstrap ownership", () => {
           releaseCleanupStarted();
           await resumeCleanup;
         }
-        await originalRemoveReleasing.call(this, generationId);
+        await Reflect.apply(originalRemoveReleasing, this, [generationId]);
       });
 
     const firstRelease = first.release();

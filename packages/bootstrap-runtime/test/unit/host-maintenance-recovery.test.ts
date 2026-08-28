@@ -801,10 +801,12 @@ describe("fixed Host maintenance recovery host-maintenance recovery", () => {
 
     await recoverInterruptedHostMaintenance(options(fixture));
 
+    const recoveryLeaseCall = mocks.acquireRecoveryLease.mock.calls[0];
+    if (recoveryLeaseCall === undefined) {
+      throw new Error("Recovery lease was not acquired");
+    }
     const recoveryBootId = (
-      mocks.acquireRecoveryLease.mock.calls[0]?.[2] as {
-        bootId: ReturnType<typeof createBootId>;
-      }
+      recoveryLeaseCall[2] as { bootId: ReturnType<typeof createBootId> }
     ).bootId;
     const armedIndex = configured.trace.indexOf(
       "journal.advance:HOST_TOKEN_PUBLICATION_ARMED",
@@ -829,7 +831,7 @@ describe("fixed Host maintenance recovery host-maintenance recovery", () => {
     const fixture = await makeFixture();
     const candidate = createHostOwnershipToken();
     const candidateBootId = createBootId();
-    const configured = configure(
+    configure(
       fixture,
       "HOST_TOKEN_PUBLISHED",
       "PRIVATE_POSTGRES_RESTART",

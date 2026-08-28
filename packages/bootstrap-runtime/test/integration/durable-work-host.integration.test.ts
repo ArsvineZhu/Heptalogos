@@ -4,7 +4,6 @@ import {
   createContributionId,
   createMicroSystemId,
   createWorkItemId,
-  createUuidV7Id,
   digestCanonicalJson,
   parseInstant,
   type Instant,
@@ -109,29 +108,6 @@ function generation<T extends "ProductGenerationId" | "PackageGenerationId">(
   ) as unknown as T extends "ProductGenerationId"
     ? ProductGenerationId
     : PackageGenerationId;
-}
-
-function executionOriginContext(
-  activityId = createUuidV7Id("ActivityId"),
-): ExecutionContext {
-  const continuityEpochId = createUuidV7Id("ContinuityEpochId");
-  return {
-    activityId,
-    kind: "qualification.source",
-    startedAt: initialTime,
-    links: [],
-    origin: {
-      installationId: createUuidV7Id("InstallationId"),
-      instanceId: createUuidV7Id("InstanceId"),
-      bootId: createUuidV7Id("BootId"),
-      continuityEpochId,
-      hostOwnershipToken: createUuidV7Id("HostOwnershipToken"),
-    },
-    semantic: {},
-    importance: "routine",
-    retentionClass: "operational",
-    sensitivity: "operational",
-  };
 }
 
 interface Composition {
@@ -421,7 +397,7 @@ afterEach(async () => {
   activeComposition = undefined;
   if (composition !== undefined) await closeComposition(composition);
   await cleanupCanonicalPostgresFixtures();
-});
+}, 180_000);
 
 describePostgres.sequential("Canonical durable WorkItem qualification", () => {
   it("W1 canonical creation commits lineage and wakes dispatch reconciliation", async () => {
@@ -572,7 +548,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     await expect(
       alternateExecutor.execute(created.item.workItemId, 1),
     ).resolves.toMatchObject({ status: "WAITING_DEPENDENCY" });
-    expect(handlerB.execute).not.toHaveBeenCalled();
+    expect(Reflect.get(handlerB, "execute")).not.toHaveBeenCalled();
     const handlerA: RuntimeWorkHandler = {
       execute: vi.fn(async () => ({ outcome: { accepted: true } })),
     };
@@ -596,7 +572,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     await expect(
       alternateExecutor.execute(created.item.workItemId, 2),
     ).resolves.toMatchObject({ status: "SUCCEEDED" });
-    expect(handlerA.execute).toHaveBeenCalledTimes(1);
+    expect(Reflect.get(handlerA, "execute")).toHaveBeenCalledTimes(1);
     void targetB;
   }, 180_000);
 
@@ -668,8 +644,8 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     releaseHandler();
     await execution;
     await retirement;
-    expect(handler.execute).toHaveBeenCalledTimes(1);
-    expect(classifier.classify).not.toHaveBeenCalled();
+    expect(Reflect.get(handler, "execute")).toHaveBeenCalledTimes(1);
+    expect(Reflect.get(classifier, "classify")).not.toHaveBeenCalled();
     expect(fence.state).toBe("RETIRED");
   }, 180_000);
 
@@ -700,7 +676,9 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
               reservation.release();
             };
             return {
-              execute: reservation.execute,
+              execute(input: RuntimeWorkHandlerInvocation) {
+                return reservation.execute(input);
+              },
               release,
             };
           },

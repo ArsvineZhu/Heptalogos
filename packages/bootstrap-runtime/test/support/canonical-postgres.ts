@@ -20,7 +20,6 @@ import {
 } from "@heptalogos/foundation-contracts";
 import {
   HOST_OWNERSHIP_CANONICAL_DATABASE,
-  HOST_RUNTIME_ROLE,
   type HostOwnershipTimingOptions,
 } from "@heptalogos/host-ownership";
 import {

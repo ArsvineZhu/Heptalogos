@@ -54,18 +54,20 @@ try {
 }
 
 if (role !== "exit-without-release") {
-  process.on("message", async (message) => {
-    if (message?.type !== "release" || lease === undefined) return;
-    try {
-      await lease.release();
-      send({ type: "released" });
-    } catch (error) {
-      send({
-        type: "released",
-        problemCode: error?.problem?.problemCode ?? "UNKNOWN",
-        message: String(error),
-      });
-    }
+  process.on("message", (message) => {
+    void (async () => {
+      if (message?.type !== "release" || lease === undefined) return;
+      try {
+        await lease.release();
+        send({ type: "released" });
+      } catch (error) {
+        send({
+          type: "released",
+          problemCode: error?.problem?.problemCode ?? "UNKNOWN",
+          message: String(error),
+        });
+      }
+    })();
   });
 
   // Keep the IPC channel active on Node versions that otherwise allow the module
