@@ -9,7 +9,6 @@ import {
   createUuidV7Id,
   createWorkItemId,
   digestCanonicalJson,
-  type ContinuityEpochId,
   type Instant,
   type PackageGenerationId,
   type ProductGenerationId,
@@ -297,7 +296,7 @@ describe("WorkQueue reconciliation", () => {
           createDispatchAttemptId(pending.workItemId, pending.dispatchRevision),
       ),
     ).toBe(true);
-    expect(fixture.handler.reserveInvocation).not.toHaveBeenCalled();
+    expect(Reflect.get(fixture.handler, "reserveInvocation")).not.toHaveBeenCalled();
     await fixture.reconciler.stop();
   });
 

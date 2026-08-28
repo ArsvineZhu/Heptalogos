@@ -331,8 +331,8 @@ describe("WorkQueue creation service", () => {
     });
 
     expect(result.status).toBe("CREATED");
-    expect(fixture.admission.beforeCreate).toHaveBeenCalledTimes(1);
-    expect(fixture.lease.validatePayload).toHaveBeenCalledWith(1, {
+    expect(Reflect.get(fixture.admission, "beforeCreate")).toHaveBeenCalledTimes(1);
+    expect(Reflect.get(fixture.lease, "validatePayload")).toHaveBeenCalledWith(1, {
       value: "hello",
     });
     expect(fixture.retainCurrent).toHaveBeenCalledTimes(1);
@@ -391,7 +391,7 @@ describe("WorkQueue creation service", () => {
   it("detaches the payload before admission can mutate the caller object", async () => {
     const fixture = serviceFixture({ decision: "ALLOW" });
     const sourcePayload = { nested: { value: 1 } };
-    const beforeCreate = fixture.admission.beforeCreate as unknown as ReturnType<
+    const beforeCreate = Reflect.get(fixture.admission, "beforeCreate") as ReturnType<
       typeof vi.fn
     >;
     beforeCreate.mockImplementationOnce(() => {
@@ -424,12 +424,6 @@ describe("WorkQueue creation service", () => {
       packageGenerationId: digest("PackageGenerationId", "package-mutated"),
       payloadVersion: 2,
     };
-    const mutatedQueueProfileId = createMicroSystemId(
-      "mutated-profile",
-    ) as unknown as WorkQueueProfileId;
-    const mutatedResourceAdmissionClass = createMicroSystemId(
-      "mutated-resource",
-    ) as unknown as ResourceAdmissionClassId;
     let admissionEntered!: () => void;
     const entered = new Promise<void>((resolve) => {
       admissionEntered = resolve;
@@ -494,7 +488,7 @@ describe("WorkQueue creation service", () => {
         },
       });
       expect(fixture.insertedItems).toHaveLength(0);
-      expect(fixture.runtime.runActivity).not.toHaveBeenCalled();
+      expect(Reflect.get(fixture.runtime, "runActivity")).not.toHaveBeenCalled();
     }
   });
 

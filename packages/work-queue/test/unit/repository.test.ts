@@ -538,7 +538,7 @@ describe("WorkQueue Persistence repository", () => {
     prepareRows(rowFor(item));
     let callbackDepth = 0;
     const persistence = fakePersistence();
-    const originalMutate = persistence.mutate;
+    const originalMutate = persistence.mutate.bind(persistence);
     persistence.mutate = async (operation) => {
       callbackDepth += 1;
       try {

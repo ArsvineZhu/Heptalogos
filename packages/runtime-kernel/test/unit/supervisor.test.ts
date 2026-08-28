@@ -1061,11 +1061,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
         operation: (context: never) => Promise<T>,
       ) => {
         events.push({ kind: request.kind, microSystemId: origin.microSystemId });
-        try {
-          return await operation(undefined as never);
-        } catch (error) {
-          throw error;
-        }
+        return operation(undefined as never);
       },
     } as unknown as RuntimeLifecycleLineage;
     const background = new Promise<void>((_resolve, reject) => {

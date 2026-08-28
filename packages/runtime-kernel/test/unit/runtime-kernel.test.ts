@@ -730,12 +730,8 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
       read(): string;
       capture?: () => void;
     }>(serviceRequirement(serviceId));
-    let leaked: unknown;
-
     await lease.invoke("assignment", (service) => {
-      const consumerFunction = function (this: unknown): void {
-        leaked = this;
-      };
+      const consumerFunction = () => undefined;
       expect(Reflect.set(service, "capture", consumerFunction)).toBe(false);
       expect(
         Reflect.defineProperty(service, "capture", {
@@ -747,7 +743,6 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     });
 
     expect(implementation.capture).toBeUndefined();
-    expect(leaked).toBeUndefined();
     await registry.retireGeneration(fence, 50);
   });
 

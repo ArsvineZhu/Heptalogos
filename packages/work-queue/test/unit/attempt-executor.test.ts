@@ -325,7 +325,7 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     await expect(stale.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
       status: "STALE_NOOP",
     });
-    expect(stale.lease.reserveInvocation).not.toHaveBeenCalled();
+    expect(Reflect.get(stale.lease, "reserveInvocation")).not.toHaveBeenCalled();
   });
 
   it("claims and invokes only the exact generation, outside any product transaction", async () => {
@@ -415,7 +415,7 @@ describe("engine-neutral WorkAttemptExecutor", () => {
 
     expect(handler).toHaveBeenCalledTimes(1);
     expect(fence.state).toBe("RETIRED");
-    expect(attempt.classifier.classify).not.toHaveBeenCalled();
+    expect(Reflect.get(attempt.classifier, "classify")).not.toHaveBeenCalled();
   });
 
   it("releases an admitted reservation when the RUNNING CAS loses", async () => {
@@ -450,7 +450,7 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
       status: "SUCCEEDED",
     });
-    expect(attempt.lease.reserveInvocation).toHaveBeenCalledTimes(1);
+    expect(Reflect.get(attempt.lease, "reserveInvocation")).toHaveBeenCalledTimes(1);
   });
 
   it("does not fall forward from a missing exact generation to another package", async () => {
@@ -463,7 +463,7 @@ describe("engine-neutral WorkAttemptExecutor", () => {
       status: "WAITING_DEPENDENCY",
     });
     expect(resolve).toHaveBeenCalledWith(value.handler);
-    expect(other.reserveInvocation).not.toHaveBeenCalled();
+    expect(Reflect.get(other, "reserveInvocation")).not.toHaveBeenCalled();
   });
 
   it("closes the work.execute Activity when an exact handler is unavailable", async () => {
@@ -523,8 +523,10 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
       status: "FAILED",
     });
-    expect(attempt.repository.markWaitingDependency).not.toHaveBeenCalled();
-    expect(attempt.repository.commitTerminal).toHaveBeenCalledWith(
+    expect(
+      Reflect.get(attempt.repository, "markWaitingDependency"),
+    ).not.toHaveBeenCalled();
+    expect(Reflect.get(attempt.repository, "commitTerminal")).toHaveBeenCalledWith(
       expect.objectContaining({
         expectedState: "PENDING",
         outcome: {
@@ -551,7 +553,7 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     for (const kind of ["CANCELLED", "SUPERSEDED"] as const) {
       const value = item(context());
       const attempt = fixture(value, async () => ({ outcome: { ok: true } as never }));
-      attempt.repository.commitTerminal = vi.fn(async (input) => ({
+      attempt.repository.commitTerminal = vi.fn(async (_input) => ({
         status: "APPLIED" as const,
         item: terminalItem(value, kind),
       }));
@@ -560,7 +562,9 @@ describe("engine-neutral WorkAttemptExecutor", () => {
       ).resolves.toMatchObject({
         status: kind,
       });
-      expect(attempt.repository.commitTerminal).toHaveBeenCalledTimes(1);
+      expect(Reflect.get(attempt.repository, "commitTerminal")).toHaveBeenCalledTimes(
+        1,
+      );
     }
   });
 
@@ -610,7 +614,7 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
       status: "FAILED",
     });
-    expect(attempt.repository.markRetryWait).not.toHaveBeenCalled();
+    expect(Reflect.get(attempt.repository, "markRetryWait")).not.toHaveBeenCalled();
   });
 
   it("revalidates notBefore before claiming and preserves it in RETRY_WAIT", async () => {
@@ -620,8 +624,8 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
       status: "RETRY_WAIT",
     });
-    expect(attempt.lease.reserveInvocation).not.toHaveBeenCalled();
-    expect(attempt.repository.markRetryWait).toHaveBeenCalledWith(
+    expect(Reflect.get(attempt.lease, "reserveInvocation")).not.toHaveBeenCalled();
+    expect(Reflect.get(attempt.repository, "markRetryWait")).toHaveBeenCalledWith(
       expect.objectContaining({
         retryClass: "transient",
         reasonCode: "not-before-not-yet-due",
@@ -645,7 +649,7 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
       status: "FAILED",
     });
-    expect(attempt.repository.commitTerminal).toHaveBeenCalledWith(
+    expect(Reflect.get(attempt.repository, "commitTerminal")).toHaveBeenCalledWith(
       expect.objectContaining({
         outcome: {
           schemaVersion: 1,
@@ -666,7 +670,7 @@ describe("engine-neutral WorkAttemptExecutor", () => {
     await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
       status: "FAILED",
     });
-    expect(attempt.repository.commitTerminal).toHaveBeenCalledWith(
+    expect(Reflect.get(attempt.repository, "commitTerminal")).toHaveBeenCalledWith(
       expect.objectContaining({
         outcome: expect.objectContaining({
           kind: "FAILED",
