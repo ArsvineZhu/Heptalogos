@@ -147,14 +147,14 @@
       "route": "DBOS 4.x line",
       "boundary": "DurableExecutionService",
       "directive": "USE",
-      "packages": []
+      "packages": ["@dbos-inc/dbos-sdk"]
     },
     {
       "roleId": "workqueue.mechanics",
       "route": "DBOS Queue",
       "boundary": "static dispatchWorkItem(WorkItemId, dispatchRevision) adapter",
       "directive": "USE",
-      "packages": []
+      "packages": ["@dbos-inc/dbos-sdk"]
     },
     {
       "roleId": "signal.postgres-notify",
