@@ -126,7 +126,9 @@ async function generate(directory, apiPackages) {
   );
 }
 
-const temporaryRoot = await mkdtemp(join(root, "tmp", "api-docs-"));
+const temporaryParent = join(root, "tmp");
+await mkdir(temporaryParent, { recursive: true });
+const temporaryRoot = await mkdtemp(join(temporaryParent, "api-docs-"));
 const temporaryOutput = join(temporaryRoot, "reference");
 
 try {

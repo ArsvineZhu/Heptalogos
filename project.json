@@ -42,6 +42,7 @@
     },
     "docs:api": {
       "dependsOn": ["build"],
+      "parallelism": false,
       "executor": "nx:run-commands",
       "options": {
         "command": "node scripts/verify/api-docs.mjs --write"
@@ -49,6 +50,7 @@
     },
     "docs:api:check": {
       "dependsOn": ["build"],
+      "parallelism": false,
       "executor": "nx:run-commands",
       "options": {
         "command": "node scripts/verify/api-docs.mjs"
@@ -73,6 +75,7 @@
       }
     },
     "format:check": {
+      "parallelism": false,
       "executor": "nx:run-commands",
       "options": {
         "command": "prettier --check ."
@@ -105,12 +108,14 @@
     },
     "lint": {
       "dependsOn": ["boundary", "tooling:lint", "schema:lint"],
+      "parallelism": false,
       "executor": "nx:run-commands",
       "options": {
         "command": "nx run-many -t lint --all --exclude=repository,repo-kit"
       }
     },
     "typecheck": {
+      "parallelism": false,
       "executor": "nx:run-commands",
       "options": {
         "command": "nx run-many -t typecheck --all --exclude=repository"
@@ -123,12 +128,14 @@
       }
     },
     "test": {
+      "parallelism": false,
       "executor": "nx:run-commands",
       "options": {
         "command": "nx run-many -t test --all --exclude=repository"
       }
     },
     "build": {
+      "parallelism": false,
       "executor": "nx:run-commands",
       "options": {
         "command": "nx run-many -t build --all --exclude=repository"
