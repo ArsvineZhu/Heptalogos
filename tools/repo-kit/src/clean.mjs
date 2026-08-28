@@ -135,9 +135,9 @@ function existingAncestor(path) {
   return candidate;
 }
 
-function assertSafeTarget(rootReal, target) {
+function assertSafeTarget(rootPath, rootReal, target) {
   const candidate = resolve(target);
-  if (!isWithin(rootReal, candidate) || candidate === rootReal) {
+  if (!isWithin(rootPath, candidate) || candidate === rootPath) {
     throw new Error(`clean target is outside repository: ${candidate}`);
   }
 
@@ -186,7 +186,7 @@ export function discoverCleanPlan({ root = process.cwd() } = {}) {
   targets.push(...orphanPackageTargets(repositoryRoot));
 
   const compact = compactTargets(repositoryRoot, targets);
-  for (const target of compact) assertSafeTarget(rootReal, target);
+  for (const target of compact) assertSafeTarget(repositoryRoot, rootReal, target);
   return { root: repositoryRoot, targets: compact };
 }
 
