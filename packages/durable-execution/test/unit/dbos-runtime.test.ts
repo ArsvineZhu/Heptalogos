@@ -110,6 +110,21 @@ interface PoolFixture {
   readonly ended: () => boolean;
 }
 
+interface FakeQueue {
+  getGlobalConcurrency(): Promise<number | undefined>;
+  getWorkerConcurrency(): Promise<number | undefined>;
+  getRateLimit(): Promise<
+    { readonly limitPerPeriod: number; readonly periodSec: number } | undefined
+  >;
+  getPartitionConcurrency(): Promise<number | undefined>;
+  getPartitionWorkerConcurrency(): Promise<number | undefined>;
+  getPartitionRateLimit(): Promise<
+    { readonly limitPerPeriod: number; readonly periodSec: number } | undefined
+  >;
+  getPartitionQueue(): Promise<boolean>;
+  getMinPollingIntervalMs(): Promise<number | undefined>;
+}
+
 interface RuntimeFixture {
   readonly dependencies: {
     readonly createPool: (
@@ -123,6 +138,7 @@ interface RuntimeFixture {
       shutdown(options: {
         readonly workflowCompletionTimeoutMS: number;
       }): Promise<void>;
+      registerQueue(name: string, options: unknown): Promise<FakeQueue>;
     };
     readonly bindingDriver: BindingDriver;
   };
@@ -163,6 +179,37 @@ function runtimeFixture(): RuntimeFixture {
       },
       async shutdown() {
         trace.push("dbos.shutdown");
+      },
+      async registerQueue(_name, options) {
+        trace.push("dbos.registerQueue");
+        const params = options as {
+          readonly globalConcurrency?: number;
+          readonly workerConcurrency?: number;
+          readonly rateLimit?: {
+            readonly limitPerPeriod: number;
+            readonly periodSec: number;
+          };
+          readonly partitionConcurrency?: number;
+          readonly partitionWorkerConcurrency?: number;
+          readonly partitionRateLimit?: {
+            readonly limitPerPeriod: number;
+            readonly periodSec: number;
+          };
+          readonly minPollingIntervalMs?: number;
+        };
+        return {
+          getGlobalConcurrency: async () => params.globalConcurrency,
+          getWorkerConcurrency: async () => params.workerConcurrency,
+          getRateLimit: async () => params.rateLimit,
+          getPartitionConcurrency: async () => params.partitionConcurrency,
+          getPartitionWorkerConcurrency: async () => params.partitionWorkerConcurrency,
+          getPartitionRateLimit: async () => params.partitionRateLimit,
+          getPartitionQueue: async () =>
+            params.partitionConcurrency !== undefined ||
+            params.partitionWorkerConcurrency !== undefined ||
+            params.partitionRateLimit !== undefined,
+          getMinPollingIntervalMs: async () => params.minPollingIntervalMs,
+        };
       },
     },
     bindingDriver: {

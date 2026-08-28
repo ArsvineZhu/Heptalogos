@@ -116,6 +116,11 @@ const specs: Readonly<
     retryClass: "after-change",
     title: "DurableExecution dispatch admission is closed",
   },
+  "durable_execution.queue_profile_mismatch": {
+    category: "integrity",
+    retryClass: "manual",
+    title: "Persisted DBOS queue profile does not match WorkQueue policy",
+  },
 };
 
 /** Creates a stable durable-execution Problem with an optional operational cause. */

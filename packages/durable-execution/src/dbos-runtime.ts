@@ -22,6 +22,11 @@ import { bindWorkAttemptExecutor } from "./dbos-binding.js";
 import type { BindingDriver } from "./dbos-binding.js";
 import { createDbosSystemPool } from "./dbos-pool.js";
 import { createDurableExecutionLifecycleMachine } from "./dbos-lifecycle-machine.js";
+import {
+  projectWorkQueueProfiles,
+  type DbosQueueHandle,
+  type DbosQueueRegistrationOptions,
+} from "./dbos-queue-profiles.js";
 import { durableExecutionProblem } from "./problems.js";
 
 interface DurableExecutionPoolHandle {
@@ -45,6 +50,10 @@ interface DbosLifecycleDriver {
   setConfig(config: DbosRuntimeConfig): void;
   launch(): Promise<void>;
   shutdown(options: { readonly workflowCompletionTimeoutMS: number }): Promise<void>;
+  registerQueue(
+    name: string,
+    options: DbosQueueRegistrationOptions,
+  ): Promise<DbosQueueHandle>;
 }
 
 type PoolFactory = (
@@ -69,12 +78,19 @@ const defaultDbosDriver: DbosLifecycleDriver = {
   shutdown(options) {
     return dbosSdk.shutdown(options);
   },
+  registerQueue(name, options) {
+    return dbosSdk.registerQueue(name, options);
+  },
 };
 
 interface DbosSdkRuntimeSurface {
   setConfig(config: DbosRuntimeConfig): void;
   launch(): Promise<void>;
   shutdown(options: { readonly workflowCompletionTimeoutMS: number }): Promise<void>;
+  registerQueue(
+    name: string,
+    options: DbosQueueRegistrationOptions,
+  ): Promise<DbosQueueHandle>;
 }
 
 const dbosSdk = createRequire(import.meta.url)("@dbos-inc/dbos-sdk")
@@ -127,19 +143,14 @@ function validateOptions(options: DurableExecutionRuntimeOptions): void {
       "systemPool.idleInTransactionSessionTimeoutMs",
       options.systemPool.idleInTransactionSessionTimeoutMs,
     ],
-    [
-      "systemDatabasePollingConcurrency",
-      options.systemDatabasePollingConcurrency,
-    ],
+    ["systemDatabasePollingConcurrency", options.systemDatabasePollingConcurrency],
     ["maxConcurrentQueueDispatches", options.maxConcurrentQueueDispatches],
     ["workflowMaxRecoveryAttempts", options.workflowMaxRecoveryAttempts],
     ["shutdownDrainTimeoutMs", options.shutdownDrainTimeoutMs],
   ] as const) {
     assertPositiveSafeInteger(value, field);
   }
-  if (
-    options.systemDatabasePollingConcurrency > options.systemPool.maxConnections
-  ) {
+  if (options.systemDatabasePollingConcurrency > options.systemPool.maxConnections) {
     throw durableExecutionProblem(
       "durable.execution.runtime.invalid_options",
       "systemDatabasePollingConcurrency cannot exceed pool maxConnections",
@@ -178,10 +189,7 @@ function dbosConfig(
   };
 }
 
-function invalidState(
-  action: string,
-  state: DurableExecutionLifecycleState,
-): never {
+function invalidState(action: string, state: DurableExecutionLifecycleState): never {
   throw durableExecutionProblem(
     "durable.execution.runtime.invalid_transition",
     `Cannot ${action} while DurableExecution is ${state}`,
@@ -304,6 +312,7 @@ function createRuntime(
         dbosLaunchAttempted = true;
         await dependencies.dbos.launch();
         dbosLaunched = true;
+        await projectWorkQueueProfiles(options.profiles, dependencies.dbos);
         assertAuthorityActive(authority);
         lifecycle.send("START_SUCCEEDED");
       } catch (error) {
@@ -352,6 +361,7 @@ function createRuntime(
         dbosLaunchAttempted = true;
         await dependencies.dbos.launch();
         dbosLaunched = true;
+        await projectWorkQueueProfiles(options.profiles, dependencies.dbos);
         assertAuthorityActive(authority);
         lifecycle.send("RESUME_SUCCEEDED");
       } catch (error) {
