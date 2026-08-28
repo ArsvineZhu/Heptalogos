@@ -18,7 +18,10 @@ import {
   type DurableExecutionRuntime,
   type DurableExecutionRuntimeOptions,
 } from "./contracts.js";
-import { bindWorkAttemptExecutor } from "./dbos-binding.js";
+import {
+  bindWorkAttemptExecutor,
+  getActiveWorkAttemptInvocationCount,
+} from "./dbos-binding.js";
 import type { BindingDriver } from "./dbos-binding.js";
 import { createDbosSystemPool } from "./dbos-pool.js";
 import { createDurableExecutionLifecycleMachine } from "./dbos-lifecycle-machine.js";
@@ -245,6 +248,12 @@ function createRuntime(
         await dependencies.dbos.shutdown({
           workflowCompletionTimeoutMS: options.shutdownDrainTimeoutMs,
         });
+        if (getActiveWorkAttemptInvocationCount() !== 0) {
+          throw durableExecutionProblem(
+            "durable.execution.runtime.drain_timeout",
+            "DurableExecution shutdown exceeded its bounded drain budget",
+          );
+        }
         dbosLaunched = false;
         dbosLaunchAttempted = false;
       } catch (error) {

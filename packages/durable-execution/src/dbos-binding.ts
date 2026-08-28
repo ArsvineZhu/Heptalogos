@@ -81,6 +81,7 @@ const dbosSdk = createRequire(import.meta.url)("@dbos-inc/dbos-sdk")
 
 let processRegistration: ProcessRegistration | undefined;
 let activeBinding: ActiveBinding | undefined;
+let activeInvocationCount = 0;
 
 function dispositionFor(
   workItemId: WorkItemId,
@@ -105,8 +106,13 @@ async function executeAtInvocation(
       "DBOS invoked dispatchWorkItem without an active WorkAttemptExecutor binding",
     );
   }
-  const result = await binding.executor.execute(workItemId, dispatchRevision);
-  return dispositionFor(workItemId, dispatchRevision, result.status);
+  activeInvocationCount += 1;
+  try {
+    const result = await binding.executor.execute(workItemId, dispatchRevision);
+    return dispositionFor(workItemId, dispatchRevision, result.status);
+  } finally {
+    activeInvocationCount -= 1;
+  }
 }
 
 /** Binds one active executor while retaining one static process registration. */
@@ -163,6 +169,11 @@ export function getRegisteredDispatchWorkflow(): RegisteredDispatchWorkflow {
   return processRegistration.workflow;
 }
 
+/** Returns active WorkAttempt calls so shutdown can prove a bounded drain. */
+export function getActiveWorkAttemptInvocationCount(): number {
+  return activeInvocationCount;
+}
+
 /** Tests only: clears package binding state after all test runtimes are closed. */
 export function resetDbosBindingForTests(): void {
   if (activeBinding !== undefined && !activeBinding.released) {
@@ -170,4 +181,5 @@ export function resetDbosBindingForTests(): void {
   }
   processRegistration = undefined;
   activeBinding = undefined;
+  activeInvocationCount = 0;
 }
