@@ -4,6 +4,8 @@
  * @module contracts
  */
 
+import type { HostCanonicalMigrationAuthority } from "@heptalogos/host-ownership";
+
 /** Exact DBOS package identity adopted by the durable-execution boundary. */
 export const DBOS_PACKAGE_NAME = "@dbos-inc/dbos-sdk" as const;
 /** Exact DBOS package version approved by the current implementation plan. */
@@ -32,4 +34,16 @@ export interface DurableExecutionProcessResult {
   readonly exitCode: number;
   readonly stdout: string;
   readonly stderr: string;
+}
+
+/** Owns provisioning of the current DBOS vendor schema under migration Authority. */
+export interface DurableExecutionSchemaProvisioner {
+  ensureCurrent(authority: HostCanonicalMigrationAuthority): Promise<void>;
+}
+
+/** Supplies explicit bounds for one DBOS vendor-schema provisioning operation. */
+export interface DurableExecutionSchemaProvisionerOptions {
+  readonly processTimeoutMs: number;
+  readonly connectionTimeoutMs: number;
+  readonly statementTimeoutMs: number;
 }

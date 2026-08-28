@@ -53,6 +53,9 @@
     },
     {
       "path": "../canonical-schema/tsconfig.build.json"
+    },
+    {
+      "path": "../durable-execution/tsconfig.build.json"
     }
   ]
 }

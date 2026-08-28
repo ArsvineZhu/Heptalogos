@@ -210,6 +210,9 @@ importers:
       '@heptalogos/canonical-schema':
         specifier: workspace:*
         version: link:../canonical-schema
+      '@heptalogos/durable-execution':
+        specifier: workspace:*
+        version: link:../durable-execution
       '@heptalogos/evidence':
         specifier: workspace:*
         version: link:../evidence

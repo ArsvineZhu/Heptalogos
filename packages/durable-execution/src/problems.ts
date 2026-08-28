@@ -66,6 +66,21 @@ const specs: Readonly<
     retryClass: "backoff",
     title: "DBOS CLI could not be launched",
   },
+  "durable.execution.schema.invalid_options": {
+    category: "validation",
+    retryClass: "never",
+    title: "DBOS schema provisioner options are invalid",
+  },
+  "durable.execution.schema.provision_failed": {
+    category: "unavailable",
+    retryClass: "after-change",
+    title: "DBOS schema provisioning failed",
+  },
+  "durable.execution.schema.verification_failed": {
+    category: "integrity",
+    retryClass: "manual",
+    title: "DBOS schema verification failed",
+  },
 };
 
 /** Creates a stable durable-execution Problem with an optional operational cause. */
