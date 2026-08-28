@@ -338,21 +338,17 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 
 > Can the system make a durable promise, crash anywhere around dispatch/processing/external effects, and resume without losing the obligation or inventing false certainty?
 
-### Current progress (2026-08-27)
+### Current progress (2026-08-29)
 
 ```yaml
 H3: OPEN
 H3A: ACTIVE
 H3A_1: CLOSED
-H3A_2: BLOCKED_BY_REPOSITORY_STABILIZATION
+H3A_2: ACTIVE
 H3B: NOT_ELIGIBLE
 H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
-candidateFreeze: PASS
-independentReview: NOT_RUN
-finalManualCI: NOT_RUN
-prematureMergeRecovery: CLOSED
-activeImplementationPlan: docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md
+activeImplementationPlan: docs/plans/active/foundation/h3a2-dbos-durable-execution-crash-recovery-2026-08-29.md
 ```
 
 The H3A-1 implementation includes complete creation-request envelope
@@ -361,7 +357,8 @@ bootstrap-runtime test budgets. It is accepted as the current product baseline
 by the completed H3A-1 governance recovery record. Existing implementation and
 Draft cross-platform evidence remains preserved, while Independent Review and
 final manual CI remain `NOT_RUN`; they are not inferred from the GitHub merge
-fact. H3A-2 remains blocked by Repository Stabilization and is frozen.
+fact. H3A-2 is now active under its decision-complete DBOS durable execution
+and crash recovery plan.
 
 ### Implementation decomposition
 

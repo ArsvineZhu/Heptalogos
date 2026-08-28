@@ -26,16 +26,17 @@ An unresolved non-trivial choice is `PLAN_GAP` and stops execution.
 
 ## Active
 
-- [H3A — Durable Obligation & Signal Spine](active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md) — `ACTIVE` (H3A-1 canonical work, generation-pinned handlers, Signal, and engine-neutral WorkQueue semantics)
-- [Mechanics Ownership & Library-First Convergence](active/repository/mechanics-ownership-library-first-convergence-2026-08-28.md) — `ACTIVE` (governing plan for the remaining mechanics/library-first corrective work on the repository stabilization candidate)
+- [H3A-2 — DBOS Durable Execution & Crash Recovery](active/foundation/h3a2-dbos-durable-execution-crash-recovery-2026-08-29.md) — `ACTIVE` (DBOS durable execution, WorkItem projection, process-crash recovery, database authority isolation, and Host lifecycle integration)
 
 ## Superseded
 
-- [Repository Stabilization & Topology Reset v2](superseded/repository/repository-stabilization-topology-reset-2026-08-27.md) — `SUPERSEDED` (historical repository topology/control-plane baseline; current stabilization corrections are governed by the active mechanics plan)
+- [Repository Stabilization & Topology Reset v2](superseded/repository/repository-stabilization-topology-reset-2026-08-27.md) — `SUPERSEDED` (historical repository topology/control-plane baseline; later stabilization corrections are recorded in the completed mechanics plan)
+- [H3A — Durable Obligation & Signal Spine](superseded/foundation/h3a-durable-obligation-signal-spine-2026-08-26.md) — `SUPERSEDED` (historical H3A-1 semantic plan; current H3A-2 execution is governed by the active DBOS plan)
 
 ## Completed
 
 - [H3A-1 Premature-Merge Governance Recovery](completed/foundation/h3a1-premature-merge-governance-recovery.md) — `COMPLETED` (current H3A-1 baseline and merge fact reconciled without replaying product history; qualification evidence remains separately scoped)
+- [Mechanics Ownership & Library-First Convergence](completed/repository/mechanics-ownership-library-first-convergence-2026-08-28.md) — `COMPLETED` (repository stabilization corrections merged and reconciled before H3A-2 activation)
 
 - [Post-H2 Current Authority Hygiene](completed/post-h2-current-authority-hygiene.md) — `COMPLETED` (current-truth, provenance, and terminology maintenance only; H2 remains `CLOSED` and H3 remains `ELIGIBLE`)
 - [H2 Ubuntu Residual Qualification](completed/foundation/h2-ubuntu-residual-qualification.md) — `COMPLETED` (Ubuntu/Linux PostgreSQL 18.6 matrix `PASS`; only directly exercised Linux residuals upgraded; remaining product boundaries stay `NOT_RUN`)

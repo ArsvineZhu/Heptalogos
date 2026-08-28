@@ -1,6 +1,6 @@
 # Heptalogos Repository Stabilization — Mechanics Ownership & Library-First Convergence Corrective Plan
 
-**Status:** `ACTIVE`
+**Status:** `COMPLETED`
 **Date:** 2026-08-28  
 **Scope:** Remaining corrective work on the current Repository Stabilization candidate / PR #29  
 **Canonical repository destination:**  

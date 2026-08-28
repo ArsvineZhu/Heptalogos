@@ -3,7 +3,7 @@
 ## Decision-Complete Implementation & Qualification Plan
 
 **Plan date:** 2026-08-26  
-**Status:** ACTIVE  
+**Status:** SUPERSEDED  
 **Authority level:** Implementation Plan below the Architecture Corpus; this plan may prescribe exact Roadmap/qualification updates, but it does not silently override Corpus Authority.  
 **Canonical active path after activation:** `docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md`  
 **Supersedes:** the earlier draft `Heptalogos_H3A_Durable_Work_and_Signal_Spine_Implementation_Plan_2026-08-26.md`  
