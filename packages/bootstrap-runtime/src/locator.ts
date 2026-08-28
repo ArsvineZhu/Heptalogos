@@ -1,3 +1,9 @@
+/**
+ * Loads and validates the installation locator that supplies Bootstrap roots
+ * and identity before any stateful startup action is attempted.
+ * @module locator
+ */
+
 import { readFile, realpath } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { compileSchema } from "@heptalogos/schema-runtime";
@@ -16,6 +22,7 @@ import { hasNodeErrorCode } from "./error-code.js";
 
 const BOOTSTRAP_LOCATOR_FILENAME = "heptalogos.bootstrap.json";
 
+/** Describes the validated installation locator and its canonical identity. */
 export interface BootstrapLocatorV1 {
   readonly schemaVersion: 1;
   readonly installationId: InstallationId;
@@ -102,6 +109,7 @@ function requireValidSchema(value: unknown): asserts value is {
   }
 }
 
+/** Loads, parses, and validates the installation locator from its anchor root. */
 export async function loadBootstrapLocator(
   anchorRoot: string,
 ): Promise<BootstrapLocatorV1> {

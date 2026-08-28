@@ -1,3 +1,9 @@
+/**
+ * Inspects the durable maintenance obligation and classifies whether cleanup
+ * or recovery must precede a new Bootstrap operation.
+ * @module maintenance-obligation
+ */
+
 import {
   MaintenanceJournalStore,
   type BootstrapStateLoadResult,
@@ -13,6 +19,7 @@ import { problemCodeOf } from "./problem-code.js";
 
 const MAINTENANCE_OPERATION_REF_PREFIX = "maintenance-journal/v1/";
 
+/** Reports whether durable maintenance is incomplete and needs recovery. */
 export interface MaintenanceObligationInspection {
   readonly operationId?: MaintenanceOperationId;
   readonly maintenance?: MaintenanceJournalLoadResult;
@@ -60,6 +67,7 @@ function maintenanceIsIncomplete(value: MaintenanceJournalLoadResult): boolean {
   );
 }
 
+/** Inspects the current maintenance pointer and journal under BootstrapState. */
 export async function inspectMaintenanceObligation(
   instanceRoot: string,
   state: BootstrapStateLoadResult,

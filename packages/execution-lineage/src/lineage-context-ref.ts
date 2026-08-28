@@ -1,3 +1,9 @@
+/**
+ * Encodes and decodes the compact lineage context reference used at durable
+ * boundaries, rejecting malformed identity data before it becomes evidence.
+ * @module lineage-context-ref
+ */
+
 import {
   parseActivityId,
   parseContinuityEpochId,
@@ -44,6 +50,7 @@ function freezeRef(value: LineageContextRefV1): LineageContextRefV1 {
   });
 }
 
+/** Decodes and validates a durable lineage context reference. */
 export function decodeLineageContextRef(value: unknown): LineageContextRefV1 {
   const result = validateLineageContextRef.validate(value);
   if (!result.ok) {
@@ -72,6 +79,7 @@ export function decodeLineageContextRef(value: unknown): LineageContextRefV1 {
   });
 }
 
+/** Encodes a lineage context reference as canonical bounded JSON. */
 export function encodeLineageContextRef(
   value: LineageContextRefV1,
 ): LineageContextRefV1 {

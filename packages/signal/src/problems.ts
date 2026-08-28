@@ -1,3 +1,9 @@
+/**
+ * Maps Signal listener and publication failures into shared Problem envelopes
+ * without making PostgreSQL client errors part of the public API.
+ * @module problems
+ */
+
 import {
   createProblemError,
   type ProblemInit,
@@ -50,6 +56,7 @@ const specs: Readonly<
   },
 };
 
+/** Create a stable Signal problem while retaining an optional operational cause. */
 export function signalProblem(
   problemCode: string,
   detail: string,

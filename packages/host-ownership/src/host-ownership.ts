@@ -1,3 +1,9 @@
+/**
+ * Owns Host lease acquisition, heartbeat, fencing, and release orchestration
+ * over the single canonical PostgreSQL ownership Authority.
+ * @module host-ownership
+ */
+
 import {
   createProblemError,
   parseBootId,
@@ -11,6 +17,7 @@ import { HOST_OWNERSHIP_FENCE_TABLE, HOST_OWNERSHIP_SCHEMA } from "./contracts.j
 import type { HostLeaseConnection } from "./host-lease-connection.js";
 import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
 
+/** Supplies connection, token, and authority inputs for token publication. */
 export interface PublishHostOwnershipTokenOptions {
   readonly connection: HostLeaseConnection;
   readonly instanceId: InstanceId;
@@ -21,6 +28,7 @@ export interface PublishHostOwnershipTokenOptions {
   readonly mutationAuthority: BootstrapMutationAuthority;
 }
 
+/** Reports the fence revision before and after token publication. */
 export interface HostOwnershipPublicationResult {
   readonly previousRevision: string;
   readonly publishedRevision: string;
@@ -157,6 +165,7 @@ function assertPublishedRow(
   }
 }
 
+/** Publishes the current Host token through the database-visible fence. */
 export async function publishHostOwnershipToken(
   options: PublishHostOwnershipTokenOptions,
 ): Promise<HostOwnershipPublicationResult> {

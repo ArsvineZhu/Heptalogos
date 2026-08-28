@@ -1,3 +1,9 @@
+/**
+ * Owns Runtime Kernel supervision, activation, quiescence, and retirement over
+ * the desired graph while delegating generic resource mechanics to Substrate.
+ * @module supervisor
+ */
+
 import {
   createMicroSystemInstanceId,
   type ContributionId,
@@ -64,6 +70,7 @@ interface BackgroundFailureEvent {
   readonly cause: unknown;
 }
 
+/** Supplies substrate, registry, lifecycle, and retirement policy to supervision. */
 export interface MicroSystemSupervisorOptions {
   readonly substrate: RuntimeSubstrate;
   readonly settleTimeoutMs: number;
@@ -94,6 +101,7 @@ function captureDesiredRuntimeSnapshot(
   });
 }
 
+/** Supervises Runtime graph activation, readiness, quiescence, and retirement. */
 export class MicroSystemSupervisor {
   readonly services: ServiceRegistry;
   readonly capabilities: CapabilityRegistry;
@@ -116,6 +124,7 @@ export class MicroSystemSupervisor {
   private readonly ownerAbortListener: (() => void) | undefined;
   private ownerTerminalFailureReported = false;
 
+  /** Creates a supervisor and registers its initial MicroSystem definitions. */
   constructor(private readonly options: MicroSystemSupervisorOptions) {
     this.services = options.serviceRegistry ?? new ServiceRegistry();
     this.capabilities = options.capabilityRegistry ?? new CapabilityRegistry();
@@ -139,6 +148,7 @@ export class MicroSystemSupervisor {
     }
   }
 
+  /** Registers one MicroSystem definition before reconciliation. */
   register(definition: MicroSystemDefinition): void {
     if (this.definitions.has(definition.microSystemId)) {
       throw runtimeKernelProblem(
@@ -150,14 +160,17 @@ export class MicroSystemSupervisor {
     this.actual.set(definition.microSystemId, "STOPPED");
   }
 
+  /** Returns the current observed state for one MicroSystem. */
   getActualState(microSystemId: MicroSystemId): MicroSystemActualState {
     return this.actual.get(microSystemId) ?? "STOPPED";
   }
 
+  /** Returns a snapshot of all observed MicroSystem states. */
   getActualSnapshot(): ReadonlyMap<MicroSystemId, MicroSystemActualState> {
     return new Map(this.actual);
   }
 
+  /** Evaluates a readiness profile against current Runtime bindings. */
   evaluateReadiness(profile: ReadinessProfileDefinition): ReadinessResult {
     return evaluateReadiness(
       profile,
@@ -168,6 +181,7 @@ export class MicroSystemSupervisor {
     );
   }
 
+  /** Returns a registered MicroSystem definition or raises a typed Problem. */
   getDefinition(microSystemId: MicroSystemId): MicroSystemDefinition {
     const definition = this.definitions.get(microSystemId);
     if (definition === undefined) {
@@ -179,6 +193,7 @@ export class MicroSystemSupervisor {
     return definition;
   }
 
+  /** Serializes and applies one desired Runtime reconciliation. */
   async reconcile(input: DesiredRuntimeSnapshot): Promise<ReconcilePlan> {
     this.assertActive();
     const desired = captureDesiredRuntimeSnapshot(input);
@@ -386,6 +401,7 @@ export class MicroSystemSupervisor {
     return serviceIds;
   }
 
+  /** Quiesces active MicroSystems and returns a reversible Runtime lease. */
   quiesce(): Promise<RuntimeQuiescenceLease> {
     if (this.lifecycle.state !== "ACTIVE") {
       return Promise.reject(
@@ -450,6 +466,7 @@ export class MicroSystemSupervisor {
     });
   }
 
+  /** Closes the supervisor after draining active and unsettled generations. */
   close(): Promise<void> {
     return this.beginTerminalClose(false);
   }

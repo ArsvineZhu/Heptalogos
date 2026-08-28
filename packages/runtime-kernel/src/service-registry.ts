@@ -1,3 +1,9 @@
+/**
+ * Owns Service provider registration and generation-pinned leases so Runtime
+ * consumers cannot use a service after its owner retires the generation.
+ * @module service-registry
+ */
+
 import type {
   ServiceLease,
   ServiceProvisionDescriptor,
@@ -30,10 +36,12 @@ function bindingKey(
   return `${serviceId}\u0000${providerId}`;
 }
 
+/** Owns Service provider registration and generation-pinned resolution. */
 export class ServiceRegistry {
   private readonly bindings = new RegistryStore<ServiceBinding>();
   private readonly compatibility = new ContractCompatibilityRegistry();
 
+  /** Registers a validated Service implementation under a generation fence. */
   register<TContract extends object>(
     descriptor: ServiceProvisionDescriptor,
     implementation: TContract,
@@ -57,6 +65,7 @@ export class ServiceRegistry {
     return fence;
   }
 
+  /** Reports whether an eligible Service provider exists. */
   hasEligible(
     requirement: ServiceRequirement,
     explicitProviderId?: ProviderId,
@@ -64,6 +73,7 @@ export class ServiceRegistry {
     return this.selectBinding(requirement, explicitProviderId, false) !== undefined;
   }
 
+  /** Resolves an eligible Service behind a generation-fenced proxy. */
   resolve<TContract extends object>(
     requirement: ServiceRequirement,
     explicitProviderId?: ProviderId,
@@ -98,6 +108,7 @@ export class ServiceRegistry {
     });
   }
 
+  /** Lists provider identities registered for a Service. */
   providerIds(
     serviceId: ServiceProvisionDescriptor["serviceId"],
   ): readonly ProviderId[] {
@@ -107,6 +118,7 @@ export class ServiceRegistry {
     );
   }
 
+  /** Retires every Service binding owned by the supplied generation fence. */
   async retireGeneration(
     ownerFence: GenerationFence,
     settleTimeoutMs: number,

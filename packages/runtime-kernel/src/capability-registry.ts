@@ -1,3 +1,9 @@
+/**
+ * Owns Capability provider registration and generation-scoped leases so a
+ * consumer cannot retain a capability after its runtime generation retires.
+ * @module capability-registry
+ */
+
 import type {
   CapabilityLease,
   CapabilityProvisionDescriptor,
@@ -30,10 +36,12 @@ function bindingKey(
   return `${capabilityId}\u0000${providerId}`;
 }
 
+/** Owns Capability provider registration and generation-pinned resolution. */
 export class CapabilityRegistry {
   private readonly bindings = new RegistryStore<CapabilityBinding>();
   private readonly compatibility = new ContractCompatibilityRegistry();
 
+  /** Registers a validated Capability implementation under a generation fence. */
   register<TContract extends object>(
     descriptor: CapabilityProvisionDescriptor,
     implementation: TContract,
@@ -63,6 +71,7 @@ export class CapabilityRegistry {
     return fence;
   }
 
+  /** Reports whether an eligible Capability provider exists. */
   hasEligible(
     requirement: CapabilityRequirement,
     explicitProviderId?: ProviderId,
@@ -70,6 +79,7 @@ export class CapabilityRegistry {
     return this.selectBinding(requirement, explicitProviderId) !== undefined;
   }
 
+  /** Resolves an eligible Capability behind a generation-fenced proxy. */
   resolve<TContract extends object>(
     requirement: CapabilityRequirement,
     explicitProviderId?: ProviderId,
@@ -105,6 +115,7 @@ export class CapabilityRegistry {
     });
   }
 
+  /** Lists provider identities registered for a Capability. */
   providerIds(
     capabilityId: CapabilityProvisionDescriptor["capabilityId"],
   ): readonly ProviderId[] {
@@ -114,6 +125,7 @@ export class CapabilityRegistry {
     );
   }
 
+  /** Retires every Capability binding owned by the supplied generation fence. */
   async retireGeneration(
     ownerFence: GenerationFence,
     settleTimeoutMs: number,

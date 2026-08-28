@@ -1,3 +1,9 @@
+/**
+ * Persists and reads retained Evidence through the caller's persistence and
+ * time authorities, preserving sensitivity and lineage semantics at the seam.
+ * @module evidence-service
+ */
+
 import { createEvidenceId } from "@heptalogos/foundation-contracts";
 import {
   executeFoundationSql,
@@ -72,6 +78,7 @@ async function executeSql(
   }
 }
 
+/** Creates the Evidence service bound to the caller's injectable time source. */
 export function createEvidenceService(time: TimeService): EvidenceService {
   return {
     async recordRequired(transaction, draft): Promise<EvidenceRecord> {

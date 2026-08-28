@@ -21,6 +21,12 @@ AI-facing operational contract; use concise technical English.
 - Executable plans live only under `docs/plans/active/`; completed and
   superseded plans are historical and must not be used as current routes.
 
+Durable source modules require meaningful package/module docs.
+Document exported contracts and non-obvious invariants.
+Comments explain semantics/why, not syntax.
+Do not duplicate TypeScript type information in prose.
+Generated API docs are derived; edit source documentation instead.
+
 Before changing documentation, identify its audience, canonical facts, and
 current evidence. Update navigation and affected agent routes in the same
 change. Preserve `PASS | FAIL | NOT_RUN | BLOCKED` evidence distinctions and

@@ -1,3 +1,9 @@
+/**
+ * Creates and removes private PostgreSQL credential files with restrictive
+ * ownership and cleanup behavior so plaintext secrets have a bounded lifetime.
+ * @module credential-file
+ */
+
 import { lstat, realpath, unlink, writeFile } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import { isAbsolute, join } from "node:path";
@@ -85,6 +91,7 @@ function assertValidBootstrapPassword(passwordUtf8: Uint8Array): void {
   }
 }
 
+/** Runs a callback with an ephemeral restrictive PostgreSQL password file. */
 export async function withRestrictedPasswordFile<T>(
   tempRoot: string,
   passwordUtf8: Uint8Array,

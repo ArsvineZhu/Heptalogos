@@ -1,3 +1,9 @@
+/**
+ * Owns the dedicated PostgreSQL LISTEN connection and reconnect/rescan lifecycle
+ * while keeping notification loss safe through canonical consumer re-query.
+ * @module postgres-signal
+ */
+
 import { CompiledQuery } from "kysely";
 import { Client } from "pg";
 import {
@@ -101,6 +107,10 @@ function assertOptions(options: PostgresSignalRuntimeOptions): void {
   }
 }
 
+/**
+ * Maintains one dedicated LISTEN connection and converts loss into a durable
+ * rescan request so notification delivery never becomes the source of truth.
+ */
 export class PostgresSignalService implements SignalService {
   private readonly subscriptions = new Set<SubscriptionEntry>();
   private readonly clientFactory: SignalClientFactory;
@@ -114,6 +124,7 @@ export class PostgresSignalService implements SignalService {
   private closing = false;
   private closePromise: Promise<void> | undefined;
 
+  /** Create a listener bound to the host-owned PostgreSQL runtime. */
   constructor(
     private readonly authority: SignalHostAuthority,
     private readonly options: PostgresSignalRuntimeOptions,
@@ -129,6 +140,7 @@ export class PostgresSignalService implements SignalService {
     );
   }
 
+  /** Register a topic listener and establish the shared connection on demand. */
   async subscribe(
     topic: SignalTopic,
     listener: SignalListener,
@@ -412,6 +424,7 @@ export class PostgresSignalService implements SignalService {
   }
 }
 
+/** Create the PostgreSQL-backed signal service behind the narrow SignalService contract. */
 export function createPostgresSignalService(
   authority: SignalHostAuthority,
   options: PostgresSignalRuntimeOptions,
@@ -428,6 +441,7 @@ async function executeNotify(
   );
 }
 
+/** Publish a bounded wakeup inside the caller's mutation transaction. */
 export const postgresSignalPublisher: SignalPublisher = {
   async publish(
     transaction: PersistenceMutationTransactionContext,

@@ -1,3 +1,9 @@
+/**
+ * Owns durable maintenance journal storage and atomic record replacement so a
+ * recovery process can observe one coherent operation state at a time.
+ * @module maintenance-store
+ */
+
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -64,14 +70,17 @@ function stateText(value: MaintenanceJournalEnvelopeV1): string {
   return canonicalizeJson(value as unknown as CanonicalJsonValue);
 }
 
+/** Owns serialized, atomic MaintenanceJournal revisions for one instance. */
 export class MaintenanceJournalStore {
   private readonly operationSerializer = new KeyedAsyncSerializer();
 
+  /** Binds the journal store to an instance root and optional authority check. */
   constructor(
     private readonly instanceRoot: string,
     private readonly assertAuthority?: () => void,
   ) {}
 
+  /** Loads the current journal result for one operation. */
   async load(operation: MaintenanceOperationId): Promise<MaintenanceJournalLoadResult> {
     this.assertAuthority?.();
     const id = operationId(operation);
@@ -81,6 +90,7 @@ export class MaintenanceJournalStore {
     });
   }
 
+  /** Loads current/previous envelopes and the effective recovery progress stage. */
   async loadRecoveryHead(
     operation: MaintenanceOperationId,
   ): Promise<MaintenanceJournalRecoveryHead> {
@@ -92,6 +102,7 @@ export class MaintenanceJournalStore {
     });
   }
 
+  /** Creates revision one after confirming the operation does not already exist. */
   async create(body: MaintenanceJournalBodyV1): Promise<MaintenanceJournalEnvelopeV1> {
     const id = operationId(body.operationId);
     return this.operationSerializer.run(id, async () => {
@@ -119,6 +130,7 @@ export class MaintenanceJournalStore {
     });
   }
 
+  /** Advances one operation serially after checking revision and authority. */
   async advance(body: MaintenanceJournalBodyV1): Promise<MaintenanceJournalEnvelopeV1> {
     const id = operationId(body.operationId);
     return this.operationSerializer.run(id, async () => {

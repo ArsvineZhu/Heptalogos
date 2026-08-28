@@ -1,3 +1,9 @@
+/**
+ * Verifies dependency declarations, roles, and import restrictions against the
+ * repository dependency Authorities rather than maintaining a second graph.
+ * @module dependencies
+ */
+
 import { builtinModules } from "node:module";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";

@@ -103,6 +103,12 @@ Foundation-owned durable primitive specified by the Corpus/plan.
 Behavior-affecting literals must follow the repository configuration policy;
 do not hide product policy in incidental constants.
 
+Durable source modules require meaningful package/module docs.
+Document exported contracts and non-obvious invariants.
+Comments explain semantics/why, not syntax.
+Do not duplicate TypeScript type information in prose.
+Generated API docs are derived; edit source documentation instead.
+
 ## 5. Verification and candidate integrity
 
 Verification state is exactly:

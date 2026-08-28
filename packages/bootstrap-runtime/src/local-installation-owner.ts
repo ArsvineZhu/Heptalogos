@@ -1,3 +1,9 @@
+/**
+ * Verifies the local installation-owner witness used to authorize Bootstrap
+ * recovery without turning process-local identity into durable ownership.
+ * @module local-installation-owner
+ */
+
 import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { access, lstat, open, stat, unlink } from "node:fs/promises";
@@ -13,6 +19,7 @@ import { loadBootstrapLocator } from "./locator.js";
 import { resolveBootstrapPathProfile } from "./roots.js";
 import { hasNodeErrorCode } from "./error-code.js";
 
+/** Identifies the local principal allowed to initiate installation recovery. */
 export interface LocalInstallationOwnerRecoveryPrincipal {
   readonly kind: "LOCAL_INSTALLATION_OWNER";
   readonly installationId: InstallationId;
@@ -140,6 +147,7 @@ async function proveInstanceWrite(instanceRoot: string): Promise<void> {
   }
 }
 
+/** Proves local installation ownership for a bounded recovery attempt. */
 export async function proveLocalInstallationOwner(
   anchorRoot: string,
 ): Promise<LocalInstallationOwnerRecoveryPrincipal> {
@@ -164,6 +172,7 @@ export async function proveLocalInstallationOwner(
   return principal;
 }
 
+/** Throws unless the principal matches the requested installation and instance. */
 export function assertLocalInstallationOwnerFor(
   principal: LocalInstallationOwnerRecoveryPrincipal,
   installationId: InstallationId,

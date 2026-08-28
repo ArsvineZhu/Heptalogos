@@ -1,10 +1,18 @@
+/**
+ * Encodes and validates Signal hints through canonical JSON and SchemaRuntime,
+ * keeping notification payloads typed, bounded, and non-authoritative.
+ * @module hint-codec
+ */
+
 import { canonicalizeJson } from "@heptalogos/foundation-contracts";
 import { compileSchema } from "@heptalogos/schema-runtime";
 import { Type } from "@heptalogos/schema-runtime/typebox";
 import type { SignalTopic } from "./contracts.js";
 import { signalProblem } from "./problems.js";
 
+/** PostgreSQL channel carrying non-authoritative signal hints. */
 export const SIGNAL_CHANNEL = "heptalogos_signal_v1" as const;
+/** Maximum UTF-8 payload size accepted for one signal hint. */
 export const SIGNAL_HINT_MAX_BYTES = 512 as const;
 
 const topicShape = /^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/u;
@@ -17,11 +25,13 @@ const hintSchema = Type.Object(
 );
 const validateHint = compileSchema<{ schemaVersion: 1; topic: string }>(hintSchema);
 
+/** Versioned, bounded payload carried by a signal notification. */
 export interface SignalHintV1 {
   readonly schemaVersion: 1;
   readonly topic: SignalTopic;
 }
 
+/** Validate and brand a semantic signal topic for publication or subscription. */
 export function createSignalTopic(value: string): SignalTopic {
   if (value.length === 0 || value.length > 128 || !topicShape.test(value)) {
     throw signalProblem(
@@ -32,6 +42,7 @@ export function createSignalTopic(value: string): SignalTopic {
   return value as SignalTopic;
 }
 
+/** Parse untrusted input into a signal topic without throwing on invalid data. */
 export function parseSignalTopic(value: unknown): SignalTopic | undefined {
   if (typeof value !== "string") return undefined;
   return value.length > 0 && value.length <= 128 && topicShape.test(value)
@@ -39,6 +50,7 @@ export function parseSignalTopic(value: unknown): SignalTopic | undefined {
     : undefined;
 }
 
+/** Encode a validated hint canonically before it crosses the notification boundary. */
 export function encodeSignalHint(hint: SignalHintV1): string {
   const topic = parseSignalTopic(hint.topic);
   if (hint.schemaVersion !== 1 || topic === undefined) {
@@ -54,6 +66,7 @@ export function encodeSignalHint(hint: SignalHintV1): string {
   return encoded;
 }
 
+/** Decode and validate a bounded notification payload into its typed hint. */
 export function decodeSignalHint(value: unknown): SignalHintV1 {
   if (typeof value !== "string") {
     throw signalProblem(

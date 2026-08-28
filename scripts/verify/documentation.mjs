@@ -1,3 +1,9 @@
+/**
+ * Executes the repository documentation topology and link validator so current
+ * document navigation remains aligned with its canonical homes.
+ * @module documentation
+ */
+
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { validateDocumentation } from "@heptalogos/repo-kit";

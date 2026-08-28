@@ -1,3 +1,9 @@
+/**
+ * Models private PostgreSQL lifecycle legality with XState while leaving
+ * authorization and installation ownership to Bootstrap and Host callers.
+ * @module lifecycle-machine
+ */
+
 import { initialTransition, setup, transition, type SnapshotFrom } from "xstate";
 import {
   createProblemError,
@@ -17,6 +23,7 @@ type PrivatePostgresLifecycleDetail =
   | "runningObservedUncertain"
   | "processUncertain";
 
+/** Describes a legal private PostgreSQL lifecycle event. */
 export type PrivatePostgresLifecycleEvent =
   | { readonly type: "START_COMMAND_ISSUED" }
   | { readonly type: "RESTART_COMMAND_ISSUED" }
@@ -31,10 +38,13 @@ export type PrivatePostgresLifecycleEvent =
   | { readonly type: "STOP_OUTCOME_UNCERTAIN" }
   | { readonly type: "UNEXPECTED_PROCESS_EXIT" };
 
+/** Provides state and validated transition operations for a cluster lifecycle. */
 export interface PrivatePostgresLifecycleTracker {
   readonly state: PrivatePostgresLifecycleState;
   readonly detail: PrivatePostgresLifecycleDetail;
+  /** Reports whether the lifecycle can accept an event in its current detail. */
   can(event: PrivatePostgresLifecycleEvent): boolean;
+  /** Advances the lifecycle or raises a typed invalid-transition Problem. */
   send(event: PrivatePostgresLifecycleEvent): void;
 }
 
@@ -128,6 +138,7 @@ function invalidTransition(
   });
 }
 
+/** Creates the XState-backed private PostgreSQL lifecycle tracker. */
 export function createPrivatePostgresLifecycleTracker(): PrivatePostgresLifecycleTracker {
   let snapshot = initialTransition(lifecycleMachine)[0];
 

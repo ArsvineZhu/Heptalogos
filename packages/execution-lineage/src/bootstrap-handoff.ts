@@ -1,3 +1,9 @@
+/**
+ * Projects Bootstrap handoff evidence into execution lineage without making
+ * lineage the owner of Bootstrap authority or durable work scheduling.
+ * @module bootstrap-handoff
+ */
+
 import {
   parseActivityId,
   parseBootId,
@@ -23,6 +29,7 @@ const INCOMPLETE_REF = "bootstrap.handoff.incomplete";
  * Structural input for BootstrapJournal so normal lineage does not depend on
  * the bootstrap runtime package. BootstrapJournalCheckpointV1 is assignable.
  */
+/** Structural Bootstrap journal input accepted by lineage projection. */
 export interface BootstrapJournalCheckpointLike {
   readonly schemaVersion: 1;
   readonly bootId: BootId;
@@ -35,13 +42,16 @@ export interface BootstrapJournalCheckpointLike {
   readonly problemCode?: string;
 }
 
+/** Supplies journal checkpoints and the canonical continuity epoch for projection. */
 export interface BootstrapHandoffProjectionInput {
   readonly checkpoints: readonly BootstrapJournalCheckpointLike[];
   readonly continuityEpochId: ContinuityEpochId;
 }
 
+/** Classifies whether the projected Bootstrap handoff succeeded or is incomplete. */
 export type BootstrapHandoffStatus = "SUCCEEDED" | "FAILED" | "INCOMPLETE";
 
+/** Projects Bootstrap journal evidence into a retained Activity draft. */
 export interface BootstrapHandoffProjection {
   readonly status: BootstrapHandoffStatus;
   /**
@@ -114,6 +124,7 @@ function outcomeRefFor(
   return failed?.problemCode ?? DEFAULT_FAILURE_REF;
 }
 
+/** Projects validated Bootstrap checkpoints into one retained lineage draft. */
 export function projectBootstrapHandoff(
   input: BootstrapHandoffProjectionInput,
 ): BootstrapHandoffProjection {

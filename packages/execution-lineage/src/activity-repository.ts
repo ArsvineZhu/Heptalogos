@@ -1,3 +1,9 @@
+/**
+ * Adapts Activity persistence through the canonical Foundation transaction so
+ * causal records carry the same execution and ownership context as mutations.
+ * @module activity-repository
+ */
+
 import {
   formatInstant,
   parseActivityId,
@@ -317,6 +323,7 @@ async function completeActivity(
   );
 }
 
+/** Creates the persistence-backed ExecutionLineage service. */
 export function createExecutionLineageService(): ExecutionLineageService {
   return {
     async retainCurrent(transaction, context) {

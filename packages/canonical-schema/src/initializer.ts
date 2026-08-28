@@ -1,3 +1,9 @@
+/**
+ * Owns canonical PostgreSQL baseline initialization while requiring the caller
+ * to supply the Host-owned connection and migration authority context.
+ * @module initializer
+ */
+
 import type {
   CanonicalSchemaInitializer,
   CanonicalSchemaRuntimeOptions,
@@ -50,6 +56,7 @@ function migrationResultFailed(result: {
   );
 }
 
+/** Creates an initializer for the current canonical PostgreSQL schema baseline. */
 export function createCanonicalSchemaInitializer(
   options: CanonicalSchemaRuntimeOptions,
 ): CanonicalSchemaInitializer {

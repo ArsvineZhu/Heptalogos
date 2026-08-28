@@ -1,3 +1,9 @@
+/**
+ * Constructs Runtime Kernel Problem envelopes for illegal topology, lifecycle,
+ * and generation operations without exposing framework failure objects.
+ * @module problems
+ */
+
 import {
   createProblemError,
   type ProblemError,
@@ -325,6 +331,7 @@ function runtimeProblem(problemCode: string, detail: string): ProblemInit {
   };
 }
 
+/** Creates a typed Runtime Kernel Problem from a semantic failure code. */
 export function runtimeKernelProblem(
   problemCode: string,
   detail: string,

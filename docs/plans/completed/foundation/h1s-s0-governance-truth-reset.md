@@ -26,6 +26,7 @@
 ### Task 1: Establish the stabilization workspace, spec, control record, and Draft PR
 
 **Files:**
+
 - Create: `docs/engineering/specs/h1-stabilization-foundation-authority-reset.md`
 - Create: `docs/plans/active/foundation/h1s-control-record.md`
 - Create: `docs/plans/active/foundation/h1s-s0-governance-truth-reset.md`
@@ -35,6 +36,7 @@
 - Delete: `docs/plans/active/.gitkeep` once the directory contains real plans
 
 **Interfaces:**
+
 - Consumes: exact baseline SHA and this plan package.
 - Produces: the repository-visible H1-S execution contract and the sole governing-plan pointer.
 
@@ -110,6 +112,7 @@ Expected: one Draft PR targeting `master`. Do not dispatch CI.
 ### Task 2: Incorporate stabilization and PRE_PRODUCTION compatibility into the Architecture Corpus
 
 **Files:**
+
 - Create: `Architecture_Corpus/26-开发阶段闭包-稳定化与兼容性治理.md`
 - Modify: `Architecture_Corpus/00-项目宪法与工程宪法.md`
 - Modify: `Architecture_Corpus/16-验证与资格认定体系.md`
@@ -122,6 +125,7 @@ Expected: one Draft PR targeting `master`. Do not dispatch CI.
 - Modify: `Architecture_Corpus/SHA256SUMS.txt`
 
 **Interfaces:**
+
 - Consumes: H1-S spec §§2–4, 15–16.
 - Produces: current-state architecture rules that later S1 code must satisfy.
 
@@ -269,6 +273,7 @@ git commit -m "docs: define H-stage stabilization governance"
 ### Task 3: Bind independent review/final CI to the complete candidate pair
 
 **Files:**
+
 - Modify: `AGENTS.md`
 - Modify: `docs/engineering/playbooks/repository/milestone-pr-closure.md`
 - Create: `docs/engineering/playbooks/repository/h-stage-stabilization-closure.md`
@@ -277,6 +282,7 @@ git commit -m "docs: define H-stage stabilization governance"
 - Modify: `.github/workflows/verify.yml`
 
 **Interfaces:**
+
 - Consumes: `ReviewCandidate = (base_sha, head_sha)` from the spec.
 - Produces: exact invalidation/CI procedure used by S2.
 
@@ -385,6 +391,7 @@ Do not create a separate commit here. The workflow rule and the corrected H1 tru
 ### Task 4: Correct premature H1 closure truth and promote S1
 
 **Files:**
+
 - Modify: `docs/roadmap/development-roadmap.md`
 - Modify: `docs/plans/completed/foundation/m5b-bounded-bootstrap-recovery-h1-closure.md`
 - Modify: `Architecture_Corpus/qualification/results/Q-BOOT-01.md`
@@ -396,6 +403,7 @@ Do not create a separate commit here. The workflow rule and the corrected H1 tru
 - Modify: `docs/plans/README.md`
 
 **Interfaces:**
+
 - Consumes: current state tuple from the spec.
 - Produces: S1 as sole executable governing plan.
 

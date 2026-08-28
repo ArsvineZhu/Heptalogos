@@ -1,3 +1,9 @@
+/**
+ * Materializes the current Foundation PostgreSQL schema, including constraints
+ * that make ownership, lineage, evidence, and durable work canonical.
+ * @module foundation-baseline-migration
+ */
+
 import { sql, type Kysely, type SqlBool } from "kysely";
 import { HOST_RUNTIME_ROLE } from "@heptalogos/host-ownership";
 import type { Migration } from "kysely/migration";
@@ -5,6 +11,7 @@ import type { CanonicalDatabase } from "../migration-pool.js";
 
 const schema = "heptalogos";
 
+/** Creates the current Foundation schema baseline and its ownership constraints. */
 export const foundationBaselineMigration: Migration = {
   async up(db: Kysely<CanonicalDatabase>): Promise<void> {
     await db.schema

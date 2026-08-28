@@ -1,3 +1,9 @@
+/**
+ * Materializes the Host ownership schema and role prerequisites through the
+ * Bootstrap-authorized path, keeping schema policy out of persistence.
+ * @module ownership-schema
+ */
+
 import {
   createProblemError,
   parseBootId,
@@ -23,6 +29,7 @@ import {
 import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
 import { queryWithAuthority as authorizedMutation } from "./authorized-query.js";
 
+/** Supplies authority and connection inputs for ownership schema setup. */
 export interface OwnershipSchemaOptions {
   readonly port: number;
   readonly instanceId: InstanceId;
@@ -31,6 +38,7 @@ export interface OwnershipSchemaOptions {
   readonly clientFactory?: unknown;
 }
 
+/** Reports which ownership schema components were created or initialized. */
 export interface OwnershipSchemaResult {
   readonly schemaCreated: boolean;
   readonly tableCreated: boolean;
@@ -757,6 +765,7 @@ VALUES (true, $1, 0, NULL, NULL)
   return true;
 }
 
+/** Ensures the canonical Host ownership schema and initial fence row exist. */
 export async function ensureHostOwnershipSchema(
   options: OwnershipSchemaOptions,
 ): Promise<OwnershipSchemaResult> {

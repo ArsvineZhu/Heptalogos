@@ -1,3 +1,10 @@
+/**
+ * Owns the installation-scoped Bootstrap lease and its release/fencing rules;
+ * higher orchestration must establish this authority before touching private
+ * PostgreSQL or durable Bootstrap state.
+ * @module bootstrap-ownership
+ */
+
 // Load the adopted provider before bootstrap-state's write-file-atomic transitive
 // signal-exit adapter so provider exit cleanup remains registered.
 import "@bybrave/proper-lockfile2";
@@ -38,18 +45,24 @@ const properLockfile = require("@bybrave/proper-lockfile2") as ProperLockfile;
 
 const BOOTSTRAP_LOCK_DIRECTORY = ".heptalogos-bootstrap.lock";
 const NO_AUTOMATIC_STALE_RECLAIM_MS = Number.MAX_SAFE_INTEGER;
+/** Recovery-only stale threshold; normal acquisition never reclaims blindly. */
 export const BOOTSTRAP_RECOVERY_STALE_MS = 30_000;
 const MAX_RECOVERY_HEARTBEAT_MS = 15_000;
 
+/** States the Bootstrap lease's authority and release progress. */
 export type BootstrapOwnershipState = "HELD" | "RELEASING" | "COMPROMISED" | "RELEASED";
 
+/** Represents the capability required to act under Bootstrap ownership. */
 export interface BootstrapOwnershipLease {
   readonly state: BootstrapOwnershipState;
   readonly signal: AbortSignal;
+  /** Throws when ownership has been released or its fence was compromised. */
   assertHeld(): void;
+  /** Releases the lease once and shares the same completion promise on repeats. */
   release(): Promise<void>;
 }
 
+/** Supplies heartbeat and boot identity inputs for lease acquisition. */
 export interface BootstrapOwnershipOptions {
   readonly heartbeatMs: number;
   readonly bootId: BootId;
@@ -160,6 +173,7 @@ function scopeMismatchProblem(): Problem {
   );
 }
 
+/** Verifies that a lease was issued for the requested canonical instance root. */
 export function assertBootstrapOwnershipFor(
   lease: BootstrapOwnershipLease,
   canonicalInstanceRoot: string,
@@ -341,6 +355,7 @@ async function acquireBootstrapOwnershipWithStalePolicy(
   return lease;
 }
 
+/** Acquires the normal non-reclaiming Bootstrap ownership lease. */
 export async function acquireBootstrapOwnership(
   instanceRoot: ResolvedLifecycleRoot,
   options: BootstrapOwnershipOptions,
@@ -353,6 +368,7 @@ export async function acquireBootstrapOwnership(
   );
 }
 
+/** Acquires Bootstrap ownership using the explicit recovery stale policy. */
 export async function acquireBootstrapRecoveryOwnership(
   instanceRoot: ResolvedLifecycleRoot,
   options: BootstrapOwnershipOptions,

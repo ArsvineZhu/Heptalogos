@@ -40,6 +40,20 @@
         "command": "node scripts/verify/boundaries.mjs"
       }
     },
+    "docs:api": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/verify/api-docs.mjs --write"
+      }
+    },
+    "docs:api:check": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/verify/api-docs.mjs"
+      }
+    },
     "check:unused": {
       "executor": "nx:run-commands",
       "options": {
@@ -68,6 +82,12 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "eslint packages"
+      }
+    },
+    "source-docs:lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "eslint \"packages/*/src/**/*.{ts,tsx}\" \"tools/*/src/**/*.{js,mjs,ts}\" \"scripts/**/*.{js,mjs,ts}\" \".agents/**/*.mjs\""
       }
     },
     "tooling:lint": {
@@ -135,6 +155,8 @@
         "check:repo",
         "check:duplicates",
         "format:check",
+        "docs:api:check",
+        "source-docs:lint",
         "lint",
         "typecheck",
         "tsc6"

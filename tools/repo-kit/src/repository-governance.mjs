@@ -1,3 +1,9 @@
+/**
+ * Reads and validates repository governance projections, including required
+ * sections and authority references, without becoming a general task scheduler.
+ * @module repository-governance
+ */
+
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { codeBlocksInSection } from "./markdown.mjs";
@@ -62,6 +68,7 @@ function topologyRoots(source) {
     .filter((line) => line.length > 0);
 }
 
+/** Validate responsibility roots against the canonical engineering topology. */
 export function validateRootTopology({ root = process.cwd() } = {}) {
   const repositoryRoot = resolve(root);
   const errors = [];
@@ -101,6 +108,7 @@ export function validateRootTopology({ root = process.cwd() } = {}) {
   return errors;
 }
 
+/** Validate the private root package identity used by repository tooling. */
 export function validateRootPackageIdentity({ root = process.cwd() } = {}) {
   const repositoryRoot = resolve(root);
   const packagePath = join(repositoryRoot, "package.json");

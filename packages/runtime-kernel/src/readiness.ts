@@ -1,3 +1,9 @@
+/**
+ * Evaluates declared Runtime readiness from service and capability state while
+ * keeping readiness meaning distinct from substrate resource disposal.
+ * @module readiness
+ */
+
 import type {
   CapabilityId,
   ProviderId,
@@ -7,6 +13,7 @@ import type { CapabilityRegistry } from "./capability-registry.js";
 import type { ReadinessProfileDefinition, ReadinessResult } from "./contracts.js";
 import type { ServiceRegistry } from "./service-registry.js";
 
+/** Evaluates required and optional provider bindings into an aggregate readiness result. */
 export function evaluateReadiness(
   profile: ReadinessProfileDefinition,
   services: ServiceRegistry,

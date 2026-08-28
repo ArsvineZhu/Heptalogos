@@ -1,3 +1,9 @@
+/**
+ * Seals and parses BootstrapState envelopes using canonical JSON and strict
+ * schema validation; malformed or mismatched revisions fail explicitly.
+ * @module codec
+ */
+
 import {
   createProblem,
   digestCanonicalJson,
@@ -18,6 +24,7 @@ import type {
   BootstrapStateParseResult,
 } from "./model.js";
 
+/** Names the digest domain for BootstrapState envelopes. */
 export const BOOTSTRAP_STATE_DIGEST_DOMAIN = "heptalogos.bootstrap-state/v1";
 
 const privatePostgresStateSchemaV1 = Type.Object(
@@ -88,10 +95,13 @@ function problem(
   return { ok: false, problem: value };
 }
 
+/** Seals a BootstrapState body into its canonical versioned envelope. */
 export function sealBootstrapState(
   state: BootstrapStateBodyV1,
 ): BootstrapStateEnvelopeV1;
+/** Seals a BootstrapState body using the same public overload contract. */
 export function sealBootstrapState(state: BootstrapStateBody): BootstrapStateEnvelope;
+/** Implements the canonical BootstrapState envelope construction. */
 export function sealBootstrapState(state: BootstrapStateBody): BootstrapStateEnvelope {
   const digest = digestCanonicalJson(
     BOOTSTRAP_STATE_DIGEST_DOMAIN,
@@ -100,6 +110,7 @@ export function sealBootstrapState(state: BootstrapStateBody): BootstrapStateEnv
   return { state, digest } as BootstrapStateEnvelope;
 }
 
+/** Parses and validates a persisted BootstrapState envelope. */
 export function parseBootstrapState(text: string): BootstrapStateParseResult {
   let parsed: unknown;
   try {

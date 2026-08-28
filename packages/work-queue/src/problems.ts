@@ -1,3 +1,9 @@
+/**
+ * Maps WorkQueue admission, dispatch, and repository failures into shared
+ * Foundation Problems with explicit retry classification.
+ * @module problems
+ */
+
 import {
   createProblemError,
   type ProblemError,
@@ -158,6 +164,7 @@ function problemSpec(problemCode: string): WorkQueueProblemSpec {
   );
 }
 
+/** Create a stable WorkQueue problem envelope with an optional underlying cause. */
 export function workQueueProblem(
   problemCode: string,
   detail: string,

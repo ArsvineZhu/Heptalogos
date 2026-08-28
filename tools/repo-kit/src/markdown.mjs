@@ -1,3 +1,9 @@
+/**
+ * Parses repository Markdown through mdast and exposes structural queries used
+ * by documentation validators without maintaining a second Markdown parser.
+ * @module markdown
+ */
+
 import { fromMarkdown } from "mdast-util-from-markdown";
 
 function parseMarkdown(source) {
@@ -93,11 +99,13 @@ function sectionNodeRange(tree, heading) {
   return { headingNode, start, end };
 }
 
+/** Return local Markdown links while ignoring code and external destinations. */
 export function markdownLinks(source, _options = {}) {
   const tree = parseMarkdown(source);
   return collectLinks(tree.children, definitions(tree));
 }
 
+/** Return the local link targets extracted from Markdown source. */
 export function markdownTargets(source, options) {
   return markdownLinks(source, options).map(({ target }) => target);
 }
@@ -119,6 +127,7 @@ function sectionText(source, heading) {
   return source.slice(start, end);
 }
 
+/** Return the source text belonging to one exact Markdown heading section. */
 export function section(source, heading) {
   return sectionText(source, heading);
 }
@@ -134,16 +143,19 @@ function markdownLinksInSection(source, heading, options) {
   );
 }
 
+/** Return local link targets from one exact Markdown heading section. */
 export function markdownTargetsInSection(source, heading, options) {
   return markdownLinksInSection(source, heading, options).map(({ target }) => target);
 }
 
+/** Return fenced code block contents from one exact Markdown section. */
 export function codeBlocksInSection(source, heading) {
   return sectionNodes(source, heading)
     .filter((node) => node.type === "code")
     .map((node) => node.value ?? "");
 }
 
+/** Return the first paragraph's plain text from one exact Markdown section. */
 export function firstSectionParagraph(source, heading) {
   const paragraph = sectionNodes(source, heading).find(
     (node) => node.type === "paragraph",

@@ -17,7 +17,7 @@ Workspace/task graph     Nx 23.x line
 Primary compiler         TypeScript 7.0.x
 Compiler-API compat      @typescript/typescript6 6.0.x, only where required
 Primary lint              Oxlint 1.x + oxlint-tsgolint 7.x, type-aware
-Boundary lint             ESLint 10.x residual Nx module-boundary lane
+Boundary lint             ESLint 10.x residual Nx module-boundary lane plus source-documentation contract lint
 Module model             ESM-first / NodeNext
 JavaScript target        ESNext
 Node ambient types       @types/node 24.x, aligned to shipping Node major
@@ -27,7 +27,9 @@ Repository-only tool ownership is explicit:
 
 ```text
 Oxlint + oxlint-tsgolint  primary JS/TS lint, including type-aware promise rules
-ESLint                    residual @nx/enforce-module-boundaries lane only
+ESLint                    residual @nx/enforce-module-boundaries lane plus source-documentation contract lint
+eslint-plugin-jsdoc       source file-overview and exported-contract documentation rules
+TypeDoc + Markdown plugin  declaration-first generated API reference projection
 TypeScript 7              canonical typecheck/build authority
 Knip                      unused files/exports/dependencies
 jscpd                     copy/paste clone detection
@@ -323,6 +325,8 @@ pnpm-lock.yaml only
 Nx project graph / affected tasks
 Oxlint primary JS/TS lint and import restrictions
 ESLint residual Nx module-boundary rules
+ESLint + eslint-plugin-jsdoc source documentation lint (public contracts and file overviews)
+TypeDoc + typedoc-plugin-markdown declaration-first API reference generation from `dist/*.d.ts`
 SchemaRuntime-owned Ajv/TypeBox restrictions via `repository:schema:lint`
 jscpd clone detection
 Nx project graph / affected tasks and task scheduling
@@ -347,6 +351,8 @@ skipLibCheck=false
 @types/node 24.x alignment
 Nx TS7 CLI + TS6 API side-by-side behavior
 typescript-eslint / API-dependent tooling through TS6 compatibility lane
+source documentation lint for package/module headers and exported contracts
+declaration-first TypeDoc API projection with generated-output freshness checking
 no Foundation product package depends on TS6-only compile/typecheck
 ```
 

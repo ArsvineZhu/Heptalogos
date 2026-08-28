@@ -1,3 +1,9 @@
+/**
+ * Executes one generation-pinned WorkHandler attempt with bounded outcome and
+ * failure classification while keeping engine semantics outside the queue.
+ * @module attempt-executor
+ */
+
 import {
   parseInstant,
   ProblemError,
@@ -51,6 +57,7 @@ const RETRY_CLASSES = new Set<WorkRetryClass>([
   "external-effect-uncertain",
 ]);
 
+/** Observable result states returned after one generation-pinned attempt. */
 export type WorkAttemptExecutionStatus =
   | "NOT_FOUND"
   | "TERMINAL_REPLAY"
@@ -62,12 +69,14 @@ export type WorkAttemptExecutionStatus =
   | "CANCELLED"
   | "SUPERSEDED";
 
+/** Outcome of executing or replaying one durable dispatch attempt. */
 export interface WorkAttemptExecutionResult {
   readonly status: WorkAttemptExecutionStatus;
   readonly item?: WorkItem;
   readonly outcome?: WorkItemOutcome;
 }
 
+/** Dependencies and bounded policy required by the attempt coordinator. */
 export interface WorkAttemptExecutorOptions {
   readonly repository: WorkQueueRepository;
   readonly handlerRegistry: WorkHandlerResolver;
@@ -78,7 +87,9 @@ export interface WorkAttemptExecutorOptions {
   readonly runtimeOptions: WorkQueueRuntimeOptions;
 }
 
+/** Coordinates one WorkItem attempt through admission, execution, and persistence. */
 export interface WorkAttemptExecutor {
+  /** Execute the expected revision or return a fenced/replay status. */
   execute(
     workItemId: WorkItem["workItemId"],
     expectedRevision: number,
@@ -380,6 +391,7 @@ function monitorCancellation(
   };
 }
 
+/** Create an attempt executor with repository-owned mutation and lifecycle fencing. */
 export function createWorkAttemptExecutor(
   options: WorkAttemptExecutorOptions,
 ): WorkAttemptExecutor {

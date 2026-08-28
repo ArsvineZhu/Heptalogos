@@ -1,3 +1,9 @@
+/**
+ * Provides the reusable current-tree hygiene scanner for provenance and
+ * compatibility residue, keeping repository-specific policy in one owner.
+ * @module current-tree-hygiene
+ */
+
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { runGitSync } from "./process.mjs";
@@ -18,12 +24,14 @@ const HISTORICAL_COMPATIBILITY_PATTERN =
 
 const CURRENT_QUALIFICATION_ID_PATTERN = /\b(?:C|Q)-[A-Z0-9]+(?:-[A-Z0-9]+)*-\d+\b/giu;
 
+/** Patterns identifying development-only identities forbidden in current surfaces. */
 export const DEVELOPMENT_PROVENANCE_PATTERNS = Object.freeze([
   DEVELOPMENT_IDENTITY_PATTERN,
   PR_ID_PATTERN,
   CORRECTIVE_CYCLE_PATTERN,
 ]);
 
+/** Detect milestone, PR, session, or corrective-cycle wording in current text. */
 export function containsDevelopmentProvenance(
   value,
   { ignoreQualificationIds = false } = {},
@@ -81,6 +89,7 @@ function pathExists(path) {
   }
 }
 
+/** Read tracked repository paths through Git for deterministic hygiene coverage. */
 export function listTrackedPaths({ root = process.cwd() } = {}) {
   const output = runGitSync(["ls-files", "-z"], { cwd: resolve(root) }).stdout;
   return output
@@ -130,6 +139,7 @@ function scanCompatibilityRegister(root, findings) {
   }
 }
 
+/** Scan canonical executable surfaces for provenance and compatibility residue. */
 export function scanCurrentTree({ root = process.cwd(), trackedPaths } = {}) {
   const repositoryRoot = resolve(root);
   const findings = [];
@@ -229,4 +239,5 @@ export function scanCurrentTree({ root = process.cwd(), trackedPaths } = {}) {
   return { root: repositoryRoot, findings };
 }
 
+/** Self-referential scanner paths excluded from their own provenance diagnostics. */
 export const currentTreeHygieneSelfExemptions = [...SELF_EXEMPTIONS];

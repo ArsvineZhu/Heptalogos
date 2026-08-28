@@ -12,7 +12,7 @@
 
 ---
 
-# 0. Executive assessment
+## 0. Executive assessment
 
 The current repository has three governance defects that should be corrected now rather than carried into H3:
 
@@ -36,6 +36,7 @@ The current repository has three governance defects that should be corrected now
    - The root `AGENTS.md` therefore carries repository-wide context while an Agent entering a package has no concise local statement of purpose, ownership, forbidden dependencies, verification, or relevant Corpus routes.
 
 PR #24 also still has source-level blockers from Independent Review:
+
 - STARTING MicroSystem activation is not cooperatively cancelled by quiesce/owner terminality.
 - Bootstrap Runtime production-boundary checking is bypassable through package subpaths.
 - Current-tree hygiene skips symlinks and misses important provenance token forms.
@@ -47,15 +48,16 @@ The correct response is one bounded corrective cycle, not a new subsystem or ano
 
 ---
 
-# 1. Locked decisions
+## 1. Locked decisions
 
 The executor does not choose among alternatives below.
 
-## D1 — Raw commit SHA is removed from current governance semantics
+### D1 — Raw commit SHA is removed from current governance semantics
 
 Current architecture/governance documents, active plans, Agent instructions, current qualification projections, PR templates, and operator procedures MUST NOT require humans or Agents to copy, maintain, compare, or embed Git commit SHA values.
 
 Allowed:
+
 - Git/GitHub internal object identity;
 - workflow/check-run commit association;
 - Git commands/tooling internally using revision IDs;
@@ -64,6 +66,7 @@ Allowed:
 - package-manager integrity metadata and product-domain content digests.
 
 Forbidden as new current-governance fields:
+
 - `candidate_base_sha`
 - `candidate_head_sha`
 - `behavior_candidate_head_sha`
@@ -74,9 +77,10 @@ Forbidden as new current-governance fields:
 
 Historical completed plans/evidence are not mass-rewritten solely to erase old SHAs. History may remain historical. New/current sections stop producing them.
 
-## D2 — Self-hash source bookkeeping is deleted
+### D2 — Self-hash source bookkeeping is deleted
 
 Delete:
+
 - `Architecture_Corpus/manifest.json`
 - `Architecture_Corpus/SHA256SUMS.txt`
 - `.agents/heptalogos/package-manifest.json`
@@ -85,9 +89,10 @@ Do not replace them with another checksum file, Merkle manifest, generated catal
 
 If a future exported/offline Architecture Corpus artifact needs cryptographic integrity, generate checksum/signature metadata at artifact/release time outside the editable source tree.
 
-## D3 — Corpus integrity becomes structural/navigation integrity
+### D3 — Corpus integrity becomes structural/navigation integrity
 
 `pnpm check:corpus` remains, but it verifies useful repository properties rather than file bytes:
+
 - required Corpus entrypoints exist;
 - local links resolve;
 - `INDEX.md` covers top-level normative documents and `specs/**`;
@@ -96,9 +101,10 @@ If a future exported/offline Architecture Corpus artifact needs cryptographic in
 - no Corpus-local `AGENTS.md`;
 - deleted self-hash artifacts do not reappear.
 
-## D4 — Agent resource validation becomes semantic/structural only
+### D4 — Agent resource validation becomes semantic/structural only
 
 `.agents/heptalogos/validate-skill-resources.mjs` keeps:
+
 - Skill frontmatter validation;
 - Skill word budget;
 - route ↔ Skill consistency;
@@ -108,11 +114,12 @@ If a future exported/offline Architecture Corpus artifact needs cryptographic in
 
 It removes all package-manifest/hash/size validation.
 
-## D5 — PR #24 is the governance transition vehicle
+### D5 — PR #24 is the governance transition vehicle
 
 Do not create a separate governance PR and do not close/recreate PR #24.
 
 Sequence:
+
 1. return PR #24 to Draft;
 2. install this corrective plan;
 3. apply governance simplification;
@@ -124,7 +131,7 @@ Sequence:
 9. squash merge;
 10. use a small docs/evidence-only reconciliation PR to project final H2 closure.
 
-## D6 — New closure semantic is “live PR candidate”, not exact pair
+### D6 — New closure semantic is “live PR candidate”, not exact pair
 
 The candidate is:
 
@@ -167,9 +174,10 @@ squash merge
 
 A conflict resolution, rebase, merge-from-base, or any commit to the PR branch is repository mutation and invalidates review.
 
-## D7 — Revision identity remains machine-internal where unavoidable
+### D7 — Revision identity remains machine-internal where unavoidable
 
 The manual CI workflow may internally inspect Git/GitHub revision identity to guarantee it is testing the dispatched PR revision. That identity must not become:
+
 - workflow inputs;
 - PR-body fields;
 - plan fields;
@@ -177,16 +185,18 @@ The manual CI workflow may internally inspect Git/GitHub revision identity to gu
 - Agent copy/paste instructions.
 
 The workflow interface becomes semantic:
+
 - `pr_number`
 - `reason`
 
 No `base_sha` or `target_sha` input remains.
 
-## D8 — Final CI tests the current PR plus current base integration
+### D8 — Final CI tests the current PR plus current base integration
 
 Manual final CI runs only after Independent Review PASS.
 
 The workflow:
+
 1. is dispatched on the PR head branch;
 2. receives `pr_number`;
 3. verifies through GitHub metadata that the dispatched ref is the head branch of that open, Ready PR targeting `master`;
@@ -197,11 +207,12 @@ The workflow:
 
 This makes base movement an integration-evidence issue rather than automatically re-reviewing an unchanged PR diff.
 
-## D9 — Third-party Action SHA pinning stays
+### D9 — Third-party Action SHA pinning stays
 
 The existing policy requiring GitHub Actions such as `actions/checkout` to be pinned to immutable full commit references is retained.
 
 Reason:
+
 - this is supply-chain dependency pinning;
 - it protects against mutable action tags;
 - it is not self-hashing repository governance;
@@ -209,9 +220,10 @@ Reason:
 
 Do not weaken pnpm lockfile integrity, dependency version pins, product `ContentDigest`, Evidence digests, schema digests, or other domain integrity semantics.
 
-## D10 — Package-local docs become mandatory workspace structure
+### D10 — Package-local docs become mandatory workspace structure
 
 Every current `packages/*` workspace must contain:
+
 - `README.md`
 - `AGENTS.md`
 
@@ -221,27 +233,30 @@ Every current `packages/*` workspace must contain:
 
 Future workspace package creation is incomplete until local README/AGENTS exist.
 
-## D11 — README and AGENTS have different jobs
+### D11 — README and AGENTS have different jobs
 
 Package `README.md`:
+
 - human + Agent orientation;
 - explains current package role and public surface;
 - Chinese prose is acceptable/preferred with technical identifiers kept in English;
 - not an implementation plan or historical narrative.
 
 Package `AGENTS.md`:
+
 - concise technical English;
 - local execution contract automatically scoped to that package;
 - does not repeat root project philosophy or Skill routing;
 - focuses on ownership, forbidden coupling, local invariants, verification, and stop conditions.
 
-## D12 — Local AGENTS are overlays, not duplicated constitutions
+### D12 — Local AGENTS are overlays, not duplicated constitutions
 
 Root `AGENTS.md` remains repository-wide.
 
 Nearest package `AGENTS.md` adds only package-specific rules.
 
 A local AGENTS file must not copy:
+
 - global PRE_PRODUCTION compatibility prose;
 - global plan-state prose;
 - Skill routing;
@@ -250,9 +265,10 @@ A local AGENTS file must not copy:
 
 It should link/read-route to the package README and relevant Corpus resources instead.
 
-## D13 — Current H2-S review blockers are corrected in the same cycle
+### D13 — Current H2-S review blockers are corrected in the same cycle
 
 The governance reset does not waive source findings. PR #24 cannot return to Ready until:
+
 - STARTING activation cooperative cancellation is fixed/tested;
 - Bootstrap production-boundary subpath bypass is fixed/tested;
 - hygiene symlink/token gaps are fixed/tested;
@@ -261,11 +277,12 @@ The governance reset does not waive source findings. PR #24 cannot return to Rea
 - fresh PostgreSQL 18.6 H2-S qualification is run on the final mutable tree;
 - `pnpm verify` passes.
 
-## D14 — Post-merge reconciliation remains, but is simplified
+### D14 — Post-merge reconciliation remains, but is simplified
 
 Keep one tiny docs/evidence-only post-merge reconciliation PR because merge/review/CI outcomes are external facts that cannot honestly be written before they occur.
 
 It records semantic facts only:
+
 - PR merged;
 - Independent Review PASS;
 - final cross-platform CI PASS;
@@ -278,158 +295,202 @@ It does not record candidate SHAs or rebuild checksum manifests.
 
 ---
 
-# 2. Package documentation map
+## 2. Package documentation map
 
 Create `packages/README.md` grouping all current packages by semantic layer.
 
 Current package set:
 
-## Bootstrap / Recovery closure
+### Bootstrap / Recovery closure
 
-### `packages/bootstrap-state`
+#### `packages/bootstrap-state`
+
 Purpose:
+
 - crash-safe BootstrapState / journal formats and stores;
 - bootstrap-visible continuity/recovery state.
 
 Owns:
+
 - BootstrapState codecs/store mechanics;
 - bootstrap journals/maintenance state files.
 
 Does not own:
+
 - normal PostgreSQL canonical business state;
 - Host lease semantics;
 - Runtime supervision.
 
 Primary Corpus routes:
+
 - S01 startup/recovery/runtime supervision;
 - storage/lifecycle-root specs;
 - schema/versioning rules.
 
-### `packages/private-postgres`
+#### `packages/private-postgres`
+
 Purpose:
+
 - private PostgreSQL toolchain/controller mechanics under Bootstrap authority.
 
 Owns:
+
 - init/start/stop/readiness/profile/toolchain mechanics.
 
 Does not own:
+
 - normal persistence service;
 - canonical mutation authority;
 - Host runtime lifecycle.
 
-### `packages/host-ownership`
+#### `packages/host-ownership`
+
 Purpose:
+
 - authoritative Host advisory lease and HostOwnershipFence/token mechanics.
 
 Owns:
+
 - lease/fence/token publication and validation.
 
 Does not own:
+
 - Bootstrap orchestration;
 - normal product persistence policy;
 - MicroSystem lifecycle.
 
-### `packages/bootstrap-runtime`
+#### `packages/bootstrap-runtime`
+
 Purpose:
+
 - Installation/bootstrap/recovery orchestration and Host forward/reverse handoff.
 
 Owns:
+
 - bootstrap ownership orchestration;
 - private-PG startup/maintenance handoff;
 - managed Host lifecycle contract.
 
 Hard local boundary:
+
 - production source MUST NOT depend on `@heptalogos/runtime-kernel`,
   `@heptalogos/runtime-substrate`, or `cordis`;
 - test/integration composition may use them.
 
-## Canonical data foundation
+### Canonical data foundation
 
-### `packages/canonical-schema`
+#### `packages/canonical-schema`
+
 Purpose:
+
 - current canonical PostgreSQL schema/baseline and initialization/migration mechanics.
 
 Owns:
+
 - schema materialization;
 - current PRE_PRODUCTION migration baseline.
 
 Does not own:
+
 - connection-pool runtime API;
 - compatibility migration history for developer databases.
 
-### `packages/persistence`
+#### `packages/persistence`
+
 Purpose:
+
 - Host-fenced normal PostgreSQL access and transaction/mutation service.
 
 Owns:
+
 - normal connection pooling;
 - Host-fenced transaction entry;
 - persistence service contract.
 
 Does not own:
+
 - Host lease acquisition;
 - schema evolution Authority;
 - direct bootstrap maintenance.
 
-## Execution context / evidence foundation
+### Execution context / evidence foundation
 
-### `packages/time-service`
+#### `packages/time-service`
+
 Purpose:
+
 - TimeService abstraction and deterministic test time.
 
 Does not own:
+
 - scheduling/durable work;
 - wall-clock policy outside its contract.
 
-### `packages/execution-lineage`
+#### `packages/execution-lineage`
+
 Purpose:
+
 - ExecutionContext, lineage propagation, retained runtime lifecycle lineage.
 
 Owns:
+
 - context/lineage semantics and integration helpers.
 
 Does not own:
+
 - durable Evidence storage policy beyond its declared integration;
 - Runtime scheduling.
 
-### `packages/evidence`
+#### `packages/evidence`
+
 Purpose:
+
 - Evidence contract/service for retained evidence records.
 
 Owns:
+
 - Evidence draft/record/service semantics.
 
 Does not own:
+
 - generic logging/telemetry;
 - ExecutionContext identity;
 - arbitrary application persistence.
 
-## Runtime composition
+### Runtime composition
 
-### `packages/runtime-substrate`
+#### `packages/runtime-substrate`
+
 Purpose:
+
 - narrow Cordis-backed mechanics adapter.
 
 Owns:
+
 - activation scopes;
 - resource disposal;
 - background task tracking;
 - substrate failure mechanics.
 
 Does not own:
+
 - Desired/Actual;
 - Service vs Capability semantics;
 - provider selection;
 - Generation/Readiness Authority.
 
 Hard local rule:
+
 - Cordis-specific objects do not escape the substrate boundary.
 
-### `packages/runtime-kernel`
+#### `packages/runtime-kernel`
+
 Purpose:
+
 - Heptalogos Runtime semantics.
 
 Owns:
+
 - MicroSystemSupervisor;
 - RuntimeReconciler;
 - RuntimeGraph;
@@ -439,34 +500,42 @@ Owns:
 - owner/quiescence lifecycle.
 
 Does not own:
+
 - Bootstrap/Host private types;
 - PostgreSQL process control;
 - product durable-work/effect semantics from later stages.
 
-## Shared contracts / generic schema mechanics
+### Shared contracts / generic schema mechanics
 
-### `packages/foundation-contracts`
+#### `packages/foundation-contracts`
+
 Purpose:
+
 - low-level stable Foundation IDs, branded contracts, Problems, digest helpers, shared semantic primitives.
 
 Local rule:
+
 - keep IO/process/database/framework mechanics out;
 - avoid importing higher-level packages.
 
-### `packages/schema-runtime`
+#### `packages/schema-runtime`
+
 Purpose:
+
 - generic runtime schema compilation/validation mechanics.
 
 Owns:
+
 - schema validator contract and compiler mechanics.
 
 Does not own:
+
 - product/domain schema Authority;
 - compatibility policy.
 
 ---
 
-# 3. Required package README structure
+## 3. Required package README structure
 
 Each `packages/*/README.md` uses these headings:
 
@@ -474,30 +543,38 @@ Each `packages/*/README.md` uses these headings:
 # @heptalogos/<package>
 
 ## Purpose
+
 2–5 sentences describing the current semantic role.
 
 ## Owns
+
 Bullets of responsibilities this package is authoritative for.
 
 ## Does not own
+
 Bullets preventing common boundary mistakes.
 
 ## Public surface
+
 List exported entrypoints/types/services at a high level.
 Do not duplicate every symbol.
 
 ## Dependencies and boundaries
+
 Explain important workspace and third-party dependency direction.
 Highlight hard forbidden imports.
 
 ## Verification
+
 Exact current Nx/pnpm targets relevant to the package.
 
 ## Architecture references
+
 Direct relative links to the minimum relevant Architecture Corpus files/specs.
 ```
 
 README constraints:
+
 - current-state only;
 - no milestone/H2A/H2B history;
 - no commit IDs;
@@ -507,7 +584,7 @@ README constraints:
 
 ---
 
-# 4. Required package AGENTS structure
+## 4. Required package AGENTS structure
 
 Each `packages/*/AGENTS.md` is concise, technical English:
 
@@ -515,25 +592,31 @@ Each `packages/*/AGENTS.md` is concise, technical English:
 # Package Agent Contract
 
 ## Scope
+
 One paragraph stating what directory this governs.
 
 ## Read first
+
 - `README.md`
 - 2–5 relevant Corpus links only
 
 ## Local rules
+
 5–10 package-specific executable constraints.
 
 ## Verification
+
 Exact focused commands for edits in this package.
 
 ## Stop
+
 Package-specific conditions requiring PLAN_GAP / architecture review.
 ```
 
 Target <= 300 words.
 
 Examples of useful local rules:
+
 - `foundation-contracts`: no DB/fs/process/framework imports.
 - `bootstrap-runtime`: no production RuntimeKernel/RuntimeSubstrate/Cordis import.
 - `runtime-substrate`: Cordis remains private adapter mechanics.
@@ -546,7 +629,7 @@ Do not add local Skill routing tables.
 
 ---
 
-# 5. Task 0 — Reopen the corrective cycle
+## 5. Task 0 — Reopen the corrective cycle
 
 **Repository state:** PR #24.
 
@@ -557,8 +640,8 @@ Do not add local Skill routing tables.
   - final CI `NOT_RUN`;
   - no merge authorization.
 - [ ] Create active corrective plan:
-  `docs/plans/active/foundation/h2s-review-correction-governance-simplification.md`
-  using this plan as its exact content or a repository-native copy.
+      `docs/plans/active/foundation/h2s-review-correction-governance-simplification.md`
+      using this plan as its exact content or a repository-native copy.
 - [ ] Update `docs/plans/README.md`:
   - H2-S original plan remains completed implementation record;
   - new review-correction plan is ACTIVE;
@@ -567,17 +650,18 @@ Do not add local Skill routing tables.
 - [ ] Run:
   - `pnpm check:repository`
   - `pnpm check:hygiene`
-  before behavior changes, recording actual PASS/FAIL only.
+    before behavior changes, recording actual PASS/FAIL only.
 
 **Commit intent:** `docs: activate H2-S review correction`
 
 ---
 
-# 6. Task 1 — Replace exact-pair governance with live-PR governance
+## 6. Task 1 — Replace exact-pair governance with live-PR governance
 
-## Files
+### Files
 
 Modify:
+
 - `AGENTS.md`
 - `Architecture_Corpus/26-开发阶段闭包-稳定化与兼容性治理.md`
 - `Architecture_Corpus/20-架构审查清单.md`
@@ -589,7 +673,7 @@ Modify:
 - `.agents/skills/heptalogos-architecture/SKILL.md`
 - `.agents/skills/heptalogos-verification/SKILL.md`
 
-## Root AGENTS changes
+### Root AGENTS changes
 
 Replace current exact-pair paragraph with:
 
@@ -617,9 +701,10 @@ The local AGENTS.md refines this repository contract for that package; it does
 not replace Corpus Authority.
 ```
 
-## Corpus 26 changes
+### Corpus 26 changes
 
 Delete:
+
 - `ReviewCandidate = (base_sha, head_sha)`
 - exact pair formula
 - instructions requiring base/head equality.
@@ -652,7 +737,7 @@ current base before merge.
 Any PR-branch mutation invalidates Review PASS and final CI.
 ```
 
-## Playbook procedure
+### Playbook procedure
 
 New normal flow:
 
@@ -671,9 +756,10 @@ branch
 
 No operator command should contain raw SHA variables.
 
-## Review checklist addition
+### Review checklist addition
 
 Add:
+
 - Does current governance ask an Agent to transcribe a Git object ID?
 - Could Git/GitHub determine this internally instead?
 - Is a revision identity being mistaken for project semantic Authority?
@@ -685,17 +771,18 @@ Add:
 
 ---
 
-# 7. Task 2 — Remove self-hash bookkeeping
+## 7. Task 2 — Remove self-hash bookkeeping
 
-## Delete
+### Delete
 
 - `Architecture_Corpus/manifest.json`
 - `Architecture_Corpus/SHA256SUMS.txt`
 - `.agents/heptalogos/package-manifest.json`
 
-## Rewrite Corpus verifier
+### Rewrite Corpus verifier
 
 Rename:
+
 - `scripts/verify/corpus-integrity.mjs`
   -> `scripts/verify/corpus-structure.mjs`
 
@@ -707,8 +794,10 @@ Update root package script:
 
 New verifier behavior:
 
-### Required entrypoints
+#### Required entrypoints
+
 Require:
+
 - `Architecture_Corpus/README.md`
 - `Architecture_Corpus/INDEX.md`
 - `Architecture_Corpus/00-项目宪法与工程宪法.md`
@@ -716,33 +805,40 @@ Require:
 - `Architecture_Corpus/qualification/results/README.md`
 - `Architecture_Corpus/references/compatibility-obligations.json`
 
-### Local link validation
+#### Local link validation
+
 For every Markdown file under `Architecture_Corpus/**`:
+
 - parse ordinary relative Markdown links;
 - ignore `http://`, `https://`, anchors-only links, mailto;
 - resolve local path;
 - fail if target does not exist.
 
-### Navigation coverage
+#### Navigation coverage
+
 - every top-level normative numbered Markdown document must be linked from `INDEX.md`;
 - every `specs/*.md` document must be linked from `INDEX.md` or a specs index linked from `INDEX.md`;
 - every `qualification/results/*.md` except its README must be linked from `qualification/results/README.md`.
 
-### JSON parseability
+#### JSON parseability
+
 Parse every tracked `Architecture_Corpus/**/*.json`.
 Fail malformed JSON.
 
-### Forbidden archaeology
+#### Forbidden archaeology
+
 Fail if any of these exist:
+
 - `Architecture_Corpus/manifest.json`
 - `Architecture_Corpus/SHA256SUMS.txt`
 - `Architecture_Corpus/AGENTS.md`
 
 Do not compute SHA256 or file sizes.
 
-## Rewrite Agent resource validator
+### Rewrite Agent resource validator
 
 Remove:
+
 - `createHash` import;
 - `packageManifestPath`;
 - package manifest required-file check;
@@ -754,9 +850,10 @@ Keep all routing/Skill structural checks.
 
 Update `.agents/heptalogos/README.md` so its validator description exactly matches reality. It must not claim root AGENTS enumerates Skills.
 
-## Tests
+### Tests
 
 Add/reuse repo-kit verification tests for:
+
 1. broken Corpus local link -> FAIL;
 2. missing indexed top-level normative doc -> FAIL;
 3. malformed Corpus JSON -> FAIL;
@@ -771,11 +868,12 @@ Do not recreate a file catalog merely to make coverage easy.
 
 ---
 
-# 8. Task 3 — Add package-local documentation and Agent contracts
+## 8. Task 3 — Add package-local documentation and Agent contracts
 
-## Create package index
+### Create package index
 
 Create:
+
 - `packages/README.md`
 
 Use the package grouping and roles from §2.
@@ -801,9 +899,10 @@ and composes with them only at higher Host/product integration boundaries.
 
 Do not present this as a strict total dependency order where current package.json says otherwise; explain it as semantic layers/boundaries.
 
-## Create README + AGENTS in all thirteen packages
+### Create README + AGENTS in all thirteen packages
 
 Create:
+
 - `packages/bootstrap-runtime/README.md`
 - `packages/bootstrap-runtime/AGENTS.md`
 - `packages/bootstrap-state/README.md`
@@ -832,32 +931,38 @@ Create:
 - `packages/time-service/AGENTS.md`
 
 Also create:
+
 - `tools/repo-kit/AGENTS.md`
 
 Update:
+
 - `tools/repo-kit/README.md`
 
-## Repository gate
+### Repository gate
 
 Modify `scripts/verify/repository.mjs`.
 
 Discover every direct workspace directory under:
+
 - `packages/*`
 - `tools/*`
 
 that contains `package.json`.
 
 For each require:
+
 - `README.md`
 - `AGENTS.md`
 
 Fail if missing.
 
 For package AGENTS:
+
 - fail if > 300 words;
 - require headings `Scope`, `Read first`, `Local rules`, `Verification`, `Stop`.
 
 For package README:
+
 - require headings `Purpose`, `Owns`, `Does not own`, `Public surface`,
   `Dependencies and boundaries`, `Verification`, `Architecture references`.
 
@@ -865,9 +970,10 @@ Do not validate exact prose hashes.
 
 Do not require every package to have identical command strings; use actual `project.json` targets.
 
-## Important content rule
+### Important content rule
 
 The executor must inspect each package's:
+
 - `package.json`
 - `project.json`
 - `src/index.ts`
@@ -883,43 +989,48 @@ This inspection is for factual accuracy only; package semantic ownership is boun
 
 ---
 
-# 9. Task 4 — Simplify manual final CI workflow
+## 9. Task 4 — Simplify manual final CI workflow
 
-## Modify
+### Modify
 
 - `.github/workflows/verify.yml`
 - `scripts/verify/repository.mjs`
 - `docs/engineering/playbooks/repository/milestone-pr-closure.md`
 
-## Workflow inputs
+### Workflow inputs
 
 Replace:
+
 - `base_sha`
 - `target_sha`
 - `reason`
 
 with:
+
 - `pr_number`
 - `reason`
 
 `pr_number` is required integer/string representing the PR number.
 
 Keep reasons:
+
 - `final-pre-merge`
 - `cross-platform-regression`
 - `explicit-user-request`
 
-## Permissions
+### Permissions
 
 Use only:
+
 - `contents: read`
 - `pull-requests: read`
 
 No write permission.
 
-## Candidate validation
+### Candidate validation
 
 At workflow start:
+
 1. query PR metadata using GitHub API/`gh api`;
 2. require PR open;
 3. require base ref `master`;
@@ -928,9 +1039,10 @@ At workflow start:
 
 The workflow may internally compare GitHub revision IDs to ensure the dispatched ref still represents the PR head. Do not expose that comparison as an input or documentation field.
 
-## Integration test state
+### Integration test state
 
 Each matrix job:
+
 1. checkout the dispatched PR head;
 2. fetch current `master`;
 3. create a temporary local merge of current master into the checked-out PR state;
@@ -940,17 +1052,18 @@ Each matrix job:
 
 Do not push the temporary merge.
 
-## Action security
+### Action security
 
 Keep all third-party `uses:` entries pinned to immutable full commit references.
 
 Update `scripts/verify/repository.mjs`:
+
 - require workflow inputs `pr_number:` and `reason:`;
 - reject `base_sha:` and `target_sha:` inputs;
 - continue enforcing no automatic CI triggers;
 - continue enforcing immutable GitHub Action pins.
 
-## Operator command
+### Operator command
 
 New playbook example:
 
@@ -963,9 +1076,10 @@ gh workflow run verify.yml \
 
 No SHA variables.
 
-## Merge check
+### Merge check
 
 Before merge:
+
 - `gh pr view 24` must show open, Ready, mergeable;
 - `gh pr checks 24` must show the latest final manual verify result associated with the current PR head as successful;
 - if master changed after that final integration run, rerun final CI;
@@ -979,11 +1093,12 @@ No manual hash equality commands.
 
 ---
 
-# 10. Task 5 — Remove SHA candidate fields from current evidence
+## 10. Task 5 — Remove SHA candidate fields from current evidence
 
-## Modify current projections
+### Modify current projections
 
 At minimum:
+
 - `Architecture_Corpus/qualification/results/Q-RUNTIME-01.md`
 - `Architecture_Corpus/qualification/results/Q-PERSISTENCE-01.md`
 - `Architecture_Corpus/qualification/results/qualification-status.json`
@@ -991,12 +1106,13 @@ At minimum:
 - active corrective plan
 - `docs/roadmap/development-roadmap.md`
 
-## Rules
+### Rules
 
 Do not mass-edit old historical sections.
 
 For the current H2-S candidate section:
 remove current governance fields representing:
+
 - base SHA;
 - head SHA;
 - behavior-candidate SHA;
@@ -1028,6 +1144,7 @@ merge:
 Do not add timestamps unless they are already useful operational evidence; timestamps do not become candidate identity.
 
 Correct any inaccurate `Q1-Q15` claim:
+
 - list actual named scenarios present;
 - if numbering intentionally skips a number, do not report a contiguous range.
 
@@ -1039,37 +1156,41 @@ Historical SHA references from H1/H2A/H2B may remain in clearly historical text;
 
 ---
 
-# 11. Task 6 — Fix STARTING activation cooperative cancellation
+## 11. Task 6 — Fix STARTING activation cooperative cancellation
 
 This is a source-level closure blocker and must not be hidden by governance work.
 
-## Files
+### Files
 
 Modify:
+
 - `packages/runtime-kernel/src/supervisor.ts`
 - `packages/runtime-kernel/src/supervisor.test.ts`
 - package README/AGENTS only if the final local lifecycle contract needs concise documentation.
 
 Do not change Bootstrap Runtime package dependency direction.
 
-## Required design
+### Required design
 
 Each currently STARTING MicroSystem gets a supervisor-owned `AbortController`.
 
 Supervisor tracks controllers for STARTING activations.
 
 The activation context signal is the composition of:
+
 - RuntimeSubstrate activation scope signal;
 - supervisor STARTING-cancellation signal.
 
 Use platform-standard `AbortSignal.any(...)` when supported by the pinned Node/TypeScript baseline. Do not implement a custom signal-composition framework unless the platform typing/runtime proves unavailable.
 
 Synchronous admission closure events:
+
 - `quiesce()`
 - terminal `close()`
 - owner abort
 
 must synchronously:
+
 1. move supervisor lifecycle out of ACTIVE admission;
 2. begin retirement of STARTING fences;
 3. abort all STARTING activation controllers.
@@ -1078,11 +1199,12 @@ The existing mutation chain remains the serialization owner for cleanup.
 
 No guarantee is added for arbitrary activation code that ignores its provided signal forever. The contract is cooperative cancellation; well-formed MicroSystem activation must observe `context.signal` for cancellable waits.
 
-## Tests
+### Tests
 
 Add:
 
-### Q-start-quiesce-cancel
+#### Q-start-quiesce-cancel
+
 - activation waits until `context.signal.aborted`;
 - call `supervisor.quiesce()` without manually releasing the activation;
 - assert signal aborts;
@@ -1090,7 +1212,8 @@ Add:
 - reconcile cannot start later systems;
 - quiesce completes.
 
-### Q-start-owner-abort-cancel
+#### Q-start-owner-abort-cancel
+
 - owner signal controls supervisor;
 - activation waits on `context.signal`;
 - abort owner;
@@ -1098,10 +1221,12 @@ Add:
 - terminal `close()` completes;
 - supervisor never reopens.
 
-### Regression
+#### Regression
+
 Keep existing queued-start test but no longer depend on manually resolving the first activation to prove cancellation semantics.
 
 Use TDD:
+
 1. write tests;
 2. verify fail on current code;
 3. implement;
@@ -1113,17 +1238,19 @@ Use TDD:
 
 ---
 
-# 12. Task 7 — Harden Bootstrap production dependency boundary
+## 12. Task 7 — Harden Bootstrap production dependency boundary
 
-## Files
+### Files
 
 Modify:
+
 - `scripts/verify/boundaries.mjs`
 - `tools/repo-kit/test/boundaries.test.mjs`
 
-## Required design
+### Required design
 
 Forbidden package roots for Bootstrap Runtime production source:
+
 - `@heptalogos/runtime-kernel`
 - `@heptalogos/runtime-substrate`
 - `cordis`
@@ -1145,6 +1272,7 @@ cordis/foo
 Scoped package parser must correctly preserve two-segment scoped root.
 
 Tests:
+
 - bare forbidden import -> reject;
 - scoped subpath -> reject;
 - unscoped subpath -> reject;
@@ -1157,29 +1285,32 @@ Tests:
 
 ---
 
-# 13. Task 8 — Close hygiene-gate escape hatches
+## 13. Task 8 — Close hygiene-gate escape hatches
 
-## Files
+### Files
 
 Modify:
+
 - `tools/repo-kit/src/current-tree-hygiene.mjs`
 - `tools/repo-kit/test/current-tree-hygiene.test.mjs`
 - wrapper only if needed.
 
-## Required design
+### Required design
 
-### Symlinks
+#### Symlinks
 
 Within scanned canonical/executable surfaces:
+
 - any symbolic link is a hygiene failure;
 - do not follow it;
 - report `symbolic-link-residue`.
 
 No allowlist.
 
-### Provenance patterns
+#### Provenance patterns
 
 Add coverage for:
+
 - bare stage-family tokens such as `H2A`;
 - PR forms including `PR #24`;
 - existing H2A1/H2A-1/H2B/M4/etc. forms remain covered.
@@ -1187,6 +1318,7 @@ Add coverage for:
 Patterns must remain boundary-aware and avoid matching ordinary words.
 
 Tests:
+
 1. executable symlink -> FAIL;
 2. `H2A` identifier/value/path -> FAIL;
 3. `PR #24` current executable text -> FAIL;
@@ -1199,16 +1331,17 @@ Tests:
 
 ---
 
-# 14. Task 9 — Make PG6 prove Bootstrap-owned success-path cleanup
+## 14. Task 9 — Make PG6 prove Bootstrap-owned success-path cleanup
 
-## Files
+### Files
 
 Modify:
+
 - `packages/bootstrap-runtime/src/runtime-host-lifecycle.integration.test.ts`
 - `packages/bootstrap-runtime/src/test-support/canonical-postgres.ts`
-only if a semantic test-support helper is needed.
+  only if a semantic test-support helper is needed.
 
-## Required behavior
+### Required behavior
 
 PG6 must prove:
 
@@ -1231,6 +1364,7 @@ Use existing Bootstrap Prelude/ownership/private-PG controller APIs. Do not add 
 If current public/internal Bootstrap API cannot reacquire ownership and perform the authorized stop without violating current Corpus contracts, stop with `PLAN_GAP` and report the exact missing primitive. Do not call private PostgreSQL control from a closed Host.
 
 Use TDD where practical:
+
 - first assert successful Bootstrap reacquisition/cleanup behavior;
 - observe current failure/gap;
 - implement only test-support composition necessary to use existing production primitives.
@@ -1241,15 +1375,17 @@ Use TDD where practical:
 
 ---
 
-# 15. Task 10 — Reconcile package docs with source corrections
+## 15. Task 10 — Reconcile package docs with source corrections
 
 After Tasks 6–9:
+
 - reread `runtime-kernel`, `bootstrap-runtime`, and repo-kit README/AGENTS;
 - update only factual local rules affected by final implementation;
 - do not add review history;
 - do not mention PR #24 or H2-S in long-lived package docs.
 
 Run:
+
 - `pnpm check:repository`
 - `pnpm check:hygiene`
 - `pnpm check:agents`
@@ -1259,13 +1395,14 @@ Run:
 
 ---
 
-# 16. Task 11 — Fresh final mutable-tree qualification
+## 16. Task 11 — Fresh final mutable-tree qualification
 
 Do this only after all planned repository mutations except final evidence/status recording are known.
 
-## Required local gates
+### Required local gates
 
 Run fresh:
+
 - `pnpm check:agents`
 - `pnpm check:corpus`
 - `pnpm check:repository`
@@ -1283,11 +1420,12 @@ Run fresh:
 
 Do not infer PASS from the aggregate if a required subcommand was not run in the current tree.
 
-## Fresh PostgreSQL 18.6 H2-S qualification
+### Fresh PostgreSQL 18.6 H2-S qualification
 
 Run the complete H2-S real PostgreSQL integration suite on PostgreSQL 18.6.
 
 Must include:
+
 - normal Runtime/Host composition;
 - authentic Host loss terminality;
 - planned Host STOP using Runtime quiescence;
@@ -1299,7 +1437,7 @@ Must include:
 
 No skipped H2-S database scenario may be reported PASS.
 
-## Evidence recording
+### Evidence recording
 
 After runs, update current qualification fields using semantic candidate state only:
 
@@ -1316,6 +1454,7 @@ merge = NOT_RUN
 Do not write commit SHA.
 
 Because this evidence update itself is a repository mutation:
+
 - after it is committed, run `pnpm check:corpus`, `pnpm check:repository`,
   `pnpm check:hygiene`, and `pnpm verify` once more;
 - if evidence-only changes cannot affect PG behavior, the PG18.6 run remains valid
@@ -1326,7 +1465,7 @@ rerun the affected PG suite.
 
 ---
 
-# 17. Task 12 — Complete plan and freeze through PR state
+## 17. Task 12 — Complete plan and freeze through PR state
 
 Before requesting Independent Review:
 
@@ -1351,12 +1490,13 @@ Before requesting Independent Review:
 Do not add commit hashes to PR body.
 
 From this point:
+
 - no repository mutation during Independent Review;
 - if review requests changes, immediately return PR to Draft before edits.
 
 ---
 
-# 18. Task 13 — Independent Review under new model
+## 18. Task 13 — Independent Review under new model
 
 Reviewer instruction:
 
@@ -1368,6 +1508,7 @@ Return PASS or REQUEST_CHANGES with findings.
 ```
 
 If `REQUEST_CHANGES`:
+
 1. PR -> Draft;
 2. install/activate bounded correction work if needed;
 3. make corrections;
@@ -1376,6 +1517,7 @@ If `REQUEST_CHANGES`:
 6. new Independent Review.
 
 If `PASS`:
+
 - do not commit anything;
 - proceed directly to final CI.
 
@@ -1383,7 +1525,7 @@ Independent Review PASS is not stored in a repository file before merge.
 
 ---
 
-# 19. Task 14 — Final manual cross-platform CI
+## 19. Task 14 — Final manual cross-platform CI
 
 After Independent Review PASS:
 
@@ -1397,35 +1539,41 @@ gh workflow run verify.yml \
 ```
 
 Require:
+
 - Ubuntu PASS;
 - macOS PASS;
 - Windows PASS.
 
 Workflow must be testing:
+
 - current PR branch revision;
 - integrated with current master at run time.
 
 If PR branch changes:
+
 - review + CI stale;
 - PR -> Draft.
 
 If master changes after CI but PR branch does not:
+
 - Independent Review stays valid unless diff/conflict semantics changed;
 - rerun final CI against new master;
 - no re-review solely for unrelated base movement.
 
 If integration conflict resolution changes the PR branch:
+
 - PR -> Draft;
 - review stale;
 - re-review required.
 
 ---
 
-# 20. Task 15 — Merge and post-merge reconciliation
+## 20. Task 15 — Merge and post-merge reconciliation
 
-## Pre-merge semantic check
+### Pre-merge semantic check
 
 Require:
+
 - PR #24 open and Ready;
 - current Independent Review state PASS;
 - latest final manual CI for PR #24 PASS on all three OS;
@@ -1437,17 +1585,19 @@ No raw SHA comparison procedure.
 
 Squash merge PR #24.
 
-## Post-merge reconciliation
+### Post-merge reconciliation
 
 Create one small docs/evidence-only PR.
 
 Allowed changes:
+
 - Roadmap/current milestone projection;
 - qualification status/current semantic closure fields;
 - completed corrective plan external-outcome addendum if desired;
 - plan index.
 
 Forbidden:
+
 - production code;
 - tests;
 - runtime behavior;
@@ -1469,12 +1619,14 @@ H3: ELIGIBLE
 ```
 
 Record:
+
 - Independent Review PASS;
 - final cross-platform CI PASS;
 - PR #24 merged;
 - remaining product qualification residuals honestly as PARTIAL/NOT_RUN.
 
 Do not add:
+
 - merge SHA;
 - base/head SHA;
 - checksum manifests.
@@ -1485,15 +1637,15 @@ Only after this reconciliation merges may an H3 implementation plan become ACTIV
 
 ---
 
-# 21. Permanent invariants after this migration
+## 21. Permanent invariants after this migration
 
-## Repository identity
+### Repository identity
 
 ```text
 Git revisions are implementation identity, not project semantic Authority.
 ```
 
-## Candidate integrity
+### Candidate integrity
 
 ```text
 current live PR + PR lifecycle + machine-bound CI
@@ -1505,7 +1657,7 @@ not:
 human-maintained exact commit tuple
 ```
 
-## Source integrity
+### Source integrity
 
 ```text
 Git history + structural repository checks
@@ -1517,7 +1669,7 @@ not:
 editable source file + editable sibling checksum of that same file
 ```
 
-## Agent context
+### Agent context
 
 ```text
 root AGENTS
@@ -1535,7 +1687,7 @@ one oversized root instruction file
 + no local package description
 ```
 
-## Compatibility
+### Compatibility
 
 Unchanged:
 
@@ -1545,9 +1697,10 @@ no declared obligation
 => rewrite/reset/reject/delete
 ```
 
-## Supply-chain integrity
+### Supply-chain integrity
 
 Unchanged:
+
 - lockfile;
 - exact dependency policy;
 - immutable GitHub Action pins;
@@ -1555,7 +1708,7 @@ Unchanged:
 
 ---
 
-# 22. Stop conditions
+## 22. Stop conditions
 
 Stop with `PLAN_GAP` instead of extending scope if any correction requires:
 
@@ -1573,9 +1726,10 @@ Stop with `PLAN_GAP` instead of extending scope if any correction requires:
 
 ---
 
-# 23. Review budget / scope budget
+## 23. Review budget / scope budget
 
 This corrective cycle is still bounded if it remains:
+
 - governance simplification in existing repository tooling/docs;
 - local package documentation;
 - one Runtime activation cancellation correction;
@@ -1584,6 +1738,7 @@ This corrective cycle is still bounded if it remains:
 - evidence/schema cleanup.
 
 Stop and re-scope if execution begins creating:
+
 - more than one new production package;
 - a review service/database;
 - a custom Git abstraction layer;
@@ -1593,7 +1748,7 @@ Stop and re-scope if execution begins creating:
 
 ---
 
-# 24. Expected end state
+## 24. Expected end state
 
 The repository should end this corrective cycle with:
 

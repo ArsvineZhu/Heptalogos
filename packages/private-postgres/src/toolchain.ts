@@ -1,3 +1,9 @@
+/**
+ * Resolves the approved PostgreSQL executable/toolchain placement and rejects
+ * ambiguous or unsafe paths before Bootstrap delegates process control.
+ * @module toolchain
+ */
+
 import { lstat } from "node:fs/promises";
 import { isAbsolute as isPosixAbsolute, join as posixJoin } from "node:path/posix";
 import { isAbsolute as isWindowsAbsolute, join as windowsJoin } from "node:path/win32";
@@ -24,6 +30,7 @@ const BASE_EXECUTABLE_NAMES = [
   "pg_isready",
 ] as const;
 
+/** Names the platform-specific PostgreSQL executables resolved by the adapter. */
 export interface PrivatePostgresExecutablePaths {
   readonly postgres: string;
   readonly initdb: string;
@@ -32,6 +39,7 @@ export interface PrivatePostgresExecutablePaths {
   readonly pgIsReady: string;
 }
 
+/** Reports the parsed major/patch version of a PostgreSQL executable. */
 export interface ParsedPostgresVersion {
   readonly major: typeof PRIVATE_POSTGRES_ARCHITECTURE_MAJOR;
   readonly version: typeof PRIVATE_POSTGRES_QUALIFIED_VERSION;
@@ -62,6 +70,7 @@ function pathApi(platform: NodeJS.Platform): {
     : { isAbsolute: isPosixAbsolute, join: posixJoin };
 }
 
+/** Resolves approved executable names for the current platform. */
 export function privatePostgresExecutableNames(
   platform: NodeJS.Platform,
 ): readonly string[] {
@@ -70,6 +79,7 @@ export function privatePostgresExecutableNames(
     : BASE_EXECUTABLE_NAMES;
 }
 
+/** Resolves executable paths from an approved PostgreSQL bin directory. */
 export function resolvePrivatePostgresExecutablePaths(
   binDirectory: string,
   platform: NodeJS.Platform = process.platform,
@@ -119,6 +129,7 @@ async function requireRegularTool(path: string, name: string): Promise<void> {
   }
 }
 
+/** Parses `postgres --version` output into the supported version contract. */
 export function parsePostgresVersion(output: string): ParsedPostgresVersion {
   const match = /^\S+\s+\(PostgreSQL\)\s+(\d+)\.(\d+)(?:\s+\([^()\r\n]*\))?\s*$/u.exec(
     output,
@@ -137,6 +148,7 @@ export function parsePostgresVersion(output: string): ParsedPostgresVersion {
   });
 }
 
+/** Resolves and validates the complete private PostgreSQL toolchain. */
 export async function resolvePrivatePostgresToolchain(
   binDirectory: string,
 ): Promise<PrivatePostgresToolchain> {

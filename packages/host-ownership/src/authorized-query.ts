@@ -1,6 +1,13 @@
+/**
+ * Restricts Bootstrap-authorized SQL operations to the explicit authority seam
+ * required for Host database provisioning and ownership setup.
+ * @module authorized-query
+ */
+
 import type { BootstrapAdminClient } from "./bootstrap-admin.js";
 import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
 
+/** Executes a query only while Bootstrap mutation authority remains current. */
 export async function queryWithAuthority<Row = never>(
   client: BootstrapAdminClient,
   authority: BootstrapMutationAuthority,

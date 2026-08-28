@@ -1,3 +1,9 @@
+/**
+ * Public execution-lineage contracts, providers, persistence adapters, and
+ * handoff projections for causal Foundation context propagation.
+ * @packageDocumentation
+ */
+
 export {
   type ActivityImportance,
   type ActivityCompletion,

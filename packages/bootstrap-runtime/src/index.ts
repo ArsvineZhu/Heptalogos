@@ -1,7 +1,15 @@
+/**
+ * Public Bootstrap runtime contracts for installation/recovery orchestration,
+ * Host handoff, and managed maintenance; private Authority adapters remain
+ * behind these stable exports.
+ * @packageDocumentation
+ */
+
 // Evaluate the ownership adapter before the public entry point's other runtime
 // dependencies so its adopted provider registers exit cleanup first.
 import "./bootstrap-ownership.js";
 
+/** Identifies the public Bootstrap runtime package for discovery and diagnostics. */
 export const BOOTSTRAP_RUNTIME_PACKAGE = "@heptalogos/bootstrap-runtime" as const;
 export { loadBootstrapLocator, type BootstrapLocatorV1 } from "./locator.js";
 export {

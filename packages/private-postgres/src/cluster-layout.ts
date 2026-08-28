@@ -1,3 +1,9 @@
+/**
+ * Classifies the installation-owned PostgreSQL directory layout with fail-closed
+ * traversal so unknown material cannot be mistaken for managed cluster state.
+ * @module cluster-layout
+ */
+
 import { lstat, opendir } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import {
@@ -12,6 +18,7 @@ import {
 } from "./contracts.js";
 import { hasNodeErrorCode } from "./error-code.js";
 
+/** Classifies whether the managed data directory is absent, empty, or occupied. */
 export type ClusterDirectoryState =
   | { readonly kind: "ABSENT" }
   | { readonly kind: "EMPTY" }
@@ -32,6 +39,7 @@ function layoutProblem(
   });
 }
 
+/** Resolves the canonical private cluster directory below DATA. */
 export function resolvePrivatePostgresPlacement(
   dataRoot: string,
 ): PrivatePostgresPlacement {
@@ -70,6 +78,7 @@ export function resolvePrivatePostgresPlacement(
   });
 }
 
+/** Enumerates the target directory with bounded fail-closed semantics. */
 export async function classifyClusterDirectory(
   directory: string,
 ): Promise<ClusterDirectoryState> {

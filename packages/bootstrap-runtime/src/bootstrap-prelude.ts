@@ -1,3 +1,9 @@
+/**
+ * Orchestrates Bootstrap locator/state preparation, lease acquisition, private
+ * PostgreSQL setup, and the ordered handoff into Host ownership.
+ * @module bootstrap-prelude
+ */
+
 import { join } from "node:path";
 import {
   BootstrapJournal,
@@ -48,6 +54,7 @@ import type { BootstrapManagedHostContext } from "./managed-host.js";
 import { problemCodeOf } from "./problem-code.js";
 import { recordBootstrapStage } from "./journal-stage.js";
 
+/** Holds Bootstrap preparation evidence before the ownership lease is acquired. */
 export interface PreparedBootstrapPrelude {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
@@ -56,11 +63,13 @@ export interface PreparedBootstrapPrelude {
   readonly paths: BootstrapPathProfile;
   readonly journal: BootstrapJournal;
   readonly preliminaryState: BootstrapStateLoadResult;
+  /** Acquires ownership and upgrades the prepared evidence into an owned prelude. */
   acquireOwnership(
     options: Omit<BootstrapOwnershipOptions, "bootId">,
   ): Promise<OwnedBootstrapPrelude>;
 }
 
+/** Holds Bootstrap state and private-PostgreSQL operations under a live lease. */
 export interface OwnedBootstrapPrelude {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
@@ -71,19 +80,24 @@ export interface OwnedBootstrapPrelude {
   readonly ownershipSignal: AbortSignal;
   readonly state: OwnedBootstrapStateStore;
   readonly authoritativeState: BootstrapStateLoadResult;
+  /** Initializes the current BootstrapState genesis under the owned store. */
   ensureBootstrapStateInitialized(
     selection: BootstrapStateGenesisSelection,
   ): Promise<BootstrapStateEnvelope>;
+  /** Prepares the private PostgreSQL session while Bootstrap authority is held. */
   preparePrivatePostgres(
     options: PreparePrivatePostgresOptions,
   ): Promise<ReadyPrivatePostgres>;
+  /** Transfers the prepared PostgreSQL session into Host ownership. */
   handoffPrivatePostgresToHost(
     ready: ReadyPrivatePostgres,
     options: HostOwnershipHandoffOptions,
   ): Promise<BootstrapManagedHostContext>;
+  /** Releases the prelude and its ownership-bound resources. */
   close(): Promise<void>;
 }
 
+/** Selects the generation values that define a new BootstrapState genesis. */
 export interface BootstrapStateGenesisSelection {
   readonly activeBootstrapRuntimeGeneration: BootstrapRuntimeGenerationId;
   readonly activeProductGeneration: ProductGenerationId;
@@ -337,11 +351,13 @@ async function materializeOwnedBootstrapPrelude(
   }
 }
 
+/** Identifies the recovered boot activity used to rebuild an owned prelude. */
 export interface RecoveredBootstrapPreludeIdentity {
   readonly bootId: BootId;
   readonly bootstrapActivityId: BootstrapActivityId;
 }
 
+/** Rebuilds a Bootstrap prelude from inspected recovery evidence under a lease. */
 export async function adoptRecoveredBootstrapOwnershipForPrelude(
   anchorRoot: string,
   ownership: BootstrapOwnershipLease,
@@ -370,6 +386,7 @@ export async function adoptRecoveredBootstrapOwnershipForPrelude(
   }
 }
 
+/** Prepares locator, paths, state evidence, and a deferred ownership operation. */
 export async function prepareBootstrapPrelude(
   anchorRoot: string,
 ): Promise<PreparedBootstrapPrelude> {

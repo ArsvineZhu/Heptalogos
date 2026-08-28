@@ -1,8 +1,11 @@
 /**
- * Framework-free capability used to guard bootstrap-authorized PostgreSQL
- * mutations. The bootstrap runtime adapts its authentic ownership lease to
- * this narrow seam; Host ownership never depends on the lock implementation.
+ * Defines the framework-free capability that proves Bootstrap authorization
+ * before privileged PostgreSQL provisioning operations are admitted. It guards
+ * PostgreSQL mutations through a narrow seam so Host ownership never depends
+ * on the lock implementation.
+ * @module bootstrap-authority
  */
 export interface BootstrapMutationAuthority {
+  /** Reject the mutation unless the current bootstrap authority is still valid. */
   assertCurrent(): void;
 }

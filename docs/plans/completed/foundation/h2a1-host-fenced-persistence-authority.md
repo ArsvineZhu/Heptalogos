@@ -91,7 +91,7 @@ squash_merge:
 
 ---
 
-# 0. Global constraints
+## 0. Global constraints
 
 These constraints apply to every task.
 
@@ -118,9 +118,9 @@ These constraints apply to every task.
 
 ---
 
-# 1. Fixed design decisions for H2A-1
+## 1. Fixed design decisions for H2A-1
 
-## 1.1 PostgreSQL role topology
+### 1.1 PostgreSQL role topology
 
 After H2A-1 provisioning, the relevant role model is:
 
@@ -156,7 +156,7 @@ heptalogos_runtime
 
 Names, ownership split, fence privilege split and `NOINHERIT` are `PRODUCT_INVARIANT` for this implementation stage. Pool-size/timeouts are `RESOURCE_CONFIG`.
 
-## 1.2 Credential topology
+### 1.2 Credential topology
 
 `BootstrapKeyProvider` remains the pre-normal-runtime credential source and gains a third distinct purpose:
 
@@ -170,7 +170,7 @@ private-postgres-runtime-role
 
 `pg.Pool` must use its dynamic password callback. The pool configuration must not store a long-lived static password string created by H2 code. A transient JavaScript string necessarily exists while `pg` authenticates; it must not be logged, persisted, added to Problems, or copied into long-lived H2 state.
 
-## 1.3 Stable H1→H2 capability
+### 1.3 Stable H1→H2 capability
 
 Add this Heptalogos-owned contract to `@heptalogos/host-ownership`:
 
@@ -204,7 +204,7 @@ readonly persistence: HostPersistenceAuthority;
 
 The capability is issued by `bootstrap-runtime`; `host-ownership` only owns the structural contract and constants. Its `assertActive()` must share the same terminal/fenced state as the managed Host, so `markManagedHostTerminal()` immediately rejects new persistence admission even if the raw lease close is still settling.
 
-## 1.4 Persistence public root
+### 1.4 Persistence public root
 
 The initial package-root contract is intentionally narrow:
 
@@ -246,7 +246,7 @@ export function createPersistenceService(
 
 `PersistenceTransactionContext` is an issued/opaque token. H2A-1 does **not** export a package subpath that reveals Kysely. Internal tests/repositories in this package can resolve the token to the current Kysely transaction through a private `WeakMap`. A later H2A task may define an implementation-only repository adapter boundary when the first real repository exists.
 
-## 1.5 Required Problem identities
+### 1.5 Required Problem identities
 
 At minimum, H2A-1 owns these stable machine failures:
 
@@ -269,9 +269,9 @@ Rules:
 
 ---
 
-# 2. Repository file map
+## 2. Repository file map
 
-## Phase A — H1 post-merge truth reconciliation only
+### Phase A — H1 post-merge truth reconciliation only
 
 **Modify:**
 
@@ -289,7 +289,7 @@ Rules:
 
 The H1 spec may retain historical/procedural text such as “Before H1-S final closure”. Do not mechanically replace every occurrence of `H1: OPEN` inside historical examples. Reconcile **current truth**, not history.
 
-## Phase B — H2A-1 behavior branch
+### Phase B — H2A-1 behavior branch
 
 **Create:**
 
@@ -336,15 +336,15 @@ The H1 spec may retain historical/procedural text such as “Before H1-S final c
 
 ---
 
-# 3. Task sequence
+## 3. Task sequence
 
-## Task 0: Reconcile H1 post-merge truth in a separate docs/evidence-only PR
+### Task 0: Reconcile H1 post-merge truth in a separate docs/evidence-only PR
 
 **Purpose:** Satisfy the existing H-stage closure rule before any H2 behavior branch exists.
 
 **Files:** Phase A files only.
 
-### Interfaces / evidence
+#### Interfaces / evidence
 
 **Consumes:** externally observed H1 closure evidence:
 
@@ -523,7 +523,7 @@ rg -n 'H1: CLOSED|H2: ELIGIBLE' \
 
 ---
 
-## Task 1: Activate H2A-1 on the reconciled master
+### Task 1: Activate H2A-1 on the reconciled master
 
 **Files:**
 
@@ -571,7 +571,7 @@ git commit -m "docs: activate H2A1 persistence authority plan"
 
 ---
 
-## Task 2: Pin Kysely and materialize the persistence workspace
+### Task 2: Pin Kysely and materialize the persistence workspace
 
 **Files:**
 
@@ -668,7 +668,7 @@ git commit -m "build: add persistence workspace and Kysely route"
 
 ---
 
-## Task 3: Add the least-privilege normal runtime PostgreSQL principal
+### Task 3: Add the least-privilege normal runtime PostgreSQL principal
 
 **Files:**
 
@@ -796,7 +796,7 @@ git commit -m "feat: provision least-privilege runtime database principal"
 
 ---
 
-## Task 4: Issue a narrow HostPersistenceAuthority from the H1 handoff
+### Task 4: Issue a narrow HostPersistenceAuthority from the H1 handoff
 
 **Files:**
 
@@ -875,7 +875,7 @@ git commit -m "feat: issue host-scoped persistence authority"
 
 ---
 
-## Task 5: Implement the persistence package boundary without framework leakage
+### Task 5: Implement the persistence package boundary without framework leakage
 
 **Files:**
 
@@ -917,7 +917,7 @@ Pool configuration must use:
 password: () =>
   authority.withRuntimeDatabasePassword(async (passwordUtf8) =>
     new TextDecoder("utf-8", { fatal: true }).decode(passwordUtf8),
-  )
+  );
 ```
 
 Use explicit options for max/idle/connection/statement/lock/idle-in-transaction budgets. Set a fixed non-secret `application_name` such as `heptalogos-runtime` as an `IMPLEMENTATION_CONSTANT`.
@@ -973,7 +973,7 @@ git commit -m "feat: add persistence service boundary"
 
 ---
 
-## Task 6: Implement read-only and Host-fenced mutation transaction semantics
+### Task 6: Implement read-only and Host-fenced mutation transaction semantics
 
 **Files:**
 
@@ -1080,7 +1080,7 @@ git commit -m "feat: fence canonical persistence mutations"
 
 ---
 
-## Task 7: Prove lifecycle and commit-uncertainty semantics
+### Task 7: Prove lifecycle and commit-uncertainty semantics
 
 **Files:**
 
@@ -1136,7 +1136,7 @@ git commit -m "fix: fail safe on persistence ownership loss"
 
 ---
 
-## Task 8: Run the real PostgreSQL H1→H2 qualification matrix
+### Task 8: Run the real PostgreSQL H1→H2 qualification matrix
 
 **Files:**
 
@@ -1149,7 +1149,7 @@ git commit -m "fix: fail safe on persistence ownership loss"
 
 Use `HEPTALOGOS_TEST_PG_BIN` exactly like existing H1 PostgreSQL qualification. Prefer public H1 boot/handoff APIs where practical. For tests needing deterministic access to lease publication order, low-level host-ownership test fixtures are allowed inside integration tests; do not expose those seams in product APIs.
 
-### Scenario P1 — current Host mutation succeeds
+#### Scenario P1 — current Host mutation succeeds
 
 - [x] Start a private PostgreSQL fixture.
 - [x] Provision owner/lease/runtime roles and ownership schema.
@@ -1161,7 +1161,7 @@ Use `HEPTALOGOS_TEST_PG_BIN` exactly like existing H1 PostgreSQL qualification. 
 
 Expected: PASS.
 
-### Scenario P2 — structurally active but stale token fails at the database fence
+#### Scenario P2 — structurally active but stale token fails at the database fence
 
 - [x] Publish token B as the current fence token.
 - [x] Construct a test-only structurally active authority carrying old token A but the valid runtime credential/target.
@@ -1177,7 +1177,7 @@ domain row unchanged
 
 This proves database fencing independently of process-local admission correctness.
 
-### Scenario P3 — already-entered old transaction serializes before new token publication
+#### Scenario P3 — already-entered old transaction serializes before new token publication
 
 - [x] Host A holds lease/token A.
 - [x] Start `mutate()` A and pause inside the operation callback; reaching the callback proves the shared fence is already held and post-lock `assertActive()` passed.
@@ -1203,26 +1203,26 @@ B publishes token B
 
 This is the central E34/S03 proof.
 
-### Scenario P4 — no new mutation after Host A loss
+#### Scenario P4 — no new mutation after Host A loss
 
 - [x] After P3 closes lease A, call another `mutate()` through A.
 
 Expected: fail before operation invocation. Do not reconnect/reacquire in-place.
 
-### Scenario P5 — read-only database enforcement
+#### Scenario P5 — read-only database enforcement
 
 - [x] `read()` attempts qualification-table DML through the package-internal test resolver.
 
 Expected: PostgreSQL read-only transaction error; no row mutation.
 
-### Scenario P6 — read does not block Host token publication
+#### Scenario P6 — read does not block Host token publication
 
 - [x] Hold a long `read()` transaction after `SET TRANSACTION READ ONLY`.
 - [x] Publish a new Host token from a valid new owner sequence.
 
 Expected: the read transaction itself does not hold the `HostOwnershipFence` row and therefore is not the blocker. Any lease/ownership prerequisite is handled separately by the test fixture.
 
-### Scenario P7 — commit acknowledgement loss is explicit uncertainty
+#### Scenario P7 — commit acknowledgement loss is explicit uncertainty
 
 - [x] Inside a mutating transaction, perform the final qualification-table DML.
 - [x] Query that transaction connection's `pg_backend_pid()` through the package-internal test resolver.
@@ -1238,7 +1238,7 @@ retryClass = manual
 
 Do not assert that the client could know committed-vs-rolled-back truth. An independent admin read after the fact may be recorded as test-environment evidence, but must not change the service's uncertainty classification rule.
 
-### Scenario P8 — runtime role privilege closure
+#### Scenario P8 — runtime role privilege closure
 
 Prove the runtime principal can:
 
@@ -1289,7 +1289,7 @@ git commit -m "test: prove host-fenced persistence on real postgres"
 
 ---
 
-## Task 9: Strengthen mechanical dependency and framework-leakage boundaries
+### Task 9: Strengthen mechanical dependency and framework-leakage boundaries
 
 **Files:**
 
@@ -1355,7 +1355,7 @@ git commit -m "chore: enforce persistence dependency boundaries"
 
 ---
 
-## Task 10: Record H2A-1 evidence, close the active plan, and freeze the review candidate
+### Task 10: Record H2A-1 evidence, close the active plan, and freeze the review candidate
 
 **Files:**
 
@@ -1515,32 +1515,32 @@ Squash merge only with explicit authorization. H2 remains open after this merge;
 
 ---
 
-# 4. Acceptance matrix
+## 4. Acceptance matrix
 
 H2A-1 is locally implementation-complete only when all mandatory rows below are true on the candidate.
 
-| ID | Claim | Required evidence |
-|---|---|---|
-| A1 | H1 closure truth is reconciled before H2 behavior work | merged docs/evidence-only reconciliation PR |
-| A2 | normal runtime uses a distinct least-privilege PostgreSQL principal | unit + real-PG ACL tests |
-| A3 | bootstrap/owner/lease credentials are not reused as runtime pool identity | contract + connection tests |
-| A4 | PersistenceService package root leaks no pg/Kysely types | static boundary gate + TS declarations |
-| A5 | read transaction is database-enforced read-only | real PostgreSQL |
-| A6 | mutation takes `FOR SHARE` and verifies exact current fence tuple | unit ordering + real PostgreSQL |
-| A7 | process-local lease loss before final admission check prevents operation | unit deterministic authority fake |
-| A8 | already-admitted old mutation may complete and blocks new token publication until exit | real PostgreSQL multi-connection test |
-| A9 | stale token cannot mutate even if process-local authority is falsely active | real PostgreSQL stale-token test |
-| A10 | no new old-Host mutation starts after lease loss | unit + real PostgreSQL |
-| A11 | commit acknowledgement loss becomes explicit `commit_uncertain` | unit + real PostgreSQL backend termination |
-| A12 | dynamic password materialization uses only runtime credential purpose | unit/integration |
-| A13 | existing H1 ownership/bootstrap regressions remain PASS | H1 unit + real-PG integration |
-| A14 | adopted dependency route is mechanically enforced | `check:dependencies` + `check:boundaries` |
-| A15 | full repository gate passes | `pnpm verify` |
-| A16 | residual platform/source-less claims remain truthful | qualification ledger |
+| ID  | Claim                                                                                  | Required evidence                           |
+| --- | -------------------------------------------------------------------------------------- | ------------------------------------------- |
+| A1  | H1 closure truth is reconciled before H2 behavior work                                 | merged docs/evidence-only reconciliation PR |
+| A2  | normal runtime uses a distinct least-privilege PostgreSQL principal                    | unit + real-PG ACL tests                    |
+| A3  | bootstrap/owner/lease credentials are not reused as runtime pool identity              | contract + connection tests                 |
+| A4  | PersistenceService package root leaks no pg/Kysely types                               | static boundary gate + TS declarations      |
+| A5  | read transaction is database-enforced read-only                                        | real PostgreSQL                             |
+| A6  | mutation takes `FOR SHARE` and verifies exact current fence tuple                      | unit ordering + real PostgreSQL             |
+| A7  | process-local lease loss before final admission check prevents operation               | unit deterministic authority fake           |
+| A8  | already-admitted old mutation may complete and blocks new token publication until exit | real PostgreSQL multi-connection test       |
+| A9  | stale token cannot mutate even if process-local authority is falsely active            | real PostgreSQL stale-token test            |
+| A10 | no new old-Host mutation starts after lease loss                                       | unit + real PostgreSQL                      |
+| A11 | commit acknowledgement loss becomes explicit `commit_uncertain`                        | unit + real PostgreSQL backend termination  |
+| A12 | dynamic password materialization uses only runtime credential purpose                  | unit/integration                            |
+| A13 | existing H1 ownership/bootstrap regressions remain PASS                                | H1 unit + real-PG integration               |
+| A14 | adopted dependency route is mechanically enforced                                      | `check:dependencies` + `check:boundaries`   |
+| A15 | full repository gate passes                                                            | `pnpm verify`                               |
+| A16 | residual platform/source-less claims remain truthful                                   | qualification ledger                        |
 
 ---
 
-# 5. Explicit non-goals / stop conditions
+## 5. Explicit non-goals / stop conditions
 
 Stop and surface the issue instead of expanding this plan if any of the following becomes necessary:
 
@@ -1561,7 +1561,7 @@ Stop and surface the issue instead of expanding this plan if any of the followin
 
 ---
 
-# 6. Deferred follow-on after H2A-1
+## 6. Deferred follow-on after H2A-1
 
 Only after this plan is squash-merged should the next planning session decide between:
 
@@ -1577,7 +1577,7 @@ H2A-1 deliberately does not predefine the final cross-package repository transac
 
 ---
 
-# 7. Plan self-review checklist
+## 7. Plan self-review checklist
 
 Before using this file as an active repository plan, verify:
 

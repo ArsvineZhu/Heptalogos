@@ -48,13 +48,13 @@ qualification result was imported.
 
 ## Environment baseline
 
-| Check | Status | Evidence |
-| --- | --- | --- |
-| Node | PASS | `node --version` resolves `v24.19.0` |
-| Corepack pnpm | PASS | Corepack resolves `pnpm@11.22.0` |
-| User-scoped bare pnpm | PASS | PNPM_HOME shim precedes the retained 11.8.0 npm shim and resolves 11.22.0 |
-| Corepack default policy | PASS | User `COREPACK_DEFAULT_TO_LATEST=0` |
-| package-manager integrity recording | PASS | npm registry reports `sha512-H/hwxMYTPf2I+yr8Rt0T1H8JyXlLQ4xv20fKmMrzvBY4HuC+k6CRuOOCTPAfiJ9G19niCRD7C+GrD7W6qA3WIQ==` for pnpm 11.22.0 |
+| Check                               | Status | Evidence                                                                                                                                |
+| ----------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Node                                | PASS   | `node --version` resolves `v24.19.0`                                                                                                    |
+| Corepack pnpm                       | PASS   | Corepack resolves `pnpm@11.22.0`                                                                                                        |
+| User-scoped bare pnpm               | PASS   | PNPM_HOME shim precedes the retained 11.8.0 npm shim and resolves 11.22.0                                                               |
+| Corepack default policy             | PASS   | User `COREPACK_DEFAULT_TO_LATEST=0`                                                                                                     |
+| package-manager integrity recording | PASS   | npm registry reports `sha512-H/hwxMYTPf2I+yr8Rt0T1H8JyXlLQ4xv20fKmMrzvBY4HuC+k6CRuOOCTPAfiJ9G19niCRD7C+GrD7W6qA3WIQ==` for pnpm 11.22.0 |
 
 The repository uses the exact runnable `packageManager: pnpm@11.22.0`; the
 registry integrity evidence is recorded here. A hash-suffixed representation is
@@ -101,25 +101,25 @@ Fresh lockfile SHA-256: `fef4af697339f3b6d7adb5e5924b998c54120880156d8a946345951
 
 These entries are updated only after the corresponding command is run.
 
-| Gate | Status | Command |
-| --- | --- | --- |
-| Repository correctness | PASS | `pnpm check:repository` |
-| Corpus inventory repair | PASS | `pnpm check:corpus` |
-| Routed skill resources | PASS | `pnpm check:agents` |
-| Dependency routes | PASS | `pnpm check:dependencies` |
-| Source boundaries | PASS | `pnpm check:boundaries` |
-| Frozen install | PASS | `pnpm install --frozen-lockfile` |
-| Toolchain | PASS | `pnpm toolchain:check` |
-| Formatting | PASS | `pnpm format:check` |
-| Lint | PASS | `pnpm lint` |
-| Typecheck | PASS | `pnpm typecheck` |
-| TS6 lane | PASS | `pnpm tsc6` |
-| Test | PASS | `pnpm test` |
-| Build | PASS | `pnpm build` |
-| Runtime smoke | PASS | `pnpm start` |
-| Aggregate verification | PASS | `pnpm verify` |
-| Genesis acceptance | PASS | `pnpm check:genesis` |
-| Genesis aggregate verification | PASS | `pnpm verify:genesis` |
+| Gate                           | Status | Command                          |
+| ------------------------------ | ------ | -------------------------------- |
+| Repository correctness         | PASS   | `pnpm check:repository`          |
+| Corpus inventory repair        | PASS   | `pnpm check:corpus`              |
+| Routed skill resources         | PASS   | `pnpm check:agents`              |
+| Dependency routes              | PASS   | `pnpm check:dependencies`        |
+| Source boundaries              | PASS   | `pnpm check:boundaries`          |
+| Frozen install                 | PASS   | `pnpm install --frozen-lockfile` |
+| Toolchain                      | PASS   | `pnpm toolchain:check`           |
+| Formatting                     | PASS   | `pnpm format:check`              |
+| Lint                           | PASS   | `pnpm lint`                      |
+| Typecheck                      | PASS   | `pnpm typecheck`                 |
+| TS6 lane                       | PASS   | `pnpm tsc6`                      |
+| Test                           | PASS   | `pnpm test`                      |
+| Build                          | PASS   | `pnpm build`                     |
+| Runtime smoke                  | PASS   | `pnpm start`                     |
+| Aggregate verification         | PASS   | `pnpm verify`                    |
+| Genesis acceptance             | PASS   | `pnpm check:genesis`             |
+| Genesis aggregate verification | PASS   | `pnpm verify:genesis`            |
 
 `pnpm verify` is the permanent repository correctness gate and does not depend
 on the archived repository or Genesis-only topology. `pnpm verify:genesis` adds
@@ -139,22 +139,22 @@ phase entrypoint remain as historical evidence and tools; permanent
 
 ## Corrective review record
 
-| Review item | Status | Evidence |
-| --- | --- | --- |
-| Official Nx TypeScript plugin/inferred TS7 targets | PASS | `@nx/js/typescript`, `nx show project`, `@nx/js:typescript-sync` |
-| Strict peer/engine policy | PASS | `strictPeerDependencies: true`, `engineStrict: true` and dependency gate |
-| Explicit release-age policy | PASS | `minimumReleaseAge: 1440` and version-specific exceptions |
-| Default isolated linker | PASS | No `nodeLinker` override; pnpm resolves `isolated` |
-| Root Agent authority projection | PASS | `references/constitution.json` uses `../AGENTS.md` |
-| Agent package manifest size/hash validation | PASS | validator checks every listed file against size and SHA-256 |
-| Corpus filesystem/manifest exact-set validation | PASS | gate compares recursive content files in both directions |
-| Archived donor-object exclusion | PASS | gate rejects recorded donor `8094be40f6b5ae04a4052f5daa09abb1db3df76d` without requiring the archive |
-| Permanent dependency route compliance | PASS | exact external identities load from Corpus; internal `workspace:` dependencies are checked from workspace manifests |
-| Permanent source dependency compliance | PASS | relative imports are local, Node builtins are classified as builtins, workspace imports are internal, external imports are declared and Corpus-routed, and repository tooling is excluded from source |
-| Verification lifecycle split | PASS | `verify` is clone-safe; `verify:genesis` carries only Genesis acceptance constraints |
-| Neutral Genesis runtime entry point | PASS | `src/main.ts`; no `src/cli.ts` |
-| Heuristic architecture enforcement removed | PASS | `check-boundaries` contains no filename/path adapter markers; explicit architecture metadata remains a future Foundation concern |
-| Dependency package identity correction | PASS | standards, conventions, built-in mechanics, release tools, and unselected ecosystem packages are absent from `routes[].packages` |
+| Review item                                        | Status | Evidence                                                                                                                                                                                              |
+| -------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Official Nx TypeScript plugin/inferred TS7 targets | PASS   | `@nx/js/typescript`, `nx show project`, `@nx/js:typescript-sync`                                                                                                                                      |
+| Strict peer/engine policy                          | PASS   | `strictPeerDependencies: true`, `engineStrict: true` and dependency gate                                                                                                                              |
+| Explicit release-age policy                        | PASS   | `minimumReleaseAge: 1440` and version-specific exceptions                                                                                                                                             |
+| Default isolated linker                            | PASS   | No `nodeLinker` override; pnpm resolves `isolated`                                                                                                                                                    |
+| Root Agent authority projection                    | PASS   | `references/constitution.json` uses `../AGENTS.md`                                                                                                                                                    |
+| Agent package manifest size/hash validation        | PASS   | validator checks every listed file against size and SHA-256                                                                                                                                           |
+| Corpus filesystem/manifest exact-set validation    | PASS   | gate compares recursive content files in both directions                                                                                                                                              |
+| Archived donor-object exclusion                    | PASS   | gate rejects recorded donor `8094be40f6b5ae04a4052f5daa09abb1db3df76d` without requiring the archive                                                                                                  |
+| Permanent dependency route compliance              | PASS   | exact external identities load from Corpus; internal `workspace:` dependencies are checked from workspace manifests                                                                                   |
+| Permanent source dependency compliance             | PASS   | relative imports are local, Node builtins are classified as builtins, workspace imports are internal, external imports are declared and Corpus-routed, and repository tooling is excluded from source |
+| Verification lifecycle split                       | PASS   | `verify` is clone-safe; `verify:genesis` carries only Genesis acceptance constraints                                                                                                                  |
+| Neutral Genesis runtime entry point                | PASS   | `src/main.ts`; no `src/cli.ts`                                                                                                                                                                        |
+| Heuristic architecture enforcement removed         | PASS   | `check-boundaries` contains no filename/path adapter markers; explicit architecture metadata remains a future Foundation concern                                                                      |
+| Dependency package identity correction             | PASS   | standards, conventions, built-in mechanics, release tools, and unselected ecosystem packages are absent from `routes[].packages`                                                                      |
 
 The initial TDD red test was observed before the source entry point existed;
 the focused smoke test is now `PASS` after the entry point was added.

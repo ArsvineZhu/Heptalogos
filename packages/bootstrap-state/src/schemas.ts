@@ -1,6 +1,13 @@
+/**
+ * Defines BootstrapState-owned runtime schemas for strict envelope and journal
+ * validation while delegating validator mechanics to SchemaRuntime.
+ * @module schemas
+ */
+
 import { SHA256_HEX_PATTERN } from "@heptalogos/foundation-contracts";
 import { Type } from "@heptalogos/schema-runtime/typebox";
 
+/** Schema for the digest fields shared by BootstrapState durable envelopes. */
 export const bootstrapDigestSchema = Type.Object(
   {
     algorithm: Type.Literal("sha256"),

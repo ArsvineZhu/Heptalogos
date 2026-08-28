@@ -1,3 +1,9 @@
+/**
+ * Constructs the WorkQueue runtime service that composes admission, repository,
+ * Signal wakeups, and generation-pinned execution under one owner.
+ * @module service
+ */
+
 import {
   POSTGRES_INTEGER_MAX,
   parseContentDigest,
@@ -39,8 +45,10 @@ import {
 } from "./repository.js";
 import { workQueueProblem } from "./problems.js";
 
+/** Signal topic used to prompt reconciliation after a committed WorkItem insert. */
 export const WORK_AVAILABLE_TOPIC = createSignalTopic("work.available");
 
+/** Untrusted request normalized before a WorkItem enters durable storage. */
 export interface WorkCreationRequest {
   readonly target: WorkHandlerTarget;
   readonly payload: unknown;
@@ -53,15 +61,19 @@ export interface WorkCreationRequest {
   readonly configurationBinding?: WorkConfigurationBinding;
 }
 
+/** Reports whether creation inserted a new item or reused a deduplicated item. */
 export interface WorkCreationResult {
   readonly status: "CREATED" | "EXISTING";
   readonly item: WorkItem;
 }
 
+/** Resolves an exact generation-bound handler lease for admission and execution. */
 export interface WorkHandlerResolver {
+  /** Return the handler lease only when the target matches an active generation. */
   resolve(target: WorkHandlerTarget): RuntimeWorkHandlerLease | undefined;
 }
 
+/** Service dependencies, policy, and reporting hooks for durable work creation. */
 export interface WorkQueueServiceOptions {
   readonly persistence: PersistenceService;
   readonly repository?: WorkQueueRepository;
@@ -76,10 +88,13 @@ export interface WorkQueueServiceOptions {
   readonly scheduleReconciliation?: () => void | Promise<void>;
 }
 
+/** Admits and persists WorkItems through the owning persistence and lineage seams. */
 export interface WorkQueueService {
+  /** Validate, admit, deduplicate, persist, and signal one WorkItem request. */
   create(request: WorkCreationRequest): Promise<WorkCreationResult>;
 }
 
+/** Validate all positive bounded runtime controls before starting queue services. */
 export function validateWorkQueueRuntimeOptions(
   options: WorkQueueRuntimeOptions,
 ): void {
@@ -234,6 +249,7 @@ function scheduleFailure(sink: (error: unknown) => void): void {
   );
 }
 
+/** Create the WorkQueue service with explicit admission, handler, and signal owners. */
 export function createWorkQueueService(
   options: WorkQueueServiceOptions,
 ): WorkQueueService {

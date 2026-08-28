@@ -1,3 +1,9 @@
+/**
+ * Encodes supervisor lifecycle legality with XState while exposing only the
+ * Runtime Kernel transition semantics and failure outcomes.
+ * @module supervisor-lifecycle
+ */
+
 import { initialTransition, setup, transition, type SnapshotFrom } from "xstate";
 import { runtimeKernelProblem } from "./problems.js";
 
@@ -12,9 +18,12 @@ type SupervisorLifecycleEvent =
   | { readonly type: "BEGIN_CLOSE" }
   | { readonly type: "CLOSE_COMPLETED" };
 
+/** Provides validated lifecycle transition operations for Runtime supervision. */
 export interface SupervisorLifecycleTracker {
   readonly state: SupervisorLifecycleState;
+  /** Reports whether the supervisor can accept an event in its current state. */
   can(event: SupervisorLifecycleEvent): boolean;
+  /** Advances supervision lifecycle or raises an invalid-transition Problem. */
   send(event: SupervisorLifecycleEvent): void;
 }
 
@@ -75,6 +84,7 @@ function invalidTransition(
   );
 }
 
+/** Creates the XState-backed Runtime supervisor lifecycle tracker. */
 export function createSupervisorLifecycleTracker(): SupervisorLifecycleTracker {
   let snapshot = initialTransition(lifecycleMachine)[0];
 

@@ -1,3 +1,9 @@
+/**
+ * Records Bootstrap lifecycle stages in the owned journal so recovery can
+ * distinguish observed progress from authority that still must be reacquired.
+ * @module journal-stage
+ */
+
 import {
   BootstrapJournal,
   createBootstrapJournalCheckpoint,
@@ -19,6 +25,7 @@ interface BootstrapStageContext {
   readonly bootstrapActivityId: BootstrapActivityId;
 }
 
+/** Appends one Bootstrap lifecycle stage before the associated side effect. */
 export function recordBootstrapStage(
   context: BootstrapStageContext,
   stage: string,
@@ -51,6 +58,7 @@ function recordBootstrapMaintenanceCompleted(
   );
 }
 
+/** Records maintenance completion without masking the primary shutdown result. */
 export async function recordBootstrapMaintenanceCompletedBestEffort(
   context: BootstrapStageContext,
 ): Promise<void> {

@@ -1,3 +1,9 @@
+/**
+ * Reads machine-readable version Authorities and compares declared toolchain
+ * projections without making package manifests a second policy source.
+ * @module version-authority
+ */
+
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { readYamlFile } from "./yaml.mjs";
@@ -106,6 +112,7 @@ function exactVersionSatisfies(version, constraint) {
   );
 }
 
+/** Read package-manager and Node baseline values from the root manifest. */
 export function readPackageManagerBaseline({ root = process.cwd() } = {}) {
   const packageJson = readJson(root, "package.json");
   const packageManager = parsePackageManager(packageJson.packageManager);
@@ -116,6 +123,7 @@ export function readPackageManagerBaseline({ root = process.cwd() } = {}) {
   return { node, ...packageManager };
 }
 
+/** Read Node-version projection files that must mirror the manifest baseline. */
 export function readNodeVersionProjections({ root = process.cwd() } = {}) {
   const repositoryRoot = resolve(root);
   return Object.fromEntries(
@@ -129,6 +137,7 @@ export function readNodeVersionProjections({ root = process.cwd() } = {}) {
   );
 }
 
+/** Report drift between declared Node projections and the root baseline. */
 export function validateNodeVersionProjections({ root = process.cwd() } = {}) {
   const repositoryRoot = resolve(root);
   const { node } = readPackageManagerBaseline({ root: repositoryRoot });
@@ -141,6 +150,7 @@ export function validateNodeVersionProjections({ root = process.cwd() } = {}) {
     );
 }
 
+/** Read one scalar mapping section from the workspace YAML authority. */
 export function readWorkspaceSection({ root = process.cwd(), section } = {}) {
   const workspace = readYamlFile(join(resolve(root), "pnpm-workspace.yaml"));
   const value = workspace?.[section];
@@ -164,6 +174,7 @@ export function readWorkspaceSection({ root = process.cwd(), section } = {}) {
   );
 }
 
+/** Read the workspace Catalog through the shared YAML authority. */
 export function readWorkspaceCatalog({ root = process.cwd() } = {}) {
   return readWorkspaceSection({ root, section: "catalog" });
 }
@@ -182,6 +193,7 @@ function resolveCatalogVersion(specifier, name) {
   return separator > 0 ? target.slice(separator + 1) : target;
 }
 
+/** Resolve exact installed versions represented by Catalog entries. */
 export function resolveExpectedInstalledPackageVersions({
   root = process.cwd(),
   packageNames,
@@ -199,6 +211,7 @@ export function resolveExpectedInstalledPackageVersions({
   );
 }
 
+/** Validate dependency routing and installed-version projections against Authorities. */
 export function validateVersionAuthority({
   root = process.cwd(),
   dependencyRouting,
@@ -392,6 +405,7 @@ function packageExactVersionPattern(packageName) {
 const exactNodeVersionPattern =
   /\bnode(?:\.js)?(?:@|\s*(?:=|:)\s*|\s+)v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)(?![0-9A-Za-z.-])/giu;
 
+/** Ensure standing dependency documents do not become competing version Authorities. */
 export function validateStandingDependencyDocuments({
   root = process.cwd(),
   packageNames = [],

@@ -1,3 +1,9 @@
+/**
+ * Public injectable time contracts and system/fake constructors for Foundation
+ * services that need deterministic elapsed and wall-clock semantics.
+ * @packageDocumentation
+ */
+
 export {
   type ElapsedNanoseconds,
   type FakeTimeService,

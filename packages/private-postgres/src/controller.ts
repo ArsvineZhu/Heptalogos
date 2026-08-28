@@ -1,3 +1,9 @@
+/**
+ * Coordinates bounded private PostgreSQL controller operations and verifies
+ * installation identity before process lifecycle actions are admitted.
+ * @module controller
+ */
+
 import { realpath } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -49,6 +55,7 @@ import {
 } from "./lifecycle-process.js";
 import { assertPrivatePostgresPort } from "./port.js";
 
+/** Supplies inputs for private cluster initialization and control checks. */
 export interface InitializePrivatePostgresClusterOptions {
   readonly toolchain: PrivatePostgresToolchain;
   readonly placement: PrivatePostgresPlacement;
@@ -59,6 +66,7 @@ export interface InitializePrivatePostgresClusterOptions {
   readonly assertControlAuthority: PrivatePostgresControlGuard;
 }
 
+/** Supplies inputs for validating an existing private cluster. */
 export interface ValidateExistingPrivatePostgresClusterOptions {
   readonly toolchain: PrivatePostgresToolchain;
   readonly placement: PrivatePostgresPlacement;
@@ -66,6 +74,7 @@ export interface ValidateExistingPrivatePostgresClusterOptions {
   readonly timeoutMs: number;
 }
 
+/** Supplies inputs for starting a validated private cluster. */
 export interface StartPrivatePostgresClusterOptions {
   readonly toolchain: PrivatePostgresToolchain;
   readonly placement: PrivatePostgresPlacement;
@@ -108,6 +117,7 @@ function assertLifecycleOptions(options: PrivatePostgresLifecycleOptions): void 
   }
 }
 
+/** Creates the canonical private PostgreSQL initialization profile. */
 export function createPrivatePostgresInitializationProfile(
   port: number,
 ): PrivatePostgresInitializationProfile {
@@ -123,6 +133,7 @@ export function createPrivatePostgresInitializationProfile(
   });
 }
 
+/** Derives the content identity of the initialization profile. */
 export function createPrivatePostgresInitializationProfileRevision(
   port: number,
 ): PrivatePostgresInitializationProfileRevision {
@@ -168,6 +179,7 @@ async function assertFirstInitializationTarget(
   }
 }
 
+/** Initializes the private cluster and returns verified identity evidence. */
 export async function initializePrivatePostgresCluster(
   options: InitializePrivatePostgresClusterOptions,
 ): Promise<PrivatePostgresInitializationResult> {
@@ -233,6 +245,7 @@ export async function initializePrivatePostgresCluster(
   });
 }
 
+/** Validates existing cluster identity, profile, and layout invariants. */
 export async function validateExistingCluster(
   options: ValidateExistingPrivatePostgresClusterOptions,
 ): Promise<PrivatePostgresInitializationResult> {
@@ -573,6 +586,7 @@ async function stopProcess(options: StartPrivatePostgresClusterOptions): Promise
   );
 }
 
+/** Starts a validated private cluster and proves its ready disposition. */
 export async function startPrivatePostgresCluster(
   options: StartPrivatePostgresClusterOptions,
 ): Promise<import("./contracts.js").ReadyPrivatePostgresMechanics> {

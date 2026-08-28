@@ -1,3 +1,9 @@
+/**
+ * Public repository-tooling mechanics for process execution, discovery,
+ * documentation, dependency authority, and fail-closed governance checks.
+ * @module index
+ */
+
 export * from "./dependency-authority.mjs";
 export * from "./current-tree-hygiene.mjs";
 export * from "./process.mjs";

@@ -1,3 +1,9 @@
+/**
+ * Couples BootstrapState store access to an acquired Bootstrap lease so state
+ * reads and writes cannot outlive the authority that opened them.
+ * @module bootstrap-state-access
+ */
+
 import { join } from "node:path";
 import {
   BootstrapJournal,
@@ -12,11 +18,15 @@ import {
 } from "./bootstrap-ownership.js";
 import type { BootstrapPathProfile } from "./roots.js";
 
+/** Exposes BootstrapState operations bound to a live Bootstrap ownership lease. */
 export interface OwnedBootstrapStateStore {
+  /** Loads the current durable BootstrapState evidence. */
   load(): Promise<BootstrapStateLoadResult>;
+  /** Commits a new state body through the owned atomic store. */
   commit(candidate: BootstrapStateBody): Promise<BootstrapStateEnvelope>;
 }
 
+/** Groups the store and journal handles used by the Bootstrap prelude. */
 export interface BootstrapStateAccess {
   readonly journal: BootstrapJournal;
   readonly state: OwnedBootstrapStateStore;
@@ -24,6 +34,7 @@ export interface BootstrapStateAccess {
 
 const BOOTSTRAP_STATE_DIRECTORY = "bootstrap-state";
 
+/** Opens BootstrapState stores under the supplied ownership capability. */
 export function openBootstrapStateAccess(
   profile: BootstrapPathProfile,
   lease: BootstrapOwnershipLease,

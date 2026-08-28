@@ -118,23 +118,23 @@ never authorizes reclaim.
 
 以下 Q/C evidence 仍用于证明 adapter fidelity，但不重新打开 provider selection：
 
-| ID                         | Route                                       | Current use                                                                        |
-| -------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------- |
-| C-TOOLCHAIN-01             | Node24/pnpm11/Nx23/TS7+TS6 API lane         | canonical toolchain conformance                                                    |
-| C-SCHEMA-01                | canonicalize + typebox/Ajv                  | canonical JSON/schema conformance                                                  |
-| C-MGMT-01                  | Hey API                                     | generated ManagementClient fidelity                                                |
-| C-CLI-01                   | oclif                                       | reference CLI projection                                                           |
-| C-NET-01                   | Node/Undici                                 | NetworkAccess/provider transport fidelity                                          |
-| C-STORAGE-FS-01            | Node fs/path + write-file-atomic + Chokidar | workspace/file mechanics                                                           |
-| C-SESSION-01               | opaque token + PostgreSQL session state     | session/security projection                                                        |
-| C-CONFIG-TOML-01           | js-toml                                     | Foundation TOML codec                                                              |
-| Q-RUNTIME-01               | cordis                                      | current lifecycle/adapter property evidence; product integration remains           |
-| Q-ASYNC-01                 | DBOS Queue                                  | current dispatcher/revision property evidence; crash/product qualification remains |
-| Q-MSG-01                   | direct adapters                             | current anti-corruption/mapping property evidence; live protocol remains           |
-| Q-POLICY-01                | Cedar                                       | current fail-closed property evidence; selected binding is cedar-wasm              |
-| Q-SECRET-01                | SecretBackend contract                      | current contract property evidence; real OS providers remain                       |
-| Q-BOOT-01                  | @bybrave/proper-lockfile2                   | current process/stale/recovery property evidence; L3 remains                       |
-| bootstrap.process-liveness | Node `process.kill(pid, 0)` + `pidusage`    | process-generation boundary evidence; platform/L3 remains                          |
+| ID                         | Route                                                                                       | Current use                                                                        |
+| -------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| C-TOOLCHAIN-01             | Node24/pnpm11/Nx23/TS7+TS6 API lane + source docs lint/TypeDoc declaration-first projection | canonical toolchain conformance                                                    |
+| C-SCHEMA-01                | canonicalize + typebox/Ajv                                                                  | canonical JSON/schema conformance                                                  |
+| C-MGMT-01                  | Hey API                                                                                     | generated ManagementClient fidelity                                                |
+| C-CLI-01                   | oclif                                                                                       | reference CLI projection                                                           |
+| C-NET-01                   | Node/Undici                                                                                 | NetworkAccess/provider transport fidelity                                          |
+| C-STORAGE-FS-01            | Node fs/path + write-file-atomic + Chokidar                                                 | workspace/file mechanics                                                           |
+| C-SESSION-01               | opaque token + PostgreSQL session state                                                     | session/security projection                                                        |
+| C-CONFIG-TOML-01           | js-toml                                                                                     | Foundation TOML codec                                                              |
+| Q-RUNTIME-01               | cordis                                                                                      | current lifecycle/adapter property evidence; product integration remains           |
+| Q-ASYNC-01                 | DBOS Queue                                                                                  | current dispatcher/revision property evidence; crash/product qualification remains |
+| Q-MSG-01                   | direct adapters                                                                             | current anti-corruption/mapping property evidence; live protocol remains           |
+| Q-POLICY-01                | Cedar                                                                                       | current fail-closed property evidence; selected binding is cedar-wasm              |
+| Q-SECRET-01                | SecretBackend contract                                                                      | current contract property evidence; real OS providers remain                       |
+| Q-BOOT-01                  | @bybrave/proper-lockfile2                                                                   | current process/stale/recovery property evidence; L3 remains                       |
+| bootstrap.process-liveness | Node `process.kill(pid, 0)` + `pidusage`                                                    | process-generation boundary evidence; platform/L3 remains                          |
 
 Property ledger: `results/qualification-status.json`.
 

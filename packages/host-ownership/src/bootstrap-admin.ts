@@ -1,3 +1,9 @@
+/**
+ * Manages the short-lived PostgreSQL bootstrap-admin connection used to create
+ * ownership roles and schema before the Host lease exists.
+ * @module bootstrap-admin
+ */
+
 import { randomBytes } from "node:crypto";
 import { Client } from "pg";
 import {
@@ -24,11 +30,14 @@ interface BootstrapAdminQueryResult<Row> {
   readonly rows: readonly Row[];
 }
 
+/** Minimal privileged query surface used during Bootstrap provisioning. */
 export interface BootstrapAdminClient {
+  /** Executes one parameterized administrative query. */
   query<Row>(
     text: string,
     values?: readonly unknown[],
   ): Promise<BootstrapAdminQueryResult<Row>>;
+  /** Closes the short-lived Bootstrap-admin session. */
   end(): Promise<void>;
 }
 
@@ -40,17 +49,25 @@ interface BootstrapAdminConnectionOptions {
   readonly password: string;
 }
 
+/** Creates a short-lived Bootstrap-admin client for a loopback database. */
 export interface BootstrapAdminClientFactory {
+  /** Connects with the supplied Bootstrap-admin credentials. */
   connect(options: BootstrapAdminConnectionOptions): Promise<BootstrapAdminClient>;
 }
 
+/** Supplies each PostgreSQL role password only within a callback scope. */
 export interface BootstrapAdminPasswordProvider {
+  /** Uses the Bootstrap-admin password without returning it. */
   withBootstrapPassword<T>(use: (passwordUtf8: Uint8Array) => Promise<T>): Promise<T>;
+  /** Uses the Host-lease password without returning it. */
   withHostLeasePassword<T>(use: (passwordUtf8: Uint8Array) => Promise<T>): Promise<T>;
+  /** Uses the runtime password without returning it. */
   withRuntimePassword<T>(use: (passwordUtf8: Uint8Array) => Promise<T>): Promise<T>;
+  /** Uses the migration password without returning it. */
   withMigrationPassword<T>(use: (passwordUtf8: Uint8Array) => Promise<T>): Promise<T>;
 }
 
+/** Supplies authority and optional client seams for role/database provisioning. */
 export interface BootstrapAdminProvisioningOptions {
   readonly port: number;
   readonly passwordProvider: BootstrapAdminPasswordProvider;
@@ -59,6 +76,7 @@ export interface BootstrapAdminProvisioningOptions {
   readonly clientFactory?: unknown;
 }
 
+/** Reports the role and database resources created by provisioning. */
 export interface BootstrapAdminProvisioningResult {
   readonly ownerRoleCreated: boolean;
   readonly hostLeaseRoleCreated: boolean;
@@ -67,6 +85,7 @@ export interface BootstrapAdminProvisioningResult {
   readonly databaseCreated: boolean;
 }
 
+/** Supplies credentials and endpoint details for one admin session. */
 export interface BootstrapAdminSessionOptions {
   readonly port: number;
   readonly database: string;
@@ -74,6 +93,7 @@ export interface BootstrapAdminSessionOptions {
   readonly clientFactory?: unknown;
 }
 
+/** Supplies the advisory key and authority for a temporary Host reservation. */
 export interface BootstrapHostReservationOptions {
   readonly port: number;
   readonly advisoryKey: HostAdvisoryKey;
@@ -82,6 +102,7 @@ export interface BootstrapHostReservationOptions {
   readonly clientFactory?: unknown;
 }
 
+/** Supplies credentials and authority for read-only database inspection. */
 export interface BootstrapAdminInspectionOptions {
   readonly port: number;
   readonly passwordProvider: BootstrapAdminPasswordProvider;
@@ -89,6 +110,7 @@ export interface BootstrapAdminInspectionOptions {
   readonly clientFactory?: unknown;
 }
 
+/** Reports whether the canonical Host database exists and its identity. */
 export interface CanonicalHostDatabaseInspection {
   readonly exists: boolean;
   readonly database?: {
@@ -98,6 +120,7 @@ export interface CanonicalHostDatabaseInspection {
   };
 }
 
+/** Supplies the advisory key and endpoint for lease inspection. */
 export interface HostAdvisoryLeaseInspectionOptions {
   readonly port: number;
   readonly advisoryKey: HostAdvisoryKey;
@@ -105,11 +128,13 @@ export interface HostAdvisoryLeaseInspectionOptions {
   readonly clientFactory?: unknown;
 }
 
+/** Reports live Host lease backends matching the canonical advisory key. */
 export interface HostAdvisoryLeaseInspection {
   readonly live: boolean;
   readonly backendPids: readonly number[];
 }
 
+/** Captures the database roles, objects, ACLs, and fence row for qualification. */
 export interface HostOwnershipCanonicalSnapshot {
   readonly roles: readonly {
     readonly rolname: string;
@@ -146,13 +171,16 @@ export interface HostOwnershipCanonicalSnapshot {
   }[];
 }
 
+/** Supplies credentials and a client seam for canonical snapshot inspection. */
 export interface HostOwnershipCanonicalSnapshotOptions {
   readonly port: number;
   readonly passwordProvider: BootstrapAdminPasswordProvider;
   readonly clientFactory?: unknown;
 }
 
+/** Represents a temporary Bootstrap Host advisory reservation. */
 export interface BootstrapHostReservation {
+  /** Releases the reservation and closes its administrative connection. */
   release(): Promise<void>;
 }
 
@@ -468,6 +496,7 @@ const defaultClientFactory: BootstrapAdminClientFactory = {
   },
 };
 
+/** Runs one callback under a short-lived Bootstrap-admin client. */
 export async function withBootstrapAdminClient<T>(
   options: BootstrapAdminSessionOptions,
   use: (client: BootstrapAdminClient) => Promise<T>,
@@ -491,6 +520,7 @@ export async function withBootstrapAdminClient<T>(
   });
 }
 
+/** Attempts to reserve the Host advisory key for Bootstrap setup. */
 export async function acquireBootstrapHostReservation(
   options: BootstrapHostReservationOptions,
 ): Promise<BootstrapHostReservation | undefined> {
@@ -560,6 +590,7 @@ export async function acquireBootstrapHostReservation(
   });
 }
 
+/** Inspects the canonical Host database from the Bootstrap-admin connection. */
 export async function inspectCanonicalHostDatabase(
   options: BootstrapAdminInspectionOptions,
 ): Promise<CanonicalHostDatabaseInspection> {
@@ -598,6 +629,7 @@ function advisoryKeyMatches(
   );
 }
 
+/** Inspects whether the dedicated Host lease advisory lock is live. */
 export async function inspectHostAdvisoryLease(
   options: HostAdvisoryLeaseInspectionOptions,
 ): Promise<HostAdvisoryLeaseInspection> {
@@ -634,6 +666,7 @@ WHERE locks.locktype = 'advisory'
   );
 }
 
+/** Reads the canonical roles, schema, fence, and ACL projection for qualification. */
 export async function inspectHostOwnershipCanonicalSnapshot(
   options: HostOwnershipCanonicalSnapshotOptions,
 ): Promise<HostOwnershipCanonicalSnapshot> {
@@ -720,6 +753,7 @@ WHERE singleton = true
   };
 }
 
+/** Provisions the canonical Host roles, database, and ownership prerequisites. */
 export async function provisionHostOwnershipDatabase(
   options: BootstrapAdminProvisioningOptions,
 ): Promise<BootstrapAdminProvisioningResult> {

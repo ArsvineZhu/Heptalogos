@@ -19,8 +19,8 @@ document classes.
   records.
 - [`engineering/`](engineering/) owns repository procedures and operational
   knowledge.
-- [`reference/`](reference/) owns maintained terminology and other cross-cutting
-  reference material.
+- [`reference/`](reference/) owns maintained terminology and the generated
+  [API reference](reference/api/README.md).
 
 The Architecture Corpus remains a logical Authority concept. Its current
 documents live under [`architecture/`](architecture/), [`governance/`](governance/),

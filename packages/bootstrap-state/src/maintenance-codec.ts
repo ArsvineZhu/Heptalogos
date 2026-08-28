@@ -1,3 +1,9 @@
+/**
+ * Encodes and parses versioned maintenance journal records with canonical
+ * serialization so interrupted cleanup remains inspectable and typed.
+ * @module maintenance-codec
+ */
+
 import {
   canonicalizeJson,
   createUuidV7Id,
@@ -25,6 +31,7 @@ import type {
   MaintenanceOperationId,
 } from "./maintenance-model.js";
 
+/** Names the digest domain for durable maintenance journal envelopes. */
 export const MAINTENANCE_JOURNAL_DIGEST_DOMAIN =
   "heptalogos.maintenance-journal/v1" as const;
 
@@ -198,10 +205,12 @@ function semanticProblem(body: MaintenanceJournalBodyV1): string | undefined {
   return undefined;
 }
 
+/** Creates a new durable maintenance operation identity. */
 export function createMaintenanceOperationId(): MaintenanceOperationId {
   return createUuidV7Id("MaintenanceOperationId");
 }
 
+/** Converts an operation identity into the stable journal reference string. */
 export function maintenanceOperationRef(operationId: MaintenanceOperationId): string {
   if (parseUuidV7Id("MaintenanceOperationId", operationId) === undefined) {
     throw new TypeError("MaintenanceOperationId must be a valid UUIDv7");
@@ -209,6 +218,7 @@ export function maintenanceOperationRef(operationId: MaintenanceOperationId): st
   return `maintenance-journal/v1/${operationId}`;
 }
 
+/** Seals maintenance state with the canonical domain-separated digest. */
 export function sealMaintenanceJournal(
   state: MaintenanceJournalBodyV1,
 ): MaintenanceJournalEnvelopeV1 {
@@ -219,6 +229,7 @@ export function sealMaintenanceJournal(
   return { state, digest };
 }
 
+/** Parses, validates, and authenticates one maintenance journal envelope. */
 export function parseMaintenanceJournal(text: string): MaintenanceJournalParseResult {
   let parsed: unknown;
   try {
@@ -283,6 +294,7 @@ export function parseMaintenanceJournal(text: string): MaintenanceJournalParseRe
   return { ok: true, value: envelope };
 }
 
+/** Returns canonical JSON text for a validated maintenance journal envelope. */
 export function canonicalMaintenanceJournalText(
   envelope: MaintenanceJournalEnvelopeV1,
 ): string {

@@ -1,6 +1,13 @@
+/**
+ * Computes content digests from canonical JSON, keeping hash-domain input
+ * stable across persistence, evidence, and identity projections.
+ * @module digest
+ */
+
 import { createHash } from "node:crypto";
 import { canonicalizeJson, type CanonicalJsonValue } from "./canonical-json.js";
 
+/** Describes a SHA-256 digest together with its canonicalization domain. */
 export interface Sha256Digest {
   readonly algorithm: "sha256";
   readonly canonicalization: "RFC8785-JCS";
@@ -8,6 +15,7 @@ export interface Sha256Digest {
   readonly hex: string;
 }
 
+/** Hashes canonical JSON with an explicit domain to prevent cross-purpose reuse. */
 export function digestCanonicalJson(
   domain: string,
   payload: CanonicalJsonValue,

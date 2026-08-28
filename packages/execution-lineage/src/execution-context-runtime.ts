@@ -1,3 +1,9 @@
+/**
+ * Provides the process-local execution-context carrier while keeping context
+ * propagation separate from durable lineage storage and product scheduling.
+ * @module execution-context-runtime
+ */
+
 import { AsyncLocalStorage } from "node:async_hooks";
 import {
   createActivityId,
@@ -42,12 +48,16 @@ interface ExecutionStore {
   readonly otelContext: LineageTelemetryContext;
 }
 
+/** Internal Runtime Kernel runner contract bound to execution lineage. */
 export interface InternalRuntimeActivityRunner {
+  /** Returns the current process-local execution context. */
   current(): ExecutionContext | undefined;
+  /** Runs a callback under a new Runtime Activity. */
   runActivity<T>(
     request: ActivityRequest,
     operation: (context: ExecutionContext) => Promise<T>,
   ): Promise<T>;
+  /** Resumes a callback from a durable lineage reference. */
   runFromLineageContextRef<T>(
     ref: LineageContextRefV1,
     request: Omit<ActivityRequest, "causationActivityId">,
@@ -234,6 +244,7 @@ function createExecutionContext(
   return Object.freeze(context);
 }
 
+/** Creates the AsyncLocalStorage-backed execution-context runtime. */
 export function createExecutionContextRuntime(
   origin: HostExecutionOrigin,
   time: TimeService,
@@ -361,6 +372,7 @@ export function createExecutionContextRuntime(
   return runtime;
 }
 
+/** Binds a Runtime origin without widening the public lineage contract. */
 export function bindRuntimeOriginInternal(
   runtime: ExecutionContextRuntime,
   origin: RuntimeExecutionOrigin,

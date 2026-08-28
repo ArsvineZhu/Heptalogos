@@ -1,3 +1,9 @@
+/**
+ * Public shared Foundation vocabulary for canonical values, identities,
+ * lifecycle roots, Problems, and data governance without runtime side effects.
+ * @packageDocumentation
+ */
+
 export {
   canonicalizeJson,
   snapshotCanonicalJson,

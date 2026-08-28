@@ -1,3 +1,9 @@
+/**
+ * Verifies Heptalogos-specific package boundary and Authority leakage rules
+ * that generic dependency analyzers cannot express as semantic invariants.
+ * @module boundaries
+ */
+
 import { readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

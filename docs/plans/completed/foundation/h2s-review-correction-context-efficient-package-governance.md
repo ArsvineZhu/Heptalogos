@@ -14,11 +14,11 @@
 
 ---
 
-# 1. Locked decisions
+## 1. Locked decisions
 
 These are not questions for the execution Agent.
 
-## D1 — PR #24 returns to Draft before repository mutation
+### D1 — PR #24 returns to Draft before repository mutation
 
 Any correction commit invalidates the current Independent Review attempt.
 
@@ -39,7 +39,7 @@ Ready
 
 Do not run final CI before a new Independent Review PASS.
 
-## D2 — Do not create `AGENTS.md` in every package
+### D2 — Do not create `AGENTS.md` in every package
 
 Delete all current:
 
@@ -53,7 +53,7 @@ Reason: these files are automatically loaded by the Agent Harness when scoped in
 
 Package-specific durable knowledge moves into each package's `README.md`.
 
-## D3 — One `packages/AGENTS.md` is the only package-subtree Agent overlay
+### D3 — One `packages/AGENTS.md` is the only package-subtree Agent overlay
 
 Create:
 
@@ -75,6 +75,7 @@ It contains only:
 8. stop on Corpus conflict or unresolved package ownership/boundary questions.
 
 It must not contain:
+
 - Skill routing;
 - milestone/PR procedure;
 - compatibility-policy essay;
@@ -82,9 +83,10 @@ It must not contain:
 - package-by-package catalog;
 - copied root AGENTS prose.
 
-## D4 — `packages/README.md` explains the package subsystem; `packages/INDEX.md` is navigation
+### D4 — `packages/README.md` explains the package subsystem; `packages/INDEX.md` is navigation
 
 `packages/README.md` owns:
+
 - what the workspace package layer is;
 - how package ownership is interpreted;
 - how to read package README files;
@@ -93,6 +95,7 @@ It must not contain:
 - link to `packages/INDEX.md`.
 
 `packages/INDEX.md` owns:
+
 - compact package inventory;
 - semantic layer/category;
 - one-line responsibility;
@@ -100,7 +103,7 @@ It must not contain:
 
 Do not duplicate long package descriptions in both files.
 
-## D5 — Every package keeps one substantive `README.md`
+### D5 — Every package keeps one substantive `README.md`
 
 For every direct `packages/*` workspace package, require `README.md`.
 
@@ -110,12 +113,19 @@ Required headings:
 # @heptalogos/<package>
 
 ## Purpose
+
 ## Owns
+
 ## Does not own
+
 ## Public surface
+
 ## Dependencies and boundaries
+
 ## Change constraints
+
 ## Verification
+
 ## Architecture references
 ```
 
@@ -124,6 +134,7 @@ Required headings:
 Package README target: 250–800 words. No hard lower bound.
 
 Long-lived README content must be current-state semantic documentation:
+
 - no H2A/H2B/H2-S development chronology;
 - no PR numbers;
 - no commit IDs;
@@ -131,7 +142,7 @@ Long-lived README content must be current-state semantic documentation:
 - no "temporary until milestone X";
 - no duplicated global Agent rules.
 
-## D6 — Architecture references must be direct relative links
+### D6 — Architecture references must be direct relative links
 
 Do not write:
 
@@ -149,12 +160,13 @@ Write actual relative Markdown links, e.g.:
 Every package README must contain at least one valid relative link resolving inside `Architecture_Corpus/`.
 
 `packages/AGENTS.md` links only to:
+
 - `README.md`
 - `INDEX.md`
 
 It should not carry a large Corpus reading list.
 
-## D7 — Do not broaden this rule to unrelated trees
+### D7 — Do not broaden this rule to unrelated trees
 
 This corrective cycle changes the `packages/**` documentation topology only.
 
@@ -162,7 +174,7 @@ Do not redesign all `tools/**` Agent documentation in the same PR.
 
 `tools/repo-kit/AGENTS.md` may remain if currently useful. A future repository-wide auto-context policy can evaluate `tools/**` separately.
 
-## D8 — `check:repository` mechanically enforces the package topology
+### D8 — `check:repository` mechanically enforces the package topology
 
 Required:
 
@@ -179,7 +191,7 @@ The verifier must discover direct package workspace directories from actual pack
 
 Do not require nested `AGENTS.md`.
 
-## D9 — Root `AGENTS.md` stays small
+### D9 — Root `AGENTS.md` stays small
 
 Modify only enough to establish routing:
 
@@ -190,11 +202,12 @@ package README before editing.
 
 Do not re-add package catalog or Skill routing to root AGENTS.
 
-## D10 — Remaining Runtime review blockers stay in this corrective cycle
+### D10 — Remaining Runtime review blockers stay in this corrective cycle
 
 The package-documentation correction does not replace prior Independent Review findings.
 
 This cycle must also close:
+
 1. START action admitted before lineage retention but started after quiesce/terminal transition;
 2. public imperative Runtime topology mutation path;
 3. manual final-CI matrix resolving different candidate/base revisions;
@@ -203,7 +216,7 @@ This cycle must also close:
 6. self-certifying `completedAfterLastRepositoryMutation`;
 7. Corpus structural-gate test gaps.
 
-## D11 — Runtime topology mutation has one canonical entry
+### D11 — Runtime topology mutation has one canonical entry
 
 Final public semantic model:
 
@@ -221,7 +234,7 @@ Do not retain a public general-purpose imperative `executePlan()` path.
 
 No deprecated aliases or compatibility shims.
 
-## D12 — START admission gets a second check at actual start entry
+### D12 — START admission gets a second check at actual start entry
 
 There are two checks for different races:
 
@@ -229,6 +242,7 @@ There are two checks for different races:
 2. `start()` entry admission check after any asynchronous retained-lineage prelude.
 
 The second check occurs before:
+
 - Actual state mutation;
 - GenerationFence creation;
 - STARTING AbortController creation;
@@ -236,7 +250,7 @@ The second check occurs before:
 
 If supervisor no longer accepts START admission, `definition.activate()` is never entered.
 
-## D13 — Final CI uses one internally frozen machine snapshot
+### D13 — Final CI uses one internally frozen machine snapshot
 
 No user/Agent SHA fields return.
 
@@ -257,12 +271,13 @@ All matrix jobs test those same exact internal revisions.
 `revalidate-candidate` fails if live PR head, base revision, PR state, or branch identity changed before completion.
 
 These revision IDs are implementation details only:
+
 - not workflow inputs;
 - not PR body;
 - not plans;
 - not qualification fields.
 
-## D14 — Stable-base closure window
+### D14 — Stable-base closure window
 
 Remove the previous "base movement may preserve review if semantically unchanged" judgment.
 
@@ -280,6 +295,7 @@ operates as a short stable-base closure window.
 Other merges to `master` are operationally deferred during this window.
 
 If `master` nevertheless moves:
+
 - candidate becomes stale;
 - PR returns to Draft;
 - integrate/rebase as appropriate;
@@ -290,11 +306,12 @@ If `master` nevertheless moves:
 
 Do not ask an Agent to decide "semantic equivalence" of base movement.
 
-## D15 — Hygiene scans tracked current-tree files, not guessed directory names
+### D15 — Hygiene scans tracked current-tree files, not guessed directory names
 
 Production hygiene discovery uses Git tracked paths (`git ls-files`) under the scanner's explicit current/canonical roots.
 
 Therefore:
+
 - tracked `generated/**` is scanned;
 - tracked `caches/**` is scanned;
 - untracked build/cache output is naturally absent;
@@ -304,7 +321,7 @@ Unit tests do not need a real Git repository: expose/inject a tracked-path list 
 
 Do not add generic ignore/allowlist escape hatches.
 
-## D16 — Remove self-certifying qualification booleans
+### D16 — Remove self-certifying qualification booleans
 
 Delete current candidate fields such as:
 
@@ -313,6 +330,7 @@ completedAfterLastRepositoryMutation: true
 ```
 
 Do not replace them with:
+
 - `treeFrozen: true`
 - `candidateCurrent: true`
 - `reviewStillValid: true`
@@ -324,7 +342,7 @@ Qualification files record concrete evidence and status, not self-attestation of
 
 ---
 
-# 2. Desired documentation topology
+## 2. Desired documentation topology
 
 Final package tree:
 
@@ -365,9 +383,10 @@ No package child directory contains `AGENTS.md`.
 
 ---
 
-# 3. Task 0 — Return PR #24 to Draft and activate correction
+## 3. Task 0 — Return PR #24 to Draft and activate correction
 
 **Files:**
+
 - Create/update the current corrective plan under `docs/plans/active/foundation/`.
 - Modify: `docs/plans/README.md`
 - PR metadata only; no production files yet.
@@ -383,16 +402,17 @@ No package child directory contains `AGENTS.md`.
 
 ---
 
-# 4. Task 1 — Collapse package Agent guidance into one subtree overlay
+## 4. Task 1 — Collapse package Agent guidance into one subtree overlay
 
 **Files:**
+
 - Create: `packages/AGENTS.md`
 - Modify: `packages/README.md`
 - Create: `packages/INDEX.md`
 - Delete: every `packages/*/AGENTS.md`
 - Modify: root `AGENTS.md`
 
-## Required `packages/AGENTS.md`
+### Required `packages/AGENTS.md`
 
 Use this semantic content, keeping final prose under 220 words:
 
@@ -425,11 +445,12 @@ gates before claiming completion.
 
 Small wording edits are allowed only for grammar/accuracy, not semantics.
 
-## `packages/README.md`
+### `packages/README.md`
 
 Remove the statement that each package has its own `AGENTS.md`.
 
 Add:
+
 - purpose of package workspace;
 - difference among root AGENTS / packages AGENTS / package README;
 - how to navigate via INDEX;
@@ -439,7 +460,7 @@ Add:
 
 Do not duplicate the entire INDEX table.
 
-## `packages/INDEX.md`
+### `packages/INDEX.md`
 
 Create a compact table with direct README links for all discovered package workspaces. Required semantic roles:
 
@@ -459,20 +480,21 @@ Create a compact table with direct README links for all discovered package works
 
 Do not include milestone/status columns.
 
-## Delete local package AGENTS
+### Delete local package AGENTS
 
 Delete every current `packages/*/AGENTS.md`.
 
 Migrate only useful package-specific rules into the matching README's `Change constraints`.
 
 Discard repeated:
+
 - root/global rules;
 - Skill routing;
 - PR lifecycle prose;
 - compatibility-policy boilerplate;
 - generic verification prose already present under `Verification`.
 
-## Root AGENTS edit
+### Root AGENTS edit
 
 Add only:
 
@@ -489,7 +511,7 @@ If equivalent wording already exists, replace rather than duplicate.
 
 ---
 
-# 5. Task 2 — Upgrade every package README
+## 5. Task 2 — Upgrade every package README
 
 **Files:** modify all thirteen `packages/*/README.md`.
 
@@ -507,6 +529,7 @@ Architecture references
 ```
 
 For each deleted local AGENTS:
+
 1. read it;
 2. keep only package-specific executable constraints;
 3. move those to `Change constraints`;
@@ -515,6 +538,7 @@ For each deleted local AGENTS:
 Specific required constraints:
 
 ### `runtime-kernel`
+
 - Runtime topology Authority is Desired-state reconciliation.
 - no Bootstrap private types.
 - Cordis mechanics remain behind runtime-substrate.
@@ -523,24 +547,29 @@ Specific required constraints:
 
 If current README says `runtime contract compatibility registration/helpers`, disambiguate it as current contract matching/evaluation if that is the actual meaning; do not imply historical legacy support.
 
-### `runtime-substrate`
+#### `runtime-substrate`
+
 - Cordis objects/mechanics do not escape the adapter boundary.
 - substrate owns mechanics, not Desired/Actual, Service/Capability meaning, provider selection, or Generation Authority.
 
-### `bootstrap-runtime`
+#### `bootstrap-runtime`
+
 - production source does not depend on runtime-kernel/runtime-substrate/Cordis.
 - integration/test composition may use them.
 - Bootstrap/Host ownership order is not bypassed for cleanup convenience.
 
-### `canonical-schema`
+#### `canonical-schema`
+
 - one current PRE_PRODUCTION baseline.
 - development chronology does not justify append-only compatibility migrations.
 
-### `persistence`
+#### `persistence`
+
 - canonical normal mutation remains Host-fenced.
 - no second direct canonical mutation path.
 
-### `foundation-contracts`
+#### `foundation-contracts`
+
 - no database/process/filesystem/framework mechanics.
 - no higher-level runtime ownership.
 
@@ -552,13 +581,15 @@ Replace all plain Corpus labels with real relative Markdown links. Every README 
 
 ---
 
-# 6. Task 3 — Rewrite package documentation repository gate
+## 6. Task 3 — Rewrite package documentation repository gate
 
 **Files:**
+
 - Modify: `scripts/verify/repository.mjs`
 - Add/update tests under `tools/repo-kit/test/`.
 
 Required top-level package docs:
+
 - `packages/README.md`
 - `packages/INDEX.md`
 - `packages/AGENTS.md`
@@ -566,12 +597,14 @@ Required top-level package docs:
 Fail if `packages/AGENTS.md` exceeds 220 words.
 
 For each direct child of `packages/` containing `package.json`:
+
 - require `README.md`;
 - forbid `AGENTS.md`.
 
 Do not hard-code package names.
 
 Require README headings:
+
 - Purpose
 - Owns
 - Does not own
@@ -582,15 +615,18 @@ Require README headings:
 - Architecture references
 
 Parse relative Markdown links from `Architecture references`:
+
 - at least one must resolve inside `Architecture_Corpus/`;
 - all such local references must exist;
 - links escaping elsewhere do not count.
 
 INDEX coverage:
+
 - every discovered package appears exactly once as a link to its README;
 - INDEX must not list a nonexistent package.
 
 Tests:
+
 1. missing packages/AGENTS -> FAIL;
 2. missing packages/INDEX -> FAIL;
 3. package missing README -> FAIL;
@@ -605,6 +641,7 @@ Tests:
 If `repository.mjs` is too monolithic for clean tests, extract only package-doc validation into `tools/repo-kit/src/package-docs.mjs`; do not build a generic docs framework.
 
 **Verification:**
+
 ```bash
 pnpm nx run repo-kit:test
 pnpm check:repository
@@ -615,9 +652,10 @@ pnpm check:agents
 
 ---
 
-# 7. Task 4 — Close the delayed START admission race
+## 7. Task 4 — Close the delayed START admission race
 
 **Files:**
+
 - `packages/runtime-kernel/src/supervisor.ts`
 - `packages/runtime-kernel/src/supervisor.test.ts`
 
@@ -630,6 +668,7 @@ Retain the earlier reconciliation admission check and post-activation fencing.
 Add two regressions with a lifecycle-lineage test double that blocks before invoking the retained operation:
 
 A. delayed START + quiesce:
+
 - Desired requires START;
 - retained prelude blocks;
 - request quiesce;
@@ -638,6 +677,7 @@ A. delayed START + quiesce:
 - quiesce completes.
 
 B. delayed START + owner abort:
+
 - retained prelude blocks;
 - abort owner;
 - release;
@@ -647,6 +687,7 @@ B. delayed START + owner abort:
 Do not cancel Persistence/lineage retention itself.
 
 **Verification:**
+
 ```bash
 pnpm nx run runtime-kernel:test
 pnpm typecheck
@@ -657,9 +698,10 @@ pnpm tsc6
 
 ---
 
-# 8. Task 5 — Remove the second Runtime topology Authority path
+## 8. Task 5 — Remove the second Runtime topology Authority path
 
 **Files:**
+
 - `packages/runtime-kernel/src/reconciler.ts`
 - `packages/runtime-kernel/src/supervisor.ts`
 - `packages/runtime-kernel/src/index.ts` if required
@@ -685,6 +727,7 @@ Tests that directly execute arbitrary plans must be rewritten through Desired sn
 Pure plan computation may remain public if it cannot mutate Actual state.
 
 **Verification:**
+
 ```bash
 pnpm nx run runtime-kernel:test
 pnpm typecheck
@@ -696,20 +739,23 @@ pnpm check:boundaries
 
 ---
 
-# 9. Task 6 — Freeze one manual-CI candidate internally
+## 9. Task 6 — Freeze one manual-CI candidate internally
 
 **Files:**
+
 - `.github/workflows/verify.yml`
 - `scripts/verify/repository.mjs`
 - `docs/engineering/playbooks/repository/milestone-pr-closure.md`
 - applicable H-stage closure governance text.
 
 Workflow becomes:
+
 1. `resolve-candidate`
 2. three-OS `verify` matrix
 3. `revalidate-candidate`
 
 `resolve-candidate`:
+
 - require PR open;
 - require Ready for final-pre-merge;
 - require base branch master;
@@ -717,6 +763,7 @@ Workflow becomes:
 - internally resolve PR-head revision and current master revision once.
 
 Matrix:
+
 - all jobs consume exactly those internal revisions;
 - checkout resolved PR state;
 - fetch resolved base;
@@ -725,6 +772,7 @@ Matrix:
 - do not independently re-resolve live revisions.
 
 `revalidate-candidate`:
+
 - PR still open/Ready;
 - same head branch;
 - live PR revision equals internally resolved head;
@@ -732,6 +780,7 @@ Matrix:
 - otherwise FAIL.
 
 Concurrency:
+
 ```yaml
 group: verify-manual-pr-${{ inputs.pr_number }}
 cancel-in-progress: true
@@ -742,6 +791,7 @@ No SHA workflow inputs or docs/evidence fields.
 Keep third-party Action immutable commit pins.
 
 Stable-base governance:
+
 - Ready → Review → Final CI → Merge is a short stable-base window.
 - defer unrelated master merges during it.
 - if master moves, candidate returns Draft; integrate; rerun affected qualification; Ready; new review.
@@ -753,9 +803,10 @@ Stable-base governance:
 
 ---
 
-# 10. Task 7 — Make hygiene use tracked-file discovery
+## 10. Task 7 — Make hygiene use tracked-file discovery
 
 **Files:**
+
 - `tools/repo-kit/src/current-tree-hygiene.mjs`
 - `tools/repo-kit/test/current-tree-hygiene.test.mjs`
 - production wrapper if needed.
@@ -763,18 +814,21 @@ Stable-base governance:
 Separate tracked-file discovery from pure scanning.
 
 Production discovery:
+
 - `git ls-files -z`;
 - normalize repo-relative paths;
 - filter by explicit current/canonical scan roots;
 - pass list to scanner.
 
 Pure scanner:
+
 - scans only supplied tracked paths;
 - no broad `generated` or `caches` basename exclusion;
 - preserves explicit historical/evidence-root classification;
 - tracked symlink in canonical/executable surface remains FAIL.
 
 Tests:
+
 1. tracked `generated/**` residue -> FAIL;
 2. tracked `caches/**` residue -> FAIL;
 3. omitted/untracked equivalent path not scanned;
@@ -785,6 +839,7 @@ Tests:
 No `.hygieneignore`, allowlist, baseline, or suppression comments.
 
 **Verification:**
+
 ```bash
 pnpm nx run repo-kit:test
 pnpm check:hygiene
@@ -795,23 +850,27 @@ pnpm check:repository
 
 ---
 
-# 11. Task 8 — Remove self-certifying qualification state
+## 11. Task 8 — Remove self-certifying qualification state
 
 Modify current H2-S candidate sections in:
+
 - `Q-RUNTIME-01.md`
 - `Q-PERSISTENCE-01.md` where applicable
 - `qualification-status.json`
 - current corrective plan/roadmap projections if applicable.
 
 Delete:
+
 ```text
 completedAfterLastRepositoryMutation
 ```
+
 and equivalent self-certifying fields.
 
 Do not replace with `treeFrozen`, `candidateCurrent`, `reviewStillValid`, or similar.
 
 Keep concrete evidence:
+
 - PR number/state;
 - local verification status;
 - PostgreSQL environment/version;
@@ -828,24 +887,28 @@ Do not add commit IDs.
 
 ---
 
-# 12. Task 9 — Close Corpus structural-gate gaps
+## 12. Task 9 — Close Corpus structural-gate gaps
 
 **Files:**
+
 - `scripts/verify/corpus-structure.mjs`
 - relevant tests.
 
 Add a real unindexed normative-document test:
+
 - create an existing numbered document fixture;
 - omit it from INDEX;
 - expect index-coverage FAIL.
 
 Add Corpus-local containment:
+
 - local normative links must resolve to existing files;
 - resolved path must remain inside `Architecture_Corpus/`;
 - an existing `../docs/foo.md` target still fails as a normative local dependency.
 - external http/https informational links remain allowed.
 
 **Verification:**
+
 ```bash
 pnpm nx run repo-kit:test
 pnpm check:corpus
@@ -855,9 +918,10 @@ pnpm check:corpus
 
 ---
 
-# 13. Task 10 — Reconcile long-lived docs
+## 13. Task 10 — Reconcile long-lived docs
 
 After source changes, reread and update only affected:
+
 - `packages/runtime-kernel/README.md`
 - `packages/README.md`
 - `packages/INDEX.md`
@@ -867,6 +931,7 @@ After source changes, reread and update only affected:
 Do not mention PR #24, REQUEST_CHANGES, or H2-S chronology inside permanent package docs.
 
 Run:
+
 ```bash
 pnpm check:agents
 pnpm check:repository
@@ -877,11 +942,12 @@ pnpm format:check
 
 ---
 
-# 14. Task 11 — Fresh verification and PostgreSQL 18.6 qualification
+## 14. Task 11 — Fresh verification and PostgreSQL 18.6 qualification
 
 Because Runtime behavior/public API changes, prior candidate evidence is not sufficient.
 
 Focused first:
+
 ```bash
 pnpm nx run runtime-kernel:test
 pnpm nx run repo-kit:test
@@ -895,6 +961,7 @@ pnpm check:agents
 Run affected Bootstrap Runtime tests, including PG6.
 
 Run complete fresh H2-S PostgreSQL 18.6 integration:
+
 1. normal Host + Runtime composition;
 2. authentic Host close/loss terminality;
 3. planned STOP via Runtime quiescence;
@@ -903,6 +970,7 @@ Run complete fresh H2-S PostgreSQL 18.6 integration:
 6. shutdown-keep-Postgres then Bootstrap-owned reacquisition/cleanup.
 
 Then run:
+
 ```bash
 pnpm verify
 ```
@@ -911,7 +979,7 @@ No skipped required PG scenario may be reported PASS.
 
 ---
 
-# 15. Task 12 — Final evidence and candidate readiness
+## 15. Task 12 — Final evidence and candidate readiness
 
 Update current evidence semantically:
 
@@ -928,6 +996,7 @@ merge: NOT_RUN
 No base/head SHA. No self-certifying freshness boolean.
 
 After evidence-only repository mutation run:
+
 ```bash
 pnpm check:corpus
 pnpm check:repository
@@ -943,11 +1012,12 @@ Final CI remains NOT_RUN.
 
 ---
 
-# 16. Task 13 — New Independent Review
+## 16. Task 13 — New Independent Review
 
 Review current live Ready PR #24.
 
 Required review surfaces:
+
 - Runtime delayed-start race;
 - Desired-state-only topology mutation;
 - package Agent-context topology;
@@ -958,6 +1028,7 @@ Required review surfaces:
 - absence of undeclared PRE_PRODUCTION legacy compatibility.
 
 Result:
+
 - REQUEST_CHANGES -> Draft before edits.
 - PASS -> no further repository mutation; proceed to final CI.
 
@@ -965,7 +1036,7 @@ Do not require operator-maintained SHA tuples.
 
 ---
 
-# 17. Task 14 — Final CI and merge
+## 17. Task 14 — Final CI and merge
 
 After Independent Review PASS:
 
@@ -974,6 +1045,7 @@ gh workflow run verify.yml   --ref dev/h2-stabilization   -f pr_number=24   -f r
 ```
 
 Require:
+
 - resolve-candidate PASS;
 - Ubuntu PASS;
 - macOS PASS;
@@ -988,11 +1060,12 @@ If all remain current, squash merge PR #24.
 
 ---
 
-# 18. Task 15 — Post-merge reconciliation
+## 18. Task 15 — Post-merge reconciliation
 
 Create the small docs/evidence-only reconciliation PR.
 
 Record:
+
 - Independent Review PASS;
 - final cross-platform CI PASS;
 - PR #24 merged;
@@ -1002,6 +1075,7 @@ Record:
 - remaining product qualification residuals honestly.
 
 Do not add:
+
 - merge SHA;
 - exact pair;
 - checksum manifest;
@@ -1011,15 +1085,17 @@ Only after reconciliation merges may H3 become ACTIVE.
 
 ---
 
-# 19. Permanent invariants after correction
+## 19. Permanent invariants after correction
 
-## Agent context
+### Agent context
+
 ```text
 root AGENTS.md
 + packages/AGENTS.md under packages/**
 ```
 
 Package-specific knowledge:
+
 ```text
 target package README
 + packages/INDEX.md for cross-package navigation
@@ -1027,23 +1103,29 @@ target package README
 ```
 
 Forbidden:
+
 ```text
 packages/*/AGENTS.md
 ```
 
-## Runtime
+### Runtime
+
 ```text
 DesiredRuntimeSnapshot → reconcile → Actual
 ```
+
 No public arbitrary execution-plan mutation.
 
-## Review
+### Review
+
 ```text
 live PR lifecycle + machine-internal revision binding
 ```
+
 No human-maintained SHA tuple.
 
-## Compatibility
+### Compatibility
+
 ```text
 PRE_PRODUCTION + no declared external compatibility obligation
 → no historical compatibility mechanism
@@ -1051,9 +1133,10 @@ PRE_PRODUCTION + no declared external compatibility obligation
 
 ---
 
-# 20. Stop conditions
+## 20. Stop conditions
 
 Stop with `PLAN_GAP` if correction requires:
+
 - new production package;
 - new Runtime subsystem;
 - Bootstrap production dependency on runtime-kernel/runtime-substrate/Cordis;
@@ -1070,7 +1153,7 @@ Stop with `PLAN_GAP` if correction requires:
 
 ---
 
-# 21. Completion checklist
+## 21. Completion checklist
 
 PR #24 may request Independent Review again only when:
 

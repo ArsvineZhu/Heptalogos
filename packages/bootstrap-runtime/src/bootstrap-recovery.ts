@@ -1,3 +1,9 @@
+/**
+ * Inspects interrupted Bootstrap ownership and maintenance state and projects
+ * it into recovery dispositions without silently performing recovery work.
+ * @module bootstrap-recovery
+ */
+
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -56,6 +62,7 @@ const BOOTSTRAP_STATE_DIRECTORY = "bootstrap-state";
 const DEFAULT_BOOTSTRAP_HEARTBEAT_MS = 1_000;
 const RECOVERY_ROOTS = ["INSTANCE"] as const;
 
+/** Classifies whether current Bootstrap evidence requires recovery or blocks it. */
 export type BootstrapRecoveryDisposition =
   | "NO_RECOVERY_REQUIRED"
   | "ACTIVE_BOOTSTRAP_OWNER"
@@ -63,6 +70,7 @@ export type BootstrapRecoveryDisposition =
   | "INCOMPLETE_MAINTENANCE"
   | "BLOCKED";
 
+/** Collects read-only lock, witness, state, and maintenance recovery evidence. */
 export interface BootstrapRecoveryInspection {
   readonly anchorRoot: string;
   readonly installationId: InstallationId;
@@ -188,6 +196,7 @@ function classify(
   return "ABANDONED_OWNER_ELIGIBLE";
 }
 
+/** Inspects current Bootstrap recovery evidence without mutating ownership. */
 export async function inspectBootstrapRecovery(
   anchorRoot: string,
 ): Promise<BootstrapRecoveryInspection> {
@@ -297,6 +306,7 @@ export async function inspectBootstrapRecovery(
   };
 }
 
+/** Reclaims an abandoned owner only after the local installation owner is proved. */
 export async function reclaimAbandonedBootstrapOwnership(
   anchorRoot: string,
   principal: LocalInstallationOwnerRecoveryPrincipal,
@@ -307,6 +317,7 @@ export async function reclaimAbandonedBootstrapOwnership(
   ]);
 }
 
+/** Acquires and rechecks a recovery lease for an explicitly allowed disposition. */
 export async function acquireBootstrapRecoveryLease(
   anchorRoot: string,
   principal: LocalInstallationOwnerRecoveryPrincipal,
@@ -355,6 +366,7 @@ export async function acquireBootstrapRecoveryLease(
   }
 }
 
+/** Supplies the authority and handoff inputs for abandoned Bootstrap continuation. */
 export interface AbandonedBootstrapContinuationOptions {
   readonly anchorRoot: string;
   readonly principal: LocalInstallationOwnerRecoveryPrincipal;
@@ -363,6 +375,7 @@ export interface AbandonedBootstrapContinuationOptions {
   readonly handoff: HostOwnershipHandoffOptions;
 }
 
+/** Completes an eligible abandoned Bootstrap flow and hands it to Host ownership. */
 export async function recoverAbandonedBootstrapToHost(
   options: AbandonedBootstrapContinuationOptions,
 ): Promise<BootstrapManagedHostContext> {

@@ -1,3 +1,9 @@
+/**
+ * Prepares private PostgreSQL for an owned Bootstrap prelude and records the
+ * handoff-ready session without moving process-control authority into Runtime.
+ * @module private-postgres-bootstrap
+ */
+
 import { join } from "node:path";
 import {
   BootstrapJournal,
@@ -41,6 +47,7 @@ import type { BootstrapPathProfile } from "./roots.js";
 import { problemCodeOf } from "./problem-code.js";
 import { recordBootstrapStage } from "./journal-stage.js";
 
+/** Supplies toolchain, lifecycle, and secret-provider inputs for preparation. */
 export interface PreparePrivatePostgresOptions {
   readonly toolchainBinDirectory: string;
   readonly initialPort?: number;
@@ -48,6 +55,7 @@ export interface PreparePrivatePostgresOptions {
   readonly keyProvider: BootstrapKeyProvider;
 }
 
+/** Represents a private PostgreSQL session ready for Host handoff or control. */
 export interface ReadyPrivatePostgres {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
@@ -56,10 +64,13 @@ export interface ReadyPrivatePostgres {
   readonly clusterSystemIdentifier: string;
   readonly toolchainVersion: "18.6";
   readonly startupDisposition: PrivatePostgresStartupDisposition;
+  /** Stops the session only while the owning Bootstrap lease remains valid. */
   stop(): Promise<void>;
+  /** Restarts the session only while the owning Bootstrap lease remains valid. */
   restart(): Promise<void>;
 }
 
+/** Captures the validated private PostgreSQL identity needed for maintenance. */
 export interface PrivatePostgresMaintenanceDescriptor {
   readonly toolchain: PrivatePostgresToolchain;
   readonly placement: PrivatePostgresPlacement;
@@ -85,21 +96,33 @@ type PrivatePostgresSessionState =
   | "HANDED_OFF"
   | "YIELDED_TO_EXISTING_HOST";
 
+/** Opaque token binding session transitions to one preparation attempt. */
 export interface PrivatePostgresSessionToken {
   readonly __privatePostgresSessionToken: unique symbol;
 }
 
+/** Tracks private PostgreSQL transition state and release eligibility. */
 export interface PrivatePostgresSessionTracker {
   readonly state: PrivatePostgresSessionState;
+  /** Starts a new preparation transition from a quiescent session. */
   beginPreparation(): PrivatePostgresSessionToken;
+  /** Rejects a token from another or already-finished session transition. */
   assertCurrent(token: PrivatePostgresSessionToken): void;
+  /** Enters a stop transition from a controllable session state. */
   beginStop(token: PrivatePostgresSessionToken): void;
+  /** Enters a restart transition from a controllable session state. */
   beginRestart(token: PrivatePostgresSessionToken): void;
+  /** Marks a transition as having observed PostgreSQL ready. */
   markReady(token: PrivatePostgresSessionToken): void;
+  /** Marks a transition as quiescent and safe for ownership release. */
   markQuiescent(token: PrivatePostgresSessionToken): void;
+  /** Marks the session uncertain after a side effect could not be verified. */
   markUncertain(token: PrivatePostgresSessionToken): void;
+  /** Consumes the session token after successful forward handoff. */
   markHandedOff(token: PrivatePostgresSessionToken): void;
+  /** Consumes the session token after yielding to an existing Host. */
   markYieldedToExistingHost(token: PrivatePostgresSessionToken): void;
+  /** Throws unless the session is safe to release with Bootstrap authority. */
   assertReleaseAllowed(): void;
 }
 
@@ -199,6 +222,7 @@ function invalidReadyHandleProblem(): ProblemError {
   );
 }
 
+/** Verifies a ready handle and returns its current session token. */
 export function assertReadyPrivatePostgresSession(
   ready: ReadyPrivatePostgres,
   session: PrivatePostgresSessionTracker,
@@ -209,6 +233,7 @@ export function assertReadyPrivatePostgresSession(
   return token;
 }
 
+/** Returns the maintenance descriptor issued for a ready handle. */
 export function getPrivatePostgresMaintenanceDescriptor(
   ready: ReadyPrivatePostgres,
 ): PrivatePostgresMaintenanceDescriptor {
@@ -217,6 +242,7 @@ export function getPrivatePostgresMaintenanceDescriptor(
   return descriptor;
 }
 
+/** Creates the state tracker that fences private PostgreSQL transitions. */
 export function createPrivatePostgresSessionTracker(): PrivatePostgresSessionTracker {
   let state: PrivatePostgresSessionState = "QUIESCENT";
   let currentToken: PrivatePostgresSessionToken | undefined;
@@ -297,6 +323,7 @@ interface OwnershipScopedPrivatePostgresLifecycleContext {
   readonly assertOwnership: () => void;
 }
 
+/** Binds private PostgreSQL stop/restart mechanics to ownership and session state. */
 export function createOwnershipScopedPrivatePostgresLifecycle(
   context: OwnershipScopedPrivatePostgresLifecycleContext,
   mechanics: ReadyPrivatePostgresMechanics,
@@ -512,6 +539,7 @@ function assertOwnership(context: OwnedPrivatePostgresContext): void {
   );
 }
 
+/** Prepares private PostgreSQL under an owned Bootstrap prelude for Host handoff. */
 export async function preparePrivatePostgresForOwnedPrelude(
   context: OwnedPrivatePostgresContext,
   options: PreparePrivatePostgresOptions,

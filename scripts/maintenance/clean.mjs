@@ -1,3 +1,9 @@
+/**
+ * Runs the repository-owned fail-closed cleanup plan for generated build and
+ * cache residue without deleting unknown material.
+ * @module clean
+ */
+
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cleanRepository } from "@heptalogos/repo-kit";

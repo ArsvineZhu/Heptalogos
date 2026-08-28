@@ -1,3 +1,9 @@
+/**
+ * Public Host ownership contracts and PostgreSQL fence operations; raw clients,
+ * statechart objects, and provisioning mechanics remain adapter-internal.
+ * @packageDocumentation
+ */
+
 export { deriveHostAdvisoryKey, type HostAdvisoryKey } from "./advisory-key.js";
 export { encodePostgresScramSha256Verifier } from "./scram-verifier.js";
 export {

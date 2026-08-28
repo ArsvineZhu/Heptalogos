@@ -1,3 +1,9 @@
+/**
+ * Appends and reads Bootstrap lifecycle journal checkpoints so recovery can
+ * replay observed progress without treating history as current authority.
+ * @module journal
+ */
+
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { compileSchema } from "@heptalogos/schema-runtime";
@@ -24,9 +30,12 @@ import type { BootstrapRuntimeGenerationId, ProductGenerationId } from "./model.
 import { writeAtomicPublishedFile } from "./atomic-file.js";
 import { KeyedAsyncSerializer } from "./keyed-serialization.js";
 
+/** Gives journal entries the same Activity identity semantics as Foundation. */
 export type BootstrapActivityId = ActivityId;
+/** Enumerates lifecycle checkpoint outcomes recorded for recovery inspection. */
 export type BootstrapStageOutcome = "STARTED" | "SUCCEEDED" | "FAILED";
 
+/** Versioned checkpoint written before and after a Bootstrap lifecycle stage. */
 export interface BootstrapJournalCheckpointV1 {
   readonly schemaVersion: 1;
   readonly bootId: BootId;
@@ -41,12 +50,14 @@ export interface BootstrapJournalCheckpointV1 {
   readonly problemCode?: string;
 }
 
+/** Creates a schema-versioned Bootstrap journal checkpoint. */
 export function createBootstrapJournalCheckpoint(
   input: Omit<BootstrapJournalCheckpointV1, "schemaVersion">,
 ): BootstrapJournalCheckpointV1 {
   return { schemaVersion: 1, ...input };
 }
 
+/** Current checkpoint shape used by Bootstrap journal consumers. */
 export type BootstrapJournalCheckpoint = BootstrapJournalCheckpointV1;
 
 const checkpointSchemaV1 = Type.Object(
@@ -104,14 +115,17 @@ function journalText(entries: readonly BootstrapJournalCheckpoint[]): string {
   return canonicalizeJson(entries as unknown as CanonicalJsonValue);
 }
 
+/** Appends and reads per-BootId Bootstrap journal checkpoints atomically. */
 export class BootstrapJournal {
   private readonly journalDirectory: string;
   private readonly checkpointSerializer = new KeyedAsyncSerializer();
 
+  /** Binds journal files to one Bootstrap lifecycle root. */
   constructor(private readonly directory: string) {
     this.journalDirectory = join(directory, "bootstrap-journal");
   }
 
+  /** Appends a validated checkpoint while serializing same-boot writes. */
   async checkpoint(entry: BootstrapJournalCheckpointV1): Promise<void> {
     const bootId = requireBootId(entry.bootId);
     this.assertValidIdentities(entry);
@@ -125,6 +139,7 @@ export class BootstrapJournal {
     });
   }
 
+  /** Reads the validated checkpoint history for one BootId. */
   async read(bootId: BootId): Promise<readonly BootstrapJournalCheckpoint[]> {
     return this.readEntries(requireBootId(bootId));
   }

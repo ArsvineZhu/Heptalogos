@@ -52,14 +52,14 @@ those evidence states remain unchanged.
 
 ## Evidence disposition
 
-| Claim | Status | Evidence boundary |
-|---|---|---|
-| H3A-1 implementation is present | `PASS` | Current `master` contains the merged H3A-1 implementation; the existing Q-ASYNC-01 property record remains the qualification source. |
-| H3A-1 merge occurred | `PASS` | PR #28 is observed as merged into current `master`. |
-| Local v1 revert/re-land branch is abandoned | `PASS` | The local branch was deleted after confirming it was unmerged, local-only, and tree-equivalent to `master`. |
-| Remote `master` remained unchanged | `PASS` | Local `master`, `origin/master`, and the live remote `master` reference matched during the recovery check. |
-| External Independent Review | `NOT_RUN` | No current repository record supplies an exact out-of-band PASS; no GitHub review object is treated as this gate. |
-| Final manual CI for the merged baseline | `NOT_RUN` | The current H3A qualification record preserves this as unrun. |
+| Claim                                       | Status    | Evidence boundary                                                                                                                    |
+| ------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| H3A-1 implementation is present             | `PASS`    | Current `master` contains the merged H3A-1 implementation; the existing Q-ASYNC-01 property record remains the qualification source. |
+| H3A-1 merge occurred                        | `PASS`    | PR #28 is observed as merged into current `master`.                                                                                  |
+| Local v1 revert/re-land branch is abandoned | `PASS`    | The local branch was deleted after confirming it was unmerged, local-only, and tree-equivalent to `master`.                          |
+| Remote `master` remained unchanged          | `PASS`    | Local `master`, `origin/master`, and the live remote `master` reference matched during the recovery check.                           |
+| External Independent Review                 | `NOT_RUN` | No current repository record supplies an exact out-of-band PASS; no GitHub review object is treated as this gate.                    |
+| Final manual CI for the merged baseline     | `NOT_RUN` | The current H3A qualification record preserves this as unrun.                                                                        |
 
 ## Scope and handoff
 

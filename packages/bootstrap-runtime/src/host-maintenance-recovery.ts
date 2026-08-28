@@ -1,3 +1,9 @@
+/**
+ * Reconciles interrupted Host maintenance obligations after authority is
+ * reacquired, preserving the ordering between recovery inspection and cleanup.
+ * @module host-maintenance-recovery
+ */
+
 import {
   BootstrapJournal,
   maintenanceOperationRef,
@@ -86,6 +92,7 @@ interface HostOwnershipRecoveryIds {
   readonly instanceId: HostMaintenanceRecoveryOptions["privatePostgres"]["expectedIdentity"]["instanceId"];
 }
 
+/** Supplies owner, identity, timing, and private-PostgreSQL inputs for recovery. */
 export interface HostMaintenanceRecoveryOptions {
   readonly anchorRoot: string;
   readonly principal: import("./local-installation-owner.js").LocalInstallationOwnerRecoveryPrincipal;
@@ -687,6 +694,7 @@ function isUncertainProblem(error: unknown): boolean {
   );
 }
 
+/** Recovers an interrupted maintenance window under reacquired authority. */
 export async function recoverInterruptedHostMaintenance(
   options: HostMaintenanceRecoveryOptions,
 ): Promise<PrivatePostgresMaintenanceResult> {

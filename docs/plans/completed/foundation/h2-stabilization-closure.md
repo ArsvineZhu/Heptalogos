@@ -15,16 +15,16 @@ draft_pr: 24 (DRAFT)
 candidate_state: READY_FOR_REVIEW
 ```
 
-## S4 compatibility audit record (2026-08-26)
+### S4 compatibility audit record (2026-08-26)
 
-| finding | current purpose | declared obligation | action | evidence |
-| --- | --- | --- | --- | --- |
-| `fixtures/ts6-api-lane.ts` exposes compiler compatibility APIs | Isolated TS6 compiler-API qualification lane | none; adopted toolchain policy | `KEEP_CURRENT_SEMANTIC` | `pnpm tsc6` and dependency/toolchain gates |
-| `ContractCompatibilityRegistry` and Service/Capability contract matching | Current provider/consumer contract selection | none; this is present runtime semantics, not historical product compatibility | `KEEP_CURRENT_SEMANTIC` | Runtime Kernel unit tests and Corpus S13 |
-| `BootstrapStateStore` / `MaintenanceJournalStore` retain a previous validated revision | Current recovery evidence and authority fencing after torn/corrupt writes | none; previous revision is not a compatibility reader | `KEEP_CURRENT_SEMANTIC` | Bootstrap State and maintenance unit tests; recovered state cannot authorize mutation |
-| alias/unsupported-input rejection in bootstrap and installation boundaries | Current strict security/schema validation | none | `KEEP_CURRENT_SEMANTIC` | Current rejection tests; no alias reader is retained |
-| `schemaVersion: 1` codecs and explicit unsupported-version rejection | One current canonical V1 shape | none | `KEEP_CURRENT_SEMANTIC` | Canonical codec tests and one migration baseline |
-| milestone-named identities, historical-shaped test wording, and old internal names | Development chronology only | none | `REMOVED` / `REFRAMED` | `pnpm check:hygiene` PASS; current-surface residue search |
+| finding                                                                                | current purpose                                                           | declared obligation                                                           | action                  | evidence                                                                              |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------- |
+| `fixtures/ts6-api-lane.ts` exposes compiler compatibility APIs                         | Isolated TS6 compiler-API qualification lane                              | none; adopted toolchain policy                                                | `KEEP_CURRENT_SEMANTIC` | `pnpm tsc6` and dependency/toolchain gates                                            |
+| `ContractCompatibilityRegistry` and Service/Capability contract matching               | Current provider/consumer contract selection                              | none; this is present runtime semantics, not historical product compatibility | `KEEP_CURRENT_SEMANTIC` | Runtime Kernel unit tests and Corpus S13                                              |
+| `BootstrapStateStore` / `MaintenanceJournalStore` retain a previous validated revision | Current recovery evidence and authority fencing after torn/corrupt writes | none; previous revision is not a compatibility reader                         | `KEEP_CURRENT_SEMANTIC` | Bootstrap State and maintenance unit tests; recovered state cannot authorize mutation |
+| alias/unsupported-input rejection in bootstrap and installation boundaries             | Current strict security/schema validation                                 | none                                                                          | `KEEP_CURRENT_SEMANTIC` | Current rejection tests; no alias reader is retained                                  |
+| `schemaVersion: 1` codecs and explicit unsupported-version rejection                   | One current canonical V1 shape                                            | none                                                                          | `KEEP_CURRENT_SEMANTIC` | Canonical codec tests and one migration baseline                                      |
+| milestone-named identities, historical-shaped test wording, and old internal names     | Development chronology only                                               | none                                                                          | `REMOVED` / `REFRAMED`  | `pnpm check:hygiene` PASS; current-surface residue search                             |
 
 The compatibility register is `PRE_PRODUCTION` with `obligations: []`. No
 finding above establishes a product compatibility obligation. A future finding
@@ -43,9 +43,9 @@ that implies a real external consumer or retained production state is a
 
 ---
 
-# 0. Executive decision record
+## 0. Executive decision record
 
-## 0.1 Current observed facts
+### 0.1 Current observed facts
 
 The plan is based on the following repository facts at the observed baseline:
 
@@ -66,7 +66,7 @@ The plan is based on the following repository facts at the observed baseline:
 9. Current Bootstrap/Runtime integration has no production dependency from `bootstrap-runtime` to `runtime-kernel`; H2B integration composes them through test/dev dependencies. This boundary remains correct and must be mechanically protected.
 10. Current `MicroSystemSupervisor` lacks both a root-owner lifecycle signal and reversible whole-runtime quiescence. Current canonical PostgreSQL test support stops a managed Host using an inert quiescence lease; therefore the Host maintenance contract and Runtime lifecycle are not yet jointly proven.
 
-## 0.2 Why the previous plan is insufficient
+### 0.2 Why the previous plan is insufficient
 
 The superseded plan correctly identified the Host Authority ↔ Runtime lifecycle seam, but it under-scoped H2-S in three ways:
 
@@ -80,7 +80,7 @@ It also proposed a new H2-S integration file named `h2s-runtime-lifecycle.integr
 
 This revised plan corrects those design errors.
 
-## 0.3 Locked decisions
+### 0.3 Locked decisions
 
 The following are not executor choices:
 
@@ -107,7 +107,7 @@ D18 No new package, dependency adoption, H3 durable-work/effect subsystem, or co
 
 ---
 
-# 1. Hn-S semantic model and mandatory closure invariants
+## 1. Hn-S semantic model and mandatory closure invariants
 
 Hn-S exists to answer:
 
@@ -139,11 +139,11 @@ For H2, Sweeps A-C are now explicit A-class work, not cosmetic B-class debt.
 
 ---
 
-# 2. Current-tree surface classification
+## 2. Current-tree surface classification
 
 The executor must use this classification exactly.
 
-## 2.1 Canonical / executable current surfaces
+### 2.1 Canonical / executable current surfaces
 
 These describe what the repository **is now** and must be history-neutral:
 
@@ -164,7 +164,7 @@ current comments that explain semantics
 
 They must not use milestone, sub-milestone, PR, Session, corrective-cycle, migration-history, or temporary-plan identity as the semantic name of a long-lived asset.
 
-## 2.2 Provenance / historical surfaces
+### 2.2 Provenance / historical surfaces
 
 These may retain exact historical identifiers because that is their purpose:
 
@@ -178,11 +178,11 @@ changelog / historical execution reports
 
 Do not rewrite historical commit identities merely to satisfy current-tree cleanliness.
 
-## 2.3 Normative architecture surfaces
+### 2.3 Normative architecture surfaces
 
 `Architecture_Corpus/**` may describe generic concepts such as `Hn-S`, PRE_PRODUCTION, compatibility obligations, or historical-evidence policy. It must not carry stale current milestone truth that belongs in Roadmap/qualification projection.
 
-## 2.4 Retention test for a current-tree artifact
+### 2.4 Retention test for a current-tree artifact
 
 A current-tree artifact is retained only when **all** of the following are true:
 
@@ -199,7 +199,7 @@ Unknown artifacts are **not** silently deleted: if the executor cannot determine
 
 ---
 
-# 3. Repository sequence
+## 3. Repository sequence
 
 Do not collapse, reorder, or parallelize these three PRs.
 
@@ -229,7 +229,7 @@ If actual execution exceeds the stop budgets in §12, do not split it ad hoc. St
 
 ---
 
-# 4. PR-R — H2B post-merge truth reconciliation
+## 4. PR-R — H2B post-merge truth reconciliation
 
 **Branch:** `dev/h2b-post-merge-reconciliation`
 
@@ -237,7 +237,7 @@ If actual execution exceeds the stop budgets in §12, do not split it ad hoc. St
 
 **Forbidden:** production source, tests, scripts, tooling, package manifests, AGENTS, Skills, behavior changes.
 
-## Task R1 — Re-prove external H2B closure tuple before editing
+### Task R1 — Re-prove external H2B closure tuple before editing
 
 - [ ] Fetch `origin/master` and require exact observed baseline unless master has legitimately moved through an already-reviewed later reconciliation.
 - [ ] Verify PR #22:
@@ -253,7 +253,7 @@ If actual execution exceeds the stop budgets in §12, do not split it ad hoc. St
 - [ ] Verify final workflow run `32862042074` is completed/success and bound to reviewed head `86c01ee...`, with Ubuntu/macOS/Windows jobs PASS.
 - [ ] If any tuple element does not match, stop; do not “repair” the history in docs.
 
-## Task R2 — Archive H2B plan accurately
+### Task R2 — Archive H2B plan accurately
 
 Move:
 
@@ -278,7 +278,7 @@ Decision:
 
 - correct the misleading current-summary claim `task_5_current_head_rerun: PASS`; it must not claim a final-head DB rerun that did not occur.
 
-## Task R3 — Reconcile Roadmap stage truth
+### Task R3 — Reconcile Roadmap stage truth
 
 Set current truth to exactly:
 
@@ -298,7 +298,7 @@ Update repository baseline to the H2B squash merge / current reconciliation base
 
 Do not mark H2-S started in PR-R.
 
-## Task R4 — Reconcile qualification ledgers
+### Task R4 — Reconcile qualification ledgers
 
 Update:
 
@@ -316,7 +316,7 @@ Required truth:
 - H2A-3 historical final cross-platform CI remains `NOT_RUN`; do not retroactively convert H2-S or H2B CI into H2A-3 milestone CI.
 - Product qualification residuals remain PARTIAL/NOT_RUN.
 
-## Task R5 — Corpus inventory and local verification
+### Task R5 — Corpus inventory and local verification
 
 Regenerate Corpus manifest/checksums using the repository's existing deterministic process, preserving metadata such as existing design date rather than resetting it.
 
@@ -334,7 +334,7 @@ Prove changed paths are only `Architecture_Corpus/**` and `docs/**`.
 
 Merge PR-R through the normal docs/evidence reconciliation path. Do not dispatch the behavior-candidate final CI again.
 
-## Gate R — H2-S activation
+### Gate R — H2-S activation
 
 H2-S may start only after PR-R merge and current repository truth says:
 
@@ -348,7 +348,7 @@ H3 = NOT_ELIGIBLE
 
 ---
 
-# 5. PR-S — H2-S governing specification
+## 5. PR-S — H2-S governing specification
 
 **Branch:** `dev/h2-stabilization`
 
@@ -358,9 +358,9 @@ H3 = NOT_ELIGIBLE
 
 **PR:** one Draft PR; ordinary pushes do not dispatch CI.
 
-## 5.1 A/B/C scope budget
+### 5.1 A/B/C scope budget
 
-### A — MUST fix before H2 can close
+#### A — MUST fix before H2 can close
 
 ```text
 A1 development-stage provenance in current executable/canonical identity
@@ -375,7 +375,7 @@ A9 no fresh final-candidate real PostgreSQL 18.6 H2-S evidence
 A10 stale/overstated current evidence projections before candidate freeze
 ```
 
-### B — fix only when local, bounded, and necessary to make A correct
+#### B — fix only when local, bounded, and necessary to make A correct
 
 ```text
 B1 rename shared test helper APIs to make “no runtime exists” semantics explicit
@@ -384,7 +384,7 @@ B3 small local refactors needed to make supervisor lifecycle state coherent/test
 B4 documentation/index/hash updates caused by the governance rewrite
 ```
 
-### C — out of scope
+#### C — out of scope
 
 ```text
 DBOS / WorkItem / durable scheduler / EffectFence implementation
@@ -402,7 +402,7 @@ rewriting historical completed plans merely to remove stage identifiers
 
 ---
 
-# 6. Root AGENTS.md — exact replacement design
+## 6. Root AGENTS.md — exact replacement design
 
 The current file is replaced, not incrementally extended.
 
@@ -551,9 +551,9 @@ Those belong in Corpus, Skills, plans, and playbooks.
 
 ---
 
-# 7. Governance document changes — locked content
+## 7. Governance document changes — locked content
 
-## 7.1 `Architecture_Corpus/00-项目宪法与工程宪法.md`
+### 7.1 `Architecture_Corpus/00-项目宪法与工程宪法.md`
 
 Modify `E20` to state explicitly:
 
@@ -576,7 +576,7 @@ Retention “for history” is not a current owner/purpose; Git is the archive.
 
 Do not add these operational details to AGENTS; the Corpus is the long-term principle owner.
 
-## 7.2 Create `Architecture_Corpus/references/compatibility-obligations.json`
+### 7.2 Create `Architecture_Corpus/references/compatibility-obligations.json`
 
 Exact initial content:
 
@@ -592,7 +592,7 @@ This file is the sole machine-readable current product compatibility obligation 
 
 Do not add placeholder/example obligations. Do not add “internal dev DB” or “previous build” obligations.
 
-## 7.3 Rewrite `Architecture_Corpus/26-开发阶段闭包-稳定化与兼容性治理.md`
+### 7.3 Rewrite `Architecture_Corpus/26-开发阶段闭包-稳定化与兼容性治理.md`
 
 Keep the existing exact-pair closure governance, but expand/restructure the document around these normative sections:
 
@@ -630,7 +630,7 @@ undeclared compatibility behavior > 0 -> A blocker
 closed-phase current-tree artifact without current owner/purpose > 0 -> A blocker
 ```
 
-## 7.4 `Architecture_Corpus/20-架构审查清单.md`
+### 7.4 `Architecture_Corpus/20-架构审查清单.md`
 
 Add a dedicated current-tree evolution section with yes/no questions:
 
@@ -645,7 +645,7 @@ Add a dedicated current-tree evolution section with yes/no questions:
 - Is the implementation plan decision-complete, or is the executor being asked to choose architecture/scope?
 ```
 
-## 7.5 `docs/plans/README.md`
+### 7.5 `docs/plans/README.md`
 
 Add `Decision completeness` policy:
 
@@ -660,7 +660,7 @@ The executor may choose only semantics-equivalent local implementation details.
 An unresolved non-trivial choice is PLAN_GAP and stops execution.
 ```
 
-## 7.6 Rewrite `docs/engineering/playbooks/repository/h-stage-stabilization-closure.md`
+### 7.6 Rewrite `docs/engineering/playbooks/repository/h-stage-stabilization-closure.md`
 
 Preserve exact-pair review/CI/merge procedure but make these steps mandatory **before candidate freeze**:
 
@@ -675,7 +675,7 @@ Preserve exact-pair review/CI/merge procedure but make these steps mandatory **b
 
 The playbook must state that the executor cannot create an allowlist to waive findings and cannot classify a new semantic ambiguity by preference; it stops as `PLAN_GAP`.
 
-## 7.7 Create `docs/engineering/playbooks/repository/current-tree-hygiene.md`
+### 7.7 Create `docs/engineering/playbooks/repository/current-tree-hygiene.md`
 
 This is the operational companion to Corpus 26. Required sections:
 
@@ -694,18 +694,18 @@ Examples from Heptalogos (semanticized, not stage-named)
 
 Required decision matrix:
 
-| Finding | Action |
-|---|---|
-| Stage/PR/session token only affects name/path/test label | rename to semantic role; update all references; no alias |
+| Finding                                                                                            | Action                                                             |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Stage/PR/session token only affects name/path/test label                                           | rename to semantic role; update all references; no alias           |
 | Negative test describes an old dev shape but still proves current required-field/schema strictness | reframe to current invariant; remove historical wording/data names |
-| Negative test only duplicates generic unsupported-version/unknown-field coverage | delete it |
-| Reader/parser/writer/fallback actually accepts previous dev shape | delete old branch and update canonical tests; no shim |
-| Previous dev DB requires migration | rewrite/squash current baseline and rebuild dev/test DB |
-| One-time phase artifact has no current consumer | delete; keep history in Git/completed plan |
-| Artifact appears to have a current consumer but purpose is unclear | `PLAN_GAP`; do not delete or preserve by guess |
-| Evidence suggests a real external consumer/retained production state | `PLAN_GAP` + architecture review; do not invent an obligation |
+| Negative test only duplicates generic unsupported-version/unknown-field coverage                   | delete it                                                          |
+| Reader/parser/writer/fallback actually accepts previous dev shape                                  | delete old branch and update canonical tests; no shim              |
+| Previous dev DB requires migration                                                                 | rewrite/squash current baseline and rebuild dev/test DB            |
+| One-time phase artifact has no current consumer                                                    | delete; keep history in Git/completed plan                         |
+| Artifact appears to have a current consumer but purpose is unclear                                 | `PLAN_GAP`; do not delete or preserve by guess                     |
+| Evidence suggests a real external consumer/retained production state                               | `PLAN_GAP` + architecture review; do not invent an obligation      |
 
-## 7.8 Create `docs/engineering/gotchas/repository/preproduction-maintenance-bias.md`
+### 7.8 Create `docs/engineering/gotchas/repository/preproduction-maintenance-bias.md`
 
 Record the recurring Agent failure mode:
 
@@ -724,7 +724,7 @@ Previous milestone is not a compatibility consumer.
 Prepare for future evolution != implement present backward compatibility.
 ```
 
-## 7.9 Update engineering indexes
+### 7.9 Update engineering indexes
 
 Modify:
 
@@ -744,7 +744,7 @@ One-time phase acceptance scripts do not remain after phase closure; their comma
 
 Do not retain `scripts/phases/` as a historical-tools directory.
 
-## 7.10 Skills / automatic routing resources
+### 7.10 Skills / automatic routing resources
 
 Modify:
 
@@ -767,9 +767,9 @@ Decisions:
 
 ---
 
-# 8. Permanent `check:hygiene` gate — exact design
+## 8. Permanent `check:hygiene` gate — exact design
 
-## 8.1 Files
+### 8.1 Files
 
 Create:
 
@@ -788,7 +788,7 @@ tools/repo-kit/README.md
 
 No new npm dependency is allowed. Use Node standard library and existing repo-kit patterns.
 
-## 8.2 Package command
+### 8.2 Package command
 
 Add:
 
@@ -798,9 +798,9 @@ Add:
 
 Insert `pnpm check:hygiene` into `pnpm verify` after `check:repository` and before dependency/boundary/type/test/build gates.
 
-## 8.3 Scan surfaces
+### 8.3 Scan surfaces
 
-### Provenance-neutral scan
+#### Provenance-neutral scan
 
 Scan file paths and textual content under current surfaces:
 
@@ -841,7 +841,7 @@ scripts/verify/current-tree-hygiene.mjs
 
 because those files necessarily contain test fixtures / detection patterns. No generic ignore file, inline suppression comment, baseline snapshot, or allowlist mechanism is authorized.
 
-## 8.4 Development provenance detection
+### 8.4 Development provenance detection
 
 The scanner must reject stage/milestone identity in current surfaces.
 
@@ -867,7 +867,7 @@ semantic names such as host-maintenance / runtime-kernel -> allowed
 Hn-S generic policy text is not part of scanned docs anyway
 ```
 
-## 8.5 High-signal historical compatibility detection
+### 8.5 High-signal historical compatibility detection
 
 In **implementation/test surfaces under `packages/**` and `fixtures/**`**, reject high-signal project-history terms/identities such as:
 
@@ -889,7 +889,7 @@ Do **not** reject version numbers (`V1`, `V2`) by themselves. Current contract v
 
 The gate is a high-signal mechanical detector, not the entire semantic audit. Task S4 still performs the semantic fallback/alias/dual-reader audit.
 
-## 8.6 Closed-phase artifact checks
+### 8.6 Closed-phase artifact checks
 
 The gate must explicitly fail if either exists:
 
@@ -900,7 +900,7 @@ scripts/phases/
 
 No substitute archive directory is added.
 
-## 8.7 Compatibility register check
+### 8.7 Compatibility register check
 
 Load:
 
@@ -917,7 +917,7 @@ obligations.length === 0
 
 If execution encounters a non-empty register, stop as repository drift / architecture change; do not adjust scanner semantics locally.
 
-## 8.8 Required unit tests
+### 8.8 Required unit tests
 
 Write tests before wiring the gate into `pnpm verify`:
 
@@ -944,11 +944,11 @@ At first repository-wide run, `pnpm check:hygiene` is expected to be **FAIL** be
 
 ---
 
-# 9. Known current-tree archaeology cleanup — exact decisions
+## 9. Known current-tree archaeology cleanup — exact decisions
 
 Task S3 executes these known changes. The executor is not deciding whether to retain them.
 
-## 9.1 Delete closed Repository Genesis artifacts
+### 9.1 Delete closed Repository Genesis artifacts
 
 Delete:
 
@@ -963,7 +963,7 @@ Do not move the files to `docs/archive`, `.history`, `legacy`, or another curren
 
 Historical references in `docs/plans/completed/**` remain historical evidence and are not rewritten solely because the live files are gone.
 
-## 9.2 Rename long-lived integration files to semantic identity
+### 9.2 Rename long-lived integration files to semantic identity
 
 Rename without compatibility copies/symlinks:
 
@@ -985,7 +985,7 @@ packages/bootstrap-runtime/src/runtime-host-lifecycle.integration.test.ts
 
 Never `h2s-runtime-lifecycle.integration.test.ts`.
 
-## 9.3 Canonical PostgreSQL test support
+### 9.3 Canonical PostgreSQL test support
 
 In `packages/bootstrap-runtime/src/test-support/canonical-postgres.ts`:
 
@@ -1008,7 +1008,7 @@ Its semantics are explicitly for test compositions that instantiate no Runtime s
 
 Update existing imports mechanically.
 
-## 9.4 Persistence integration
+### 9.4 Persistence integration
 
 In `packages/persistence/src/persistence.integration.test.ts`:
 
@@ -1022,7 +1022,7 @@ h2a1_persistence_qualification -> persistence_qualification
 
 Replace any H2A1 temporary resource name with `persistence` semantic naming.
 
-## 9.5 Host ownership integration
+### 9.5 Host ownership integration
 
 In `packages/host-ownership/src/host-ownership.integration.test.ts`:
 
@@ -1034,7 +1034,7 @@ heptalogos-m4-host-pg- -> heptalogos-host-ownership-pg-
 
 Any other M4 identity in the current file is replaced with the semantic `host-ownership` role.
 
-## 9.6 Host ownership handoff integration
+### 9.6 Host ownership handoff integration
 
 In `packages/bootstrap-runtime/src/host-ownership-handoff.integration.test.ts`:
 
@@ -1048,7 +1048,7 @@ KEEP_PRIVATE_POSTGRES_QUIESCENCE -> NO_RUNTIME_QUIESCENCE
 
 Any stage-specific literal in that file becomes `host-handoff` semantic naming.
 
-## 9.7 Host maintenance tests
+### 9.7 Host maintenance tests
 
 In `packages/bootstrap-runtime/src/host-maintenance.integration.test.ts`:
 
@@ -1068,7 +1068,7 @@ profile: "m5a" -> profile: "host-maintenance"
 
 No old profile alias remains.
 
-## 9.8 Bootstrap recovery tests / fixtures
+### 9.8 Bootstrap recovery tests / fixtures
 
 For every current executable hit of `M5A_TEST` or `m5a` in:
 
@@ -1081,7 +1081,7 @@ packages/bootstrap-runtime/test/fixtures/recovery-maintenance-process.mjs
 
 replace stage identity with semantic `BOOTSTRAP_RECOVERY_TEST_*` / `bootstrap-recovery` names. Do not change recovery semantics.
 
-## 9.9 Private PostgreSQL tests
+### 9.9 Private PostgreSQL tests
 
 For current executable hits of `M3_TEST` in:
 
@@ -1103,7 +1103,7 @@ profile: "m3" -> profile: "canonical"
 
 The content digest remains a test-domain digest; no compatibility mapping is created.
 
-## 9.10 Canonical initialization / execution foundation / Runtime integration IDs
+### 9.10 Canonical initialization / execution foundation / Runtime integration IDs
 
 In `canonical-initialization.integration.test.ts`:
 
@@ -1131,15 +1131,15 @@ h2b.integration.* IDs -> runtime.integration.*
 
 Apply the same rule to every stage token found in those files.
 
-## 9.11 Reframe historical-shape tests as current-contract validation
+### 9.11 Reframe historical-shape tests as current-contract validation
 
-### `packages/bootstrap-state/src/codec.test.ts`
+#### `packages/bootstrap-state/src/codec.test.ts`
 
 - Rename/rewrite `rejects obsolete development V1 that lacks continuityEpochId` to `rejects canonical V1 missing required continuityEpochId`.
 - Replace variable names such as `obsoleteState` with semantic invalid-input names.
 - Consolidate `rejects the obsolete pre-reset outer V2 shape` with generic unsupported-schema coverage. Final tests should prove unsupported schema versions are rejected without naming a historical reset.
 
-### `packages/bootstrap-state/src/journal.test.ts`
+#### `packages/bootstrap-state/src/journal.test.ts`
 
 Rewrite:
 
@@ -1155,7 +1155,7 @@ rejects a checkpoint missing required installation and instance identity
 
 Use a neutral invalid stage name such as `bootstrap.invalid`, not `bootstrap.legacy`.
 
-### `packages/bootstrap-state/src/maintenance-model.test.ts`
+#### `packages/bootstrap-state/src/maintenance-model.test.ts`
 
 Rewrite historical wording to current invariants:
 
@@ -1169,7 +1169,7 @@ rejects the legacy target at RECOVERY_REQUIRED
 
 Keep semantic rejection coverage; remove archaeology wording.
 
-### `packages/execution-lineage/src/lineage-context-ref.test.ts`
+#### `packages/execution-lineage/src/lineage-context-ref.test.ts`
 
 Rewrite:
 
@@ -1185,11 +1185,11 @@ rejects unsupported versions and unknown fields
 
 Replace `legacyBootId` with a neutral unknown field such as `unexpectedBootId`.
 
-### `packages/runtime-kernel/src/runtime-kernel.test.ts`
+#### `packages/runtime-kernel/src/runtime-kernel.test.ts`
 
 Rewrite the Object.prototype test from `legacy mutation methods` to `Object.prototype mutation helpers` or equivalent current JavaScript-boundary semantics. Rename its test/invocation/provider labels so no `legacy` token remains.
 
-## 9.12 Full current-surface sweep after known edits
+### 9.12 Full current-surface sweep after known edits
 
 Run:
 
@@ -1205,7 +1205,7 @@ Any additional finding that would require behavior/Authority/compatibility inter
 
 ---
 
-# 10. PRE_PRODUCTION compatibility semantic audit — zero obligations
+## 10. PRE_PRODUCTION compatibility semantic audit — zero obligations
 
 The compatibility register is empty. Therefore the burden of proof is already resolved:
 
@@ -1213,7 +1213,7 @@ The compatibility register is empty. Therefore the burden of proof is already re
 No declared obligation -> no project-history compatibility behavior is allowed.
 ```
 
-## 10.1 Required semantic search
+### 10.1 Required semantic search
 
 Search current implementation for patterns including, but not limited to:
 
@@ -1232,33 +1232,33 @@ renamed env/config/CLI fallback kept only for previous repo revisions
 
 Suggested discovery commands may use `rg`, but classification follows this plan, not keyword count.
 
-## 10.2 Required action by finding type
+### 10.2 Required action by finding type
 
-### Actual previous-development reader/writer/fallback
+#### Actual previous-development reader/writer/fallback
 
 Delete it. Update current tests to canonical current input/output. Do not preserve a deprecated alias.
 
-### Developer DB migration chronology
+#### Developer DB migration chronology
 
 Rewrite/squash the current baseline and recreate project-owned dev/test state. Current repository already has one `0001-foundation-baseline.ts`; H2-S must leave one canonical baseline unless a current architecture-owned reason—not history—requires additional migration mechanics.
 
-### Strict rejection of unsupported inputs
+#### Strict rejection of unsupported inputs
 
 Keep the rejection behavior when it is a current contract invariant, but phrase tests generically (`unsupported version`, `missing required field`, `unknown field`) rather than as “legacy compatibility”.
 
-### Runtime Service/Capability contract-version compatibility
+#### Runtime Service/Capability contract-version compatibility
 
 Keep current contract matching. It is a present provider/consumer selection semantic, not historical product backward compatibility. Do not remove `contractV2` tests merely because the word “compatibility” exists in that subsystem.
 
-### Toolchain TS6 lane
+#### Toolchain TS6 lane
 
 Keep it. It is an explicitly adopted compiler/API qualification lane, not product-state backward compatibility.
 
-### Any evidence of a real external consumer or retained production state
+#### Any evidence of a real external consumer or retained production state
 
 Stop `PLAN_GAP`. The current register says there is no such obligation, so discovering one is an architecture/truth conflict that the executor may not resolve.
 
-## 10.3 Required result
+### 10.3 Required result
 
 Before Runtime lifecycle implementation begins:
 
@@ -1272,7 +1272,7 @@ canonical migration baseline = one current 0001 baseline
 
 ---
 
-# 11. Bootstrap ↔ Runtime production boundary hardening
+## 11. Bootstrap ↔ Runtime production boundary hardening
 
 Modify `scripts/verify/boundaries.mjs` and focused tests/fixtures as needed.
 
@@ -1302,9 +1302,9 @@ pnpm check:dependencies
 
 ---
 
-# 12. Runtime lifecycle correction — decision-complete design
+## 12. Runtime lifecycle correction — decision-complete design
 
-## 12.1 Files
+### 12.1 Files
 
 Modify:
 
@@ -1319,7 +1319,7 @@ packages/runtime-kernel/src/runtime-kernel.test.ts only when directly required
 
 No new package.
 
-## 12.2 Generic root owner contract
+### 12.2 Generic root owner contract
 
 Add exactly this semantic interface (naming may match this plan unless an existing type conflict requires a purely local equivalent):
 
@@ -1344,7 +1344,7 @@ HostQuiescenceLease
 bootstrap-runtime internals
 ```
 
-## 12.3 Supervisor lifecycle state
+### 12.3 Supervisor lifecycle state
 
 Maintain a private supervisor lifecycle equivalent to:
 
@@ -1370,7 +1370,7 @@ runtime.supervisor.resume_invalid
 
 Do not invent automatic retry/backoff.
 
-## 12.4 Immediate admission closure
+### 12.4 Immediate admission closure
 
 Both `quiesce()` and terminal `close()/owner abort` must synchronously close new generation-fenced Service/Capability admission **before** their returned Promise can await cleanup.
 
@@ -1378,7 +1378,7 @@ An already-running reconcile must check supervisor lifecycle before each new Mic
 
 Already-admitted calls may drain up to existing bounded settlement timeout.
 
-## 12.5 Reversible quiescence
+### 12.5 Reversible quiescence
 
 Add:
 
@@ -1416,7 +1416,7 @@ Second `quiesce()` while not ACTIVE fails `runtime.supervisor.not_active`.
 
 If quiescence settlement fails/times out, do not return a resume lease and do not manufacture success. Admission remains closed; higher-level maintenance receives failure.
 
-## 12.6 Resume semantics
+### 12.6 Resume semantics
 
 `resumeAfterAbort()` is one-shot and valid only for the exact same supervisor while `QUIESCED`, not owner-aborted/closing/closed.
 
@@ -1437,7 +1437,7 @@ If resume hits a structural/integrity/cleanup failure that prevents coherent rec
 
 Second resume or resume after terminal owner abort/close fails `runtime.supervisor.resume_invalid`.
 
-## 12.7 Owner abort / terminal close
+### 12.7 Owner abort / terminal close
 
 When `ownerLifecycle.signal` aborts:
 
@@ -1456,7 +1456,7 @@ Remove/listener-clean up owner-signal subscriptions when terminal close complete
 
 `close()` is idempotent and returns the same terminal cleanup outcome on repeated calls. Closing from `QUIESCED` closes the substrate directly; it never resumes.
 
-## 12.8 Required TDD cases
+### 12.8 Required TDD cases
 
 Write red tests first:
 
@@ -1487,9 +1487,9 @@ pnpm tsc6
 
 ---
 
-# 13. Real PostgreSQL H2 joint lifecycle proof
+## 13. Real PostgreSQL H2 joint lifecycle proof
 
-## 13.1 Files
+### 13.1 Files
 
 Create:
 
@@ -1506,7 +1506,7 @@ packages/bootstrap-runtime/src/test-support/canonical-postgres.ts only as alread
 
 Do not add production bootstrap/runtime composition code merely to satisfy the test.
 
-## 13.2 Structural adapter
+### 13.2 Structural adapter
 
 The integration may compose:
 
@@ -1526,11 +1526,11 @@ const runtimeQuiescence = {
 
 TypeScript structural compatibility is the intended seam. No cast to Cordis/Host private framework types and no Bootstrap production import into Runtime Kernel.
 
-## 13.3 Required PostgreSQL 18.6 scenarios
+### 13.3 Required PostgreSQL 18.6 scenarios
 
 All H2-S stage scenarios must execute on the final H2-S candidate; skip = `NOT_RUN` = candidate freeze blocked.
 
-### PG1 — Normal H2 composition identity coherence
+#### PG1 — Normal H2 composition identity coherence
 
 Boot managed Host, construct ExecutionContext/Persistence/Lineage/Runtime, reconcile synthetic Service provider A + hard dependent B + independent C.
 
@@ -1545,7 +1545,7 @@ HostOwnershipToken
 ProductGenerationId runtime origin
 ```
 
-### PG2 — Authentic Host terminality propagates to Runtime and Persistence
+#### PG2 — Authentic Host terminality propagates to Runtime and Persistence
 
 Terminate the authentic underlying Host/lease through package-internal test access so the real Host signal aborts.
 
@@ -1560,7 +1560,7 @@ same supervisor cannot reconcile back to RUNNING
 no in-place Host reacquire/reopen
 ```
 
-### PG3 — Planned STOP uses real Runtime quiescence before Host token revoke
+#### PG3 — Planned STOP uses real Runtime quiescence before Host token revoke
 
 Use `runtimeQuiescence`, not `stopManagedHostWithoutRuntime`.
 
@@ -1577,7 +1577,7 @@ runtime admission closed
 
 Old runtime leases remain retired.
 
-### PG4 — Planned RESTART preserves continuity and rotates Host/runtime generation identity
+#### PG4 — Planned RESTART preserves continuity and rotates Host/runtime generation identity
 
 After restart:
 
@@ -1591,7 +1591,7 @@ new HostOwnershipToken
 
 Construct fresh ExecutionContext/Persistence/Runtime for returned Host, reconcile same Desired, assert fresh MicroSystemInstanceIds/Fences and old leases rejected.
 
-### PG5 — Host safe-abort contract composes with Runtime lease
+#### PG5 — Host safe-abort contract composes with Runtime lease
 
 Do not invent a destructive PG fault merely to duplicate the Host-maintenance unit fault matrix.
 
@@ -1605,7 +1605,7 @@ Runtime unit tests prove actual one-shot resume semantics
 
 Add one integration assertion that no private-type cast/adapter state machine is needed.
 
-### PG6 — `shutdownKeepingPrivatePostgres` ordering
+#### PG6 — `shutdownKeepingPrivatePostgres` ordering
 
 Prove:
 
@@ -1618,7 +1618,7 @@ Runtime quiesces
 
 Then use Bootstrap ownership for bounded test cleanup; do not pretend the closed Host remains Authority.
 
-## 13.4 Integration target
+### 13.4 Integration target
 
 Update `bootstrap-runtime:test:integration` to use semantic file names:
 
@@ -1637,9 +1637,9 @@ No H2A/H2B/H2S file names remain in the executable target.
 
 ---
 
-# 14. PR-S task-by-task execution
+## 14. PR-S task-by-task execution
 
-## Task S0 — Activate H2-S
+### Task S0 — Activate H2-S
 
 - [x] Confirm Gate R.
 - [x] Create `dev/h2-stabilization` from exact PR-R merge SHA.
@@ -1647,7 +1647,7 @@ No H2A/H2B/H2S file names remain in the executable target.
 - [x] Open one Draft PR; do not dispatch CI.
 - [x] Record current worktree/base/branch state.
 
-## Task S1 — Governance reset first
+### Task S1 — Governance reset first
 
 Implement §6-§7 exactly:
 
@@ -1678,7 +1678,7 @@ Recommended commit:
 docs: make stabilization and preproduction history erasure explicit
 ```
 
-## Task S2 — TDD permanent current-tree hygiene gate
+### Task S2 — TDD permanent current-tree hygiene gate
 
 - [x] write repo-kit unit tests from §8.8;
 - [x] observe RED;
@@ -1696,7 +1696,7 @@ Recommended commit only after scanner unit tests pass even though repository-wid
 feat: enforce current-tree history hygiene
 ```
 
-## Task S3 — Erase known development provenance and dead phase artifacts
+### Task S3 — Erase known development provenance and dead phase artifacts
 
 Execute every exact decision in §9.
 
@@ -1733,7 +1733,7 @@ stage IDs are absent from current executable surfaces; historical-shape tests
 were reframed; affected package tests, typecheck, TS6, boundaries, and
 `pnpm check:hygiene` are `PASS`.
 
-## Task S4 — Semantic compatibility audit
+### Task S4 — Semantic compatibility audit
 
 - [x] execute §10 semantic search;
 - [x] inspect parser/read/write/alias/fallback branches, not just keyword hits;
@@ -1757,7 +1757,7 @@ S4 result: `compatibilityEpoch = PRE_PRODUCTION`, obligations are empty,
 project-history compatibility residue is zero, and the audit table above records
 the current semantic mechanisms retained versus historical behaviors removed.
 
-## Task S5 — Mechanically harden Bootstrap production boundary
+### Task S5 — Mechanically harden Bootstrap production boundary
 
 Implement §11 with failing boundary proof first.
 
@@ -1775,7 +1775,7 @@ Recommended commit:
 chore: fence bootstrap runtime from normal runtime implementation
 ```
 
-## Task S6 — TDD Runtime owner lifecycle and reversible quiescence
+### Task S6 — TDD Runtime owner lifecycle and reversible quiescence
 
 Execute §12 test-by-test.
 
@@ -1801,7 +1801,7 @@ generic `RuntimeOwnerLifecycle` and `RuntimeQuiescenceLease`, closes generation
 admission synchronously, preserves accepted Desired state across reversible
 quiescence, and terminalizes on owner abort or structural resume failure.
 
-## Task S7 — Real PostgreSQL Runtime/Host lifecycle integration
+### Task S7 — Real PostgreSQL Runtime/Host lifecycle integration
 
 Implement §13 with semantic file names only.
 
@@ -1830,11 +1830,11 @@ aggregate `bootstrap-runtime:test:integration` is `PASS` (8 suites, 58 tests).
 The supporting private-postgres, Host ownership, persistence, and recovery
 targets are recorded in S9.
 
-## Task S8 — Full H2 current-tree re-audit
+### Task S8 — Full H2 current-tree re-audit
 
 Re-run all mandatory S sweeps after Runtime changes, because new code can reintroduce residue.
 
-### S8.1 History neutrality
+#### S8.1 History neutrality
 
 ```bash
 pnpm check:hygiene
@@ -1842,7 +1842,7 @@ pnpm check:hygiene
 
 Must PASS.
 
-### S8.2 PRE_PRODUCTION compatibility
+#### S8.2 PRE_PRODUCTION compatibility
 
 Confirm:
 
@@ -1853,7 +1853,7 @@ no project-history reader/shim/alias/fallback
 one canonical Foundation migration baseline
 ```
 
-### S8.3 Persistence / ExecutionContext authority
+#### S8.3 Persistence / ExecutionContext authority
 
 Run:
 
@@ -1874,7 +1874,7 @@ commit-uncertain remains explicit
 Host signal abort fences/drains Persistence
 ```
 
-### S8.4 Runtime regressions
+#### S8.4 Runtime regressions
 
 Re-prove:
 
@@ -1888,7 +1888,7 @@ background provider failure -> dependent closure; independent branch survives
 old generation leases remain fenced
 ```
 
-### S8.5 Framework leakage
+#### S8.5 Framework leakage
 
 ```bash
 pnpm check:dependencies
@@ -1907,11 +1907,11 @@ Canonical Schema (3 tests), Evidence (4 tests), Time Service (4 tests), and
 repo-kit (27 tests) are `PASS`. Persistence PostgreSQL integration is `PASS`
 (9/9) on Windows PostgreSQL 18.6.
 
-## Task S9 — Fresh H2-S local qualification matrix
+### Task S9 — Fresh H2-S local qualification matrix
 
 Candidate freeze is BLOCKED unless final-candidate PostgreSQL 18.6 is actually available.
 
-### S9.1 Toolchain identity
+#### S9.1 Toolchain identity
 
 Verify required binaries from `HEPTALOGOS_TEST_PG_BIN` report PostgreSQL 18.6:
 
@@ -1925,7 +1925,7 @@ pg_isready
 
 No matching toolchain -> H2-S DB gate `BLOCKED`, not skipped PASS.
 
-### S9.2 Focused packages
+#### S9.2 Focused packages
 
 ```bash
 pnpm nx run runtime-substrate:test
@@ -1938,7 +1938,7 @@ pnpm nx run time-service:test
 pnpm nx run repo-kit:test
 ```
 
-### S9.3 Real PostgreSQL integration closure
+#### S9.3 Real PostgreSQL integration closure
 
 ```bash
 pnpm nx run private-postgres:test:integration
@@ -1951,7 +1951,7 @@ pnpm nx run persistence:test:integration
 
 Record each target separately.
 
-### S9.4 All permanent gates
+#### S9.4 All permanent gates
 
 ```bash
 pnpm check:agents
@@ -1983,7 +1983,7 @@ Time Service (4/4), and repo-kit (27/27). Real PostgreSQL targets are all
 bootstrap-runtime recovery-process (4/4), bootstrap-runtime
 recovery-process:postgres (2/2), and persistence integration (9/9).
 
-## Task S10 — Candidate-time evidence and plan completion
+### Task S10 — Candidate-time evidence and plan completion
 
 Before Independent Review, finish **all** repository mutation.
 
@@ -1998,7 +1998,7 @@ active H2-S plan
 Corpus inventory/checksums
 ```
 
-### Pre-review Roadmap truth
+#### Pre-review Roadmap truth
 
 Set exactly:
 
@@ -2014,7 +2014,7 @@ H2: OPEN
 H3: NOT_ELIGIBLE
 ```
 
-### H2-S evidence record must include
+#### H2-S evidence record must include
 
 ```text
 current candidate base/head
@@ -2049,7 +2049,7 @@ Commit all remaining evidence/docs. Then freeze candidate.
 
 No repository mutation is allowed after this point unless review is invalidated and a new candidate cycle starts.
 
-## Task S11 — Freeze exact ReviewCandidate and request Independent Review
+### Task S11 — Freeze exact ReviewCandidate and request Independent Review
 
 Record:
 
@@ -2070,7 +2070,7 @@ unfreeze -> fix -> rerun affected qualification + full pnpm verify -> update evi
 
 Never carry old review PASS to a new head/base.
 
-## Task S12 — Manual exact-pair final CI
+### Task S12 — Manual exact-pair final CI
 
 Only after Independent Review `PASS`, dispatch the repository manual verify workflow for the reviewed pair.
 
@@ -2080,7 +2080,7 @@ Because `pnpm verify` now includes `check:hygiene`, final CI also proves the cur
 
 Do not claim final CI proves real PostgreSQL 18.6 on every OS unless the workflow actually runs those product scenarios. Stage real-PG evidence remains the fresh local/current-host qualified run; cross-platform product residuals remain separately tracked.
 
-## Task S13 — Pre-merge identity check and squash merge
+### Task S13 — Pre-merge identity check and squash merge
 
 Immediately before merge verify:
 
@@ -2099,7 +2099,7 @@ Do not edit merged behavior candidate afterward.
 
 ---
 
-# 15. PR-C — H2 final post-stabilization truth reconciliation
+## 15. PR-C — H2 final post-stabilization truth reconciliation
 
 **Branch:** `dev/h2-post-stabilization-reconciliation`
 
@@ -2107,7 +2107,7 @@ Do not edit merged behavior candidate afterward.
 
 **Forbidden:** source/tests/scripts/tools/AGENTS/Skills/package behavior changes.
 
-## Task C1 — Verify external H2-S closure tuple
+### Task C1 — Verify external H2-S closure tuple
 
 Before editing, record externally observed:
 
@@ -2122,7 +2122,7 @@ squash merge SHA
 
 If tuple is incomplete/mismatched, stop; H2 remains OPEN.
 
-## Task C2 — Final Roadmap truth
+### Task C2 — Final Roadmap truth
 
 Set exactly:
 
@@ -2140,7 +2140,7 @@ H3: ELIGIBLE
 
 Do not create/activate H3 implementation work in the same PR.
 
-## Task C3 — Completed H2-S closure addendum and qualification ledgers
+### Task C3 — Completed H2-S closure addendum and qualification ledgers
 
 Update completed H2-S plan with external closure tuple.
 
@@ -2155,7 +2155,7 @@ H2-S fresh PG18.6 evidence is stage evidence
 product source-less / Linux/macOS real-PG / service-headless residuals remain honest
 ```
 
-## Task C4 — Docs/evidence-only verification
+### Task C4 — Docs/evidence-only verification
 
 Regenerate Corpus inventory/checksums.
 
@@ -2178,40 +2178,40 @@ Only after PR-C merge may an H3 plan be created/activated.
 
 ---
 
-# 16. Required acceptance matrix
+## 16. Required acceptance matrix
 
-| Area | Required final H2-S state |
-|---|---|
-| H2B truth | reconciled CLOSED before H2-S starts |
-| Root AGENTS | executor-focused replacement; no macro invariant dump; no Skill routing table |
-| Plan governance | non-trivial decisions pre-resolved; executor stops `PLAN_GAP` |
-| Compatibility epoch | PRE_PRODUCTION |
-| Compatibility register | exists; `obligations: []` |
-| Development provenance | zero machine-detected residue in current executable surfaces |
-| Historical compatibility | zero project-history readers/shims/upcasters/aliases/dual formats |
-| Current migration baseline | one current canonical Foundation baseline |
-| Genesis archaeology | `GENESIS_EVIDENCE.json` absent; `scripts/phases/` absent |
-| Test identities | semantic file/test/resource names, no H2A/H2B/M3/M4/M5A current identities |
-| Hygiene gate | `pnpm check:hygiene` PASS and included in `pnpm verify` |
-| Bootstrap boundary | production bootstrap-runtime cannot import runtime-kernel/runtime-substrate/Cordis |
-| Runtime owner | Host signal can terminalize generic supervisor via structural lifecycle contract |
-| Runtime quiescence | admission closes synchronously; reverse dependency stop; bounded drain; one-shot resume |
-| Desired state | preserved through quiesce/resume; no authority rewrite |
-| Old leases | remain retired after resume/restart |
-| Planned STOP | real Runtime quiescence before Host token revoke |
-| Planned RESTART | continuity preserved; Boot/token/runtime instance rotated |
-| Host terminality | same supervisor cannot reopen after owner loss |
-| PostgreSQL | fresh final-candidate 18.6 H2-S PG1-PG6 PASS |
-| Existing H2 invariants | persistence, lineage, readiness, generation fencing regressions PASS |
-| Local aggregate | `pnpm verify` PASS |
-| Independent Review | PASS exact `(base_sha, head_sha)` |
-| Final CI | PASS Ubuntu/macOS/Windows same pair |
-| Merge | squash merge unchanged pair |
-| Final reconciliation | docs/evidence-only PR sets H2 CLOSED / H3 ELIGIBLE |
+| Area                       | Required final H2-S state                                                               |
+| -------------------------- | --------------------------------------------------------------------------------------- |
+| H2B truth                  | reconciled CLOSED before H2-S starts                                                    |
+| Root AGENTS                | executor-focused replacement; no macro invariant dump; no Skill routing table           |
+| Plan governance            | non-trivial decisions pre-resolved; executor stops `PLAN_GAP`                           |
+| Compatibility epoch        | PRE_PRODUCTION                                                                          |
+| Compatibility register     | exists; `obligations: []`                                                               |
+| Development provenance     | zero machine-detected residue in current executable surfaces                            |
+| Historical compatibility   | zero project-history readers/shims/upcasters/aliases/dual formats                       |
+| Current migration baseline | one current canonical Foundation baseline                                               |
+| Genesis archaeology        | `GENESIS_EVIDENCE.json` absent; `scripts/phases/` absent                                |
+| Test identities            | semantic file/test/resource names, no H2A/H2B/M3/M4/M5A current identities              |
+| Hygiene gate               | `pnpm check:hygiene` PASS and included in `pnpm verify`                                 |
+| Bootstrap boundary         | production bootstrap-runtime cannot import runtime-kernel/runtime-substrate/Cordis      |
+| Runtime owner              | Host signal can terminalize generic supervisor via structural lifecycle contract        |
+| Runtime quiescence         | admission closes synchronously; reverse dependency stop; bounded drain; one-shot resume |
+| Desired state              | preserved through quiesce/resume; no authority rewrite                                  |
+| Old leases                 | remain retired after resume/restart                                                     |
+| Planned STOP               | real Runtime quiescence before Host token revoke                                        |
+| Planned RESTART            | continuity preserved; Boot/token/runtime instance rotated                               |
+| Host terminality           | same supervisor cannot reopen after owner loss                                          |
+| PostgreSQL                 | fresh final-candidate 18.6 H2-S PG1-PG6 PASS                                            |
+| Existing H2 invariants     | persistence, lineage, readiness, generation fencing regressions PASS                    |
+| Local aggregate            | `pnpm verify` PASS                                                                      |
+| Independent Review         | PASS exact `(base_sha, head_sha)`                                                       |
+| Final CI                   | PASS Ubuntu/macOS/Windows same pair                                                     |
+| Merge                      | squash merge unchanged pair                                                             |
+| Final reconciliation       | docs/evidence-only PR sets H2 CLOSED / H3 ELIGIBLE                                      |
 
 ---
 
-# 17. Scope / stop budgets
+## 17. Scope / stop budgets
 
 Stop and request a new decision if any of the following becomes necessary:
 
@@ -2236,7 +2236,7 @@ Do not solve a stop condition by creating an exception list, compatibility shim,
 
 ---
 
-# 18. Explicitly prohibited approaches
+## 18. Explicitly prohibited approaches
 
 The executor must not:
 
@@ -2260,7 +2260,7 @@ The executor must not:
 
 ---
 
-# 19. Recommended commit envelope
+## 19. Recommended commit envelope
 
 The final branch may use several focused commits, but keep them reviewable and bounded. Recommended semantic envelope:
 
@@ -2282,7 +2282,7 @@ No commit after candidate freeze unless the previous review/CI candidate is expl
 
 ---
 
-# 20. Evidence skeleton for installed H2-S plan
+## 20. Evidence skeleton for installed H2-S plan
 
 Before candidate freeze, fill this with concrete results only:
 
@@ -2353,7 +2353,7 @@ identity.
 
 After candidate freeze only externally observed review/CI/merge fields change, and those changes occur in PR-C after merge—not by mutating the reviewed behavior candidate.
 
-## Post-merge closure reconciliation (2026-08-26)
+### Post-merge closure reconciliation (2026-08-26)
 
 The H2-S candidate's external closure gates completed after the pre-merge
 qualification record above. Historical `NOT_RUN` values in earlier candidate
@@ -2372,7 +2372,7 @@ closure:
 
 ---
 
-# 21. Source map used to derive this plan
+## 21. Source map used to derive this plan
 
 The executor should read these before implementation, but must not reopen decisions already locked here unless they conflict with a higher Corpus authority:
 
@@ -2412,7 +2412,7 @@ Known current-history residue evidence also exists in the exact files enumerated
 
 ---
 
-# 22. Final completion rule
+## 22. Final completion rule
 
 H2 is **not** closed when PR-S implementation becomes green locally.
 

@@ -1,5 +1,12 @@
+/**
+ * Validates the structural shape of Runtime contract declarations before graph
+ * planning, so malformed provider metadata cannot enter reconciliation.
+ * @module contract-shape
+ */
+
 import { runtimeKernelProblem } from "./problems.js";
 
+/** Locates one supported data or executable member in a Runtime contract. */
 export interface SupportedContractMember {
   readonly owner: object;
   readonly descriptor: PropertyDescriptor;
@@ -62,6 +69,7 @@ function validateObject(value: object, path: string, visited: WeakSet<object>): 
   }
 }
 
+/** Validates a Runtime contract as readonly data plus callable methods. */
 export function validateSupportedContractShape(implementation: object): void {
   if (typeof implementation === "function" || implementation === null) {
     fail(
@@ -72,6 +80,7 @@ export function validateSupportedContractShape(implementation: object): void {
   validateObject(implementation, "contract", new WeakSet<object>());
 }
 
+/** Finds an own or inherited member accepted by the Runtime contract membrane. */
 export function findSupportedContractMember(
   implementation: object,
   property: PropertyKey,
@@ -87,6 +96,7 @@ export function findSupportedContractMember(
   return undefined;
 }
 
+/** Reports whether a contract exposes at least one executable member. */
 export function hasExecutableContractMember(value: object): boolean {
   let current: object | null = value;
   while (current !== null && current !== Object.prototype) {

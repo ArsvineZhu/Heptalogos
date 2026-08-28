@@ -1,9 +1,16 @@
+/**
+ * Defines callback-scoped Bootstrap secret access so credential bytes are not
+ * retained by callers or promoted into a broader configuration contract.
+ * @module bootstrap-key-provider
+ */
+
 import type {
   BootId,
   InstallationId,
   InstanceId,
 } from "@heptalogos/foundation-contracts";
 
+/** Identifies the installation, boot, and secret purpose for one key request. */
 export interface BootstrapKeyRequestContext {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
@@ -15,19 +22,24 @@ export interface BootstrapKeyRequestContext {
     | "private-postgres-migration-role";
 }
 
+/** Supplies one Bootstrap secret only for the duration of an async callback. */
 export interface BootstrapKeyProvider {
+  /** Uses the bootstrap-superuser password without returning or retaining it. */
   withPrivatePostgresBootstrapPassword<T>(
     context: BootstrapKeyRequestContext,
     use: (passwordUtf8: Uint8Array) => Promise<T>,
   ): Promise<T>;
+  /** Uses the Host-lease password within a bounded callback scope. */
   withPrivatePostgresHostLeasePassword<T>(
     context: BootstrapKeyRequestContext,
     use: (passwordUtf8: Uint8Array) => Promise<T>,
   ): Promise<T>;
+  /** Uses the runtime-role password within a bounded callback scope. */
   withPrivatePostgresRuntimePassword<T>(
     context: BootstrapKeyRequestContext,
     use: (passwordUtf8: Uint8Array) => Promise<T>,
   ): Promise<T>;
+  /** Uses the migration-role password within a bounded callback scope. */
   withPrivatePostgresMigrationPassword<T>(
     context: BootstrapKeyRequestContext,
     use: (passwordUtf8: Uint8Array) => Promise<T>,

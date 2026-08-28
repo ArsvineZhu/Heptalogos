@@ -26,7 +26,7 @@ This corrective pass preserves the fixed M5A Authority semantics, PONR, and
 two-phase `BOOTSTRAP_RELEASE_ARMED` finalization. It does not widen scope into
 M5B recovery, force-unlock, or a generic Recovery framework.
 
-## Corrective pass 2 — PONR old-Host close rejection observation (2026-08-22)
+### Corrective pass 2 — PONR old-Host close rejection observation (2026-08-22)
 
 ```text
 Independent review @ 001ef97f070ecf3a6993c6e129a26de1925862e7 = REQUEST_CHANGES
@@ -75,9 +75,9 @@ Scenario F, or the M5A/M5B boundary.
 
 ---
 
-# 0. Planning conclusion and milestone decomposition
+## 0. Planning conclusion and milestone decomposition
 
-## 0.1 M5 remains split into M5A + M5B
+### 0.1 M5 remains split into M5A + M5B
 
 The roadmap describes M5 as one capability horizon step, but milestone boundaries are explicitly flexible. After re-checking the Corpus and current implementation, the safest implementation split remains:
 
@@ -108,7 +108,7 @@ M5B proves **recovery when the intentional protocol was interrupted by process d
 
 Do not merge the two failure models back into one implementation merely to keep the roadmap label `M5`.
 
-## 0.2 Why M5A is independently valuable
+### 0.2 Why M5A is independently valuable
 
 M4 intentionally ends with:
 
@@ -131,7 +131,7 @@ publish a new HostOwnershipToken
 
 M5A closes exactly that live-maintenance gap.
 
-## 0.3 Why M5A must not claim H1 closure
+### 0.3 Why M5A must not claim H1 closure
 
 The following remain M5B work:
 
@@ -153,7 +153,7 @@ M5B merged + required evidence -> H1 may become CLOSED
 
 ---
 
-# 1. Baseline and execution preconditions
+## 1. Baseline and execution preconditions
 
 M5A MUST NOT branch from the M4 PR head.
 
@@ -204,9 +204,9 @@ If M4 is merged by explicit owner override without the normal review/final-CI ga
 
 ---
 
-# 2. M5A capability boundary
+## 2. M5A capability boundary
 
-## 2.1 Input seam
+### 2.1 Input seam
 
 M5A consumes a Host established by M4:
 
@@ -247,9 +247,9 @@ managed Host provenance
 → new BootstrapOwnershipLease HELD
 ```
 
-## 2.2 Successful output seams
+### 2.2 Successful output seams
 
-### Restart operation
+#### Restart operation
 
 ```text
 old Host token A          = revoked
@@ -265,7 +265,7 @@ old managed Host context  = terminal / unusable
 
 `BootId` MAY remain the same for an in-process PostgreSQL maintenance restart. `HostOwnershipToken` MUST change.
 
-### Stop-and-exit operation
+#### Stop-and-exit operation
 
 ```text
 old Host token            = revoked
@@ -276,7 +276,7 @@ bootstrap lock            = RELEASED after no further mutation remains
 normal Host Authority     = absent by design because the process is shutting down
 ```
 
-### Keep-PostgreSQL-running shutdown
+#### Keep-PostgreSQL-running shutdown
 
 This is not a destructive maintenance window:
 
@@ -289,7 +289,7 @@ quiesce consequential runtime
 
 The token may remain in the fence as historical state, but without a live Host lease it is not Authority. A later Bootstrap Closure publishes a fresh token before normal writes resume.
 
-## 2.3 Explicit non-goals
+### 2.3 Explicit non-goals
 
 M5A does NOT implement:
 
@@ -315,9 +315,9 @@ M5A does NOT implement:
 
 ---
 
-# 3. Fixed Authority chain
+## 3. Fixed Authority chain
 
-## 3.1 Reverse handoff entry
+### 3.1 Reverse handoff entry
 
 The successful entry sequence is fixed:
 
@@ -339,7 +339,7 @@ Host lease ACTIVE + token A current
 
 At no point on the successful path may both Authorities be absent while the operation continues.
 
-## 3.2 Why revocation uses bootstrap-admin, not HostLeaseConnection.query()
+### 3.2 Why revocation uses bootstrap-admin, not HostLeaseConnection.query()
 
 Do **not** implement normal reverse-handoff revocation by executing the `FOR UPDATE` transaction through the dedicated Host lease connection.
 
@@ -357,7 +357,7 @@ for token revocation.
 
 The Host lease remains held as the other side of the overlap until revocation has committed. The revocation function must not expose a general bootstrap SQL API; it is one fixed fence mutation.
 
-## 3.3 Point of no return
+### 3.3 Point of no return
 
 Define:
 
@@ -393,7 +393,7 @@ enters RECOVERY_REQUIRED / UNCERTAIN
 
 M5B later owns recovery after process death.
 
-## 3.4 Expected SQL revocation semantics
+### 3.4 Expected SQL revocation semantics
 
 The fixed revocation transaction is conceptually:
 
@@ -429,7 +429,7 @@ COMMIT;
 
 Never convert `ownership_revision` to JS `number`; compare using decimal-string/`BigInt` semantics.
 
-## 3.5 Already-entered transaction serialization
+### 3.5 Already-entered transaction serialization
 
 Future H2A mutating transactions will hold a shared/read-compatible fence lock for the transaction lifetime. M5A must already prove the inverse side:
 
@@ -445,9 +445,9 @@ This is a real-PostgreSQL M5A qualification scenario.
 
 ---
 
-# 4. MaintenanceJournal design
+## 4. MaintenanceJournal design
 
-## 4.1 Journal is separate from BootstrapJournal
+### 4.1 Journal is separate from BootstrapJournal
 
 `BootstrapJournal` remains per-BootId early observability.
 
@@ -455,7 +455,7 @@ This is a real-PostgreSQL M5A qualification scenario.
 
 Do not merge them.
 
-## 4.2 Storage layout
+### 4.2 Storage layout
 
 Use the logical Instance root:
 
@@ -469,17 +469,15 @@ Use the logical Instance root:
 
 The journal path is not user configuration.
 
-## 4.3 Stable v1 body
+### 4.3 Stable v1 body
 
 Implement a bounded V1 contract along these lines:
 
 ```ts
-export type MaintenanceOperationId =
-  UuidV7Id<"MaintenanceOperationId">;
+export type MaintenanceOperationId = UuidV7Id<"MaintenanceOperationId">;
 
 export type MaintenanceOperationType =
-  | "PRIVATE_POSTGRES_RESTART"
-  | "PRIVATE_POSTGRES_STOP";
+  "PRIVATE_POSTGRES_RESTART" | "PRIVATE_POSTGRES_STOP";
 
 export type MaintenanceStage =
   | "BOOTSTRAP_OWNERSHIP_ACQUIRED"
@@ -495,10 +493,7 @@ export type MaintenanceStage =
   | "RECOVERY_REQUIRED";
 
 export type MaintenanceTerminalOutcome =
-  | "SUCCEEDED"
-  | "ABORTED"
-  | "FAILED"
-  | "UNCERTAIN";
+  "SUCCEEDED" | "ABORTED" | "FAILED" | "UNCERTAIN";
 
 export interface MaintenanceJournalBodyV1 {
   readonly schemaVersion: 1;
@@ -525,8 +520,7 @@ export interface MaintenanceJournalBodyV1 {
 
   readonly verifiedPrerequisites: {
     readonly bootstrapStateDigest: Sha256Digest;
-    readonly privatePostgresInitializationProfileRevision:
-      PrivatePostgresInitializationProfileRevision;
+    readonly privatePostgresInitializationProfileRevision: PrivatePostgresInitializationProfileRevision;
   };
 
   readonly lastCompletedStage: MaintenanceStage;
@@ -561,7 +555,7 @@ absolute sensitive path
 arbitrary diagnostic object
 ```
 
-## 4.4 Envelope / integrity
+### 4.4 Envelope / integrity
 
 Use:
 
@@ -578,7 +572,7 @@ A newer unsupported schema must fail explicitly.
 
 Corrupt current with valid previous may recover previous and surface the integrity Problem, following the established BootstrapState pattern.
 
-## 4.5 BootstrapState pointer
+### 4.5 BootstrapState pointer
 
 Reuse the already-existing `BootstrapStateBodyV2.lastCommittedOperationRef`.
 
@@ -609,7 +603,7 @@ Do not introduce BootstrapState V3 merely for M5A.
 
 Do not repurpose `lastCompletedStageRef` unless an existing authoritative contract is found during execution that requires it. `MaintenanceJournal` itself owns maintenance stage truth.
 
-## 4.6 Two-phase finalization across bootstrap-lock release
+### 4.6 Two-phase finalization across bootstrap-lock release
 
 `MaintenanceJournal` and `proper-lockfile.release()` cannot be committed atomically. M5A MUST model that fact rather than manufacture an atomicity guarantee.
 
@@ -656,9 +650,9 @@ This is deliberately a write-ahead/reconciliation protocol. Do not add a second 
 
 ---
 
-# 5. Process-local capability model
+## 5. Process-local capability model
 
-## 5.1 Do not return the raw M4 close capability as the normal Host shell
+### 5.1 Do not return the raw M4 close capability as the normal Host shell
 
 M5A should evolve `bootstrap-runtime` so the normal Bootstrap Closure returns a managed Host view rather than handing callers the raw low-level `HostOwnershipContext.close()` orchestration primitive.
 
@@ -679,9 +673,7 @@ export interface BootstrapManagedHostContext {
     request: PrivatePostgresMaintenanceRequest,
   ): Promise<PreparedPrivatePostgresMaintenance>;
 
-  shutdownKeepingPrivatePostgres(
-    quiescence: HostMaintenanceQuiescence,
-  ): Promise<void>;
+  shutdownKeepingPrivatePostgres(quiescence: HostMaintenanceQuiescence): Promise<void>;
 }
 ```
 
@@ -689,7 +681,7 @@ The implementation retains the authentic raw M4 context and bootstrap mechanics 
 
 A structurally forged object must be rejected.
 
-## 5.2 Quiescence seam
+### 5.2 Quiescence seam
 
 H2B does not exist yet. M5A must not implement a fake RuntimeReconciler.
 
@@ -721,7 +713,7 @@ M5A tests use a synthetic implementation with an event trace.
 
 H2B later implements this seam using real Runtime Supervisor / resource scopes.
 
-## 5.3 Prepared maintenance capability
+### 5.3 Prepared maintenance capability
 
 Use an explicit process-local capability because post-PONR failures must not lose the bootstrap-ownership handle merely because a Promise rejected.
 
@@ -770,7 +762,7 @@ export interface PreparedPrivatePostgresMaintenance {
 
 Do not expose a generic `executeSql`, `runShell`, `replaceDataRoot`, or arbitrary Recovery verb.
 
-## 5.4 Local state-machine mechanics
+### 5.4 Local state-machine mechanics
 
 The maintenance capability has enough failure-sensitive transitions to justify the already-ADOPTED XState local state-machine route.
 
@@ -782,9 +774,9 @@ Do not leak XState types from public contracts.
 
 ---
 
-# 6. Private PostgreSQL maintenance controller
+## 6. Private PostgreSQL maintenance controller
 
-## 6.1 Do not resurrect ReadyPrivatePostgres
+### 6.1 Do not resurrect ReadyPrivatePostgres
 
 The M4 forward handoff intentionally invalidates the M3 `ReadyPrivatePostgres` lifecycle session.
 
@@ -797,7 +789,7 @@ reuse old stop()/restart()
 weaken ALREADY_RUNNING control denial
 ```
 
-## 6.2 Add a stronger maintenance-only controller
+### 6.2 Add a stronger maintenance-only controller
 
 Inside `@heptalogos/private-postgres`, add a separate existing-cluster maintenance controller whose only Authority input remains a narrow guard callback supplied by `bootstrap-runtime`.
 
@@ -805,12 +797,7 @@ Target semantics:
 
 ```ts
 export interface PrivatePostgresMaintenanceController {
-  readonly state:
-    | "READY"
-    | "STOPPED"
-    | "STARTING"
-    | "STOPPING"
-    | "UNCERTAIN";
+  readonly state: "READY" | "STOPPED" | "STARTING" | "STOPPING" | "UNCERTAIN";
 
   stop(): Promise<void>;
   start(): Promise<void>;
@@ -841,7 +828,7 @@ assert Authority
 → ambiguous: fail/UNCERTAIN
 ```
 
-## 6.3 Reuse lifecycle mechanics rather than duplicate process control
+### 6.3 Reuse lifecycle mechanics rather than duplicate process control
 
 `controller.ts` is already large. Do not copy/paste the pg_ctl status/start/stop/readiness logic.
 
@@ -869,7 +856,7 @@ STOPPED -> READY
 
 Only send it after process status + readiness + cluster/profile validation all succeed.
 
-## 6.4 Restart is stop + start, not pg_ctl restart
+### 6.4 Restart is stop + start, not pg_ctl restart
 
 M5A maintenance restart must expose the durable boundary:
 
@@ -893,9 +880,9 @@ Do not use one opaque `pg_ctl restart` operation for the M5A recovery-aware path
 
 ---
 
-# 7. Failure classification
+## 7. Failure classification
 
-## 7.1 Safe pre-PONR abort
+### 7.1 Safe pre-PONR abort
 
 The operation may abort and return the old Host to service only if:
 
@@ -915,7 +902,7 @@ bootstrap ownership -> RELEASED
 old Host remains current
 ```
 
-## 7.2 Recovery-required conditions
+### 7.2 Recovery-required conditions
 
 At minimum, enter `RECOVERY_REQUIRED` when:
 
@@ -943,7 +930,7 @@ do not release bootstrap ownership merely to make cleanup convenient
 
 If the process subsequently terminates, the abandoned lock + journal is intentionally left for M5B.
 
-## 7.3 Known failure after PONR
+### 7.3 Known failure after PONR
 
 Some failures are known rather than uncertain, e.g.:
 
@@ -957,7 +944,7 @@ The operation remains non-normal and must not resume the old Host. M5A may keep 
 
 ---
 
-# 8. Target repository shape
+## 8. Target repository shape
 
 Expected delta, adjusted to actual implementation as needed:
 
@@ -1030,9 +1017,9 @@ solely for M5A.
 
 ---
 
-# 9. Task-by-task execution plan
+## 9. Task-by-task execution plan
 
-## Task 0 — Reconcile post-M4 baseline and open M5A
+### Task 0 — Reconcile post-M4 baseline and open M5A
 
 **Status: COMPLETE.** Baseline `master` is `c4b54b7dbe888c62b81d28203553c953d5a749c3`; the implementation branch is `dev/m5a-reverse-handoff-maintenance-window`. The canonical Node 24 baseline `pnpm verify` passed before implementation.
 
@@ -1114,7 +1101,7 @@ git commit -m "docs: open Foundation M5A maintenance handoff"
 
 ---
 
-## Task 1 — Add versioned crash-safe MaintenanceJournal
+### Task 1 — Add versioned crash-safe MaintenanceJournal
 
 **Status: COMPLETE.** MaintenanceJournal V1 codec, JCS digest, atomic current/previous store, recovery semantics, and focused tests are implemented in `bootstrap-state`.
 
@@ -1180,10 +1167,7 @@ Use existing Foundation primitives:
 
 ```ts
 createUuidV7Id("MaintenanceOperationId");
-digestCanonicalJson(
-  "heptalogos.maintenance-journal/v1",
-  body,
-);
+digestCanonicalJson("heptalogos.maintenance-journal/v1", body);
 ```
 
 Use TypeBox + Ajv in the same non-mutating profile as existing bootstrap-state codecs:
@@ -1248,7 +1232,7 @@ git commit -m "feat: add crash safe maintenance journal"
 
 ---
 
-## Task 2 — Bind MaintenanceJournal to authentic bootstrap ownership
+### Task 2 — Bind MaintenanceJournal to authentic bootstrap ownership
 
 **Status: COMPLETE.** Fresh maintenance ownership and authority-scoped BootstrapState operation-pointer commits are implemented and tested.
 
@@ -1343,7 +1327,7 @@ git commit -m "feat: bind maintenance journal to bootstrap authority"
 
 ---
 
-## Task 3 — Add managed Host capability and quiescence contract
+### Task 3 — Add managed Host capability and quiescence contract
 
 **Status: COMPLETE.** The managed Host capability, authenticity boundary, local maintenance tracker, and quiescence seam are implemented; raw `close()` is not exposed on the managed contract.
 
@@ -1462,7 +1446,7 @@ git commit -m "feat: add managed host maintenance capability"
 
 ---
 
-## Task 4 — Implement fixed HostOwnershipToken revocation via bootstrap admin
+### Task 4 — Implement fixed HostOwnershipToken revocation via bootstrap admin
 
 **Status: COMPLETE.** Fixed bootstrap-admin revocation transaction, exact fence verification, BigInt-safe revision handling, and uncertainty classification are implemented and tested.
 
@@ -1602,7 +1586,7 @@ git commit -m "feat: revoke host ownership under bootstrap authority"
 
 ---
 
-## Task 5 — Add existing-cluster private-PG maintenance control
+### Task 5 — Add existing-cluster private-PG maintenance control
 
 **Status: COMPLETE.** The maintenance-only existing-cluster controller and shared private-postgres process mechanics are implemented; normal lifecycle and maintenance paths use the same bounded process/readiness primitives.
 
@@ -1709,7 +1693,7 @@ git commit -m "feat: add private postgres maintenance control"
 
 ---
 
-## Task 6 — Prepare and enter the reverse-handoff maintenance window
+### Task 6 — Prepare and enter the reverse-handoff maintenance window
 
 **Status: COMPLETE.** Preparation, quiescence-before-revocation, point-of-no-return handling, safe abort proof, recovery-required handling, and old Host terminalization are implemented and tested.
 
@@ -1838,7 +1822,7 @@ git commit -m "feat: enter bootstrap owned maintenance window"
 
 ---
 
-## Task 7 — Implement stop-private-PostgreSQL-and-exit
+### Task 7 — Implement stop-private-PostgreSQL-and-exit
 
 **Status: COMPLETE.** Stop proof, `POSTGRES_STOPPED`, `BOOTSTRAP_RELEASE_ARMED`, bootstrap release, non-authoritative completion checkpoint, and `{ kind: "STOPPED" }` are implemented and tested.
 
@@ -1903,7 +1887,7 @@ git commit -m "feat: stop private postgres through reverse handoff"
 
 ---
 
-## Task 8 — Implement same-cluster restart and fresh Host reacquisition
+### Task 8 — Implement same-cluster restart and fresh Host reacquisition
 
 **Status: COMPLETE.** Explicit stop→start, same-cluster/profile validation, fresh Host lease/token publication, release ordering, candidate cleanup, and `{ kind: "RESTARTED" }` are implemented and tested.
 
@@ -2015,7 +1999,7 @@ git commit -m "feat: reacquire host after postgres maintenance"
 
 ---
 
-## Task 9 — Fence raw lease release behind quiesced managed shutdown
+### Task 9 — Fence raw lease release behind quiesced managed shutdown
 
 **Status: COMPLETE.** Managed shutdown now proves quiescence before raw lease close and leaves PostgreSQL lifecycle untouched; failure ordering tests are present.
 
@@ -2068,7 +2052,7 @@ git commit -m "fix: require quiescence before host lease shutdown"
 
 ---
 
-## Task 10 — Fault-injection matrix for Authority continuity
+### Task 10 — Fault-injection matrix for Authority continuity
 
 **Status: COMPLETE for deterministic unit seams.** Revocation, maintenance-controller, safe-abort, stop uncertainty, publication failure, and release-order failure seams are covered by deterministic tests. Live PostgreSQL concurrency/failure evidence remains Task 11.
 
@@ -2158,7 +2142,7 @@ git commit -m "test: harden m5a maintenance authority failures"
 
 ---
 
-## Task 11 — Real PostgreSQL 18.6 M5A qualification
+### Task 11 — Real PostgreSQL 18.6 M5A qualification
 
 **Status: COMPLETE for Linux qualification; Windows/macOS remain NOT_RUN.** The explicit PostgreSQL 18.6 bin root was supplied from an extracted Ubuntu 26.04 package qualification root. The three real-PG targets passed: private-postgres 20/20, host-ownership 8/8, and bootstrap-runtime 17/17.
 
@@ -2316,7 +2300,7 @@ git commit -m "test: qualify m5a postgres reverse handoff"
 
 ---
 
-## Task 12 — Boundary enforcement, evidence, roadmap truth, and review gate
+### Task 12 — Boundary enforcement, evidence, roadmap truth, and review gate
 
 **Status: COMPLETE for local and Linux qualification evidence.** Boundary/dependency/repository/corpus checks, full local verification, and Linux PostgreSQL 18.6 qualification are recorded. Independent review, final cross-platform CI, Windows/macOS qualification, and merge remain outstanding.
 
@@ -2449,11 +2433,11 @@ After merge, a subsequent milestone branch may move this plan to completed and o
 
 ---
 
-# 10. Verification command set
+## 10. Verification command set
 
 Before using these commands, confirm the actual post-M4 project targets still match repository `project.json` files.
 
-## Focused units
+### Focused units
 
 ```bash
 pnpm nx run foundation-contracts:test
@@ -2463,7 +2447,7 @@ pnpm nx run host-ownership:test
 pnpm nx run bootstrap-runtime:test
 ```
 
-## Real PostgreSQL
+### Real PostgreSQL
 
 ```bash
 pnpm nx run private-postgres:test:integration
@@ -2471,7 +2455,7 @@ pnpm nx run host-ownership:test:integration
 pnpm nx run bootstrap-runtime:test:integration
 ```
 
-## Permanent gates
+### Permanent gates
 
 ```bash
 pnpm check:corpus
@@ -2482,7 +2466,7 @@ pnpm format:check
 pnpm verify
 ```
 
-## Claim boundaries
+### Claim boundaries
 
 Unit/mocked evidence MAY prove:
 
@@ -2518,7 +2502,7 @@ from unit or in-process integration tests. Those are M5B claims.
 
 ---
 
-# 11. M5A acceptance matrix
+## 11. M5A acceptance matrix
 
 Required before calling the implementation candidate ready for independent review:
 
@@ -2561,7 +2545,7 @@ Milestone merge additionally follows repository review/final-CI governance.
 
 ---
 
-# 12. STOP conditions
+## 12. STOP conditions
 
 Stop execution and return to architecture review if implementation appears to require any of the following:
 
@@ -2587,7 +2571,7 @@ Stop execution and return to architecture review if implementation appears to re
 
 ---
 
-# 13. Successor contract: M5B — Bounded Bootstrap Recovery & H1 Closure
+## 13. Successor contract: M5B — Bounded Bootstrap Recovery & H1 Closure
 
 M5A must leave the following durable inputs for M5B:
 
@@ -2628,7 +2612,7 @@ Only after M5B closes the remaining H1 scenarios may the roadmap authorize paral
 
 ---
 
-# 14. Recommended commit sequence
+## 14. Recommended commit sequence
 
 Prefer behaviorally meaningful commits:
 
@@ -2654,7 +2638,7 @@ Do not create dozens of mechanical “file added” commits.
 
 ---
 
-# 15. Execution record template
+## 15. Execution record template
 
 Do not fill PASS until executed.
 

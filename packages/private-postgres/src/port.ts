@@ -1,5 +1,12 @@
+/**
+ * Validates configured PostgreSQL port values against the platform and
+ * PostgreSQL range contract before process startup is attempted.
+ * @module port
+ */
+
 import { createProblemError } from "@heptalogos/foundation-contracts";
 
+/** Validates a private PostgreSQL port against the configured range. */
 export function assertPrivatePostgresPort(port: number): void {
   if (Number.isInteger(port) && port >= 1 && port <= 65535) return;
   throw createProblemError({

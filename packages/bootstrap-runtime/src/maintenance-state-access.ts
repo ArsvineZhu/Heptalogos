@@ -1,3 +1,9 @@
+/**
+ * Opens bounded access to maintenance state under the current Bootstrap
+ * authority, preventing cleanup code from bypassing the durable store owner.
+ * @module maintenance-state-access
+ */
+
 import {
   MaintenanceJournalStore,
   maintenanceOperationRef,
@@ -19,9 +25,11 @@ import {
 import type { BootstrapPathProfile } from "./roots.js";
 import { createProblemError, ProblemError } from "@heptalogos/foundation-contracts";
 
+/** Couples the maintenance journal and current BootstrapState to one lease. */
 export interface OwnedMaintenanceStateAccess {
   readonly journal: MaintenanceJournalStore;
   readonly state: OwnedBootstrapStateStore;
+  /** Commits the current operation pointer only after identity checks pass. */
   commitOperationPointer(
     operationId: MaintenanceOperationId,
   ): Promise<BootstrapStateEnvelopeV1>;
@@ -89,6 +97,7 @@ function requireCurrentPrivatePostgresState(
   return loaded.value as CurrentPrivatePostgresStateEnvelope;
 }
 
+/** Opens lease-bound maintenance state access and verifies current authority. */
 export function openMaintenanceStateAccess(
   profile: BootstrapPathProfile,
   lease: BootstrapOwnershipLease,

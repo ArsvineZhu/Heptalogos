@@ -1,12 +1,20 @@
+/**
+ * Encapsulates Host lease lifecycle transitions with XState while projecting
+ * only Heptalogos ownership and fence semantics to the package boundary.
+ * @module host-lease-machine
+ */
+
 import { initialTransition, setup, transition, type SnapshotFrom } from "xstate";
 import {
   createProblemError,
   type ProblemError,
 } from "@heptalogos/foundation-contracts";
 
+/** Enumerates Host lease lifecycle states exposed by the adapter. */
 export type HostLeaseLifecycleState =
   "ACQUIRING" | "ACTIVE" | "FENCED" | "CLOSING" | "CLOSED";
 
+/** Describes a legal Host lease lifecycle event. */
 export type HostLeaseLifecycleEvent =
   | { readonly type: "LEASE_ACQUIRED" }
   | { readonly type: "ACQUISITION_FAILED" }
@@ -15,9 +23,12 @@ export type HostLeaseLifecycleEvent =
   | { readonly type: "CLOSE_FAILED" }
   | { readonly type: "CLOSED" };
 
+/** Provides state queries and validated transitions for a Host lease. */
 export interface HostLeaseLifecycleTracker {
   readonly state: HostLeaseLifecycleState;
+  /** Reports whether an event is legal in the current lease state. */
   can(event: HostLeaseLifecycleEvent): boolean;
+  /** Advances the lifecycle or throws a typed transition Problem. */
   send(event: HostLeaseLifecycleEvent): void;
 }
 
@@ -101,6 +112,7 @@ function sendHostLeaseEvent(
   return advanceHostLeaseSnapshot(snapshot, event);
 }
 
+/** Creates the XState-backed Host lease lifecycle tracker. */
 export function createHostLeaseLifecycleTracker(): HostLeaseLifecycleTracker {
   let snapshot = initialTransition(hostLeaseMachine)[0];
 

@@ -1,3 +1,9 @@
+/**
+ * Implements the Host-fenced WorkItem repository and its canonical state
+ * mutations, keeping SQL/Kysely details behind the Foundation integration seam.
+ * @module repository
+ */
+
 import {
   canonicalizeJson,
   formatInstant,
@@ -106,11 +112,13 @@ const WORK_ITEM_STATES = new Set<WorkItemState>([
 
 type WorkItemMutationStatus = "APPLIED" | "STALE" | "NOT_FOUND" | "TERMINAL";
 
+/** Reports an optimistic-concurrency mutation and its current canonical item. */
 export interface WorkItemMutationResult {
   readonly status: WorkItemMutationStatus;
   readonly item?: WorkItem;
 }
 
+/** Reports whether insert-or-deduplicate created or reused a canonical item. */
 export interface WorkItemInsertResult {
   readonly status: "INSERTED" | "EXISTING";
   readonly item: WorkItem;
@@ -123,6 +131,7 @@ interface WorkItemInsertOptions {
   ) => Promise<void>;
 }
 
+/** Stable `(createdAt, workItemId)` cursor used for fair bounded scans. */
 export interface WorkItemScanCursor {
   readonly createdAt: Instant;
   readonly workItemId: WorkItemId;
@@ -200,43 +209,61 @@ interface CommitTerminalInput {
   readonly onApplied?: MutationAppliedHook;
 }
 
+/** Runs side effects inside the same mutation transaction after an applied change. */
 export type MutationAppliedHook = (
   transaction: PersistenceMutationTransactionContext,
   item: WorkItem,
 ) => Promise<void>;
 
+/** Foundation-backed owner of all canonical WorkItem reads and state mutations. */
 export interface WorkQueueRepository {
+  /** Insert a new item or return the existing non-terminal deduplication match. */
   insertWorkItem(
     item: WorkItem,
     options?: WorkItemInsertOptions,
   ): Promise<WorkItemInsertResult>;
+  /** Read one item by its stable identity. */
   getWorkItem(workItemId: WorkItemId): Promise<WorkItem | undefined>;
+  /** Find a non-terminal item matching the handler-scoped deduplication key. */
   findNonTerminalDedup(lookup: WorkItemDedupLookup): Promise<WorkItem | undefined>;
+  /** Capture the upper cursor bound for a projection scan. */
   snapshotProjectionCeiling(): Promise<WorkItemScanCursor | undefined>;
+  /** Read one fair page of pending projection candidates through the bound. */
   listProjectionCandidates(input: {
     readonly after?: WorkItemScanCursor;
     readonly through: WorkItemScanCursor;
     readonly limit: number;
   }): Promise<readonly WorkItem[]>;
+  /** Read retry-wait items whose not-before instant has arrived. */
   listDueRetry(input: {
     readonly now: Instant;
     readonly limit: number;
   }): Promise<readonly WorkItem[]>;
+  /** Capture the upper cursor bound for dependency-waiting scans. */
   snapshotWaitingDependencyCeiling(): Promise<WorkItemScanCursor | undefined>;
+  /** Read one fair page of dependency-waiting items through the bound. */
   listWaitingDependency(input: {
     readonly after?: WorkItemScanCursor;
     readonly through: WorkItemScanCursor;
     readonly limit: number;
   }): Promise<readonly WorkItem[]>;
+  /** Claim a pending item for the exact dispatch attempt and revision. */
   markRunning(input: MarkRunningInput): Promise<WorkItemMutationResult>;
+  /** Move a dispatch back to dependency waiting under optimistic fencing. */
   markWaitingDependency(
     input: MarkWaitingDependencyInput,
   ): Promise<WorkItemMutationResult>;
+  /** Wake a dependency-waiting item when its exact revision is still current. */
   wakeDependency(input: WakeDependencyInput): Promise<WorkItemMutationResult>;
+  /** Persist retry classification and the next eligible dispatch time. */
   markRetryWait(input: MarkRetryWaitInput): Promise<WorkItemMutationResult>;
+  /** Wake an eligible retry item without accepting stale revisions. */
   wakeDueRetry(input: WakeDueRetryInput): Promise<WorkItemMutationResult>;
+  /** Record a cancellation request for a still-live item. */
   requestCancel(input: RequestCancelInput): Promise<WorkItemMutationResult>;
+  /** Record that a still-live item has been replaced by another item. */
   requestSupersede(input: RequestSupersedeInput): Promise<WorkItemMutationResult>;
+  /** Commit one bounded terminal outcome with revision and attempt fencing. */
   commitTerminal(input: CommitTerminalInput): Promise<WorkItemMutationResult>;
 }
 
@@ -820,6 +847,7 @@ function serializeItem(item: WorkItem): readonly unknown[] {
 
 const INSERT_COLUMNS = WORK_ITEM_COLUMNS.replaceAll("\n", "").replaceAll("  ", "");
 
+/** Create the Foundation-owned WorkQueue repository over the supplied persistence service. */
 export function createWorkQueueRepository(
   persistence: PersistenceService,
 ): WorkQueueRepository {

@@ -1,5 +1,12 @@
+/**
+ * Owns deterministic JSON canonicalization used by digests and durable
+ * envelopes so equivalent values produce identical persisted bytes.
+ * @module canonical-json
+ */
+
 import canonicalize from "canonicalize";
 
+/** Describes the recursively supported JSON value domain for canonicalization. */
 export type CanonicalJsonValue =
   | null
   | boolean
@@ -8,6 +15,7 @@ export type CanonicalJsonValue =
   | readonly CanonicalJsonValue[]
   | { readonly [key: string]: CanonicalJsonValue };
 
+/** Captures canonical bytes and their detached immutable value snapshot. */
 export interface CanonicalJsonSnapshot {
   readonly value: CanonicalJsonValue;
   readonly canonical: string;
@@ -53,6 +61,7 @@ function assertCanonicalJsonValue(value: unknown, path: string): void {
   throw new TypeError(`unsupported canonical JSON value at ${path}`);
 }
 
+/** Serializes a validated JSON value using the adopted canonicalization route. */
 export function canonicalizeJson(value: CanonicalJsonValue): string {
   assertCanonicalJsonValue(value, "$.");
   const serialized = canonicalize(value);
@@ -74,6 +83,7 @@ function deepFreeze(value: CanonicalJsonValue): CanonicalJsonValue {
   return value;
 }
 
+/** Canonicalizes and freezes a value for stable reuse and digest computation. */
 export function snapshotCanonicalJson(
   value: CanonicalJsonValue,
 ): CanonicalJsonSnapshot {

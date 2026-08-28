@@ -1,3 +1,9 @@
+/**
+ * Encodes and decodes the Bootstrap owner witness with canonical bytes and
+ * digest validation so recovery can distinguish authentic durable evidence.
+ * @module bootstrap-owner-witness-codec
+ */
+
 import {
   canonicalizeJson,
   createProblem,
@@ -19,6 +25,7 @@ import type {
   BootstrapOwnerWitnessParseResult,
 } from "./bootstrap-owner-witness-model.js";
 
+/** Names the digest domain so owner witness bytes cannot be reused elsewhere. */
 export const BOOTSTRAP_OWNER_WITNESS_DIGEST_DOMAIN =
   "heptalogos.bootstrap-owner-witness/v1";
 
@@ -75,6 +82,7 @@ function hasValidIdentities(witness: BootstrapOwnerWitnessBodyV1): boolean {
   );
 }
 
+/** Seals an owner witness with the canonical domain-separated digest. */
 export function sealBootstrapOwnerWitness(
   witness: BootstrapOwnerWitnessBodyV1,
 ): BootstrapOwnerWitnessEnvelopeV1 {
@@ -85,6 +93,7 @@ export function sealBootstrapOwnerWitness(
   return { witness, digest };
 }
 
+/** Parses, validates, and authenticates one persisted owner witness. */
 export function parseBootstrapOwnerWitness(
   text: string,
 ): BootstrapOwnerWitnessParseResult {
@@ -145,6 +154,7 @@ export function parseBootstrapOwnerWitness(
   return { ok: true, value: envelope };
 }
 
+/** Returns canonical JSON text for a validated owner witness envelope. */
 export function canonicalBootstrapOwnerWitnessText(
   envelope: BootstrapOwnerWitnessEnvelopeV1,
 ): string {

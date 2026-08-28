@@ -18,22 +18,22 @@
 
 ## B. Adopted-role Conformance Evidence
 
-| ID               | Route                                         | Evidence state                  | Blocking selection?                         |
-| ---------------- | --------------------------------------------- | ------------------------------- | ------------------------------------------- |
-| C-TOOLCHAIN-01   | Node24/pnpm11/Nx23/TS7 primary + TS6 API lane | CLOSED                          | no                                          |
-| C-SCHEMA-01      | canonicalize + typebox/Ajv                    | CLOSED                          | no                                          |
-| C-MGMT-01        | Hey API                                       | PARTIAL                         | no; implementation conformance              |
-| C-CLI-01         | oclif                                         | PARTIAL                         | no; platform/product conformance            |
-| C-NET-01         | Node/Undici                                   | PARTIAL                         | no; provider/product conformance            |
-| C-STORAGE-FS-01  | fs/path + write-file-atomic + Chokidar        | PARTIAL                         | no; platform/product conformance            |
-| C-SESSION-01     | opaque token + PostgreSQL session state       | PARTIAL                         | no; real implementation/security projection |
-| C-CONFIG-TOML-01 | js-toml                                       | CLOSED                          | no                                          |
-| Q-RUNTIME-01     | cordis lifecycle evidence                     | current route property evidence | no                                          |
-| Q-ASYNC-01       | DBOS Queue evidence                           | current route property evidence | no                                          |
-| Q-MSG-01         | protocol mapping evidence                     | current route property evidence | no                                          |
-| Q-POLICY-01      | Cedar fail-closed evidence                    | current route property evidence | no                                          |
-| Q-SECRET-01      | SecretBackend contract evidence               | current route property evidence | no                                          |
-| Q-BOOT-01        | lock/process/recovery evidence                | current route property evidence | no                                          |
+| ID               | Route                                                                                                 | Evidence state                  | Blocking selection?                         |
+| ---------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------------------------- |
+| C-TOOLCHAIN-01   | Node24/pnpm11/Nx23/TS7 primary + TS6 API lane + source docs lint/TypeDoc declaration-first projection | CLOSED                          | no                                          |
+| C-SCHEMA-01      | canonicalize + typebox/Ajv                                                                            | CLOSED                          | no                                          |
+| C-MGMT-01        | Hey API                                                                                               | PARTIAL                         | no; implementation conformance              |
+| C-CLI-01         | oclif                                                                                                 | PARTIAL                         | no; platform/product conformance            |
+| C-NET-01         | Node/Undici                                                                                           | PARTIAL                         | no; provider/product conformance            |
+| C-STORAGE-FS-01  | fs/path + write-file-atomic + Chokidar                                                                | PARTIAL                         | no; platform/product conformance            |
+| C-SESSION-01     | opaque token + PostgreSQL session state                                                               | PARTIAL                         | no; real implementation/security projection |
+| C-CONFIG-TOML-01 | js-toml                                                                                               | CLOSED                          | no                                          |
+| Q-RUNTIME-01     | cordis lifecycle evidence                                                                             | current route property evidence | no                                          |
+| Q-ASYNC-01       | DBOS Queue evidence                                                                                   | current route property evidence | no                                          |
+| Q-MSG-01         | protocol mapping evidence                                                                             | current route property evidence | no                                          |
+| Q-POLICY-01      | Cedar fail-closed evidence                                                                            | current route property evidence | no                                          |
+| Q-SECRET-01      | SecretBackend contract evidence                                                                       | current route property evidence | no                                          |
+| Q-BOOT-01        | lock/process/recovery evidence                                                                        | current route property evidence | no                                          |
 
 当前 property ledger 见 `results/qualification-status.json`。`NOT_RUN` 可以合法表示 implementation/L3 property 尚未执行；它不自动把 `RoleDecision` 退回候选态。
 

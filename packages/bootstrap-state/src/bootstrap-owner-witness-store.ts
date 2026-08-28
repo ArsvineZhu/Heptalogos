@@ -1,3 +1,9 @@
+/**
+ * Owns the local durable Bootstrap owner witness store and its bounded cleanup
+ * path, keeping filesystem mutation behind the BootstrapState package boundary.
+ * @module bootstrap-owner-witness-store
+ */
+
 import { mkdir, readFile, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { createProblemError, ProblemError } from "@heptalogos/foundation-contracts";
@@ -72,21 +78,25 @@ function requireValidEnvelope(
   return parsed.value;
 }
 
+/** Stores owner, attempt, and releasing witnesses under one instance root. */
 export class BootstrapOwnerWitnessStore {
   private readonly ownerPath: string;
   private readonly attemptsPath: string;
   private readonly releasingPath: string;
 
+  /** Binds this store to the canonical instance lifecycle root. */
   constructor(private readonly instanceRoot: string) {
     this.ownerPath = join(instanceRoot, OWNER_FILENAME);
     this.attemptsPath = join(instanceRoot, ATTEMPT_DIRECTORY);
     this.releasingPath = join(instanceRoot, RELEASING_DIRECTORY);
   }
 
+  /** Reads the currently published owner witness, if one exists. */
   async readOwner(): Promise<BootstrapOwnerWitnessEnvelopeV1 | undefined> {
     return this.readOptional(this.ownerPath);
   }
 
+  /** Publishes an OWNER witness and verifies the exact durable reload. */
   async publishOwner(
     witness: BootstrapOwnerWitnessBodyV1,
   ): Promise<BootstrapOwnerWitnessEnvelopeV1> {
@@ -106,6 +116,7 @@ export class BootstrapOwnerWitnessStore {
     return reloaded;
   }
 
+  /** Publishes an ATTEMPT witness before provider lock acquisition. */
   async createAttempt(
     witness: BootstrapOwnerWitnessBodyV1,
   ): Promise<BootstrapOwnerWitnessEnvelopeV1> {
@@ -115,6 +126,7 @@ export class BootstrapOwnerWitnessStore {
     return (await this.publishWitness(path, witness)).reloaded;
   }
 
+  /** Lists and validates all outstanding ATTEMPT witnesses. */
   async listAttempts(): Promise<readonly BootstrapOwnerWitnessEnvelopeV1[]> {
     const witnesses = await Promise.all(
       (await jsonFileNames(this.attemptsPath)).map(async (name) => {
@@ -125,6 +137,7 @@ export class BootstrapOwnerWitnessStore {
     return witnesses;
   }
 
+  /** Publishes a RELEASING witness before removing the current owner. */
   async publishReleasing(
     witness: BootstrapOwnerWitnessBodyV1 & { readonly phase: "RELEASING" },
   ): Promise<BootstrapOwnerWitnessEnvelopeV1> {
@@ -159,6 +172,7 @@ export class BootstrapOwnerWitnessStore {
     return { validated, reloaded };
   }
 
+  /** Lists and validates witnesses left by interrupted release. */
   async listReleasing(): Promise<readonly BootstrapOwnerWitnessEnvelopeV1[]> {
     const witnesses = await Promise.all(
       (await jsonFileNames(this.releasingPath)).map(async (name) => {
@@ -171,10 +185,12 @@ export class BootstrapOwnerWitnessStore {
     return witnesses;
   }
 
+  /** Removes a releasing witness after its owner transition is complete. */
   async removeReleasing(lockGenerationId: BootstrapLockGenerationId): Promise<void> {
     await rm(this.releasingPathFor(lockGenerationId), { force: true });
   }
 
+  /** Removes the current owner only when its generation still matches. */
   async removeCurrentOwnerWhileHeld(
     lockGenerationId: BootstrapLockGenerationId,
   ): Promise<void> {
@@ -192,6 +208,7 @@ export class BootstrapOwnerWitnessStore {
     await rm(this.ownerPath, { force: true });
   }
 
+  /** Removes one failed or completed ownership attempt witness. */
   async removeAttempt(lockGenerationId: BootstrapLockGenerationId): Promise<void> {
     await rm(this.attemptPath(lockGenerationId), { force: true });
   }

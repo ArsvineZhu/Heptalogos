@@ -1,3 +1,9 @@
+/**
+ * Runs the approved PostgreSQL subprocess commands through Execa and enforces
+ * bounded, argument-safe process execution behind the adapter boundary.
+ * @module process-adapter
+ */
+
 import { execa } from "execa";
 import { isAbsolute } from "node:path";
 import {
@@ -7,12 +13,14 @@ import {
 } from "@heptalogos/foundation-contracts";
 import { hasNodeErrorCode } from "./error-code.js";
 
+/** Normalized result returned by an approved PostgreSQL subprocess. */
 export interface PostgresProcessResult {
   readonly exitCode: number;
   readonly stdout: string;
   readonly stderr: string;
 }
 
+/** Bounds process execution and controls its sanitized environment. */
 export interface PostgresProcessOptions {
   readonly cwd?: string;
   readonly timeoutMs: number;
@@ -74,6 +82,7 @@ function cleanChildEnvironment(
   );
 }
 
+/** Runs one PostgreSQL tool with shell-free arguments and bounded failure mapping. */
 export async function runPostgresTool(
   executable: string,
   args: readonly string[],

@@ -1,3 +1,10 @@
+/**
+ * Provides Bootstrap-specific Problem-code classification while retaining the
+ * shared Foundation Problem envelope as the error Authority.
+ * @module problem-code
+ */
+
+/** Extracts a Foundation Problem code from an unknown caught value. */
 export function problemCodeOf(error: unknown): string | undefined {
   if (typeof error !== "object" || error === null || !("problem" in error)) {
     return undefined;

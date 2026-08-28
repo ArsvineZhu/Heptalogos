@@ -1,3 +1,9 @@
+/**
+ * Provides the shared YAML parsing seam for workspace and workflow inspection,
+ * preserving parser diagnostics instead of using line-oriented approximations.
+ * @module yaml
+ */
+
 import { readFileSync } from "node:fs";
 import { parseDocument } from "yaml";
 
@@ -7,6 +13,7 @@ function assertYamlText(text, label) {
   }
 }
 
+/** Parse strict YAML through the shared parser and preserve useful diagnostics. */
 export function parseYaml(text, label = "YAML") {
   assertYamlText(text, label);
   const document = parseDocument(text, {
@@ -23,6 +30,7 @@ export function parseYaml(text, label = "YAML") {
   return document.toJS({ mapAsMap: false });
 }
 
+/** Read and strictly parse one YAML file from disk. */
 export function readYamlFile(path) {
   return parseYaml(readFileSync(path, "utf8"), path);
 }

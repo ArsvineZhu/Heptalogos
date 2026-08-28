@@ -6,7 +6,7 @@
 
 **Goal:** Extend the proven M2 pre-PostgreSQL bootstrap substrate so that a bootstrap owner can safely initialize or validate one private PostgreSQL 18 cluster for its Instance, persist portable cluster identity, start/verify/stop/restart the exact cluster, and expose a `ReadyPrivatePostgres` handoff seam without yet granting Host ownership or normal canonical mutation authority.
 
-**Roadmap Position:** H1 — *Own the Machine*, second implementation milestone after M2. **M3 does not close H1.** M4 will establish PostgreSQL advisory Host lease + `HostOwnershipFence` + `HostOwnershipToken` and forward handoff. M5 will close reverse handoff and bounded bootstrap Recovery.
+**Roadmap Position:** H1 — _Own the Machine_, second implementation milestone after M2. **M3 does not close H1.** M4 will establish PostgreSQL advisory Host lease + `HostOwnershipFence` + `HostOwnershipToken` and forward handoff. M5 will close reverse handoff and bounded bootstrap Recovery.
 
 **Architecture:** Add a narrow `@heptalogos/private-postgres` mechanics package below `@heptalogos/bootstrap-runtime`. The mechanics package owns explicit PostgreSQL toolchain resolution/validation, subprocess invocation through Execa, safe cluster initialization/inspection, bounded lifecycle control, and PostgreSQL-specific diagnostics; it does **not** own BootstrapState, bootstrap ownership, Host authority, Recovery policy, normal Persistence, or product migrations. `@heptalogos/bootstrap-runtime` remains the orchestration/Authority layer: it holds the authentic M2 bootstrap ownership capability, resolves logical roots, obtains bootstrap credential material through a minimal `BootstrapKeyProvider`, commits BootstrapState V2, journals stages, and returns `ReadyPrivatePostgres` while keeping bootstrap ownership held.
 
@@ -53,7 +53,7 @@
 
 ---
 
-# 1. M3 Capability Boundary
+## 1. M3 Capability Boundary
 
 M3 must prove this closed executable chain:
 
@@ -101,7 +101,7 @@ It does **not** mean:
 
 ---
 
-# 2. Global Constraints
+## 2. Global Constraints
 
 - Start from the actual current `master`. At plan authoring time it is `fdc2af95e4c90b6ca0093ab96fd72a808e05ed57`. If `master` moved, inspect the intervening commits before proceeding; never reset or overwrite user work just to reproduce this SHA.
 - Canonical feature branch: `dev/m3-private-postgresql-bootstrap`.
@@ -141,7 +141,8 @@ rootId = DATA
 relativePath = private-postgres
 ```
 
-  `private-postgres` is an `IMPLEMENTATION_CONSTANT` for this layout version, not an inferred common-parent path.
+`private-postgres` is an `IMPLEMENTATION_CONSTANT` for this layout version, not an inferred common-parent path.
+
 - The initial port is `INSTALLATION_CONFIG` supplied explicitly to the M3 bootstrap call. There is no hardcoded default port and no automatic “pick any free port” behavior in M3.
 - PostgreSQL startup is loopback-only. M3 does not expose PostgreSQL on wildcard/external addresses.
 - Secret plaintext must not enter:
@@ -167,7 +168,7 @@ relativePath = private-postgres
 
 ---
 
-# 3. Explicit Non-Goals
+## 3. Explicit Non-Goals
 
 M3 MUST NOT implement or materialize:
 
@@ -204,7 +205,7 @@ If correctness appears to require any item above, STOP and report the dependency
 
 ---
 
-# 4. STOP Conditions
+## 4. STOP Conditions
 
 STOP implementation and return to architecture/plan review if any of the following becomes true:
 
@@ -222,7 +223,7 @@ STOP implementation and return to architecture/plan review if any of the followi
 
 ---
 
-# 5. Target Repository Shape
+## 5. Target Repository Shape
 
 After M3, the intended shape is:
 
@@ -279,11 +280,11 @@ Do not create an `apps/host`, persistence package, DBOS package, Runtime Kernel 
 
 ---
 
-# 6. Public/Internal Interface Contract
+## 6. Public/Internal Interface Contract
 
 The executor may refine private helper names, but the following semantic boundaries are fixed.
 
-## 6.1 `@heptalogos/private-postgres`
+### 6.1 `@heptalogos/private-postgres`
 
 `packages/private-postgres/src/contracts.ts`:
 
@@ -352,7 +353,7 @@ export interface ReadyPrivatePostgresMechanics {
 
 `ReadyPrivatePostgresMechanics` is an internal Foundation mechanics handle, not Host Authority.
 
-## 6.2 `BootstrapKeyProvider`
+### 6.2 `BootstrapKeyProvider`
 
 `packages/bootstrap-runtime/src/bootstrap-key-provider.ts`:
 
@@ -380,15 +381,12 @@ export interface BootstrapKeyProvider {
 
 The callback shape is deliberate: callers receive plaintext only for a bounded in-memory lifetime. M3 provides only test/fake implementations. No production OS keyring backend is added.
 
-## 6.3 BootstrapState V2
+### 6.3 BootstrapState V2
 
 `packages/bootstrap-state/src/model.ts` adds:
 
 ```ts
-import type {
-  InstallationId,
-  InstanceId,
-} from "@heptalogos/foundation-contracts";
+import type { InstallationId, InstanceId } from "@heptalogos/foundation-contracts";
 import type { ContentDigest } from "@heptalogos/foundation-contracts";
 
 export type PrivatePostgresInitializationProfileRevision =
@@ -428,7 +426,8 @@ export interface BootstrapStateEnvelopeV2 {
 }
 
 export type BootstrapStateBody = BootstrapStateBodyV1 | BootstrapStateBodyV2;
-export type BootstrapStateEnvelope = BootstrapStateEnvelopeV1 | BootstrapStateEnvelopeV2;
+export type BootstrapStateEnvelope =
+  BootstrapStateEnvelopeV1 | BootstrapStateEnvelopeV2;
 ```
 
 Rules:
@@ -444,7 +443,7 @@ unknown future schema → bootstrap.state.unsupported_schema
 
 M3 private-PG orchestration performs the V1 → V2 transition when it commits the first authoritative private-PG identity.
 
-## 6.4 Bootstrap orchestration seam
+### 6.4 Bootstrap orchestration seam
 
 `packages/bootstrap-runtime/src/private-postgres-bootstrap.ts`:
 
@@ -485,7 +484,9 @@ Recommended API integration:
 ```ts
 export interface OwnedBootstrapPrelude {
   // existing fields ...
-  preparePrivatePostgres(options: PreparePrivatePostgresOptions): Promise<ReadyPrivatePostgres>;
+  preparePrivatePostgres(
+    options: PreparePrivatePostgresOptions,
+  ): Promise<ReadyPrivatePostgres>;
   close(): Promise<void>;
 }
 ```
@@ -494,7 +495,7 @@ The returned `ReadyPrivatePostgres` does not release the bootstrap lease. `Owned
 
 ---
 
-# 7. Preflight — Establish Exact Execution Baseline
+## 7. Preflight — Establish Exact Execution Baseline
 
 - [ ] Read root `AGENTS.md` before editing.
 - [ ] Read every Authority file listed in the plan header.
@@ -560,7 +561,7 @@ dev/m3-private-postgresql-bootstrap
 
 ---
 
-# 8. Task 0 — Activate M3 and Reconcile Repository Truth
+## 8. Task 0 — Activate M3 and Reconcile Repository Truth
 
 **Files:**
 
@@ -638,7 +639,7 @@ Only stage the M2 completed plan if it was actually changed from exact evidence.
 
 ---
 
-# 9. Task 1 — Materialize the `private-postgres` Package Boundary
+## 9. Task 1 — Materialize the `private-postgres` Package Boundary
 
 **Files:**
 
@@ -799,7 +800,7 @@ git commit -m "feat: establish private PostgreSQL mechanics boundary"
 
 ---
 
-# 10. Task 2 — Resolve and Validate the Exact PostgreSQL Toolchain
+## 10. Task 2 — Resolve and Validate the Exact PostgreSQL Toolchain
 
 **Files:**
 
@@ -815,8 +816,14 @@ git commit -m "feat: establish private PostgreSQL mechanics boundary"
 Required version parser cases:
 
 ```ts
-expect(parsePostgresVersion("postgres (PostgreSQL) 18.6\n")).toEqual({ major: 18, version: "18.6" });
-expect(parsePostgresVersion("pg_ctl (PostgreSQL) 18.6\n")).toEqual({ major: 18, version: "18.6" });
+expect(parsePostgresVersion("postgres (PostgreSQL) 18.6\n")).toEqual({
+  major: 18,
+  version: "18.6",
+});
+expect(parsePostgresVersion("pg_ctl (PostgreSQL) 18.6\n")).toEqual({
+  major: 18,
+  version: "18.6",
+});
 expect(() => parsePostgresVersion("postgres (PostgreSQL) 18.4\n")).toThrow();
 expect(() => parsePostgresVersion("postgres (PostgreSQL) 19beta3\n")).toThrow();
 expect(() => parsePostgresVersion("garbage")).toThrow();
@@ -915,7 +922,7 @@ git commit -m "feat: validate exact PostgreSQL bootstrap toolchain"
 
 ---
 
-# 11. Task 3 — Add the Minimal Bootstrap Credential Boundary
+## 11. Task 3 — Add the Minimal Bootstrap Credential Boundary
 
 **Files:**
 
@@ -1005,7 +1012,7 @@ git commit -m "feat: add scoped bootstrap PostgreSQL credential delivery"
 
 ---
 
-# 12. Task 4 — Evolve BootstrapState to V2 Without Breaking V1 Recovery
+## 12. Task 4 — Evolve BootstrapState to V2 Without Breaking V1 Recovery
 
 **Files:**
 
@@ -1132,7 +1139,7 @@ git commit -m "feat: persist private PostgreSQL identity in BootstrapState V2"
 
 ---
 
-# 13. Task 5 — Define Portable Cluster Placement and Inspection
+## 13. Task 5 — Define Portable Cluster Placement and Inspection
 
 **Files:**
 
@@ -1231,7 +1238,7 @@ git commit -m "feat: define portable private PostgreSQL cluster identity"
 
 ---
 
-# 14. Task 6 — Implement Safe First Initialization
+## 14. Task 6 — Implement Safe First Initialization
 
 **Files:**
 
@@ -1250,7 +1257,9 @@ At the top of the integration suite:
 ```ts
 const pgBin = process.env.HEPTALOGOS_TEST_PG_BIN;
 if (!pgBin) {
-  throw new Error("BLOCKED: HEPTALOGOS_TEST_PG_BIN is required for private PostgreSQL integration qualification");
+  throw new Error(
+    "BLOCKED: HEPTALOGOS_TEST_PG_BIN is required for private PostgreSQL integration qualification",
+  );
 }
 ```
 
@@ -1300,7 +1309,7 @@ Required characteristics:
 - explicit `-D` target;
 - explicit UTF-8 encoding;
 - explicit SCRAM auth settings;
-- password only via an argument constructed as ``--pwfile=${passwordFilePath}``, where `passwordFilePath` is the absolute path created by `withRestrictedPasswordFile`;
+- password only via an argument constructed as `--pwfile=${passwordFilePath}`, where `passwordFilePath` is the absolute path created by `withRestrictedPasswordFile`;
 - no shell;
 - bounded timeout from options;
 - structured Problem on failure;
@@ -1367,7 +1376,7 @@ git commit -m "feat: initialize private PostgreSQL clusters fail-safe"
 
 ---
 
-# 15. Task 7 — Validate an Existing Authoritative Cluster
+## 15. Task 7 — Validate an Existing Authoritative Cluster
 
 **Files:**
 
@@ -1431,7 +1440,7 @@ git commit -m "feat: validate authoritative private PostgreSQL identity"
 
 ---
 
-# 16. Task 8 — Start, Prove Readiness, Stop, and Restart the Same Cluster
+## 16. Task 8 — Start, Prove Readiness, Stop, and Restart the Same Cluster
 
 **Files:**
 
@@ -1504,7 +1513,7 @@ git commit -m "feat: control private PostgreSQL lifecycle"
 
 ---
 
-# 17. Task 9 — Orchestrate Private PostgreSQL Under Authentic Bootstrap Ownership
+## 17. Task 9 — Orchestrate Private PostgreSQL Under Authentic Bootstrap Ownership
 
 **Files:**
 
@@ -1683,7 +1692,7 @@ git commit -m "feat: bootstrap validated private PostgreSQL under ownership"
 
 ---
 
-# 18. Task 10 — Crash/Failure Matrix and No-Silent-Adoption Proof
+## 18. Task 10 — Crash/Failure Matrix and No-Silent-Adoption Proof
 
 **Files:**
 
@@ -1785,7 +1794,7 @@ Do not stage unrelated engineering docs.
 
 ---
 
-# 19. Task 11 — Qualification Evidence and Documentation Closure
+## 19. Task 11 — Qualification Evidence and Documentation Closure
 
 **Files:**
 
@@ -1880,7 +1889,7 @@ Stage only files actually updated.
 
 ---
 
-# 20. Task 12 — Exact Candidate Verification and PR Handoff
+## 20. Task 12 — Exact Candidate Verification and PR Handoff
 
 No new implementation occurs in this task unless verification exposes a defect.
 
@@ -2057,7 +2066,7 @@ Do not create a post-CI “documentation-only” commit on the PR. That would in
 
 ---
 
-# 21. M3 Acceptance Matrix
+## 21. M3 Acceptance Matrix
 
 M3 may be declared implementation-complete only when the following are true for the exact candidate:
 
@@ -2109,7 +2118,7 @@ If a required platform/runtime is unavailable, record `BLOCKED`; do not lower th
 
 ---
 
-# 22. Expected M3 Product Truth at Completion
+## 22. Expected M3 Product Truth at Completion
 
 If M3 closes, Heptalogos may truthfully claim:
 
@@ -2143,7 +2152,7 @@ PersistenceService/DBOS ready
 
 ---
 
-# 23. M4 Handoff Contract
+## 23. M4 Handoff Contract
 
 M4 begins from this seam and must not reopen M3 mechanics without evidence:
 
@@ -2171,7 +2180,7 @@ M4 must not re-decide which PGDATA belongs to the instance, how the cluster is i
 
 ---
 
-# 24. Execution Record
+## 24. Execution Record
 
 The implementing Agent must update this section throughout execution. Use exact evidence only.
 
@@ -2257,7 +2266,7 @@ roadmap assumptions confirmed/invalidated
 
 Never replace missing evidence with prose such as “should work”, “covered by similar test”, or “CI expected to pass”.
 
-## Independent Review Correction (2026-08-22)
+### Independent Review Correction (2026-08-22)
 
 The preceding Task 0–10 execution block is historical pre-correction evidence
 for candidate `46e66c776f17b43ae06c0cef8229c4cd4666919c`; it does not qualify the
@@ -2332,7 +2341,7 @@ open and prevent the parent process-control promise from completing while the
 server remains running. Detached start/restart therefore use ignored stdio;
 diagnostic capture remains available for bounded commands.
 
-## Follow-up Independent Review Correction (2026-08-22)
+### Follow-up Independent Review Correction (2026-08-22)
 
 The exact candidate reviewed after the first corrective documentation commit
 was `7cf02b0812fdcd3d443c8c0a93e642a2b0a809e3`. The follow-up review result was
@@ -2391,7 +2400,7 @@ This follow-up correction remains inside M3 private PostgreSQL lifecycle and
 bootstrap ownership boundaries; no M4 Host lease/fence or normal mutation path
 was introduced.
 
-## Final XState and delayed-start correction execution (2026-08-22)
+### Final XState and delayed-start correction execution (2026-08-22)
 
 The final corrective implementation plan was executed on the existing
 `dev/m3-private-postgresql-bootstrap` branch without subagents. The attached
@@ -2434,7 +2443,7 @@ from all five tools before the real qualification suites. No XState type was
 added to stable contracts, BootstrapState, or bootstrap-runtime; no actor,
 invoke, spawn, persistence, or PostgreSQL effect was assigned to XState.
 
-## Final hardening execution (2026-08-22)
+### Final hardening execution (2026-08-22)
 
 The user-confirmed final hardening plan was executed on the existing
 `dev/m3-private-postgresql-bootstrap` branch without subagents. It remained
@@ -2470,7 +2479,7 @@ e7da993  fix: pin private postgres bootstrap identity
 07dcbdb  fix: preserve postgres restart log target
 ```
 
-## Stale-handle correction execution (2026-08-22)
+### Stale-handle correction execution (2026-08-22)
 
 The new P1 Authority finding was reproduced before implementation: an earlier
 Ready handle could call its already-stopped mechanics after a newer preparation
@@ -2496,11 +2505,11 @@ service-account ACL closure: NOT_RUN
 
 ---
 
-# 25. Plan Self-Review
+## 25. Plan Self-Review
 
 This plan was checked against the approved M3 design and current repository reality before delivery.
 
-## Spec coverage
+### Spec coverage
 
 - M2 authentic ownership consumed rather than bypassed: covered Tasks 4, 9.
 - explicit PostgreSQL 18.6 toolchain: Tasks 1, 2, 12.
@@ -2515,15 +2524,15 @@ This plan was checked against the approved M3 design and current repository real
 - truthful qualification and exact-SHA cross-platform closure: Tasks 11–12.
 - M4/M5 deferred: Global Constraints, Non-Goals, M4 Handoff.
 
-## Placeholder scan
+### Placeholder scan
 
 No unresolved placeholder marker, generic “add tests”, unspecified provider replacement, or unbounded generic error-handling step is permitted. Unknown future evidence is handled by explicit PASS/FAIL/NOT_RUN/BLOCKED branches rather than placeholders.
 
-## Type consistency
+### Type consistency
 
 The plan uses one `PrivatePostgresToolchain`, one portable placement model, one `PrivatePostgresBootstrapStateV1`, one `ReadyPrivatePostgresMechanics`, one `BootstrapKeyProvider`, and one `ReadyPrivatePostgres` orchestration seam consistently across tasks.
 
-## Post-merge reconciliation (2026-08-22)
+### Post-merge reconciliation (2026-08-22)
 
 ```text
 actual squash-merge SHA: 4b12c14693752d9796f8aa287666e6537321006d
@@ -2538,6 +2547,6 @@ service-account ACL closure: NOT_RUN
 H1: OPEN
 ```
 
-## Scope check
+### Scope check
 
 M3 remains one capability closure: private PostgreSQL bootstrap and identity. Host ownership/fencing, Recovery, Persistence, Runtime, DBOS, Management, Subject, and shipping closure remain outside the milestone.

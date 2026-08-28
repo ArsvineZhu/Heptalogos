@@ -1,3 +1,9 @@
+/**
+ * Wraps provider access with a generation fence so stale runtime handles fail
+ * before invoking a retired provider or crossing the lifecycle boundary.
+ * @module fenced-proxy
+ */
+
 import { ProblemError, type ProviderId } from "@heptalogos/foundation-contracts";
 import { GenerationFence } from "./generation-fence.js";
 import {
@@ -124,6 +130,7 @@ function normalizeProviderFailure(cause: unknown, owner: object): ProblemError {
   );
 }
 
+/** Creates a proxy that fences provider calls and reprojects nested results. */
 export function createFencedProxy<TContract extends object>(
   implementation: TContract,
   fence: GenerationFence,

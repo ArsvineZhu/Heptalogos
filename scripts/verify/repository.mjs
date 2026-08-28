@@ -1,3 +1,9 @@
+/**
+ * Runs repository-wide semantic checks over the current topology, metadata, and
+ * package navigation without replacing generic tooling owners.
+ * @module repository
+ */
+
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,6 +20,7 @@ import {
 
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 
+/** Find source-adjacent tests that violate the package test-plane boundary. */
 export async function findSourceTestFiles({ root, productPackages } = {}) {
   const packages = productPackages ?? (await discoverProductPackages({ root }));
   if (packages.length === 0) return [];
@@ -48,6 +55,7 @@ function normalizeGitHubExpressionsForYaml(workflow) {
   );
 }
 
+/** Validate that the manual verification workflow remains candidate-bound. */
 export function validateVerifyWorkflow(workflow) {
   const errors = [];
   const fail = (message) => errors.push(message);

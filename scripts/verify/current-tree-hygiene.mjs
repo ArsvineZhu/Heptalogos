@@ -1,3 +1,9 @@
+/**
+ * Runs the current-tree provenance, compatibility, and residue sweep against
+ * the repository's executable surfaces and reports only observed findings.
+ * @module current-tree-hygiene
+ */
+
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { scanCurrentTree } from "@heptalogos/repo-kit";

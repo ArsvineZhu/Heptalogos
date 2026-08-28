@@ -6,9 +6,11 @@ and regression evidence.
 `PLAYBOOK` = the supported procedure for a repeated engineering operation.
 
 The indexes link to detailed entries only when a real repository need exists.
-For H-stage stabilization, use the dedicated [closure playbook](playbooks/repository/h-stage-stabilization-closure.md); the generic milestone procedure remains the default for non-stabilization milestones.
+For pre-production stabilization, use the dedicated [closure playbook](playbooks/repository/pre-production-stabilization-closure.md); the generic milestone procedure remains the default for non-stabilization milestones.
 
 For generic helper, adapter, and library decisions, use the [mechanics ownership and library-first playbook](playbooks/mechanics-ownership-and-library-first.md).
+
+For source comments and exported API contracts, use the [source documentation playbook](playbooks/repository/source-documentation.md).
 
 ## Current responsibility roots
 

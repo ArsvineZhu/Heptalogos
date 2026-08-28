@@ -1,3 +1,9 @@
+/**
+ * Verifies the declared Node, pnpm, compiler, and toolchain projections against
+ * the repository's machine-readable version Authorities.
+ * @module toolchain
+ */
+
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";

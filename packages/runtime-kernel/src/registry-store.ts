@@ -1,8 +1,15 @@
+/**
+ * Stores Runtime registry entries and their execution context projections while
+ * preserving owner-scoped lifecycle cleanup for registered providers.
+ * @module registry-store
+ */
+
 import type { ActivityRequest } from "@heptalogos/execution-lineage";
 import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
 import type { ProviderId } from "@heptalogos/foundation-contracts";
 import { GenerationFence } from "./generation-fence.js";
 
+/** Couples one published provider descriptor to its implementation and fence. */
 export interface RegistryBinding<
   TDescriptor extends { readonly providerId: ProviderId },
 > {
@@ -12,29 +19,36 @@ export interface RegistryBinding<
   readonly runtimeActivity?: RuntimeActivityRunner;
 }
 
+/** Stores runtime bindings by semantic key for registry owners. */
 export class RegistryStore<T> {
   private readonly valuesByKey = new Map<string, T>();
 
+  /** Returns the binding stored under a semantic key. */
   get(key: string): T | undefined {
     return this.valuesByKey.get(key);
   }
 
+  /** Reports whether a semantic key is currently registered. */
   has(key: string): boolean {
     return this.valuesByKey.has(key);
   }
 
+  /** Registers or replaces a binding under its semantic key. */
   set(key: string, value: T): void {
     this.valuesByKey.set(key, value);
   }
 
+  /** Returns a stable snapshot of all registered bindings. */
   values(): readonly T[] {
     return [...this.valuesByKey.values()];
   }
 
+  /** Returns bindings selected by the supplied semantic predicate. */
   filter(predicate: (value: T) => boolean): readonly T[] {
     return this.values().filter(predicate);
   }
 
+  /** Removes bindings selected by the supplied predicate. */
   removeWhere(predicate: (value: T) => boolean): number {
     let removed = 0;
     for (const [key, value] of this.valuesByKey) {
@@ -45,11 +59,13 @@ export class RegistryStore<T> {
     return removed;
   }
 
+  /** Reports the number of currently registered bindings. */
   get size(): number {
     return this.valuesByKey.size;
   }
 }
 
+/** Lists provider identities matching a registry descriptor predicate. */
 export function registryProviderIds<
   TDescriptor extends { readonly providerId: ProviderId },
 >(
@@ -62,6 +78,7 @@ export function registryProviderIds<
     .sort();
 }
 
+/** Removes and retires all bindings owned by one generation fence. */
 export async function retireRegistryGeneration<
   T extends { readonly fence: GenerationFence },
 >(
@@ -74,6 +91,7 @@ export async function retireRegistryGeneration<
   await fence.retire(settleTimeoutMs);
 }
 
+/** Selects active bindings matching a registry predicate. */
 export function activeRegistryBindings<
   T extends RegistryBinding<{ readonly providerId: ProviderId }>,
 >(store: RegistryStore<T>, matches: (binding: T) => boolean): readonly T[] {
@@ -82,6 +100,7 @@ export function activeRegistryBindings<
   );
 }
 
+/** Invokes a binding through its generation and optional Activity fences. */
 export function invokeRegistryBinding<
   TDescriptor extends { readonly providerId: ProviderId },
   TResult,

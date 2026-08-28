@@ -1,3 +1,9 @@
+/**
+ * Validates the current documentation topology, canonical homes, links, and
+ * provenance rules while delegating Markdown parsing to the shared adapter.
+ * @module documentation
+ */
+
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { containsDevelopmentProvenance } from "./current-tree-hygiene.mjs";
@@ -344,6 +350,7 @@ function validateArchitectureIndex(docsRoot, repository, errors) {
   }
 }
 
+/** Validate standing documentation structure, links, and current-home rules. */
 export function validateDocumentation({ root = process.cwd() } = {}) {
   const repository = resolve(root);
   const docsRoot = join(repository, "docs");

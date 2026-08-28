@@ -1,8 +1,15 @@
+/**
+ * Reconciles canonical WorkItem truth after commits, lost notifications, or
+ * dispatch failures so Signal remains a hint and never a durable authority.
+ * @module reconciler
+ */
+
 import type { ExecutionContextRuntime } from "@heptalogos/execution-lineage";
 import {
   createSignalTopic,
   type SignalListener,
   type SignalService,
+  type SignalSubscription,
 } from "@heptalogos/signal";
 import type { TimeService } from "@heptalogos/time-service";
 import { createDispatchAttemptId } from "./attempt-identity.js";
@@ -25,6 +32,7 @@ import { workQueueProblem } from "./problems.js";
 
 const WORK_AVAILABLE_TOPIC = createSignalTopic("work.available");
 
+/** Dependencies and bounded policy for the canonical WorkItem projection loop. */
 export interface WorkQueueReconcilerOptions {
   readonly repository: WorkQueueRepository;
   readonly durableDispatch: DurableDispatchPort;
@@ -37,6 +45,7 @@ export interface WorkQueueReconcilerOptions {
   readonly onBackgroundError: (error: unknown) => void;
 }
 
+/** Counts produced by one reconciliation pass over durable queue state. */
 export interface ReconciliationScanResult {
   readonly scanned: number;
   readonly awakened: number;
@@ -44,9 +53,13 @@ export interface ReconciliationScanResult {
   readonly dispatchFailures: number;
 }
 
+/** Starts, stops, and explicitly scans the signal-backed queue projection. */
 export interface WorkQueueReconciler {
+  /** Subscribe to wakeups and begin the initial canonical scan. */
   start(): Promise<void>;
+  /** Cancel timers, close the signal subscription, and drain the current scan. */
   stop(): Promise<void>;
+  /** Reconcile due, waiting, and pending work against durable repository truth. */
   scan(): Promise<ReconciliationScanResult>;
 }
 
@@ -87,6 +100,7 @@ function sameCursor(left: WorkItemScanCursor, right: WorkItemScanCursor): boolea
   return left.createdAt === right.createdAt && left.workItemId === right.workItemId;
 }
 
+/** Create a reconciler whose signal and anti-entropy paths share one scan gate. */
 export function createWorkQueueReconciler(
   options: WorkQueueReconcilerOptions,
 ): WorkQueueReconciler {
@@ -108,7 +122,7 @@ export function createWorkQueueReconciler(
   }
 
   let started = false;
-  let subscription: { close(): Promise<void> } | undefined;
+  let subscription: SignalSubscription | undefined;
   let antiEntropyTimer: ReturnType<typeof setTimeout> | undefined;
   let scanPromise: Promise<ReconciliationScanResult> | undefined;
   const projectionLane: FairScanLane = {};

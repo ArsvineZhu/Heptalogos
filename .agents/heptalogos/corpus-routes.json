@@ -14,9 +14,7 @@
         "docs/governance/pre-production-evolution.md"
       ],
       "conditional": {
-        "execution-model": [
-          "docs/architecture/execution-model.md"
-        ],
+        "execution-model": ["docs/architecture/execution-model.md"],
         "service-catalog": [
           "docs/architecture/foundation-services.md",
           "docs/architecture/contracts/foundation-service-capability-readiness-catalog.md"
@@ -108,9 +106,7 @@
         "state-storage": [
           "docs/architecture/contracts/storage-workspace-data-lifecycle.md"
         ],
-        "lineage": [
-          "docs/architecture/contracts/execution-lineage-observability.md"
-        ]
+        "lineage": ["docs/architecture/contracts/execution-lineage-observability.md"]
       }
     },
     "heptalogos-interaction": {
@@ -135,9 +131,7 @@
         "effect-boundary": [
           "docs/architecture/contracts/persistence-transactions-effect-fence.md"
         ],
-        "advanced-research": [
-          "docs/architecture/research-subsystem-integration.md"
-        ]
+        "advanced-research": ["docs/architecture/research-subsystem-integration.md"]
       }
     },
     "heptalogos-management": {
@@ -161,9 +155,7 @@
           "docs/architecture/foundation-services.md",
           "docs/architecture/contracts/foundation-service-capability-readiness-catalog.md"
         ],
-        "cli-toolchain": [
-          "docs/engineering/repository/toolchain.md"
-        ]
+        "cli-toolchain": ["docs/engineering/repository/toolchain.md"]
       }
     },
     "heptalogos-dependencies": {

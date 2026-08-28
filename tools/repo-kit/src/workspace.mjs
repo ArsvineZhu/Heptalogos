@@ -1,7 +1,14 @@
+/**
+ * Reads workspace package metadata and delegates package-manager inspection to
+ * the repo-kit process owner for repository verification commands.
+ * @module workspace
+ */
+
 import { existsSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { runPnpm } from "./process.mjs";
 
+/** Read all workspace packages through the package-manager owner. */
 export async function discoverWorkspacePackages({ cwd = process.cwd() } = {}) {
   const result = await runPnpm(["list", "-r", "--depth", "-1", "--json"], { cwd });
   const entries = JSON.parse(result.stdout);
@@ -16,6 +23,7 @@ export async function discoverWorkspacePackages({ cwd = process.cwd() } = {}) {
   }));
 }
 
+/** Resolve direct product packages under packages/ from workspace metadata. */
 export async function discoverProductPackages({ root = process.cwd() } = {}) {
   const repositoryRoot = resolve(root);
   const packagesRoot = join(repositoryRoot, "packages");

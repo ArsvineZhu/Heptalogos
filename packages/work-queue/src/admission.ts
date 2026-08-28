@@ -1,3 +1,9 @@
+/**
+ * Validates WorkItem admission against canonical identity, payload, generation,
+ * and revision rules before durable work enters reconciliation.
+ * @module admission
+ */
+
 import {
   parseInstant,
   type CanonicalJsonValue,
@@ -22,6 +28,7 @@ import type {
 } from "./contracts.js";
 import { workQueueProblem } from "./problems.js";
 
+/** Inputs checked before a new durable WorkItem is admitted to the queue. */
 export interface WorkAdmissionRequest {
   readonly execution: ExecutionContext;
   readonly target: WorkHandlerTarget;
@@ -39,15 +46,19 @@ export interface WorkAdmissionRequest {
   readonly handlerContributionId: ContributionId;
 }
 
+/** Policy boundary that may allow, delay, throttle, or reject queue work. */
 export interface WorkAdmissionPort {
+  /** Decide whether creation may proceed and at what earliest time. */
   beforeCreate(
     input: WorkAdmissionRequest,
   ): WorkCreationAdmissionDecision | Promise<WorkCreationAdmissionDecision>;
+  /** Decide whether a ready WorkItem may be dispatched now. */
   beforeDispatch(
     input: WorkDispatchAdmissionRequest,
   ): WorkDispatchAdmissionDecision | Promise<WorkDispatchAdmissionDecision>;
 }
 
+/** Inputs checked immediately before a durable dispatch attempt is started. */
 export interface WorkDispatchAdmissionRequest {
   readonly execution: ExecutionContext;
   readonly workItem: WorkItem;
@@ -84,6 +95,7 @@ function laterInstant(left: Instant | undefined, right: Instant): Instant {
   return Date.parse(left) >= Date.parse(right) ? left : right;
 }
 
+/** Apply creation policy while preserving the later of requested and policy times. */
 export function applyWorkAdmissionDecision(
   requestedNotBefore: Instant | undefined,
   decision: WorkCreationAdmissionDecision,
@@ -135,6 +147,7 @@ export function applyWorkAdmissionDecision(
   }
 }
 
+/** Convert dispatch policy into an executable admission decision. */
 export function applyWorkDispatchAdmissionDecision(
   decision: WorkDispatchAdmissionDecision,
 ): boolean {

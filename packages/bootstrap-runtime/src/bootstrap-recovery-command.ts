@@ -1,3 +1,9 @@
+/**
+ * Parses and executes the bounded Bootstrap recovery command contract while
+ * keeping command authorization and failure dispositions explicit.
+ * @module bootstrap-recovery-command
+ */
+
 import { type MaintenanceOperationId } from "@heptalogos/bootstrap-state";
 import {
   createProblemError,
@@ -17,6 +23,7 @@ import {
 } from "./host-maintenance-recovery.js";
 import type { PrivatePostgresMaintenanceResult } from "./managed-host.js";
 
+/** Selects read-only inspection or one explicitly authorized recovery action. */
 export type BootstrapRecoveryCommand =
   | { readonly kind: "INSPECT" }
   | {
@@ -24,6 +31,7 @@ export type BootstrapRecoveryCommand =
       readonly expectedOperationId?: MaintenanceOperationId;
     };
 
+/** Describes the typed result produced by an inspection or recovery action. */
 export type BootstrapRecoveryCommandResult =
   | {
       readonly kind: "INSPECTED";
@@ -41,6 +49,7 @@ export type BootstrapRecoveryCommandResult =
       readonly result: PrivatePostgresMaintenanceResult;
     };
 
+/** Supplies the fixed local context required to execute a recovery command. */
 export type BootstrapRecoveryCommandContext =
   | {
       readonly kind: "BOOTSTRAP_CONTINUATION";
@@ -69,6 +78,7 @@ function commandProblem(
   });
 }
 
+/** Parses the closed Bootstrap recovery command vocabulary fail-closed. */
 export function parseBootstrapRecoveryCommand(
   value: unknown,
 ): BootstrapRecoveryCommand {
@@ -102,6 +112,7 @@ export function parseBootstrapRecoveryCommand(
   return { kind: "RECOVER", expectedOperationId: operationId };
 }
 
+/** Inspects and, when authorized, executes one bounded Bootstrap recovery. */
 export async function executeBootstrapRecoveryCommand(
   anchorRoot: string,
   command: BootstrapRecoveryCommand,

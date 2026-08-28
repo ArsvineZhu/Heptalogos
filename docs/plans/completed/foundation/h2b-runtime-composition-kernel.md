@@ -32,8 +32,8 @@ task_6_boundaries_local_qualification: PASS (current sixth-cycle full repository
 local_pnpm_verify: PASS (current sixth-cycle full repository verify)
 pull_request: 22 (MERGED)
 candidate_pair:
- base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
- head: 86c01ee90d6d1f6c953be39375ccddb0458a189a
+  base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
+  head: 86c01ee90d6d1f6c953be39375ccddb0458a189a
 review_base: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
 review_head_authority: 86c01ee90d6d1f6c953be39375ccddb0458a189a
 pr_20: CLOSED_OBSOLETE_PAIR
@@ -86,7 +86,7 @@ toolchain checks PASS. The managed-Host PostgreSQL integration file had `5`
 tests skipped because the current host has no configured qualification
 toolchain; this remains `NOT_RUN`, not `PASS`.
 
-## Governance repair and second corrective cycle (2026-08-25)
+### Governance repair and second corrective cycle (2026-08-25)
 
 The operator directed correction of an invalid H2B topology in which the
 eleven-commit H2B snapshot had reached `origin/master` without a new H2B PR.
@@ -119,7 +119,7 @@ final_cross_platform_ci: NOT_RUN
 squash_merge: NOT_RUN
 ```
 
-## Third corrective cycle (2026-08-25)
+### Third corrective cycle (2026-08-25)
 
 The next exact-pair review found the remaining lifetime/fencing boundary gaps.
 The current working tree addresses them without changing the H2B scope:
@@ -149,7 +149,7 @@ The current `4cad58d...` pair was invalidated by the third-cycle corrective
 work. The fourth corrective cycle below supplies the next candidate head for
 new exact-pair independent review.
 
-## Fourth corrective cycle (2026-08-25)
+### Fourth corrective cycle (2026-08-25)
 
 The independent review of `19ebef1...` → `ffe6949...` returned
 `REQUEST_CHANGES`. The current corrective change set closes the remaining
@@ -182,7 +182,7 @@ The prior `ffe6949...` review pair is retained as historical
 is frozen on the live PR #22 head; the review base remains the fixed
 post-H2A-3 baseline above.
 
-## Fifth corrective cycle (2026-08-25)
+### Fifth corrective cycle (2026-08-25)
 
 The independent review of `19ebef1...` → `674f5b2...` returned
 `REQUEST_CHANGES`. The current corrective tree closes the three remaining
@@ -225,7 +225,7 @@ and squash merge remain `NOT_RUN`. The current candidate is identified by the
 live PR #22 head after the corrective commit is pushed; this plan does not
 embed a self-referential head SHA.
 
-## Sixth corrective cycle (2026-08-25)
+### Sixth corrective cycle (2026-08-25)
 
 The independent review of `19ebef1...` → `ee256dd...` returned
 `REQUEST_CHANGES`. The current corrective tree deliberately narrows the H2B
@@ -262,7 +262,6 @@ Existing Windows PostgreSQL 18.6 evidence remains valid as carried-forward
 property evidence because this cycle changes only runtime-kernel contract
 validation/projection and documentation; it does not modify persistence,
 execution-lineage, schema, migration, or database behavior.
-
 
 **Goal:** complete H2 functional runtime composition by establishing a thin qualified Cordis runtime substrate, Heptalogos-owned MicroSystem supervision/reconciliation, hard Service and dynamic Capability registries, generation-fenced invocation, graphlib-backed dependency planning, OperatingMode/readiness semantics, and runtime lifecycle lineage—without pulling H3 durable work/effects or H4 system management into H2B.
 
@@ -307,7 +306,7 @@ These are exact Catalog pins for this plan. The implementing Agent must not sile
 
 ---
 
-# 0. Activation Gate — do not create the H2B branch before this is true
+## 0. Activation Gate — do not create the H2B branch before this is true
 
 H2A has **no separate H2A-S**. The stage model is:
 
@@ -365,7 +364,7 @@ Create the branch from that exact master and open one Draft PR early. Do not dis
 
 ---
 
-# 1. Milestone outcome and hard non-goals
+## 1. Milestone outcome and hard non-goals
 
 H2B must answer:
 
@@ -399,7 +398,7 @@ ReadinessEvaluator
 READY / DEGRADED / BLOCKED projections
 ```
 
-## Hard non-goals
+### Hard non-goals
 
 Do **not** implement in H2B:
 
@@ -423,9 +422,9 @@ Do **not** implement in H2B:
 
 ---
 
-# 2. Decision Locks — implementing Agent has no authority to change these
+## 2. Decision Locks — implementing Agent has no authority to change these
 
-## DL-01 — H2B is one capability milestone
+### DL-01 — H2B is one capability milestone
 
 Use one implementation plan, one branch and one PR. Do not pre-split H2B into H2B-1/H2B-2/H2B-3 merely because several modules exist.
 
@@ -443,7 +442,7 @@ H2 = OPEN
 
 Only then create one bounded **H2-S** plan covering A+B jointly.
 
-## DL-02 — exactly two new runtime workspaces
+### DL-02 — exactly two new runtime workspaces
 
 Create exactly:
 
@@ -480,7 +479,7 @@ Do not create separate workspaces for graph, registry, readiness, supervisor, ge
 
 Cross-package stable identity primitives belong in `foundation-contracts`, not a new `runtime-contracts` package.
 
-## DL-03 — exact dependency pins
+### DL-03 — exact dependency pins
 
 Add to root Catalog:
 
@@ -493,7 +492,7 @@ Consume through `catalog:` only.
 
 The current Cordis line has recent upstream lifecycle/disposal bug reports. That is why Task 1 is a mandatory conformance gate. It is **not** permission to reject the adopted role from model intuition, and it is not permission to switch to another implementation after a failure.
 
-## DL-04 — Cordis allowed surface
+### DL-04 — Cordis allowed surface
 
 `cordis` may be imported only inside `packages/runtime-substrate/`.
 
@@ -523,7 +522,7 @@ Reason: Heptalogos must own deterministic ReconcilePlan, Service/Capability dist
 
 Known upstream issues concerning `isolate()` cleanup and waterfall continuation are therefore outside the production path. The conformance suite must still prove that the **actual plugin/fiber/effect pattern used by Heptalogos** is safe.
 
-## DL-05 — graphlib allowed surface
+### DL-05 — graphlib allowed surface
 
 `@dagrejs/graphlib` may be imported only by the private RuntimeGraph adapter in `runtime-kernel`.
 
@@ -540,7 +539,7 @@ Do not write a parallel DFS/toposort/cycle engine. Do not expose Graph/alg objec
 
 Insert nodes and edges in stable lexical `MicroSystemId` order and qualification-test the exact 4.0.5 ordering used by the planner. Registration/load order is never a product tie-break.
 
-## DL-06 — canonical runtime identity primitives
+### DL-06 — canonical runtime identity primitives
 
 Move the canonical `ProductGenerationId` type into `foundation-contracts` so normal runtime code never imports `bootstrap-state` merely to name current product generation.
 
@@ -581,7 +580,7 @@ Add `createMicroSystemInstanceId()` and parse functions for every new stable ID/
 
 Do not add `ContributionId`, Subject IDs, package manifest objects or external IDs merely because later horizons will need them.
 
-## DL-07 — RuntimeGenerationRef
+### DL-07 — RuntimeGenerationRef
 
 A running MicroSystem is owned by:
 
@@ -603,7 +602,7 @@ Later installed Extension generations may add `packageGenerationId` without chan
 
 Do not invent a separate `MicroSystemGenerationId`.
 
-## DL-08 — current ContractVersion semantics are exact-only
+### DL-08 — current ContractVersion semantics are exact-only
 
 Do not import npm `semver` and do not make npm/package version a Service contract Authority.
 
@@ -637,24 +636,15 @@ else incompatible
 
 This is intentionally conservative in PRE_PRODUCTION. Rich semantic range algebra is added only when a concrete cross-generation compatibility owner requires it.
 
-## DL-09 — MicroSystem static definition and activation contract
+### DL-09 — MicroSystem static definition and activation contract
 
 Use:
 
 ```ts
 export type MicroSystemRole =
-  | "kernel"
-  | "system-service"
-  | "domain-engine"
-  | "feature"
-  | "driver"
-  | "provider";
+  "kernel" | "system-service" | "domain-engine" | "feature" | "driver" | "provider";
 
-export type OperatingMode =
-  | "NORMAL"
-  | "SAFE"
-  | "MAINTENANCE"
-  | "EMERGENCY_READ_ONLY";
+export type OperatingMode = "NORMAL" | "SAFE" | "MAINTENANCE" | "EMERGENCY_READ_ONLY";
 
 export interface ServiceRequirement {
   readonly serviceId: ServiceId;
@@ -697,7 +687,7 @@ All Service requirements are hard dependencies. If a dependency is truly optiona
 
 Activation-time provided Service/Capability registrations must exactly match declared descriptors. Undeclared publication or missing declared publication fails activation.
 
-## DL-10 — Desired State and OperatingMode are inputs, not H2B persistence
+### DL-10 — Desired State and OperatingMode are inputs, not H2B persistence
 
 H2B does not create a new canonical Desired-State table.
 
@@ -728,18 +718,13 @@ H2B has **no** `OperatingModeController.setMode()` that pretends to be canonical
 
 `RECOVERY` is not a normal H2B OperatingMode; Recovery remains in Bootstrap/Recovery Plane.
 
-## DL-11 — Actual State belongs to MicroSystemSupervisor
+### DL-11 — Actual State belongs to MicroSystemSupervisor
 
 Current actual lifecycle states:
 
 ```ts
 export type MicroSystemActualState =
-  | "STOPPED"
-  | "BLOCKED"
-  | "STARTING"
-  | "RUNNING"
-  | "QUIESCING"
-  | "FAILED";
+  "STOPPED" | "BLOCKED" | "STARTING" | "RUNNING" | "QUIESCING" | "FAILED";
 ```
 
 A new `MicroSystemInstanceId` is created for every activation attempt that reaches `STARTING`, including restart of the same code generation.
@@ -758,7 +743,7 @@ Desired STOPPED                        → STOPPED
 
 Capability absence does not automatically stop a RUNNING MicroSystem; it affects capability selection/readiness.
 
-## DL-12 — Service semantics
+### DL-12 — Service semantics
 
 Service = hard, stable dependency.
 
@@ -782,7 +767,7 @@ more than one eligible provider without explicit binding
 
 Changing the selected hard Service provider requires dependent quiesce/restart in reverse-topological/topological order.
 
-## DL-13 — Capability semantics
+### DL-13 — Capability semantics
 
 Capability = dynamic, discoverable, multi-provider and may rebind without hard Service restart.
 
@@ -802,7 +787,7 @@ H2B does not pretend to implement future Policy/trust/Secret/network eligibility
 
 Capability provider withdrawal/rebind recomputes readiness and binding but does not restart a consumer solely because the Capability changed.
 
-## DL-14 — Host-owned invocation lease, never raw provider exposure
+### DL-14 — Host-owned invocation lease, never raw provider exposure
 
 Provider implementations remain private registry values.
 
@@ -835,7 +820,7 @@ export interface CapabilityLease<TContract extends object> {
 The object passed into `call` must be a Host-owned facade/fenced Proxy, never
 the original implementation object. The Proxy target is also Host-owned.
 
-### H2B supported semantic contract boundary
+#### H2B supported semantic contract boundary
 
 H2B supports a bounded trusted in-process contract shape. It is not a general
 JavaScript object-capability membrane.
@@ -884,7 +869,7 @@ runtime.provider.invocation_failed
 
 `operationId` must be non-empty, <=256 UTF-8 bytes.
 
-## DL-15 — GenerationFence is runtime call ownership, not H3 durable commit authority
+### DL-15 — GenerationFence is runtime call ownership, not H3 durable commit authority
 
 Every binding has a gate:
 
@@ -931,7 +916,7 @@ runtime.generation.settlement_timeout
 
 H2B GenerationFence prevents stale runtime calls/results. It does **not** yet claim to fence H3 WorkItem/domain canonical commits; H3 must bind generation identity to durable obligations and commit paths.
 
-## DL-16 — RuntimeGraph contains only hard Service lifecycle edges
+### DL-16 — RuntimeGraph contains only hard Service lifecycle edges
 
 Graph nodes = desired/eligible MicroSystems.
 
@@ -960,7 +945,7 @@ runtime.graph.hard_service_cycle
 
 No system in the affected candidate graph activates after cycle detection.
 
-## DL-17 — Readiness is separate from Actual State
+### DL-17 — Readiness is separate from Actual State
 
 Current readiness values:
 
@@ -981,7 +966,7 @@ all required + optional satisfied         → READY
 
 A MicroSystem may be `RUNNING` while a profile is `BLOCKED` because dynamic capabilities are absent. Do not force a Service-style restart to make readiness look simple.
 
-## DL-18 — RuntimeSubstrate resource ownership
+### DL-18 — RuntimeSubstrate resource ownership
 
 `runtime-substrate` exports only Heptalogos adapter contracts:
 
@@ -1038,7 +1023,7 @@ Do not expose Cordis Context/Fiber/effect/disposable types.
 
 Detached background Promise without `scope.track()` is forbidden by the activation contract.
 
-## DL-19 — no hidden retry loop
+### DL-19 — no hidden retry loop
 
 A failed activation is `FAILED`.
 
@@ -1046,7 +1031,7 @@ A single reconcile execution attempts any one MicroSystem activation at most onc
 
 There is no automatic timer/backoff retry in H2B. A later explicit reconcile trigger caused by desired/dependency/capability/mode/runtime change may attempt again. Do not invent retry counts or backoff constants.
 
-## DL-20 — H2B extends the existing ExecutionContext origin through a restricted bridge
+### DL-20 — H2B extends the existing ExecutionContext origin through a restricted bridge
 
 H2A intentionally stopped at Host origin. H2B is the owner point for runtime origin.
 
@@ -1100,7 +1085,7 @@ Ordinary package-root callers cannot forge ProductGeneration/MicroSystem origin.
 
 Do not add ProductGeneration/MicroSystem fields to `LineageContextRef V1`; durable H3 work will carry its own explicit generation pin. A causal ref is still not Authority.
 
-## DL-21 — H2B is the first owner allowed to add narrow durable Activity completion
+### DL-21 — H2B is the first owner allowed to add narrow durable Activity completion
 
 H2A-3 deliberately reserved `ended_at/outcome` and did not grant a generic updater. H2B is the first real lifecycle owner.
 
@@ -1140,7 +1125,7 @@ not retained/current                  → fail closed
 
 Do not require `endedAt >= startedAt`; wall clock can move backward.
 
-## DL-22 — keep runtime table UPDATE authority narrow
+### DL-22 — keep runtime table UPDATE authority narrow
 
 Rewrite the current PRE_PRODUCTION `0001_foundation_baseline` in place.
 
@@ -1177,7 +1162,7 @@ must remain denied for the runtime role.
 
 The execution-lineage repository uses the restricted Foundation repository seam to call the function inside a normal Host-fenced `PersistenceService.mutate` transaction.
 
-## DL-23 — runtime lifecycle lineage policy
+### DL-23 — runtime lifecycle lineage policy
 
 Automatically create Activities at these H2B boundaries:
 
@@ -1224,7 +1209,7 @@ resource disposal safety wins
 
 High-frequency Service/Capability calls are Activity boundaries but are not automatically durable retained records in H2B.
 
-## DL-24 — provider failure isolation
+### DL-24 — provider failure isolation
 
 Unexpected failure of a tracked background task:
 
@@ -1241,7 +1226,7 @@ Do not crash the entire Host merely because one optional provider failed.
 
 A failure in a Kernel/management-critical future MicroSystem may later trigger stronger policy; H2B does not pre-invent those H4 decisions.
 
-## DL-25 — mechanical import containment
+### DL-25 — mechanical import containment
 
 Extend boundary verification:
 
@@ -1273,9 +1258,9 @@ Runtime lifecycle persistence must go through `ExecutionLineageService`, not dir
 
 ---
 
-# 3. Required file/module layout
+## 3. Required file/module layout
 
-## `foundation-contracts`
+### `foundation-contracts`
 
 Modify:
 
@@ -1304,7 +1289,7 @@ parsers/creators
 
 Update `bootstrap-state/model.ts` to import the canonical `ProductGenerationId`.
 
-## `runtime-substrate`
+### `runtime-substrate`
 
 Create:
 
@@ -1321,7 +1306,7 @@ packages/runtime-substrate/src/cordis-conformance.test.ts
 packages/runtime-substrate/src/runtime-substrate.test.ts
 ```
 
-## `runtime-kernel`
+### `runtime-kernel`
 
 Create:
 
@@ -1348,7 +1333,7 @@ packages/runtime-kernel/src/index.ts
 
 Tests stay beside their modules. Do not create “utils.ts” as a dumping ground.
 
-## Existing H2A packages modified
+### Existing H2A packages modified
 
 Expected bounded changes:
 
@@ -1381,7 +1366,7 @@ Do not modify stable Bootstrap production orchestration merely to “wire H2B in
 
 ---
 
-# 4. Task 1 — Freeze dependencies and qualify the exact Cordis substrate pattern
+## 4. Task 1 — Freeze dependencies and qualify the exact Cordis substrate pattern
 
 **Purpose:** retire the highest H2B dependency risk before product semantics are built on it.
 
@@ -1392,7 +1377,7 @@ Do not modify stable Bootstrap production orchestration merely to “wire H2B in
 - modify dependency/boundary verification
 - update `Q-RUNTIME-01` only with actually observed exact-package evidence
 
-### TDD sequence
+#### TDD sequence
 
 - [x] Add exact Catalog pins `cordis@4.0.0-rc.8` and `@dagrejs/graphlib@4.0.5`; install with the existing pnpm procedure.
 - [x] Verify lockfile resolves the exact direct versions and no unauthorized Cordis plugin package is introduced as a direct dependency.
@@ -1403,7 +1388,7 @@ Do not modify stable Bootstrap production orchestration merely to “wire H2B in
 - [x] Run `pnpm check:dependencies`, `pnpm check:boundaries`, `pnpm typecheck`, `pnpm tsc6`.
 - [x] Commit one meaningful dependency/substrate commit.
 
-### Mandatory Cordis conformance cases
+#### Mandatory Cordis conformance cases
 
 ```text
 C1 one plugin activation reaches ACTIVE and disposal runs registered effect disposer exactly once
@@ -1428,7 +1413,7 @@ from "cordis/src/
 @deepseek-ai/cordis
 ```
 
-### Hard gate
+#### Hard gate
 
 If any required C1-C10 property cannot be made correct using the public `cordis@4.0.0-rc.8` package-root APIs **without patching/forking or accessing private fields**, stop.
 
@@ -1447,7 +1432,7 @@ Do not continue to Task 2 and do not write a custom lifecycle fallback.
 
 ---
 
-# 5. Task 2 — Establish runtime identities, contract model, graph and registries
+## 5. Task 2 — Establish runtime identities, contract model, graph and registries
 
 **Purpose:** make Heptalogos runtime semantics independent of Cordis mechanics.
 
@@ -1455,7 +1440,7 @@ Do not continue to Task 2 and do not write a custom lifecycle fallback.
 
 Implement DL-06 through DL-17.
 
-### TDD sequence
+#### TDD sequence
 
 - [x] Move `ProductGenerationId` to `foundation-contracts` and update BootstrapState imports without behavior changes.
 - [x] Add namespaced runtime IDs and `MicroSystemInstanceId` tests.
@@ -1470,7 +1455,7 @@ Implement DL-06 through DL-17.
 - [x] Run dependency/boundary/typecheck gates.
 - [x] Commit.
 
-### Required Service tests
+#### Required Service tests
 
 ```text
 S1 one eligible provider binds
@@ -1484,7 +1469,7 @@ S8 settlement timeout returns runtime.generation.settlement_timeout
 S9 retained fenced Proxy cannot call after binding retirement
 ```
 
-### Required Capability tests
+#### Required Capability tests
 
 ```text
 K1 no explicit binding → highest priority eligible provider
@@ -1495,7 +1480,7 @@ K5 provider withdrawal selects the next eligible provider
 K6 capability rebind does not itself create a hard RuntimeGraph restart edge
 ```
 
-### Required graph tests
+#### Required graph tests
 
 Use synthetic systems:
 
@@ -1516,7 +1501,7 @@ C unaffected by A/B failure path
 D selection only through explicit Service binding when A and D are both eligible
 ```
 
-### Required readiness tests
+#### Required readiness tests
 
 Profiles:
 
@@ -1540,7 +1525,7 @@ Capability Y rebind      → readiness recompute without B restart
 
 ---
 
-# 6. Task 3 — Build MicroSystemSupervisor and deterministic RuntimeReconciler
+## 6. Task 3 — Build MicroSystemSupervisor and deterministic RuntimeReconciler
 
 **Purpose:** turn static graph semantics into safe process-memory lifecycle transitions.
 
@@ -1562,22 +1547,42 @@ Planning must be side-effect-free.
 
 Execution may continue independent graph branches after one branch fails, but must not activate an action whose hard precondition failed.
 
-### Required ReconcileAction family
+#### Required ReconcileAction family
 
 Use a bounded family:
 
 ```ts
 type ReconcileAction =
-  | { readonly kind: "QUIESCE"; readonly microSystemId: MicroSystemId; readonly reason: string }
-  | { readonly kind: "STOP"; readonly microSystemId: MicroSystemId; readonly reason: string }
-  | { readonly kind: "START"; readonly microSystemId: MicroSystemId; readonly reason: string }
-  | { readonly kind: "REBIND_SERVICE"; readonly serviceId: ServiceId; readonly providerId: ProviderId }
-  | { readonly kind: "REBIND_CAPABILITY"; readonly capabilityId: CapabilityId; readonly providerId?: ProviderId };
+  | {
+      readonly kind: "QUIESCE";
+      readonly microSystemId: MicroSystemId;
+      readonly reason: string;
+    }
+  | {
+      readonly kind: "STOP";
+      readonly microSystemId: MicroSystemId;
+      readonly reason: string;
+    }
+  | {
+      readonly kind: "START";
+      readonly microSystemId: MicroSystemId;
+      readonly reason: string;
+    }
+  | {
+      readonly kind: "REBIND_SERVICE";
+      readonly serviceId: ServiceId;
+      readonly providerId: ProviderId;
+    }
+  | {
+      readonly kind: "REBIND_CAPABILITY";
+      readonly capabilityId: CapabilityId;
+      readonly providerId?: ProviderId;
+    };
 ```
 
 Do not put callbacks/framework objects inside a ReconcilePlan.
 
-### Activation context rules
+#### Activation context rules
 
 `MicroSystemActivationContext` exposes only:
 
@@ -1594,7 +1599,7 @@ AbortSignal via resource scope
 
 No root Host object, PersistenceService, Cordis Context, Kysely, pg, Bootstrap object or unrestricted registry mutation.
 
-### Required scenarios
+#### Required scenarios
 
 ```text
 R1 cold start A→B plus independent C reaches deterministic RUNNING states
@@ -1617,7 +1622,7 @@ Commit after unit scenarios and static gates pass.
 
 ---
 
-# 7. Task 4 — Bind H2B runtime origin and lifecycle to H2A Execution Lineage
+## 7. Task 4 — Bind H2B runtime origin and lifecycle to H2A Execution Lineage
 
 **Purpose:** avoid retrofitting ProductGeneration/MicroSystem lineage after runtime code already exists.
 
@@ -1638,7 +1643,7 @@ L7 ordinary package-root caller has no origin-binding API
 L8 persistence execution metadata still projects only Host authority fields; runtime provenance cannot create DB Authority
 ```
 
-### 4.2 Rewrite current canonical baseline
+#### 4.2 Rewrite current canonical baseline
 
 Because `CompatibilityEpoch = PRE_PRODUCTION`:
 
@@ -1652,7 +1657,7 @@ Add runtime provenance columns and structural checks.
 
 Add one owner-owned Activity completion function. Keep runtime table UPDATE denied.
 
-### 4.3 ExecutionLineage completion
+#### 4.3 ExecutionLineage completion
 
 Implement DL-21/DL-22.
 
@@ -1669,7 +1674,7 @@ L15 completion function cannot complete a different-origin/current-Activity row
 L16 wall-clock-backward endedAt is preserved; no fake duration inference
 ```
 
-### 4.4 Runtime lifecycle recorder
+#### 4.4 Runtime lifecycle recorder
 
 Wrap state-changing reconcile operations with H2A Activities:
 
@@ -1697,7 +1702,7 @@ Commit only after execution-lineage/canonical-schema/runtime-kernel focused test
 
 ---
 
-# 8. Task 5 — H2A + H2B integration qualification on the current managed Host
+## 8. Task 5 — H2A + H2B integration qualification on the current managed Host
 
 **Purpose:** prove runtime composition works on the real H2A Host/Persistence/Lineage substrate without making Bootstrap depend on Runtime Kernel.
 
@@ -1728,7 +1733,7 @@ I10 shutdown disposes all scopes and no new invocation enters retired generation
 
 Use the exact local PostgreSQL version actually executed and record it. A skipped suite is `NOT_RUN`.
 
-### No false claims
+#### No false claims
 
 This H2B local integration may establish Windows/local real PostgreSQL evidence if that is the platform actually run.
 
@@ -1746,7 +1751,7 @@ unless those exact scenarios are actually executed.
 
 ---
 
-# 9. Task 6 — Mechanical closure of the H2B implementation candidate
+## 9. Task 6 — Mechanical closure of the H2B implementation candidate
 
 ### Mandatory package boundaries
 
@@ -1763,7 +1768,7 @@ runtime-substrate does not import persistence/execution-lineage
 no Cordis or graphlib type appears in emitted package-root declarations
 ```
 
-### Qualification evidence
+#### Qualification evidence
 
 Update `Q-RUNTIME-01` with an H2B implementation addendum. Preserve historical pilot evidence.
 
@@ -1793,7 +1798,7 @@ Keep implementation/product qualification `PARTIAL` wherever source-less/platfor
 
 If canonical Activity completion changes persistence qualification properties, update the existing `Q-PERSISTENCE-01` addendum narrowly; do not invent a second persistence qualification ID.
 
-### Local candidate matrix
+#### Local candidate matrix
 
 At minimum record:
 
@@ -1818,7 +1823,7 @@ tsc6
 pnpm verify
 ```
 
-### Roadmap before external review
+#### Roadmap before external review
 
 Set current truth only to what has happened:
 
@@ -1840,7 +1845,7 @@ Freeze exact `(base_sha, head_sha)` only after all local code/docs/evidence chan
 
 ---
 
-# 10. External review, final CI, merge and post-merge truth
+## 10. External review, final CI, merge and post-merge truth
 
 Use the existing milestone closure playbook exactly.
 
@@ -1875,7 +1880,7 @@ H2-S must not become H3.
 
 ---
 
-# 11. H2-S handoff contract fixed now
+## 11. H2-S handoff contract fixed now
 
 The implementing Agent does not design H2-S, but H2B must leave enough evidence for it.
 
@@ -1903,7 +1908,7 @@ If H2B implementation discovers an A+B invariant that cannot be made coherent wi
 
 ---
 
-# 12. Stop / escalation conditions — Agent reports, architect decides
+## 12. Stop / escalation conditions — Agent reports, architect decides
 
 STOP and return evidence instead of improvising if any occurs:
 
@@ -1932,7 +1937,7 @@ Ordinary private helper naming, file splitting within the two packages, test fix
 
 ---
 
-# 13. Acceptance checklist
+## 13. Acceptance checklist
 
 H2B is ready for external review only when all are true:
 
@@ -2005,7 +2010,7 @@ H2B is ready for external review only when all are true:
 
 ---
 
-# 14. Recommended commit envelope
+## 14. Recommended commit envelope
 
 This is guidance, not a numeric acceptance gate:
 
@@ -2022,7 +2027,7 @@ If the branch trends toward roughly fifteen or more unrelated behavior commits, 
 
 ---
 
-# 15. Observed H2B closure evidence
+## 15. Observed H2B closure evidence
 
 ```yaml
 h2b:
@@ -2072,7 +2077,7 @@ PASS | FAIL | NOT_RUN | BLOCKED
 
 ---
 
-# 16. Architectural rationale retained for reviewers
+## 16. Architectural rationale retained for reviewers
 
 1. **H2A does not get its own stabilization stage.** A and B are complementary halves of H2 runtime foundation; stabilization is more valuable after both can be audited as one machine.
 2. **Cordis is an adapter dependency, not the Kernel.** Its lifecycle mechanics are reused, while Heptalogos retains Desired/Actual/Reconcile/Service/Capability/Generation/Readiness Authority.

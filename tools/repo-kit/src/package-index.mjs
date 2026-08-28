@@ -1,3 +1,9 @@
+/**
+ * Derives the compact package index from package metadata and README purpose
+ * sections, keeping navigation generated from package-owned sources.
+ * @module package-index
+ */
+
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { firstSectionParagraph } from "./markdown.mjs";
@@ -23,6 +29,7 @@ function escapeTableCell(value) {
   return value.replaceAll("|", "\\|");
 }
 
+/** Build the package-index model from package metadata and README purpose text. */
 export async function collectPackageIndex({
   root = process.cwd(),
   productPackages,
@@ -75,6 +82,7 @@ export async function collectPackageIndex({
   return { root: repositoryRoot, packages };
 }
 
+/** Render the canonical package navigation table from an index model. */
 export function renderPackageIndex(model) {
   const packages = Array.isArray(model) ? model : model.packages;
   if (!Array.isArray(packages))
@@ -100,6 +108,7 @@ export function renderPackageIndex(model) {
   ].join("\n");
 }
 
+/** Compare package index text with the current generated canonical projection. */
 export async function validatePackageIndex({
   root = process.cwd(),
   text,

@@ -1,9 +1,16 @@
+/**
+ * Integrates lineage persistence with the Host-fenced transaction seam while
+ * preserving atomicity between the operation and its causal record.
+ * @module persistence-adapter
+ */
+
 import type {
   PersistenceExecutionContextProvider,
   PersistenceExecutionMetadata,
 } from "@heptalogos/persistence";
 import type { ExecutionContextRuntime } from "./contracts.js";
 
+/** Creates the Host-fenced persistence execution-context provider. */
 export function createPersistenceExecutionContextProvider(
   runtime: ExecutionContextRuntime,
 ): PersistenceExecutionContextProvider {

@@ -50,6 +50,8 @@
         "@typescript/typescript6 6.0.x compiler-API compatibility lane only",
         "Oxlint 1.x + oxlint-tsgolint 7.x primary JS/TS lint",
         "ESLint 10.x residual Nx module-boundary lane; typescript-eslint 8.x parser only where required",
+        "eslint-plugin-jsdoc 64.x source documentation contract lint",
+        "TypeDoc 0.28.x + typedoc-plugin-markdown 4.x declaration-first API projection",
         "@types/node 24.x aligned with shipping Node major",
         "ESM-first + ESNext + NodeNext"
       ],
@@ -76,6 +78,9 @@
         "eslint": {
           "major": 10
         },
+        "eslint-plugin-jsdoc": {
+          "major": 64
+        },
         "nx": {
           "major": 23
         },
@@ -85,6 +90,13 @@
         },
         "typescript-eslint": {
           "major": 8
+        },
+        "typedoc": {
+          "major": 0,
+          "minor": 28
+        },
+        "typedoc-plugin-markdown": {
+          "major": 4
         }
       },
       "packages": [
@@ -93,9 +105,12 @@
         "@types/node",
         "@typescript/native",
         "eslint",
+        "eslint-plugin-jsdoc",
         "nx",
         "typescript",
-        "typescript-eslint"
+        "typescript-eslint",
+        "typedoc",
+        "typedoc-plugin-markdown"
       ]
     },
     {

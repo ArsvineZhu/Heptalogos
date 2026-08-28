@@ -1,3 +1,9 @@
+/**
+ * Adapts Cordis Fiber activation and disposal into the narrow Substrate
+ * contract, retaining only Heptalogos task admission and settlement policy.
+ * @module cordis-adapter
+ */
+
 import { Context, type Fiber } from "cordis";
 import { ProblemError } from "@heptalogos/foundation-contracts";
 import { runtimeSubstrateProblem } from "./problems.js";
@@ -291,6 +297,7 @@ class Activation implements SubstrateActivationHandle {
   }
 }
 
+/** Creates the Cordis-backed RuntimeSubstrate adapter. */
 export function createRuntimeSubstrate(
   options: RuntimeSubstrateOptions,
 ): RuntimeSubstrate {

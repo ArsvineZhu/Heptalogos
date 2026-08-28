@@ -1,3 +1,9 @@
+/**
+ * Adapts the Host-authorized PostgreSQL pool to Kysely migration operations;
+ * it is an internal schema mechanic rather than a general transaction owner.
+ * @module migration-pool
+ */
+
 import { Kysely, PostgresDialect, sql } from "kysely";
 import { Pool, type PoolClient } from "pg";
 import {
@@ -8,6 +14,7 @@ import {
 import type { CanonicalSchemaRuntimeOptions } from "./contracts.js";
 import { canonicalSchemaProblem } from "./problems.js";
 
+/** Describes the canonical tables consumed by schema-owned migration checks. */
 export interface CanonicalDatabase {
   readonly instance_continuity: {
     readonly singleton: boolean;
@@ -93,8 +100,10 @@ export interface CanonicalDatabase {
   };
 }
 
+/** Holds the Kysely database and its bounded close operation. */
 export interface MigrationDatabase {
   readonly db: Kysely<CanonicalDatabase>;
+  /** Closes the migration pool exactly once. */
   close(): Promise<void>;
 }
 
@@ -118,6 +127,7 @@ function attachErrorSinks(pool: Pool, options: CanonicalSchemaRuntimeOptions): v
   pool.on("error", (error: unknown) => reportBackgroundError(options, error));
 }
 
+/** Creates the single-connection migration database under Host authority. */
 export function createMigrationDatabase(
   authority: HostCanonicalMigrationAuthority,
   options: CanonicalSchemaRuntimeOptions,
@@ -161,6 +171,7 @@ interface SchemaPreconditionRow {
   readonly schema_owner: unknown;
 }
 
+/** Verifies session and schema ownership before migrations are allowed to run. */
 export async function verifyMigrationSchemaPrecondition(
   db: Kysely<CanonicalDatabase>,
 ): Promise<void> {
@@ -202,6 +213,7 @@ export async function verifyMigrationSchemaPrecondition(
   }
 }
 
+/** Throws a canonical Problem when migration authority is no longer current. */
 export function assertCanonicalAuthority(
   authority: HostCanonicalMigrationAuthority,
 ): void {

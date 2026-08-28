@@ -1,3 +1,9 @@
+/**
+ * Implements the Host-fenced persistence service and bounded pool lifecycle,
+ * rejecting mutations after ownership loss through the canonical fence.
+ * @module persistence-service
+ */
+
 import {
   createProblemError,
   parseBootId,
@@ -323,6 +329,7 @@ function createPersistenceServiceFromDatabase(
   };
 }
 
+/** Creates the production persistence service over a Host-authorized pool. */
 export function createPersistenceService(
   authority: HostPersistenceAuthority,
   options: PersistenceRuntimeOptions,
@@ -338,6 +345,7 @@ export function createPersistenceService(
   );
 }
 
+/** Creates a persistence service over a test database seam without changing Authority. */
 export function createPersistenceServiceForTests(
   authority: HostPersistenceAuthority,
   options: PersistenceRuntimeOptions,

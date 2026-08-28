@@ -8,9 +8,9 @@
 
 ---
 
-# 第一部分：项目宪法
+## 第一部分：项目宪法
 
-## C1. Subject ≠ Model
+### C1. Subject ≠ Model
 
 Subject 是持续存在的认知与社会主体。
 
@@ -33,7 +33,7 @@ Operator Assistant
 
 ---
 
-## C2. State > Prompt
+### C2. State > Prompt
 
 长期状态必须由正式领域模型拥有，而不是依赖每次模型调用临时重建。
 
@@ -55,7 +55,7 @@ Prompt 只是某次 `InvocationSpec` 对当前状态的投影。
 
 ---
 
-## C3. Proposal ≠ Authority
+### C3. Proposal ≠ Authority
 
 以下默认都只是 proposal：
 
@@ -73,7 +73,7 @@ Operator Assistant suggestion
 
 ---
 
-## C4. Subject Authority ≠ System Authority
+### C4. Subject Authority ≠ System Authority
 
 ```text
 Subject Chat
@@ -96,7 +96,7 @@ initiating principal
 
 ---
 
-## C5. Single Subject, Distributed Inference, Centralized Commit
+### C5. Single Subject, Distributed Inference, Centralized Commit
 
 允许：
 
@@ -113,7 +113,7 @@ initiating principal
 
 ---
 
-## C6. Silence 是合法行为
+### C6. Silence 是合法行为
 
 Subject 不需要对每个 Observation 产生消息。
 
@@ -132,7 +132,7 @@ ReplyPlanned
 
 ---
 
-## C7. External Reality 可以是不确定的
+### C7. External Reality 可以是不确定的
 
 外部请求发出，不等于外部效果已知。
 
@@ -148,7 +148,7 @@ prepared
 
 ---
 
-## C8. Product Truth 必须可追溯
+### C8. Product Truth 必须可追溯
 
 重要状态变化、Decision、SystemAction、Effect、Memory、Persona influence 等必须尽可能有 Evidence / provenance。
 
@@ -156,7 +156,7 @@ prepared
 
 ---
 
-## C9. Recovery 不得依赖坏掉的正常系统
+### C9. Recovery 不得依赖坏掉的正常系统
 
 恢复路径不能要求以下系统先正常：
 
@@ -180,7 +180,7 @@ AI-independent
 
 ---
 
-## C10. Portability 跟随 Semantic Ownership
+### C10. Portability 跟随 Semantic Ownership
 
 如果某状态被定义为 Subject 的一部分，而且要求可迁移，它必须存在于 Subject-owned semantic state。
 
@@ -196,9 +196,9 @@ Extension runtime object
 
 ---
 
-# 第二部分：工程宪法
+## 第二部分：工程宪法
 
-## E1. Semantic Ownership First
+### E1. Semantic Ownership First
 
 Heptalogos 必须拥有自己的领域语义与 Authority。
 
@@ -212,7 +212,7 @@ Heptalogos implements all mechanics
 
 ---
 
-## E2. Library-First / Anti-NIH
+### E2. Library-First / Anti-NIH
 
 对非项目差异化的 generic mechanics，优先顺序：
 
@@ -228,7 +228,7 @@ Standard / OS Facility
 
 ---
 
-## E2A. Adopted Dependency Is an Implementation Directive
+### E2A. Adopted Dependency Is an Implementation Directive
 
 当依赖角色已经：
 
@@ -260,7 +260,7 @@ docs/dependencies/dependency-routing.json
 
 ---
 
-## E3. Minimum Total Maintenance Burden
+### E3. Minimum Total Maintenance Burden
 
 目标不是：
 
@@ -292,7 +292,7 @@ failure handling
 
 ---
 
-## E4. Configure First, Expose Intentionally
+### E4. Configure First, Expose Intentionally
 
 ```text
 Configuration existence
@@ -306,7 +306,7 @@ Configuration existence
 
 ---
 
-## E5. Explicit Authority Before Convenience
+### E5. Explicit Authority Before Convenience
 
 任何重要 mutation 都必须先回答：
 
@@ -324,7 +324,7 @@ Configuration existence
 
 ---
 
-## E6. Canonical Truth Before Async Processing
+### E6. Canonical Truth Before Async Processing
 
 推荐：
 
@@ -345,7 +345,7 @@ callback
 
 ---
 
-## E7. Desired State ≠ Actual State
+### E7. Desired State ≠ Actual State
 
 失败不能静默改写用户长期 intent。
 
@@ -360,7 +360,7 @@ actual = FAILED(authentication)
 
 ---
 
-## E8. Reconciliation Over Imperative Orchestration
+### E8. Reconciliation Over Imperative Orchestration
 
 长期运行优先表达：
 
@@ -382,7 +382,7 @@ ifChangeCThenRestartD()
 
 ---
 
-## E9. Failure Isolation and Graceful Degradation
+### E9. Failure Isolation and Graceful Degradation
 
 非关键组件失败，应尽量只降低相关 Capability / Readiness Profile。
 
@@ -395,7 +395,7 @@ one component failed
 
 ---
 
-## E10. Explicit Uncertainty Over Convenient Fiction
+### E10. Explicit Uncertainty Over Convenient Fiction
 
 “不知道”必须可以被系统正式表达。
 
@@ -413,13 +413,13 @@ system qualification
 
 ---
 
-## E11. Evidence Before Explanation
+### E11. Evidence Before Explanation
 
 系统先记录真实输入、因果和决定，再生成自然语言解释。
 
 ---
 
-## E12. Evidence Before Dependency Freeze
+### E12. Evidence Before Dependency Freeze
 
 关键技术依赖、平台结论和协议支持必须有与结论强度匹配的证据。依赖选择遵循最小充分证据原则：
 
@@ -436,7 +436,7 @@ L0 direct evidence
 
 ---
 
-## E13. One Canonical Authority, Many Derived Views
+### E13. One Canonical Authority, Many Derived Views
 
 允许：
 
@@ -452,7 +452,7 @@ materialized views
 
 ---
 
-## E14. Capability Before Concrete Provider
+### E14. Capability Before Concrete Provider
 
 业务尽量依赖：
 
@@ -465,7 +465,7 @@ Capability
 
 ---
 
-## E15. Extension by Contract, Not Framework Leakage
+### E15. Extension by Contract, Not Framework Leakage
 
 Extension SDK 应暴露 Heptalogos contract，而不是直接泄漏：
 
@@ -480,7 +480,7 @@ raw Cedar engine
 
 ---
 
-## E16. Presentation Is Projection, Not Authority
+### E16. Presentation Is Projection, Not Authority
 
 Web、CLI、Operator Assistant 都只是产品 Authority 的客户端 / projection。
 
@@ -500,7 +500,7 @@ Web UI 的视觉、页面组织和 renderer/runtime 技术不得成为 Foundatio
 
 ---
 
-## E17. Advanced Cognition Enters Through Contracts
+### E17. Advanced Cognition Enters Through Contracts
 
 Persona、Memory、Relationship、Attention、Living State、Appraisal、Epistemic State、Commitments、Reflection、Diary、Dream、长期目标等高级认知子系统不属于 Foundation 实现范围。
 
@@ -517,7 +517,7 @@ availability / readiness semantics
 
 ---
 
-## E18. Network Is an Effect
+### E18. Network Is an Effect
 
 任何 outbound network access 都必须有显式 requester、destination policy、budget、timeout、size limit、proxy/TLS profile 与 Evidence/telemetry policy。第三方 SDK 内部网络调用也不能天然绕过产品网络策略。
 
@@ -525,7 +525,7 @@ Inbound Management / Webhook 暴露必须显式定义 bind、reverse-proxy trust
 
 ---
 
-## E19. Pressure Is a State
+### E19. Pressure Is a State
 
 资源压力必须成为可观察、可推理、可降级的运行状态，而不是到 OOM、disk-full、429 或 connection exhaustion 时才失败。
 
@@ -540,7 +540,7 @@ Admission、load shedding 和优先级必须服从 Authority 与 readiness，不
 
 ---
 
-## E20. Durable Payloads Are Versioned
+### E20. Durable Payloads Are Versioned
 
 任何跨进程、跨 generation、跨升级、可持久化或可回放的 payload/contract 都必须有显式版本与兼容规则。
 
@@ -572,7 +572,7 @@ external protocol revision
 
 ---
 
-## E21. Deletion Is a Workflow
+### E21. Deletion Is a Workflow
 
 删除语义不得简化为单表 `DELETE`。
 
@@ -591,7 +591,7 @@ restore compatibility
 
 ---
 
-## E22. Crypto Has a Lifecycle
+### E22. Crypto Has a Lifecycle
 
 Credential、Secret backend key、backup key、session key、TUF trust root、package signing trust root 是不同 trust domains。
 
@@ -599,7 +599,7 @@ Credential、Secret backend key、backup key、session key、TUF trust root、pa
 
 ---
 
-## E23. Native Transitives Are Product Dependencies
+### E23. Native Transitives Are Product Dependencies
 
 任何 direct 或 transitive native/WASM binary dependency 都属于 shipping product closure。
 
@@ -614,11 +614,11 @@ upgrade compatibility
 
 ---
 
-## E24. Protocol Revision Is Data
+### E24. Protocol Revision Is Data
 
 外部协议版本、能力声明与 compatibility era 必须显式进入配置、连接状态或 Evidence。不得把“当前 SDK 默认行为”当永久协议语义。
 
-## E25. Every Meaningful Operation Has Lineage
+### E25. Every Meaningful Operation Has Lineage
 
 从 Bootstrap、Runtime、Extension discovery/activation、Service/Capability/Contribution invocation、WorkItem、SystemAction、AI/Network/Effect，到 Recovery/Shutdown，所有有意义的 semantic boundary 必须可以进入统一执行血缘。
 
@@ -635,7 +635,7 @@ Activity/Lineage 用于回答“谁调用了谁、为什么、后来导致了什
 
 ---
 
-## E26. Telemetry May Be Lost; Required Evidence May Not
+### E26. Telemetry May Be Lost; Required Evidence May Not
 
 Pino/OpenTelemetry/OpenInference 等 telemetry 可以采样、过期或因 exporter 故障而丢失。
 
@@ -648,7 +648,7 @@ telemetry availability
 
 ---
 
-## E27. Log Severity Is Not Evidence Importance
+### E27. Log Severity Is Not Evidence Importance
 
 必须正交区分：
 
@@ -661,13 +661,13 @@ sensitivity
 
 不能通过把普通事件提升为 `error` 来获得长期保存，也不能因为一次操作成功就省略其 required audit/evidence。
 
-## E28. Stable Identity Requires Canonical, Versioned Encoding
+### E28. Stable Identity Requires Canonical, Versioned Encoding
 
 任何用于 Approval、manifest、replay、cross-process/generation identity 的 digest 都必须基于显式 versioned canonical encoding，并使用 domain/purpose separation。不能依赖语言对象枚举顺序、framework serializer 默认行为或未声明的 JSON mutation。
 
 ---
 
-## E29. Recovery Cannot Depend on the Substrate Being Replaced
+### E29. Recovery Cannot Depend on the Substrate Being Replaced
 
 Restore、critical generation/data switch、private database repair 等会替换 normal durable substrate 的操作，进入 destructive boundary 后不能只依赖该 substrate 中的 normal workflow/management state。
 
@@ -675,7 +675,7 @@ Restore、critical generation/data switch、private database repair 等会替换
 
 ---
 
-## E30. Version Axes Must Not Be Conflated
+### E30. Version Axes Must Not Be Conflated
 
 至少明确区分：
 
@@ -688,7 +688,7 @@ contract/schema/protocol version
 
 只有存在显式 compatibility mapping 时才能关联，禁止为了方便把不同版本轴当作同一版本号。
 
-## E31. Identities Are Typed
+### E31. Identities Are Typed
 
 必须区分：
 
@@ -703,7 +703,7 @@ external protocol identity
 
 ---
 
-## E32. Problems Are Contracts
+### E32. Problems Are Contracts
 
 跨进程、API、CLI、Extension SDK 与 Management boundary 的失败必须有 stable machine-readable `Problem` identity/retry semantics，并能关联 Execution Lineage。
 
@@ -715,7 +715,7 @@ CLI exit code != domain problem identity
 
 ---
 
-## E33. Bootstrap State Is Crash-safe State
+### E33. Bootstrap State Is Crash-safe State
 
 active/LKG generation、recovery journal 和 bootstrap trust refs 是产品启动 Authority 的一部分，必须 versioned、digested、在 bootstrap ownership 下 crash-safe commit。
 
@@ -723,7 +723,7 @@ active/LKG generation、recovery journal 和 bootstrap trust refs 是产品启�
 
 ---
 
-## E34. Lease Ownership Must Fence Mutation
+### E34. Lease Ownership Must Fence Mutation
 
 “持有 Host lease”不能只是一条进程内事实。任何 canonical mutation 与 consequential effect prepare/dispatch 都必须受数据库可验证的 Host ownership fence 保护。
 
@@ -738,7 +738,7 @@ lease lost
 
 ---
 
-## E35. Background Work Is Owned or Durable
+### E35. Background Work Is Owned or Durable
 
 任何后台执行只能属于两类之一：
 
@@ -756,7 +756,7 @@ durable obligation
 
 ---
 
-## E36. Restore Does Not Roll Back External Reality
+### E36. Restore Does Not Roll Back External Reality
 
 恢复旧 snapshot 只能回滚 Heptalogos 的本地 canonical state，不能证明备份时间点之后的外部世界没有发生变化。
 
@@ -769,7 +769,7 @@ Destructive restore 必须建立新的 continuity epoch，失效可重放的认�
 
 ---
 
-## E37. Lifecycle Roots Are Independent
+### E37. Lifecycle Roots Are Independent
 
 Program/Package generation、Runtime Instance metadata、Configuration、Durable Data、Secrets、Blob、Cache/Operational data 具有独立生命周期。
 
@@ -782,7 +782,7 @@ physical co-location
 
 ---
 
-## E38. Storage Ownership Is Governed; Storage Engine Is Owner-selected
+### E38. Storage Ownership Is Governed; Storage Engine Is Owner-selected
 
 Foundation 统一：
 
@@ -803,7 +803,7 @@ Owner 可以选择适合自己的文件格式、SQLite/embedded store、专用�
 
 ---
 
-## E39. Configuration Semantics Do Not Imply Configuration Storage
+### E39. Configuration Semantics Do Not Imply Configuration Storage
 
 `ConfigurationDefinition` 描述 typed 语义、Authority、visibility/manageability 与 activation；它不等价于“value 必须存在 PostgreSQL”。
 
@@ -821,7 +821,7 @@ DERIVED_READ_ONLY
 
 ---
 
-## E40. Backup Covers Data Owners, Not One Database or Directory
+### E40. Backup Covers Data Owners, Not One Database or Directory
 
 Installation Backup 必须枚举 semantic DataOwner/BackupParticipant，并记录 logical owner/store identity、snapshot strategy、compatibility 与 digest。
 
@@ -834,7 +834,7 @@ PostgreSQL dump
 
 ---
 
-## E41. Foundation Provides Storage Mechanics, Not a Universal Data Model
+### E41. Foundation Provides Storage Mechanics, Not a Universal Data Model
 
 Extension/Domain 不应自行重复实现：
 
@@ -850,7 +850,7 @@ resource accounting
 
 Foundation 通过 StorageWorkspace / DataLifecycle API 提供这些 mechanics；owner 仍拥有自己的 schema、格式、数据库与领域 migration。
 
-## E42. Modern Toolchain Is Evidence-pinned, Not Legacy-by-default
+### E42. Modern Toolchain Is Evidence-pinned, Not Legacy-by-default
 
 Heptalogos 控制自己的 shipping runtime，因此 Foundation 不为未声明的旧 JavaScript 环境主动降级语言基线。
 
@@ -872,7 +872,7 @@ latest capable line
 
 任何 toolchain upgrade 都必须显式验证 shipping Node、TypeScript、ambient types、Nx/lint/compiler-API compatibility 与 representative adopted dependency consumer compile。
 
-## E43. Current Canonical Tree Is Not a Development Archive
+### E43. Current Canonical Tree Is Not a Development Archive
 
 当前 checkout 描述 canonical present，而不是产生它的 chronology。
 Development provenance 属于 Git、completed plans 与 historical evidence。
@@ -883,7 +883,7 @@ Authority。一次性 phase evidence/scripts 与已经失去 owner 的 historica
 在当前用途结束后必须移除；“为了历史保留”不是 current owner/purpose，Git 才是
 archive。
 
-# 第三部分：原则优先级
+## 第三部分：原则优先级
 
 发生冲突时，优先级大致为：
 
@@ -922,7 +922,7 @@ implementation convenience
 
 ---
 
-# 第四部分：变更规则
+## 第四部分：变更规则
 
 修改项目宪法必须：
 

@@ -56,7 +56,7 @@ or previous development builds. Keep one canonical V1 and reject/reset obsolete
 development shapes; never add V2/V3, legacy readers, upcasters, bridge
 migrations, aliases, shims, or dual formats solely for repository history.
 
-For Hn-S stabilization work, route Corpus 26 directly and stop as `PLAN_GAP` when a required
+For pre-production stabilization work, route Corpus 26 directly and stop as `PLAN_GAP` when a required
 architecture/scope/compatibility decision is absent from Corpus + the approved
 plan. Do not create an allowlist or local exception to make the hygiene gate
 pass.

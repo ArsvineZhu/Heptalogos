@@ -1,3 +1,9 @@
+/**
+ * Normalizes substrate admission, disposal, and task failures into Foundation
+ * Problems without exposing Cordis lifecycle errors.
+ * @module problems
+ */
+
 import {
   createProblemError,
   type ProblemError,
@@ -68,6 +74,7 @@ function substrateProblem(problemCode: string, detail: string): ProblemInit {
   };
 }
 
+/** Creates a typed Problem for substrate lifecycle or task failure. */
 export function runtimeSubstrateProblem(
   problemCode: string,
   detail: string,

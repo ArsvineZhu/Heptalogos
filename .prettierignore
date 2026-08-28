@@ -8,7 +8,4 @@ test-results/
 .pnpm-store/
 /tmp/
 pnpm-lock.yaml
-.agents/
-AGENTS.md
-docs/plans/
 .codegraph/

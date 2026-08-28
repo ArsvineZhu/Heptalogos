@@ -1,3 +1,9 @@
+/**
+ * Owns repository subprocess execution through Execa with bounded, normalized
+ * results so scripts do not create competing process wrappers.
+ * @module process
+ */
+
 import { execa, execaSync } from "execa";
 
 function text(value) {
@@ -38,6 +44,7 @@ function execaOptions(options) {
   };
 }
 
+/** Run a subprocess with normalized output and optional fail-closed rejection. */
 export async function runProcess(command, args = [], options = {}) {
   const result = await execa(command, [...args], execaOptions(options));
   const normalized = normalizeResult(command, args, result);
@@ -45,10 +52,12 @@ export async function runProcess(command, args = [], options = {}) {
   return normalized;
 }
 
+/** Run a subprocess and throw when it exits unsuccessfully. */
 export function runProcessChecked(command, args = [], options = {}) {
   return runProcess(command, args, { ...options, reject: options.reject ?? true });
 }
 
+/** Run a synchronous subprocess with the shared normalized result shape. */
 export function runProcessSync(command, args = [], options = {}) {
   const result = execaSync(command, [...args], execaOptions(options));
   const normalized = normalizeResult(command, args, result);
@@ -56,6 +65,7 @@ export function runProcessSync(command, args = [], options = {}) {
   return normalized;
 }
 
+/** Run a synchronous subprocess and throw when it exits unsuccessfully. */
 export function runProcessSyncChecked(command, args = [], options = {}) {
   return runProcessSync(command, args, {
     ...options,
@@ -63,14 +73,17 @@ export function runProcessSyncChecked(command, args = [], options = {}) {
   });
 }
 
+/** Run pnpm through the repository subprocess owner. */
 export function runPnpm(args, options = {}) {
   return runProcessChecked("pnpm", args, options);
 }
 
+/** Run a Node script without enabling shell interpretation. */
 export function runNode(script, args = [], options = {}) {
   return runProcessChecked(process.execPath, [script, ...args], options);
 }
 
+/** Run a synchronous Git command through the shared process boundary. */
 export function runGitSync(args, options = {}) {
   return runProcessSyncChecked("git", args, options);
 }

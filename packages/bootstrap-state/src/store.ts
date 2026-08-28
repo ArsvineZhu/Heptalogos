@@ -1,3 +1,9 @@
+/**
+ * Implements the crash-safe BootstrapState store, combining keyed serialization,
+ * atomic files, and explicit revision loading under one durable owner.
+ * @module store
+ */
+
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -15,6 +21,7 @@ import { readOptionalTextFile } from "./file-io.js";
 const CURRENT_FILENAME = "bootstrap-state.json";
 const PREVIOUS_FILENAME = "bootstrap-state.previous.json";
 
+/** Reports the current/previous durable BootstrapState revision status. */
 export type BootstrapStateLoadResult =
   | { readonly status: "EMPTY" }
   | { readonly status: "CURRENT"; readonly value: BootstrapStateEnvelope }
@@ -44,15 +51,18 @@ function stateText(value: BootstrapStateEnvelope): string {
   return canonicalizeJson(value as unknown as CanonicalJsonValue);
 }
 
+/** Owns atomic current/previous BootstrapState publication for one directory. */
 export class BootstrapStateStore {
   private readonly currentPath: string;
   private readonly previousPath: string;
 
+  /** Binds the store to the BootstrapState directory. */
   constructor(private readonly directory: string) {
     this.currentPath = join(directory, CURRENT_FILENAME);
     this.previousPath = join(directory, PREVIOUS_FILENAME);
   }
 
+  /** Loads current state, recovering a previous valid revision for inspection only. */
   async load(): Promise<BootstrapStateLoadResult> {
     const current = await this.readCandidate(this.currentPath);
     if (current.kind === "VALID") {
@@ -98,6 +108,7 @@ export class BootstrapStateStore {
     };
   }
 
+  /** Commits the next revision and verifies the exact durable reload. */
   async commit(candidate: BootstrapStateBody): Promise<BootstrapStateEnvelope> {
     const sealed = sealBootstrapState(candidate);
     const validated = parseBootstrapState(JSON.stringify(sealed));

@@ -1,3 +1,9 @@
+/**
+ * Performs the ordered Bootstrap-to-Host ownership handoff and carries the
+ * resulting fence context into the managed Host boundary.
+ * @module host-ownership-handoff
+ */
+
 import {
   createHostOwnershipToken,
   createProblemError,
@@ -51,6 +57,7 @@ import {
 import { problemCodeOf } from "./problem-code.js";
 import { recordBootstrapStage } from "./journal-stage.js";
 
+/** Supplies key, timing, and canonical initialization seams for Host handoff. */
 export interface HostOwnershipHandoffOptions {
   readonly keyProvider: BootstrapKeyProvider;
   readonly timing: HostOwnershipTimingOptions;
@@ -68,6 +75,7 @@ type CanonicalHostInitializer = (
   context: CanonicalHostInitializationContext,
 ) => Promise<void>;
 
+/** Carries the still-live Bootstrap authority into the handoff transaction. */
 export interface OwnedBootstrapPreludeHandoffContext {
   readonly installationId: ReadyPrivatePostgres["installationId"];
   readonly instanceId: ReadyPrivatePostgres["instanceId"];
@@ -84,6 +92,7 @@ export interface OwnedBootstrapPreludeHandoffContext {
 
 // Host ownership handoff owns fresh Host token materialization. Recovery reuses this seam so it
 // cannot create a parallel token-authority path.
+/** Creates fresh Host token material through the single ownership seam. */
 export function createFreshHostOwnershipToken(): HostOwnershipToken {
   return createHostOwnershipToken();
 }
@@ -492,6 +501,7 @@ async function handoffPrivatePostgresToHostForOwnedPreludeInternal(
   }
 }
 
+/** Transfers an owned private PostgreSQL session into raw Host ownership. */
 export async function handoffPrivatePostgresToHostForOwnedPrelude(
   context: OwnedBootstrapPreludeHandoffContext,
   ready: ReadyPrivatePostgres,
@@ -502,6 +512,7 @@ export async function handoffPrivatePostgresToHostForOwnedPrelude(
   ).host;
 }
 
+/** Transfers an owned private PostgreSQL session into the managed Host wrapper. */
 export async function handoffPrivatePostgresToManagedHostForOwnedPrelude(
   context: OwnedBootstrapPreludeHandoffContext,
   ready: ReadyPrivatePostgres,

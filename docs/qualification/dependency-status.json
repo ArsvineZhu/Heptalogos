@@ -173,6 +173,8 @@
         "TypeScript 7.0.x primary CLI compiler",
         "@typescript/typescript6 6.0.x compiler-API compatibility lane only",
         "ESLint 10.x + typescript-eslint 8.x",
+        "eslint-plugin-jsdoc 64.x source documentation contract lint",
+        "TypeDoc 0.28.x + typedoc-plugin-markdown 4.x declaration-first API projection",
         "@types/node 24.x aligned with shipping Node 24"
       ],
       "roleDecision": "ADOPTED",

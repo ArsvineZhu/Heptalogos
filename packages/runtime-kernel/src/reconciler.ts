@@ -1,3 +1,9 @@
+/**
+ * Reconciles desired Runtime snapshots into deterministic graph activation and
+ * retirement operations, with generation fencing at each lifecycle boundary.
+ * @module reconciler
+ */
+
 import type { CapabilityRegistry } from "./capability-registry.js";
 import type { CapabilityId } from "./contracts.js";
 import type {
@@ -11,6 +17,7 @@ import type {
 import { RuntimeGraph } from "./runtime-graph.js";
 import type { ServiceRegistry } from "./service-registry.js";
 
+/** Describes one deterministic Runtime reconciliation action. */
 export type ReconcileAction =
   | {
       readonly kind: "QUIESCE";
@@ -38,6 +45,7 @@ export type ReconcileAction =
       readonly providerId: ProviderId | undefined;
     };
 
+/** Reports the ordered actions and bindings produced by reconciliation. */
 export interface ReconcilePlan {
   readonly revision: number;
   readonly actions: readonly ReconcileAction[];
@@ -47,6 +55,7 @@ export interface ReconcilePlan {
   readonly capabilityBindings: ReadonlyMap<CapabilityId, ProviderId>;
 }
 
+/** Supplies desired, actual, registry, and binding state to reconciliation. */
 export interface ReconcileInput {
   readonly definitions: readonly MicroSystemDefinition[];
   readonly desired: DesiredRuntimeSnapshot;
@@ -67,7 +76,9 @@ function shutdownActions(
   ];
 }
 
+/** Plans Runtime activation, rebinding, quiescence, and retirement actions. */
 export class RuntimeReconciler {
+  /** Computes a deterministic plan without mutating Runtime state. */
   plan(input: ReconcileInput): ReconcilePlan {
     const definitions = [...input.definitions].sort((left, right) =>
       left.microSystemId.localeCompare(right.microSystemId),

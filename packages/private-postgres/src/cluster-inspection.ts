@@ -1,3 +1,9 @@
+/**
+ * Reads and validates private PostgreSQL cluster identity/readiness evidence so
+ * Bootstrap can reject an unexpected data directory before starting it.
+ * @module cluster-inspection
+ */
+
 import { readFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import {
@@ -11,6 +17,7 @@ import {
 } from "./contracts.js";
 import { runPostgresTool } from "./process-adapter.js";
 
+/** Parsed deterministic fields emitted by `pg_controldata`. */
 export interface ParsedPgControldata {
   readonly clusterSystemIdentifier: string;
   readonly databaseClusterState: string;
@@ -18,6 +25,7 @@ export interface ParsedPgControldata {
   readonly dataPageChecksumVersion: number;
 }
 
+/** Combines PostgreSQL major identity with parsed control metadata. */
 export interface PrivatePostgresClusterInspection extends ParsedPgControldata {
   readonly postgresMajor: typeof PRIVATE_POSTGRES_ARCHITECTURE_MAJOR;
 }
@@ -50,6 +58,7 @@ function field(output: string, label: string): string {
   return match[1];
 }
 
+/** Parses and validates the control-data fields required by Bootstrap. */
 export function parsePgControldata(output: string): ParsedPgControldata {
   const clusterSystemIdentifier = field(output, "Database system identifier");
   if (!/^[0-9]+$/u.test(clusterSystemIdentifier)) {
@@ -87,6 +96,7 @@ export function parsePgControldata(output: string): ParsedPgControldata {
   });
 }
 
+/** Reads and validates the supported PostgreSQL major from PG_VERSION. */
 export async function readPrivatePostgresMajor(
   dataDirectory: string,
 ): Promise<typeof PRIVATE_POSTGRES_ARCHITECTURE_MAJOR> {
@@ -120,6 +130,7 @@ export async function readPrivatePostgresMajor(
   return PRIVATE_POSTGRES_ARCHITECTURE_MAJOR;
 }
 
+/** Inspects a private cluster with pg_controldata after major validation. */
 export async function inspectPrivatePostgresCluster(
   toolchain: PrivatePostgresToolchain,
   dataDirectory: string,

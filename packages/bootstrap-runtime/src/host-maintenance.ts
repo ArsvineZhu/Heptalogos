@@ -1,3 +1,9 @@
+/**
+ * Owns managed Host maintenance preparation, quiescence, and release contracts
+ * while ensuring private PostgreSQL control never occurs under a closed Host.
+ * @module host-maintenance
+ */
+
 import {
   type BootstrapActivityId,
   type BootstrapJournal,
@@ -69,6 +75,7 @@ type CurrentPrivatePostgresStateEnvelope = BootstrapStateEnvelopeV1 & {
 
 const DEFAULT_BOOTSTRAP_HEARTBEAT_MS = 1_000;
 
+/** Captures the Bootstrap context that authorizes a maintenance window. */
 export interface HostMaintenanceBootstrapContext {
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
@@ -78,19 +85,23 @@ export interface HostMaintenanceBootstrapContext {
   readonly journal: BootstrapJournal;
 }
 
+/** Represents an entered maintenance window after the point of entry. */
 export interface EnteredMaintenanceWindow {
   readonly operationId: MaintenanceOperationId;
   readonly request: PrivatePostgresMaintenanceRequest;
   readonly lease: BootstrapOwnershipLease;
   readonly access: OwnedMaintenanceStateAccess;
   readonly journal: MaintenanceJournalBodyV1;
+  /** Records a durable maintenance stage before the next side effect. */
   advance(
     stage: MaintenanceStage,
     changes?: Partial<MaintenanceJournalBodyV1>,
   ): Promise<void>;
+  /** Marks the window complete after its terminal outcome is durable. */
   complete(): void;
 }
 
+/** Supplies Host, Bootstrap, handoff, and controller seams for maintenance. */
 export interface HostMaintenanceOperationProvenance {
   readonly host: HostOwnershipContext;
   readonly bootstrap: HostMaintenanceBootstrapContext;
@@ -112,6 +123,7 @@ export interface HostMaintenanceOperationProvenance {
   readonly onOldHostTerminal?: () => void;
 }
 
+/** Dispatches the selected stop or restart operation for an entered window. */
 export function executeHostMaintenanceWindow(
   provenance: HostMaintenanceOperationProvenance,
   window: EnteredMaintenanceWindow,
@@ -387,6 +399,7 @@ function isRevocationUncertain(error: unknown): boolean {
   );
 }
 
+/** Creates managed Host operations that enter and close maintenance windows. */
 export function createHostMaintenanceOperations(
   provenance: HostMaintenanceOperationProvenance,
 ): ManagedHostOperations {
@@ -410,6 +423,7 @@ export function createHostMaintenanceOperations(
   };
 }
 
+/** Creates the bounded executor for stopping private PostgreSQL. */
 export function createStopPrivatePostgresEnteredWindowExecutor(
   provenance: HostMaintenanceOperationProvenance,
 ): (window: EnteredMaintenanceWindow) => Promise<PrivatePostgresMaintenanceResult> {
@@ -437,6 +451,7 @@ export function createStopPrivatePostgresEnteredWindowExecutor(
   };
 }
 
+/** Creates the bounded executor for restarting and reacquiring private PostgreSQL. */
 export function createRestartPrivatePostgresEnteredWindowExecutor(
   provenance: HostMaintenanceOperationProvenance,
 ): (window: EnteredMaintenanceWindow) => Promise<PrivatePostgresMaintenanceResult> {

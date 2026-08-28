@@ -1,3 +1,9 @@
+/**
+ * Compiles and executes strict runtime schemas through the adopted Ajv route,
+ * translating validator failures into the package's typed result contract.
+ * @module validator
+ */
+
 import { Ajv2020 } from "ajv/dist/2020.js";
 import type { AnySchema } from "ajv";
 import type { SchemaValidator } from "./contracts.js";
@@ -10,6 +16,7 @@ const ajvOptions = {
   strict: true,
 } as const;
 
+/** Compiles a strict schema into the typed SchemaRuntime validator contract. */
 export function compileSchema<T>(schema: object): SchemaValidator<T> {
   const validate = new Ajv2020(ajvOptions).compile<T>(schema as AnySchema);
 

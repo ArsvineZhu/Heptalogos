@@ -1,4 +1,5 @@
 # Heptalogos H3A — Durable Obligation & Signal Spine
+
 ## Decision-Complete Implementation & Qualification Plan
 
 **Plan date:** 2026-08-26  
@@ -6,7 +7,8 @@
 **Authority level:** Implementation Plan below the Architecture Corpus; this plan may prescribe exact Roadmap/qualification updates, but it does not silently override Corpus Authority.  
 **Canonical active path after activation:** `docs/plans/active/foundation/Heptalogos_H3A_Decision_Complete_Implementation_Plan_2026-08-26.md`  
 **Supersedes:** the earlier draft `Heptalogos_H3A_Durable_Work_and_Signal_Spine_Implementation_Plan_2026-08-26.md`  
-**Behavior branches:**  
+**Behavior branches:**
+
 - `dev/h3a1-canonical-work-signal`
 - `dev/h3a2-dbos-durable-recovery`
 
@@ -14,7 +16,7 @@
 >
 > **Required execution disciplines:** TDD for behavior-bearing changes; evidence vocabulary `PASS | FAIL | NOT_RUN | BLOCKED`; verification before completion claims; external Independent Review is out-of-band and is never inferred from GitHub review/approval state.
 
-## Current H3A-1 stage state — 2026-08-27
+### Current H3A-1 stage state — 2026-08-27
 
 ```yaml
 H3: OPEN
@@ -41,7 +43,7 @@ Repository Stabilization. Historical implementation sequence and superseded
 development text belong in Git history and qualification history; this active
 plan is the single current specification.
 
-## Current execution reconciliation — 2026-08-27
+### Current execution reconciliation — 2026-08-27
 
 ```yaml
 governanceRecoveryRecord: docs/plans/completed/foundation/h3a1-premature-merge-governance-recovery.md
@@ -54,11 +56,11 @@ repositoryStabilizationDependency: BLOCKED
 
 ---
 
-# 0. Executive Decision Record
+## 0. Executive Decision Record
 
 This section freezes the non-trivial decisions that implementation Agents are **not** allowed to make.
 
-## D-01 — H3 is decomposed, but the Architecture horizon is not redefined
+### D-01 — H3 is decomposed, but the Architecture horizon is not redefined
 
 The current Roadmap H3 question remains:
 
@@ -99,7 +101,7 @@ H3 is **not** closed by this plan.
 
 ---
 
-## D-02 — No broad normative Corpus rewrite is required before H3A
+### D-02 — No broad normative Corpus rewrite is required before H3A
 
 The Architecture Corpus is living Authority and may be revised when engineering evidence exposes a true semantic conflict. No broad rewrite is required before H3A. The narrow first-accepted-terminal-intent clarification to S02 §12 is the only normative Corpus change required by this plan.
 
@@ -134,7 +136,7 @@ If implementation evidence proves this staging is semantically insufficient, sto
 
 ---
 
-## D-03 — Resource/pressure semantics are represented by an explicit admission port, not a fake ResourceGovernor
+### D-03 — Resource/pressure semantics are represented by an explicit admission port, not a fake ResourceGovernor
 
 H3A must not pretend that H8 ResourceGovernor/PressureSnapshot exists.
 
@@ -186,7 +188,7 @@ No production “allow everything if provider missing” default exists.
 
 ---
 
-## D-04 — Semantic package owners are fixed
+### D-04 — Semantic package owners are fixed
 
 H3A creates exactly these new semantic packages:
 
@@ -246,7 +248,7 @@ bootstrap-runtime production source -> runtime-kernel
 
 ---
 
-## D-05 — Runtime Kernel gets a narrow WorkHandler seam, not a generic Contribution framework
+### D-05 — Runtime Kernel gets a narrow WorkHandler seam, not a generic Contribution framework
 
 H3A adds one dedicated generation-bound registry/resolver:
 
@@ -314,7 +316,7 @@ If a second concrete Contribution family later demonstrates shared mechanics, ge
 
 ---
 
-## D-06 — WorkItem is the only product Authority for durable work
+### D-06 — WorkItem is the only product Authority for durable work
 
 ```text
 heptalogos.work_item = canonical product truth
@@ -331,7 +333,7 @@ No Signal payload carries unique durable truth.
 
 ---
 
-## D-07 — Current PRE_PRODUCTION schema is rewritten; no H3 migration history is accumulated
+### D-07 — Current PRE_PRODUCTION schema is rewritten; no H3 migration history is accumulated
 
 Current repository has one Foundation baseline:
 
@@ -358,7 +360,7 @@ DBOS's own `dbos.*` vendor schema is **not** placed into this canonical product 
 
 ---
 
-## D-08 — Signal uses one fixed PostgreSQL channel and typed hint payload
+### D-08 — Signal uses one fixed PostgreSQL channel and typed hint payload
 
 Foundation channel:
 
@@ -392,7 +394,7 @@ work.available
 
 ---
 
-## D-09 — WorkQueue uses reconciliation, not a second scheduler
+### D-09 — WorkQueue uses reconciliation, not a second scheduler
 
 There is one adopted scheduling engine:
 
@@ -452,7 +454,7 @@ No old DBOS workflow is “resurrected” as a logical retry.
 
 ---
 
-## D-10 — Product-level dedup semantics are fixed
+### D-10 — Product-level dedup semantics are fixed
 
 Optional `dedupKey` means:
 
@@ -485,7 +487,7 @@ This dedup is **not** external-effect idempotency and does not replace EffectFen
 
 ---
 
-## D-11 — Attempt identity and product fencing are fixed
+### D-11 — Attempt identity and product fencing are fixed
 
 ```text
 WorkItemId = UUIDv7 product durable obligation identity
@@ -520,7 +522,7 @@ No Git SHA, package path, DBOS-generated random UUID, or source hash is product 
 
 ---
 
-## D-12 — Handler execution never spans a product DB transaction
+### D-12 — Handler execution never spans a product DB transaction
 
 Required execution boundary:
 
@@ -572,7 +574,7 @@ canonical terminal already committed
 
 ---
 
-## D-13 — H3A prohibits consequential external effects
+### D-13 — H3A prohibits consequential external effects
 
 H3A WorkHandlers may:
 
@@ -603,7 +605,7 @@ H3B owns EffectOperation/EffectFence/uncertainty.
 
 ---
 
-## D-14 — DBOS exact dependency is frozen to stable 4.26.10 for this plan
+### D-14 — DBOS exact dependency is frozen to stable 4.26.10 for this plan
 
 Current external evidence at planning time:
 
@@ -632,7 +634,7 @@ No Agent-selected downgrade, preview adoption, or second engine.
 
 ---
 
-## D-15 — DBOS gets a dedicated least-privilege PostgreSQL principal
+### D-15 — DBOS gets a dedicated least-privilege PostgreSQL principal
 
 Add:
 
@@ -661,7 +663,7 @@ DBOS never receives `heptalogos_runtime` as a convenience credential.
 
 ---
 
-## D-16 — DBOS vendor schema is provisioned under Heptalogos migration Authority
+### D-16 — DBOS vendor schema is provisioned under Heptalogos migration Authority
 
 Normal DBOS runtime is always:
 
@@ -719,7 +721,7 @@ The DBOS CLI is mechanics. Heptalogos retains Authority over **when**, **under w
 
 ---
 
-## D-17 — DBOS runtime receives its own caller-owned pg Pool
+### D-17 — DBOS runtime receives its own caller-owned pg Pool
 
 `durable-execution` creates a dedicated `pg.Pool` using `HostDurableExecutionAuthority`.
 
@@ -745,7 +747,7 @@ DBOS cannot borrow the normal Persistence pool.
 
 ---
 
-## D-18 — DBOS application version is explicit and independent of PackageGeneration
+### D-18 — DBOS application version is explicit and independent of PackageGeneration
 
 Define Heptalogos-owned:
 
@@ -782,7 +784,7 @@ Do not implement blue/green Product Update in H3A.
 
 ---
 
-## D-19 — Queue profile configuration is Heptalogos Authority; DBOS is projection
+### D-19 — Queue profile configuration is Heptalogos Authority; DBOS is projection
 
 Define:
 
@@ -815,7 +817,7 @@ No runtime queue-management UI or dynamic Management action is added in H3A.
 
 ---
 
-## D-20 — H3A uses two externally reviewed behavior candidates
+### D-20 — H3A uses two externally reviewed behavior candidates
 
 Candidate 1:
 
@@ -843,7 +845,7 @@ H3 final Ubuntu/macOS/Windows manual CI remains a **H3-S closure gate**, not a p
 
 ---
 
-# 1. Planning Basis — Current Master Truth
+## 1. Planning Basis — Current Master Truth
 
 The executor must re-read these at Task 0 and verify they still hold.
 
@@ -905,9 +907,9 @@ and produce the changed living-truth evidence. Do not execute an old plan agains
 
 ---
 
-# 2. Required Reading Before Editing
+## 2. Required Reading Before Editing
 
-## Repository governance
+### Repository governance
 
 ```text
 AGENTS.md
@@ -918,7 +920,7 @@ docs/plans/README.md
 docs/roadmap/development-roadmap.md
 ```
 
-## Architecture Corpus
+### Architecture Corpus
 
 ```text
 docs/README.md
@@ -946,7 +948,7 @@ docs/architecture/contracts/foundation-cross-cutting-contracts.md
 docs/architecture/contracts/execution-lineage-observability.md
 ```
 
-## Qualification / machine-readable routing
+### Qualification / machine-readable routing
 
 ```text
 docs/qualification/dependency-status.json
@@ -956,7 +958,7 @@ docs/dependencies/dependency-routing.json
 docs/governance/compatibility-obligations.json
 ```
 
-## Existing implementation boundaries
+### Existing implementation boundaries
 
 ```text
 packages/foundation-contracts/README.md
@@ -995,7 +997,7 @@ packages/runtime-kernel/src/supervisor.ts
 
 ---
 
-# 3. External Dependency Evidence Frozen by This Plan
+## 3. External Dependency Evidence Frozen by This Plan
 
 Evidence refreshed 2026-08-26:
 
@@ -1044,7 +1046,7 @@ Implementation Agent must not substitute memory for these facts.
 
 ---
 
-# 4. Target Package Dependency DAG
+## 4. Target Package Dependency DAG
 
 After H3A:
 
@@ -1093,15 +1095,15 @@ No cycle is accepted.
 
 ---
 
-# 5. Current WorkItem V1 Contract
+## 5. Current WorkItem V1 Contract
 
-## 5.1 IDs
+### 5.1 IDs
 
 Add to `foundation-contracts`:
 
 ```ts
-ContributionId
-WorkItemId
+ContributionId;
+WorkItemId;
 ```
 
 `ContributionId` uses the current namespaced semantic-ID mechanics.
@@ -1112,7 +1114,7 @@ WorkItemId
 
 ---
 
-## 5.2 WorkHandler target
+### 5.2 WorkHandler target
 
 ```ts
 interface WorkHandlerTarget {
@@ -1130,7 +1132,7 @@ No “latest generation” target exists.
 
 ---
 
-## 5.3 WorkHandler descriptor
+### 5.3 WorkHandler descriptor
 
 Runtime Kernel descriptor:
 
@@ -1147,12 +1149,8 @@ interface WorkHandlerProvisionDescriptor {
   outcomeSchema: Readonly<Record<string, unknown>>; // JSON Schema 2020-12
   queueProfileId: WorkQueueProfileId;
   resourceAdmissionClass: ResourceAdmissionClassId;
-  configurationBindingPolicy:
-    | "CONFIG_PINNED"
-    | "LATEST_COMPATIBLE_AT_ATTEMPT";
-  restoreReplayClass:
-    | "RECONCILE_REQUIRED"
-    | "RESTORE_SAFE";
+  configurationBindingPolicy: "CONFIG_PINNED" | "LATEST_COMPATIBLE_AT_ATTEMPT";
+  restoreReplayClass: "RECONCILE_REQUIRED" | "RESTORE_SAFE";
 }
 ```
 
@@ -1179,7 +1177,7 @@ Do not silently convert it to latest-compatible.
 
 ---
 
-## 5.4 WorkItem state
+### 5.4 WorkItem state
 
 Exact canonical states:
 
@@ -1208,7 +1206,7 @@ SUPERSEDED
 
 ---
 
-## 5.5 Transition model
+### 5.5 Transition model
 
 Use XState 5 only as an implementation mechanic for validating legal local transition structure.
 
@@ -1246,7 +1244,7 @@ Cancellation/supersession request is a field-level Authority request, not an imm
 
 ---
 
-# 6. Canonical PostgreSQL WorkItem Shape
+## 6. Canonical PostgreSQL WorkItem Shape
 
 Rewrite current `0001-foundation-baseline.ts`.
 
@@ -1392,7 +1390,7 @@ Do not add domain-specific Messaging/Subject/Effect columns.
 
 ---
 
-# 7. Execution Lineage Alignment
+## 7. Execution Lineage Alignment
 
 Current `RuntimeExecutionOrigin` lacks `ContributionId`; H3A fixes that existing Corpus/implementation gap.
 
@@ -1441,9 +1439,9 @@ A DBOS retry after process restart must resume through explicit durable lineage 
 
 ---
 
-# 8. H3A-1 — Canonical Work Contract, Handler Binding & Signal
+## 8. H3A-1 — Canonical Work Contract, Handler Binding & Signal
 
-## H3A-1 acceptance question
+### H3A-1 acceptance question
 
 > Can Heptalogos commit a durable WorkItem as canonical product truth, resolve only the exact generation-pinned WorkHandler, survive lost Signal/dispatch projection at the semantic boundary, and enforce revision/admission/cancellation semantics before any durable engine is connected?
 
@@ -1451,7 +1449,7 @@ H3A-1 deliberately uses a test `DurableDispatchPort` implementation. It does not
 
 ---
 
-## Task 0 — Activate the H3A master plan and Roadmap decomposition
+### Task 0 — Activate the H3A master plan and Roadmap decomposition
 
 **Branch:**
 
@@ -1515,7 +1513,7 @@ docs: activate H3A durable obligation plan
 
 ---
 
-## Task 1 — Add Work/Contribution identity primitives
+### Task 1 — Add Work/Contribution identity primitives
 
 **Modify:**
 
@@ -1535,8 +1533,8 @@ TDD first:
 Implementation:
 
 ```ts
-ContributionId = NamespacedId<"ContributionId">
-WorkItemId = UuidV7Id<"WorkItemId">
+ContributionId = NamespacedId<"ContributionId">;
+WorkItemId = UuidV7Id<"WorkItemId">;
 ```
 
 Do not create an `AttemptId` random ID.
@@ -1558,7 +1556,7 @@ feat: add durable work identities
 
 ---
 
-## Task 2 — Carry Contribution origin through Execution Lineage
+### Task 2 — Carry Contribution origin through Execution Lineage
 
 **Modify:**
 
@@ -1595,7 +1593,7 @@ feat: bind contribution origin to execution lineage
 
 ---
 
-## Task 3 — Rewrite canonical baseline for Contribution origin and WorkItem
+### Task 3 — Rewrite canonical baseline for Contribution origin and WorkItem
 
 **Modify:**
 
@@ -1645,7 +1643,7 @@ feat: materialize current durable work schema
 
 ---
 
-## Task 4 — Add narrow WorkHandler lifecycle to Runtime Kernel
+### Task 4 — Add narrow WorkHandler lifecycle to Runtime Kernel
 
 **Create:**
 
@@ -1681,8 +1679,7 @@ interface RuntimeWorkHandlerResult {
 }
 
 interface RuntimeWorkHandler {
-  execute(input: RuntimeWorkHandlerInvocation):
-    Promise<RuntimeWorkHandlerResult>;
+  execute(input: RuntimeWorkHandlerInvocation): Promise<RuntimeWorkHandlerResult>;
 }
 ```
 
@@ -1738,7 +1735,7 @@ feat: add generation-pinned WorkHandler runtime seam
 
 ---
 
-## Task 5 — Create Signal package
+### Task 5 — Create Signal package
 
 **Create:**
 
@@ -1784,7 +1781,7 @@ interface SignalService {
       onWakeup(): void | Promise<void>;
       onRescanRequired(): void | Promise<void>;
       onBackgroundError(error: unknown): void;
-    }
+    },
   ): Promise<SignalSubscription>;
 }
 ```
@@ -1831,7 +1828,7 @@ feat: add PostgreSQL signal hint service
 
 ---
 
-## Task 6 — Create WorkQueue package contracts, attempt identity and state machine
+### Task 6 — Create WorkQueue package contracts, attempt identity and state machine
 
 **Create:**
 
@@ -1930,7 +1927,7 @@ feat: define durable WorkItem semantics
 
 ---
 
-## Task 7 — Implement WorkQueue repository on Persistence
+### Task 7 — Implement WorkQueue repository on Persistence
 
 **Create:**
 
@@ -2006,7 +2003,7 @@ feat: persist Host-fenced WorkItem authority
 
 ---
 
-## Task 8 — Implement WorkAdmissionPort and WorkQueueService creation semantics
+### Task 8 — Implement WorkAdmissionPort and WorkQueueService creation semantics
 
 **Create:**
 
@@ -2079,7 +2076,7 @@ feat: govern durable work creation and admission
 
 ---
 
-## Task 9 — Implement WorkQueue reconciliation semantics with a DurableDispatchPort
+### Task 9 — Implement WorkQueue reconciliation semantics with a DurableDispatchPort
 
 **Create:**
 
@@ -2148,7 +2145,7 @@ feat: reconcile canonical work into dispatch projection
 
 ---
 
-## Task 10 — Implement WorkAttemptExecutor without DBOS
+### Task 10 — Implement WorkAttemptExecutor without DBOS
 
 **Create:**
 
@@ -2259,7 +2256,7 @@ feat: execute WorkItems through generation and revision fences
 
 ---
 
-## Task 11 — H3A-1 real PostgreSQL / Host integration qualification
+### Task 11 — H3A-1 real PostgreSQL / Host integration qualification
 
 **Do not create a new permanent product composition package.**
 
@@ -2296,7 +2293,7 @@ Use existing real private PostgreSQL fixture in the same package.
 
 Required scenarios:
 
-### W1 — canonical creation + signal
+#### W1 — canonical creation + signal
 
 ```text
 authentic Host
@@ -2307,7 +2304,7 @@ authentic Host
 → canonical requery observes item
 ```
 
-### W2 — lost notification
+#### W2 — lost notification
 
 ```text
 listener connection killed
@@ -2318,7 +2315,7 @@ listener connection killed
 → item discovered
 ```
 
-### W3 — lost dispatch projection
+#### W3 — lost dispatch projection
 
 ```text
 WorkItem commits
@@ -2328,27 +2325,27 @@ WorkItem commits
 → same revision / same attempt ID redispatched
 ```
 
-### W4 — same revision deterministic
+#### W4 — same revision deterministic
 
 duplicate reconciliation produces exactly the same DispatchAttemptId.
 
-### W5 — stale revision fence
+#### W5 — stale revision fence
 
 legal retry/dependency wake advances revision; old attempt cannot terminal-commit.
 
-### W6 — generation A pinned, B available
+#### W6 — generation A pinned, B available
 
 A missing -> WAITING_DEPENDENCY; B is never invoked.
 
 Restore A -> wake -> revision increments -> A executes.
 
-### W7 — cancellation/supersession
+#### W7 — cancellation/supersession
 
 PENDING cancel terminalizes without invoke.
 
 RUNNING cooperative cancel aborts handler; stale success cannot overwrite request.
 
-### W8 — Host authority loss
+#### W8 — Host authority loss
 
 terminate authentic Host lease:
 
@@ -2357,17 +2354,17 @@ terminate authentic Host lease:
 - pending/nonterminal WorkItem remains durable;
 - no new accepted dispatch projection after lifecycle closure.
 
-### W9 — dedup
+#### W9 — dedup
 
 two concurrent create requests with same logical handler + dedup key produce one non-terminal WorkItem.
 
 After it becomes terminal, same key may create a new WorkItem.
 
-### W10 — lineage
+#### W10 — lineage
 
 `work.create -> work.execute -> contribution.invoke` reconstructs exact causal/generation origin.
 
-### Creation request envelope
+#### Creation request envelope
 
 An admission provider pauses after the pre-admission checks and mutates the
 caller-owned target and scalar fields. The persisted WorkItem must retain the
@@ -2375,7 +2372,7 @@ captured generation, payload version, queue profile, resource class, partition,
 priority, and dedup identity. The service must not read the caller request again
 after the first asynchronous boundary.
 
-### Fair projection query shape
+#### Fair projection query shape
 
 On a fresh real PostgreSQL schema, `EXPLAIN` for both the PENDING and
 WAITING_DEPENDENCY `(created_at, work_item_id)` keyset queries must select
@@ -2386,7 +2383,7 @@ Run using explicit PostgreSQL 18.6 toolchain path; no PATH fallback.
 
 ---
 
-## Task 12 — H3A-1 repository verification and qualification record
+### Task 12 — H3A-1 repository verification and qualification record
 
 Run:
 
@@ -2473,7 +2470,7 @@ docs: record H3A-1 canonical work qualification
 
 ---
 
-## Task 13 — H3A-1 candidate freeze, review, merge
+### Task 13 — H3A-1 candidate freeze, review, merge
 
 Candidate title:
 
@@ -2534,7 +2531,7 @@ No final 3-platform H3 CI yet.
 
 ---
 
-## Task 14 — H3A-1 post-merge living-truth reconciliation
+### Task 14 — H3A-1 post-merge living-truth reconciliation
 
 Short docs/evidence-only branch from new `master`.
 
@@ -2577,15 +2574,15 @@ Squash merge reconciliation.
 
 ---
 
-# 9. H3A-2 — DBOS Durable Execution & Crash Recovery
+## 9. H3A-2 — DBOS Durable Execution & Crash Recovery
 
-## H3A-2 acceptance question
+### H3A-2 acceptance question
 
 > Can the canonical H3A-1 obligation be projected into the exact adopted DBOS Queue, survive process crash/restart and engine replay, use a least-privilege engine-private database boundary, and still leave WorkItem/revision/generation Authority with Heptalogos?
 
 ---
 
-## Task 15 — Revalidate DBOS exact package before materialization
+### Task 15 — Revalidate DBOS exact package before materialization
 
 From reconciled `master`, create:
 
@@ -2621,7 +2618,7 @@ Do not let Agent pick.
 
 ---
 
-## Task 16 — Materialize DBOS dependency routing
+### Task 16 — Materialize DBOS dependency routing
 
 **Modify:**
 
@@ -2675,7 +2672,7 @@ build: materialize adopted DBOS durable execution route
 
 ---
 
-## Task 17 — Add dedicated durable-execution database principal
+### Task 17 — Add dedicated durable-execution database principal
 
 **Modify:**
 
@@ -2788,7 +2785,7 @@ feat: isolate durable execution database authority
 
 ---
 
-## Task 18 — Create DurableExecution package skeleton and vendor CLI resolver
+### Task 18 — Create DurableExecution package skeleton and vendor CLI resolver
 
 **Create:**
 
@@ -2844,7 +2841,7 @@ feat: create bounded DBOS durable execution adapter
 
 ---
 
-## Task 19 — Implement controlled DBOS system-schema provisioner
+### Task 19 — Implement controlled DBOS system-schema provisioner
 
 **Create:**
 
@@ -2857,9 +2854,7 @@ Contract:
 
 ```ts
 interface DurableExecutionSchemaProvisioner {
-  ensureCurrent(
-    authority: HostCanonicalMigrationAuthority
-  ): Promise<void>;
+  ensureCurrent(authority: HostCanonicalMigrationAuthority): Promise<void>;
 }
 ```
 
@@ -2924,7 +2919,7 @@ feat: provision DBOS schema under migration authority
 
 ---
 
-## Task 20 — Implement caller-owned DBOS pool and DurableExecution lifecycle
+### Task 20 — Implement caller-owned DBOS pool and DurableExecution lifecycle
 
 **Create:**
 
@@ -2999,7 +2994,7 @@ feat: launch least-privilege DBOS runtime
 
 ---
 
-## Task 21 — Register exactly one static durable WorkItem workflow
+### Task 21 — Register exactly one static durable WorkItem workflow
 
 Static workflow name:
 
@@ -3074,7 +3069,7 @@ feat: project WorkItems through static DBOS dispatcher
 
 ---
 
-## Task 22 — Register and verify DBOS queue profiles
+### Task 22 — Register and verify DBOS queue profiles
 
 After launch:
 
@@ -3121,43 +3116,43 @@ feat: bind queue profiles to DBOS mechanics
 
 ---
 
-## Task 23 — Integrate WorkQueue reconciliation with real DurableExecution
+### Task 23 — Integrate WorkQueue reconciliation with real DurableExecution
 
 Modify H3A-1 system composition tests and WorkQueue tests.
 
 Required real DBOS/PostgreSQL cases:
 
-### D1 — committed WorkItem, lost immediate engine dispatch
+#### D1 — committed WorkItem, lost immediate engine dispatch
 
 Commit WorkItem; suppress dispatch call; later anti-entropy projects it; handler completes.
 
-### D2 — duplicate same revision
+#### D2 — duplicate same revision
 
 Project same request twice; same DBOS workflow identity; one logical handler execution; one canonical terminal outcome.
 
-### D3 — delayed notBefore
+#### D3 — delayed notBefore
 
 WorkItem projected with DBOS delay; handler cannot run before canonical due Instant within bounded clock tolerance.
 
-### D4 — retry creates a new revision
+#### D4 — retry creates a new revision
 
 Attempt classifies explicit retry; canonical `RETRY_WAIT`; due wake increments revision; new DBOS workflow ID; old ID remains old attempt.
 
-### D5 — exact generation A/B
+#### D5 — exact generation A/B
 
 Same H3A-1 pin test but through real DBOS.
 
-### D6 — dedicated role isolation
+#### D6 — dedicated role isolation
 
 DBOS runtime works while its role remains unable to read/write `heptalogos.work_item` directly.
 
 The WorkAttemptExecutor accesses product truth through normal Persistence role separately.
 
-### D7 — queue profile mismatch
+#### D7 — queue profile mismatch
 
 Persisted DBOS profile differs from expected; DurableExecution fails closed rather than overwrite.
 
-### D8 — missing/outdated dbos schema
+#### D8 — missing/outdated dbos schema
 
 Normal `runMigrations:false` launch fails closed.
 
@@ -3171,7 +3166,7 @@ test: qualify DBOS WorkItem projection
 
 ---
 
-## Task 24 — Process-level crash/recovery matrix
+### Task 24 — Process-level crash/recovery matrix
 
 Use a subprocess because DBOS runtime is process-global/singleton-like and process crash semantics cannot be proven by an in-process mock.
 
@@ -3206,7 +3201,7 @@ that depends on build.
 
 Use the existing adopted subprocess mechanics/execa route. No raw shell.
 
-### P1 — crash between canonical commit and engine dispatch
+#### P1 — crash between canonical commit and engine dispatch
 
 ```text
 child:
@@ -3226,7 +3221,7 @@ restart child:
   item completes
 ```
 
-### P2 — crash after terminal product commit before DBOS step checkpoint
+#### P2 — crash after terminal product commit before DBOS step checkpoint
 
 Deterministic **test-only** barrier:
 
@@ -3251,7 +3246,7 @@ restart:
 
 The barrier is test-support only and uses semantic event names; no production H3A hook.
 
-### P3 — crash after RUNNING claim before handler outcome
+#### P3 — crash after RUNNING claim before handler outcome
 
 Restart same version:
 
@@ -3260,7 +3255,7 @@ Restart same version:
 - canonical revision/attempt fence remains valid;
 - no duplicate terminal outcome.
 
-### P4 — applicationVersion isolation
+#### P4 — applicationVersion isolation
 
 Version A starts nonterminal attempt; process crashes.
 
@@ -3278,11 +3273,11 @@ may recover A
 
 This proves version axis only; no Product Update/blue-green implementation.
 
-### P5 — Signal connection loss plus process restart
+#### P5 — Signal connection loss plus process restart
 
 Work survives even when notification is not observed.
 
-### P6 — Host lease loss during attempt
+#### P6 — Host lease loss during attempt
 
 Terminate authentic Host lease while handler is outside transaction.
 
@@ -3304,7 +3299,7 @@ test: prove process-level durable work recovery
 
 ---
 
-## Task 25 — Authentic Host shutdown / quiescence integration
+### Task 25 — Authentic Host shutdown / quiescence integration
 
 Extend existing:
 
@@ -3357,7 +3352,7 @@ test: integrate durable execution with Host lifecycle
 
 ---
 
-## Task 26 — Queue pressure/admission mechanics qualification
+### Task 26 — Queue pressure/admission mechanics qualification
 
 This is **not** H8 ResourceGovernor.
 
@@ -3397,7 +3392,7 @@ test: qualify durable admission and queue pressure mechanics
 
 ---
 
-## Task 27 — H3A-2 architecture/hygiene audit
+### Task 27 — H3A-2 architecture/hygiene audit
 
 Run:
 
@@ -3431,7 +3426,7 @@ Do not make grep empty by deleting legitimate architecture words from docs/tests
 
 ---
 
-## Task 28 — Full Ubuntu real qualification
+### Task 28 — Full Ubuntu real qualification
 
 Exact environment:
 
@@ -3491,7 +3486,7 @@ Record actual test counts only after observing them.
 
 ---
 
-## Task 29 — H3A-2 / H3A qualification ledger
+### Task 29 — H3A-2 / H3A qualification ledger
 
 Update:
 
@@ -3557,7 +3552,7 @@ docs: record H3A durable execution qualification
 
 ---
 
-## Task 30 — H3A-2 candidate freeze, external review, squash merge
+### Task 30 — H3A-2 candidate freeze, external review, squash merge
 
 Candidate title:
 
@@ -3603,7 +3598,7 @@ No final H3 3-platform CI.
 
 ---
 
-## Task 31 — H3A final post-merge truth reconciliation
+### Task 31 — H3A final post-merge truth reconciliation
 
 Fresh docs/evidence-only branch from merged master.
 
@@ -3684,56 +3679,56 @@ No new behavior Independent Review solely for recording already completed closur
 
 ---
 
-# 10. Required H3A Qualification Matrix
+## 10. Required H3A Qualification Matrix
 
 Every `REQUIRED` row must be PASS before H3A closes.
 
-| ID | Property | Stage | Evidence |
-| --- | --- | --- | --- |
-| A01 | WorkItem is canonical product truth | H3A-1 | real PG |
-| A02 | exact generation-pinned WorkHandler | H3A-1 | Runtime + real Host |
-| A03 | same revision -> same attempt identity | H3A-1 | deterministic tests + real projection |
-| A04 | stale revision cannot commit | H3A-1 | real PG CAS |
-| A05 | Signal loss/reconnect cannot lose work | H3A-1 | killed listener + rescan |
-| A06 | lost immediate dispatch remains recoverable | H3A-1 | anti-entropy |
-| A07 | cancellation/supersession fences stale success | H3A-1 | real PG + handler |
-| A08 | nonterminal dedup is race-safe | H3A-1 | concurrent real PG |
-| A09 | admission cannot erase committed obligation | H3A-1 | deterministic port + real row |
-| A10 | durable lineage crosses async handoff | H3A-1 | causal graph assertions |
-| A11 | exact DBOS 4.26.10 is the only engine | H3A-2 | package/runtime evidence |
-| A12 | dedicated DBOS principal has no product-table rights | H3A-2 | ACL qualification |
-| A13 | DBOS schema changes only under migration Authority | H3A-2 | fresh/restart real PG |
-| A14 | normal DBOS runtime performs no DDL | H3A-2 | runMigrations=false + fail-closed |
-| A15 | static dispatcher + DBOS Queue works | H3A-2 | real DBOS |
-| A16 | duplicate same-revision engine dispatch is idempotent | H3A-2 | real DBOS |
-| A17 | retry/wakeup creates new revision before new engine attempt | H3A-2 | real DBOS + PG |
-| A18 | notBefore uses durable engine delay without changing Authority | H3A-2 | real DBOS |
-| A19 | applicationVersion is distinct recovery axis | H3A-2 | process A/B |
-| A20 | crash after WorkItem commit before engine dispatch recovers | H3A-2 | process kill |
-| A21 | crash after terminal commit before DBOS checkpoint does not re-run logical handler | H3A-2 | deterministic process barrier |
-| A22 | Host loss prevents terminal product commit | H3A-2 | authentic lease kill |
-| A23 | planned shutdown settles DBOS before PG handoff | H3A-2 | authentic Host |
-| A24 | queue profile mechanics are projection, not Authority | H3A-2 | DBOS profile readback |
-| A25 | no consequential external effect path exists | both | static audit + API surface |
+| ID  | Property                                                                           | Stage | Evidence                              |
+| --- | ---------------------------------------------------------------------------------- | ----- | ------------------------------------- |
+| A01 | WorkItem is canonical product truth                                                | H3A-1 | real PG                               |
+| A02 | exact generation-pinned WorkHandler                                                | H3A-1 | Runtime + real Host                   |
+| A03 | same revision -> same attempt identity                                             | H3A-1 | deterministic tests + real projection |
+| A04 | stale revision cannot commit                                                       | H3A-1 | real PG CAS                           |
+| A05 | Signal loss/reconnect cannot lose work                                             | H3A-1 | killed listener + rescan              |
+| A06 | lost immediate dispatch remains recoverable                                        | H3A-1 | anti-entropy                          |
+| A07 | cancellation/supersession fences stale success                                     | H3A-1 | real PG + handler                     |
+| A08 | nonterminal dedup is race-safe                                                     | H3A-1 | concurrent real PG                    |
+| A09 | admission cannot erase committed obligation                                        | H3A-1 | deterministic port + real row         |
+| A10 | durable lineage crosses async handoff                                              | H3A-1 | causal graph assertions               |
+| A11 | exact DBOS 4.26.10 is the only engine                                              | H3A-2 | package/runtime evidence              |
+| A12 | dedicated DBOS principal has no product-table rights                               | H3A-2 | ACL qualification                     |
+| A13 | DBOS schema changes only under migration Authority                                 | H3A-2 | fresh/restart real PG                 |
+| A14 | normal DBOS runtime performs no DDL                                                | H3A-2 | runMigrations=false + fail-closed     |
+| A15 | static dispatcher + DBOS Queue works                                               | H3A-2 | real DBOS                             |
+| A16 | duplicate same-revision engine dispatch is idempotent                              | H3A-2 | real DBOS                             |
+| A17 | retry/wakeup creates new revision before new engine attempt                        | H3A-2 | real DBOS + PG                        |
+| A18 | notBefore uses durable engine delay without changing Authority                     | H3A-2 | real DBOS                             |
+| A19 | applicationVersion is distinct recovery axis                                       | H3A-2 | process A/B                           |
+| A20 | crash after WorkItem commit before engine dispatch recovers                        | H3A-2 | process kill                          |
+| A21 | crash after terminal commit before DBOS checkpoint does not re-run logical handler | H3A-2 | deterministic process barrier         |
+| A22 | Host loss prevents terminal product commit                                         | H3A-2 | authentic lease kill                  |
+| A23 | planned shutdown settles DBOS before PG handoff                                    | H3A-2 | authentic Host                        |
+| A24 | queue profile mechanics are projection, not Authority                              | H3A-2 | DBOS profile readback                 |
+| A25 | no consequential external effect path exists                                       | both  | static audit + API surface            |
 
 Residual/not H3A closure requirements:
 
-| Property | State after H3A |
-| --- | --- |
-| real CONFIG_PINNED ConfigurationRevision resolution | NOT_RUN / H4 |
-| real PressureSnapshot + ResourceGovernor | NOT_RUN / H8 |
-| Windows real DBOS product qualification | NOT_RUN |
-| macOS real DBOS product qualification | NOT_RUN |
-| source-less durable execution | NOT_RUN |
-| installed service/headless durable execution | NOT_RUN |
-| H3 final cross-platform CI | NOT_RUN / H3-S |
-| EffectOperation uncertainty | NOT_RUN / H3B |
+| Property                                            | State after H3A |
+| --------------------------------------------------- | --------------- |
+| real CONFIG_PINNED ConfigurationRevision resolution | NOT_RUN / H4    |
+| real PressureSnapshot + ResourceGovernor            | NOT_RUN / H8    |
+| Windows real DBOS product qualification             | NOT_RUN         |
+| macOS real DBOS product qualification               | NOT_RUN         |
+| source-less durable execution                       | NOT_RUN         |
+| installed service/headless durable execution        | NOT_RUN         |
+| H3 final cross-platform CI                          | NOT_RUN / H3-S  |
+| EffectOperation uncertainty                         | NOT_RUN / H3B   |
 
 ---
 
-# 11. Failure Semantics
+## 11. Failure Semantics
 
-## WorkHandler unavailable
+### WorkHandler unavailable
 
 ```text
 PENDING
@@ -3752,7 +3747,7 @@ dispatchRevision += 1
 
 ---
 
-## Handler exception
+### Handler exception
 
 Unknown exception:
 
@@ -3766,7 +3761,7 @@ No catch-all retry.
 
 ---
 
-## Dispatch adapter unavailable
+### Dispatch adapter unavailable
 
 ```text
 canonical WorkItem unchanged/recoverable
@@ -3775,7 +3770,7 @@ reconciler retries projection later with same revision/attempt ID
 
 ---
 
-## Signal unavailable
+### Signal unavailable
 
 ```text
 latency increases
@@ -3784,7 +3779,7 @@ anti-entropy rescan remains correctness path
 
 ---
 
-## DBOS schema missing/behind
+### DBOS schema missing/behind
 
 ```text
 normal DurableExecution launch fails
@@ -3795,7 +3790,7 @@ Schema is repaired only under migration Authority.
 
 ---
 
-## DBOS queue profile mismatch
+### DBOS queue profile mismatch
 
 ```text
 DurableExecution not READY
@@ -3805,7 +3800,7 @@ Do not overwrite persisted mechanics silently.
 
 ---
 
-## Host ownership lost
+### Host ownership lost
 
 ```text
 close new admission
@@ -3816,7 +3811,7 @@ DBOS engine state does not create product Authority
 
 ---
 
-## Crash after canonical terminal commit
+### Crash after canonical terminal commit
 
 ```text
 terminal WorkItem is Authority
@@ -3826,7 +3821,7 @@ handler not logically executed again
 
 ---
 
-# 12. STOP / PLAN_GAP Conditions
+## 12. STOP / PLAN_GAP Conditions
 
 The development Agent must stop rather than decide if any of these occurs.
 
@@ -3876,7 +3871,7 @@ Include the exact failing evidence and the narrowest decision that must be made.
 
 ---
 
-# 13. Prohibited Shortcuts
+## 13. Prohibited Shortcuts
 
 ```text
 NO raw DBOS workflow registration by Extension/WorkHandler
@@ -3908,7 +3903,7 @@ NO Windows/macOS/source-less claim inferred from Ubuntu
 
 ---
 
-# 14. Package README / Navigation Requirements
+## 14. Package README / Navigation Requirements
 
 Every new package README must have the repository-standard sections:
 
@@ -3925,20 +3920,20 @@ Architecture references
 
 Specific “Does not own” statements:
 
-## signal
+### signal
 
 ```text
 does not own WorkItem, queue scheduling, canonical payload, EventBus semantics
 ```
 
-## work-queue
+### work-queue
 
 ```text
 does not own DBOS, EffectOperation, ConfigurationService, ResourceGovernor,
 Runtime generation lifecycle
 ```
 
-## durable-execution
+### durable-execution
 
 ```text
 does not own WorkItem truth, WorkHandler selection semantics,
@@ -3956,7 +3951,7 @@ No nested AGENTS.
 
 ---
 
-# 15. Recommended Commit Envelope
+## 15. Recommended Commit Envelope
 
 H3A-1:
 
@@ -3999,7 +3994,7 @@ If implementation requires a materially broader commit class, stop; do not hide 
 
 ---
 
-# 16. Candidate Self-Review
+## 16. Candidate Self-Review
 
 Before H3A-1 Ready:
 
@@ -4037,7 +4032,7 @@ Before H3A-2 Ready:
 
 ---
 
-# 17. H3A Closure Handoff
+## 17. H3A Closure Handoff
 
 After the final post-merge reconciliation, current truth must be:
 
@@ -4093,7 +4088,7 @@ H3-S remains mandatory after H3 functional completion and must perform the proje
 
 ---
 
-# 18. Final Executor Rule
+## 18. Final Executor Rule
 
 The purpose of this plan is not to tell an Agent “roughly what to build.”
 

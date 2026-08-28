@@ -1,3 +1,9 @@
+/**
+ * Maps Evidence service failures into shared Foundation Problem envelopes while
+ * keeping database-driver details out of the public contract.
+ * @module problems
+ */
+
 import {
   createProblemError,
   type Problem,
@@ -19,6 +25,7 @@ function evidenceProblem(
   });
 }
 
+/** Reports an Evidence kind outside the bounded contract. */
 export function invalidEvidenceKindProblem(): ProblemError {
   return evidenceProblem(
     "evidence.invalid_kind",
@@ -28,6 +35,7 @@ export function invalidEvidenceKindProblem(): ProblemError {
   );
 }
 
+/** Reports an Evidence contract version outside the bounded contract. */
 export function invalidEvidenceContractVersionProblem(): ProblemError {
   return evidenceProblem(
     "evidence.invalid_contract_version",
@@ -37,6 +45,7 @@ export function invalidEvidenceContractVersionProblem(): ProblemError {
   );
 }
 
+/** Reports an Evidence reference outside the bounded UTF-8 size contract. */
 export function invalidEvidenceReferenceProblem(): ProblemError {
   return evidenceProblem(
     "evidence.invalid_reference",
@@ -46,6 +55,7 @@ export function invalidEvidenceReferenceProblem(): ProblemError {
   );
 }
 
+/** Reports a required Evidence record that is not durably retained. */
 export function evidenceRetentionNotDurableProblem(): ProblemError {
   return evidenceProblem(
     "evidence.retention_not_durable",
@@ -55,6 +65,7 @@ export function evidenceRetentionNotDurableProblem(): ProblemError {
   );
 }
 
+/** Reports an Evidence write missing its retained causal Activity. */
 export function evidenceActivityRequiredProblem(): ProblemError {
   return evidenceProblem(
     "evidence.persistence.activity_required",
@@ -64,6 +75,7 @@ export function evidenceActivityRequiredProblem(): ProblemError {
   );
 }
 
+/** Reports a sensitivity value outside the shared Foundation vocabulary. */
 export function invalidEvidenceSensitivityProblem(): ProblemError {
   return evidenceProblem(
     "evidence.invalid_sensitivity",

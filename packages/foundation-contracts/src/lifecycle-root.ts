@@ -1,3 +1,10 @@
+/**
+ * Defines the finite lifecycle-root identity vocabulary used to keep ownership
+ * and shutdown lineage distinct across Foundation services.
+ * @module lifecycle-root
+ */
+
+/** The complete stable set of lifecycle roots owned by Foundation storage. */
 export const LIFECYCLE_ROOT_IDS = [
   "PROGRAM",
   "INSTANCE",
@@ -13,4 +20,5 @@ export const LIFECYCLE_ROOT_IDS = [
   "PACKAGE_STAGING",
 ] as const;
 
+/** Identifies one lifecycle root without collapsing distinct storage owners. */
 export type LifecycleRootId = (typeof LIFECYCLE_ROOT_IDS)[number];

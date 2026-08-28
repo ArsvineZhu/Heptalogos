@@ -1,3 +1,9 @@
+/**
+ * Bridges execution lineage to OpenTelemetry context as an observational
+ * projection; telemetry never becomes the identity or persistence authority.
+ * @module observability-adapter
+ */
+
 import {
   context as otelContext,
   isSpanContextValid,
@@ -6,12 +12,15 @@ import {
 } from "@opentelemetry/api";
 import type { ActivityTelemetryCorrelation } from "./contracts.js";
 
+/** Names the OpenTelemetry context used only for observational correlation. */
 export type LineageTelemetryContext = OTelContext;
 
+/** Returns the active observational telemetry context. */
 export function activeTelemetryContext(): LineageTelemetryContext {
   return otelContext.active();
 }
 
+/** Runs a callback under the supplied observational telemetry context. */
 export function withTelemetryContext<T>(
   context: LineageTelemetryContext,
   operation: () => T,
@@ -19,6 +28,7 @@ export function withTelemetryContext<T>(
   return otelContext.with(context, operation);
 }
 
+/** Projects a valid OpenTelemetry span context into retained correlation fields. */
 export function projectTelemetryCorrelation(
   context: LineageTelemetryContext,
 ): ActivityTelemetryCorrelation | undefined {

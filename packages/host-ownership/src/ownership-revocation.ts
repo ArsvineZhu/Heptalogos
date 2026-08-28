@@ -1,3 +1,9 @@
+/**
+ * Revokes the current Host token and closes its mutation fence so ownership
+ * loss is represented durably before the connection is released.
+ * @module ownership-revocation
+ */
+
 import {
   createProblemError,
   parseBootId,
@@ -20,11 +26,13 @@ import {
 import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
 import { queryWithAuthority as authorizedQuery } from "./authorized-query.js";
 
+/** Reports the fence revision before and after token revocation. */
 export interface HostOwnershipRevocationResult {
   readonly previousRevision: string;
   readonly revokedRevision: string;
 }
 
+/** Supplies Bootstrap-admin and identity inputs for Host token revocation. */
 export interface RevokeHostOwnershipTokenOptions {
   readonly port: number;
   readonly instanceId: InstanceId;
@@ -174,6 +182,7 @@ function assertRevokedFence(
   }
 }
 
+/** Revokes a Host token through the Bootstrap-authorized database path. */
 export async function revokeHostOwnershipTokenForBootstrap(
   options: RevokeHostOwnershipTokenOptions,
 ): Promise<HostOwnershipRevocationResult> {

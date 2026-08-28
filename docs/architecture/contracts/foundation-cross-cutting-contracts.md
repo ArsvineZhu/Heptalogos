@@ -6,9 +6,9 @@
 
 ---
 
-# 1. Network / Egress / Endpoint Security
+## 1. Network / Egress / Endpoint Security
 
-## 1.1 原则
+### 1.1 原则
 
 ```text
 NETWORK IS AN EFFECT.
@@ -32,7 +32,7 @@ NETWORK IS AN EFFECT.
 
 ---
 
-## 1.2 NetworkRequestContext
+### 1.2 NetworkRequestContext
 
 canonical contract 至少表达：
 
@@ -56,7 +56,7 @@ sensitivity
 
 ---
 
-## 1.3 Destination Policy
+### 1.3 Destination Policy
 
 Destination policy 至少可表达：
 
@@ -75,7 +75,7 @@ proxy policy
 
 ---
 
-## 1.4 Managed Transport
+### 1.4 Managed Transport
 
 Foundation 应提供默认受控 HTTP transport，优先复用 Node/Undici 等成熟 mechanics。
 
@@ -91,7 +91,7 @@ uncontrolled-network-boundary = true
 
 ---
 
-## 1.5 Consequential External Write
+### 1.5 Consequential External Write
 
 NetworkAccess 成功只表示 transport 层执行；如果调用会改变远端世界：
 
@@ -111,7 +111,7 @@ External effect semantically known
 
 ---
 
-## 1.6 Inbound Endpoint Security
+### 1.6 Inbound Endpoint Security
 
 Management / webhook / protocol endpoint 必须显式声明：
 
@@ -132,21 +132,21 @@ webhook authenticity when applicable
 
 ---
 
-## 1.8 External-process Egress Transparency
+### 1.8 External-process Egress Transparency
 
 Network policy claims stop at the enforcement boundary. Spawned/stdio external process internal egress is `OPAQUE_EXTERNAL` unless an OS/sandbox/proxy mechanism actually mediates it. Capability/Tool policy can gate invocation but does not by itself sandbox the child process.
 
 ---
 
-## 1.9 Trace Propagation Is an Egress Policy
+### 1.9 Trace Propagation Is an Egress Policy
 
 OTel/W3C trace header propagation across external network boundaries follows endpoint trust/policy. Untrusted inbound trace context cannot assign Heptalogos Activity/origin identity; arbitrary outbound calls do not receive internal Activity/Package/principal identifiers by default.
 
 ---
 
-# 2. Resource Governance / Pressure / Admission
+## 2. Resource Governance / Pressure / Admission
 
-## 2.1 原则
+### 2.1 原则
 
 ```text
 PRESSURE IS A STATE.
@@ -156,7 +156,7 @@ PRESSURE IS A STATE.
 
 ---
 
-## 2.2 PressureSnapshot
+### 2.2 PressureSnapshot
 
 可聚合：
 
@@ -176,7 +176,7 @@ Extension-owned background work
 
 ---
 
-## 2.3 Pressure State
+### 2.3 Pressure State
 
 统一：
 
@@ -191,7 +191,7 @@ BLOCKED
 
 ---
 
-## 2.4 Admission
+### 2.4 Admission
 
 `AdmissionDecision` 至少表达：
 
@@ -218,7 +218,7 @@ Recovery / essential Management
 
 ---
 
-## 2.5 Resource Budget
+### 2.5 Resource Budget
 
 Budget 应可配置/派生，至少覆盖：
 
@@ -235,9 +235,9 @@ subprocess/media limits
 
 ---
 
-# 3. Contract Compatibility / Version Lifecycle
+## 3. Contract Compatibility / Version Lifecycle
 
-## 3.1 原则
+### 3.1 原则
 
 ```text
 DURABLE PAYLOADS ARE VERSIONED.
@@ -275,7 +275,7 @@ replayed
 
 ---
 
-## 3.2 Version Envelope
+### 3.2 Version Envelope
 
 所有 durable/cross-boundary payload 必须能够表达：
 
@@ -300,7 +300,7 @@ replay behavior
 
 ---
 
-## 3.3 Required Versioned Contracts
+### 3.3 Required Versioned Contracts
 
 至少：
 
@@ -321,7 +321,7 @@ IM protocol revision metadata
 
 ---
 
-## 3.4 Generation Coexistence
+### 3.4 Generation Coexistence
 
 存在 declared compatibility obligation 时，升级期间：
 
@@ -345,7 +345,7 @@ or explicitly BLOCK upgrade
 
 ---
 
-## 3.5 Management Contract Compatibility
+### 3.5 Management Contract Compatibility
 
 Normal Management client/server 必须显式交换/暴露：
 
@@ -361,9 +361,9 @@ CLI/remote client 在发送 mutation 前验证 core contract compatibility；不
 
 ---
 
-# 4. Data Lifecycle / Erasure
+## 4. Data Lifecycle / Erasure
 
-## 4.1 原则
+### 4.1 原则
 
 ```text
 DELETION IS A WORKFLOW.
@@ -373,7 +373,7 @@ DELETION IS A WORKFLOW.
 
 ---
 
-## 4.2 Data Ownership
+### 4.2 Data Ownership
 
 每种数据必须能回答：
 
@@ -389,7 +389,7 @@ purge authority
 
 ---
 
-## 4.3 Lifecycle Stages
+### 4.3 Lifecycle Stages
 
 区分：
 
@@ -407,7 +407,7 @@ final purge completion
 
 ---
 
-## 4.4 PurgePlan
+### 4.4 PurgePlan
 
 跨 owner 删除使用 durable `PurgePlan / ManagementOperation`：
 
@@ -427,7 +427,7 @@ verification plan
 
 ---
 
-## 4.5 Evidence 与删除
+### 4.5 Evidence 与删除
 
 Evidence 不是天然“永远不可删”。必须区分：
 
@@ -452,7 +452,7 @@ object id / digest / tombstone / causal metadata
 
 Lineage retention 不能形成 purge bypass：Activity 默认保留 refs/causality，不复制大段 domain payload；当 owning record 被 purge 时，按 policy 将 lineage ref tombstone/redact，只保留 independently-required audit minimum。
 
-## 4.6 Backup / Restore Fence
+### 4.6 Backup / Restore Fence
 
 物理删除完成不自动意味着历史 backup 中不存在旧数据。
 
@@ -469,7 +469,7 @@ restored historical data reconciliation
 
 ---
 
-## 4.7 Storage Topology / Data Ownership
+### 4.7 Storage Topology / Data Ownership
 
 Foundation 对 storage 的横切规则：
 
@@ -488,9 +488,9 @@ Core PostgreSQL 只承担 Foundation transactionally coordinated canonical state
 
 Backup/Restore/Purge 以 logical DataOwner/store identity 协调。详细见 `../storage-lifecycle.md` / `storage-workspace-data-lifecycle.md`。
 
-# 5. Cryptographic Material / Trust Root Lifecycle
+## 5. Cryptographic Material / Trust Root Lifecycle
 
-## 5.1 原则
+### 5.1 原则
 
 ```text
 CRYPTO HAS A LIFECYCLE.
@@ -500,7 +500,7 @@ CRYPTO HAS A LIFECYCLE.
 
 ---
 
-## 5.2 Trust Domains
+### 5.2 Trust Domains
 
 至少区分：
 
@@ -518,7 +518,7 @@ transport/client certificate keys when used
 
 ---
 
-## 5.3 Lifecycle Contract
+### 5.3 Lifecycle Contract
 
 每个 trust domain 都必须定义：
 
@@ -539,7 +539,7 @@ auditable metadata
 
 ---
 
-## 5.4 Lost-Key Semantics
+### 5.4 Lost-Key Semantics
 
 必须显式决定：
 
@@ -556,21 +556,21 @@ requires Recovery Core
 
 ---
 
-## 5.5 Durable Secret References
+### 5.5 Durable Secret References
 
 Durable/cross-boundary payloads carry `SecretRef`/credential handle + purpose, not plaintext Secret/session/temporary credential material. This includes WorkItem, DBOS input/output, ManagementOperation, Evidence, Activity, ExtensionState, Backup metadata and protocol retry records. Encrypted backup payload is governed separately by Backup secret portability/encryption contract.
 
 ---
 
-## 5.6 Secret Delivery Boundary
+### 5.6 Secret Delivery Boundary
 
 Secret plaintext 不进入 argv、global/parent process environment、logs、Evidence、Activity attributes。Normal resolution uses scoped in-memory API/FD/pipe/restricted ephemeral file；只有目标 external process 明确要求时允许 `CHILD_ENV_REQUIRED`，并使用 clean per-child allowlist environment、最小继承/生命周期与审计 metadata。
 
 ---
 
-# 6. Time Semantics
+## 6. Time Semantics
 
-## 6.1 Persistent Time
+### 6.1 Persistent Time
 
 持久化绝对时间：
 
@@ -582,7 +582,7 @@ Instant
 
 ---
 
-## 6.2 Human-local Time
+### 6.2 Human-local Time
 
 当语义是：
 
@@ -605,13 +605,13 @@ resolution policy
 
 ---
 
-## 6.3 Elapsed Time
+### 6.3 Elapsed Time
 
 超时、backoff、latency 使用 monotonic duration，不使用 wall-clock difference。
 
 ---
 
-## 6.4 Clock Change
+### 6.4 Clock Change
 
 必须定义 NTP/manual clock jump、DST、timezone change 对：
 
@@ -628,15 +628,15 @@ replay
 
 ---
 
-# 7. Management Authentication / Endpoint Security
+## 7. Management Authentication / Endpoint Security
 
-## 7.1 Authentication != Authorization
+### 7.1 Authentication != Authorization
 
 Authentication 证明 principal 和 freshness；Cedar/PolicyService 只做 authorization。
 
 ---
 
-## 7.2 Admin Bootstrap
+### 7.2 Admin Bootstrap
 
 first-run 必须有明确流程：
 
@@ -650,7 +650,7 @@ record bootstrap Evidence
 
 ---
 
-## 7.3 Session Contract
+### 7.3 Session Contract
 
 Normal Management 使用 opaque high-entropy bearer token；canonical session state 保存在 PostgreSQL：
 
@@ -671,7 +671,7 @@ Session implementation仍需 `C-SESSION-01` 做 security/conformance，但架构
 
 ---
 
-## 7.4 High-risk Freshness
+### 7.4 High-risk Freshness
 
 高风险 `SystemAction` 可以要求：
 
@@ -683,7 +683,7 @@ recentAuth <= configured threshold
 
 ---
 
-## 7.5 Recovery Authentication
+### 7.5 Recovery Authentication
 
 Recovery Plane 不依赖 PostgreSQL session。默认 principal 为 `LOCAL_INSTALLATION_OWNER`，由 OS-level protected InstallationAnchor/Instance/Configuration/Data bootstrap-relevant roots 的 ownership/ACL boundary 建立；Recovery interface 不经普通远程 HTTP 暴露，只提供 fixed bounded verbs。
 
@@ -691,7 +691,7 @@ Recovery Plane 不依赖 PostgreSQL session。默认 principal 为 `LOCAL_INSTAL
 
 ---
 
-## 7.6 Host Ownership Fence
+### 7.6 Host Ownership Fence
 
 Normal canonical mutation 与 external-effect dispatch 必须同时依赖：
 
@@ -704,9 +704,9 @@ valid dedicated PostgreSQL advisory Host lease
 
 ---
 
-# 8. Observability Governance
+## 8. Observability Governance
 
-## 8.1 三种对象
+### 8.1 三种对象
 
 ```text
 Evidence = durable product causal/provenance truth
@@ -718,7 +718,7 @@ Research capture = experiment-specific data
 
 ---
 
-## 8.2 Data Classification
+### 8.2 Data Classification
 
 日志/trace/metric field 必须可分类：
 
@@ -734,7 +734,7 @@ SECRET
 
 ---
 
-## 8.3 Prompt / Context Capture
+### 8.3 Prompt / Context Capture
 
 允许配置 capture level，但 model input/output 不能默认全量永久记录。
 
@@ -749,7 +749,7 @@ classified/redacted Artifact
 
 ---
 
-## 8.4 Metric Cardinality
+### 8.4 Metric Cardinality
 
 以下身份不得直接成为无界 metric label：
 
@@ -765,7 +765,7 @@ arbitrary endpoint/model name
 
 ---
 
-## 8.5 Collector Independence
+### 8.5 Collector Independence
 
 OTel collector/exporter 不可用时：
 
@@ -777,9 +777,9 @@ telemetry may degrade/drop according policy
 
 ---
 
-# 9. Native / WASM Product Closure
+## 9. Native / WASM Product Closure
 
-## 9.1 原则
+### 9.1 原则
 
 ```text
 NATIVE TRANSITIVES ARE PRODUCT DEPENDENCIES.
@@ -799,7 +799,7 @@ platform helper
 
 ---
 
-## 9.2 Dependency Selection vs Product Qualification
+### 9.2 Dependency Selection vs Product Qualification
 
 架构角色可以在实现前由 L0-L2 证据决定。
 
@@ -815,15 +815,16 @@ upgrade/rollback
 ```
 
 开发工作区 `pnpm install` 成功不构成产品证据。
+
 ---
 
-# 10. Canonical Serialization / Digest Contract
+## 10. Canonical Serialization / Digest Contract
 
-## 10.1 Stable JSON Identity
+### 10.1 Stable JSON Identity
 
 Approval plan、manifest、replay、versioned metadata 和任何需要跨进程稳定 hash 的 JSON-compatible object 使用 RFC 8785 JCS semantics，输入必须落在 I-JSON 可确定表示范围。
 
-## 10.2 Domain-separated Digest
+### 10.2 Domain-separated Digest
 
 Digest envelope 必须包含：
 
@@ -836,13 +837,13 @@ payload
 
 默认 hash 为 SHA-256。禁止把“同样一段 JSON 的裸 hash”跨 Approval、manifest、Artifact 等安全域复用为同一种 identity。
 
-## 10.3 Schema Validation Is Non-mutating
+### 10.3 Schema Validation Is Non-mutating
 
 Canonical Management/Configuration input validation 不得 silent coerce、insert default 或 remove unknown fields。Transport/framework validator 不能成为 schema Authority。
 
-# 11. Identifier Contract
+## 11. Identifier Contract
 
-## 11.1 Stable Names 与 Instance IDs 分离
+### 11.1 Stable Names 与 Instance IDs 分离
 
 Foundation 区分三类身份：
 
@@ -877,7 +878,7 @@ ExternalId {
 
 不得把外部 ID 直接当内部 primary identity。
 
-## 11.2 Instance / Installation / Boot Identity
+### 11.2 Instance / Installation / Boot Identity
 
 Foundation 明确区分：
 
@@ -926,7 +927,7 @@ explicit clone
 
 `InstallationId/BootId` 用于 provenance/diagnostics，不授予 Authority。
 
-## 11.3 Identifier Safety
+### 11.3 Identifier Safety
 
 ```text
 IDs are identifiers, not secrets.
@@ -936,9 +937,9 @@ IDs are identifiers, not secrets.
 
 ---
 
-# 12. Structured Problem / Error Contract
+## 12. Structured Problem / Error Contract
 
-## 12.1 Machine Contract
+### 12.1 Machine Contract
 
 跨 CLI/API/Management/Runtime boundary 的失败必须投影为稳定、versioned `Problem`，而不是依赖异常 message 文本：
 
@@ -960,7 +961,7 @@ Problem {
 
 `problemCode` 是 machine contract；human text 可以改写/本地化。Stack trace、secret、raw credential、unbounded provider response 不进入 client-visible Problem。
 
-## 12.2 HTTP Projection
+### 12.2 HTTP Projection
 
 HTTP Management API 使用 RFC 9457 Problem Details (`application/problem+json`) 作为 transport projection，并保留 Heptalogos stable fields，例如：
 
@@ -974,19 +975,19 @@ fieldErrors
 
 HTTP status 只是 protocol-level coarse classification；不得作为唯一领域错误 identity。
 
-## 12.3 CLI Projection
+### 12.3 CLI Projection
 
 CLI machine mode 返回同一 canonical Problem 语义。Exit code 只做少量、稳定的 coarse class，不与 HTTP status 一一绑定，也不把每个 `problemCode` 变成独立 exit code。
 
 Human-readable CLI 可根据 Problem 给出 remediation hints，但不能改变 machine fields。
 
-## 12.4 Causal Diagnostics
+### 12.4 Causal Diagnostics
 
 失败链应通过 `activityId` / lineage refs 连接到 Execution Lineage。Problem 本身不是全文日志容器；深层原因通过 `LineageQueryService`、Evidence refs 与受权 diagnostics 查询。
 
 ---
 
-# 13. Bootstrap State Atomicity Contract
+## 13. Bootstrap State Atomicity Contract
 
 Bootstrap Closure 在 PostgreSQL 之外只允许维护**固定、极小、versioned** 的 bootstrap state/journal。它必须满足：
 
@@ -1018,7 +1019,7 @@ Recovery 只接受 schema/digest/refs 全部有效的 committed state；遇到 t
 
 ---
 
-# 13.1 Installation Path / Bootstrap Root Safety
+## 13.1 Installation Path / Bootstrap Root Safety
 
 Program/Instance/Configuration/Data/Blob/Backup 等独立 PathProfile roots、bootstrap state、private PostgreSQL data subspace 与 immutable generation store 必须建立在各自 policy 要求的、解析后受信路径上。Platform adapter 必须处理 symlink/junction/reparse-point/path-normalization 风险，避免 Recovery/Update 因路径替换跳出受管 root。
 
@@ -1026,7 +1027,7 @@ Bootstrap/Recovery 对 global state 的 mutation 使用 open/rename/replace 时�
 
 ---
 
-# 13.2 Continuity Epoch
+## 13.2 Continuity Epoch
 
 `ContinuityEpochId` 标识同一逻辑 Instance 的一段连续 canonical execution timeline。
 对于新 logical Instance，Bootstrap Closure 在 bootstrap ownership 下 exactly
@@ -1062,7 +1063,7 @@ integrity/recovery `Problem`；禁止自动 pick-one、覆盖或重新随机生�
 
 ---
 
-# 14. Secret Portability Classification
+## 14. Secret Portability Classification
 
 Secret metadata 必须声明 restore/export 行为，而不是让 BackupService 猜测：
 

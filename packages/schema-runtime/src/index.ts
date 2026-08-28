@@ -1,3 +1,9 @@
+/**
+ * Public runtime schema compilation and validation contracts; Ajv and TypeBox
+ * remain behind this deliberately small, framework-neutral package boundary.
+ * @packageDocumentation
+ */
+
 export {
   type SchemaValidationIssue,
   type SchemaValidationResult,

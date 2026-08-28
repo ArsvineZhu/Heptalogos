@@ -1,3 +1,9 @@
+/**
+ * Validates package README ownership sections and architecture references so
+ * package navigation remains complete without duplicating Corpus semantics.
+ * @module package-docs
+ */
+
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { markdownTargets, markdownTargetsInSection } from "./markdown.mjs";
@@ -30,6 +36,7 @@ function wordCount(source) {
   return source.trim().split(/\s+/u).filter(Boolean).length;
 }
 
+/** Validate package README ownership sections, navigation, and package-agent rules. */
 export async function validatePackageDocumentation({
   root = process.cwd(),
   productPackages,

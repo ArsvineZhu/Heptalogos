@@ -1,3 +1,9 @@
+/**
+ * Plans and performs fail-closed cleanup of configured generated outputs while
+ * refusing symlink escapes and unknown directory material.
+ * @module clean
+ */
+
 import {
   existsSync,
   lstatSync,
@@ -166,6 +172,7 @@ function compactTargets(root, targets) {
   );
 }
 
+/** Discover validated generated-output targets without mutating the repository. */
 export function discoverCleanPlan({ root = process.cwd() } = {}) {
   const repositoryRoot = resolve(root);
   if (!existsSync(repositoryRoot) || !lstatSync(repositoryRoot).isDirectory()) {
@@ -183,6 +190,7 @@ export function discoverCleanPlan({ root = process.cwd() } = {}) {
   return { root: repositoryRoot, targets: compact };
 }
 
+/** Remove exactly the targets returned by the fail-closed cleanup plan. */
 export function cleanRepository({ root = process.cwd(), dryRun = false } = {}) {
   const plan = discoverCleanPlan({ root });
   if (dryRun) return { ...plan, removed: [] };
