@@ -13,6 +13,9 @@ export type {
   DispatchAttemptId,
   DurableDispatchPort,
   DurableDispatchRequest,
+  DurableAttemptInspectionPort,
+  DurableAttemptInspectionRequest,
+  DurableAttemptProjection,
   NormalizedWorkFailure,
   ResourceAdmissionClassId,
   WorkCreationAdmissionDecision,
@@ -32,8 +35,16 @@ export type {
   WorkItemOutcomeSuperseded,
   WorkItemState,
   WorkQueueProfileId,
+  WorkQueuePartitionLimits,
+  WorkQueueProfileCatalog,
+  WorkQueueProfileDefinition,
+  WorkQueueRateLimit,
   WorkQueueRuntimeOptions,
   WorkRetryClass,
+} from "./contracts.js";
+export {
+  createWorkQueueProfileCatalog,
+  isWorkQueueProfilePartitioned,
 } from "./contracts.js";
 export {
   canTransitionWorkItem,
@@ -74,3 +85,8 @@ export {
   type WorkAttemptExecutorOptions,
 } from "./attempt-executor.js";
 export { type WorkQueueRepository } from "./repository.js";
+export {
+  createWorkQueueRecoveryCoordinator,
+  type WorkQueueRecoveryCoordinator,
+  type WorkQueueRecoveryScanResult,
+} from "./recovery-coordinator.js";

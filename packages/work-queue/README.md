@@ -10,9 +10,11 @@ lost notifications or dispatch failures.
 ## Owns
 
 - WorkItem, retry, admission, dispatch, and error-classification contracts.
+- Immutable WorkQueue profile catalogs and partition-key invariants.
 - Deterministic dispatch-attempt identity and the local WorkItem state machine.
 - Host-fenced WorkItem repository and WorkQueue creation/reconciliation services.
 - Engine-neutral attempt execution around generation-bound WorkHandlers.
+- Canonical RUNNING recovery diagnostics over an engine inspection port.
 
 ## Does not own
 
@@ -25,8 +27,8 @@ lost notifications or dispatch failures.
 ## Public surface
 
 The entry point exports WorkItem contracts, dispatch-attempt identity helpers,
-state-transition validation, repository/service ports, and WorkQueue runtime
-components. The concrete canonical repository factory is a restricted
+profile catalog validation, state-transition validation, repository/service
+ports, and WorkQueue runtime components. The concrete canonical repository factory is a restricted
 Foundation seam at `@heptalogos/work-queue/foundation-repository`; it is not a
 general root-package API. Engine-specific composition is outside this package;
 callers must use the Persistence and Runtime Kernel ownership boundaries.
@@ -42,9 +44,10 @@ fence and WorkItem Authority; Signal is only a best-effort wakeup hint.
 
 Keep WorkItem as the only product Authority for durable work. Require explicit
 runtime options, admission, retry classification, generation/revision fences,
-and bounded payload/outcome validation. Do not add hidden backoff defaults,
-DBOS dependencies, per-item timers, or compatibility readers for development
-history.
+profile/partition validation, and bounded payload/outcome validation. Do not
+add hidden backoff defaults, DBOS dependencies, per-item timers, or compatibility
+readers for development history. Engine projection inspection may report
+contradictions but must not mutate canonical WorkItem outcomes.
 
 ## Verification
 

@@ -152,6 +152,76 @@ const problemSpecs: Readonly<Record<string, WorkQueueProblemSpec>> = {
     retryClass: "never",
     title: "WorkItem queue profile does not match its WorkHandler",
   },
+  "work.queue.profile_catalog_required": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkQueue profile catalog is required",
+  },
+  "work.queue.profile_invalid": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkQueue profile is invalid",
+  },
+  "work.queue.profile_unavailable": {
+    category: "unavailable",
+    retryClass: "after-change",
+    title: "WorkQueue profile is unavailable",
+  },
+  "work.queue.partition_required": {
+    category: "validation",
+    retryClass: "never",
+    title: "Partition key is required by the WorkQueue profile",
+  },
+  "work.queue.partition_not_supported": {
+    category: "validation",
+    retryClass: "never",
+    title: "WorkQueue profile does not support partition keys",
+  },
+  "work.recovery.active_attempt_mismatch": {
+    category: "integrity",
+    retryClass: "manual",
+    title: "Running WorkItem active attempt identity is inconsistent",
+  },
+  "work.recovery.handler_generation_missing": {
+    category: "unavailable",
+    retryClass: "after-change",
+    title: "Running WorkItem handler generation is unavailable",
+  },
+  "work.recovery.engine_version_mismatch": {
+    category: "integrity",
+    retryClass: "manual",
+    title: "Durable engine application version does not match",
+  },
+  "work.recovery.engine_projection_absent": {
+    category: "integrity",
+    retryClass: "manual",
+    title: "Running WorkItem engine projection is absent",
+  },
+  "work.recovery.engine_success_conflict": {
+    category: "integrity",
+    retryClass: "manual",
+    title: "Engine success conflicts with canonical WorkItem state",
+  },
+  "work.recovery.engine_error": {
+    category: "unavailable",
+    retryClass: "after-change",
+    title: "Durable engine reported an error",
+  },
+  "work.recovery.engine_cancelled": {
+    category: "integrity",
+    retryClass: "manual",
+    title: "Engine cancellation conflicts with canonical WorkItem state",
+  },
+  "work.recovery.recovery_exhausted": {
+    category: "unavailable",
+    retryClass: "manual",
+    title: "Durable engine recovery budget was exhausted",
+  },
+  "work.recovery.inspection_failed": {
+    category: "unavailable",
+    retryClass: "after-change",
+    title: "Durable engine projection inspection failed",
+  },
 };
 
 function problemSpec(problemCode: string): WorkQueueProblemSpec {

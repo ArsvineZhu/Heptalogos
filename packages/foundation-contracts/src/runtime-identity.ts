@@ -5,12 +5,20 @@
  */
 
 import type { Branded, ContentDigest, UuidV7Id } from "./identity.js";
-import { createUuidV7Id, parseUuidV7Id } from "./identity.js";
+import type { Sha256Digest } from "./digest.js";
+import {
+  asContentDigest,
+  createUuidV7Id,
+  isSha256Hex,
+  parseUuidV7Id,
+} from "./identity.js";
 
 /** Identifies a product generation by its canonical content digest. */
 export type ProductGenerationId = ContentDigest<"ProductGenerationId">;
 /** Identifies a package generation by its canonical content digest. */
 export type PackageGenerationId = ContentDigest<"PackageGenerationId">;
+/** Identifies the exact durable execution code/application version. */
+export type DurableCodeVersion = ContentDigest<"DurableCodeVersion">;
 /** Identifies one instantiated MicroSystem generation. */
 export type MicroSystemInstanceId = UuidV7Id<"MicroSystemInstanceId">;
 /** Brands a normalized namespaced identifier for a semantic owner. */
@@ -81,6 +89,16 @@ export const parseContributionId = (value: unknown): ContributionId | undefined 
 /** Parses a WorkItem UUID-v7 identity. */
 export const parseWorkItemId = (value: unknown): WorkItemId | undefined =>
   parseUuidV7Id("WorkItemId", value);
+/** Parses a durable-code application version as its own digest identity. */
+export const parseDurableCodeVersion = (
+  value: unknown,
+): DurableCodeVersion | undefined =>
+  isSha256Hex(value) ? (value as DurableCodeVersion) : undefined;
+
+/** Brands a validated canonical digest as a durable-code application version. */
+export const asDurableCodeVersion = (
+  digest: Sha256Digest,
+): DurableCodeVersion => asContentDigest("DurableCodeVersion", digest);
 
 /** Creates a validated MicroSystem identity from its canonical name. */
 export const createMicroSystemId = (value: string): MicroSystemId =>

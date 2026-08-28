@@ -37,6 +37,7 @@ import { createRuntimeSubstrate } from "@heptalogos/runtime-substrate";
 import {
   createWorkAttemptExecutor,
   createDispatchAttemptId,
+  createWorkQueueProfileCatalog,
   createWorkQueueReconciler,
   createWorkQueueService,
   type WorkAdmissionPort,
@@ -73,6 +74,9 @@ const queueProfileId = createMicroSystemId(
 const resourceAdmissionClass = createMicroSystemId(
   "work.default",
 ) as unknown as ResourceAdmissionClassId;
+const PROFILE_CATALOG = createWorkQueueProfileCatalog([
+  { profileId: queueProfileId, minPollingIntervalMs: 100 },
+]);
 
 const PERSISTENCE_OPTIONS = {
   maxConnections: 2,
@@ -277,6 +281,7 @@ async function createComposition(
     time,
     signalPublisher: postgresSignalPublisher,
     admission,
+    profiles: PROFILE_CATALOG,
     runtimeOptions: WORK_OPTIONS,
     onBackgroundError() {},
   });
@@ -1004,6 +1009,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
       time: composition.time,
       signalPublisher: postgresSignalPublisher,
       admission,
+      profiles: PROFILE_CATALOG,
       runtimeOptions: WORK_OPTIONS,
       onBackgroundError() {},
     });
@@ -1458,6 +1464,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
       time: composition.time,
       signalPublisher: failingPublisher,
       admission: composition.admission,
+      profiles: PROFILE_CATALOG,
       runtimeOptions: WORK_OPTIONS,
       onBackgroundError() {},
     });

@@ -37,11 +37,13 @@ import type {
 import type { TimeService } from "@heptalogos/time-service";
 import {
   createWorkQueueService,
+  createWorkQueueProfileCatalog,
   type WorkCreationAdmissionDecision,
   type WorkAdmissionPort,
   type WorkHandlerTarget,
   type WorkItem,
   type WorkQueueRepository,
+  type WorkQueueProfileDefinition,
   type WorkQueueRuntimeOptions,
 } from "../../src/index.js";
 
@@ -169,6 +171,8 @@ function fakeRepository(
     findNonTerminalDedup: async () => undefined,
     snapshotProjectionCeiling: async () => undefined,
     listProjectionCandidates: async () => [],
+    snapshotRunningCeiling: async () => undefined,
+    listRunning: async () => [],
     listDueRetry: async () => [],
     snapshotWaitingDependencyCeiling: async () => undefined,
     listWaitingDependency: async () => [],
@@ -211,6 +215,10 @@ function workItem(
 function serviceFixture(
   decision: WorkCreationAdmissionDecision,
   insertStatus: "INSERTED" | "EXISTING" = "INSERTED",
+  profile: WorkQueueProfileDefinition = {
+    profileId: queueProfileId,
+    minPollingIntervalMs: 100,
+  },
 ) {
   const source = executionContext();
   const activity = executionContext();
@@ -293,6 +301,7 @@ function serviceFixture(
     time,
     signalPublisher: { publish },
     admission,
+    profiles: createWorkQueueProfileCatalog([profile]),
     runtimeOptions: {
       maxInlinePayloadBytes: 1024,
       maxOutcomeBytes: 1024,
@@ -413,7 +422,11 @@ describe("WorkQueue creation service", () => {
   });
 
   it("snapshots the complete creation envelope before asynchronous admission", async () => {
-    const fixture = serviceFixture({ decision: "ALLOW" });
+    const fixture = serviceFixture({ decision: "ALLOW" }, "INSERTED", {
+      profileId: queueProfileId,
+      minPollingIntervalMs: 100,
+      partition: { concurrency: 1 },
+    });
     const originalTarget: WorkHandlerTarget = { ...target };
     const mutableTarget = { ...originalTarget };
     const mutatedTarget: WorkHandlerTarget = {
@@ -553,6 +566,41 @@ describe("WorkQueue creation service", () => {
       problem: { problemCode: "work.request.invalid" },
     });
     expect(fixture.handlerRegistry.resolve).not.toHaveBeenCalled();
+  });
+
+  it("enforces the partition-key contract before durable insertion", async () => {
+    const partitioned = serviceFixture({ decision: "ALLOW" }, "INSERTED", {
+      profileId: queueProfileId,
+      minPollingIntervalMs: 100,
+      partition: { concurrency: 1 },
+    });
+    await expect(
+      partitioned.service.create({
+        target,
+        payload: { value: "hello" },
+        queueProfileId,
+        resourceAdmissionClass,
+        priority: 100,
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "work.queue.partition_required" },
+    });
+    expect(partitioned.insertedItems).toHaveLength(0);
+
+    const unpartitioned = serviceFixture({ decision: "ALLOW" });
+    await expect(
+      unpartitioned.service.create({
+        target,
+        payload: { value: "hello" },
+        queueProfileId,
+        resourceAdmissionClass,
+        partitionKey: "unsupported",
+        priority: 100,
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "work.queue.partition_not_supported" },
+    });
+    expect(unpartitioned.insertedItems).toHaveLength(0);
   });
 
   it("propagates a transaction-time Signal publication failure", async () => {

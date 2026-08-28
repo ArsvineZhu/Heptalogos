@@ -234,6 +234,14 @@ export interface WorkQueueRepository {
     readonly through: WorkItemScanCursor;
     readonly limit: number;
   }): Promise<readonly WorkItem[]>;
+  /** Capture the upper cursor bound for canonical RUNNING recovery scans. */
+  snapshotRunningCeiling(): Promise<WorkItemScanCursor | undefined>;
+  /** Read one fair page of canonical RUNNING items through the bound. */
+  listRunning(input: {
+    readonly after?: WorkItemScanCursor;
+    readonly through: WorkItemScanCursor;
+    readonly limit: number;
+  }): Promise<readonly WorkItem[]>;
   /** Read retry-wait items whose not-before instant has arrived. */
   listDueRetry(input: {
     readonly now: Instant;
@@ -642,7 +650,7 @@ function assertScanCursor(cursor: WorkItemScanCursor, field: string): void {
 
 async function selectLaneCeiling(
   transaction: PersistenceInternalTransaction,
-  state: "PENDING" | "WAITING_DEPENDENCY",
+  state: "PENDING" | "RUNNING" | "WAITING_DEPENDENCY",
 ): Promise<WorkItemScanCursor | undefined> {
   const rows = await executeSql(
     transaction,
@@ -657,7 +665,7 @@ async function selectLaneCeiling(
 
 async function selectLanePage(
   transaction: PersistenceInternalTransaction,
-  state: "PENDING" | "WAITING_DEPENDENCY",
+  state: "PENDING" | "RUNNING" | "WAITING_DEPENDENCY",
   input: {
     readonly after?: WorkItemScanCursor;
     readonly through: WorkItemScanCursor;
@@ -952,6 +960,18 @@ export function createWorkQueueRepository(
     async listProjectionCandidates(input) {
       return (await readContext(persistence, (transaction) =>
         selectLanePage(transaction, "PENDING", input),
+      )) as readonly WorkItem[];
+    },
+
+    async snapshotRunningCeiling() {
+      return (await readContext(persistence, (transaction) =>
+        selectLaneCeiling(transaction, "RUNNING"),
+      )) as WorkItemScanCursor | undefined;
+    },
+
+    async listRunning(input) {
+      return (await readContext(persistence, (transaction) =>
+        selectLanePage(transaction, "RUNNING", input),
       )) as readonly WorkItem[];
     },
 
