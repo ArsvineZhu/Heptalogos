@@ -344,7 +344,7 @@ async function killAfterCrash(child: DurableWorkChild): Promise<void> {
 }
 
 describePostgres.sequential("Durable WorkItem process recovery", () => {
-  it("P1 recovers a canonical commit that never reached the engine", async () => {
+  it("recovers a canonical commit that never reached the engine", async () => {
     const fixture = await makeFixture();
     activeFixtures.push(fixture);
     await keepFixturePostgresRunning(fixture);
@@ -379,7 +379,7 @@ describePostgres.sequential("Durable WorkItem process recovery", () => {
     activeChildren.delete(restarted);
   }, 240_000);
 
-  it("P2 recovers an engine projection before the first RUNNING claim", async () => {
+  it("recovers an engine projection before the first RUNNING claim", async () => {
     const fixture = await makeFixture();
     activeFixtures.push(fixture);
     await keepFixturePostgresRunning(fixture);
@@ -418,7 +418,7 @@ describePostgres.sequential("Durable WorkItem process recovery", () => {
     activeChildren.delete(restarted);
   }, 240_000);
 
-  it("P3 re-enters the same RUNNING attempt after a process crash", async () => {
+  it("re-enters the same RUNNING attempt after a process crash", async () => {
     const fixture = await makeFixture();
     activeFixtures.push(fixture);
     await keepFixturePostgresRunning(fixture);
@@ -454,7 +454,7 @@ describePostgres.sequential("Durable WorkItem process recovery", () => {
     activeChildren.delete(restarted);
   }, 240_000);
 
-  it("P4 replays a terminal canonical result without rerunning the handler", async () => {
+  it("replays a terminal canonical result without rerunning the handler", async () => {
     const fixture = await makeFixture();
     activeFixtures.push(fixture);
     await keepFixturePostgresRunning(fixture);
@@ -491,7 +491,7 @@ describePostgres.sequential("Durable WorkItem process recovery", () => {
     activeChildren.delete(restarted);
   }, 240_000);
 
-  it("P5 keeps a different durable-code version from recovering the old workflow", async () => {
+  it("keeps a different durable-code version from recovering the old workflow", async () => {
     const fixture = await makeFixture();
     activeFixtures.push(fixture);
     await keepFixturePostgresRunning(fixture);
@@ -534,7 +534,7 @@ describePostgres.sequential("Durable WorkItem process recovery", () => {
     activeChildren.delete(matchingVersion);
   }, 300_000);
 
-  it("P6 completes after Signal loss because the canonical scan remains authoritative", async () => {
+  it("completes after Signal loss because the canonical scan remains authoritative", async () => {
     const fixture = await makeFixture();
     activeFixtures.push(fixture);
     await keepFixturePostgresRunning(fixture);
@@ -572,7 +572,7 @@ describePostgres.sequential("Durable WorkItem process recovery", () => {
     activeChildren.delete(restarted);
   }, 240_000);
 
-  it("P7 does not fabricate success when the authentic Host lease is lost", async () => {
+  it("does not fabricate success when the authentic Host lease is lost", async () => {
     const fixture = await makeFixture();
     activeFixtures.push(fixture);
     await keepFixturePostgresRunning(fixture);
@@ -610,7 +610,7 @@ describePostgres.sequential("Durable WorkItem process recovery", () => {
     activeChildren.delete(restarted);
   }, 300_000);
 
-  it("P8 records engine recovery exhaustion without terminalizing the WorkItem", async () => {
+  it("records engine recovery exhaustion without terminalizing the WorkItem", async () => {
     const fixture = await makeFixture();
     activeFixtures.push(fixture);
     await keepFixturePostgresRunning(fixture);

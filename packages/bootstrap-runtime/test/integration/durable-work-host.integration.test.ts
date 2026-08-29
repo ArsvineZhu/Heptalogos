@@ -42,6 +42,7 @@ import {
   type ResourceAdmissionClassId,
 } from "@heptalogos/runtime-kernel";
 import { createRuntimeSubstrate } from "@heptalogos/runtime-substrate";
+import { HOST_DURABLE_EXECUTION_ROLE } from "@heptalogos/host-ownership";
 import {
   createWorkAttemptExecutor,
   createDispatchAttemptId,
@@ -110,6 +111,7 @@ const DURABLE_OPTIONS = {
   workflowMaxRecoveryAttempts: 4,
   shutdownDrainTimeoutMs: 10_000,
   profiles: PROFILE_CATALOG,
+  onTerminalFailure() {},
   onBackgroundError() {},
 } as const;
 const durableSchemaProvisioner = createDurableExecutionSchemaProvisioner({
@@ -538,6 +540,115 @@ async function durableWorkflowRow(
   ).rows[0];
 }
 
+interface DurableProductRelationPrivilegeRow {
+  readonly relation_name: string;
+  readonly relkind: string;
+  readonly can_read: boolean;
+  readonly can_insert: boolean;
+  readonly can_update: boolean;
+  readonly can_delete: boolean;
+  readonly can_usage: boolean;
+}
+
+interface DurableProductRoutinePrivilegeRow {
+  readonly routine_name: string;
+  readonly prokind: "f" | "p";
+  readonly can_execute: boolean;
+}
+
+async function durableProductPrivilegeSnapshot(
+  fixture: Awaited<ReturnType<typeof makeFixture>>,
+): Promise<{
+  readonly schema: Record<string, unknown>;
+  readonly relations: readonly DurableProductRelationPrivilegeRow[];
+  readonly routines: readonly DurableProductRoutinePrivilegeRow[];
+  readonly dbos: Record<string, unknown>;
+}> {
+  const role = HOST_DURABLE_EXECUTION_ROLE;
+  const schema = (
+    await queryAs(
+      fixture,
+      "heptalogos_durable_execution",
+      DURABLE_EXECUTION_PASSWORD,
+      `SELECT has_schema_privilege($1, 'heptalogos', 'USAGE') AS product_schema_usage,
+              has_schema_privilege($1, 'heptalogos', 'CREATE') AS product_schema_create,
+              has_schema_privilege($1, 'dbos', 'USAGE') AS dbos_schema_usage,
+              has_schema_privilege($1, 'dbos', 'CREATE') AS dbos_schema_create`,
+      [role],
+    )
+  ).rows[0] as Record<string, unknown> | undefined;
+  if (schema === undefined) throw new Error("schema privilege snapshot is empty");
+
+  const relations = (
+    await queryAs(
+      fixture,
+      "heptalogos_durable_execution",
+      DURABLE_EXECUTION_PASSWORD,
+      `SELECT c.relname AS relation_name,
+              c.relkind,
+              CASE WHEN c.relkind = 'S'
+                   THEN has_sequence_privilege($1, c.oid, 'SELECT')
+                   ELSE has_table_privilege($1, c.oid, 'SELECT')
+              END AS can_read,
+              CASE WHEN c.relkind = 'S'
+                   THEN false
+                   ELSE has_table_privilege($1, c.oid, 'INSERT')
+              END AS can_insert,
+              CASE WHEN c.relkind = 'S'
+                   THEN has_sequence_privilege($1, c.oid, 'UPDATE')
+                   ELSE has_table_privilege($1, c.oid, 'UPDATE')
+              END AS can_update,
+              CASE WHEN c.relkind = 'S'
+                   THEN false
+                   ELSE has_table_privilege($1, c.oid, 'DELETE')
+              END AS can_delete,
+              CASE WHEN c.relkind = 'S'
+                   THEN has_sequence_privilege($1, c.oid, 'USAGE')
+                   ELSE false
+              END AS can_usage
+         FROM pg_catalog.pg_class AS c
+         JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'heptalogos'
+          AND c.relkind IN ('r', 'p', 'S', 'v', 'm', 'f')
+        ORDER BY c.relkind, c.relname`,
+      [role],
+    )
+  ).rows as unknown as DurableProductRelationPrivilegeRow[];
+
+  const routines = (
+    await queryAs(
+      fixture,
+      "heptalogos_durable_execution",
+      DURABLE_EXECUTION_PASSWORD,
+      `SELECT p.oid::regprocedure::text AS routine_name,
+              p.prokind,
+              has_function_privilege($1, p.oid, 'EXECUTE') AS can_execute
+         FROM pg_catalog.pg_proc AS p
+         JOIN pg_catalog.pg_namespace AS n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'heptalogos'
+          AND p.prokind IN ('f', 'p')
+        ORDER BY routine_name`,
+      [role],
+    )
+  ).rows as unknown as DurableProductRoutinePrivilegeRow[];
+
+  const dbos = (
+    await queryAs(
+      fixture,
+      "heptalogos_durable_execution",
+      DURABLE_EXECUTION_PASSWORD,
+      `SELECT has_table_privilege($1, 'dbos.workflow_status', 'SELECT') AS dbos_select,
+              has_table_privilege($1, 'dbos.workflow_status', 'INSERT') AS dbos_insert,
+              has_table_privilege($1, 'dbos.workflow_status', 'UPDATE') AS dbos_update,
+              has_table_privilege($1, 'dbos.workflow_status', 'DELETE') AS dbos_delete`,
+      [role],
+    )
+  ).rows[0] as Record<string, unknown> | undefined;
+  if (dbos === undefined) throw new Error("DBOS privilege snapshot is empty");
+
+  return { schema, relations, routines, dbos };
+}
+
 async function requireDurable(
   composition: Composition,
 ): Promise<DurableExecutionRuntime> {
@@ -549,7 +660,7 @@ async function requireDurable(
 }
 
 describePostgres.sequential("Canonical durable WorkItem qualification", () => {
-  it("W1 canonical creation commits lineage and wakes dispatch reconciliation", async () => {
+  it("canonical creation commits lineage and wakes dispatch reconciliation", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -575,7 +686,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     );
   }, 180_000);
 
-  it("W2 discovers a committed item after Signal listener termination and reconnect rescan", async () => {
+  it("discovers a committed item after Signal listener termination and reconnect rescan", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -604,7 +715,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     });
   }, 180_000);
 
-  it("W3-W4 redispatches lost projection with the same revision attempt identity", async () => {
+  it("redispatches lost projection with the same revision attempt identity", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -623,7 +734,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     expect(firstAttempt).toBe(createDispatchAttemptId(created.item.workItemId, 1));
   }, 180_000);
 
-  it("W5 advances retry revision before an old attempt can execute", async () => {
+  it("advances retry revision before an old attempt can execute", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -656,7 +767,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     });
   }, 180_000);
 
-  it("W6 keeps generation B out while A is unavailable, then restores exact A", async () => {
+  it("keeps generation B out while A is unavailable, then restores exact A", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -725,7 +836,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     void targetB;
   }, 180_000);
 
-  it("G1 keeps an exact admitted generation alive while retirement waits for settlement", async () => {
+  it("keeps an exact admitted generation alive while retirement waits for settlement", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -798,7 +909,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     expect(fence.state).toBe("RETIRED");
   }, 180_000);
 
-  it("G2 releases a reserved invocation when the RUNNING CAS is lost", async () => {
+  it("releases a reserved invocation when the RUNNING CAS is lost", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -877,7 +988,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     ).resolves.toMatchObject({ state: "CANCELLED" });
   }, 180_000);
 
-  it("W7 makes cancellation win both before invoke and during cooperative running", async () => {
+  it("makes cancellation win both before invoke and during cooperative running", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -1026,7 +1137,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     }
   }, 180_000);
 
-  it("F1 gives a later PENDING WorkItem a projection opportunity past one stable page", async () => {
+  it("gives a later PENDING WorkItem a projection opportunity past one stable page", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -1062,7 +1173,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     );
   }, 180_000);
 
-  it("F2 gives a later available dependency a recheck past one stable unavailable page", async () => {
+  it("gives a later available dependency a recheck past one stable unavailable page", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -1122,7 +1233,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     );
   }, 180_000);
 
-  it("J1 detaches a caller payload before an asynchronous admission boundary", async () => {
+  it("detaches a caller payload before an asynchronous admission boundary", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -1186,7 +1297,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     ).resolves.toMatchObject({ payload: { value: "before" } });
   }, 180_000);
 
-  it("J2 keeps a handler-held outcome mutation out of terminal WorkItem truth", async () => {
+  it("keeps a handler-held outcome mutation out of terminal WorkItem truth", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -1383,7 +1494,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     expect(item?.activeAttemptId).toBeUndefined();
   }, 180_000);
 
-  it("S1 finalizes a RUNNING supersession with the stable reason and exact target", async () => {
+  it("finalizes a RUNNING supersession with the stable reason and exact target", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -1464,7 +1575,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     });
   }, 180_000);
 
-  it("C1 rejects incoherent terminal WorkItem rows on a fresh PostgreSQL baseline", async () => {
+  it("rejects incoherent terminal WorkItem rows on a fresh PostgreSQL baseline", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -1637,7 +1748,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     ).resolves.toMatchObject({ rows: [{ count: 0 }] });
   }, 180_000);
 
-  it("L1-L5 closes every significant WorkQueue Activity with its canonical mutation", async () => {
+  it("closes every significant WorkQueue Activity with its canonical mutation", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -1752,7 +1863,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     });
   }, 180_000);
 
-  it("W8 fences mutations when the authentic Host lease closes", async () => {
+  it("fences mutations when the authentic Host lease closes", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -1784,7 +1895,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     ).resolves.toMatchObject({ rows: [{ state: "PENDING" }] });
   }, 180_000);
 
-  it("W9 deduplicates non-terminal work and permits the key after terminalization", async () => {
+  it("deduplicates non-terminal work and permits the key after terminalization", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -1818,7 +1929,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
     ).resolves.toMatchObject({ status: "CREATED" });
   }, 180_000);
 
-  it("W10 reconstructs work.create to work.execute to contribution.invoke origin", async () => {
+  it("reconstructs work.create to work.execute to contribution.invoke origin", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture);
     const composition = activeComposition;
@@ -1871,7 +1982,7 @@ describePostgres.sequential("Canonical durable WorkItem qualification", () => {
 });
 
 describePostgres.sequential("Real DBOS durable execution qualification", () => {
-  it("D1 recovers a lost immediate projection through anti-entropy", async () => {
+  it("recovers a lost immediate projection through anti-entropy", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture, { durableExecution: true });
     const composition = activeComposition;
@@ -1902,7 +2013,7 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     expect(composition.dispatches.length).toBeGreaterThanOrEqual(2);
   }, 180_000);
 
-  it("D2 collapses duplicate projection of one WorkItem revision", async () => {
+  it("collapses duplicate projection of one WorkItem revision", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture, { durableExecution: true });
     const composition = activeComposition;
@@ -1940,7 +2051,7 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     expect(composition.handlerCalls).toHaveLength(1);
   }, 180_000);
 
-  it("D3 projects notBefore as a DBOS delay while canonical time remains authoritative", async () => {
+  it("projects notBefore as a DBOS delay while canonical time remains authoritative", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture, { durableExecution: true });
     const composition = activeComposition;
@@ -1975,7 +2086,7 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     });
   }, 180_000);
 
-  it("D4 increments the canonical revision before projecting a retry", async () => {
+  it("increments the canonical revision before projecting a retry", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture, { durableExecution: true });
     const composition = activeComposition;
@@ -2029,7 +2140,7 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     expect(composition.handlerCalls).toHaveLength(1);
   }, 180_000);
 
-  it("D5 never binds a current generation to an item pinned to a missing generation", async () => {
+  it("never binds a current generation to an item pinned to a missing generation", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture, { durableExecution: true });
     const composition = activeComposition;
@@ -2130,7 +2241,7 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     }
   }, 180_000);
 
-  it("D6 keeps DBOS on its dedicated role while WorkAttemptExecutor uses persistence", async () => {
+  it("proves complete product-schema denial for the dedicated durable role", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture, { durableExecution: true });
     const composition = activeComposition;
@@ -2153,6 +2264,34 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
         `SELECT count(*)::integer AS workflow_count FROM "dbos"."workflow_status"`,
       ),
     ).resolves.toMatchObject({ rows: [{ workflow_count: expect.anything() }] });
+
+    const privilegeSnapshot = await durableProductPrivilegeSnapshot(fixture);
+    expect(privilegeSnapshot.schema).toMatchObject({
+      product_schema_usage: false,
+      product_schema_create: false,
+      dbos_schema_usage: true,
+      dbos_schema_create: false,
+    });
+    expect(privilegeSnapshot.relations.length).toBeGreaterThan(0);
+    expect(
+      privilegeSnapshot.relations.every(
+        (relation) =>
+          !relation.can_read &&
+          !relation.can_insert &&
+          !relation.can_update &&
+          !relation.can_delete &&
+          !relation.can_usage,
+      ),
+    ).toBe(true);
+    expect(privilegeSnapshot.routines.every((routine) => !routine.can_execute)).toBe(
+      true,
+    );
+    expect(privilegeSnapshot.dbos).toMatchObject({
+      dbos_select: true,
+      dbos_insert: true,
+      dbos_update: true,
+      dbos_delete: true,
+    });
     await expect(
       queryAs(
         fixture,
@@ -2172,7 +2311,7 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     ).resolves.toMatchObject({ rows: [{ state: "SUCCEEDED" }] });
   }, 180_000);
 
-  it("D7 fails closed on a persisted queue-profile mismatch without overwriting it", async () => {
+  it("fails closed on a persisted queue-profile mismatch without overwriting it", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture, { durableExecution: true });
     const composition = activeComposition;
@@ -2242,7 +2381,7 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     }
   }, 180_000);
 
-  it("D8 does not auto-repair a missing vendor schema during normal launch", async () => {
+  it("does not auto-repair a missing vendor schema during normal launch", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture, { durableExecution: true });
     const composition = activeComposition;
@@ -2270,7 +2409,7 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     ).resolves.toMatchObject({ rows: [{ schema_count: 0 }] });
   }, 180_000);
 
-  it("D9 persists partition limits and executes work from two explicit partitions", async () => {
+  it("persists partition limits and executes work from two explicit partitions", async () => {
     const fixture = await makeFixture();
     const partitionedProfiles = createWorkQueueProfileCatalog([
       {
@@ -2339,7 +2478,7 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     expect(composition.handlerCalls).toHaveLength(2);
   }, 180_000);
 
-  it("D10 keeps DBOS executorID stable across a new BootId", async () => {
+  it("keeps DBOS executorID stable across a new BootId", async () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture, { durableExecution: true });
     const first = activeComposition;
@@ -2477,7 +2616,7 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     }
   }, 240_000);
 
-  it("T12 rejects new work before it can create a canonical or DBOS row", async () => {
+  it("rejects new work before it can create a canonical or DBOS row", async () => {
     const fixture = await makeFixture();
     const admission: WorkAdmissionPort = {
       beforeCreate: async () => ({
@@ -2521,7 +2660,7 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     ).resolves.toMatchObject({ rows: [{ count: 0 }] });
   }, 180_000);
 
-  it("T12 retains a committed WorkItem across DELAY and THROTTLE dispatch admission", async () => {
+  it("retains a committed WorkItem across DELAY and THROTTLE dispatch admission", async () => {
     const fixture = await makeFixture();
     const decisions = new Map<string, "DELAY" | "THROTTLE">();
     const beforeDispatchWorkItemIds: string[] = [];
@@ -2592,7 +2731,7 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     expect(composition.dispatches.length).toBeGreaterThanOrEqual(2);
   }, 180_000);
 
-  it("T12 applies DBOS worker and global concurrency to actual WorkItem execution", async () => {
+  it("applies DBOS worker and global concurrency to actual WorkItem execution", async () => {
     const fixture = await makeFixture();
     const profiles = createWorkQueueProfileCatalog([
       {
@@ -2676,7 +2815,7 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     });
   }, 180_000);
 
-  it("T12 applies the DBOS queue rate limit to actual workflow starts", async () => {
+  it("applies the DBOS queue rate limit to actual workflow starts", async () => {
     const fixture = await makeFixture();
     const profiles = createWorkQueueProfileCatalog([
       {
@@ -2735,7 +2874,7 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     });
   }, 180_000);
 
-  it("T12 bounds actual execution independently within each DBOS partition", async () => {
+  it("bounds actual execution independently within each DBOS partition", async () => {
     const fixture = await makeFixture();
     const profiles = createWorkQueueProfileCatalog([
       {
@@ -2853,7 +2992,7 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     );
   }, 180_000);
 
-  it("T12 uses priority for DBOS scheduling after WorkQueue admission", async () => {
+  it("uses priority for DBOS scheduling after WorkQueue admission", async () => {
     const fixture = await makeFixture();
     const admittedWorkItemIds: string[] = [];
     const admission: WorkAdmissionPort = {

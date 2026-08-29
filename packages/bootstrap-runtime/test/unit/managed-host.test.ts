@@ -75,7 +75,7 @@ describe("managed Host capability", () => {
       raw,
       {
         async preparePrivatePostgresMaintenance() {
-          throw new Error("not implemented in Task 3 fixture");
+          throw new Error("maintenance operation fixture is not implemented");
         },
         async shutdownKeepingPrivatePostgres() {},
       },
@@ -112,7 +112,7 @@ describe("managed Host capability", () => {
       rawHost(),
       {
         async preparePrivatePostgresMaintenance() {
-          throw new Error("not implemented in Task 3 fixture");
+          throw new Error("maintenance operation fixture is not implemented");
         },
         async shutdownKeepingPrivatePostgres() {},
       },
@@ -131,7 +131,7 @@ describe("managed Host capability", () => {
       raw,
       {
         async preparePrivatePostgresMaintenance() {
-          throw new Error("not implemented in Task 4 fixture");
+          throw new Error("maintenance operation fixture is not implemented");
         },
         async shutdownKeepingPrivatePostgres() {},
       },
@@ -195,7 +195,7 @@ describe("managed Host capability", () => {
       rawHost(),
       {
         async preparePrivatePostgresMaintenance() {
-          throw new Error("not implemented in Task 3 fixture");
+          throw new Error("maintenance operation fixture is not implemented");
         },
         async shutdownKeepingPrivatePostgres(received) {
           await received.quiesce();

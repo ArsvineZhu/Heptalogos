@@ -48,7 +48,7 @@ export interface WorkQueueReconcilerOptions {
   readonly execution: ExecutionContextRuntime;
   readonly time: TimeService;
   readonly runtimeOptions: WorkQueueRuntimeOptions;
-  /** Optional H3A-2 engine-consistency lane owned by this scan gate. */
+  /** Optional engine-consistency lane owned by this scan gate. */
   readonly recovery?: WorkQueueRecoveryCoordinator;
   readonly onBackgroundError: (error: unknown) => void;
 }

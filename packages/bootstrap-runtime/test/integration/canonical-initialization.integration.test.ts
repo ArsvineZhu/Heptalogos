@@ -63,7 +63,7 @@ afterEach(async () => {
 describeRealPostgres.sequential(
   "Canonical canonical continuity PostgreSQL qualification",
   () => {
-    it("C1 materializes the BootstrapState epoch before managed Host exposure", async () => {
+    it("materializes the BootstrapState epoch before managed Host exposure", async () => {
       const fixture = await makeFixture();
       const result = await boot(fixture);
       expect(result.host.continuityEpochId).toBe(result.epoch);
@@ -209,7 +209,7 @@ describeRealPostgres.sequential(
       await stopManagedHostWithoutRuntime(result.host);
     }, 180_000);
 
-    it("C1-D provisions current DBOS schema, exact role rights, and restart idempotence", async () => {
+    it("provisions current DBOS schema, exact role rights, and restart idempotence", async () => {
       const fixture = await makeFixture();
       const first = await boot(fixture, initializeCanonicalAndDurable);
 
@@ -343,7 +343,7 @@ describeRealPostgres.sequential(
       await stopManagedHostWithoutRuntime(second.host);
     }, 300_000);
 
-    it("C1-D blocks Host exposure when the vendor schema becomes invalid", async () => {
+    it("blocks Host exposure when the vendor schema becomes invalid", async () => {
       const fixture = await makeFixture();
       const first = await boot(fixture, initializeCanonicalAndDurable);
       await mutateAsBootstrap(fixture, `DROP TABLE "dbos"."workflow_status" CASCADE`);
@@ -360,7 +360,7 @@ describeRealPostgres.sequential(
       });
     }, 300_000);
 
-    it("C2 preserves the epoch across a second boot with a new Host identity", async () => {
+    it("preserves the epoch across a second boot with a new Host identity", async () => {
       const fixture = await makeFixture();
       const first = await boot(fixture);
       const firstBoot = first.host.bootId;
@@ -378,7 +378,7 @@ describeRealPostgres.sequential(
       await stopManagedHostWithoutRuntime(second.host);
     }, 240_000);
 
-    it("C3 retries the committed epoch after authority loss between migration and materialization", async () => {
+    it("retries the committed epoch after authority loss between migration and materialization", async () => {
       const fixture = await makeFixture();
       const realInitializer = createCanonicalSchemaInitializer(CANONICAL_OPTIONS);
       let assertCount = 0;
@@ -418,8 +418,12 @@ describeRealPostgres.sequential(
     }, 240_000);
 
     it.each([
-      ["C4", "epoch", "canonical-schema.continuity_epoch_mismatch"],
-      ["C5", "instance", "canonical-schema.continuity_instance_mismatch"],
+      ["epoch-mismatch", "epoch", "canonical-schema.continuity_epoch_mismatch"],
+      [
+        "instance-mismatch",
+        "instance",
+        "canonical-schema.continuity_instance_mismatch",
+      ],
     ] as const)(
       "%s rejects a canonical continuity %s mismatch without overwrite",
       async (_name, kind, problemCode) => {
@@ -462,7 +466,7 @@ describeRealPostgres.sequential(
       240_000,
     );
 
-    it("C6 and C7 keep migration and runtime authorities distinct and read-only", async () => {
+    it("keeps migration and runtime authorities distinct and read-only", async () => {
       const fixture = await makeFixture();
       const result = await boot(fixture);
       await expect(
@@ -518,7 +522,7 @@ describeRealPostgres.sequential(
       await stopManagedHostWithoutRuntime(result.host);
     }, 180_000);
 
-    it("C8 rejects corrupted current migration history", async () => {
+    it("rejects corrupted current migration history", async () => {
       const fixture = await makeFixture();
       const first = await boot(fixture);
       await stopManagedHostWithoutRuntime(first.host);
@@ -542,7 +546,7 @@ describeRealPostgres.sequential(
 );
 
 describe("Canonical BootstrapState unsupported development shape", () => {
-  it("C9 rejects current V1 bytes without ContinuityEpochId", async () => {
+  it("rejects current V1 bytes without ContinuityEpochId", async () => {
     const directory = await mkdtemp(
       join(tmpdir(), "heptalogos-canonical-unsupported-state-"),
     );

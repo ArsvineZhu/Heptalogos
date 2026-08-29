@@ -57,11 +57,12 @@ configuration, and lifecycle mechanics behind Heptalogos-owned contracts.
 Run `pnpm nx run durable-execution:test`, its typecheck and lint targets, and
 the repository dependency, boundary, documentation, and hygiene gates. Real
 DBOS schema, queue, and crash-recovery claims require the PostgreSQL and
-process integration scenarios in the active implementation plan. The current
-qualification covers real DBOS queue/admission mechanics, process
-restart recovery, and Host lifecycle integration on the qualified platform;
-Ubuntu, source-less, and service/headless product claims remain unqualified
-until their corresponding scenarios run.
+process integration scenarios recorded in the
+[`durable execution qualification record`](../../docs/qualification/results/Q-ASYNC-01.md).
+Those records are platform- and candidate-scoped: a result on one platform
+does not establish a cross-platform, source-less, or service/headless product
+claim. The current correction candidate records its exact platform scope and
+remaining `NOT_RUN` boundaries in that qualification record.
 
 ## Architecture references
 

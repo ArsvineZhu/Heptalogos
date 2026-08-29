@@ -361,14 +361,14 @@ fact. H3A-2 is now active under its decision-complete DBOS durable execution
 and crash recovery plan.
 
 The prior H3A-2 candidate received an external `REQUEST_CHANGES` verdict. The
-current correction branch is Draft and unfrozen. Its earlier evidence covers
-the exact DBOS adapter, canonical WorkItem authority, dedicated database
-role/schema, queue projection and admission mechanics, process crash recovery,
-and Host lifecycle integration, including real PostgreSQL 18.6 runs on Windows
-and Ubuntu/Linux. Those observations are historical for that reviewed
-candidate until the bounded corrections are requalified. ResourceGovernor/
-PressureSnapshot, source-less execution, and service/headless execution remain
-`NOT_RUN` and are not implied by those historical PASS results.
+current correction candidate is `H3A2-CORRECTION-2026-08-29` on
+`dev/h3a2-durable-recovery`; it is Draft and unfrozen. Earlier Windows and
+Ubuntu/Linux DBOS observations belong to the reviewed candidate and remain
+historical. Fresh correction evidence currently covers targeted Windows
+PostgreSQL 18.6/DBOS 4.27.6 scenarios; Ubuntu/Linux has not been rerun for the
+current candidate. ResourceGovernor/PressureSnapshot, source-less execution,
+and service/headless execution remain `NOT_RUN` and are not implied by any
+historical PASS results.
 
 ### Implementation decomposition
 

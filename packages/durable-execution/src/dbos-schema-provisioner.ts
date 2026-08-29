@@ -76,31 +76,65 @@ SELECT current_user,
 `;
 
 const REQUIRED_RELATIONS_QUERY = `
-SELECT to_regclass('"dbos"."workflow_status"') AS dbos_workflow_status,
-       to_regclass('"heptalogos"."work_item"') AS product_work_item,
-       to_regclass('"heptalogos"."activity_record"') AS product_activity,
-       to_regclass('"heptalogos"."evidence_record"') AS product_evidence
+SELECT to_regclass('"dbos"."workflow_status"') AS dbos_workflow_status
 `;
 
-const PRIVILEGE_QUERY = `
+const PRODUCT_RELATION_PRIVILEGE_QUERY = `
+SELECT c.relname AS relation_name,
+       c.relkind,
+       CASE WHEN c.relkind = 'S'
+            THEN has_sequence_privilege($1, c.oid, 'SELECT')
+            ELSE has_table_privilege($1, c.oid, 'SELECT')
+       END AS can_read,
+       CASE WHEN c.relkind = 'S'
+            THEN false
+            ELSE has_table_privilege($1, c.oid, 'INSERT')
+       END AS can_insert,
+       CASE WHEN c.relkind = 'S'
+            THEN has_sequence_privilege($1, c.oid, 'UPDATE')
+            ELSE has_table_privilege($1, c.oid, 'UPDATE')
+       END AS can_update,
+       CASE WHEN c.relkind = 'S'
+            THEN false
+            ELSE has_table_privilege($1, c.oid, 'DELETE')
+       END AS can_delete,
+       CASE WHEN c.relkind = 'S'
+            THEN has_sequence_privilege($1, c.oid, 'USAGE')
+            ELSE false
+       END AS can_usage
+  FROM pg_catalog.pg_class AS c
+  JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+ WHERE n.nspname = $2
+   AND c.relkind IN ('r', 'p', 'S', 'v', 'm', 'f')
+ ORDER BY c.relkind, c.relname
+`;
+
+const PRODUCT_ROUTINE_PRIVILEGE_QUERY = `
+SELECT p.oid::regprocedure::text AS routine_name,
+       p.prokind,
+       has_function_privilege($1, p.oid, 'EXECUTE') AS can_execute
+  FROM pg_catalog.pg_proc AS p
+  JOIN pg_catalog.pg_namespace AS n ON n.oid = p.pronamespace
+ WHERE n.nspname = $2
+   AND p.prokind IN ('f', 'p')
+ ORDER BY routine_name
+`;
+
+const DBOS_PRIVILEGE_QUERY = `
 SELECT
   has_table_privilege($1, '"dbos"."workflow_status"', 'SELECT') AS dbos_select,
   has_table_privilege($1, '"dbos"."workflow_status"', 'INSERT') AS dbos_insert,
   has_table_privilege($1, '"dbos"."workflow_status"', 'UPDATE') AS dbos_update,
-  has_table_privilege($1, '"dbos"."workflow_status"', 'DELETE') AS dbos_delete,
-  has_table_privilege($1, '"heptalogos"."work_item"', 'SELECT') AS product_work_item_select,
-  has_table_privilege($1, '"heptalogos"."work_item"', 'INSERT') AS product_work_item_insert,
-  has_table_privilege($1, '"heptalogos"."work_item"', 'UPDATE') AS product_work_item_update,
-  has_table_privilege($1, '"heptalogos"."work_item"', 'DELETE') AS product_work_item_delete,
-  has_table_privilege($1, '"heptalogos"."activity_record"', 'SELECT') AS product_activity_select,
-  has_table_privilege($1, '"heptalogos"."activity_record"', 'INSERT') AS product_activity_insert,
-  has_table_privilege($1, '"heptalogos"."activity_record"', 'UPDATE') AS product_activity_update,
-  has_table_privilege($1, '"heptalogos"."activity_record"', 'DELETE') AS product_activity_delete,
-  has_table_privilege($1, '"heptalogos"."evidence_record"', 'SELECT') AS product_evidence_select,
-  has_table_privilege($1, '"heptalogos"."evidence_record"', 'INSERT') AS product_evidence_insert,
-  has_table_privilege($1, '"heptalogos"."evidence_record"', 'UPDATE') AS product_evidence_update,
-  has_table_privilege($1, '"heptalogos"."evidence_record"', 'DELETE') AS product_evidence_delete
+  has_table_privilege($1, '"dbos"."workflow_status"', 'DELETE') AS dbos_delete
 `;
+
+const REQUIRED_PRODUCT_RELATIONS = [
+  "instance_continuity",
+  "activity_record",
+  "activity_link",
+  "evidence_record",
+  "work_item",
+] as const;
 
 interface SessionAndSchemaRow {
   readonly current_user: unknown;
@@ -114,28 +148,29 @@ interface SessionAndSchemaRow {
 
 interface RequiredRelationsRow {
   readonly dbos_workflow_status: unknown;
-  readonly product_work_item: unknown;
-  readonly product_activity: unknown;
-  readonly product_evidence: unknown;
 }
 
-interface PrivilegeRow {
+interface ProductRelationPrivilegeRow {
+  readonly relation_name: unknown;
+  readonly relkind: unknown;
+  readonly can_read: unknown;
+  readonly can_insert: unknown;
+  readonly can_update: unknown;
+  readonly can_delete: unknown;
+  readonly can_usage: unknown;
+}
+
+interface ProductRoutinePrivilegeRow {
+  readonly routine_name: unknown;
+  readonly prokind: unknown;
+  readonly can_execute: unknown;
+}
+
+interface DbosPrivilegeRow {
   readonly dbos_select: unknown;
   readonly dbos_insert: unknown;
   readonly dbos_update: unknown;
   readonly dbos_delete: unknown;
-  readonly product_work_item_select: unknown;
-  readonly product_work_item_insert: unknown;
-  readonly product_work_item_update: unknown;
-  readonly product_work_item_delete: unknown;
-  readonly product_activity_select: unknown;
-  readonly product_activity_insert: unknown;
-  readonly product_activity_update: unknown;
-  readonly product_activity_delete: unknown;
-  readonly product_evidence_select: unknown;
-  readonly product_evidence_insert: unknown;
-  readonly product_evidence_update: unknown;
-  readonly product_evidence_delete: unknown;
 }
 
 const defaultClientFactory: DurableExecutionSchemaClientFactory = {
@@ -274,54 +309,77 @@ async function verifyProvisionedSchema(
     if (
       relationRows.length !== 1 ||
       relations === undefined ||
-      !isPresent(relations.dbos_workflow_status) ||
-      !isPresent(relations.product_work_item) ||
-      !isPresent(relations.product_activity) ||
-      !isPresent(relations.product_evidence)
+      !isPresent(relations.dbos_workflow_status)
     ) {
       throw durableExecutionProblem(
         "durable.execution.schema.verification_failed",
-        "DBOS or canonical product schema relations are missing",
+        "The DBOS workflow-status relation is missing",
       );
     }
 
-    const privilegeRows = await queryWithAuthority<PrivilegeRow>(
+    const productRelationRows = await queryWithAuthority<ProductRelationPrivilegeRow>(
       authority,
       client,
-      PRIVILEGE_QUERY,
+      PRODUCT_RELATION_PRIVILEGE_QUERY,
+      [HOST_DURABLE_EXECUTION_ROLE, PRODUCT_SCHEMA],
+    );
+    const observedProductRelations = new Set(
+      productRelationRows.map((row) => row.relation_name),
+    );
+    if (
+      REQUIRED_PRODUCT_RELATIONS.some(
+        (relationName) => !observedProductRelations.has(relationName),
+      ) ||
+      productRelationRows.some(
+        (row) =>
+          !isPresent(row.relation_name) ||
+          !isPresent(row.relkind) ||
+          isTrue(row.can_read) ||
+          isTrue(row.can_insert) ||
+          isTrue(row.can_update) ||
+          isTrue(row.can_delete) ||
+          isTrue(row.can_usage),
+      )
+    ) {
+      throw durableExecutionProblem(
+        "durable.execution.schema.verification_failed",
+        "The durable role has access to a current product relation or a required product relation is missing",
+      );
+    }
+
+    const productRoutineRows = await queryWithAuthority<ProductRoutinePrivilegeRow>(
+      authority,
+      client,
+      PRODUCT_ROUTINE_PRIVILEGE_QUERY,
+      [HOST_DURABLE_EXECUTION_ROLE, PRODUCT_SCHEMA],
+    );
+    if (productRoutineRows.some((row) => isTrue(row.can_execute))) {
+      throw durableExecutionProblem(
+        "durable.execution.schema.verification_failed",
+        "The durable role can execute a current product-schema function or procedure",
+      );
+    }
+
+    const privilegeRows = await queryWithAuthority<DbosPrivilegeRow>(
+      authority,
+      client,
+      DBOS_PRIVILEGE_QUERY,
       [HOST_DURABLE_EXECUTION_ROLE],
     );
     const privileges = privilegeRows[0];
-    if (privilegeRows.length !== 1 || privileges === undefined) {
+    if (
+      privilegeRows.length !== 1 ||
+      privileges === undefined ||
+      ![
+        privileges.dbos_select,
+        privileges.dbos_insert,
+        privileges.dbos_update,
+        privileges.dbos_delete,
+      ].every(isTrue)
+    ) {
       throw durableExecutionProblem(
         "durable.execution.schema.verification_failed",
-        "DBOS privilege verification returned an invalid result",
-      );
-    }
-    const dbosPrivileges = [
-      privileges.dbos_select,
-      privileges.dbos_insert,
-      privileges.dbos_update,
-      privileges.dbos_delete,
-    ];
-    const productPrivileges = [
-      privileges.product_work_item_select,
-      privileges.product_work_item_insert,
-      privileges.product_work_item_update,
-      privileges.product_work_item_delete,
-      privileges.product_activity_select,
-      privileges.product_activity_insert,
-      privileges.product_activity_update,
-      privileges.product_activity_delete,
-      privileges.product_evidence_select,
-      privileges.product_evidence_insert,
-      privileges.product_evidence_update,
-      privileges.product_evidence_delete,
-    ];
-    if (!dbosPrivileges.every(isTrue) || productPrivileges.some(isTrue)) {
-      throw durableExecutionProblem(
-        "durable.execution.schema.verification_failed",
-        "The durable role does not have the exact DBOS runtime rights or product-schema denial",
+        "The durable role does not have the exact DBOS workflow-status runtime rights",
       );
     }
   });

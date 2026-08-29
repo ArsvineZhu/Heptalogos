@@ -468,7 +468,7 @@ afterEach(async () => {
 });
 
 describe("Host-fenced persistence PostgreSQL 18.6 qualification", () => {
-  it("P1: admits a current Host mutation and commits through the runtime pool", async () => {
+  it("admits a current Host mutation and commits through the runtime pool", async () => {
     const fixture = await createCluster();
     const lease = await prepareHostLease(fixture);
     const published = await publish(fixture, lease);
@@ -483,11 +483,11 @@ describe("Host-fenced persistence PostgreSQL 18.6 qualification", () => {
         await internalQuery(
           context,
           `INSERT INTO "${HOST_OWNERSHIP_CANONICAL_DATABASE}"."${QUALIFICATION_TABLE}" (id, value) VALUES ($1, $2)`,
-          [1, "P1"],
+          [1, "current-mutation"],
         );
       });
       await expect(readQualificationRows(fixture)).resolves.toEqual([
-        { id: 1, value: "P1" },
+        { id: 1, value: "current-mutation" },
       ]);
     } finally {
       await service.close().catch(() => undefined);
@@ -495,7 +495,7 @@ describe("Host-fenced persistence PostgreSQL 18.6 qualification", () => {
     }
   }, 120_000);
 
-  it("P2: rejects a stale token at the database fence before operation invocation", async () => {
+  it("rejects a stale token at the database fence before operation invocation", async () => {
     const fixture = await createCluster();
     const leaseA = await prepareHostLease(fixture);
     const publishedA = await publish(fixture, leaseA);
@@ -539,7 +539,7 @@ describe("Host-fenced persistence PostgreSQL 18.6 qualification", () => {
     }
   }, 120_000);
 
-  it("P3: serializes new token publication behind an admitted old mutation", async () => {
+  it("serializes new token publication behind an admitted old mutation", async () => {
     const fixture = await createCluster();
     const leaseA = await prepareHostLease(fixture);
     const publishedA = await publish(fixture, leaseA);
@@ -559,7 +559,7 @@ describe("Host-fenced persistence PostgreSQL 18.6 qualification", () => {
         await internalQuery(
           context,
           `INSERT INTO "${HOST_OWNERSHIP_CANONICAL_DATABASE}"."${QUALIFICATION_TABLE}" (id, value) VALUES ($1, $2)`,
-          [3, "P3"],
+          [3, "serialized-publication"],
         );
       });
       await entered.promise;
@@ -580,7 +580,7 @@ describe("Host-fenced persistence PostgreSQL 18.6 qualification", () => {
       const publishedB = await publishBPromise;
       expect(publishedB.token).not.toBe(publishedA.token);
       await expect(readQualificationRows(fixture)).resolves.toEqual([
-        { id: 3, value: "P3" },
+        { id: 3, value: "serialized-publication" },
       ]);
     } finally {
       release.resolve();
@@ -590,7 +590,7 @@ describe("Host-fenced persistence PostgreSQL 18.6 qualification", () => {
     }
   }, 120_000);
 
-  it("P4: rejects new mutations after the old Host loses its lease", async () => {
+  it("rejects new mutations after the old Host loses its lease", async () => {
     const fixture = await createCluster();
     const lease = await prepareHostLease(fixture);
     const published = await publish(fixture, lease);
@@ -619,7 +619,7 @@ describe("Host-fenced persistence PostgreSQL 18.6 qualification", () => {
     }
   }, 120_000);
 
-  it("P5: enforces READ ONLY in PostgreSQL, not in application SQL inspection", async () => {
+  it("enforces READ ONLY in PostgreSQL, not in application SQL inspection", async () => {
     const fixture = await createCluster();
     const lease = await prepareHostLease(fixture);
     const published = await publish(fixture, lease);
@@ -647,7 +647,7 @@ describe("Host-fenced persistence PostgreSQL 18.6 qualification", () => {
     }
   }, 120_000);
 
-  it("P6: allows Host token publication while a read transaction is paused", async () => {
+  it("allows Host token publication while a read transaction is paused", async () => {
     const fixture = await createCluster();
     const leaseA = await prepareHostLease(fixture);
     const publishedA = await publish(fixture, leaseA);
@@ -688,7 +688,7 @@ describe("Host-fenced persistence PostgreSQL 18.6 qualification", () => {
     }
   }, 120_000);
 
-  it("P7: classifies lost commit acknowledgement as explicit uncertainty", async () => {
+  it("classifies lost commit acknowledgement as explicit uncertainty", async () => {
     const fixture = await createCluster();
     const lease = await prepareHostLease(fixture);
     const published = await publish(fixture, lease);
@@ -725,7 +725,7 @@ describe("Host-fenced persistence PostgreSQL 18.6 qualification", () => {
     }
   }, 120_000);
 
-  it("P8: proves runtime role connect, explicit DML, and privilege closure", async () => {
+  it("proves runtime role connect, explicit DML, and privilege closure", async () => {
     const fixture = await createCluster();
     const lease = await prepareHostLease(fixture);
     const runtime = new Client({
@@ -786,7 +786,7 @@ describe("Host-fenced persistence PostgreSQL 18.6 qualification", () => {
     }
   }, 120_000);
 
-  it("P9: rejects stale execution origin before the database fence, then rejects stale Host ownership", async () => {
+  it("rejects stale execution origin before the database fence, then rejects stale Host ownership", async () => {
     const fixture = await createCluster();
     const leaseA = await prepareHostLease(fixture);
     const publishedA = await publish(fixture, leaseA);

@@ -177,6 +177,29 @@ export function getActiveWorkAttemptInvocationCount(): number {
   return activeInvocationCount;
 }
 
+/** Wait for admitted WorkAttempt invocations to settle within a bounded budget. */
+export function waitForActiveWorkAttemptInvocations(
+  timeoutMs: number,
+): Promise<boolean> {
+  if (activeInvocationCount === 0) return Promise.resolve(true);
+  const deadline = Date.now() + timeoutMs;
+  return new Promise((resolve) => {
+    const check = (): void => {
+      if (activeInvocationCount === 0) {
+        resolve(true);
+        return;
+      }
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        resolve(false);
+        return;
+      }
+      setTimeout(check, Math.min(10, remaining));
+    };
+    check();
+  });
+}
+
 /** Tests only: clears package binding state after all test runtimes are closed. */
 export function resetDbosBindingForTests(): void {
   if (activeBinding !== undefined && !activeBinding.released) {

@@ -60,12 +60,63 @@ class FakeClient {
         rows: [
           {
             dbos_workflow_status: "dbos.workflow_status",
-            product_work_item: "heptalogos.work_item",
-            product_activity: "heptalogos.activity_record",
-            product_evidence: "heptalogos.evidence_record",
           } as Row,
         ],
       };
+    }
+    if (text.includes("pg_catalog.pg_class")) {
+      return {
+        rows: [
+          {
+            relation_name: "instance_continuity",
+            relkind: "r",
+            can_read: false,
+            can_insert: false,
+            can_update: false,
+            can_delete: false,
+            can_usage: false,
+          },
+          {
+            relation_name: "activity_record",
+            relkind: "r",
+            can_read: false,
+            can_insert: false,
+            can_update: false,
+            can_delete: false,
+            can_usage: false,
+          },
+          {
+            relation_name: "activity_link",
+            relkind: "r",
+            can_read: false,
+            can_insert: false,
+            can_update: false,
+            can_delete: false,
+            can_usage: false,
+          },
+          {
+            relation_name: "evidence_record",
+            relkind: "r",
+            can_read: false,
+            can_insert: false,
+            can_update: false,
+            can_delete: false,
+            can_usage: false,
+          },
+          {
+            relation_name: "work_item",
+            relkind: "r",
+            can_read: false,
+            can_insert: false,
+            can_update: false,
+            can_delete: false,
+            can_usage: false,
+          },
+        ] as Row[],
+      };
+    }
+    if (text.includes("pg_catalog.pg_proc")) {
+      return { rows: [] };
     }
     if (text.includes("has_table_privilege")) {
       return {
@@ -75,18 +126,6 @@ class FakeClient {
             dbos_insert: true,
             dbos_update: true,
             dbos_delete: true,
-            product_work_item_select: false,
-            product_work_item_insert: false,
-            product_work_item_update: false,
-            product_work_item_delete: false,
-            product_activity_select: false,
-            product_activity_insert: false,
-            product_activity_update: false,
-            product_activity_delete: false,
-            product_evidence_select: false,
-            product_evidence_insert: false,
-            product_evidence_update: false,
-            product_evidence_delete: false,
           } as Row,
         ],
       };

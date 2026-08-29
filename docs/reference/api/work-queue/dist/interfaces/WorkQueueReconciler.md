@@ -6,7 +6,7 @@
 
 # Interface: WorkQueueReconciler
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:33
+Defined in: packages/work-queue/dist/reconciler.d.ts:36
 
 Starts, stops, and explicitly scans the signal-backed queue projection.
 
@@ -16,7 +16,7 @@ Starts, stops, and explicitly scans the signal-backed queue projection.
 
 > **scan**(): `Promise`\<[`ReconciliationScanResult`](ReconciliationScanResult.md)>\>
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:39
+Defined in: packages/work-queue/dist/reconciler.d.ts:42
 
 Reconcile due, waiting, and pending work against durable repository truth.
 
@@ -30,7 +30,7 @@ Reconcile due, waiting, and pending work against durable repository truth.
 
 > **start**(): `Promise`\<`void`>\>
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:35
+Defined in: packages/work-queue/dist/reconciler.d.ts:38
 
 Subscribe to wakeups and begin the initial canonical scan.
 
@@ -44,7 +44,7 @@ Subscribe to wakeups and begin the initial canonical scan.
 
 > **stop**(): `Promise`\<`void`>\>
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:37
+Defined in: packages/work-queue/dist/reconciler.d.ts:40
 
 Cancel timers, close the signal subscription, and drain the current scan.
 

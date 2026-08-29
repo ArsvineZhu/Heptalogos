@@ -14,6 +14,8 @@ implementation details remain behind the adapter boundary.
 - [DurableDispatchPortOptions](interfaces/DurableDispatchPortOptions.md)
 - [DurableExecutionPackageResolution](interfaces/DurableExecutionPackageResolution.md)
 - [DurableExecutionPoolOptions](interfaces/DurableExecutionPoolOptions.md)
+- [DurableExecutionQuiescenceCoordinator](interfaces/DurableExecutionQuiescenceCoordinator.md)
+- [DurableExecutionQuiescenceLease](interfaces/DurableExecutionQuiescenceLease.md)
 - [DurableExecutionRuntime](interfaces/DurableExecutionRuntime.md)
 - [DurableExecutionRuntimeOptions](interfaces/DurableExecutionRuntimeOptions.md)
 - [DurableExecutionSchemaProvisioner](interfaces/DurableExecutionSchemaProvisioner.md)

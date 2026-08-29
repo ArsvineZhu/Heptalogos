@@ -15,12 +15,14 @@ import {
   type DurableExecutionAuthority,
   type DurableExecutionLifecycleState,
   type DurableExecutionPoolOptions,
+  type DurableExecutionQuiescenceLease,
   type DurableExecutionRuntime,
   type DurableExecutionRuntimeOptions,
 } from "./contracts.js";
 import {
   bindWorkAttemptExecutor,
   getActiveWorkAttemptInvocationCount,
+  waitForActiveWorkAttemptInvocations,
 } from "./dbos-binding.js";
 import type { BindingDriver } from "./dbos-binding.js";
 import { createDbosSystemPool } from "./dbos-pool.js";
@@ -123,6 +125,12 @@ function assertPositiveSafeInteger(value: unknown, field: string): void {
 }
 
 function validateOptions(options: DurableExecutionRuntimeOptions): void {
+  if (typeof options.onTerminalFailure !== "function") {
+    throw durableExecutionProblem(
+      "durable.execution.runtime.invalid_options",
+      "onTerminalFailure must be a function",
+    );
+  }
   if (typeof options.onBackgroundError !== "function") {
     throw durableExecutionProblem(
       "durable.execution.runtime.invalid_options",
@@ -190,8 +198,11 @@ function dbosConfig(
   };
 }
 
-function invalidState(action: string, state: DurableExecutionLifecycleState): never {
-  throw durableExecutionProblem(
+function invalidState(
+  action: string,
+  state: DurableExecutionLifecycleState,
+): ProblemError {
+  return durableExecutionProblem(
     "durable.execution.runtime.invalid_transition",
     `Cannot ${action} while DurableExecution is ${state}`,
   );
@@ -225,6 +236,9 @@ function createRuntime(
   let startPromise: Promise<void> | undefined;
   let quiescePromise: Promise<void> | undefined;
   let closePromise: Promise<void> | undefined;
+  let upstreamQuiescenceLease: DurableExecutionQuiescenceLease | undefined;
+  let terminalFailureNotified = false;
+  let authorityAbortListener: (() => void) | undefined;
 
   const releaseBinding = (): void => {
     binding?.release();
@@ -237,6 +251,29 @@ function createRuntime(
     const current = pool;
     pool = undefined;
     await current.end();
+  };
+
+  const notifyTerminalFailure = async (error: unknown): Promise<void> => {
+    if (terminalFailureNotified) return;
+    terminalFailureNotified = true;
+    try {
+      await options.onTerminalFailure(error);
+    } catch (callbackError) {
+      reportBackgroundError(options, callbackError);
+    }
+  };
+
+  const restoreUpstreamQuiescence = async (): Promise<void> => {
+    const lease = upstreamQuiescenceLease;
+    if (lease === undefined) return;
+    await lease.resumeAfterAbort();
+    upstreamQuiescenceLease = undefined;
+  };
+
+  const detachAuthorityAbortListener = (): void => {
+    if (authorityAbortListener === undefined) return;
+    authority.signal.removeEventListener("abort", authorityAbortListener);
+    authorityAbortListener = undefined;
   };
 
   const preflightQueueProfiles = async (): Promise<void> => {
@@ -296,36 +333,64 @@ function createRuntime(
         dbosLaunched = false;
         dbosLaunchAttempted = false;
       } catch (error) {
+        if (getActiveWorkAttemptInvocationCount() !== 0) throw error;
         firstError = error;
       }
+    }
+    if (getActiveWorkAttemptInvocationCount() !== 0) {
+      throw durableExecutionProblem(
+        "durable.execution.runtime.drain_timeout",
+        "DurableExecution cannot release engine resources while an invocation remains active",
+      );
     }
     try {
       await closePool();
     } catch (error) {
       firstError ??= error;
     }
-    releaseBinding();
+    if (getActiveWorkAttemptInvocationCount() === 0) releaseBinding();
     if (firstError !== undefined) throw firstError;
   };
 
   const cleanupAfterStartFailure = async (): Promise<void> => {
+    let providerCleanupFailure: unknown;
     if (dbosLaunchAttempted || dbosLaunched) {
       try {
         await dependencies.dbos.shutdown({
           workflowCompletionTimeoutMS: options.shutdownDrainTimeoutMs,
         });
-        dbosLaunched = false;
-        dbosLaunchAttempted = false;
       } catch (error) {
+        providerCleanupFailure = error;
         reportBackgroundError(options, error);
       }
+      if (
+        getActiveWorkAttemptInvocationCount() === 0 &&
+        providerCleanupFailure === undefined
+      ) {
+        dbosLaunched = false;
+        dbosLaunchAttempted = false;
+      }
+    }
+    if (getActiveWorkAttemptInvocationCount() !== 0) {
+      const error =
+        providerCleanupFailure ??
+        durableExecutionProblem(
+          "durable.execution.runtime.drain_timeout",
+          "DurableExecution cannot release engine resources while an invocation remains active",
+        );
+      await notifyTerminalFailure(error);
+      return;
     }
     try {
       await closePool();
     } catch (error) {
+      providerCleanupFailure ??= error;
       reportBackgroundError(options, error);
     }
     releaseBinding();
+    if (providerCleanupFailure !== undefined) {
+      await notifyTerminalFailure(providerCleanupFailure);
+    }
   };
 
   const openResources = (): void => {
@@ -380,11 +445,45 @@ function createRuntime(
     }
     lifecycle.send("BEGIN_QUIESCE");
     quiescePromise = (async () => {
+      let providerTeardownStarted = false;
+      let upstreamRestorationAttempted = false;
       try {
+        upstreamQuiescenceLease = await options.quiescence?.prepare();
+        const settled = await waitForActiveWorkAttemptInvocations(
+          options.shutdownDrainTimeoutMs,
+        );
+        if (!settled) {
+          upstreamRestorationAttempted = true;
+          try {
+            await restoreUpstreamQuiescence();
+          } catch (error) {
+            if (lifecycle.state === "QUIESCING") lifecycle.send("FAIL");
+            await notifyTerminalFailure(error);
+            throw error;
+          }
+          lifecycle.send("QUIESCE_ABORTED");
+          throw durableExecutionProblem(
+            "durable.execution.runtime.drain_timeout",
+            "DurableExecution pre-entry drain exceeded its bounded budget",
+          );
+        }
+        providerTeardownStarted = true;
         await shutdownDbosAndPool();
         lifecycle.send("QUIESCE_SUCCEEDED");
       } catch (error) {
         if (lifecycle.state === "QUIESCING") lifecycle.send("FAIL");
+        if (!providerTeardownStarted && !upstreamRestorationAttempted) {
+          try {
+            await restoreUpstreamQuiescence();
+            if (lifecycle.state === "QUIESCING") lifecycle.send("QUIESCE_ABORTED");
+          } catch (restoreError) {
+            if (lifecycle.state === "QUIESCING") lifecycle.send("FAIL");
+            await notifyTerminalFailure(restoreError);
+            throw restoreError;
+          }
+        } else if (providerTeardownStarted) {
+          await notifyTerminalFailure(error);
+        }
         throw error;
       } finally {
         quiescePromise = undefined;
@@ -404,6 +503,7 @@ function createRuntime(
         openResources();
         await configureAndLaunch();
         assertAuthorityActive(authority);
+        await restoreUpstreamQuiescence();
         lifecycle.send("RESUME_SUCCEEDED");
       } catch (error) {
         if (lifecycle.state === "RESUMING") lifecycle.send("FAIL");
@@ -429,8 +529,8 @@ function createRuntime(
       if (lifecycle.state === "QUIESCING" && quiescePromise !== undefined) {
         await quiescePromise.catch(() => undefined);
       }
-      if (lifecycle.state === "CREATED") return;
       if (
+        lifecycle.state === "CREATED" ||
         lifecycle.state === "OPEN" ||
         lifecycle.state === "QUIESCED" ||
         lifecycle.state === "FAILED"
@@ -445,6 +545,8 @@ function createRuntime(
           firstError = error;
         }
         lifecycle.send("CLOSED");
+        detachAuthorityAbortListener();
+        lifecycle.stop();
         if (firstError !== undefined) throw firstError;
       }
     })().finally(() => {
@@ -466,6 +568,7 @@ function createRuntime(
   const onAuthorityAbort = (): void => {
     void close().catch((error) => reportBackgroundError(options, error));
   };
+  authorityAbortListener = onAuthorityAbort;
   authority.signal.addEventListener("abort", onAuthorityAbort, { once: true });
   return runtime;
 }

@@ -9,11 +9,13 @@ roleDecision: ADOPTED
 implementationQualification: REQUIRED
 selectedRoute: "DBOS Queue"
 h3a2Candidate:
+  candidateId: H3A2-CORRECTION-2026-08-29
   lifecycle: DRAFT
   branch: dev/h3a2-durable-recovery
   freeze: NOT_RUN
   independentReview: NOT_RUN
   finalManualVerification: NOT_RUN
+  githubActions: NOT_ENABLED_OR_REQUIRED
 h3a1Candidate:
   merge: PASS
   governanceRecovery: PASS
@@ -68,24 +70,31 @@ evidence:
 - `h3a1_dbos_real_engine`: H3A-1 deliberately implements engine-neutral WorkQueue semantics; DBOS integration is deferred to H3A-2.
 - `h3a1_process_crash_after_terminal_commit`: H3A-1 has no process-level crash harness or DBOS engine checkpoint to exercise this boundary; it remains deferred to H3A-2.
 
+## Historical H3A-2 candidate
+
+```yaml
+candidateId: H3A2-IMPLEMENTATION-2026-08-29
+branch: dev/h3a2-durable-recovery
+lifecycle: READY
+freeze: PASS
+independentReview: REQUEST_CHANGES
+currentUse: historical observation only; affected PASS claims are stale for the correction candidate
+```
+
 ## Current candidate correction status
 
-The prior H3A-1 run genuinely observed the listed properties as `PASS`,
-including 9 integration files and 67/67 real PostgreSQL/Host tests. That
-historical observation is retained, but it is not current-candidate evidence:
-the correction amendment invalidates all pre-correction H3A-1 property PASS
-claims until the affected and expanded qualification cases are rerun.
+`H3A2-CORRECTION-2026-08-29` is the current mutable candidate on
+`dev/h3a2-durable-recovery`. The prior H3A-2 candidate is retained as a
+historical observation with an external `REQUEST_CHANGES` verdict; its affected
+PASS claims do not qualify this candidate. Fresh current-candidate evidence is
+recorded only for the correction scenarios already rerun below. Full
+requalification, candidate freeze, Independent Review, and final manual
+verification remain `NOT_RUN`. GitHub Actions are not enabled or required.
 
-The previous corrected candidate was qualified and frozen on a clean branch;
-that observation remains historical. Its final cross-platform CI then failed
-on Windows because two bootstrap-runtime tests exceeded their test timeouts;
-Ubuntu and macOS passed. The current implementation baseline includes the
-bounded cross-platform test-budget adjustment and was merged into `master`.
-The separate H3A-1 governance recovery record accepts that existing baseline as
-current without changing the qualification record's evidence boundaries.
-Independent Review and final manual CI remain `NOT_RUN`; neither is inferred
-from the merge fact. Q-ASYNC-01 remains `OPEN` for its deferred implementation
-and product qualification properties.
+H3A-1 evidence remains historical baseline evidence where it is explicitly
+identified; this H3A-2 correction does not create a new H3A-1 implementation
+claim. Q-ASYNC-01 remains `OPEN` until the required current-candidate gates are
+complete.
 
 ## Current correction properties
 
@@ -101,8 +110,9 @@ h3a1_work_creation_envelope_snapshot: PASS
 h3a1_projection_index_query_shape: PASS
 ```
 
-These two properties are required for the current candidate and are supported
-by fresh focused and real PostgreSQL qualification.
+These properties are required for the current candidate and are supported by
+fresh focused or real PostgreSQL qualification as stated in the evidence
+source below.
 
 ## H3A-2 current implementation evidence
 
@@ -110,54 +120,38 @@ by fresh focused and real PostgreSQL qualification.
 implementationQualification: REQUIRED
 qualificationState: OPEN
 evidence:
-  h3a2_exact_dbos_4_27_6: PASS
-  h3a2_workitem_product_authority: PASS
-  h3a2_dedicated_engine_principal: PASS
-  h3a2_engine_zero_product_table_privilege: PASS
-  h3a2_dbos_schema_migration_authority: PASS
-  h3a2_normal_runtime_no_ddl: PASS
-  h3a2_static_dispatcher_real_dbos: PASS
-  h3a2_same_revision_engine_idempotency: PASS
-  h3a2_delayed_not_before: PASS
-  h3a2_retry_new_revision: PASS
-  h3a2_queue_profile_projection: PASS
-  h3a2_partition_profile_projection: PASS
-  h3a2_stable_instance_executor_identity: PASS
-  h3a2_application_version_isolation: PASS
-  h3a2_lost_predispatch_process_recovery: PASS
-  h3a2_running_same_attempt_recovery: PASS
-  h3a2_crash_after_terminal_commit_no_duplicate_handler: PASS
-  h3a2_host_loss_fence: PASS
-  h3a2_host_shutdown_settlement: PASS
-  h3a2_same_process_quiesce_resume: PASS
-  h3a2_recovery_budget_fail_closed: PASS
-  h3a2_admission_and_queue_mechanics: PASS
-  h3_windows_real_dbos: PASS
-  h3a2_ubuntu_postgres_18_6_real_dbos: PASS
+  h3a2_correction_fair_running_recovery: PASS
+  h3a2_correction_authentic_reconciliation_composition: PASS
+  h3a2_correction_queue_profile_preflight: PASS
+  h3a2_correction_maintenance_failure_atomicity: PASS
+  h3a2_correction_provider_shutdown_timeout: PASS
+  h3a2_correction_terminal_close: PASS
+  h3a2_correction_closed_world_product_privilege: PASS
+  h3a2_current_windows_targeted_real_dbos: PASS
+  h3a2_current_ubuntu_real_dbos: NOT_RUN
+  h3a2_current_full_requalification: NOT_RUN
+  h3a2_repository_verify: PASS
   real_resource_governor_pressure_snapshot: NOT_RUN
   h3a2_candidate_freeze: NOT_RUN
   h3a2_independent_review: NOT_RUN
   h3a2_final_manual_ci: NOT_RUN
 ```
 
-The current implementation evidence was produced on Windows and Ubuntu/Linux
-with explicit PostgreSQL 18.6 toolchains. On Windows, the real DBOS
-qualification passed the Bootstrap integration target (9 files, 106/106 tests),
-the process recovery target (8/8 tests), the Host lifecycle Q1-Q5 target (5/5
-tests), and the Task 12 admission/queue target (6/6 tests). On Ubuntu 26.04 LTS
-x86_64 with Node 24.20.0, pnpm 11.24.0, PostgreSQL 18.6, and DBOS 4.27.6, the
-Bootstrap integration target passed (9 files, 106/106 tests), the process
-recovery target passed (8/8 tests), and Host ownership integration passed
-(11/11 tests). The Bootstrap target includes the Host lifecycle and Task 12
-cases. These results prove only the executed Windows and Ubuntu environments;
-they do not promote macOS, source-less, or service/headless properties.
-`real_resource_governor_pressure_snapshot` is intentionally `NOT_RUN` because
-ResourceGovernor is H8-owned and is not part of H3A-2. The repository-wide
-`pnpm verify` gate also passed locally after the qualification and
-documentation updates.
+Fresh current-candidate correction evidence was run on Windows with the
+explicit PostgreSQL 18.6 toolchain and DBOS 4.27.6. The complete
+bootstrap-runtime integration target passed (12 files, 122/122 tests), as did
+host-ownership integration (11/11), persistence integration (9/9), the
+durable-execution unit suite (11 files, 50/50), the WorkQueue unit suite (9
+files, 75/75), and the focused fair-recovery, queue-preflight,
+shutdown-timeout, failure-atomic maintenance, terminal-close, and dynamic
+closed-world privilege scenarios. Ubuntu/Linux has not been rerun for this
+correction candidate and therefore remains `NOT_RUN` here. The repository
+`pnpm verify` gate is still `NOT_RUN` on this candidate. macOS, source-less,
+service/headless, and ResourceGovernor claims remain `NOT_RUN` and are outside
+this correction.
 
-Candidate freeze, Independent Review, and final manual CI remain required
-before H3A-2 closure.
+Candidate freeze, Independent Review, and final manual verification remain
+required before H3A-2 closure.
 
 ## H3A-1 observed implementation evidence
 

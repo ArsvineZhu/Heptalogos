@@ -63,6 +63,18 @@ export interface DurableExecutionPoolOptions {
   readonly idleInTransactionSessionTimeoutMs: number;
 }
 
+/** Represents the reversible upstream preparation held by DurableExecution. */
+export interface DurableExecutionQuiescenceLease {
+  /** Restore upstream admission and reconciliation after a pre-entry abort. */
+  resumeAfterAbort(): Promise<void>;
+}
+
+/** Coordinates WorkQueue admission/reconciliation around engine quiescence. */
+export interface DurableExecutionQuiescenceCoordinator {
+  /** Close new product dispatch and stop reconciliation before engine drain. */
+  prepare(): Promise<DurableExecutionQuiescenceLease>;
+}
+
 /** Configures one Host-bound DurableExecution runtime. */
 export interface DurableExecutionRuntimeOptions {
   readonly durableCodeVersion: DurableCodeVersion;
@@ -72,6 +84,10 @@ export interface DurableExecutionRuntimeOptions {
   readonly workflowMaxRecoveryAttempts: number;
   readonly shutdownDrainTimeoutMs: number;
   readonly profiles: WorkQueueProfileCatalog;
+  /** Upstream owner used by authentic Host compositions; preparation is atomic. */
+  readonly quiescence?: DurableExecutionQuiescenceCoordinator;
+  /** Fence the Host when an irreversible provider failure cannot be restored. */
+  readonly onTerminalFailure: (error: unknown) => void | Promise<void>;
   readonly onBackgroundError: (error: unknown) => void;
 }
 

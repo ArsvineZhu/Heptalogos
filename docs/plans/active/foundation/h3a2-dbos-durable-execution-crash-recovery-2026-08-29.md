@@ -27,6 +27,8 @@ second implementation-plan Authority.
 
 ```yaml
 reviewDisposition: REQUEST_CHANGES
+currentCandidateId: H3A2-CORRECTION-2026-08-29
+currentCandidateBranch: dev/h3a2-durable-recovery
 currentCandidateLifecycle: DRAFT
 currentCandidateFreeze: NOT_RUN
 currentCandidateIndependentReview: NOT_RUN
@@ -40,19 +42,19 @@ corrections and affected qualification reruns are complete.
 
 ### Review findings and locked dispositions
 
-| Finding | Disposition |
-| --- | --- |
-| `IR-H3A2-01` — RUNNING recovery coordinator was not authentically composed | Integrate it into the existing WorkQueue reconciliation owner; no second scheduler or timer. |
-| `IR-H3A2-02` — RUNNING scan reread page one and could starve later rows | Add bounded fair `{ through, after }` progression with a stable cycle ceiling and reset semantics. |
-| `IR-H3A2-03` — queue mismatch was detected after worker launch | Preflight every persisted queue through the public DBOS client before `DBOS.launch()`; never overwrite a mismatch. |
-| `IR-H3A2-04` — maintenance failure could leave an ACTIVE but dead Host | Make pre-entry quiescence reversible; otherwise terminally fence the Host. |
-| `IR-H3A2-05` — teardown could race active invocation settlement | Never release the DBOS binding or pool while an admitted invocation remains active; separate reversible drain from destructive teardown. |
-| `IR-H3A2-06` — close from CREATED was non-terminal | Make `close()` terminal, idempotent, and valid from every nonterminal lifecycle state. |
-| `IR-H3A2-07` — least-privilege proof covered only named relations | Enumerate the complete current product schema, including relation kinds and executable privileges where relevant. |
-| `IR-H3A2-08` — candidate freeze was ambiguously projected | Scope candidate lifecycle under an explicit H3A-2 candidate object; keep the current candidate Draft/unfrozen until the external gate. |
-| `IR-H3A2-09` — durable-execution README carried stale qualification wording | Keep package documentation permanent and semantic; refer to the qualification record for current evidence. |
-| `IR-H3A2-10` — permanent tests retained stage matrix labels | Rename current test identities to semantic behavior names; retain matrix labels only in historical plan/evidence prose. |
-| `IR-H3A2-11` — current-candidate prose was inconsistent | Reconcile current and historical evidence without promoting unrun or stale claims. |
+| Finding                                                                     | Disposition                                                                                                                              |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `IR-H3A2-01` — RUNNING recovery coordinator was not authentically composed  | Integrate it into the existing WorkQueue reconciliation owner; no second scheduler or timer.                                             |
+| `IR-H3A2-02` — RUNNING scan reread page one and could starve later rows     | Add bounded fair `{ through, after }` progression with a stable cycle ceiling and reset semantics.                                       |
+| `IR-H3A2-03` — queue mismatch was detected after worker launch              | Preflight every persisted queue through the public DBOS client before `DBOS.launch()`; never overwrite a mismatch.                       |
+| `IR-H3A2-04` — maintenance failure could leave an ACTIVE but dead Host      | Make pre-entry quiescence reversible; otherwise terminally fence the Host.                                                               |
+| `IR-H3A2-05` — teardown could race active invocation settlement             | Never release the DBOS binding or pool while an admitted invocation remains active; separate reversible drain from destructive teardown. |
+| `IR-H3A2-06` — close from CREATED was non-terminal                          | Make `close()` terminal, idempotent, and valid from every nonterminal lifecycle state.                                                   |
+| `IR-H3A2-07` — least-privilege proof covered only named relations           | Enumerate the complete current product schema, including relation kinds and executable privileges where relevant.                        |
+| `IR-H3A2-08` — candidate freeze was ambiguously projected                   | Scope candidate lifecycle under an explicit H3A-2 candidate object; keep the current candidate Draft/unfrozen until the external gate.   |
+| `IR-H3A2-09` — durable-execution README carried stale qualification wording | Keep package documentation permanent and semantic; refer to the qualification record for current evidence.                               |
+| `IR-H3A2-10` — permanent tests retained stage matrix labels                 | Rename current test identities to semantic behavior names; retain matrix labels only in historical plan/evidence prose.                  |
+| `IR-H3A2-11` — current-candidate prose was inconsistent                     | Reconcile current and historical evidence without promoting unrun or stale claims.                                                       |
 
 ### Locked correction semantics
 
@@ -87,6 +89,18 @@ remote Web exposure, and source-less/service distribution remain deferred.
 No correction task may add Electron/Desktop/Distribution work, H3B
 EffectOperation, H4 Configuration/Management, H8 ResourceGovernor, GitHub
 Actions, or another scheduler/engine.
+
+### Current correction execution record
+
+The current candidate is `H3A2-CORRECTION-2026-08-29` on
+`dev/h3a2-durable-recovery`. Tasks 0 through 7 of the review-correction
+procedure are implemented on this branch. The affected Windows PostgreSQL
+18.6/DBOS 4.27.6 scenarios and focused package suites are passing; the
+current-candidate Ubuntu rerun, candidate freeze, Independent Review, and
+final manual verification remain pending. The repository `pnpm verify` gate is
+PASS for this current candidate. GitHub Actions are not enabled or required.
+The qualification record is the source for the exact evidence status and
+historical-candidate boundary.
 
 ---
 
@@ -2612,9 +2626,13 @@ Only create this commit if the audit actually requires code changes.
 
 ---
 
-## Task 14 — Full local and Ubuntu real qualification
+## Task 14 — Full local and required-platform real qualification
 
-Current primary real-product qualification environment for H3A-2:
+The current correction candidate has fresh Windows evidence. Ubuntu/Linux is a
+required additional platform rerun before retaining an Ubuntu PASS for this
+candidate; it is currently `NOT_RUN`.
+
+Required real-product qualification environment:
 
 ```text
 Ubuntu/Linux x86_64
@@ -2700,28 +2718,19 @@ Generated navigation/API projection must be refreshed through repository owners 
 Expected H3A-2 properties, only if actually proven:
 
 ```yaml
-h3a2_exact_dbos_4_27_6: PASS
-h3a2_workitem_product_authority: PASS
-h3a2_dedicated_engine_principal: PASS
-h3a2_engine_zero_product_table_privilege: PASS
-h3a2_dbos_schema_migration_authority: PASS
-h3a2_normal_runtime_no_ddl: PASS
-h3a2_static_dispatcher_real_dbos: PASS
-h3a2_same_revision_engine_idempotency: PASS
-h3a2_delayed_not_before: PASS
-h3a2_retry_new_revision: PASS
-h3a2_queue_profile_projection: PASS
-h3a2_partition_profile_projection: PASS
-h3a2_stable_instance_executor_identity: PASS
-h3a2_application_version_isolation: PASS
-h3a2_lost_predispatch_process_recovery: PASS
-h3a2_running_same_attempt_recovery: PASS
-h3a2_crash_after_terminal_commit_no_duplicate_handler: PASS
-h3a2_host_loss_fence: PASS
-h3a2_host_shutdown_settlement: PASS
-h3a2_same_process_quiesce_resume: PASS
-h3a2_recovery_budget_fail_closed: PASS
-h3a2_ubuntu_postgres_18_6_real_dbos: PASS
+h3a2_correction_fair_running_recovery: PASS
+h3a2_correction_authentic_reconciliation_composition: PASS
+h3a2_correction_queue_profile_preflight: PASS
+h3a2_correction_maintenance_failure_atomicity: PASS
+h3a2_correction_provider_shutdown_timeout: PASS
+h3a2_correction_terminal_close: PASS
+h3a2_correction_closed_world_product_privilege: PASS
+h3a2_current_windows_real_dbos: PASS
+h3a2_current_ubuntu_postgres_18_6_real_dbos: NOT_RUN
+h3a2_current_candidate_full_requalification: NOT_RUN
+h3a2_current_candidate_freeze: NOT_RUN
+h3a2_current_candidate_independent_review: NOT_RUN
+h3a2_current_candidate_final_manual_verification: NOT_RUN
 
 h3a1_independent_review: NOT_RUN
 h3a1_final_manual_ci: NOT_RUN
@@ -2738,9 +2747,9 @@ Before external review:
 
 ```yaml
 H3: OPEN
-H3A: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+H3A: REVIEW_CORRECTION_IN_PROGRESS
 H3A_1: CLOSED
-H3A_2: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+H3A_2: REVIEW_CORRECTION_IN_PROGRESS
 H3B: NOT_ELIGIBLE
 H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
@@ -2761,7 +2770,7 @@ docs: record durable execution qualification
 Candidate title:
 
 ```text
-H3A-2: durable execution and crash recovery
+H3A2-CORRECTION-2026-08-29 on dev/h3a2-durable-recovery
 ```
 
 PR must state current semantic facts, not development chronology:

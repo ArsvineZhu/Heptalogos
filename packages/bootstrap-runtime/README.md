@@ -63,8 +63,8 @@ Run `pnpm nx run bootstrap-runtime:test`, the real PostgreSQL integration target
 recovery-process targets, and the boundary/dependency gates. Lifecycle changes
 also require claim-matched Host and Runtime qualification. The durable-execution qualification's real
 composition covers DBOS queue/admission behavior, process crash recovery, and
-Q1-Q5 Host lifecycle settlement; product platform/source-less claims remain
-separately scoped.
+Host lifecycle settlement; product platform/source-less claims remain
+separately scoped in the durable-execution qualification record.
 
 ## Architecture references
 

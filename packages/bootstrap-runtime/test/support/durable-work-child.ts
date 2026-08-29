@@ -255,6 +255,7 @@ const durableOptions = {
   workflowMaxRecoveryAttempts: 4,
   shutdownDrainTimeoutMs: 10_000,
   profiles: profileCatalog,
+  onTerminalFailure() {},
   onBackgroundError(error: unknown) {
     emit({ type: "BACKGROUND_ERROR", message: String(error) });
   },

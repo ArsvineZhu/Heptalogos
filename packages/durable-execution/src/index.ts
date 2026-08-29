@@ -10,6 +10,8 @@ export {
   type DurableExecutionPackageResolution,
   type DurableExecutionLifecycleState,
   type DurableExecutionPoolOptions,
+  type DurableExecutionQuiescenceCoordinator,
+  type DurableExecutionQuiescenceLease,
   type DurableExecutionRuntime,
   type DurableExecutionRuntimeOptions,
   type DurableExecutionSchemaProvisioner,

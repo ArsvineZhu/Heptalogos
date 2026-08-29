@@ -6,7 +6,7 @@
 
 # Interface: DurableExecutionRuntimeOptions
 
-Defined in: packages/durable-execution/dist/contracts.d.ts:55
+Defined in: packages/durable-execution/dist/contracts.d.ts:65
 
 Configures one Host-bound DurableExecution runtime.
 
@@ -16,7 +16,7 @@ Configures one Host-bound DurableExecution runtime.
 
 > `readonly` **durableCodeVersion**: [`DurableCodeVersion`](../../../foundation-contracts/dist/type-aliases/DurableCodeVersion.md)
 
-Defined in: packages/durable-execution/dist/contracts.d.ts:56
+Defined in: packages/durable-execution/dist/contracts.d.ts:66
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/durable-execution/dist/contracts.d.ts:56
 
 > `readonly` **maxConcurrentQueueDispatches**: `number`
 
-Defined in: packages/durable-execution/dist/contracts.d.ts:59
+Defined in: packages/durable-execution/dist/contracts.d.ts:69
 
 ---
 
@@ -32,7 +32,7 @@ Defined in: packages/durable-execution/dist/contracts.d.ts:59
 
 > `readonly` **onBackgroundError**: (`error`) => `void`
 
-Defined in: packages/durable-execution/dist/contracts.d.ts:63
+Defined in: packages/durable-execution/dist/contracts.d.ts:77
 
 #### Parameters
 
@@ -46,11 +46,41 @@ Defined in: packages/durable-execution/dist/contracts.d.ts:63
 
 ---
 
+### onTerminalFailure
+
+> `readonly` **onTerminalFailure**: (`error`) => `void` \| `Promise`\<`void`>\>
+
+Defined in: packages/durable-execution/dist/contracts.d.ts:76
+
+Fence the Host when an irreversible provider failure cannot be restored.
+
+#### Parameters
+
+##### error
+
+`unknown`
+
+#### Returns
+
+`void` \| `Promise`\<`void`\>
+
+---
+
 ### profiles
 
 > `readonly` **profiles**: [`WorkQueueProfileCatalog`](../../../work-queue/dist/interfaces/WorkQueueProfileCatalog.md)
 
-Defined in: packages/durable-execution/dist/contracts.d.ts:62
+Defined in: packages/durable-execution/dist/contracts.d.ts:72
+
+---
+
+### quiescence?
+
+> `readonly` `optional` **quiescence?**: [`DurableExecutionQuiescenceCoordinator`](DurableExecutionQuiescenceCoordinator.md)
+
+Defined in: packages/durable-execution/dist/contracts.d.ts:74
+
+Upstream owner used by authentic Host compositions; preparation is atomic.
 
 ---
 
@@ -58,7 +88,7 @@ Defined in: packages/durable-execution/dist/contracts.d.ts:62
 
 > `readonly` **shutdownDrainTimeoutMs**: `number`
 
-Defined in: packages/durable-execution/dist/contracts.d.ts:61
+Defined in: packages/durable-execution/dist/contracts.d.ts:71
 
 ---
 
@@ -66,7 +96,7 @@ Defined in: packages/durable-execution/dist/contracts.d.ts:61
 
 > `readonly` **systemDatabasePollingConcurrency**: `number`
 
-Defined in: packages/durable-execution/dist/contracts.d.ts:58
+Defined in: packages/durable-execution/dist/contracts.d.ts:68
 
 ---
 
@@ -74,7 +104,7 @@ Defined in: packages/durable-execution/dist/contracts.d.ts:58
 
 > `readonly` **systemPool**: [`DurableExecutionPoolOptions`](DurableExecutionPoolOptions.md)
 
-Defined in: packages/durable-execution/dist/contracts.d.ts:57
+Defined in: packages/durable-execution/dist/contracts.d.ts:67
 
 ---
 
@@ -82,4 +112,4 @@ Defined in: packages/durable-execution/dist/contracts.d.ts:57
 
 > `readonly` **workflowMaxRecoveryAttempts**: `number`
 
-Defined in: packages/durable-execution/dist/contracts.d.ts:60
+Defined in: packages/durable-execution/dist/contracts.d.ts:70

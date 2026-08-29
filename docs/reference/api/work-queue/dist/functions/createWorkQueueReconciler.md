@@ -8,7 +8,7 @@
 
 > **createWorkQueueReconciler**(`options`): [`WorkQueueReconciler`](../interfaces/WorkQueueReconciler.md)
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:42
+Defined in: packages/work-queue/dist/reconciler.d.ts:45
 
 Create a reconciler whose signal and anti-entropy paths share one scan gate.
 

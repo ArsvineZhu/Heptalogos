@@ -6,7 +6,7 @@
 
 # Interface: DurableExecutionRuntime
 
-Defined in: packages/durable-execution/dist/contracts.d.ts:68
+Defined in: packages/durable-execution/dist/contracts.d.ts:82
 
 Exposes lifecycle operations without leaking DBOS or pool implementation types.
 
@@ -16,7 +16,7 @@ Exposes lifecycle operations without leaking DBOS or pool implementation types.
 
 > `readonly` **state**: [`DurableExecutionLifecycleState`](../type-aliases/DurableExecutionLifecycleState.md)
 
-Defined in: packages/durable-execution/dist/contracts.d.ts:69
+Defined in: packages/durable-execution/dist/contracts.d.ts:83
 
 ## Methods
 
@@ -24,7 +24,7 @@ Defined in: packages/durable-execution/dist/contracts.d.ts:69
 
 > **close**(): `Promise`\<`void`>\>
 
-Defined in: packages/durable-execution/dist/contracts.d.ts:77
+Defined in: packages/durable-execution/dist/contracts.d.ts:91
 
 Close the runtime and release all owned DBOS resources.
 
@@ -38,7 +38,7 @@ Close the runtime and release all owned DBOS resources.
 
 > **quiesce**(): `Promise`\<`void`>\>
 
-Defined in: packages/durable-execution/dist/contracts.d.ts:73
+Defined in: packages/durable-execution/dist/contracts.d.ts:87
 
 Drain DBOS work and release runtime resources while retaining the Host.
 
@@ -52,7 +52,7 @@ Drain DBOS work and release runtime resources while retaining the Host.
 
 > **resume**(): `Promise`\<`void`>\>
 
-Defined in: packages/durable-execution/dist/contracts.d.ts:75
+Defined in: packages/durable-execution/dist/contracts.d.ts:89
 
 Resume a previously quiesced DBOS runtime under the same Host authority.
 
@@ -66,7 +66,7 @@ Resume a previously quiesced DBOS runtime under the same Host authority.
 
 > **start**(): `Promise`\<`void`>\>
 
-Defined in: packages/durable-execution/dist/contracts.d.ts:71
+Defined in: packages/durable-execution/dist/contracts.d.ts:85
 
 Start the Host-bound DBOS runtime and verify its queue projections.
 

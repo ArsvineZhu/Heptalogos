@@ -5,6 +5,7 @@ import {
   createInstallationId,
   createInstanceId,
   createMicroSystemId,
+  createWorkItemId,
   parseDurableCodeVersion,
   type InstanceId,
 } from "@heptalogos/foundation-contracts";
@@ -24,6 +25,7 @@ import type {
 } from "../../src/contracts.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  getRegisteredDispatchWorkflow,
   resetDbosBindingForTests,
   type BindingDriver,
 } from "../../src/dbos-binding.js";
@@ -55,6 +57,7 @@ const runtimeOptions: DurableExecutionRuntimeOptions = {
   workflowMaxRecoveryAttempts: 4,
   shutdownDrainTimeoutMs: 8_000,
   profiles,
+  onTerminalFailure() {},
   onBackgroundError() {},
 };
 
@@ -151,7 +154,10 @@ interface RuntimeFixture {
   readonly trace: string[];
 }
 
-function runtimeFixture(queueMismatch = false): RuntimeFixture {
+function runtimeFixture(
+  queueMismatch = false,
+  shutdownError?: unknown,
+): RuntimeFixture {
   const pools: PoolFixture[] = [];
   const configs: Record<string, unknown>[] = [];
   const registrations: number[] = [];
@@ -191,6 +197,7 @@ function runtimeFixture(queueMismatch = false): RuntimeFixture {
       },
       async shutdown() {
         trace.push("dbos.shutdown");
+        if (shutdownError !== undefined) throw shutdownError;
       },
     },
     bindingDriver: {
@@ -251,6 +258,33 @@ beforeEach(() => {
 });
 
 describe.sequential("Host-bound DurableExecution runtime", () => {
+  it("makes close terminal from CREATED and detaches the Host abort listener", async () => {
+    const authority = authorityFixture();
+    const fixture = runtimeFixture();
+    const backgroundErrors: unknown[] = [];
+    const runtime = createDurableExecutionRuntimeForTests(
+      authority.authority,
+      { ...runtimeOptions, onBackgroundError: (error) => backgroundErrors.push(error) },
+      executor(),
+      fixture.dependencies,
+    );
+
+    await runtime.close();
+    await runtime.close();
+    expect(runtime.state).toBe("CLOSED");
+    expect(fixture.trace).toEqual([]);
+    await expect(runtime.start()).rejects.toMatchObject({
+      problem: { problemCode: "durable.execution.runtime.invalid_transition" },
+    });
+    await expect(runtime.resume()).rejects.toMatchObject({
+      problem: { problemCode: "durable.execution.runtime.invalid_transition" },
+    });
+
+    authority.controller.abort();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(backgroundErrors).toHaveLength(0);
+  });
+
   it("uses InstanceId as the stable DBOS executor identity across BootIds", async () => {
     const firstAuthority = authorityFixture();
     const firstFixture = runtimeFixture();
@@ -358,6 +392,58 @@ describe.sequential("Host-bound DurableExecution runtime", () => {
     await runtime.close();
   });
 
+  it("restores upstream serviceability when pre-entry drain cannot settle", async () => {
+    const authority = authorityFixture();
+    const fixture = runtimeFixture();
+    let entered!: () => void;
+    const enteredPromise = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let release!: () => void;
+    const releasePromise = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const blockingExecutor: WorkAttemptExecutor = {
+      async execute() {
+        entered();
+        await releasePromise;
+        return { status: "SUCCEEDED" };
+      },
+    };
+    let restored = 0;
+    const resumeAfterAbort = async () => {
+      restored += 1;
+    };
+    const quiescence = {
+      prepare: async () => ({ resumeAfterAbort }),
+    };
+    const runtime = createDurableExecutionRuntimeForTests(
+      authority.authority,
+      {
+        ...runtimeOptions,
+        shutdownDrainTimeoutMs: 25,
+        quiescence,
+      },
+      blockingExecutor,
+      fixture.dependencies,
+    );
+
+    await runtime.start();
+    const invocation = getRegisteredDispatchWorkflow()(createWorkItemId(), 1);
+    await enteredPromise;
+    await expect(runtime.quiesce()).rejects.toMatchObject({
+      problem: { problemCode: "durable.execution.runtime.drain_timeout" },
+    });
+    expect(runtime.state).toBe("OPEN");
+    expect(restored).toBe(1);
+    expect(fixture.trace).not.toContain("dbos.shutdown");
+    expect(fixture.pools[0]?.ended()).toBe(false);
+
+    release();
+    await invocation;
+    await runtime.close();
+  });
+
   it("rejects a persisted queue mismatch before DBOS launch", async () => {
     const authority = authorityFixture();
     const fixture = runtimeFixture(true);
@@ -378,6 +464,32 @@ describe.sequential("Host-bound DurableExecution runtime", () => {
     expect(fixture.trace).toContain("pool.end");
     expect(fixture.trace).not.toContain("dbos.setConfig");
     expect(fixture.trace).not.toContain("dbos.launch");
+  });
+
+  it("notifies the Host when provider teardown fails after the safe drain", async () => {
+    const authority = authorityFixture();
+    const fixture = runtimeFixture(false, new Error("provider teardown failed"));
+    const terminalFailures: unknown[] = [];
+    const runtime = createDurableExecutionRuntimeForTests(
+      authority.authority,
+      {
+        ...runtimeOptions,
+        onTerminalFailure: (error) => {
+          terminalFailures.push(error);
+        },
+      },
+      executor(),
+      fixture.dependencies,
+    );
+
+    await runtime.start();
+    await expect(runtime.quiesce()).rejects.toThrow("provider teardown failed");
+    expect(runtime.state).toBe("FAILED");
+    expect(terminalFailures).toHaveLength(1);
+    expect(fixture.pools[0]?.ended()).toBe(true);
+
+    await expect(runtime.close()).rejects.toThrow("provider teardown failed");
+    expect(runtime.state).toBe("CLOSED");
   });
 
   it("rejects dispatch outside OPEN and after the Host authority is fenced", async () => {

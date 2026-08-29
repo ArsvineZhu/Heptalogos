@@ -12,6 +12,7 @@ type DurableExecutionLifecycleEvent =
   | "START"
   | "START_SUCCEEDED"
   | "BEGIN_QUIESCE"
+  | "QUIESCE_ABORTED"
   | "QUIESCE_SUCCEEDED"
   | "BEGIN_RESUME"
   | "RESUME_SUCCEEDED"
@@ -23,7 +24,7 @@ const lifecycleMachine = createMachine({
   id: "heptalogos-durable-execution",
   initial: "CREATED",
   states: {
-    CREATED: { on: { START: "STARTING" } },
+    CREATED: { on: { START: "STARTING", BEGIN_CLOSE: "CLOSING" } },
     STARTING: {
       on: { START_SUCCEEDED: "OPEN", FAIL: "FAILED" },
     },
@@ -31,7 +32,11 @@ const lifecycleMachine = createMachine({
       on: { BEGIN_QUIESCE: "QUIESCING", BEGIN_CLOSE: "CLOSING" },
     },
     QUIESCING: {
-      on: { QUIESCE_SUCCEEDED: "QUIESCED", FAIL: "FAILED" },
+      on: {
+        QUIESCE_ABORTED: "OPEN",
+        QUIESCE_SUCCEEDED: "QUIESCED",
+        FAIL: "FAILED",
+      },
     },
     QUIESCED: {
       on: { BEGIN_RESUME: "RESUMING", BEGIN_CLOSE: "CLOSING" },

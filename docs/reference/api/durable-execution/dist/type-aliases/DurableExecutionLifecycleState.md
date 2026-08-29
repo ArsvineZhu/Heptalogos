@@ -8,6 +8,6 @@
 
 > **DurableExecutionLifecycleState** = `"CREATED"` \| `"STARTING"` \| `"OPEN"` \| `"QUIESCING"` \| `"QUIESCED"` \| `"RESUMING"` \| `"CLOSING"` \| `"CLOSED"` \| `"FAILED"`
 
-Defined in: packages/durable-execution/dist/contracts.d.ts:66
+Defined in: packages/durable-execution/dist/contracts.d.ts:80
 
 Public lifecycle state of the Host-bound durable runtime.

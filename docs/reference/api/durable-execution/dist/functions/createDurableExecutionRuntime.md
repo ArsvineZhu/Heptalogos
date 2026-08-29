@@ -8,7 +8,7 @@
 
 > **createDurableExecutionRuntime**(`authority`, `options`, `executor`): [`DurableExecutionRuntime`](../interfaces/DurableExecutionRuntime.md)
 
-Defined in: packages/durable-execution/dist/dbos-runtime.d.ts:41
+Defined in: packages/durable-execution/dist/dbos-runtime.d.ts:45
 
 Creates the Host-bound runtime with the real DBOS and caller-owned pool.
 

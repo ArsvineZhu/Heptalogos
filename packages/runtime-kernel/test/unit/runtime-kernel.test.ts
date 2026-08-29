@@ -132,7 +132,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     });
   });
 
-  it("S1 binds one eligible Service provider", async () => {
+  it("binds one eligible Service provider", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.service");
     const providerId = createProviderId("provider.a");
@@ -144,7 +144,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     await expect(lease.invoke("read", (service) => service.read())).resolves.toBe("A");
   });
 
-  it("S2 blocks a hard Service with no provider", () => {
+  it("blocks a hard Service with no provider", () => {
     const registry = new ServiceRegistry();
     const requirement = serviceRequirement(createServiceId("test.missing"));
     expect(() => registry.resolve(requirement)).toThrow(
@@ -154,7 +154,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     );
   });
 
-  it("S3 rejects ambiguous providers without using registration order", () => {
+  it("rejects ambiguous providers without using registration order", () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.ambiguous");
     registry.register(serviceProvision(serviceId, createProviderId("provider.b")), {});
@@ -168,7 +168,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     );
   });
 
-  it("S4 lets an explicit eligible provider win", () => {
+  it("lets an explicit eligible provider win", () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.explicit");
     const providerA = createProviderId("provider.a");
@@ -180,7 +180,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     );
   });
 
-  it("S5 fails closed for unavailable explicit Service binding", () => {
+  it("fails closed for unavailable explicit Service binding", () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.explicit-unavailable");
     registry.register(serviceProvision(serviceId, createProviderId("provider.a")), {});
@@ -198,7 +198,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     );
   });
 
-  it("S6 retires a Service binding and rejects new lease calls", async () => {
+  it("retires a Service binding and rejects new lease calls", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.retire");
     const providerId = createProviderId("provider.retiring");
@@ -214,7 +214,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     });
   });
 
-  it("S7 allows an in-flight Service call to settle before retirement", async () => {
+  it("allows an in-flight Service call to settle before retirement", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.in-flight");
     const providerId = createProviderId("provider.in-flight");
@@ -250,7 +250,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     expect(fence.state).toBe("RETIRED");
   });
 
-  it("S8 reports GenerationFence settlement timeout", async () => {
+  it("reports GenerationFence settlement timeout", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.timeout");
     const providerId = createProviderId("provider.timeout");
@@ -298,7 +298,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     expect(fence.state).toBe("RETIRED");
   });
 
-  it("S9 retained fenced Proxy cannot call after retirement", async () => {
+  it("retained fenced Proxy cannot call after retirement", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.proxy");
     const providerId = createProviderId("provider.proxy");
@@ -347,7 +347,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     await expect(retirement).resolves.toBeUndefined();
   });
 
-  it("F1 preserves synchronous Service method return semantics", async () => {
+  it("preserves synchronous Service method return semantics", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.sync-service");
     const providerId = createProviderId("provider.sync-service");
@@ -363,7 +363,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     expect(observed).toBe("sync");
   });
 
-  it("F2 preserves synchronous Capability method return semantics", async () => {
+  it("preserves synchronous Capability method return semantics", async () => {
     const registry = new CapabilityRegistry();
     const capabilityId = createCapabilityId("test.sync-capability");
     const providerId = createProviderId("provider.sync-capability");
@@ -381,7 +381,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     expect(observed).toBe("sync");
   });
 
-  it("F3 fences objects returned by provider methods after retirement", async () => {
+  it("fences objects returned by provider methods after retirement", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.returned-object");
     const providerId = createProviderId("provider.returned-object");
@@ -403,7 +403,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     );
   });
 
-  it("F4 fences retained nested Service objects after retirement", async () => {
+  it("fences retained nested Service objects after retirement", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.retained-nested-object");
     const providerId = createProviderId("provider.retained-nested-object");
@@ -426,7 +426,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     );
   });
 
-  it("F9 rejects function arguments at the supported contract boundary", async () => {
+  it("rejects function arguments at the supported contract boundary", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.function-argument");
     const providerId = createProviderId("provider.function-argument");
@@ -449,7 +449,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     await registry.retireGeneration(fence, 50);
   });
 
-  it("F10 normalizes a provider throw of its own identity", async () => {
+  it("normalizes a provider throw of its own identity", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.throw-self");
     const providerId = createProviderId("provider.throw-self");
@@ -477,7 +477,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     await registry.retireGeneration(fence, 50);
   });
 
-  it("F11 normalizes a rejected Promise containing an arbitrary object", async () => {
+  it("normalizes a rejected Promise containing an arbitrary object", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.reject-object");
     const providerId = createProviderId("provider.reject-object");
@@ -531,7 +531,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     await registry.retireGeneration(fence, 50);
   });
 
-  it("F12 rejects a function returned by a provider method", async () => {
+  it("rejects a function returned by a provider method", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.function-result");
     const providerId = createProviderId("provider.function-result");
@@ -552,7 +552,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     await registry.retireGeneration(fence, 50);
   });
 
-  it("G1 rejects an executable getter at provider registration", () => {
+  it("rejects an executable getter at provider registration", () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.unsupported-getter");
     const providerId = createProviderId("provider.unsupported-getter");
@@ -572,7 +572,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     );
   });
 
-  it("G2 rejects a setter at provider registration", () => {
+  it("rejects a setter at provider registration", () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.unsupported-setter");
     const providerId = createProviderId("provider.unsupported-setter");
@@ -592,7 +592,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     );
   });
 
-  it("G3 accepts readonly plain data properties", async () => {
+  it("accepts readonly plain data properties", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.readonly-data");
     const providerId = createProviderId("provider.readonly-data");
@@ -610,7 +610,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     await registry.retireGeneration(fence, 50);
   });
 
-  it("RC6 rejects writable provider data properties at registration", () => {
+  it("rejects writable provider data properties at registration", () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.writable-data");
     const providerId = createProviderId("provider.writable-data");
@@ -746,7 +746,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     await registry.retireGeneration(fence, 50);
   });
 
-  it("G4 rejects an accessor without executing it", () => {
+  it("rejects an accessor without executing it", () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.accessor-not-executed");
     const providerId = createProviderId("provider.accessor-not-executed");
@@ -839,7 +839,7 @@ describe("RuntimeKernel contract compatibility and Service registry", () => {
     expect(() => Object.isExtensible(retained)).toThrow(retired);
   });
 
-  it("S11 records transient Service call Activity semantics", async () => {
+  it("records transient Service call Activity semantics", async () => {
     const registry = new ServiceRegistry();
     const serviceId = createServiceId("test.activity-service");
     const providerId = createProviderId("provider.activity-service");
@@ -976,7 +976,7 @@ describe("Capability registry and readiness", () => {
     ).toBe(high);
   });
 
-  it("K1 selects the highest-priority eligible Capability provider", () => {
+  it("selects the highest-priority eligible Capability provider", () => {
     const registry = new CapabilityRegistry();
     const capabilityId = createCapabilityId("test.capability");
     const low = createProviderId("provider.low");
@@ -988,7 +988,7 @@ describe("Capability registry and readiness", () => {
     ).toBe(high);
   });
 
-  it("K2 uses lexical ProviderId order for equal Capability priority", () => {
+  it("uses lexical ProviderId order for equal Capability priority", () => {
     const registry = new CapabilityRegistry();
     const capabilityId = createCapabilityId("test.tie");
     const providerA = createProviderId("provider.a");
@@ -1000,7 +1000,7 @@ describe("Capability registry and readiness", () => {
     ).toBe(providerA);
   });
 
-  it("K3 explicit eligible Capability binding wins", () => {
+  it("explicit eligible Capability binding wins", () => {
     const registry = new CapabilityRegistry();
     const capabilityId = createCapabilityId("test.explicit");
     const providerA = createProviderId("provider.a");
@@ -1013,7 +1013,7 @@ describe("Capability registry and readiness", () => {
     ).toBe(providerB);
   });
 
-  it("K4 unavailable explicit Capability binding never silently falls back", () => {
+  it("unavailable explicit Capability binding never silently falls back", () => {
     const registry = new CapabilityRegistry();
     const capabilityId = createCapabilityId("test.explicit-unavailable");
     registry.register(
@@ -1051,7 +1051,7 @@ describe("Capability registry and readiness", () => {
     expect(registry.resolve(capabilityRequirement(capabilityId, true))).toBeUndefined();
   });
 
-  it("K5 withdrawal selects the next eligible Capability provider", async () => {
+  it("withdrawal selects the next eligible Capability provider", async () => {
     const registry = new CapabilityRegistry();
     const capabilityId = createCapabilityId("test.withdrawal");
     const high = createProviderId("provider.high");
@@ -1067,7 +1067,7 @@ describe("Capability registry and readiness", () => {
     ).toBe(low);
   });
 
-  it("K6 Capability changes do not create RuntimeGraph hard edges", () => {
+  it("Capability changes do not create RuntimeGraph hard edges", () => {
     const capabilityId = createCapabilityId("test.dynamic");
     const a = definition(createMicroSystemId("system.a"), {
       capabilityRequirements: [capabilityRequirement(capabilityId, false)],
@@ -1105,7 +1105,7 @@ describe("Capability registry and readiness", () => {
     await expect(retirement).resolves.toBeUndefined();
   });
 
-  it("K8 fences retained nested Capability objects after retirement", async () => {
+  it("fences retained nested Capability objects after retirement", async () => {
     const registry = new CapabilityRegistry();
     const capabilityId = createCapabilityId("test.nested-object-proxy");
     const providerId = createProviderId("provider.nested-object-proxy");
@@ -1134,7 +1134,7 @@ describe("Capability registry and readiness", () => {
     );
   });
 
-  it("K9 records transient Capability invoke Activity semantics", async () => {
+  it("records transient Capability invoke Activity semantics", async () => {
     const registry = new CapabilityRegistry();
     const capabilityId = createCapabilityId("test.activity-capability");
     const providerId = createProviderId("provider.activity-capability");
