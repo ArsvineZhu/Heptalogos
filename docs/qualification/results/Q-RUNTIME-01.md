@@ -388,6 +388,10 @@ independentReview: NOT_RUN
 finalManualVerification: NOT_RUN
 ```
 
-Ubuntu/Linux real PostgreSQL/DBOS remains `NOT_RUN` because the user explicitly
-directed that no WSL/Ubuntu qualification test be run. Temporary toolchain
-preparation is not qualification evidence.
+Ubuntu/Linux real PostgreSQL/DBOS was freshly qualified on the current host:
+private-postgres integration 20/20, persistence 9/9, host-ownership 11/11,
+bootstrap-runtime integration 9 files/108 tests, and the
+durable-work-recovery / Foundation-spine / bootstrap-recovery-process
+real-PostgreSQL files 16/16, using the explicit `HEPTALOGOS_TEST_PG_BIN`
+toolchain path (PostgreSQL 18.6). macOS real PostgreSQL, source-less, and
+service/headless remain `NOT_RUN`.

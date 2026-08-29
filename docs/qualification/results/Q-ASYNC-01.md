@@ -153,7 +153,7 @@ h3a2_c2_truthful_retryable_close: PASS
 h3a2_c3_bounded_workqueue_quiescence: PASS
 h3a2_c4_credential_scoped_preflight: PASS
 h3a2_current_windows_real_dbos: PASS
-h3a2_current_ubuntu_real_dbos: NOT_RUN
+h3a2_current_ubuntu_real_dbos: PASS
 h3a2_current_full_requalification: NOT_RUN
 h3a2_repository_verify: PASS
 hardware_power_loss: NOT_RUN
@@ -162,12 +162,14 @@ service_headless: NOT_RUN
 githubActions: NOT_ENABLED_OR_REQUIRED
 ```
 
-The current Windows candidate has fresh focused, full bootstrap-runtime,
-Foundation-spine, and existing crash/recovery evidence. Ubuntu/Linux real
-PostgreSQL/DBOS remains `NOT_RUN` because the user explicitly directed that no
-WSL/Ubuntu qualification test be run; temporary toolchain preparation is not
-test evidence. `pnpm verify` is PASS. The candidate remains mutable and is not
-frozen.
+The current candidate has fresh focused, full bootstrap-runtime,
+Foundation-spine, and existing crash/recovery evidence, and fresh Ubuntu/Linux
+real PostgreSQL 18.6 + DBOS qualification on the current host: private-postgres
+integration 20/20, persistence 9/9, host-ownership 11/11, bootstrap-runtime
+integration 9 files/108 tests, and the durable-work-recovery / Foundation-spine
+/ bootstrap-recovery-process real-PostgreSQL files 16/16, using the explicit
+`HEPTALOGOS_TEST_PG_BIN` toolchain path. `pnpm verify` is PASS. The candidate
+remains mutable and is not frozen.
 
 ## H3A-1 observed implementation evidence
 
