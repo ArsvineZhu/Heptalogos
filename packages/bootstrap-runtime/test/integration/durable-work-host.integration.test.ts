@@ -2176,28 +2176,50 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     const fixture = await makeFixture();
     activeComposition = await createComposition(fixture, { durableExecution: true });
     const composition = activeComposition;
-    await requireDurable(composition);
-    await composition.durable!.close();
-    await queryAs(
-      fixture,
-      "heptalogos_migration",
-      MIGRATION_PASSWORD,
-      `UPDATE "dbos"."queues" SET concurrency = 999
-        WHERE name = 'heptalogos.queue.work.default'`,
-      [],
-      "-c role=heptalogos_owner",
-    );
-
-    const restarted = createDurableExecutionRuntime(
+    const conflictingProfiles = createWorkQueueProfileCatalog([
+      {
+        profileId: queueProfileId,
+        globalConcurrency: 999,
+        minPollingIntervalMs: 100,
+      },
+    ]);
+    const conflictingRuntime = createDurableExecutionRuntime(
       composition.bootResult.host.durableExecution,
-      DURABLE_OPTIONS,
+      { ...DURABLE_OPTIONS, profiles: conflictingProfiles },
       composition.executor,
     );
+    const conflictingDispatch = createDurableDispatchPort({
+      authority: composition.bootResult.host.durableExecution,
+      lifecycle: conflictingRuntime,
+      durableCodeVersion: DURABLE_CODE_VERSION,
+      profiles: conflictingProfiles,
+      now: () => composition.time.now(),
+    });
     try {
-      await expect(restarted.start()).rejects.toMatchObject({
+      await conflictingRuntime.start();
+      const created = await createWork(composition, composition.target, {
+        dedupKey: "dbos-profile-mismatch-pending",
+      });
+      const delayedDispatch = durableRequest({
+        ...created.item,
+        notBefore: `${new Date(Date.now() + 60 * 60 * 1_000).toISOString()}` as Instant,
+      });
+      await conflictingDispatch.dispatch(delayedDispatch);
+      await waitUntil(
+        async () =>
+          (
+            await durableWorkflowRow(
+              fixture,
+              `heptalogos.work.${delayedDispatch.dispatchAttemptId}`,
+            )
+          )?.status === "DELAYED",
+      );
+      await conflictingRuntime.close();
+
+      await expect(composition.durable!.start()).rejects.toMatchObject({
         problem: { problemCode: "durable_execution.queue_profile_mismatch" },
       });
-      expect(restarted.state).toBe("FAILED");
+      expect(composition.durable!.state).toBe("FAILED");
       await expect(
         queryAs(
           fixture,
@@ -2207,8 +2229,16 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
             WHERE name = 'heptalogos.queue.work.default'`,
         ),
       ).resolves.toMatchObject({ rows: [{ concurrency: 999 }] });
+      await expect(
+        durableWorkflowRow(
+          fixture,
+          `heptalogos.work.${delayedDispatch.dispatchAttemptId}`,
+        ),
+      ).resolves.toMatchObject({ status: "DELAYED" });
+      expect(composition.handlerCalls).toHaveLength(0);
     } finally {
-      await restarted.close().catch(() => undefined);
+      await conflictingRuntime.close().catch(() => undefined);
+      await composition.durable?.close().catch(() => undefined);
     }
   }, 180_000);
 

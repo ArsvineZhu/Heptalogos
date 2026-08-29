@@ -24,12 +24,9 @@ import {
 } from "./dbos-binding.js";
 import type { BindingDriver } from "./dbos-binding.js";
 import { createDbosSystemPool } from "./dbos-pool.js";
+import { createDbosQueueClient, type DbosQueueClient } from "./dbos-client.js";
 import { createDurableExecutionLifecycleMachine } from "./dbos-lifecycle-machine.js";
-import {
-  projectWorkQueueProfiles,
-  type DbosQueueHandle,
-  type DbosQueueRegistrationOptions,
-} from "./dbos-queue-profiles.js";
+import { projectWorkQueueProfiles } from "./dbos-queue-profiles.js";
 import { durableExecutionProblem } from "./problems.js";
 
 interface DurableExecutionPoolHandle {
@@ -50,13 +47,18 @@ interface DbosRuntimeConfig {
 }
 
 interface DbosLifecycleDriver {
+  createClient(
+    authority: HostDurableExecutionAuthority,
+    pool: DurableExecutionPoolHandle,
+    options: {
+      readonly poolSize: number;
+      readonly pollingConcurrency: number;
+      readonly connectionTimeoutMs: number;
+    },
+  ): Promise<DbosQueueClient>;
   setConfig(config: DbosRuntimeConfig): void;
   launch(): Promise<void>;
   shutdown(options: { readonly workflowCompletionTimeoutMS: number }): Promise<void>;
-  registerQueue(
-    name: string,
-    options: DbosQueueRegistrationOptions,
-  ): Promise<DbosQueueHandle>;
 }
 
 type PoolFactory = (
@@ -72,6 +74,9 @@ interface RuntimeDependencies {
 }
 
 const defaultDbosDriver: DbosLifecycleDriver = {
+  createClient(authority, pool, options) {
+    return createDbosQueueClient(authority, pool, options);
+  },
   setConfig(config) {
     dbosSdk.setConfig(config);
   },
@@ -81,19 +86,12 @@ const defaultDbosDriver: DbosLifecycleDriver = {
   shutdown(options) {
     return dbosSdk.shutdown(options);
   },
-  registerQueue(name, options) {
-    return dbosSdk.registerQueue(name, options);
-  },
 };
 
 interface DbosSdkRuntimeSurface {
   setConfig(config: DbosRuntimeConfig): void;
   launch(): Promise<void>;
   shutdown(options: { readonly workflowCompletionTimeoutMS: number }): Promise<void>;
-  registerQueue(
-    name: string,
-    options: DbosQueueRegistrationOptions,
-  ): Promise<DbosQueueHandle>;
 }
 
 const dbosSdk = createRequire(import.meta.url)("@dbos-inc/dbos-sdk")
@@ -241,6 +239,47 @@ function createRuntime(
     await current.end();
   };
 
+  const preflightQueueProfiles = async (): Promise<void> => {
+    if (pool === undefined) {
+      throw durableExecutionProblem(
+        "durable.execution.runtime.invalid_transition",
+        "DBOS queue preflight requires an open caller-owned pool",
+      );
+    }
+    const client = await dependencies.dbos.createClient(authority, pool, {
+      poolSize: options.systemPool.maxConnections,
+      pollingConcurrency: options.systemDatabasePollingConcurrency,
+      connectionTimeoutMs: options.systemPool.connectionTimeoutMs,
+    });
+    let failure: unknown;
+    try {
+      await projectWorkQueueProfiles(options.profiles, client);
+    } catch (error) {
+      failure = error;
+    }
+    try {
+      await client.destroy();
+    } catch (error) {
+      if (failure === undefined) failure = error;
+      else reportBackgroundError(options, error);
+    }
+    if (failure !== undefined) throw failure;
+  };
+
+  const configureAndLaunch = async (): Promise<void> => {
+    if (pool === undefined) {
+      throw durableExecutionProblem(
+        "durable.execution.runtime.invalid_transition",
+        "DBOS launch requires an open caller-owned pool",
+      );
+    }
+    await preflightQueueProfiles();
+    dependencies.dbos.setConfig(dbosConfig(authority, options, pool));
+    dbosLaunchAttempted = true;
+    await dependencies.dbos.launch();
+    dbosLaunched = true;
+  };
+
   const shutdownDbosAndPool = async (): Promise<void> => {
     let firstError: unknown;
     if (dbosLaunchAttempted || dbosLaunched) {
@@ -300,7 +339,6 @@ function createRuntime(
       options.workflowMaxRecoveryAttempts,
       dependencies.bindingDriver,
     );
-    dependencies.dbos.setConfig(dbosConfig(authority, options, pool));
   };
 
   const start = (): Promise<void> => {
@@ -318,10 +356,7 @@ function createRuntime(
     startPromise = (async () => {
       try {
         openResources();
-        dbosLaunchAttempted = true;
-        await dependencies.dbos.launch();
-        dbosLaunched = true;
-        await projectWorkQueueProfiles(options.profiles, dependencies.dbos);
+        await configureAndLaunch();
         assertAuthorityActive(authority);
         lifecycle.send("START_SUCCEEDED");
       } catch (error) {
@@ -367,10 +402,7 @@ function createRuntime(
     startPromise = (async () => {
       try {
         openResources();
-        dbosLaunchAttempted = true;
-        await dependencies.dbos.launch();
-        dbosLaunched = true;
-        await projectWorkQueueProfiles(options.profiles, dependencies.dbos);
+        await configureAndLaunch();
         assertAuthorityActive(authority);
         lifecycle.send("RESUME_SUCCEEDED");
       } catch (error) {

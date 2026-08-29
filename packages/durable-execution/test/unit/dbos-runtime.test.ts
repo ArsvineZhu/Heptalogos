@@ -133,12 +133,15 @@ interface RuntimeFixture {
       onBackgroundError: (error: unknown) => void,
     ) => PoolFixture;
     readonly dbos: {
+      createClient(options: unknown): Promise<{
+        registerQueue(name: string, options: unknown): Promise<FakeQueue>;
+        destroy(): Promise<void>;
+      }>;
       setConfig(config: unknown): void;
       launch(): Promise<void>;
       shutdown(options: {
         readonly workflowCompletionTimeoutMS: number;
       }): Promise<void>;
-      registerQueue(name: string, options: unknown): Promise<FakeQueue>;
     };
     readonly bindingDriver: BindingDriver;
   };
@@ -148,7 +151,7 @@ interface RuntimeFixture {
   readonly trace: string[];
 }
 
-function runtimeFixture(): RuntimeFixture {
+function runtimeFixture(queueMismatch = false): RuntimeFixture {
   const pools: PoolFixture[] = [];
   const configs: Record<string, unknown>[] = [];
   const registrations: number[] = [];
@@ -170,6 +173,15 @@ function runtimeFixture(): RuntimeFixture {
       return pool;
     },
     dbos: {
+      async createClient() {
+        trace.push("dbos.client.create");
+        return {
+          registerQueue,
+          async destroy() {
+            trace.push("dbos.client.destroy");
+          },
+        };
+      },
       setConfig(config) {
         configs.push(config as Record<string, unknown>);
         trace.push("dbos.setConfig");
@@ -180,37 +192,6 @@ function runtimeFixture(): RuntimeFixture {
       async shutdown() {
         trace.push("dbos.shutdown");
       },
-      async registerQueue(_name, options) {
-        trace.push("dbos.registerQueue");
-        const params = options as {
-          readonly globalConcurrency?: number;
-          readonly workerConcurrency?: number;
-          readonly rateLimit?: {
-            readonly limitPerPeriod: number;
-            readonly periodSec: number;
-          };
-          readonly partitionConcurrency?: number;
-          readonly partitionWorkerConcurrency?: number;
-          readonly partitionRateLimit?: {
-            readonly limitPerPeriod: number;
-            readonly periodSec: number;
-          };
-          readonly minPollingIntervalMs?: number;
-        };
-        return {
-          getGlobalConcurrency: async () => params.globalConcurrency,
-          getWorkerConcurrency: async () => params.workerConcurrency,
-          getRateLimit: async () => params.rateLimit,
-          getPartitionConcurrency: async () => params.partitionConcurrency,
-          getPartitionWorkerConcurrency: async () => params.partitionWorkerConcurrency,
-          getPartitionRateLimit: async () => params.partitionRateLimit,
-          getPartitionQueue: async () =>
-            params.partitionConcurrency !== undefined ||
-            params.partitionWorkerConcurrency !== undefined ||
-            params.partitionRateLimit !== undefined,
-          getMinPollingIntervalMs: async () => params.minPollingIntervalMs,
-        };
-      },
     },
     bindingDriver: {
       registerWorkflow(_maxRecoveryAttempts, execute) {
@@ -219,6 +200,41 @@ function runtimeFixture(): RuntimeFixture {
       },
     },
   };
+
+  async function registerQueue(_name: string, options: unknown): Promise<FakeQueue> {
+    trace.push("dbos.registerQueue");
+    const params = options as {
+      readonly globalConcurrency?: number;
+      readonly workerConcurrency?: number;
+      readonly rateLimit?: {
+        readonly limitPerPeriod: number;
+        readonly periodSec: number;
+      };
+      readonly partitionConcurrency?: number;
+      readonly partitionWorkerConcurrency?: number;
+      readonly partitionRateLimit?: {
+        readonly limitPerPeriod: number;
+        readonly periodSec: number;
+      };
+      readonly minPollingIntervalMs?: number;
+    };
+    const globalConcurrency = queueMismatch
+      ? (params.globalConcurrency ?? 0) + 1
+      : params.globalConcurrency;
+    return {
+      getGlobalConcurrency: async () => globalConcurrency,
+      getWorkerConcurrency: async () => params.workerConcurrency,
+      getRateLimit: async () => params.rateLimit,
+      getPartitionConcurrency: async () => params.partitionConcurrency,
+      getPartitionWorkerConcurrency: async () => params.partitionWorkerConcurrency,
+      getPartitionRateLimit: async () => params.partitionRateLimit,
+      getPartitionQueue: async () =>
+        params.partitionConcurrency !== undefined ||
+        params.partitionWorkerConcurrency !== undefined ||
+        params.partitionRateLimit !== undefined,
+      getMinPollingIntervalMs: async () => params.minPollingIntervalMs,
+    };
+  }
   return { dependencies, pools, configs, registrations, trace };
 }
 
@@ -315,6 +331,53 @@ describe.sequential("Host-bound DurableExecution runtime", () => {
     );
     expect(fixture.trace.filter((entry) => entry === "dbos.shutdown")).toHaveLength(1);
     expect(fixture.pools[0]?.ended()).toBe(true);
+  });
+
+  it("preflights queue profiles before configuring and launching DBOS", async () => {
+    const authority = authorityFixture();
+    const fixture = runtimeFixture();
+    const runtime = createDurableExecutionRuntimeForTests(
+      authority.authority,
+      runtimeOptions,
+      executor(),
+      fixture.dependencies,
+    );
+
+    await runtime.start();
+
+    const position = (entry: string): number => fixture.trace.indexOf(entry);
+    expect(position("pool.create")).toBeLessThan(position("dbos.client.create"));
+    expect(position("dbos.client.create")).toBeLessThan(position("dbos.registerQueue"));
+    expect(position("dbos.registerQueue")).toBeLessThan(
+      position("dbos.client.destroy"),
+    );
+    expect(position("dbos.client.destroy")).toBeLessThan(position("dbos.setConfig"));
+    expect(position("dbos.setConfig")).toBeLessThan(position("dbos.launch"));
+    expect(fixture.pools[0]?.ended()).toBe(false);
+
+    await runtime.close();
+  });
+
+  it("rejects a persisted queue mismatch before DBOS launch", async () => {
+    const authority = authorityFixture();
+    const fixture = runtimeFixture(true);
+    const runtime = createDurableExecutionRuntimeForTests(
+      authority.authority,
+      runtimeOptions,
+      executor(),
+      fixture.dependencies,
+    );
+
+    await expect(runtime.start()).rejects.toMatchObject({
+      problem: { problemCode: "durable_execution.queue_profile_mismatch" },
+    });
+    expect(runtime.state).toBe("FAILED");
+    expect(fixture.trace).toContain("dbos.client.create");
+    expect(fixture.trace).toContain("dbos.registerQueue");
+    expect(fixture.trace).toContain("dbos.client.destroy");
+    expect(fixture.trace).toContain("pool.end");
+    expect(fixture.trace).not.toContain("dbos.setConfig");
+    expect(fixture.trace).not.toContain("dbos.launch");
   });
 
   it("rejects dispatch outside OPEN and after the Host authority is fenced", async () => {
