@@ -27,8 +27,14 @@ import {
   type WorkHandlerResolver,
   validateWorkQueueRuntimeOptions,
 } from "./service.js";
-import type { WorkItemScanCursor, WorkQueueRepository } from "./repository.js";
+import type { WorkQueueRepository } from "./repository.js";
 import { workQueueProblem } from "./problems.js";
+import type { WorkQueueRecoveryCoordinator } from "./recovery-coordinator.js";
+import {
+  readFairWorkItemPage,
+  resetFairScanLane,
+  type FairScanLane,
+} from "./fair-scan.js";
 
 const WORK_AVAILABLE_TOPIC = createSignalTopic("work.available");
 
@@ -42,6 +48,8 @@ export interface WorkQueueReconcilerOptions {
   readonly execution: ExecutionContextRuntime;
   readonly time: TimeService;
   readonly runtimeOptions: WorkQueueRuntimeOptions;
+  /** Optional H3A-2 engine-consistency lane owned by this scan gate. */
+  readonly recovery?: WorkQueueRecoveryCoordinator;
   readonly onBackgroundError: (error: unknown) => void;
 }
 
@@ -87,19 +95,6 @@ function dispatchRequest(item: WorkItem): DurableDispatchRequest {
   };
 }
 
-interface FairScanLane {
-  after?: WorkItemScanCursor;
-  through?: WorkItemScanCursor;
-}
-
-function itemCursor(item: WorkItem): WorkItemScanCursor {
-  return { createdAt: item.createdAt, workItemId: item.workItemId };
-}
-
-function sameCursor(left: WorkItemScanCursor, right: WorkItemScanCursor): boolean {
-  return left.createdAt === right.createdAt && left.workItemId === right.workItemId;
-}
-
 /** Create a reconciler whose signal and anti-entropy paths share one scan gate. */
 export function createWorkQueueReconciler(
   options: WorkQueueReconcilerOptions,
@@ -127,45 +122,6 @@ export function createWorkQueueReconciler(
   let scanPromise: Promise<ReconciliationScanResult> | undefined;
   const projectionLane: FairScanLane = {};
   const waitingDependencyLane: FairScanLane = {};
-
-  const resetLane = (lane: FairScanLane): void => {
-    delete lane.after;
-    delete lane.through;
-  };
-
-  const readFairPage = async (
-    lane: FairScanLane,
-    snapshotCeiling: () => Promise<WorkItemScanCursor | undefined>,
-    readPage: (input: {
-      readonly after?: WorkItemScanCursor;
-      readonly through: WorkItemScanCursor;
-      readonly limit: number;
-    }) => Promise<readonly WorkItem[]>,
-  ): Promise<readonly WorkItem[]> => {
-    if (lane.through === undefined) {
-      const through = await snapshotCeiling();
-      if (through === undefined) return [];
-      lane.through = through;
-      delete lane.after;
-    }
-    const through = lane.through;
-    const page = await readPage({
-      ...(lane.after === undefined ? {} : { after: lane.after }),
-      through,
-      limit: options.runtimeOptions.reconciliationBatchSize,
-    });
-    const last = page.at(-1);
-    if (
-      last === undefined ||
-      page.length < options.runtimeOptions.reconciliationBatchSize ||
-      sameCursor(itemCursor(last), through)
-    ) {
-      resetLane(lane);
-    } else {
-      lane.after = itemCursor(last);
-    }
-    return page;
-  };
 
   const reportScanFailure = (): void => {
     report(
@@ -224,10 +180,11 @@ export function createWorkQueueReconciler(
       }
     }
 
-    const waiting = await readFairPage(
+    const waiting = await readFairWorkItemPage(
       waitingDependencyLane,
       () => options.repository.snapshotWaitingDependencyCeiling(),
       (input) => options.repository.listWaitingDependency(input),
+      options.runtimeOptions.reconciliationBatchSize,
     );
     for (const item of waiting) {
       if (options.handlerRegistry.resolve(item.handler) === undefined) continue;
@@ -242,10 +199,11 @@ export function createWorkQueueReconciler(
       }
     }
 
-    const pending = await readFairPage(
+    const pending = await readFairWorkItemPage(
       projectionLane,
       () => options.repository.snapshotProjectionCeiling(),
       (input) => options.repository.listProjectionCandidates(input),
+      options.runtimeOptions.reconciliationBatchSize,
     );
     const candidates = new Map<string, WorkItem>();
     for (const item of [...awakened, ...pending]) {
@@ -285,6 +243,18 @@ export function createWorkQueueReconciler(
           options.onBackgroundError,
           "work.dispatch.failed",
           "Durable dispatch projection failed; the canonical WorkItem remains recoverable",
+        );
+      }
+    }
+
+    if (options.recovery !== undefined) {
+      try {
+        await options.recovery.scan();
+      } catch {
+        report(
+          options.onBackgroundError,
+          "work.recovery.scan_failed",
+          "RUNNING engine-consistency scan failed; canonical WorkItem state remains authoritative",
         );
       }
     }
@@ -342,8 +312,9 @@ export function createWorkQueueReconciler(
       subscription = undefined;
       await currentSubscription?.close();
       await scanPromise?.catch(() => undefined);
-      resetLane(projectionLane);
-      resetLane(waitingDependencyLane);
+      resetFairScanLane(projectionLane);
+      resetFairScanLane(waitingDependencyLane);
+      options.recovery?.reset();
     },
   };
 }

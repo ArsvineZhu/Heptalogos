@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  asDurableCodeVersion,
   asContentDigest,
   createActivityId,
   createContinuityEpochId,
@@ -23,6 +24,9 @@ import {
 } from "../../src/index.js";
 
 const now = "2026-08-29T00:00:00.000Z" as Instant;
+const durableCodeVersion = asDurableCodeVersion(
+  digestCanonicalJson("test/recovery-durable-code/v1", { version: "current" }),
+);
 
 function digest<T extends "ProductGenerationId" | "PackageGenerationId">(
   brand: T,
@@ -36,7 +40,7 @@ function digest<T extends "ProductGenerationId" | "PackageGenerationId">(
     : PackageGenerationId;
 }
 
-function runningItem(): WorkItem {
+function runningItem(overrides: Partial<WorkItem> = {}): WorkItem {
   const workItemId = createWorkItemId();
   const dispatchRevision = 1;
   const continuityEpochId = createContinuityEpochId();
@@ -72,14 +76,37 @@ function runningItem(): WorkItem {
     state: "RUNNING",
     createdAt: now,
     updatedAt: now,
+    ...overrides,
   };
 }
 
-function repository(item: WorkItem): WorkQueueRepository {
-  const through = { createdAt: item.createdAt, workItemId: item.workItemId };
+function cursor(item: WorkItem) {
+  return { createdAt: item.createdAt, workItemId: item.workItemId };
+}
+
+function repository(items: readonly WorkItem[]): WorkQueueRepository {
   return {
-    snapshotRunningCeiling: vi.fn(async () => through),
-    listRunning: vi.fn(async () => [item]),
+    snapshotRunningCeiling: vi.fn(async () => cursor(items.at(-1)!)),
+    listRunning: vi.fn(async ({ after, through, limit }) =>
+      [...items]
+        .sort((left, right) =>
+          `${left.createdAt}\u0000${left.workItemId}`.localeCompare(
+            `${right.createdAt}\u0000${right.workItemId}`,
+          ),
+        )
+        .filter((item) => {
+          const itemKey = `${item.createdAt}\u0000${item.workItemId}`;
+          const afterKey =
+            after === undefined
+              ? undefined
+              : `${after.createdAt}\u0000${after.workItemId}`;
+          const throughKey = `${through.createdAt}\u0000${through.workItemId}`;
+          return (
+            (afterKey === undefined || itemKey > afterKey) && itemKey <= throughKey
+          );
+        })
+        .slice(0, limit),
+    ),
   } as unknown as WorkQueueRepository;
 }
 
@@ -101,7 +128,7 @@ describe("WorkQueue RUNNING recovery coordinator", () => {
         ),
       };
       const coordinator = createWorkQueueRecoveryCoordinator({
-        repository: repository(item),
+        repository: repository([item]),
         durableInspection: inspection,
         onBackgroundError: (error) => errors.push(error),
         batchSize: 10,
@@ -135,7 +162,7 @@ describe("WorkQueue RUNNING recovery coordinator", () => {
       })),
     };
     const coordinator = createWorkQueueRecoveryCoordinator({
-      repository: repository(item),
+      repository: repository([item]),
       durableInspection: inspection,
       onBackgroundError: (error) => errors.push(error),
       batchSize: 10,
@@ -151,7 +178,7 @@ describe("WorkQueue RUNNING recovery coordinator", () => {
       activeAttemptId: createDispatchAttemptId(item.workItemId, 2),
     };
     const inconsistentCoordinator = createWorkQueueRecoveryCoordinator({
-      repository: repository(inconsistent),
+      repository: repository([inconsistent]),
       durableInspection: inspection,
       onBackgroundError: (error) => errors.push(error),
       batchSize: 10,
@@ -162,5 +189,115 @@ describe("WorkQueue RUNNING recovery coordinator", () => {
       reported: 1,
     });
     expect(Reflect.get(inspection, "inspect")).toHaveBeenCalledTimes(1);
+  });
+
+  it("advances a fair RUNNING page and keeps one stable ceiling per cycle", async () => {
+    const items = [
+      runningItem({ createdAt: "2026-08-29T00:00:00.000Z" as Instant }),
+      runningItem({ createdAt: "2026-08-29T00:00:01.000Z" as Instant }),
+      runningItem({ createdAt: "2026-08-29T00:00:02.000Z" as Instant }),
+    ];
+    const errors: unknown[] = [];
+    const inspection: DurableAttemptInspectionPort = {
+      inspect: vi.fn(async () => ({
+        kind: "ACTIVE" as const,
+        applicationVersion: durableCodeVersion,
+      })),
+    };
+    const repo = repository(items);
+    const coordinator = createWorkQueueRecoveryCoordinator({
+      repository: repo,
+      durableInspection: inspection,
+      onBackgroundError: (error) => errors.push(error),
+      batchSize: 2,
+    });
+
+    await expect(coordinator.scan()).resolves.toMatchObject({ scanned: 2 });
+    await expect(coordinator.scan()).resolves.toMatchObject({ scanned: 1 });
+
+    expect(Reflect.get(repo, "snapshotRunningCeiling")).toHaveBeenCalledTimes(1);
+    expect(Reflect.get(repo, "listRunning")).toHaveBeenNthCalledWith(1, {
+      through: cursor(items[2]!),
+      limit: 2,
+    });
+    expect(Reflect.get(repo, "listRunning")).toHaveBeenNthCalledWith(2, {
+      after: cursor(items[1]!),
+      through: cursor(items[2]!),
+      limit: 2,
+    });
+    expect(Reflect.get(inspection, "inspect")).toHaveBeenCalledTimes(3);
+    expect(errors).toHaveLength(0);
+  });
+
+  it("does not move a running cycle ceiling when a new tail row arrives", async () => {
+    const items = [
+      runningItem({ createdAt: "2026-08-29T00:00:00.000Z" as Instant }),
+      runningItem({ createdAt: "2026-08-29T00:00:01.000Z" as Instant }),
+      runningItem({ createdAt: "2026-08-29T00:00:02.000Z" as Instant }),
+    ];
+    const tail = runningItem({ createdAt: "2026-08-29T00:01:00.000Z" as Instant });
+    let rows = [...items];
+    const errors: unknown[] = [];
+    const inspection: DurableAttemptInspectionPort = {
+      inspect: vi.fn(async () => ({
+        kind: "ACTIVE" as const,
+        applicationVersion: durableCodeVersion,
+      })),
+    };
+    const repo = {
+      ...repository(rows),
+      snapshotRunningCeiling: vi.fn(async () => cursor(rows.at(-1)!)),
+      listRunning: vi.fn(async ({ after, through, limit }) =>
+        repository(rows).listRunning({ after, through, limit }),
+      ),
+    } as unknown as WorkQueueRepository & {
+      readonly snapshotRunningCeiling: ReturnType<typeof vi.fn>;
+      readonly listRunning: ReturnType<typeof vi.fn>;
+    };
+    const coordinator = createWorkQueueRecoveryCoordinator({
+      repository: repo,
+      durableInspection: inspection,
+      onBackgroundError: (error) => errors.push(error),
+      batchSize: 2,
+    });
+
+    await coordinator.scan();
+    rows = [...items, tail];
+    await coordinator.scan();
+
+    expect(Reflect.get(repo, "snapshotRunningCeiling")).toHaveBeenCalledTimes(1);
+    expect(Reflect.get(inspection, "inspect")).toHaveBeenCalledTimes(3);
+    expect(errors).toHaveLength(0);
+  });
+
+  it("resets the fair RUNNING lane so the next scan starts a new cycle", async () => {
+    const items = [
+      runningItem({ createdAt: "2026-08-29T00:00:00.000Z" as Instant }),
+      runningItem({ createdAt: "2026-08-29T00:00:01.000Z" as Instant }),
+      runningItem({ createdAt: "2026-08-29T00:00:02.000Z" as Instant }),
+    ];
+    const inspection: DurableAttemptInspectionPort = {
+      inspect: vi.fn(async () => ({
+        kind: "ACTIVE" as const,
+        applicationVersion: durableCodeVersion,
+      })),
+    };
+    const repo = repository(items);
+    const coordinator = createWorkQueueRecoveryCoordinator({
+      repository: repo,
+      durableInspection: inspection,
+      onBackgroundError: () => undefined,
+      batchSize: 2,
+    });
+
+    await coordinator.scan();
+    coordinator.reset();
+    await coordinator.scan();
+
+    expect(Reflect.get(repo, "snapshotRunningCeiling")).toHaveBeenCalledTimes(2);
+    expect(Reflect.get(repo, "listRunning")).toHaveBeenNthCalledWith(2, {
+      through: cursor(items[2]!),
+      limit: 2,
+    });
   });
 });

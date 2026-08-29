@@ -35,6 +35,7 @@ import {
   type WorkItem,
   type WorkQueueRepository,
   type WorkQueueRuntimeOptions,
+  type WorkQueueRecoveryCoordinator,
 } from "../../src/index.js";
 import type { WorkItemScanCursor } from "../../src/repository.js";
 
@@ -218,6 +219,7 @@ function reconcilerFixture(
   waiting: readonly WorkItem[] = [],
   dispatchAdmission: WorkDispatchAdmissionDecision = { decision: "ALLOW" },
   reconciliationBatchSize = 10,
+  recovery?: WorkQueueRecoveryCoordinator,
 ) {
   const context = executionContext();
   const repository = repositoryFor(pending, dueRetry, waiting);
@@ -264,6 +266,7 @@ function reconcilerFixture(
       reconciliationBatchSize,
       antiEntropyIntervalMs: 100,
     } satisfies WorkQueueRuntimeOptions,
+    ...(recovery === undefined ? {} : { recovery }),
     onBackgroundError: (error) => backgroundErrors.push(error),
   });
   return {
@@ -601,5 +604,20 @@ describe("WorkQueue reconciliation", () => {
     expect(fixture.repository.wakeDependency).not.toHaveBeenCalled();
     expect(fixture.dispatches).toHaveLength(1);
     expect(fixture.dispatches[0]?.dispatchRevision).toBe(4);
+  });
+
+  it("runs the optional RUNNING recovery lane through the shared scan gate", async () => {
+    const recovery = {
+      scan: vi.fn(async () => ({ scanned: 1, healthy: 1, reported: 0 })),
+      reset: vi.fn(),
+    } satisfies WorkQueueRecoveryCoordinator;
+    const fixture = reconcilerFixture([], [], [], { decision: "ALLOW" }, 10, recovery);
+
+    await fixture.reconciler.start();
+    await fixture.reconciler.scan();
+    await fixture.reconciler.stop();
+
+    expect(recovery.scan).toHaveBeenCalledTimes(2);
+    expect(recovery.reset).toHaveBeenCalledTimes(1);
   });
 });

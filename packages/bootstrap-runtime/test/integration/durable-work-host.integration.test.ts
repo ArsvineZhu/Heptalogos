@@ -46,11 +46,13 @@ import {
   createWorkAttemptExecutor,
   createDispatchAttemptId,
   createWorkQueueProfileCatalog,
+  createWorkQueueRecoveryCoordinator,
   createWorkQueueReconciler,
   createWorkQueueService,
   type WorkAdmissionPort,
   type DurableDispatchRequest,
   type DurableAttemptInspectionPort,
+  type WorkAttemptExecutor,
   type WorkErrorClassifier,
   type WorkItem,
   type WorkQueueProfileCatalog,
@@ -177,6 +179,7 @@ interface Composition {
     dispatch(request: DurableDispatchRequest): Promise<void>;
   };
   readonly durableInspection?: DurableAttemptInspectionPort;
+  readonly recoveryErrors: unknown[];
   readonly target: WorkHandlerTarget;
   readonly descriptor: WorkHandlerProvisionDescriptor;
   readonly handlerCalls: RuntimeWorkHandlerInvocation[];
@@ -197,6 +200,7 @@ async function createComposition(
     readonly profiles?: WorkQueueProfileCatalog;
     readonly admission?: WorkAdmissionPort;
     readonly handler?: RuntimeWorkHandler;
+    readonly runtimeOptions?: WorkQueueRuntimeOptions;
   } = {},
 ): Promise<Composition> {
   const bootResult = await boot(
@@ -204,6 +208,7 @@ async function createComposition(
     options.durableExecution ? initializeCanonicalAndDurable : undefined,
   );
   const profileCatalog = options.profiles ?? PROFILE_CATALOG;
+  const workOptions = options.runtimeOptions ?? WORK_OPTIONS;
   const time = createFakeTimeService(parseInstant(initialTime)!);
   const runtime = createExecutionContextRuntime(
     {
@@ -331,7 +336,7 @@ async function createComposition(
     signalPublisher: postgresSignalPublisher,
     admission,
     profiles: profileCatalog,
-    runtimeOptions: WORK_OPTIONS,
+    runtimeOptions: workOptions,
     onBackgroundError() {},
   });
   const executor = createWorkAttemptExecutor({
@@ -341,7 +346,7 @@ async function createComposition(
     lineage,
     time,
     classifier,
-    runtimeOptions: WORK_OPTIONS,
+    runtimeOptions: workOptions,
   });
   const durable = options.durableExecution
     ? createDurableExecutionRuntime(
@@ -353,6 +358,15 @@ async function createComposition(
   const durableInspection = durable
     ? createDbosAttemptInspectionPort({
         durableCodeVersion: DURABLE_CODE_VERSION,
+      })
+    : undefined;
+  const recoveryErrors: unknown[] = [];
+  const recovery = durableInspection
+    ? createWorkQueueRecoveryCoordinator({
+        repository,
+        durableInspection,
+        onBackgroundError: (error) => recoveryErrors.push(error),
+        batchSize: workOptions.reconciliationBatchSize,
       })
     : undefined;
   const realDurableDispatch = durable
@@ -381,7 +395,8 @@ async function createComposition(
     signal,
     execution: runtime,
     time,
-    runtimeOptions: WORK_OPTIONS,
+    runtimeOptions: workOptions,
+    ...(recovery === undefined ? {} : { recovery }),
     onBackgroundError() {},
   });
   return {
@@ -400,6 +415,7 @@ async function createComposition(
     durable,
     durableDispatch,
     durableInspection,
+    recoveryErrors,
     target,
     descriptor,
     handlerCalls,
@@ -2340,6 +2356,95 @@ describePostgres.sequential("Real DBOS durable execution qualification", () => {
     expect(second.bootResult.host.instanceId).toBe(first.bootResult.host.instanceId);
     expect(firstRow.executor_id).toBe(first.bootResult.host.instanceId);
     expect(secondRow.executor_id).toBe(firstRow.executor_id);
+  }, 240_000);
+
+  it("reconciles RUNNING engine contradictions through fair authentic scans", async () => {
+    const fixture = await makeFixture();
+    activeComposition = await createComposition(fixture, {
+      durableExecution: true,
+      runtimeOptions: { ...WORK_OPTIONS, reconciliationBatchSize: 2 },
+    });
+    const composition = activeComposition;
+    const created = await Promise.all(
+      Array.from({ length: 3 }, (_, index) =>
+        createWork(composition, composition.target, {
+          dedupKey: `running-recovery-${index}`,
+        }),
+      ),
+    );
+    const runningItems: WorkItem[] = [];
+    for (const value of created) {
+      const result = await runCanonicalMutation(
+        composition,
+        "qualification.work.running.recovery",
+        () =>
+          composition.repository.markRunning({
+            workItemId: value.item.workItemId,
+            expectedDispatchRevision: value.item.dispatchRevision,
+            activeAttemptId: createDispatchAttemptId(
+              value.item.workItemId,
+              value.item.dispatchRevision,
+            ),
+            updatedAt: initialTime,
+          }),
+      );
+      if (result.item === undefined)
+        throw new Error("RUNNING WorkItem was not returned");
+      runningItems.push(result.item);
+    }
+
+    const failingExecutor: WorkAttemptExecutor = {
+      async execute() {
+        throw new Error("engine contradiction qualification failure");
+      },
+    };
+    const failingRuntime = createDurableExecutionRuntime(
+      composition.bootResult.host.durableExecution,
+      { ...DURABLE_OPTIONS, profiles: PROFILE_CATALOG },
+      failingExecutor,
+    );
+    const failingDispatch = createDurableDispatchPort({
+      authority: composition.bootResult.host.durableExecution,
+      lifecycle: failingRuntime,
+      durableCodeVersion: DURABLE_CODE_VERSION,
+      profiles: PROFILE_CATALOG,
+      now: () => composition.time.now(),
+    });
+
+    try {
+      await failingRuntime.start();
+      await Promise.all(
+        runningItems.map((item) => failingDispatch.dispatch(durableRequest(item))),
+      );
+      await waitUntil(async () => {
+        const statuses = await Promise.all(
+          runningItems.map(
+            async (item) =>
+              (
+                await durableWorkflowRow(
+                  fixture,
+                  `heptalogos.work.${createDispatchAttemptId(item.workItemId, item.dispatchRevision)}`,
+                )
+              )?.status,
+          ),
+        );
+        return statuses.every((status) => status === "ERROR");
+      });
+
+      await composition.reconciler.start();
+      expect(composition.recoveryErrors.length).toBeGreaterThanOrEqual(2);
+      await composition.reconciler.scan();
+      expect(composition.recoveryErrors.length).toBeGreaterThanOrEqual(3);
+      for (const item of runningItems) {
+        await expect(
+          composition.repository.getWorkItem(item.workItemId),
+        ).resolves.toMatchObject({
+          state: "RUNNING",
+        });
+      }
+    } finally {
+      await failingRuntime.close().catch(() => undefined);
+    }
   }, 240_000);
 
   it("T12 rejects new work before it can create a canonical or DBOS row", async () => {

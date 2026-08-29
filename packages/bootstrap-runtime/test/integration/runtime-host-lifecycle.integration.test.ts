@@ -21,6 +21,7 @@ import { createFakeTimeService } from "@heptalogos/time-service";
 import { createRuntimeSubstrate } from "@heptalogos/runtime-substrate";
 import { createCanonicalSchemaInitializer } from "@heptalogos/canonical-schema";
 import {
+  createDbosAttemptInspectionPort,
   createDurableDispatchPort,
   createDurableExecutionRuntime,
   createDurableExecutionSchemaProvisioner,
@@ -48,6 +49,7 @@ import {
   createDispatchAttemptId,
   createWorkAttemptExecutor,
   createWorkQueueProfileCatalog,
+  createWorkQueueRecoveryCoordinator,
   createWorkQueueReconciler,
   createWorkQueueService,
   type WorkAdmissionPort,
@@ -866,6 +868,15 @@ async function createDurableLifecycleComposition(
     durableLifecycleOptions(options.shutdownDrainTimeoutMs ?? 10_000),
     executor,
   );
+  const durableInspection = createDbosAttemptInspectionPort({
+    durableCodeVersion: durableLifecycleCodeVersion,
+  });
+  const recovery = createWorkQueueRecoveryCoordinator({
+    repository,
+    durableInspection,
+    onBackgroundError() {},
+    batchSize: durableLifecycleWorkOptions.reconciliationBatchSize,
+  });
   const durableDispatch = createDurableDispatchPort({
     authority: bootResult.host.durableExecution,
     lifecycle: durable,
@@ -882,6 +893,7 @@ async function createDurableLifecycleComposition(
     execution: runtime,
     time,
     runtimeOptions: durableLifecycleWorkOptions,
+    recovery,
     onBackgroundError() {},
   });
   return {

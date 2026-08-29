@@ -11,6 +11,7 @@ import {
 } from "@heptalogos/foundation-contracts";
 import { createCanonicalSchemaInitializer } from "@heptalogos/canonical-schema";
 import {
+  createDbosAttemptInspectionPort,
   createDurableExecutionRuntime,
   createDurableExecutionSchemaProvisioner,
   createDurableDispatchPort,
@@ -43,6 +44,7 @@ import {
   createDispatchAttemptId,
   createWorkAttemptExecutor,
   createWorkQueueProfileCatalog,
+  createWorkQueueRecoveryCoordinator,
   createWorkQueueReconciler,
   createWorkQueueService,
   type WorkAttemptExecutor,
@@ -534,6 +536,17 @@ async function main(): Promise<void> {
     profiles: profileCatalog,
     now: () => time.now(),
   });
+  const durableInspection = createDbosAttemptInspectionPort({
+    durableCodeVersion,
+  });
+  const recovery = createWorkQueueRecoveryCoordinator({
+    repository,
+    durableInspection,
+    onBackgroundError(error: unknown) {
+      emit({ type: "BACKGROUND_ERROR", message: String(error) });
+    },
+    batchSize: workOptions.reconciliationBatchSize,
+  });
   const reconciler = createWorkQueueReconciler({
     repository,
     durableDispatch: dispatch,
@@ -543,6 +556,7 @@ async function main(): Promise<void> {
     execution,
     time,
     runtimeOptions: workOptions,
+    recovery,
     onBackgroundError(error: unknown) {
       emit({ type: "BACKGROUND_ERROR", message: String(error) });
     },

@@ -12,6 +12,11 @@ import type {
 } from "./contracts.js";
 import type { WorkQueueRepository } from "./repository.js";
 import { workQueueProblem } from "./problems.js";
+import {
+  readFairWorkItemPage,
+  resetFairScanLane,
+  type FairScanLane,
+} from "./fair-scan.js";
 
 /** Counts one bounded diagnostic scan of canonical RUNNING work. */
 export interface WorkQueueRecoveryScanResult {
@@ -24,6 +29,8 @@ export interface WorkQueueRecoveryScanResult {
 export interface WorkQueueRecoveryCoordinator {
   /** Inspect one bounded page without mutating canonical WorkItem state. */
   scan(): Promise<WorkQueueRecoveryScanResult>;
+  /** Reset transient fair-scan state before the owner starts again. */
+  reset(): void;
 }
 
 function report(
@@ -101,14 +108,19 @@ export function createWorkQueueRecoveryCoordinator(options: {
     );
   }
 
+  const lane: FairScanLane = {};
+
   return {
+    reset() {
+      resetFairScanLane(lane);
+    },
     async scan() {
-      const through = await options.repository.snapshotRunningCeiling();
-      if (through === undefined) return { scanned: 0, healthy: 0, reported: 0 };
-      const items = await options.repository.listRunning({
-        through,
-        limit: options.batchSize,
-      });
+      const items = await readFairWorkItemPage(
+        lane,
+        () => options.repository.snapshotRunningCeiling(),
+        (input) => options.repository.listRunning(input),
+        options.batchSize,
+      );
       let healthy = 0;
       let reported = 0;
       for (const item of items) {
