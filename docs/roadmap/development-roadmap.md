@@ -342,9 +342,9 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 
 ```yaml
 H3: OPEN
-H3A: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+H3A: REVIEW_CORRECTION_IN_PROGRESS
 H3A_1: CLOSED
-H3A_2: IMPLEMENTATION_COMPLETE_AWAITING_REVIEW
+H3A_2: REVIEW_CORRECTION_IN_PROGRESS
 H3B: NOT_ELIGIBLE
 H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
@@ -360,13 +360,15 @@ final manual CI remain `NOT_RUN`; they are not inferred from the GitHub merge
 fact. H3A-2 is now active under its decision-complete DBOS durable execution
 and crash recovery plan.
 
-The H3A-2 implementation is complete and awaiting its external review gate.
-Current local evidence covers the exact DBOS adapter, canonical WorkItem
-authority, dedicated database role/schema, queue projection and admission
-mechanics, process crash recovery, and Host lifecycle integration. The real
-qualification passed on Windows and Ubuntu/Linux with PostgreSQL 18.6;
-ResourceGovernor/PressureSnapshot, source-less execution, and service/headless
-execution remain `NOT_RUN` and are not implied by those PASS results.
+The prior H3A-2 candidate received an external `REQUEST_CHANGES` verdict. The
+current correction branch is Draft and unfrozen. Its earlier evidence covers
+the exact DBOS adapter, canonical WorkItem authority, dedicated database
+role/schema, queue projection and admission mechanics, process crash recovery,
+and Host lifecycle integration, including real PostgreSQL 18.6 runs on Windows
+and Ubuntu/Linux. Those observations are historical for that reviewed
+candidate until the bounded corrections are requalified. ResourceGovernor/
+PressureSnapshot, source-less execution, and service/headless execution remain
+`NOT_RUN` and are not implied by those historical PASS results.
 
 ### Implementation decomposition
 

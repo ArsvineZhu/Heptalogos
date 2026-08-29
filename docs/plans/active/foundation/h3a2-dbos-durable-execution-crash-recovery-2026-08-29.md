@@ -3,7 +3,7 @@
 ## Decision-Complete Implementation & Qualification Plan
 
 **Plan date:** 2026-08-29  
-**Status:** ACTIVE  
+**Status:** ACTIVE — REVIEW CORRECTION / CURRENT CANDIDATE DRAFT
 **Roadmap position:** H3 — Survive Asynchrony → H3A-2  
 **Scope:** real DBOS durable execution, WorkItem engine projection, process-crash recovery, durable-engine authority isolation, Host lifecycle integration  
 **Authority:** subordinate to the current Architecture Corpus; once explicitly activated, this file is the sole implementation-plan Authority for H3A-2  
@@ -16,6 +16,77 @@
 > Local code organization is discretionary only when alternatives are semantically equivalent and do not change a contract, owner, dependency direction, persisted shape, stable identity, lifecycle, or evidence claim.
 >
 > If implementation evidence contradicts a locked decision in a non-trivial way, stop with `PLAN_GAP` and provide the smallest concrete counter-evidence. Do not improvise a fallback provider, second scheduler, compatibility path, alternate Authority, or later-horizon subsystem.
+
+---
+
+## 0.1 Independent Review correction amendment
+
+This amendment is part of this active H3A-2 implementation plan. The named
+Independent Review correction document is an execution procedure and is not a
+second implementation-plan Authority.
+
+```yaml
+reviewDisposition: REQUEST_CHANGES
+currentCandidateLifecycle: DRAFT
+currentCandidateFreeze: NOT_RUN
+currentCandidateIndependentReview: NOT_RUN
+githubActions: NOT_ENABLED_OR_REQUIRED
+```
+
+The prior H3A-2 candidate's implementation and qualification observations are
+historical for that candidate. They do not freeze, review, or close the
+corrected candidate. The current branch must remain mutable until all
+corrections and affected qualification reruns are complete.
+
+### Review findings and locked dispositions
+
+| Finding | Disposition |
+| --- | --- |
+| `IR-H3A2-01` — RUNNING recovery coordinator was not authentically composed | Integrate it into the existing WorkQueue reconciliation owner; no second scheduler or timer. |
+| `IR-H3A2-02` — RUNNING scan reread page one and could starve later rows | Add bounded fair `{ through, after }` progression with a stable cycle ceiling and reset semantics. |
+| `IR-H3A2-03` — queue mismatch was detected after worker launch | Preflight every persisted queue through the public DBOS client before `DBOS.launch()`; never overwrite a mismatch. |
+| `IR-H3A2-04` — maintenance failure could leave an ACTIVE but dead Host | Make pre-entry quiescence reversible; otherwise terminally fence the Host. |
+| `IR-H3A2-05` — teardown could race active invocation settlement | Never release the DBOS binding or pool while an admitted invocation remains active; separate reversible drain from destructive teardown. |
+| `IR-H3A2-06` — close from CREATED was non-terminal | Make `close()` terminal, idempotent, and valid from every nonterminal lifecycle state. |
+| `IR-H3A2-07` — least-privilege proof covered only named relations | Enumerate the complete current product schema, including relation kinds and executable privileges where relevant. |
+| `IR-H3A2-08` — candidate freeze was ambiguously projected | Scope candidate lifecycle under an explicit H3A-2 candidate object; keep the current candidate Draft/unfrozen until the external gate. |
+| `IR-H3A2-09` — durable-execution README carried stale qualification wording | Keep package documentation permanent and semantic; refer to the qualification record for current evidence. |
+| `IR-H3A2-10` — permanent tests retained stage matrix labels | Rename current test identities to semantic behavior names; retain matrix labels only in historical plan/evidence prose. |
+| `IR-H3A2-11` — current-candidate prose was inconsistent | Reconcile current and historical evidence without promoting unrun or stale claims. |
+
+### Locked correction semantics
+
+The correction preserves DBOS Queue, WorkItem Authority, deterministic
+dispatch identity, dedicated database isolation, static workflow dispatch,
+PRE_PRODUCTION no-compatibility policy, and the effect-free H3A scope. It adds
+only these bounded closures:
+
+```text
+RUNNING recovery is one fair lane of the existing WorkQueue reconciliation;
+queue-profile preflight completes before DBOS worker launch;
+maintenance quiescence has a reversible pre-entry phase and an explicit
+terminal/fenced fallback after any irreversible provider failure;
+binding and pool teardown wait for active invocation settlement;
+DurableExecution close is terminal from CREATED, OPEN, QUIESCED, or FAILED;
+least-privilege qualification enumerates the closed current product schema;
+candidate lifecycle and evidence are scoped to the exact current candidate.
+```
+
+### Forward product constraints — RECORD ONLY / DEFERRED
+
+The following recovered direction is recorded to constrain this correction but
+is not executable H3A-2 scope: one front-end application may use Browser and
+Desktop Presentation Shell carriers; Electron is a preferred future shell
+implementation; Core remains complete without the shell; Server is packaging,
+not a domain mode; Windows, macOS, Linux, and Linux Server are distribution
+presets rather than separate codebases; Desktop Presentation is a product
+component rather than an Extension; application-owned chrome and native window
+semantics are future presentation concerns; platform visual qualification,
+remote Web exposure, and source-less/service distribution remain deferred.
+
+No correction task may add Electron/Desktop/Distribution work, H3B
+EffectOperation, H4 Configuration/Management, H8 ResourceGovernor, GitHub
+Actions, or another scheduler/engine.
 
 ---
 

@@ -8,10 +8,16 @@ preImplementationDecisionState: CLOSED
 roleDecision: ADOPTED
 implementationQualification: REQUIRED
 selectedRoute: "DBOS Queue"
-candidateFreeze: PASS
-independentReview: NOT_RUN
-h3a1_merge: PASS
-h3a1_governance_recovery: PASS
+h3a2Candidate:
+  lifecycle: DRAFT
+  branch: dev/h3a2-durable-recovery
+  freeze: NOT_RUN
+  independentReview: NOT_RUN
+  finalManualVerification: NOT_RUN
+h3a1Candidate:
+  merge: PASS
+  governanceRecovery: PASS
+h3a2ReviewDisposition: REQUEST_CHANGES
 ```
 
 ## Observed properties
