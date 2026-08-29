@@ -66,6 +66,12 @@ composition covers DBOS queue/admission behavior, process crash recovery, and
 Host lifecycle settlement; product platform/source-less claims remain
 separately scoped in the durable-execution qualification record.
 
+The Foundation process-level composition proof is the explicit
+`pnpm nx run bootstrap-runtime:test:foundation-spine` qualification target. It
+uses real Bootstrap, Host ownership, PostgreSQL, Runtime, WorkQueue, DBOS, and
+canonical WorkItem construction; it is not a claim that the H6 Product Runtime
+or Subject vertical slice exists.
+
 ## Architecture references
 
 - [`S01 — 启动、恢复与运行时监督`](../../docs/architecture/contracts/startup-recovery-runtime-supervision.md)

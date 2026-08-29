@@ -491,3 +491,20 @@ read Secret plaintext
 bypass Policy/Approval
 mutate runtime graph
 ```
+
+## 14. Browser/Desktop carrier convergence
+
+Browser UI 与 Desktop UI 是同一个 front-end application 的不同 carrier，
+不是两套 product architecture。Presentation 始终是 projection/client，不拥有
+System、Subject 或 Host Authority；多个 Presentation client 收敛到同一个
+Management/System Authority。
+
+Desktop shell 的 main/preload code 也不能绕过 Management/System Authority。
+关闭或卸载 Desktop Presentation shell 不会停止或删除 Host、Subject 或 durable
+product data。
+
+Application-owned visual chrome 可以与 platform-owned window semantics 共存。Native
+snapping、accessibility、fullscreen、DPI 与 window behavior 仍由 platform 负责。
+Electron 是未来 Desktop shell 的 preferred direction，因为 Chromium/render
+determinism 有价值；但 Electron 是可替换的 implementation technology，不是
+product identity。

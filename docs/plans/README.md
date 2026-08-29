@@ -21,17 +21,34 @@ semantic ownership, package/dependency boundaries, compatibility, durable
 shape, stable identity, lifecycle/failure semantics, stage scope and required
 evidence.
 
+Every future non-trivial active plan must also state:
+
+```text
+Current Horizon / maturity
+Executable Truth target
+Authorized failure classes
+Explicit deferred failure classes
+Complexity admission for new high-risk mechanics
+Non-goals
+Stop conditions
+```
+
+A plan that says “make robust”, “handle all edge cases”, “production-grade”, or
+“for safety” without a bounded failure/threat model is not decision-complete.
+Do not create a plan-lint framework or another meta-engine to check these headings.
+
 The executor may choose only semantics-equivalent local implementation details.
 An unresolved non-trivial choice is `PLAN_GAP` and stops execution.
 
 ## Active
 
-- [H3A-2 — DBOS Durable Execution & Crash Recovery](active/foundation/h3a2-dbos-durable-execution-crash-recovery-2026-08-29.md) — `ACTIVE` (DBOS durable execution, WorkItem projection, process-crash recovery, database authority isolation, and Host lifecycle integration)
+- [H3A-2 — Foundation Containment & Executable Truth](active/foundation/h3a2-foundation-containment-executable-truth-2026-08-29.md) — `ACTIVE` (H3A-2 correctness closure, Foundation executable spine, and governance convergence)
 
 ## Superseded
 
 - [Repository Stabilization & Topology Reset v2](superseded/repository/repository-stabilization-topology-reset-2026-08-27.md) — `SUPERSEDED` (historical repository topology/control-plane baseline; later stabilization corrections are recorded in the completed mechanics plan)
-- [H3A — Durable Obligation & Signal Spine](superseded/foundation/h3a-durable-obligation-signal-spine-2026-08-26.md) — `SUPERSEDED` (historical H3A-1 semantic plan; current H3A-2 execution is governed by the active DBOS plan)
+- [H3A-2 — DBOS Durable Execution & Crash Recovery](superseded/foundation/h3a2-dbos-durable-execution-crash-recovery-2026-08-29.md) — `SUPERSEDED` (historical H3A-2 implementation and correction record; remaining closure is governed by the active containment/executable-truth plan)
+- [H3A — Durable Obligation & Signal Spine](superseded/foundation/h3a-durable-obligation-signal-spine-2026-08-26.md) — `SUPERSEDED` (historical H3A-1 semantic plan; current H3A-2 execution is governed by the active Foundation containment plan)
 
 ## Completed
 

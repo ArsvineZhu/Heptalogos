@@ -2,6 +2,23 @@
 
 本文件规定 Foundation 必须提供的稳定语义合同。**Service/Contract 存在不等于必须自研 mechanics，也不等于每个未来高级子系统在 Foundation 阶段已有实现。**
 
+```text
+SERVICE/CONTRACT EXISTENCE
+!= CURRENT IMPLEMENTATION AUTHORIZATION
+```
+
+Foundation service implementation 只有在存在以下至少一项时才获得当前授权：
+
+```text
+current consumer
+or current invariant
+or current accepted failure/security model
+```
+
+Service catalog 是 semantic ownership map，不是 Foundation completion checklist。
+这条规则尤其适用于 `ResourceGovernor`、`BackupCoordinator`、advanced package
+lifecycle 与其他 later-Horizon services。
+
 ---
 
 ## 1. Runtime / Kernel Contracts

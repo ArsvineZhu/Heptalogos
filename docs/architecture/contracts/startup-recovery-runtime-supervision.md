@@ -121,6 +121,42 @@ ProductGeneration update 不能覆盖当前正在执行的 Bootstrap Closure。B
 
 Bootstrap config 不能镜像 normal config，也不能依赖 normal ConfigurationService/SecretService。
 
+Bootstrap Closure 的 primary purpose 是：
+
+```text
+safely make a normal Host possible;
+if that is impossible, safely make bounded Recovery possible.
+```
+
+Bootstrap 保留当前 Host Authority 建立前及其周围所需的 ownership、启动、检查、
+journal 与 maintenance transition responsibilities。Bootstrap 提供 ownership/maintenance
+transition primitives，但不会自动拥有每个未来 Update、Backup、Package、Configuration
+或 Recovery feature 的 domain semantics。未来 domain coordinator 拥有自己的 plan 与
+semantic Authority，并可请求一个 bounded Bootstrap maintenance window；本条不移动
+当前 reverse-handoff implementation。
+
+### Maintenance Point of No Return
+
+当前 maintenance boundary 的语义划分为：
+
+```text
+reversible region:
+  close admissions
+  stop reconciliation
+  drain current work
+  prepare quiescence
+
+point of no return:
+  durable Host Authority revocation / equivalent irreversible ownership transition
+
+after point:
+  forward recovery/reacquisition
+  not restoration of a falsely ACTIVE old Host
+```
+
+该边界必须与 `HostOwnershipFence` 的实际 token revocation、lease handoff 与
+terminal/fenced handling 保持一致。
+
 ### BootstrapJournal / Early Observability
 
 PostgreSQL 尚不可用时必须仍能留下 bounded、crash-safe rescue projection：

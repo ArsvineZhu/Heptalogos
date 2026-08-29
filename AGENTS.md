@@ -171,3 +171,25 @@ Stop instead of inventing a workaround when execution would require:
 - claiming required evidence that cannot actually be produced.
 
 Report the smallest concrete blocker and the evidence that exposed it.
+
+## 7. Mandatory staged execution
+
+1. **Stage before edge cases.** Before resilience, security, or lifecycle expansion,
+   identify the current Horizon and accepted failure class.
+2. **Rare failure default = DEFER.** F3/F4 work not explicitly authorized by Corpus +
+   plan is out of scope.
+3. **Executable spine priority.** If the current required executable spine is failing,
+   fix it before adding capability.
+4. **No recursive hardening.** Do not implement recovery-of-recovery or fallback chains
+   unless explicitly planned.
+5. **No test-created architecture.** Failure-injection tests alone cannot justify new
+   production states or mechanics.
+6. **New state needs semantics.** Do not add lifecycle/durable state for implementation
+   progress alone.
+7. **Generic lifecycle mechanics require route review.** Before writing drain, dispose,
+   task-tracking, retry, backoff, cleanup aggregation, or process supervision, check the
+   existing owner and adopted dependency route.
+8. **Fail-stop is valid.** If Authority/truth can be preserved by bounded failure, do not
+   invent automatic restoration.
+9. If an edge case would expand architecture beyond the plan, stop with `PLAN_GAP` rather
+   than expanding scope “for safety”.

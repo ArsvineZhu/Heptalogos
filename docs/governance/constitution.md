@@ -883,6 +883,87 @@ Authority。一次性 phase evidence/scripts 与已经失去 owner 的 historica
 在当前用途结束后必须移除；“为了历史保留”不是 current owner/purpose，Git 才是
 archive。
 
+### E44. Executable Truth Is First-Class
+
+```text
+component correctness
++ architecture correctness
+!= executable system correctness
+```
+
+实现声明在当前可用的最强 executable boundary 被实际运行之前，只能视为
+provisional。系统必须区分两个正交维度：
+
+```text
+Semantic Truth
+Executable Truth
+```
+
+Semantic Truth 覆盖 Authority、state、durability、ownership 与 uncertainty。
+Executable Truth 覆盖 boot、compose、become ready、perform meaningful work、stop
+以及 restart/recover。
+
+一个 Horizon 不得在对应 executable path 仍为 `UNKNOWN` 时无限扩展其 Semantic
+Truth。package-level tests PASS 也不能单独证明 product runtime。
+
+### E45. Reliability Scope Follows Product Maturity
+
+失败按当前产品成熟度分为：
+
+```text
+F0 HAPPY_PATH
+   normal boot/work/stop
+
+F1 COMMON_OPERATIONAL
+   invalid input/config, port occupied, provider timeout,
+   expected dependency unavailable, normal restart
+
+F2 EXPECTED_RECOVERY
+   process crash/restart, transient network loss,
+   currently required durable recovery semantics
+
+F3 RARE_TIMING_FAULT
+   commit/ack ambiguity, narrow race windows,
+   partial teardown timing, lease loss at exact transition
+
+F4 CATASTROPHIC_HARDENING
+   power loss, disk corruption, torn storage,
+   kernel/hardware fault, multi-fault recovery
+```
+
+F0 必须先于在后续类别上投入 significant budget。F1 在当前 capability 存在时
+处理；F2 只在当前 Horizon 语义要求时实现；F3 需要明确的当前 invariant 或已
+接受的 product requirement；F4 属于 product/shipping hardening，默认不能驱动
+早期架构。“可能发生”本身不是 implementation Authority。
+
+### E46. Recovery Is Bounded, Not Recursively Complete
+
+一种 recovery mechanism 不会自动要求为该 recovery 的每一种失败再实现一套
+recovery。`FAILED`、`FENCED`、`RECOVERY_REQUIRED`、fail-stop 或 operator
+intervention 都可以是合法的 terminal outcome。
+
+高影响的可逆/不可逆操作必须显式定义 **Point of No Return**。在该点之前可以
+尝试 bounded abort/restoration；越过该点后不得 heroic rollback 到旧的 Authority
+状态，而应进入 bounded recovery/restart/reacquisition。当两者都能保留
+Authority 与 truth 时，优先 fail-stop，不要不断增加 rollback branches。
+
+### E47. Complexity Requires Present Justification
+
+Architecture/catalog 中存在一个合同，不等于当前授权实现它。新增 state、durable
+field、background worker、rollback path、recovery path、generic lifecycle
+mechanic 或 security mechanism，必须至少由以下之一证明必要：
+
+```text
+current semantic invariant
+current executable consumer
+current accepted failure model
+current explicit security threat
+```
+
+“future completeness”、“safer in theory”、“we may need it later”或 catalog 中
+存在一个 Service 名称都不足以授权。Tests 不会自行创造 product requirement；仅为
+test 注入而提出的 failure scenario 不能单独强迫新的 production architecture。
+
 ## 第三部分：原则优先级
 
 发生冲突时，优先级大致为：

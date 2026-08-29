@@ -367,3 +367,17 @@ Startup 使用 `bootstrap ownership → PostgreSQL Host lease`。任何 stop/rep
 ## 13. Lease Loss Means Fence, Not Reconnect
 
 `HostLeaseConnection` 丢失后：`Host = FENCED`，停止新 consequential work/effect/mutation，normal runtime 不原地 reacquire。重新运行只能由 Bootstrap Closure 重新证明 bootstrap/PG/Host ownership。
+
+## 14. Bounded lifecycle failure
+
+不是每个 partial failure 都需要 automatic in-process restoration。生命周期失败按
+以下顺序处理：
+
+```text
+preserve Authority/truth
+→ bounded cleanup
+→ fail-stop/fence when cleanup cannot be proven
+→ fresh reconciliation/recovery later
+```
+
+这是一条 failure-handling hierarchy，不是新增的 global lifecycle state machine。

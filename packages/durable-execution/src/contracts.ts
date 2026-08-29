@@ -72,7 +72,7 @@ export interface DurableExecutionQuiescenceLease {
 /** Coordinates WorkQueue admission/reconciliation around engine quiescence. */
 export interface DurableExecutionQuiescenceCoordinator {
   /** Close new product dispatch and stop reconciliation before engine drain. */
-  prepare(): Promise<DurableExecutionQuiescenceLease>;
+  prepare(signal: AbortSignal): Promise<DurableExecutionQuiescenceLease>;
 }
 
 /** Configures one Host-bound DurableExecution runtime. */

@@ -1,7 +1,7 @@
 # Heptalogos Development Roadmap
 
 **Status:** LIVING ROADMAP / planning guidance<br>
-**Date:** 2026-08-27<br>
+**Date:** 2026-08-29<br>
 **Repository baseline:** current `master` integration baseline after H2 post-merge reconciliation and Ubuntu/Linux residual qualification<br>
 **Architecture baseline:** `docs/architecture/` design state 2026-08-20
 
@@ -62,6 +62,24 @@ These are bounded evidence gates, not alternate product implementations.
 ### 2.3 Product-qualification track
 
 Product qualification proves exact shipping reality: exact package/binary closure, real OS/service/headless behavior, source-less artifacts, crash/restart, update/restore, real protocols/providers. It should not block every semantic milestone, but it must close before the corresponding product claim/release gate.
+
+### 2.4 Executable Truth ratchet
+
+Every Horizon identifies the strongest executable proof it owns. Package,
+interface, and unit-test counts do not substitute for that outcome. The proof
+levels are:
+
+```text
+L1 package correctness
+L2 real component composition
+L3 process-level executable composition
+L4 product vertical slice
+```
+
+Foundation may grow only while its current executable spine remains green. H3
+owns a real Foundation process composition with real PostgreSQL, real DBOS, one
+canonical WorkItem, and boot/work/stop/restart. H6 owns a real Product L4 path:
+message → Subject → model → decision → Effect → response.
 
 ---
 
@@ -342,13 +360,14 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 
 ```yaml
 H3: OPEN
-H3A: REVIEW_CORRECTION_IN_PROGRESS
+H3A: CORRECTION_AND_EXECUTABLE_PROOF_IN_PROGRESS
 H3A_1: CLOSED
-H3A_2: REVIEW_CORRECTION_IN_PROGRESS
-H3B: NOT_ELIGIBLE
+H3A_2: CORRECTION_AND_EXECUTABLE_PROOF_IN_PROGRESS
+H3_FOUNDATION_EXECUTABLE_SPINE: REQUIRED
+H3B: BLOCKED_UNTIL_H3A2_AND_SPINE
 H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
-activeImplementationPlan: docs/plans/active/foundation/h3a2-dbos-durable-execution-crash-recovery-2026-08-29.md
+activeImplementationPlan: docs/plans/active/foundation/h3a2-foundation-containment-executable-truth-2026-08-29.md
 ```
 
 The H3A-1 implementation includes complete creation-request envelope
@@ -357,24 +376,20 @@ bootstrap-runtime test budgets. It is accepted as the current product baseline
 by the completed H3A-1 governance recovery record. Existing implementation and
 Draft cross-platform evidence remains preserved, while Independent Review and
 final manual CI remain `NOT_RUN`; they are not inferred from the GitHub merge
-fact. H3A-2 is now active under its decision-complete DBOS durable execution
-and crash recovery plan.
-
-The prior H3A-2 candidate received an external `REQUEST_CHANGES` verdict. The
-current correction candidate is `H3A2-CORRECTION-2026-08-29` on
-`dev/h3a2-durable-recovery`; it is Draft and unfrozen. Earlier Windows and
-Ubuntu/Linux DBOS observations belong to the reviewed candidate and remain
-historical. Fresh correction evidence currently covers targeted Windows
-PostgreSQL 18.6/DBOS 4.27.6 scenarios; Ubuntu/Linux has not been rerun for the
-current candidate. ResourceGovernor/PressureSnapshot, source-less execution,
-and service/headless execution remain `NOT_RUN` and are not implied by any
-historical PASS results.
+fact. H3A-2 is now active under the decision-complete Foundation containment
+and executable-truth plan. The current Foundation containment candidate remains
+Draft and unfrozen. Earlier candidate observations are historical and do not
+qualify the current source after lifecycle, credential-scope, and executable
+spine changes. Windows, Ubuntu/Linux, macOS, source-less, service/headless, and
+ResourceGovernor qualification remain individually scoped and must not be
+inferred from another platform or candidate.
 
 ### Implementation decomposition
 
 - H3A-1 implements canonical work/handler/signal semantics without DBOS.
 - H3A-2 materializes DBOS durable mechanics and crash recovery.
-- H3B adds EffectOperation and uncertainty.
+- H3B, which is blocked until H3A-2 and the Foundation spine close, adds the
+  minimal EffectOperation uncertainty boundary.
 - Real `CONFIG_PINNED` ConfigurationRevision resolution remains H4-owned; H3A
   uses configuration-free handlers and fails closed for pinned binding.
 - Real PressureSnapshot/ResourceGovernor remains H8-owned; H3A establishes
@@ -390,10 +405,23 @@ historical PASS results.
 - DBOS Queue as scheduling mechanics, not Authority;
 - SignalService over LISTEN/NOTIFY + canonical rescan;
 - cancellation/supersession contract;
-- EffectOperation state machine and conservative uncertainty;
 - retry classification;
 - durable LineageContextRef across waits/restarts;
 - minimal Resource/Admission classes required by queue execution.
+
+H3A remains effect-free. H3B is deliberately narrow:
+
+```text
+canonical EffectOperation
+prepared → dispatching → succeeded | failed | uncertain
+Host/Effect fence
+no automatic redispatch of uncertain effects
+minimal reconciliation/idempotency seam where the external system supports it
+```
+
+H3B does not include a full NetworkAccess platform, general retry engine,
+provider fleet, full messaging Driver stack, ResourceGovernor, Backup/Restore
+framework, global effect broker, or automatic multi-step compensation.
 
 ### Mandatory risk-retirement gate: DBOS
 
@@ -421,6 +449,67 @@ At minimum, kill the process around key boundaries and prove:
 - external effect timeout can remain `uncertain`;
 - no generic automatic retry turns uncertainty into duplicate reality;
 - restart preserves causal lineage links.
+
+### H3-S — Foundation Containment / Stabilization
+
+H3-S is a convergence/subtraction stage, not another hardening expansion. It
+becomes eligible only after H3A-2 and the Foundation executable spine. Its
+bounded scope is:
+
+```text
+current-tree residue and PRE_PRODUCTION compatibility cleanup
+speculative-resilience audit
+lifecycle mechanics ownership audit
+Bootstrap scope containment check
+current consumer/invariant check for implemented Foundation surfaces
+qualification/current-truth cleanup
+Foundation executable-spine revalidation
+```
+
+The lifecycle audit records `SEMANTIC_PROTOCOL`, `ADAPTER_GLUE`,
+`GENERIC_MECHANIC_DELEGATED`, `GENERIC_MECHANIC_CUSTOM_JUSTIFIED`,
+`GENERIC_MECHANIC_CUSTOM_UNJUSTIFIED`, and `SPECULATIVE_RESILIENCE`. It does not
+start a broad refactor, replace Cordis/DBOS/XState, or add product capability.
+
+The current bounded audit classification is:
+
+| Owner                                  | Mechanism                                                                     | Classification                                | Current action                                                                                                                                                           |
+| -------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `runtime-substrate`                    | Cordis Fiber/context/effect/disposal                                          | `GENERIC_MECHANIC_DELEGATED`                  | Keep Cordis behind the adapter.                                                                                                                                          |
+| `runtime-substrate`                    | task tracking, late disposer handling, settlement timeout                     | `GENERIC_MECHANIC_CUSTOM_JUSTIFIED`           | Retain the Heptalogos owner policy required to bound process-memory work that Cordis does not own; investigate further only in H3-S if a current consumer exposes a gap. |
+| `runtime-substrate` / `runtime-kernel` | background failure projection, owner/generation failure and readiness effects | `SEMANTIC_PROTOCOL`                           | Keep semantic projection in Heptalogos contracts.                                                                                                                        |
+| `runtime-kernel`                       | local lifecycle statechart transitions                                        | `GENERIC_MECHANIC_DELEGATED`                  | Keep XState package-private; Kernel owns lifecycle meaning.                                                                                                              |
+| `runtime-kernel`                       | reconciliation, generation fencing, quiescence and provider selection         | `SEMANTIC_PROTOCOL`                           | Keep the Kernel owner; no second supervisor.                                                                                                                             |
+| `private-postgres`                     | PostgreSQL process/tool invocation and local lifecycle statechart             | `ADAPTER_GLUE` / `GENERIC_MECHANIC_DELEGATED` | Use the adopted subprocess and XState routes; no new process manager.                                                                                                    |
+| `host-ownership`                       | advisory lease, database fence and token transitions                          | `SEMANTIC_PROTOCOL`                           | Preserve one Host Authority and its PostgreSQL mechanics adapter.                                                                                                        |
+| `bootstrap-runtime`                    | Bootstrap/Host handoff, maintenance point of no return and recovery journal   | `SEMANTIC_PROTOCOL`                           | Contain scope; do not move current reverse handoff.                                                                                                                      |
+| `work-queue`                           | WorkItem Authority, admission, reconciliation and fair scan                   | `SEMANTIC_PROTOCOL`                           | Preserve canonical WorkItem ownership and bounded scan behavior.                                                                                                         |
+| `durable-execution`                    | DBOS client/pool/lifecycle adapter                                            | `ADAPTER_GLUE` / `GENERIC_MECHANIC_DELEGATED` | Keep DBOS mechanics below the Heptalogos lifecycle contract; C1–C4 are the only current source corrections.                                                              |
+
+No current owner was classified as `GENERIC_MECHANIC_CUSTOM_UNJUSTIFIED` or
+`SPECULATIVE_RESILIENCE`. The Cordis review specifically finds task tracking and
+late-disposer handling to be Heptalogos owner policy around the adopted Cordis
+scope, settlement timeout to be the required bounded contract for unowned-by-
+Cordis process-memory tasks, and background failure projection to be semantic
+failure/readiness behavior. Provider replacement is not authorized.
+
+### After H3-S — minimum provider prerequisites, then Subject proof
+
+The next product-driven path is the smallest real Subject vertical slice. Only
+the minimum H4 prerequisites needed by one real model provider and Subject Base
+are pulled forward:
+
+```text
+minimal Configuration ownership
+minimal Secret ownership
+minimal Network/Capability policy boundary
+```
+
+The entire H4 Management/Cedar/Approval/HTTP/CLI universe is not a prerequisite
+unless a hard architecture edge requires it. Full H5 third-party Extension
+package lifecycle is likewise not a prerequisite for first-party Subject
+functionality. The hard edge remains: real provider use requires
+Configuration/Secret/Network/Capability boundaries.
 
 ---
 
@@ -662,6 +751,10 @@ Research findings may cause Architecture Corpus evolution, but prototype conveni
 ## R-B — Presentation / Interaction Research
 
 Desktop/Web/UI/Apple-design exploration can continue in parallel. Early prototypes may use contract mocks or generated test data. The transition to authoritative UI occurs only through the canonical Management/Subject client contracts. Presentation state never becomes product Authority.
+
+Electron/Desktop work remains deferred research and qualification. Electron is a
+preferred future shell direction, not H3 implementation scope; no Desktop shell
+package or Electron dependency is introduced by H3.
 
 ## R-C — Evaluation Infrastructure
 

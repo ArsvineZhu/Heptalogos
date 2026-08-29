@@ -37,6 +37,12 @@ only scopes the surrounding Host lifecycle. `DurableCodeVersion` is passed as
 DBOS `applicationVersion`; it is an execution-version fence and is not a
 replacement for the canonical WorkItem generation or revision fences.
 
+Queue-profile preflight uses a callback-scoped DBOS client. The client and its
+password-bearing connection URL are created and destroyed inside the Host
+durable-database credential callback; only the normalized queue-registration
+contract is visible to the preflight operation, and the caller-owned pool is
+never destroyed by that client.
+
 ## Dependencies and boundaries
 
 The package uses the adopted DBOS 4.27.6, Execa, PostgreSQL driver, and XState
@@ -61,7 +67,7 @@ process integration scenarios recorded in the
 [`durable execution qualification record`](../../docs/qualification/results/Q-ASYNC-01.md).
 Those records are platform- and candidate-scoped: a result on one platform
 does not establish a cross-platform, source-less, or service/headless product
-claim. The current correction candidate records its exact platform scope and
+claim. The current qualification record records its exact platform scope and
 remaining `NOT_RUN` boundaries in that qualification record.
 
 ## Architecture references

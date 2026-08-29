@@ -45,11 +45,8 @@ interface DbosClientFactorySurface {
   }): Promise<DbosClientSurface>;
 }
 
-/** Queue-registration client retained behind the durable-execution boundary. */
-export interface DbosQueueClient extends DbosQueueRegistrationDriver {
-  /** Release the client wrapper without closing the caller-owned pool. */
-  destroy(): Promise<void>;
-}
+/** Queue-registration client available only during one credential-scoped callback. */
+export interface DbosQueueClient extends DbosQueueRegistrationDriver {}
 
 const dbosClient = createRequire(import.meta.url)("@dbos-inc/dbos-sdk")
   .DBOSClient as DbosClientFactorySurface;
@@ -65,12 +62,17 @@ function connectionUrl(
   return `postgresql://${encodeURIComponent(target.user)}:${encodeURIComponent(password)}@${target.host}:${target.port}/${target.database}?connect_timeout=${timeoutSeconds}&sslmode=disable`;
 }
 
-/** Create a queue-registration driver backed by the public DBOSClient API. */
-export async function createDbosQueueClient(
+/**
+ * Uses a queue-registration driver only while the database credential is
+ * available. The DBOS client and password-bearing URL never escape this
+ * callback; the caller-owned pool remains caller-owned.
+ */
+export async function withDbosQueueClient<T>(
   authority: HostDurableExecutionAuthority,
   pool: DurableExecutionPoolHandle,
   options: DbosQueueClientOptions,
-): Promise<DbosQueueClient> {
+  use: (client: DbosQueueClient) => Promise<T>,
+): Promise<T> {
   return authority.withDurableExecutionDatabasePassword(async (passwordUtf8) => {
     const client = await dbosClient.create({
       systemDatabaseUrl: connectionUrl(
@@ -84,12 +86,17 @@ export async function createDbosQueueClient(
       systemDatabasePollingConcurrency: options.pollingConcurrency,
       applicationName: "heptalogos",
     });
-    return Object.freeze({
-      registerQueue: (
-        name: string,
-        registration: DbosQueueRegistrationOptions,
-      ): Promise<DbosQueueHandle> => client.registerQueue(name, registration),
-      destroy: (): Promise<void> => client.destroy(),
-    });
+    try {
+      return await use(
+        Object.freeze({
+          registerQueue: (
+            name: string,
+            registration: DbosQueueRegistrationOptions,
+          ): Promise<DbosQueueHandle> => client.registerQueue(name, registration),
+        }),
+      );
+    } finally {
+      await client.destroy();
+    }
   });
 }

@@ -730,9 +730,27 @@ function createWorkQueueQuiescenceBinding(
     for (const resolve of idleWaiters.splice(0)) resolve();
   };
 
-  const waitForAdmissionIdle = (): Promise<void> => {
+  const waitForAdmissionIdle = (signal: AbortSignal): Promise<void> => {
     if (activeAdmissionCalls === 0) return Promise.resolve();
-    return new Promise<void>((resolve) => idleWaiters.push(resolve));
+    return new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const finish = (callback: () => void): void => {
+        if (settled) return;
+        settled = true;
+        signal.removeEventListener("abort", onAbort);
+        const index = idleWaiters.indexOf(onIdle);
+        if (index >= 0) idleWaiters.splice(index, 1);
+        callback();
+      };
+      const onIdle = (): void => finish(resolve);
+      const onAbort = (): void =>
+        finish(() =>
+          reject(signal.reason ?? new Error("WorkQueue quiescence timed out")),
+        );
+      idleWaiters.push(onIdle);
+      signal.addEventListener("abort", onAbort, { once: true });
+      if (signal.aborted) onAbort();
+    });
   };
 
   const admission: WorkAdmissionPort = {
@@ -767,14 +785,15 @@ function createWorkQueueQuiescenceBinding(
   };
 
   const coordinator: DurableExecutionQuiescenceCoordinator = {
-    async prepare() {
+    async prepare(signal) {
       open = false;
       trace.push("workqueue.admission.closed");
       const reconciler = getReconciler();
       try {
         await reconciler?.stop();
         trace.push("workqueue.reconciliation.stopped");
-        await waitForAdmissionIdle();
+        await waitForAdmissionIdle(signal);
+        signal.throwIfAborted();
       } catch (error) {
         open = true;
         try {

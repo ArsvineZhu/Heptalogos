@@ -11,6 +11,41 @@ clients, and observability context propagation.
 This playbook does not move Heptalogos semantic Authority into a framework.
 The semantic owner remains responsible for product meaning and invariants.
 
+## Lifecycle maturity triage
+
+Before the mechanics preflight, classify the work in this order:
+
+```text
+current Horizon
+→ failure class
+→ current invariant/consumer
+→ existing fail-stop behavior
+→ then mechanics provider search
+```
+
+Every lifecycle review must classify each non-trivial mechanic before changing code:
+
+```text
+SEMANTIC_PROTOCOL
+  Heptalogos meaning/order/Authority; custom is expected.
+
+ADAPTER_GLUE
+  thin translation around an adopted provider.
+
+GENERIC_MECHANIC_DELEGATED
+  lifecycle/disposal/queue/FSM/etc. owned by adopted provider.
+
+GENERIC_MECHANIC_CUSTOM_JUSTIFIED
+  mature route checked; explicit hard semantic/technical blocker recorded.
+
+SPECULATIVE_RESILIENCE
+  implementation exists only for a deferred rare/catastrophic case.
+```
+
+Do not build a local framework merely to deduplicate lifecycle code. If the same custom
+mechanic repeats, first determine whether the adopted provider or an existing Heptalogos
+owner should own it.
+
 ## Five-minute mechanics preflight
 
 1. Name the semantic owner and the mechanic needed.

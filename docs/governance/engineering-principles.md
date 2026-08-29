@@ -438,3 +438,90 @@ presentation
 ```
 
 普通 Presentation 只消费 curated projection。是否存在 Web UI 不影响 Configuration Surface 的完整性。
+
+---
+
+## 14. Executable Truth / Vertical Ratchet
+
+```text
+Foundation can grow only while the current executable spine remains green.
+```
+
+一旦 executable spine 存在，红色 spine 的修复优先于新增 Foundation capability，
+除非已批准的 implementation plan 明确另有规定。
+
+本项目的 `Executable Proof Level` 与 dependency-selection 的 L0–L3 不同：
+
+```text
+L1 package correctness
+L2 real component composition
+L3 process-level executable composition
+L4 product vertical slice
+```
+
+H3 的目标是 Foundation L3 composition proof；H6 的目标是 real Product L4 Subject
+slice。package/interface/test 数量不能替代相应 proof level。
+
+## 15. Complexity Admission
+
+在增加 high-risk complexity 前，当前 active plan 或 change rationale 必须记录：
+
+```text
+Current horizon:
+Current consumer/invariant:
+Failure class:
+Failure/threat:
+Impact if deferred:
+Existing fail-closed behavior:
+Mechanics owner/provider:
+New state/branch/resource cost:
+Why now:
+Decision: IMPLEMENT | DEFER | REJECT
+```
+
+不要求为每个决定另建 standalone document。
+
+## 16. New State Rule
+
+```text
+NEW STATE REQUIRES A NEW SEMANTIC DISTINCTION.
+```
+
+实现进度不会自动成为 product/durable lifecycle state。每次新增 state 都必须问：
+
+> After process restart, does this distinction still matter to product truth or recovery?
+
+如果不重要，优先使用 implementation-local variable，而不是 durable/public state。
+
+## 17. Security Requires a Threat
+
+“for security” 不是独立理由。新增 security complexity 前必须说明：
+
+```text
+asset
+attacker/failure
+trust boundary
+consequence
+current mitigation
+```
+
+## 18. Robustness Requires a Failure Model
+
+“for robustness” 不是独立理由。Failure model 必须指出：
+
+```text
+what fails
+when it can fail
+what invariant would be violated
+why current fail-stop behavior is insufficient
+```
+
+## 19. No Recursive Hardening
+
+除非另有明确授权，禁止自动扩展为：
+
+```text
+rollback-of-rollback
+recovery-of-recovery
+fallback-of-fallback
+```

@@ -363,3 +363,31 @@ ubuntu_current_master_residual_qualification:
 This is current Ubuntu/Linux real-PostgreSQL runtime evidence from the
 explicit matrix. It does not imply macOS, source-less, installed
 service/headless, service-account ACL, or hardware power-loss qualification.
+
+## Current Foundation containment candidate
+
+The current H3A-2 containment plan changes DurableExecution lifecycle and
+credential-scoped preflight behavior. Earlier H3A-2 runtime observations are
+not carried forward to this candidate until the claim-matched reruns complete.
+
+```yaml
+candidateId: H3A2-FOUNDATION-CONTAINMENT-2026-08-29
+plan: docs/plans/active/foundation/h3a2-foundation-containment-executable-truth-2026-08-29.md
+lifecycle: DRAFT
+foundation_executable_spine_boot_work_stop: PASS
+foundation_executable_spine_restart: PASS
+durable_execution_reversible_quiescence: PASS
+durable_execution_truthful_retryable_close: PASS
+workqueue_bounded_quiescence: PASS
+dbos_credential_scoped_preflight: PASS
+repository_verify: PASS
+hardware_power_loss: NOT_RUN
+source_less: NOT_RUN
+service_headless: NOT_RUN
+independentReview: NOT_RUN
+finalManualVerification: NOT_RUN
+```
+
+Ubuntu/Linux real PostgreSQL/DBOS remains `NOT_RUN` because the user explicitly
+directed that no WSL/Ubuntu qualification test be run. Temporary toolchain
+preparation is not qualification evidence.

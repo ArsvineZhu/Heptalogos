@@ -403,3 +403,14 @@ raw Cedar
 raw PostgreSQL/Kysely root
 private Host classes
 ```
+
+## 13. Desktop Presentation boundary
+
+```text
+Desktop Presentation Package is a product component.
+It is not an Extension/Plugin.
+```
+
+Extension lifecycle 不会成为 Desktop shell 的 mandatory lifecycle。Desktop shell
+仍通过 Presentation/Management client boundary 使用系统能力，并遵守 Host、Subject
+与 durable data 的独立生命周期。

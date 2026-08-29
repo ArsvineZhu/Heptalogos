@@ -9,9 +9,9 @@ roleDecision: ADOPTED
 implementationQualification: REQUIRED
 selectedRoute: "DBOS Queue"
 h3a2Candidate:
-  candidateId: H3A2-CORRECTION-2026-08-29
+  candidateId: H3A2-FOUNDATION-CONTAINMENT-2026-08-29
+  plan: docs/plans/active/foundation/h3a2-foundation-containment-executable-truth-2026-08-29.md
   lifecycle: DRAFT
-  branch: dev/h3a2-durable-recovery
   freeze: NOT_RUN
   independentReview: NOT_RUN
   finalManualVerification: NOT_RUN
@@ -19,7 +19,7 @@ h3a2Candidate:
 h3a1Candidate:
   merge: PASS
   governanceRecovery: PASS
-h3a2ReviewDisposition: REQUEST_CHANGES
+previousH3a2ReviewDisposition: REQUEST_CHANGES
 ```
 
 ## Observed properties
@@ -81,22 +81,17 @@ independentReview: REQUEST_CHANGES
 currentUse: historical observation only; affected PASS claims are stale for the correction candidate
 ```
 
-## Current candidate correction status
+## Historical correction candidate status
 
-`H3A2-CORRECTION-2026-08-29` is the current mutable candidate on
-`dev/h3a2-durable-recovery`. The prior H3A-2 candidate is retained as a
+`H3A2-CORRECTION-2026-08-29` was a prior mutable candidate. It is retained as a
 historical observation with an external `REQUEST_CHANGES` verdict; its affected
-PASS claims do not qualify this candidate. Fresh current-candidate evidence is
-recorded only for the correction scenarios already rerun below. Full
-requalification, candidate freeze, Independent Review, and final manual
-verification remain `NOT_RUN`. GitHub Actions are not enabled or required.
+PASS claims do not qualify the current Foundation containment candidate. GitHub
+Actions are not enabled or required.
 
 H3A-1 evidence remains historical baseline evidence where it is explicitly
-identified; this H3A-2 correction does not create a new H3A-1 implementation
-claim. Q-ASYNC-01 remains `OPEN` until the required current-candidate gates are
-complete.
+identified; this plan does not create a new H3A-1 implementation claim.
 
-## Current correction properties
+## Historical correction properties
 
 ```yaml
 h3a1_reconciliation_fairness: PASS
@@ -114,7 +109,7 @@ These properties are required for the current candidate and are supported by
 fresh focused or real PostgreSQL qualification as stated in the evidence
 source below.
 
-## H3A-2 current implementation evidence
+## Historical H3A-2 implementation evidence
 
 ```yaml
 implementationQualification: REQUIRED
@@ -127,31 +122,52 @@ evidence:
   h3a2_correction_provider_shutdown_timeout: PASS
   h3a2_correction_terminal_close: PASS
   h3a2_correction_closed_world_product_privilege: PASS
-  h3a2_current_windows_targeted_real_dbos: PASS
+  h3a2_current_windows_targeted_real_dbos: NOT_RUN
   h3a2_current_ubuntu_real_dbos: NOT_RUN
   h3a2_current_full_requalification: NOT_RUN
-  h3a2_repository_verify: PASS
+  h3a2_repository_verify: NOT_RUN
   real_resource_governor_pressure_snapshot: NOT_RUN
   h3a2_candidate_freeze: NOT_RUN
   h3a2_independent_review: NOT_RUN
   h3a2_final_manual_ci: NOT_RUN
 ```
 
-Fresh current-candidate correction evidence was run on Windows with the
-explicit PostgreSQL 18.6 toolchain and DBOS 4.27.6. The complete
-bootstrap-runtime integration target passed (12 files, 122/122 tests), as did
-host-ownership integration (11/11), persistence integration (9/9), the
-durable-execution unit suite (11 files, 50/50), the WorkQueue unit suite (9
-files, 75/75), and the focused fair-recovery, queue-preflight,
-shutdown-timeout, failure-atomic maintenance, terminal-close, and dynamic
-closed-world privilege scenarios. Ubuntu/Linux has not been rerun for this
-correction candidate and therefore remains `NOT_RUN` here. The repository
-`pnpm verify` gate is still `NOT_RUN` on this candidate. macOS, source-less,
-service/headless, and ResourceGovernor claims remain `NOT_RUN` and are outside
-this correction.
+These observations belong to the historical correction candidate. They do not
+qualify the current candidate after the lifecycle and credential-scope source
+mutation in this plan. macOS, source-less, service/headless, and ResourceGovernor
+claims remain `NOT_RUN` and are outside this correction.
 
-Candidate freeze, Independent Review, and final manual verification remain
-required before H3A-2 closure.
+## Current Foundation containment candidate
+
+```yaml
+candidateId: H3A2-FOUNDATION-CONTAINMENT-2026-08-29
+plan: docs/plans/active/foundation/h3a2-foundation-containment-executable-truth-2026-08-29.md
+lifecycle: DRAFT
+freeze: NOT_RUN
+independentReview: NOT_RUN
+finalManualVerification: NOT_RUN
+foundation_executable_spine_boot_work_stop: PASS
+foundation_executable_spine_restart: PASS
+h3a2_c1_reversible_quiescence: PASS
+h3a2_c2_truthful_retryable_close: PASS
+h3a2_c3_bounded_workqueue_quiescence: PASS
+h3a2_c4_credential_scoped_preflight: PASS
+h3a2_current_windows_real_dbos: PASS
+h3a2_current_ubuntu_real_dbos: NOT_RUN
+h3a2_current_full_requalification: NOT_RUN
+h3a2_repository_verify: PASS
+hardware_power_loss: NOT_RUN
+source_less: NOT_RUN
+service_headless: NOT_RUN
+githubActions: NOT_ENABLED_OR_REQUIRED
+```
+
+The current Windows candidate has fresh focused, full bootstrap-runtime,
+Foundation-spine, and existing crash/recovery evidence. Ubuntu/Linux real
+PostgreSQL/DBOS remains `NOT_RUN` because the user explicitly directed that no
+WSL/Ubuntu qualification test be run; temporary toolchain preparation is not
+test evidence. `pnpm verify` is PASS. The candidate remains mutable and is not
+frozen.
 
 ## H3A-1 observed implementation evidence
 

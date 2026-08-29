@@ -136,10 +136,14 @@ interface RuntimeFixture {
       onBackgroundError: (error: unknown) => void,
     ) => PoolFixture;
     readonly dbos: {
-      createClient(options: unknown): Promise<{
-        registerQueue(name: string, options: unknown): Promise<FakeQueue>;
-        destroy(): Promise<void>;
-      }>;
+      withQueueClient<T>(
+        authority: HostDurableExecutionAuthority,
+        pool: PoolFixture,
+        options: unknown,
+        use: (client: {
+          registerQueue(name: string, options: unknown): Promise<FakeQueue>;
+        }) => Promise<T>,
+      ): Promise<T>;
       setConfig(config: unknown): void;
       launch(): Promise<void>;
       shutdown(options: {
@@ -156,18 +160,24 @@ interface RuntimeFixture {
 
 function runtimeFixture(
   queueMismatch = false,
-  shutdownError?: unknown,
+  options: {
+    readonly shutdownErrors?: readonly unknown[];
+    readonly poolEndErrors?: readonly unknown[];
+  } = {},
 ): RuntimeFixture {
   const pools: PoolFixture[] = [];
   const configs: Record<string, unknown>[] = [];
   const registrations: number[] = [];
   const trace: string[] = [];
+  const shutdownErrors = [...(options.shutdownErrors ?? [])];
+  const poolEndErrors = [...(options.poolEndErrors ?? [])];
   const dependencies: RuntimeFixture["dependencies"] = {
     createPool() {
       let isEnded = false;
       const pool: PoolFixture = {
         async end() {
           trace.push("pool.end");
+          if (poolEndErrors.length > 0) throw poolEndErrors.shift();
           isEnded = true;
         },
         ended() {
@@ -179,14 +189,15 @@ function runtimeFixture(
       return pool;
     },
     dbos: {
-      async createClient() {
+      async withQueueClient(_authority, _pool, _options, use) {
         trace.push("dbos.client.create");
-        return {
-          registerQueue,
-          async destroy() {
-            trace.push("dbos.client.destroy");
-          },
-        };
+        trace.push("dbos.client.callback.enter");
+        try {
+          return await use({ registerQueue });
+        } finally {
+          trace.push("dbos.client.destroy");
+          trace.push("dbos.client.callback.exit");
+        }
       },
       setConfig(config) {
         configs.push(config as Record<string, unknown>);
@@ -197,7 +208,7 @@ function runtimeFixture(
       },
       async shutdown() {
         trace.push("dbos.shutdown");
-        if (shutdownError !== undefined) throw shutdownError;
+        if (shutdownErrors.length > 0) throw shutdownErrors.shift();
       },
     },
     bindingDriver: {
@@ -381,9 +392,15 @@ describe.sequential("Host-bound DurableExecution runtime", () => {
 
     const position = (entry: string): number => fixture.trace.indexOf(entry);
     expect(position("pool.create")).toBeLessThan(position("dbos.client.create"));
+    expect(position("dbos.client.callback.enter")).toBeLessThan(
+      position("dbos.registerQueue"),
+    );
     expect(position("dbos.client.create")).toBeLessThan(position("dbos.registerQueue"));
     expect(position("dbos.registerQueue")).toBeLessThan(
       position("dbos.client.destroy"),
+    );
+    expect(position("dbos.client.destroy")).toBeLessThan(
+      position("dbos.client.callback.exit"),
     );
     expect(position("dbos.client.destroy")).toBeLessThan(position("dbos.setConfig"));
     expect(position("dbos.setConfig")).toBeLessThan(position("dbos.launch"));
@@ -411,11 +428,15 @@ describe.sequential("Host-bound DurableExecution runtime", () => {
       },
     };
     let restored = 0;
+    let receivedSignal: AbortSignal | undefined;
     const resumeAfterAbort = async () => {
       restored += 1;
     };
     const quiescence = {
-      prepare: async () => ({ resumeAfterAbort }),
+      prepare: async (signal: AbortSignal) => {
+        receivedSignal = signal;
+        return { resumeAfterAbort };
+      },
     };
     const runtime = createDurableExecutionRuntimeForTests(
       authority.authority,
@@ -436,8 +457,91 @@ describe.sequential("Host-bound DurableExecution runtime", () => {
     });
     expect(runtime.state).toBe("OPEN");
     expect(restored).toBe(1);
+    expect(receivedSignal).toBeInstanceOf(AbortSignal);
     expect(fixture.trace).not.toContain("dbos.shutdown");
     expect(fixture.pools[0]?.ended()).toBe(false);
+
+    release();
+    await invocation;
+    await expect(runtime.quiesce()).resolves.toBeUndefined();
+    expect(runtime.state).toBe("QUIESCED");
+    await runtime.close();
+  });
+
+  it("keeps DurableExecution OPEN when upstream preparation rejects atomically", async () => {
+    const authority = authorityFixture();
+    const fixture = runtimeFixture();
+    let restoredBeforeRejection = false;
+    const runtime = createDurableExecutionRuntimeForTests(
+      authority.authority,
+      {
+        ...runtimeOptions,
+        quiescence: {
+          async prepare(_signal) {
+            restoredBeforeRejection = true;
+            throw new Error("upstream preparation rejected");
+          },
+        },
+      },
+      executor(),
+      fixture.dependencies,
+    );
+
+    await runtime.start();
+    await expect(runtime.quiesce()).rejects.toThrow("upstream preparation rejected");
+    expect(restoredBeforeRejection).toBe(true);
+    expect(runtime.state).toBe("OPEN");
+    expect(fixture.trace).not.toContain("dbos.shutdown");
+    await runtime.close();
+  });
+
+  it("fails terminally when pre-entry upstream restoration cannot complete", async () => {
+    const authority = authorityFixture();
+    const fixture = runtimeFixture();
+    const terminalFailures: unknown[] = [];
+    let entered!: () => void;
+    const enteredPromise = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let release!: () => void;
+    const releasePromise = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const runtime = createDurableExecutionRuntimeForTests(
+      authority.authority,
+      {
+        ...runtimeOptions,
+        shutdownDrainTimeoutMs: 25,
+        quiescence: {
+          async prepare(_signal) {
+            return {
+              async resumeAfterAbort() {
+                throw new Error("upstream restoration failed");
+              },
+            };
+          },
+        },
+        onTerminalFailure: (error) => {
+          terminalFailures.push(error);
+        },
+      },
+      {
+        async execute() {
+          entered();
+          await releasePromise;
+          return { status: "SUCCEEDED" };
+        },
+      },
+      fixture.dependencies,
+    );
+
+    await runtime.start();
+    const invocation = getRegisteredDispatchWorkflow()(createWorkItemId(), 1);
+    await enteredPromise;
+    await expect(runtime.quiesce()).rejects.toThrow("upstream restoration failed");
+    expect(runtime.state).toBe("FAILED");
+    expect(terminalFailures).toHaveLength(1);
+    expect(fixture.trace).not.toContain("dbos.shutdown");
 
     release();
     await invocation;
@@ -466,9 +570,11 @@ describe.sequential("Host-bound DurableExecution runtime", () => {
     expect(fixture.trace).not.toContain("dbos.launch");
   });
 
-  it("notifies the Host when provider teardown fails after the safe drain", async () => {
+  it("keeps close retryable when provider teardown fails after the safe drain", async () => {
     const authority = authorityFixture();
-    const fixture = runtimeFixture(false, new Error("provider teardown failed"));
+    const fixture = runtimeFixture(false, {
+      shutdownErrors: [new Error("provider teardown failed")],
+    });
     const terminalFailures: unknown[] = [];
     const runtime = createDurableExecutionRuntimeForTests(
       authority.authority,
@@ -486,10 +592,67 @@ describe.sequential("Host-bound DurableExecution runtime", () => {
     await expect(runtime.quiesce()).rejects.toThrow("provider teardown failed");
     expect(runtime.state).toBe("FAILED");
     expect(terminalFailures).toHaveLength(1);
-    expect(fixture.pools[0]?.ended()).toBe(true);
+    expect(fixture.pools[0]?.ended()).toBe(false);
 
-    await expect(runtime.close()).rejects.toThrow("provider teardown failed");
+    await expect(runtime.close()).resolves.toBeUndefined();
     expect(runtime.state).toBe("CLOSED");
+    expect(fixture.pools[0]?.ended()).toBe(true);
+  });
+
+  it("does not publish CLOSED or release binding when DBOS shutdown is unproven", async () => {
+    const authority = authorityFixture();
+    const shutdownError = new Error("DBOS shutdown failed");
+    const fixture = runtimeFixture(false, { shutdownErrors: [shutdownError] });
+    const runtime = createDurableExecutionRuntimeForTests(
+      authority.authority,
+      runtimeOptions,
+      executor(),
+      fixture.dependencies,
+    );
+
+    await runtime.start();
+    await expect(runtime.close()).rejects.toBe(shutdownError);
+    expect(runtime.state).toBe("FAILED");
+    expect(fixture.pools[0]?.ended()).toBe(false);
+    expect(fixture.trace).not.toContain("pool.end");
+
+    const retry = createDurableExecutionRuntimeForTests(
+      authorityFixture().authority,
+      runtimeOptions,
+      executor(),
+      runtimeFixture().dependencies,
+    );
+    await expect(retry.start()).rejects.toMatchObject({
+      problem: { problemCode: "durable.execution.binding.active" },
+    });
+    await retry.close();
+
+    await expect(runtime.close()).resolves.toBeUndefined();
+    expect(runtime.state).toBe("CLOSED");
+    expect(fixture.pools[0]?.ended()).toBe(true);
+  });
+
+  it("retains pool ownership after end failure and closes on retry", async () => {
+    const authority = authorityFixture();
+    const poolError = new Error("pool end failed");
+    const fixture = runtimeFixture(false, { poolEndErrors: [poolError] });
+    const runtime = createDurableExecutionRuntimeForTests(
+      authority.authority,
+      runtimeOptions,
+      executor(),
+      fixture.dependencies,
+    );
+
+    await runtime.start();
+    await expect(runtime.close()).rejects.toBe(poolError);
+    expect(runtime.state).toBe("FAILED");
+    expect(fixture.pools[0]?.ended()).toBe(false);
+    expect(fixture.trace.filter((entry) => entry === "pool.end")).toHaveLength(1);
+
+    await expect(runtime.close()).resolves.toBeUndefined();
+    expect(runtime.state).toBe("CLOSED");
+    expect(fixture.pools[0]?.ended()).toBe(true);
+    expect(fixture.trace.filter((entry) => entry === "pool.end")).toHaveLength(2);
   });
 
   it("rejects dispatch outside OPEN and after the Host authority is fenced", async () => {

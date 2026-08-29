@@ -44,7 +44,7 @@ const lifecycleMachine = createMachine({
     RESUMING: {
       on: { RESUME_SUCCEEDED: "OPEN", FAIL: "FAILED" },
     },
-    CLOSING: { on: { CLOSED: "CLOSED" } },
+    CLOSING: { on: { CLOSED: "CLOSED", FAIL: "FAILED" } },
     CLOSED: {},
     FAILED: { on: { BEGIN_CLOSE: "CLOSING" } },
   },

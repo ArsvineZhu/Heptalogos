@@ -2,12 +2,12 @@
 
 ## Decision-Complete Implementation & Qualification Plan
 
-**Plan date:** 2026-08-29  
-**Status:** ACTIVE — REVIEW CORRECTION / CURRENT CANDIDATE DRAFT
-**Roadmap position:** H3 — Survive Asynchrony → H3A-2  
-**Scope:** real DBOS durable execution, WorkItem engine projection, process-crash recovery, durable-engine authority isolation, Host lifecycle integration  
-**Authority:** subordinate to the current Architecture Corpus; once explicitly activated, this file is the sole implementation-plan Authority for H3A-2  
-**Canonical active path:** `docs/plans/active/foundation/h3a2-dbos-durable-execution-crash-recovery-2026-08-29.md`
+**Plan date:** 2026-08-29
+**Status:** SUPERSEDED — historical H3A-2 plan
+**Roadmap position:** H3 — Survive Asynchrony → H3A-2
+**Scope:** real DBOS durable execution, WorkItem engine projection, process-crash recovery, durable-engine authority isolation, Host lifecycle integration
+**Authority:** historical record; superseded by the current H3A-2 containment and executable-truth plan
+**Historical path:** `docs/plans/superseded/foundation/h3a2-dbos-durable-execution-crash-recovery-2026-08-29.md`
 
 > **Executor rule**
 >

@@ -43,6 +43,9 @@ describe("DurableExecution lifecycle machine", () => {
     failed.send("START");
     failed.send("FAIL");
     failed.send("BEGIN_CLOSE");
+    failed.send("FAIL");
+    expect(failed.state).toBe("FAILED");
+    failed.send("BEGIN_CLOSE");
     failed.send("CLOSED");
     expect(failed.state).toBe("CLOSED");
     failed.stop();

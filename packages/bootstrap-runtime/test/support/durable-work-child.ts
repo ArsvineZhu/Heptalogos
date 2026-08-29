@@ -98,17 +98,21 @@ if (!Number.isSafeInteger(port) || port <= 0) {
 
 type ChildEvent = {
   readonly type: string;
+  readonly installationId?: string;
   readonly workItemId?: WorkItemId;
   readonly dispatchRevision?: number;
   readonly dispatchAttemptId?: string;
   readonly bootId?: string;
   readonly instanceId?: string;
+  readonly continuityEpochId?: string;
+  readonly hostOwnershipToken?: string;
   readonly state?: string;
   readonly message?: string;
   readonly problemCode?: string;
   readonly workflowId?: string;
   readonly applicationVersion?: string;
   readonly attemptCount?: number;
+  readonly activeWorkAttemptInvocations?: number;
 };
 
 const expectedWorkItemId = expectedWorkItemIdText as WorkItemId | undefined;
@@ -373,26 +377,32 @@ async function main(): Promise<void> {
     lineage,
     time,
   });
+  let workHandlerInvocations = 0;
   const handler: RuntimeWorkHandler = {
     async execute(input) {
-      await appendFile(
-        counterPath,
-        `${input.workItemId}:${input.dispatchRevision}\n`,
-        "utf8",
-      );
-      if (mode === "running-before-terminal" || mode === "lease-loss") {
-        emit({
-          type: "RUNNING_COMMITTED",
-          workItemId: input.workItemId,
-          dispatchRevision: input.dispatchRevision,
-          dispatchAttemptId: createDispatchAttemptId(
-            input.workItemId,
-            input.dispatchRevision,
-          ),
-        });
-        await releaseRequested;
+      workHandlerInvocations += 1;
+      try {
+        await appendFile(
+          counterPath,
+          `${input.workItemId}:${input.dispatchRevision}\n`,
+          "utf8",
+        );
+        if (mode === "running-before-terminal" || mode === "lease-loss") {
+          emit({
+            type: "RUNNING_COMMITTED",
+            workItemId: input.workItemId,
+            dispatchRevision: input.dispatchRevision,
+            dispatchAttemptId: createDispatchAttemptId(
+              input.workItemId,
+              input.dispatchRevision,
+            ),
+          });
+          await releaseRequested;
+        }
+        return { outcome: { accepted: true } };
+      } finally {
+        workHandlerInvocations -= 1;
       }
-      return { outcome: { accepted: true } };
     },
   };
   const definition: MicroSystemDefinition = {
@@ -578,11 +588,40 @@ async function main(): Promise<void> {
     });
   }
 
+  async function cleanFoundation(): Promise<void> {
+    emit({
+      type: "SHUTDOWN_BEGIN",
+      state: host.state,
+      activeWorkAttemptInvocations: workHandlerInvocations,
+    });
+    await reconciler.stop();
+    await durable.close();
+    await supervisor.close();
+    await persistence.close();
+    const maintenance = await host.preparePrivatePostgresMaintenance({
+      kind: "STOP_PRIVATE_POSTGRES",
+    });
+    await maintenance.execute({
+      async quiesce() {
+        return { async resumeAfterAbort() {} };
+      },
+    });
+    emit({
+      type: "HOST_RELEASED",
+      state: host.state,
+      activeWorkAttemptInvocations: workHandlerInvocations,
+    });
+  }
+
   await durable.start();
   emit({
     type: "READY",
+    installationId: host.installationId,
     bootId: host.bootId,
     instanceId: host.instanceId,
+    continuityEpochId: host.continuityEpochId,
+    hostOwnershipToken: host.token,
+    state: host.state,
   });
 
   const createWorkItem = () =>
@@ -616,6 +655,34 @@ async function main(): Promise<void> {
       priority: created.item.priority,
     });
   };
+
+  if (mode === "foundation-boot-work-stop" || mode === "foundation-restart-work-stop") {
+    await reconciler.start();
+    const created = await createWorkItem();
+    await dispatchWorkItem(created);
+    await waitUntil(async () => {
+      const item = await repository.getWorkItem(created.item.workItemId);
+      return item?.state === "SUCCEEDED";
+    });
+    const completed = await repository.getWorkItem(created.item.workItemId);
+    if (completed?.state !== "SUCCEEDED") {
+      throw new Error("Foundation executable work did not reach SUCCEEDED");
+    }
+    emit({
+      type: "WORK_SUCCEEDED",
+      workItemId: completed.workItemId,
+      dispatchRevision: completed.dispatchRevision,
+      dispatchAttemptId: createDispatchAttemptId(
+        completed.workItemId,
+        completed.dispatchRevision,
+      ),
+      state: completed.state,
+    });
+    await releaseRequested;
+    await cleanFoundation();
+    emit({ type: "RELEASED", state: host.state });
+    return;
+  }
 
   if (mode === "commit-before-dispatch") {
     const created = await createWorkItem();

@@ -241,3 +241,24 @@ platform qualification results
 source-less acceptance
 live protocol/provider results for claimed support
 ```
+
+## 12. Desktop Presentation 与平台 preset
+
+Core capability 不依赖 Desktop Presentation package。Desktop Presentation 是可选的
+product component，只在需要 local window 时携带或获取。
+
+```text
+Windows / macOS / Linux / Linux Server
+  = distribution entry/preset targets
+  != domain product lines
+```
+
+Packaging 不得仅凭平台创建 `serverMode`、`desktopMode`、`serverEdition` 或等价
+domain semantics。Linux Host/Subject/Web/service/headless capability 是一等能力；
+Linux local desktop visuals 可以接受合理 degradation，Windows/macOS 是 high-fidelity
+visual targets。Linux Server 使用同一 capability model，默认不携带或获取 Desktop
+Presentation。
+
+以下仍是 provisional/qualification work，而不是当前 H3 implementation：generation-
+coupled Core/Web/Desktop manifest，signing/notarization/update mechanics，remote Web
+TLS/auth，Electron cold-start/RSS/GPU，以及详细 installer behavior。
