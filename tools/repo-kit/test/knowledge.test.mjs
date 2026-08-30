@@ -198,6 +198,17 @@ describe("repository knowledge topology", () => {
     expect(hasCode(result, "unindexed-responsibility-root")).toBe(true);
   });
 
+  it("does not treat generated API output as current knowledge", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "docs/reference/api/generated.md",
+        "[missing](missing.md)\n",
+      );
+    });
+    expect(result.errors).toEqual([]);
+  });
+
   it("discovers a new responsibility root when the global index covers it", async () => {
     const result = await fixtureTree(async (root) => {
       await writeFixtureFile(

@@ -475,6 +475,7 @@ export function validateKnowledge({ root = process.cwd() } = {}) {
       "project/**/*.json",
     ],
     ignore: [
+      "docs/reference/api/**",
       "project/plans/completed/**",
       "project/plans/superseded/**",
       "project/plans/abandoned/**",

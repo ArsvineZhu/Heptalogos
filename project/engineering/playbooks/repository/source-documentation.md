@@ -48,11 +48,12 @@ and each package's public `exports["."].types` supplies its declaration
 entrypoint. The verifier writes a temporary declaration-only TS config, checks
 each entrypoint before conversion, and checks TypeDoc's structured JSON
 reflection for one top-level module per expected package before accepting
-generated output under `docs/reference/api/`. Generated API files are derived
-and are never edited as a semantic source.
+the generated temporary output. Generated API files are derived local output;
+they are never edited as a semantic source or required as committed artifacts.
 
-When generated API documentation is enabled, generation writes to a temporary
-directory, runs the repository formatter, compares the result with tracked
-`docs/reference/api/`, and fails when the projection is stale. TypeDoc warnings
-and validation warnings are fatal; freshness alone is not a completeness
-proof.
+`pnpm docs:api:check` validates the generated temporary output and its
+structured reflection without requiring generated Markdown in the repository.
+`pnpm docs:api` may materialize the formatted output under
+`docs/reference/api/` for local lookup; that output remains generated and is
+not a committed projection. TypeDoc warnings and validation warnings are
+fatal; generation success alone is not a completeness proof.
