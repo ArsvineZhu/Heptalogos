@@ -6,7 +6,7 @@
 
 # Interface: HostAdvisoryLeaseInspectionOptions
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:89
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:92
 
 Supplies the advisory key and endpoint for lease inspection.
 
@@ -16,7 +16,7 @@ Supplies the advisory key and endpoint for lease inspection.
 
 > `readonly` **advisoryKey**: [`HostAdvisoryKey`](HostAdvisoryKey.md)
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:91
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:94
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:91
 
 > `readonly` `optional` **clientFactory?**: `unknown`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:93
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:96
 
 ---
 
@@ -32,7 +32,7 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:93
 
 > `readonly` **passwordProvider**: [`BootstrapAdminPasswordProvider`](BootstrapAdminPasswordProvider.md)
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:92
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:95
 
 ---
 
@@ -40,4 +40,4 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:92
 
 > `readonly` **port**: `number`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:90
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:93

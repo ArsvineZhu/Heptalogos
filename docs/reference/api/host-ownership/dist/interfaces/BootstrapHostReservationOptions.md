@@ -6,7 +6,7 @@
 
 # Interface: BootstrapHostReservationOptions
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:65
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:68
 
 Supplies the advisory key and authority for a temporary Host reservation.
 
@@ -16,7 +16,7 @@ Supplies the advisory key and authority for a temporary Host reservation.
 
 > `readonly` **advisoryKey**: [`HostAdvisoryKey`](HostAdvisoryKey.md)
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:67
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:70
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:67
 
 > `readonly` `optional` **clientFactory?**: `unknown`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:70
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:73
 
 ---
 
@@ -32,7 +32,7 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:70
 
 > `readonly` **mutationAuthority**: [`BootstrapMutationAuthority`](BootstrapMutationAuthority.md)
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:69
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:72
 
 ---
 
@@ -40,7 +40,7 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:69
 
 > `readonly` **passwordProvider**: [`BootstrapAdminPasswordProvider`](BootstrapAdminPasswordProvider.md)
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:68
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:71
 
 ---
 
@@ -48,4 +48,4 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:68
 
 > `readonly` **port**: `number`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:66
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:69

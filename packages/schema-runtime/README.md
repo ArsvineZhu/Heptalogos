@@ -25,23 +25,16 @@ mechanics package, not a product schema Authority.
 
 The root entry point exports schema validation issue/result/validator types and
 `compileSchema`. The `./typebox` subpath exposes the explicitly routed TypeBox
-mechanics. Consumers should translate results into their own domain contracts
-without exposing Ajv internals as product Authority; direct Ajv/TypeBox imports
-outside this package are prohibited.
+mechanics. Consumers translate results into their own domain contracts without
+exposing Ajv internals as product Authority. The repository schema lint keeps
+direct Ajv/TypeBox imports inside this package.
 
 ## Dependencies and boundaries
 
-It depends on Ajv and TypeBox only. Keep it deterministic and side-effect free;
-do not add database, filesystem, framework, or network behavior. Current
-PRE_PRODUCTION shapes are defined by their owning package, and unsupported
-shapes must fail according to that package's contract.
-
-## Change constraints
-
-Keep validator mechanics behind the package contract. Do not define product or
-domain Authority, compatibility policy, or fallback readers here. Preserve
-explicit validation failures and keep the package deterministic and side-effect
-free.
+It depends on Ajv and TypeBox only. The implementation is deterministic and
+side-effect free, with no database, filesystem, framework, or network behavior.
+Current PRE_PRODUCTION shapes are defined by their owning package, and
+unsupported shapes fail according to that package's contract.
 
 ## Verification
 
@@ -51,8 +44,8 @@ gates when public exports change.
 
 ## Architecture references
 
-- [`02 — 架构原则与反 NIH 约束`](../../docs/governance/engineering-principles.md)
-- [`12 — 数据、证据、内容与持久化`](../../docs/architecture/data-evidence-persistence.md)
-- [`16 — 验证与资格认定体系`](../../docs/qualification/verification-system.md)
-- [`24 — 依赖使用与实现路由`](../../docs/dependencies/implementation-routing.md)
-- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
+- [`Engineering principles`](../../project/governance/engineering-principles.md)
+- [`Data, evidence, and persistence Architecture`](../../docs/architecture/data-evidence-persistence.md)
+- [`Canonical schema Spec`](../../specs/data/canonical-schema.md)
+- [`Verification system`](../../project/qualification/verification-system.md)
+- [`Dependency implementation routing`](../../project/dependencies/implementation-routing.md)

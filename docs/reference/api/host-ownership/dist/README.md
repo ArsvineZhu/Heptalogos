@@ -23,6 +23,8 @@ statechart objects, and provisioning mechanics remain adapter-internal.
 - [HostAdvisoryLeaseInspection](interfaces/HostAdvisoryLeaseInspection.md)
 - [HostAdvisoryLeaseInspectionOptions](interfaces/HostAdvisoryLeaseInspectionOptions.md)
 - [HostCanonicalMigrationAuthority](interfaces/HostCanonicalMigrationAuthority.md)
+- [HostDurableExecutionAuthority](interfaces/HostDurableExecutionAuthority.md)
+- [HostDurableExecutionDatabaseTarget](interfaces/HostDurableExecutionDatabaseTarget.md)
 - [HostMigrationDatabaseTarget](interfaces/HostMigrationDatabaseTarget.md)
 - [HostOwnershipCanonicalSnapshot](interfaces/HostOwnershipCanonicalSnapshot.md)
 - [HostOwnershipCanonicalSnapshotOptions](interfaces/HostOwnershipCanonicalSnapshotOptions.md)
@@ -45,6 +47,7 @@ statechart objects, and provisioning mechanics remain adapter-internal.
 
 ## Variables
 
+- [HOST\_DURABLE\_EXECUTION\_ROLE](variables/HOST_DURABLE_EXECUTION_ROLE.md)
 - [HOST\_LEASE\_ROLE](variables/HOST_LEASE_ROLE.md)
 - [HOST\_LEASE\_SCRAM\_ITERATIONS](variables/HOST_LEASE_SCRAM_ITERATIONS.md)
 - [HOST\_LEASE\_SCRAM\_SALT\_BYTES](variables/HOST_LEASE_SCRAM_SALT_BYTES.md)

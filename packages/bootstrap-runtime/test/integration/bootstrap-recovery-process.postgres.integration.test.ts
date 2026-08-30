@@ -227,6 +227,16 @@ function makeKeyProvider() {
         ),
       );
     },
+    async withPrivatePostgresDurableExecutionPassword<T>(
+      _context: unknown,
+      use: (password: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      return use(
+        new TextEncoder().encode(
+          "BOOTSTRAP_RECOVERY_TEST_DURABLE_EXECUTION_PASSWORD_0123456789",
+        ),
+      );
+    },
   };
 }
 
@@ -374,7 +384,7 @@ afterEach(async () => {
 });
 
 describe("Bootstrap Recovery real maintenance/recovery process qualification", () => {
-  it("K4 kills real Bootstrap Recovery maintenance after durable POSTGRES_STOPPED and recovers it", async () => {
+  it("kills real Bootstrap Recovery maintenance after durable POSTGRES_STOPPED and recovers it", async () => {
     const fixture = await makeFixture();
     const port = 55620;
     const child = new RealProcessController(fixture.anchorRoot, "maintenance", [
@@ -417,7 +427,7 @@ describe("Bootstrap Recovery real maintenance/recovery process qualification", (
       privatePostgres: descriptor,
     });
     expect(result.kind).toBe("RESTARTED");
-    if (result.kind !== "RESTARTED") throw new Error("K4 recovery did not return Host");
+    if (result.kind !== "RESTARTED") throw new Error("Recovery did not return Host");
     expect(result.host.token).not.toBe(sourceToken);
     await expect(
       clusterIdentity(
@@ -436,7 +446,7 @@ describe("Bootstrap Recovery real maintenance/recovery process qualification", (
     );
   }, 240_000);
 
-  it("K5 kills recovery after durable publication intent and a second recovery completes it", async () => {
+  it("kills recovery after durable publication intent and a second recovery completes it", async () => {
     const fixture = await makeFixture();
     const port = 55621;
     const maintenance = new RealProcessController(fixture.anchorRoot, "maintenance", [

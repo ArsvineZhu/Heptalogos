@@ -8,7 +8,7 @@
 
 > `const` **createServiceId**: (`value`) => [`ServiceId`](../type-aliases/ServiceId.md)
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:44
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:51
 
 Creates a validated Service identity from its canonical name.
 

@@ -70,7 +70,9 @@ Digest
 
 非 JSON bytes 通过 Blob/Artifact content digest 表达，不伪装成 JSON canonicalization。
 
-Schema runtime 见 `S04`：canonical Management/Configuration 输入验证禁止 silent coercion/default insertion/additional-field deletion。
+Schema runtime 的当前边界见 [`Canonical schema Spec`](../../specs/data/canonical-schema.md)：
+canonical Management/Configuration 输入验证禁止 silent coercion/default
+insertion/additional-field deletion。
 
 ---
 
@@ -212,7 +214,9 @@ JSON-compatible value or ArtifactRef
 
 默认可由 private PostgreSQL 实现，但它不是强制 storage model。
 
-Program/Package、Instance、Configuration、Data、Secret、Blob/Cache 的 lifecycle roots 独立。物理 co-location 不构成 ownership。详细见 `storage-lifecycle.md` / `contracts/storage-workspace-data-lifecycle.md`。
+Program/Package、Instance、Configuration、Data、Secret、Blob/Cache 的 lifecycle
+roots 独立。物理 co-location 不构成 ownership。详细见
+[`storage-lifecycle.md`](storage-lifecycle.md)。
 
 ---
 
@@ -337,7 +341,9 @@ retentionClass
 sensitivity
 ```
 
-Secret plaintext 永不发出；PII/sensitive attributes 按 classification/redaction policy 处理；metric cardinality 有界。详细见 `S16`。
+Secret plaintext 永不发出；PII/sensitive attributes 按 classification/redaction
+policy 处理；metric cardinality 有界。详细见
+[`Execution lineage Spec`](../../specs/execution/execution-lineage.md)。
 
 ## 13. Replay
 

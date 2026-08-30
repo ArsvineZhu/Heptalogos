@@ -316,7 +316,9 @@ Durable payload / Contribution contract upcast
 
 Host 管理 ordering、backup/recovery/generation fence；Extension 拥有自己的 domain transform。
 
-详细合同见 `storage-lifecycle.md` 与 `contracts/storage-workspace-data-lifecycle.md`。
+详细概念见 [`storage-lifecycle.md`](storage-lifecycle.md)；当前持久化合同见
+[`Work Item Spec`](../../specs/execution/work-item.md) 与
+[`Canonical schema Spec`](../../specs/data/canonical-schema.md)。
 
 ## 10.2 WorkHandler Restartability
 
@@ -403,3 +405,14 @@ raw Cedar
 raw PostgreSQL/Kysely root
 private Host classes
 ```
+
+## 13. Desktop Presentation boundary
+
+```text
+Desktop Presentation Package is a product component.
+It is not an Extension/Plugin.
+```
+
+Extension lifecycle 不会成为 Desktop shell 的 mandatory lifecycle。Desktop shell
+仍通过 Presentation/Management client boundary 使用系统能力，并遵守 Host、Subject
+与 durable data 的独立生命周期。

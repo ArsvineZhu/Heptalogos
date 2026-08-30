@@ -8,6 +8,6 @@
 
 > **CapabilityId** = [`NamespacedId`](NamespacedId.md)\<`"CapabilityId"`>\>
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:20
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:23
 
 Identifies a Runtime Capability contract.

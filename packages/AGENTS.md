@@ -1,42 +1,15 @@
 # Package Workspace Agent Contract
 
-## Scope
+This scope adds behavior unique to work under packages/**.
 
-This file governs work under `packages/**`.
-
-Before editing a package, read its `README.md`; for cross-package changes also
-read [`INDEX.md`](./INDEX.md) and [`README.md`](./README.md).
-
-Package READMEs are implementation-local navigation and boundary guidance,
-subordinate to root `AGENTS.md` and the Architecture Corpus. Do not infer
-Authority from code history, milestones, tests, or dependency accidents.
-
-Durable source modules need meaningful package/module docs.
-Document exported contracts and non-obvious invariants.
-Comments explain semantics, not syntax or type information.
-Generated API docs are derived; edit source docs instead.
-
-Do not create `AGENTS.md` inside package directories; put package-specific
-constraints in the package `README.md`.
-
-Keep changes inside the package's ownership and dependency direction.
-If a change moves Authority, adds a cross-package dependency or compatibility
-behavior, or contradicts the Corpus, stop with `PLAN_GAP`.
-
-## Mechanics Ownership Preflight
-
-Before adding a helper, class, or adapter for schema/parsing, discovery,
-processes, concurrency, retry/timeout, graphs, state machines, disposal,
-serialization, database, queue, observability, or protocol mechanics, use:
-
-```text
-package search → workspace exports → packages/INDEX.md + README
-→ dependency route → reuse/extend owner → custom only with evidence
-```
-
-Examples: use/extend `schema-runtime` for Ajv/TypeBox; adopted XState for a
-complex local FSM; repo-kit process, YAML, and discovery helpers for repository
-tooling (backed by Execa, `yaml`, and `tinyglobby`).
-
-Run the package's focused verification targets and all affected repository
-gates before claiming completion.
+- Before editing, read the target package README. For cross-package work, use
+  packages/INDEX.md and packages/README.md to discover ownership and
+  relationships.
+- Keep changes inside the documented semantic owner and dependency direction.
+  Exact current invariants come from relevant Specs; update the package's
+  human explanation when its public surface or local boundary changes.
+- Package README explains purpose, ownership, public surface, important
+  handoffs, and local verification; exact normative contracts remain in Specs.
+- Run focused package verification and affected repository gates.
+- A package-local AGENTS file is justified only by recurring package-specific
+  persistent behavior that materially differs from this workspace scope.

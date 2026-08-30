@@ -1,6 +1,9 @@
+import { createRequire } from "node:module";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  asDurableCodeVersion,
   asContentDigest,
+  createContributionId,
   createMicroSystemId,
   createProviderId,
   createServiceId,
@@ -17,6 +20,15 @@ import {
 import { createPersistenceService } from "@heptalogos/persistence";
 import { createFakeTimeService } from "@heptalogos/time-service";
 import { createRuntimeSubstrate } from "@heptalogos/runtime-substrate";
+import { createCanonicalSchemaInitializer } from "@heptalogos/canonical-schema";
+import {
+  createDbosAttemptInspectionPort,
+  createDurableDispatchPort,
+  createDurableExecutionRuntime,
+  createDurableExecutionSchemaProvisioner,
+  type DurableExecutionQuiescenceCoordinator,
+  type DurableExecutionRuntime,
+} from "@heptalogos/durable-execution";
 import { openPrivatePostgresMaintenanceController } from "@heptalogos/private-postgres";
 import {
   createContractVersion,
@@ -24,12 +36,37 @@ import {
   exactContract,
   MicroSystemSupervisor,
   type MicroSystemDefinition,
+  type ResourceAdmissionClassId,
+  type RuntimeWorkHandler,
+  type RuntimeWorkHandlerInvocation,
   type RuntimeQuiescenceLease,
   type ServiceProvisionDescriptor,
   type ServiceLease,
+  type WorkHandlerPayloadContract,
+  type WorkHandlerProvisionDescriptor,
+  type WorkHandlerTarget,
+  type WorkQueueProfileId,
 } from "@heptalogos/runtime-kernel";
 import {
+  createDispatchAttemptId,
+  createWorkAttemptExecutor,
+  createWorkQueueProfileCatalog,
+  createWorkQueueRecoveryCoordinator,
+  createWorkQueueReconciler,
+  createWorkQueueService,
+  type WorkAdmissionPort,
+  type WorkErrorClassifier,
+  type WorkQueueReconciler,
+  type WorkQueueRuntimeOptions,
+} from "@heptalogos/work-queue";
+import { createWorkQueueRepository } from "@heptalogos/work-queue/foundation-repository";
+import {
+  createPostgresSignalService,
+  postgresSignalPublisher,
+} from "@heptalogos/signal";
+import {
   BOOTSTRAP_PASSWORD,
+  CANONICAL_OPTIONS,
   boot,
   cleanupCanonicalPostgresFixtures,
   describeRealPostgres,
@@ -39,11 +76,16 @@ import {
   type BootResult,
 } from "../support/canonical-postgres.js";
 import type { HostMaintenanceQuiescence } from "../../src/managed-host.js";
+import { markManagedHostTerminal } from "../../src/managed-host.js";
 import { acquireBootstrapOwnership } from "../../src/bootstrap-ownership.js";
 import { prepareBootstrapPrelude } from "../../src/bootstrap-prelude.js";
 import { getPrivatePostgresMaintenanceDescriptor } from "../../src/private-postgres-bootstrap.js";
 
 const describePostgres = describeRealPostgres === undefined ? describe.skip : describe;
+const dbosSdk = createRequire(import.meta.url)("@dbos-inc/dbos-sdk").DBOS as {
+  isInitialized(): boolean;
+  shutdown(options?: { readonly workflowCompletionTimeoutMS?: number }): Promise<void>;
+};
 const contractV1 = createContractVersion("v1");
 const settleTimeoutMs = 100;
 const allOperatingModes = [
@@ -273,7 +315,7 @@ async function terminateAuthenticHost(
 }
 
 describePostgres.sequential("Runtime and authentic Host lifecycle", () => {
-  it("PG1 proves normal Runtime composition identity coherence", async () => {
+  it("proves normal Runtime composition identity coherence", async () => {
     const fixture = await makeFixture();
     const productGeneration = productGenerationId("pg1");
     const serviceId = createServiceId("runtime.pg1.service");
@@ -322,7 +364,7 @@ describePostgres.sequential("Runtime and authentic Host lifecycle", () => {
     }
   }, 180_000);
 
-  it("PG2 propagates authentic Host terminality to Persistence and Runtime", async () => {
+  it("propagates authentic Host terminality to Persistence and Runtime", async () => {
     const fixture = await makeFixture();
     const productGeneration = productGenerationId("pg2");
     const serviceId = createServiceId("runtime.pg2.service");
@@ -356,7 +398,7 @@ describePostgres.sequential("Runtime and authentic Host lifecycle", () => {
     }
   }, 180_000);
 
-  it("PG3 uses real Runtime quiescence before planned Host STOP and PostgreSQL stop", async () => {
+  it("uses real Runtime quiescence before planned Host STOP and PostgreSQL stop", async () => {
     const fixture = await makeFixture();
     const productGeneration = productGenerationId("pg3");
     const serviceId = createServiceId("runtime.pg3.service");
@@ -429,7 +471,7 @@ describePostgres.sequential("Runtime and authentic Host lifecycle", () => {
     }
   }, 180_000);
 
-  it("PG4 restarts with continuity preserved and fresh Runtime generations", async () => {
+  it("restarts with continuity preserved and fresh Runtime generations", async () => {
     const fixture = await makeFixture();
     const productGeneration = productGenerationId("pg4");
     const serviceId = createServiceId("runtime.pg4.service");
@@ -476,7 +518,7 @@ describePostgres.sequential("Runtime and authentic Host lifecycle", () => {
       const restarted = await maintenance.execute(runtimeQuiescenceA);
       expect(restarted.kind).toBe("RESTARTED");
       if (restarted.kind !== "RESTARTED")
-        throw new Error("PG4 restart did not return a Host");
+        throw new Error("Restart did not return a Host");
       const restartedBoot: BootResult = {
         ...compositionA.bootResult,
         host: restarted.host,
@@ -515,7 +557,7 @@ describePostgres.sequential("Runtime and authentic Host lifecycle", () => {
     }
   }, 180_000);
 
-  it("PG5 proves HostMaintenanceQuiescence structural compatibility with Runtime lease", async () => {
+  it("proves HostMaintenanceQuiescence structural compatibility with Runtime lease", async () => {
     const fixture = await makeFixture();
     const productGeneration = productGenerationId("pg5");
     const serviceId = createServiceId("runtime.pg5.service");
@@ -538,7 +580,7 @@ describePostgres.sequential("Runtime and authentic Host lifecycle", () => {
     }
   }, 180_000);
 
-  it("PG6 keeps PostgreSQL running after Host terminal shutdown and forbids Runtime resume", async () => {
+  it("keeps PostgreSQL running after Host terminal shutdown and forbids Runtime resume", async () => {
     const fixture = await makeFixture();
     const productGeneration = productGenerationId("pg6");
     const serviceId = createServiceId("runtime.pg6.service");
@@ -595,4 +637,768 @@ describePostgres.sequential("Runtime and authentic Host lifecycle", () => {
       await closeComposition(composition);
     }
   }, 180_000);
+});
+
+const durableLifecycleQueueProfileId = createMicroSystemId(
+  "runtime-lifecycle.durable",
+) as unknown as WorkQueueProfileId;
+const durableLifecycleResourceClass = createMicroSystemId(
+  "runtime-lifecycle.durable",
+) as unknown as ResourceAdmissionClassId;
+const durableLifecycleProfiles = createWorkQueueProfileCatalog([
+  { profileId: durableLifecycleQueueProfileId, minPollingIntervalMs: 50 },
+]);
+const durableLifecycleCodeVersion = asDurableCodeVersion(
+  digestCanonicalJson("runtime-lifecycle.durable-code/v1", { version: "current" }),
+);
+const durableLifecycleProductGeneration = productGenerationId("durable-lifecycle");
+const durableLifecyclePackageGeneration = asContentDigest(
+  "PackageGenerationId",
+  digestCanonicalJson("runtime-lifecycle.durable-package/v1", { version: "current" }),
+);
+const durableLifecycleTarget: WorkHandlerTarget = {
+  productGenerationId: durableLifecycleProductGeneration,
+  microSystemId: createMicroSystemId("runtime-lifecycle.durable-work"),
+  contributionId: createContributionId("runtime-lifecycle.durable-work.execute"),
+  packageGenerationId: durableLifecyclePackageGeneration,
+  payloadVersion: 1,
+};
+const durableLifecyclePayloadContracts: readonly WorkHandlerPayloadContract[] = [
+  {
+    version: 1,
+    schema: {
+      type: "object",
+      properties: { value: { type: "string" } },
+      required: ["value"],
+      additionalProperties: false,
+    },
+  },
+];
+const durableLifecycleDescriptor: WorkHandlerProvisionDescriptor = {
+  contributionId: durableLifecycleTarget.contributionId,
+  contractVersion: "v1" as never,
+  payloadContracts: durableLifecyclePayloadContracts,
+  outcomeSchema: {
+    type: "object",
+    properties: { accepted: { type: "boolean" } },
+    required: ["accepted"],
+    additionalProperties: false,
+  },
+  queueProfileId: durableLifecycleQueueProfileId,
+  resourceAdmissionClass: durableLifecycleResourceClass,
+  configurationBindingPolicy: "LATEST_COMPATIBLE_AT_ATTEMPT",
+  restoreReplayClass: "RECONCILE_REQUIRED",
+};
+const durableLifecycleWorkOptions: WorkQueueRuntimeOptions = {
+  maxInlinePayloadBytes: 4_096,
+  maxOutcomeBytes: 4_096,
+  reconciliationBatchSize: 32,
+  antiEntropyIntervalMs: 50,
+};
+const durableLifecycleSchemaProvisioner = createDurableExecutionSchemaProvisioner({
+  processTimeoutMs: 120_000,
+  connectionTimeoutMs: 10_000,
+  statementTimeoutMs: 10_000,
+});
+const durableLifecycleCanonicalInitializer =
+  createCanonicalSchemaInitializer(CANONICAL_OPTIONS);
+const initializeDurableLifecycleSchemas = async (
+  context: Parameters<typeof durableLifecycleCanonicalInitializer>[0],
+): Promise<void> => {
+  await durableLifecycleCanonicalInitializer(context);
+  await durableLifecycleSchemaProvisioner.ensureCurrent(context.authority);
+};
+
+interface WorkQueueQuiescenceBinding {
+  readonly admission: WorkAdmissionPort;
+  readonly coordinator: DurableExecutionQuiescenceCoordinator;
+  readonly trace: string[];
+}
+
+function createWorkQueueQuiescenceBinding(
+  baseAdmission: WorkAdmissionPort,
+  getReconciler: () => WorkQueueReconciler | undefined,
+): WorkQueueQuiescenceBinding {
+  let open = true;
+  let activeAdmissionCalls = 0;
+  const idleWaiters: Array<() => void> = [];
+  const trace: string[] = [];
+
+  const completeAdmissionCall = (): void => {
+    activeAdmissionCalls -= 1;
+    if (activeAdmissionCalls !== 0) return;
+    for (const resolve of idleWaiters.splice(0)) resolve();
+  };
+
+  const waitForAdmissionIdle = (signal: AbortSignal): Promise<void> => {
+    if (activeAdmissionCalls === 0) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const finish = (callback: () => void): void => {
+        if (settled) return;
+        settled = true;
+        signal.removeEventListener("abort", onAbort);
+        const index = idleWaiters.indexOf(onIdle);
+        if (index >= 0) idleWaiters.splice(index, 1);
+        callback();
+      };
+      const onIdle = (): void => finish(resolve);
+      const onAbort = (): void =>
+        finish(() =>
+          reject(signal.reason ?? new Error("WorkQueue quiescence timed out")),
+        );
+      idleWaiters.push(onIdle);
+      signal.addEventListener("abort", onAbort, { once: true });
+      if (signal.aborted) onAbort();
+    });
+  };
+
+  const admission: WorkAdmissionPort = {
+    async beforeCreate(input) {
+      if (!open) {
+        return {
+          decision: "REJECT_NEW_WORK",
+          reasonCode: "work.lifecycle.quiescing",
+        };
+      }
+      activeAdmissionCalls += 1;
+      try {
+        return await baseAdmission.beforeCreate(input);
+      } finally {
+        completeAdmissionCall();
+      }
+    },
+    async beforeDispatch(input) {
+      if (!open) {
+        return {
+          decision: "DELAY",
+          reasonCode: "work.lifecycle.quiescing",
+        };
+      }
+      activeAdmissionCalls += 1;
+      try {
+        return await baseAdmission.beforeDispatch(input);
+      } finally {
+        completeAdmissionCall();
+      }
+    },
+  };
+
+  const coordinator: DurableExecutionQuiescenceCoordinator = {
+    async prepare(signal) {
+      open = false;
+      trace.push("workqueue.admission.closed");
+      const reconciler = getReconciler();
+      try {
+        await reconciler?.stop();
+        trace.push("workqueue.reconciliation.stopped");
+        await waitForAdmissionIdle(signal);
+        signal.throwIfAborted();
+      } catch (error) {
+        open = true;
+        try {
+          await reconciler?.start();
+        } catch (resumeError) {
+          throw new AggregateError(
+            [error, resumeError],
+            "WorkQueue quiescence preparation could not restore reconciliation",
+          );
+        }
+        throw error;
+      }
+
+      let used = false;
+      return {
+        async resumeAfterAbort() {
+          if (used) throw new Error("WorkQueue quiescence lease was reused");
+          used = true;
+          open = true;
+          await reconciler?.start();
+          trace.push("workqueue.reconciliation.resumed");
+          trace.push("workqueue.admission.open");
+        },
+      };
+    },
+  };
+
+  return { admission, coordinator, trace };
+}
+
+function durableLifecycleOptions(
+  shutdownDrainTimeoutMs: number,
+  quiescence: DurableExecutionQuiescenceCoordinator,
+  onTerminalFailure: (error: unknown) => void,
+) {
+  return {
+    durableCodeVersion: durableLifecycleCodeVersion,
+    systemPool: {
+      maxConnections: 4,
+      idleTimeoutMs: 5_000,
+      connectionTimeoutMs: 10_000,
+      statementTimeoutMs: 10_000,
+      idleInTransactionSessionTimeoutMs: 30_000,
+    },
+    systemDatabasePollingConcurrency: 2,
+    maxConcurrentQueueDispatches: 4,
+    workflowMaxRecoveryAttempts: 4,
+    shutdownDrainTimeoutMs,
+    profiles: durableLifecycleProfiles,
+    quiescence,
+    onTerminalFailure,
+    onBackgroundError() {},
+  } as const;
+}
+
+interface DurableLifecycleComposition {
+  readonly bootResult: BootResult;
+  readonly runtime: ReturnType<typeof createExecutionContextRuntime>;
+  readonly persistence: ReturnType<typeof createPersistenceService>;
+  readonly supervisor: MicroSystemSupervisor;
+  readonly signal: ReturnType<typeof createPostgresSignalService>;
+  readonly repository: ReturnType<typeof createWorkQueueRepository>;
+  readonly work: ReturnType<typeof createWorkQueueService>;
+  readonly executor: ReturnType<typeof createWorkAttemptExecutor>;
+  readonly durable: DurableExecutionRuntime;
+  readonly durableDispatch: ReturnType<typeof createDurableDispatchPort>;
+  readonly reconciler: ReturnType<typeof createWorkQueueReconciler>;
+  readonly handlerStarted: Promise<RuntimeWorkHandlerInvocation>;
+  readonly handlerFinished: Promise<void>;
+  readonly isHandlerFinished: () => boolean;
+  readonly handlerInvocations: RuntimeWorkHandlerInvocation[];
+  readonly releaseHandler: () => void;
+  readonly quiescenceTrace: readonly string[];
+  readonly terminalFailures: readonly unknown[];
+}
+
+async function createDurableLifecycleComposition(
+  fixture: Awaited<ReturnType<typeof makeFixture>>,
+  options: {
+    readonly blockHandler?: boolean;
+    readonly shutdownDrainTimeoutMs?: number;
+  } = {},
+): Promise<DurableLifecycleComposition> {
+  const bootResult = await boot(fixture, initializeDurableLifecycleSchemas);
+  const time = createFakeTimeService(parseInstant("2026-08-26T00:00:00.000Z")!);
+  const runtime = createExecutionContextRuntime(
+    {
+      installationId: bootResult.host.installationId,
+      instanceId: bootResult.host.instanceId,
+      bootId: bootResult.host.bootId,
+      continuityEpochId: bootResult.host.continuityEpochId,
+      hostOwnershipToken: bootResult.host.token,
+    },
+    time,
+  );
+  const persistence = createPersistenceService(
+    bootResult.host.persistence,
+    {
+      maxConnections: 2,
+      idleTimeoutMs: 5_000,
+      connectionTimeoutMs: 10_000,
+      statementTimeoutMs: 10_000,
+      lockTimeoutMs: 10_000,
+      idleInTransactionSessionTimeoutMs: 30_000,
+      onBackgroundError() {},
+    },
+    createPersistenceExecutionContextProvider(runtime),
+  );
+  const lineage = createExecutionLineageService();
+  const lifecycleLineage = createRuntimeLifecycleLineage({
+    execution: runtime,
+    persistence,
+    lineage,
+    time,
+  });
+  const handlerInvocations: RuntimeWorkHandlerInvocation[] = [];
+  let resolveHandlerStarted!: (invocation: RuntimeWorkHandlerInvocation) => void;
+  const handlerStarted = new Promise<RuntimeWorkHandlerInvocation>((resolve) => {
+    resolveHandlerStarted = resolve;
+  });
+  let resolveHandlerFinished!: () => void;
+  const handlerFinished = new Promise<void>((resolve) => {
+    resolveHandlerFinished = resolve;
+  });
+  let handlerFinishedState = false;
+  let releaseHandler!: () => void;
+  const handlerRelease = new Promise<void>((resolve) => {
+    releaseHandler = resolve;
+  });
+  const handler: RuntimeWorkHandler = {
+    async execute(input) {
+      handlerInvocations.push(input);
+      if (handlerInvocations.length === 1) resolveHandlerStarted(input);
+      try {
+        if (options.blockHandler === true) await handlerRelease;
+        return { outcome: { accepted: true } };
+      } finally {
+        handlerFinishedState = true;
+        resolveHandlerFinished();
+      }
+    },
+  };
+  const definition: MicroSystemDefinition = {
+    microSystemId: durableLifecycleTarget.microSystemId,
+    role: "system-service",
+    generation: {
+      productGenerationId: durableLifecycleTarget.productGenerationId,
+      packageGenerationId: durableLifecycleTarget.packageGenerationId,
+    },
+    operatingModes: allOperatingModes,
+    serviceRequirements: [],
+    capabilityRequirements: [],
+    serviceProvisions: [],
+    capabilityProvisions: [],
+    workHandlerProvisions: [durableLifecycleDescriptor],
+    activate: async (context) => {
+      context.publishWorkHandler(durableLifecycleDescriptor, handler);
+    },
+  };
+  const terminalFailures: unknown[] = [];
+  const supervisor = new MicroSystemSupervisor({
+    substrate: createRuntimeSubstrate({ settleTimeoutMs }),
+    settleTimeoutMs,
+    definitions: [definition],
+    lifecycleLineage,
+    rootRuntimeOrigin: { productGenerationId: durableLifecycleProductGeneration },
+    ownerLifecycle: {
+      signal: bootResult.host.signal,
+      onTerminalFailure: (error) => terminalFailures.push(error),
+    },
+  });
+  await supervisor.reconcile(desired([definition]));
+  const signal = createPostgresSignalService(bootResult.host.persistence, {
+    connectionTimeoutMs: 10_000,
+    reconnectBaseDelayMs: 25,
+    reconnectMaxDelayMs: 200,
+    onBackgroundError() {},
+  });
+  const repository = createWorkQueueRepository(persistence);
+  const baseAdmission: WorkAdmissionPort = {
+    beforeCreate: async () => ({ decision: "ALLOW" }),
+    beforeDispatch: async () => ({ decision: "ALLOW" }),
+  };
+  let reconciler: ReturnType<typeof createWorkQueueReconciler> | undefined;
+  const quiescenceBinding = createWorkQueueQuiescenceBinding(
+    baseAdmission,
+    () => reconciler,
+  );
+  const admission = quiescenceBinding.admission;
+  const classifier: WorkErrorClassifier = {
+    classify: () => ({
+      kind: "TERMINAL",
+      retryClass: "permanent",
+      reasonCode: "runtime-lifecycle-handler-failure",
+    }),
+  };
+  const work = createWorkQueueService({
+    persistence,
+    repository,
+    handlerRegistry: supervisor.workHandlers,
+    execution: runtime,
+    lineage,
+    time,
+    signalPublisher: postgresSignalPublisher,
+    admission,
+    profiles: durableLifecycleProfiles,
+    runtimeOptions: durableLifecycleWorkOptions,
+    onBackgroundError() {},
+  });
+  const executor = createWorkAttemptExecutor({
+    repository,
+    handlerRegistry: supervisor.workHandlers,
+    execution: runtime,
+    lineage,
+    time,
+    classifier,
+    runtimeOptions: durableLifecycleWorkOptions,
+  });
+  const durable = createDurableExecutionRuntime(
+    bootResult.host.durableExecution,
+    durableLifecycleOptions(
+      options.shutdownDrainTimeoutMs ?? 10_000,
+      quiescenceBinding.coordinator,
+      (error) => {
+        terminalFailures.push(error);
+        markManagedHostTerminal(bootResult.host);
+      },
+    ),
+    executor,
+  );
+  const durableInspection = createDbosAttemptInspectionPort({
+    durableCodeVersion: durableLifecycleCodeVersion,
+  });
+  const recovery = createWorkQueueRecoveryCoordinator({
+    repository,
+    durableInspection,
+    onBackgroundError() {},
+    batchSize: durableLifecycleWorkOptions.reconciliationBatchSize,
+  });
+  const durableDispatch = createDurableDispatchPort({
+    authority: bootResult.host.durableExecution,
+    lifecycle: durable,
+    durableCodeVersion: durableLifecycleCodeVersion,
+    profiles: durableLifecycleProfiles,
+    now: () => time.now(),
+  });
+  const reconcilerInstance = createWorkQueueReconciler({
+    repository,
+    durableDispatch,
+    handlerRegistry: supervisor.workHandlers,
+    admission,
+    signal,
+    execution: runtime,
+    time,
+    runtimeOptions: durableLifecycleWorkOptions,
+    recovery,
+    onBackgroundError() {},
+  });
+  reconciler = reconcilerInstance;
+  return {
+    bootResult,
+    runtime,
+    persistence,
+    supervisor,
+    signal,
+    repository,
+    work,
+    executor,
+    durable,
+    durableDispatch,
+    reconciler: reconcilerInstance,
+    handlerStarted,
+    handlerFinished,
+    isHandlerFinished: () => handlerFinishedState,
+    handlerInvocations,
+    releaseHandler,
+    quiescenceTrace: quiescenceBinding.trace,
+    terminalFailures,
+  };
+}
+
+async function closeDurableLifecycleComposition(
+  composition: DurableLifecycleComposition,
+): Promise<void> {
+  composition.releaseHandler();
+  await composition.reconciler.stop().catch(() => undefined);
+  await composition.durable.close().catch(() => undefined);
+  await composition.supervisor.close().catch(() => undefined);
+  await composition.persistence.close().catch(() => undefined);
+  await stopManagedHostWithoutRuntime(composition.bootResult.host).catch(
+    () => undefined,
+  );
+}
+
+async function createDurableLifecycleWork(composition: DurableLifecycleComposition) {
+  return composition.runtime.runActivity(
+    {
+      kind: "runtime-lifecycle.work.create",
+      importance: "significant",
+      retentionClass: "operational",
+      sensitivity: "operational",
+    },
+    () =>
+      composition.work.create({
+        target: durableLifecycleTarget,
+        payload: { value: "runtime-lifecycle" },
+        queueProfileId: durableLifecycleQueueProfileId,
+        resourceAdmissionClass: durableLifecycleResourceClass,
+        priority: 100,
+      }),
+  );
+}
+
+async function dispatchDurableLifecycleWork(
+  composition: DurableLifecycleComposition,
+  item: Awaited<ReturnType<typeof createDurableLifecycleWork>>["item"],
+): Promise<void> {
+  await composition.durableDispatch.dispatch({
+    workItemId: item.workItemId,
+    dispatchRevision: item.dispatchRevision,
+    dispatchAttemptId: createDispatchAttemptId(item.workItemId, item.dispatchRevision),
+    queueProfileId: item.queueProfileId,
+    priority: item.priority,
+  });
+}
+
+async function waitForDurableLifecycleState(
+  composition: DurableLifecycleComposition,
+  workItemId: Awaited<
+    ReturnType<typeof createDurableLifecycleWork>
+  >["item"]["workItemId"],
+  state: "PENDING" | "RUNNING" | "SUCCEEDED",
+  timeoutMs = 30_000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if ((await composition.repository.getWorkItem(workItemId))?.state === state) return;
+    await new Promise<void>((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`WorkItem did not reach ${state} before the test timeout`);
+}
+
+async function waitForCondition(
+  condition: () => boolean | Promise<boolean>,
+  timeoutMs = 30_000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await condition()) return;
+    await new Promise<void>((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error("durable lifecycle condition was not reached before timeout");
+}
+
+async function durablePoolBackendCount(
+  fixture: Awaited<ReturnType<typeof makeFixture>>,
+): Promise<number> {
+  const result = await queryAs(
+    fixture,
+    "heptalogos_bootstrap",
+    BOOTSTRAP_PASSWORD,
+    `SELECT count(*)::integer AS count
+       FROM pg_stat_activity
+      WHERE application_name = 'heptalogos-durable-execution'`,
+  );
+  return Number(result.rows[0]?.count ?? 0);
+}
+
+describePostgres.sequential("Runtime and authentic DurableExecution lifecycle", () => {
+  it("records provider shutdown timeout behavior for a held invocation", async () => {
+    const fixture = await makeFixture();
+    const composition = await createDurableLifecycleComposition(fixture, {
+      blockHandler: true,
+      shutdownDrainTimeoutMs: 100,
+    });
+    try {
+      await composition.durable.start();
+      await composition.reconciler.start();
+      const created = await createDurableLifecycleWork(composition);
+      await dispatchDurableLifecycleWork(composition, created.item);
+      await composition.handlerStarted;
+
+      expect(dbosSdk.isInitialized()).toBe(true);
+      await expect(
+        dbosSdk.shutdown({ workflowCompletionTimeoutMS: 100 }),
+      ).resolves.toBeUndefined();
+      expect(dbosSdk.isInitialized()).toBe(false);
+      expect(composition.isHandlerFinished()).toBe(false);
+
+      composition.releaseHandler();
+      await composition.handlerFinished;
+      expect(composition.isHandlerFinished()).toBe(true);
+      await waitForDurableLifecycleState(
+        composition,
+        created.item.workItemId,
+        "SUCCEEDED",
+      );
+      expect(composition.handlerInvocations).toHaveLength(1);
+    } finally {
+      await closeDurableLifecycleComposition(composition);
+      await cleanupCanonicalPostgresFixtures();
+    }
+  }, 240_000);
+
+  it("drains DurableExecution before reverse Host handoff and PostgreSQL stop", async () => {
+    const fixture = await makeFixture();
+    const composition = await createDurableLifecycleComposition(fixture);
+    const events: string[] = [];
+    try {
+      await composition.durable.start();
+      const created = await createDurableLifecycleWork(composition);
+      expect(created.item.state).toBe("PENDING");
+      const maintenance =
+        await composition.bootResult.host.preparePrivatePostgresMaintenance({
+          kind: "STOP_PRIVATE_POSTGRES",
+        });
+      await expect(
+        maintenance.execute({
+          async quiesce() {
+            const durableQuiesce = composition.durable.quiesce();
+            events.push("durable.admission.closed");
+            await durableQuiesce;
+            events.push("dbos.drain.completed");
+            expect(composition.durable.state).toBe("QUIESCED");
+            expect(await durablePoolBackendCount(fixture)).toBe(0);
+            events.push("dbos.pool.closed");
+            expect(composition.quiescenceTrace).toEqual([
+              "workqueue.admission.closed",
+              "workqueue.reconciliation.stopped",
+            ]);
+            await composition.supervisor.close();
+            events.push("runtime-kernel.quiesced");
+            await composition.persistence.close();
+            events.push("persistence.closed");
+            return {
+              async resumeAfterAbort() {
+                await composition.durable.resume();
+              },
+            };
+          },
+        }),
+      ).resolves.toEqual({ kind: "STOPPED" });
+      expect(events).toEqual([
+        "durable.admission.closed",
+        "dbos.drain.completed",
+        "dbos.pool.closed",
+        "runtime-kernel.quiesced",
+        "persistence.closed",
+      ]);
+      expect(composition.bootResult.host.state).toBe("CLOSED");
+      expect(composition.handlerInvocations).toHaveLength(0);
+      await expect(
+        queryAs(fixture, "heptalogos_bootstrap", BOOTSTRAP_PASSWORD, "SELECT 1"),
+      ).rejects.toBeDefined();
+    } finally {
+      await closeDurableLifecycleComposition(composition);
+      await cleanupCanonicalPostgresFixtures();
+    }
+  }, 240_000);
+
+  it("lets an in-flight DBOS step settle before final Runtime quiescence", async () => {
+    const fixture = await makeFixture();
+    const composition = await createDurableLifecycleComposition(fixture, {
+      blockHandler: true,
+    });
+    try {
+      await composition.durable.start();
+      await composition.reconciler.start();
+      const created = await createDurableLifecycleWork(composition);
+      await composition.reconciler.start();
+      await dispatchDurableLifecycleWork(composition, created.item);
+      await composition.handlerStarted;
+      expect(
+        (await composition.repository.getWorkItem(created.item.workItemId))?.state,
+      ).toBe("RUNNING");
+      const durableQuiesce = composition.durable.quiesce();
+      expect(composition.durable.state).toBe("QUIESCING");
+      composition.releaseHandler();
+      await waitForDurableLifecycleState(
+        composition,
+        created.item.workItemId,
+        "SUCCEEDED",
+      );
+      await durableQuiesce;
+      expect(composition.durable.state).toBe("QUIESCED");
+      expect(composition.handlerInvocations).toHaveLength(1);
+      await composition.supervisor.quiesce();
+    } finally {
+      await closeDurableLifecycleComposition(composition);
+      await cleanupCanonicalPostgresFixtures();
+    }
+  }, 240_000);
+
+  it("aborts before maintenance entry and relaunches the same DBOS registration", async () => {
+    const fixture = await makeFixture();
+    const composition = await createDurableLifecycleComposition(fixture);
+    try {
+      await composition.durable.start();
+      await composition.reconciler.start();
+      await composition.durable.quiesce();
+      expect(composition.durable.state).toBe("QUIESCED");
+      const maintenance =
+        await composition.bootResult.host.preparePrivatePostgresMaintenance({
+          kind: "STOP_PRIVATE_POSTGRES",
+        });
+      await maintenance.abortBeforeEntry();
+      expect(composition.bootResult.host.state).toBe("ACTIVE");
+      await composition.durable.resume();
+      expect(composition.durable.state).toBe("OPEN");
+      const created = await createDurableLifecycleWork(composition);
+      await dispatchDurableLifecycleWork(composition, created.item);
+      await waitForDurableLifecycleState(
+        composition,
+        created.item.workItemId,
+        "SUCCEEDED",
+      );
+      await expect(
+        queryAs(fixture, "heptalogos_bootstrap", BOOTSTRAP_PASSWORD, "SELECT 1"),
+      ).resolves.toMatchObject({ rows: [{ "?column?": 1 }] });
+    } finally {
+      await closeDurableLifecycleComposition(composition);
+      await cleanupCanonicalPostgresFixtures();
+    }
+  }, 240_000);
+
+  it("fences dispatch and old handler leases after authentic Host loss", async () => {
+    const fixture = await makeFixture();
+    const composition = await createDurableLifecycleComposition(fixture);
+    try {
+      await composition.durable.start();
+      const created = await createDurableLifecycleWork(composition);
+      const oldLease =
+        composition.supervisor.workHandlers.resolve(durableLifecycleTarget);
+      expect(oldLease).toBeDefined();
+      await terminateAuthenticHost(fixture, composition.bootResult.host);
+      await waitForCondition(() => composition.durable.state === "CLOSED");
+      await expect(
+        dispatchDurableLifecycleWork(composition, created.item),
+      ).rejects.toBeDefined();
+      await composition.supervisor.close();
+      expect(() => oldLease!.reserveInvocation()).toThrow();
+    } finally {
+      await closeDurableLifecycleComposition(composition);
+      await cleanupCanonicalPostgresFixtures();
+    }
+  }, 240_000);
+
+  it("refuses Host success when the bounded DBOS drain fails", async () => {
+    const fixture = await makeFixture();
+    const composition = await createDurableLifecycleComposition(fixture, {
+      blockHandler: true,
+      shutdownDrainTimeoutMs: 100,
+    });
+    try {
+      await composition.durable.start();
+      await composition.reconciler.start();
+      const created = await createDurableLifecycleWork(composition);
+      await dispatchDurableLifecycleWork(composition, created.item);
+      await composition.handlerStarted;
+      const maintenance =
+        await composition.bootResult.host.preparePrivatePostgresMaintenance({
+          kind: "STOP_PRIVATE_POSTGRES",
+        });
+      await expect(
+        maintenance.execute({
+          async quiesce() {
+            await composition.durable.quiesce();
+            return {
+              async resumeAfterAbort() {
+                await composition.durable.resume();
+              },
+            };
+          },
+        }),
+      ).rejects.toBeDefined();
+      expect(composition.bootResult.host.state).toBe("ACTIVE");
+      expect(composition.durable.state).toBe("OPEN");
+      await expect(
+        queryAs(fixture, "heptalogos_bootstrap", BOOTSTRAP_PASSWORD, "SELECT 1"),
+      ).resolves.toMatchObject({ rows: [{ "?column?": 1 }] });
+      expect(
+        (await composition.repository.getWorkItem(created.item.workItemId))?.state,
+      ).toBe("RUNNING");
+      expect(composition.quiescenceTrace).toEqual([
+        "workqueue.admission.closed",
+        "workqueue.reconciliation.stopped",
+        "workqueue.reconciliation.resumed",
+        "workqueue.admission.open",
+      ]);
+
+      composition.releaseHandler();
+      await waitForDurableLifecycleState(
+        composition,
+        created.item.workItemId,
+        "SUCCEEDED",
+      );
+      const recovered = await createDurableLifecycleWork(composition);
+      await waitForDurableLifecycleState(
+        composition,
+        recovered.item.workItemId,
+        "SUCCEEDED",
+      );
+    } finally {
+      await closeDurableLifecycleComposition(composition);
+      await cleanupCanonicalPostgresFixtures();
+    }
+  }, 240_000);
 });

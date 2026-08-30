@@ -7,6 +7,7 @@ import {
 } from "@heptalogos/foundation-contracts";
 import {
   HOST_OWNERSHIP_CANONICAL_DATABASE,
+  HOST_DURABLE_EXECUTION_ROLE,
   HOST_RUNTIME_ROLE,
   type HostOwnershipContext,
 } from "@heptalogos/host-ownership";
@@ -15,6 +16,7 @@ import {
   createManagedHostContext,
   markManagedHostTerminal,
   type BootstrapManagedHostContext,
+  type ManagedHostDurableExecutionOptions,
   type HostMaintenanceQuiescence,
   type ManagedHostPersistenceOptions,
 } from "../../src/managed-host.js";
@@ -30,6 +32,19 @@ const persistenceOptions: ManagedHostPersistenceOptions = {
   },
   async withRuntimeDatabasePassword(use) {
     return use(new TextEncoder().encode("R".repeat(32)));
+  },
+};
+
+const durableExecutionOptions: ManagedHostDurableExecutionOptions = {
+  continuityEpochId: persistenceOptions.continuityEpochId,
+  target: {
+    host: "127.0.0.1",
+    port: 55436,
+    database: HOST_OWNERSHIP_CANONICAL_DATABASE,
+    user: HOST_DURABLE_EXECUTION_ROLE,
+  },
+  async withDurableExecutionDatabasePassword(use) {
+    return use(new TextEncoder().encode("D".repeat(32)));
   },
 };
 
@@ -60,11 +75,12 @@ describe("managed Host capability", () => {
       raw,
       {
         async preparePrivatePostgresMaintenance() {
-          throw new Error("not implemented in Task 3 fixture");
+          throw new Error("maintenance operation fixture is not implemented");
         },
         async shutdownKeepingPrivatePostgres() {},
       },
       persistenceOptions,
+      durableExecutionOptions,
     );
 
     expect(managed.installationId).toBe(raw.installationId);
@@ -96,11 +112,12 @@ describe("managed Host capability", () => {
       rawHost(),
       {
         async preparePrivatePostgresMaintenance() {
-          throw new Error("not implemented in Task 3 fixture");
+          throw new Error("maintenance operation fixture is not implemented");
         },
         async shutdownKeepingPrivatePostgres() {},
       },
       persistenceOptions,
+      durableExecutionOptions,
     );
 
     markManagedHostTerminal(managed);
@@ -114,7 +131,7 @@ describe("managed Host capability", () => {
       raw,
       {
         async preparePrivatePostgresMaintenance() {
-          throw new Error("not implemented in Task 4 fixture");
+          throw new Error("maintenance operation fixture is not implemented");
         },
         async shutdownKeepingPrivatePostgres() {},
       },
@@ -131,6 +148,7 @@ describe("managed Host capability", () => {
           return use(new TextEncoder().encode("R".repeat(32)));
         },
       },
+      durableExecutionOptions,
     );
 
     expect(managed.persistence.installationId).toBe(raw.installationId);
@@ -138,6 +156,16 @@ describe("managed Host capability", () => {
     expect(managed.persistence.bootId).toBe(raw.bootId);
     expect(managed.persistence.token).toBe(raw.token);
     expect(managed.persistence.target.user).toBe(HOST_RUNTIME_ROLE);
+    expect(managed.durableExecution.installationId).toBe(raw.installationId);
+    expect(managed.durableExecution.instanceId).toBe(raw.instanceId);
+    expect(managed.durableExecution.bootId).toBe(raw.bootId);
+    expect(managed.durableExecution.token).toBe(raw.token);
+    expect(managed.durableExecution.target.user).toBe(HOST_DURABLE_EXECUTION_ROLE);
+    await expect(
+      managed.durableExecution.withDurableExecutionDatabasePassword(async (password) =>
+        new TextDecoder().decode(password),
+      ),
+    ).resolves.toBe("D".repeat(32));
     expect("withBootstrapPassword" in managed.persistence).toBe(false);
     expect("withHostLeasePassword" in managed.persistence).toBe(false);
     expect("raw" in managed.persistence).toBe(false);
@@ -151,8 +179,14 @@ describe("managed Host capability", () => {
 
     markManagedHostTerminal(managed);
     expect(() => managed.persistence.assertActive()).toThrow();
+    expect(() => managed.durableExecution.assertActive()).toThrow();
     await expect(
       managed.persistence.withRuntimeDatabasePassword(async () => "not-called"),
+    ).rejects.toThrow();
+    await expect(
+      managed.durableExecution.withDurableExecutionDatabasePassword(
+        async () => "not-called",
+      ),
     ).rejects.toThrow();
   });
 
@@ -161,13 +195,14 @@ describe("managed Host capability", () => {
       rawHost(),
       {
         async preparePrivatePostgresMaintenance() {
-          throw new Error("not implemented in Task 3 fixture");
+          throw new Error("maintenance operation fixture is not implemented");
         },
         async shutdownKeepingPrivatePostgres(received) {
           await received.quiesce();
         },
       },
       persistenceOptions,
+      durableExecutionOptions,
     );
 
     await expect(

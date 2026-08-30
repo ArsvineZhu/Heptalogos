@@ -8,6 +8,6 @@
 
 > **PackageGenerationId** = [`ContentDigest`](ContentDigest.md)\<`"PackageGenerationId"`>\>
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:10
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:11
 
 Identifies a package generation by its canonical content digest.

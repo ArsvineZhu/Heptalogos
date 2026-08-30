@@ -2,6 +2,23 @@
 
 本文件规定 Foundation 必须提供的稳定语义合同。**Service/Contract 存在不等于必须自研 mechanics，也不等于每个未来高级子系统在 Foundation 阶段已有实现。**
 
+```text
+SERVICE/CONTRACT EXISTENCE
+!= CURRENT IMPLEMENTATION AUTHORIZATION
+```
+
+Foundation service implementation 只有在存在以下至少一项时才获得当前授权：
+
+```text
+current consumer
+or current invariant
+or current accepted failure/security model
+```
+
+Service catalog 是 semantic ownership map，不是 Foundation completion checklist。
+这条规则尤其适用于 `ResourceGovernor`、`BackupCoordinator`、advanced package
+lifecycle 与其他 later-Horizon services。
+
 ---
 
 ## 1. Runtime / Kernel Contracts
@@ -125,7 +142,9 @@ restore participant staging/rebind
 rebuildable/external-reference classification
 ```
 
-不会假设所有数据在 PostgreSQL 或一个共同目录。Destructive restore 进入 RecoveryOperation 后仍遵守 S11/S17 的 bounded recovery contract。
+不会假设所有数据在 PostgreSQL 或一个共同目录。Destructive restore 进入
+RecoveryOperation 后仍遵守 [`backup-portability-update-recovery.md`](backup-portability-update-recovery.md)
+与 [`storage-lifecycle.md`](storage-lifecycle.md) 的 bounded recovery contract。
 
 ---
 
@@ -247,7 +266,10 @@ ConfigurationDefinition 与物理 backing 正交。支持 `BOOTSTRAP_FILE / MANA
 
 配置只保存 `SecretRef`。
 
-`SecretService` 负责 secret material 的受控解析、存储后端抽象与 caller/purpose scope；密码学 key/trust-root 生命周期受 `S15` 的独立 trust-domain 规则约束。
+`SecretService` 负责 secret material 的受控解析、存储后端抽象与
+caller/purpose scope；密码学 key/trust-root 生命周期受治理与
+[`data-evidence-persistence.md`](data-evidence-persistence.md) 的独立
+trust-domain 规则约束。
 
 禁止 plaintext fallback。
 
@@ -321,7 +343,8 @@ OpenTelemetry Span/Pino log 是其 telemetry projection；required Evidence/Audi
 
 提供 Activity tree、causal chain、runtime call graph、Extension lifecycle、Service consumer/provider、failure propagation 等 read-only projection，供 CLI/API/Operator Assistant 使用。
 
-详细合同见 `execution-lineage.md` 与 `contracts/execution-lineage-observability.md`。
+详细视图见 [`execution-lineage.md`](execution-lineage.md) 与
+[`Execution lineage Spec`](../../specs/execution/execution-lineage.md)。
 
 ---
 
@@ -514,7 +537,9 @@ replay behavior
 protocol revision
 ```
 
-具体规则见 `contracts/foundation-cross-cutting-contracts.md`。
+具体横切规则由相关 Specs 和
+[`knowledge-system.md`](../../project/engineering/repository/knowledge-system.md)
+分别拥有；本页只保留 Foundation 的概念边界。
 
 ---
 

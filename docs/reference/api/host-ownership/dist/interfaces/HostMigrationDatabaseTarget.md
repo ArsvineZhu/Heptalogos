@@ -6,7 +6,7 @@
 
 # Interface: HostMigrationDatabaseTarget
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:61
+Defined in: packages/host-ownership/dist/contracts.d.ts:63
 
 Identifies the canonical migration endpoint and restricted role.
 
@@ -16,7 +16,7 @@ Identifies the canonical migration endpoint and restricted role.
 
 > `readonly` **database**: `"heptalogos"`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:64
+Defined in: packages/host-ownership/dist/contracts.d.ts:66
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:64
 
 > `readonly` **host**: `"127.0.0.1"`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:62
+Defined in: packages/host-ownership/dist/contracts.d.ts:64
 
 ---
 
@@ -32,7 +32,7 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:62
 
 > `readonly` **port**: `number`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:63
+Defined in: packages/host-ownership/dist/contracts.d.ts:65
 
 ---
 
@@ -40,4 +40,4 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:63
 
 > `readonly` **user**: `"heptalogos_migration"`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:65
+Defined in: packages/host-ownership/dist/contracts.d.ts:67

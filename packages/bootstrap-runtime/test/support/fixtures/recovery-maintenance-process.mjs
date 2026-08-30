@@ -93,6 +93,16 @@ function keyProvider() {
         password.fill(0);
       }
     },
+    async withPrivatePostgresDurableExecutionPassword(_context, use) {
+      const password = new TextEncoder().encode(
+        "BOOTSTRAP_RECOVERY_TEST_DURABLE_EXECUTION_PASSWORD_0123456789",
+      );
+      try {
+        return await use(password);
+      } finally {
+        password.fill(0);
+      }
+    },
   };
 }
 

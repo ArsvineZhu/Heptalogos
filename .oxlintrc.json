@@ -511,7 +511,9 @@
       "files": ["packages/**/*.ts"],
       "excludeFiles": [
         "packages/work-queue/**",
-        "packages/bootstrap-runtime/test/integration/durable-work-host.integration.test.ts"
+        "packages/bootstrap-runtime/test/integration/durable-work-host.integration.test.ts",
+        "packages/bootstrap-runtime/test/integration/runtime-host-lifecycle.integration.test.ts",
+        "packages/bootstrap-runtime/test/support/durable-work-child.ts"
       ],
       "rules": {
         "no-restricted-imports": [

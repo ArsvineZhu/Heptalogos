@@ -157,7 +157,7 @@ afterEach(async () => {
 });
 
 describe("Bootstrap Recovery real process kill/restart qualification", () => {
-  it("K1 reclaims a killed bootstrap owner only after stale adjudication", async () => {
+  it("reclaims a killed bootstrap owner only after stale adjudication", async () => {
     const fixture = await makeFixture();
     const owner = new ChildController(OWNER_FIXTURE, fixture.anchorRoot, "hold");
     const started = await owner.waitFor("acquired", "error");
@@ -177,7 +177,7 @@ describe("Bootstrap Recovery real process kill/restart qualification", () => {
     await lease.release();
   }, 30_000);
 
-  it("K2 allows exactly one winner when two recovery processes race", async () => {
+  it("allows exactly one winner when two recovery processes race", async () => {
     const fixture = await makeFixture();
     const owner = new ChildController(OWNER_FIXTURE, fixture.anchorRoot, "hold");
     await owner.waitFor("acquired");
@@ -196,7 +196,7 @@ describe("Bootstrap Recovery real process kill/restart qualification", () => {
     await Promise.all(contenders.map(releaseChild));
   }, 30_000);
 
-  it("K3 rejects a stale-looking lock while the original owner is still live", async () => {
+  it("rejects a stale-looking lock while the original owner is still live", async () => {
     const fixture = await makeFixture();
     const owner = new ChildController(OWNER_FIXTURE, fixture.anchorRoot, "hold");
     await owner.waitFor("acquired");

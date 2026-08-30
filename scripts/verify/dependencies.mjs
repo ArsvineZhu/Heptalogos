@@ -33,7 +33,7 @@ try {
 }
 const qualificationStatusPath = join(
   root,
-  "docs",
+  "project",
   "qualification",
   "dependency-status.json",
 );

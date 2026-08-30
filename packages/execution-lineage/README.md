@@ -33,17 +33,10 @@ subpath for the explicitly routed integration surface.
 ## Dependencies and boundaries
 
 It depends on `foundation-contracts`, `persistence`, `schema-runtime`,
-`time-service`, OpenTelemetry API, and Kysely. Keep framework telemetry types
+`time-service`, OpenTelemetry API, and Kysely. Framework telemetry types remain
 behind the package contracts. Persistence and Evidence remain their respective
 authorities; lineage adds correlation and causal semantics rather than a second
 database or scheduler.
-
-## Change constraints
-
-Keep Activity/ExecutionContext identity distinct from Evidence and telemetry.
-Use the persistence service for durable mutations. Preserve causal propagation
-and current Host/generation fences; do not add scheduler, durable-work, or
-Runtime reconciliation semantics.
 
 ## Verification
 
@@ -53,7 +46,7 @@ PostgreSQL when the claim concerns durable lineage.
 
 ## Architecture references
 
-- [`22 — Execution-Lineage 与可观测执行`](../../docs/architecture/execution-lineage.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
-- [`S10 — Evidence、Replay、Observability 与 Content`](../../docs/architecture/contracts/evidence-replay-observability-content.md)
-- [`S16 — Execution Lineage Observability`](../../docs/architecture/contracts/execution-lineage-observability.md)
+- [`Execution lineage Architecture`](../../docs/architecture/execution-lineage.md)
+- [`Execution lineage Spec`](../../specs/execution/execution-lineage.md)
+- [`Evidence Spec`](../../specs/execution/evidence.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)

@@ -16,7 +16,9 @@ import {
 import type { MaintenanceOperationId } from "@heptalogos/bootstrap-state";
 import type {
   HostPersistenceAuthority,
+  HostDurableExecutionAuthority,
   HostOwnershipContext,
+  HostDurableExecutionDatabaseTarget,
   HostRuntimeDatabaseTarget,
   HostOwnershipState,
 } from "@heptalogos/host-ownership";
@@ -78,6 +80,7 @@ export interface BootstrapManagedHostContext {
   readonly state: HostOwnershipState;
   readonly signal: AbortSignal;
   readonly persistence: HostPersistenceAuthority;
+  readonly durableExecution: HostDurableExecutionAuthority;
   /** Throws when the managed Host has been closed or its fence is inactive. */
   assertActive(): void;
   /** Prepares a bounded private PostgreSQL maintenance operation. */
@@ -93,6 +96,13 @@ export interface ManagedHostPersistenceOptions {
   readonly continuityEpochId: ContinuityEpochId;
   readonly target: HostRuntimeDatabaseTarget;
   readonly withRuntimeDatabasePassword: HostPersistenceAuthority["withRuntimeDatabasePassword"];
+}
+
+/** Supplies durable-engine identity and callback-scoped credentials. */
+export interface ManagedHostDurableExecutionOptions {
+  readonly continuityEpochId: ContinuityEpochId;
+  readonly target: HostDurableExecutionDatabaseTarget;
+  readonly withDurableExecutionDatabasePassword: HostDurableExecutionAuthority["withDurableExecutionDatabasePassword"];
 }
 
 /** Operations retained by the managed Host wrapper for maintenance control. */
@@ -154,6 +164,7 @@ export function createManagedHostContext(
   raw: HostOwnershipContext,
   operations: ManagedHostOperations,
   persistenceOptions: ManagedHostPersistenceOptions,
+  durableExecutionOptions: ManagedHostDurableExecutionOptions,
 ): BootstrapManagedHostContext {
   const record: ManagedHostRecord = {
     raw,
@@ -180,6 +191,26 @@ export function createManagedHostContext(
       return await persistenceOptions.withRuntimeDatabasePassword(use);
     },
   });
+  const durableExecution: HostDurableExecutionAuthority = Object.freeze({
+    installationId: raw.installationId,
+    instanceId: raw.instanceId,
+    bootId: raw.bootId,
+    continuityEpochId: durableExecutionOptions.continuityEpochId,
+    token: raw.token,
+    target: durableExecutionOptions.target,
+    signal: raw.signal,
+    assertActive() {
+      if (record.terminal) throw terminalProblem();
+      raw.assertActive();
+    },
+    async withDurableExecutionDatabasePassword<T>(
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ) {
+      if (record.terminal) throw terminalProblem();
+      raw.assertActive();
+      return await durableExecutionOptions.withDurableExecutionDatabasePassword(use);
+    },
+  });
   const managed: BootstrapManagedHostContext = Object.freeze({
     installationId: raw.installationId,
     instanceId: raw.instanceId,
@@ -191,6 +222,7 @@ export function createManagedHostContext(
     },
     signal: raw.signal,
     persistence,
+    durableExecution,
     assertActive() {
       if (record.terminal) throw terminalProblem();
       raw.assertActive();

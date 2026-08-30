@@ -48,7 +48,7 @@ Defined in: packages/work-queue/dist/service.d.ts:45
 
 > `readonly` **onBackgroundError**: (`error`) => `void`
 
-Defined in: packages/work-queue/dist/service.d.ts:50
+Defined in: packages/work-queue/dist/service.d.ts:51
 
 #### Parameters
 
@@ -70,6 +70,14 @@ Defined in: packages/work-queue/dist/service.d.ts:41
 
 ---
 
+### profiles
+
+> `readonly` **profiles**: [`WorkQueueProfileCatalog`](WorkQueueProfileCatalog.md)
+
+Defined in: packages/work-queue/dist/service.d.ts:49
+
+---
+
 ### repository?
 
 > `readonly` `optional` **repository?**: [`WorkQueueRepository`](WorkQueueRepository.md)
@@ -82,7 +90,7 @@ Defined in: packages/work-queue/dist/service.d.ts:42
 
 > `readonly` **runtimeOptions**: [`WorkQueueRuntimeOptions`](WorkQueueRuntimeOptions.md)
 
-Defined in: packages/work-queue/dist/service.d.ts:49
+Defined in: packages/work-queue/dist/service.d.ts:50
 
 ---
 
@@ -90,7 +98,7 @@ Defined in: packages/work-queue/dist/service.d.ts:49
 
 > `readonly` `optional` **scheduleReconciliation?**: () => `void` \| `Promise`\<`void`>\>
 
-Defined in: packages/work-queue/dist/service.d.ts:51
+Defined in: packages/work-queue/dist/service.d.ts:52
 
 #### Returns
 

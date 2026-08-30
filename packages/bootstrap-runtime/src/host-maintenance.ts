@@ -300,6 +300,17 @@ function passwordProvider(
         use,
       );
     },
+    withDurableExecutionPassword<T>(use: (password: Uint8Array) => Promise<T>) {
+      return handoff.keyProvider.withPrivatePostgresDurableExecutionPassword(
+        {
+          installationId: context.installationId,
+          instanceId: context.instanceId,
+          bootId: context.bootId,
+          purpose: "private-postgres-durable-execution-role",
+        },
+        use,
+      );
+    },
   };
 }
 

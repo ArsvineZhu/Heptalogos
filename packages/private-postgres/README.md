@@ -34,16 +34,9 @@ and bounded control results rather than manipulating `pg_ctl` directly.
 ## Dependencies and boundaries
 
 It uses `foundation-contracts`, `execa`, and XState. Process execution remains
-inside the adapter and must use the repository subprocess mechanics. Bootstrap
-and Host packages authorize when these mechanics may be used; this package does
-not decide that authority.
-
-## Change constraints
-
-Keep process control behind the exported controller contracts and the adopted
-subprocess route. Preserve bounded timeouts, identity/profile checks, and
-explicit failure dispositions. Do not decide Bootstrap ownership, Host fencing,
-or normal persistence policy here.
+inside the adapter and is routed through the repository subprocess mechanics.
+Bootstrap and Host packages authorize when these mechanics may be used; this
+package does not decide that authority.
 
 ## Verification
 
@@ -54,7 +47,7 @@ changing startup or maintenance behavior.
 
 ## Architecture references
 
-- [`S01 — 启动、恢复与运行时监督`](../../docs/architecture/contracts/startup-recovery-runtime-supervision.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
-- [`S11 — 备份、更新、分发与平台`](../../docs/architecture/contracts/backup-update-distribution-platform.md)
-- [`S17 — Storage Workspace 与 DataLifecycle`](../../docs/architecture/contracts/storage-workspace-data-lifecycle.md)
+- [`Bootstrap closure Spec`](../../specs/runtime/bootstrap-closure.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
+- [`Platform and distribution Architecture`](../../docs/architecture/platform-distribution.md)
+- [`Storage lifecycle Architecture`](../../docs/architecture/storage-lifecycle.md)

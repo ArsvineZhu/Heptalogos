@@ -8,9 +8,11 @@ import type {
   CanonicalJsonValue,
   ContentDigest,
   ContinuityEpochId,
+  DurableCodeVersion,
   Instant,
   WorkItemId,
 } from "@heptalogos/foundation-contracts";
+import { parseMicroSystemId } from "@heptalogos/foundation-contracts";
 import type { LineageContextRefV1 } from "@heptalogos/execution-lineage";
 import type {
   ResourceAdmissionClassId as RuntimeResourceAdmissionClassId,
@@ -19,11 +21,225 @@ import type {
   WorkHandlerTarget,
   WorkQueueProfileId as RuntimeWorkQueueProfileId,
 } from "@heptalogos/runtime-kernel";
+import { workQueueProblem } from "./problems.js";
 
 /** Runtime-owned queue profile identity used by durable work. */
 export type WorkQueueProfileId = RuntimeWorkQueueProfileId;
 /** Runtime-owned resource admission class identity used by queue policy. */
 export type ResourceAdmissionClassId = RuntimeResourceAdmissionClassId;
+
+/** Bounds one DBOS-backed WorkQueue profile's start-rate mechanics. */
+export interface WorkQueueRateLimit {
+  readonly limitPerPeriod: number;
+  readonly periodSeconds: number;
+}
+
+/** Bounds execution for one partition of a WorkQueue profile. */
+export interface WorkQueuePartitionLimits {
+  readonly concurrency?: number;
+  readonly workerConcurrency?: number;
+  readonly rateLimit?: WorkQueueRateLimit;
+}
+
+/** Immutable product scheduling policy projected to the durable engine. */
+export interface WorkQueueProfileDefinition {
+  readonly profileId: WorkQueueProfileId;
+  readonly globalConcurrency?: number;
+  readonly workerConcurrency?: number;
+  readonly rateLimit?: WorkQueueRateLimit;
+  readonly partition?: WorkQueuePartitionLimits;
+  readonly minPollingIntervalMs: number;
+}
+
+/** Provides the Host-composed immutable WorkQueue profile catalog. */
+export interface WorkQueueProfileCatalog {
+  /** Returns a profile by its semantic identity. */
+  get(profileId: WorkQueueProfileId): WorkQueueProfileDefinition | undefined;
+  /** Returns all profiles in deterministic composition order. */
+  list(): readonly WorkQueueProfileDefinition[];
+}
+
+function profileProblem(detail: string): never {
+  throw workQueueProblem("work.queue.profile_invalid", detail);
+}
+
+function positiveSafeInteger(value: unknown, field: string): number {
+  if (!Number.isSafeInteger(value) || (value as number) <= 0) {
+    return profileProblem(`${field} must be a positive safe integer`);
+  }
+  return value as number;
+}
+
+function optionalPositiveSafeInteger(
+  value: unknown,
+  field: string,
+): number | undefined {
+  return value === undefined ? undefined : positiveSafeInteger(value, field);
+}
+
+function cloneRateLimit(
+  value: WorkQueueRateLimit | undefined,
+  field: string,
+): WorkQueueRateLimit | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return profileProblem(`${field} must be an object`);
+  }
+  return Object.freeze({
+    limitPerPeriod: positiveSafeInteger(
+      value.limitPerPeriod,
+      `${field}.limitPerPeriod`,
+    ),
+    periodSeconds: positiveSafeInteger(value.periodSeconds, `${field}.periodSeconds`),
+  });
+}
+
+function cloneDefinition(
+  definition: WorkQueueProfileDefinition,
+): WorkQueueProfileDefinition {
+  if (
+    typeof definition !== "object" ||
+    definition === null ||
+    Array.isArray(definition)
+  ) {
+    return profileProblem("profile definition must be an object");
+  }
+  if (parseMicroSystemId(definition.profileId) === undefined) {
+    return profileProblem("profileId must be a normalized namespaced identifier");
+  }
+  const globalConcurrency = optionalPositiveSafeInteger(
+    definition.globalConcurrency,
+    "globalConcurrency",
+  );
+  const workerConcurrency = optionalPositiveSafeInteger(
+    definition.workerConcurrency,
+    "workerConcurrency",
+  );
+  const rateLimit = cloneRateLimit(definition.rateLimit, "rateLimit");
+  const minPollingIntervalMs = positiveSafeInteger(
+    definition.minPollingIntervalMs,
+    "minPollingIntervalMs",
+  );
+  if (
+    globalConcurrency !== undefined &&
+    workerConcurrency !== undefined &&
+    workerConcurrency > globalConcurrency
+  ) {
+    return profileProblem("workerConcurrency cannot exceed globalConcurrency");
+  }
+
+  let partition: WorkQueuePartitionLimits | undefined;
+  if (definition.partition !== undefined) {
+    if (
+      typeof definition.partition !== "object" ||
+      definition.partition === null ||
+      Array.isArray(definition.partition)
+    ) {
+      return profileProblem("partition must be an object");
+    }
+    const concurrency = optionalPositiveSafeInteger(
+      definition.partition.concurrency,
+      "partition.concurrency",
+    );
+    const partitionWorkerConcurrency = optionalPositiveSafeInteger(
+      definition.partition.workerConcurrency,
+      "partition.workerConcurrency",
+    );
+    const partitionRateLimit = cloneRateLimit(
+      definition.partition.rateLimit,
+      "partition.rateLimit",
+    );
+    if (
+      globalConcurrency !== undefined &&
+      concurrency !== undefined &&
+      concurrency > globalConcurrency
+    ) {
+      return profileProblem("partition.concurrency cannot exceed globalConcurrency");
+    }
+    if (
+      concurrency !== undefined &&
+      partitionWorkerConcurrency !== undefined &&
+      partitionWorkerConcurrency > concurrency
+    ) {
+      return profileProblem(
+        "partition.workerConcurrency cannot exceed partition.concurrency",
+      );
+    }
+    if (
+      workerConcurrency !== undefined &&
+      partitionWorkerConcurrency !== undefined &&
+      partitionWorkerConcurrency > workerConcurrency
+    ) {
+      return profileProblem(
+        "partition.workerConcurrency cannot exceed workerConcurrency",
+      );
+    }
+    if (
+      globalConcurrency !== undefined &&
+      partitionWorkerConcurrency !== undefined &&
+      partitionWorkerConcurrency > globalConcurrency
+    ) {
+      return profileProblem(
+        "partition.workerConcurrency cannot exceed globalConcurrency",
+      );
+    }
+    partition = Object.freeze({
+      ...(concurrency === undefined ? {} : { concurrency }),
+      ...(partitionWorkerConcurrency === undefined
+        ? {}
+        : { workerConcurrency: partitionWorkerConcurrency }),
+      ...(partitionRateLimit === undefined ? {} : { rateLimit: partitionRateLimit }),
+    });
+  }
+
+  return Object.freeze({
+    profileId: definition.profileId,
+    ...(globalConcurrency === undefined ? {} : { globalConcurrency }),
+    ...(workerConcurrency === undefined ? {} : { workerConcurrency }),
+    ...(rateLimit === undefined ? {} : { rateLimit }),
+    ...(partition === undefined ? {} : { partition }),
+    minPollingIntervalMs,
+  });
+}
+
+/** Creates the immutable, fail-closed WorkQueue profile catalog. */
+export function createWorkQueueProfileCatalog(
+  definitions: readonly WorkQueueProfileDefinition[],
+): WorkQueueProfileCatalog {
+  if (!Array.isArray(definitions)) {
+    return profileProblem("profile definitions must be an array");
+  }
+  const normalized = definitions.map(cloneDefinition);
+  const byId = new Map<WorkQueueProfileId, WorkQueueProfileDefinition>();
+  for (const definition of normalized) {
+    if (byId.has(definition.profileId)) {
+      return profileProblem(`profileId is duplicated: ${definition.profileId}`);
+    }
+    byId.set(definition.profileId, definition);
+  }
+  const list = Object.freeze(normalized);
+  return Object.freeze({
+    get(profileId: WorkQueueProfileId) {
+      return byId.get(profileId);
+    },
+    list() {
+      return list;
+    },
+  });
+}
+
+/** Returns whether a profile has any configured DBOS partition limit. */
+export function isWorkQueueProfilePartitioned(
+  profile: WorkQueueProfileDefinition,
+): boolean {
+  const partition = profile.partition;
+  return (
+    partition !== undefined &&
+    (partition.concurrency !== undefined ||
+      partition.workerConcurrency !== undefined ||
+      partition.rateLimit !== undefined)
+  );
+}
 
 export type {
   WorkHandlerConfigurationBindingPolicy,
@@ -168,6 +384,30 @@ export interface DurableDispatchRequest {
 export interface DurableDispatchPort {
   /** Submit the request while preserving its revision and attempt identity. */
   dispatch(request: DurableDispatchRequest): Promise<void>;
+}
+
+/** Identifies one engine projection that WorkQueue may inspect. */
+export interface DurableAttemptInspectionRequest {
+  readonly workItemId: WorkItemId;
+  readonly dispatchRevision: number;
+  readonly dispatchAttemptId: DispatchAttemptId;
+  readonly queueProfileId: WorkQueueProfileId;
+}
+
+/** Reports engine projection without granting it product-state Authority. */
+export type DurableAttemptProjection =
+  | { readonly kind: "ACTIVE"; readonly applicationVersion: DurableCodeVersion }
+  | { readonly kind: "ABSENT" }
+  | { readonly kind: "ENGINE_SUCCESS"; readonly applicationVersion?: string }
+  | { readonly kind: "ENGINE_ERROR"; readonly applicationVersion?: string }
+  | { readonly kind: "ENGINE_CANCELLED"; readonly applicationVersion?: string }
+  | { readonly kind: "RECOVERY_EXHAUSTED"; readonly applicationVersion?: string }
+  | { readonly kind: "VERSION_MISMATCH"; readonly applicationVersion: string };
+
+/** Reads engine-private state for WorkQueue-owned recovery reconciliation. */
+export interface DurableAttemptInspectionPort {
+  /** Inspect one engine attempt without mutating canonical WorkItem state. */
+  inspect(request: DurableAttemptInspectionRequest): Promise<DurableAttemptProjection>;
 }
 
 /** Engine-independent failure shape consumed by the work classifier. */

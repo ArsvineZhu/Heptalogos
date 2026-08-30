@@ -25,31 +25,26 @@ traceable without becoming a generic logging or telemetry replacement.
 
 The package exports `EvidenceDraft`, `EvidenceRecord`, `EvidenceService`, and
 `createEvidenceService`. The service uses the caller's persistence and time
-contracts; callers should not write Evidence tables directly.
+contracts and is the package route for reading and writing Evidence tables.
 
 ## Dependencies and boundaries
 
 It depends on `foundation-contracts`, `persistence`, `time-service`, and Kysely.
 Persistence remains the database mutation owner while this package owns the
-Evidence semantic contract. Execution lineage can correlate a record, but it
-does not become a second Evidence store or identity Authority.
-
-## Change constraints
-
-Use the persistence service and keep Evidence distinct from telemetry, Activity
-lineage, and logs. Preserve sensitivity and retention semantics from shared
-contracts. Match qualification claims to observed evidence and environment.
+Evidence semantic contract. Execution lineage can correlate a record without
+becoming a second Evidence store or identity Authority.
 
 ## Verification
 
 Run `pnpm nx run evidence:test`, lint, typecheck, and the persistence-backed
-Evidence scenarios. For evidence projection changes, run Corpus and
-qualification-navigation checks and keep PASS/FAIL/NOT_RUN/BLOCKED claims
+Evidence scenarios. For evidence projection changes, run `pnpm check:knowledge`
+and qualification-navigation checks and keep PASS/FAIL/NOT_RUN/BLOCKED claims
 matched to actual runs.
 
 ## Architecture references
 
-- [`S10 — Evidence、Replay、Observability 与 Content`](../../docs/architecture/contracts/evidence-replay-observability-content.md)
-- [`S12 — 验证、研究与评估`](../../docs/architecture/contracts/verification-research-evaluation.md)
-- [`S16 — Execution Lineage Observability`](../../docs/architecture/contracts/execution-lineage-observability.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
+- [`Evidence Spec`](../../specs/execution/evidence.md)
+- [`Execution lineage Spec`](../../specs/execution/execution-lineage.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
+- [`Verification system`](../../project/qualification/verification-system.md)
+- [`Data, evidence, and persistence Architecture`](../../docs/architecture/data-evidence-persistence.md)

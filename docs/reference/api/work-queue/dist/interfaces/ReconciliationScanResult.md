@@ -6,7 +6,7 @@
 
 # Interface: ReconciliationScanResult
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:26
+Defined in: packages/work-queue/dist/reconciler.d.ts:29
 
 Counts produced by one reconciliation pass over durable queue state.
 
@@ -16,7 +16,7 @@ Counts produced by one reconciliation pass over durable queue state.
 
 > `readonly` **awakened**: `number`
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:28
+Defined in: packages/work-queue/dist/reconciler.d.ts:31
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/work-queue/dist/reconciler.d.ts:28
 
 > `readonly` **dispatched**: `number`
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:29
+Defined in: packages/work-queue/dist/reconciler.d.ts:32
 
 ---
 
@@ -32,7 +32,7 @@ Defined in: packages/work-queue/dist/reconciler.d.ts:29
 
 > `readonly` **dispatchFailures**: `number`
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:30
+Defined in: packages/work-queue/dist/reconciler.d.ts:33
 
 ---
 
@@ -40,4 +40,4 @@ Defined in: packages/work-queue/dist/reconciler.d.ts:30
 
 > `readonly` **scanned**: `number`
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:27
+Defined in: packages/work-queue/dist/reconciler.d.ts:30

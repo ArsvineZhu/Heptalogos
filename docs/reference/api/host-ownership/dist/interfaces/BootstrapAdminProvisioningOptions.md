@@ -6,7 +6,7 @@
 
 # Interface: BootstrapAdminProvisioningOptions
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:42
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:44
 
 Supplies authority and optional client seams for role/database provisioning.
 
@@ -16,7 +16,7 @@ Supplies authority and optional client seams for role/database provisioning.
 
 > `readonly` `optional` **clientFactory?**: `unknown`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:47
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:49
 
 Test-only structural seam; production uses the private pg adapter.
 
@@ -26,7 +26,7 @@ Test-only structural seam; production uses the private pg adapter.
 
 > `readonly` **mutationAuthority**: [`BootstrapMutationAuthority`](BootstrapMutationAuthority.md)
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:45
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:47
 
 ---
 
@@ -34,7 +34,7 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:45
 
 > `readonly` **passwordProvider**: [`BootstrapAdminPasswordProvider`](BootstrapAdminPasswordProvider.md)
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:44
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:46
 
 ---
 
@@ -42,4 +42,4 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:44
 
 > `readonly` **port**: `number`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:43
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:45

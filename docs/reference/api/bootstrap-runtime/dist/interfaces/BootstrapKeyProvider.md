@@ -42,6 +42,36 @@ Uses the bootstrap-superuser password without returning or retaining it.
 
 ---
 
+### withPrivatePostgresDurableExecutionPassword()
+
+> **withPrivatePostgresDurableExecutionPassword**\<`T`>\>(`context`, `use`): `Promise`\<`T`>\>
+
+Defined in: packages/bootstrap-runtime/dist/bootstrap-key-provider.d.ts:25
+
+Uses the durable-engine password within a bounded callback scope.
+
+#### Type Parameters
+
+##### T
+
+`T`
+
+#### Parameters
+
+##### context
+
+[`BootstrapKeyRequestContext`](BootstrapKeyRequestContext.md)
+
+##### use
+
+(`passwordUtf8`) => `Promise`\<`T`\>
+
+#### Returns
+
+`Promise`\<`T`\>
+
+---
+
 ### withPrivatePostgresHostLeasePassword()
 
 > **withPrivatePostgresHostLeasePassword**\<`T`>\>(`context`, `use`): `Promise`\<`T`>\>

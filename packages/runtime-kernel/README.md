@@ -32,25 +32,17 @@ not the Bootstrap or PostgreSQL owner.
 The entry point exports runtime contracts, contract-matching helpers, registries,
 generation fences, readiness evaluation, graph/reconciler types,
 `MicroSystemSupervisor`, and lifecycle-lineage helpers. Activation contexts carry
-cooperative cancellation and owner scope; callers must respect quiescence and
-retirement rather than retaining private supervisor state.
+cooperative cancellation and owner scope so callers can participate in
+quiescence and retirement without retaining private supervisor state.
 
 ## Dependencies and boundaries
 
 It depends on `foundation-contracts`, `execution-lineage`, `persistence`,
 `runtime-substrate`, `time-service`, Graphlib, and the adopted XState route. The
 package-private graph, registry, generation, and lifecycle adapters own those
-mechanics while this package owns runtime meaning. Bootstrap production source
-must remain outside this dependency path; integration composition belongs at
-the higher Host/product boundary.
-
-## Change constraints
-
-Runtime topology Authority is `DesiredRuntimeSnapshot` reconciliation; do not
-add a general imperative topology mutation path. Do not import Bootstrap private
-types. Keep Cordis mechanics behind `runtime-substrate` and do not introduce
-product durable-work/effect semantics. Lifecycle and quiescence changes require
-focused concurrency and cancellation tests.
+mechanics while this package owns runtime meaning. The dependency graph keeps
+Bootstrap production source outside this path; integration composition belongs
+at the higher Host/product boundary.
 
 ## Verification
 
@@ -60,8 +52,7 @@ Use real PostgreSQL only for claims that cross the runtime/Host integration.
 
 ## Architecture references
 
-- [`S01 — 启动、恢复与运行时监督`](../../docs/architecture/contracts/startup-recovery-runtime-supervision.md)
-- [`S06 — Extension、Package Trust 与 ExecutionDomain`](../../docs/architecture/contracts/extension-package-trust-execution-domain.md)
-- [`S13 — Foundation Service/Capability/Readiness`](../../docs/architecture/contracts/foundation-service-capability-readiness-catalog.md)
-- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
-- [`S16 — Execution Lineage Observability`](../../docs/architecture/contracts/execution-lineage-observability.md)
+- [`Runtime supervision Spec`](../../specs/runtime/runtime-supervision.md)
+- [`Service, capability, and readiness Spec`](../../specs/core/service-capability-readiness.md)
+- [`Extensions Architecture`](../../docs/architecture/extensions.md)
+- [`Execution lineage Spec`](../../specs/execution/execution-lineage.md)

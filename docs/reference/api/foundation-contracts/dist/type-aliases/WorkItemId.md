@@ -8,6 +8,6 @@
 
 > **WorkItemId** = [`UuidV7Id`](UuidV7Id.md)\<`"WorkItemId"`>\>
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:26
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:29
 
 Identifies a durable WorkItem.

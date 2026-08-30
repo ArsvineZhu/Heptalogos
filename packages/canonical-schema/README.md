@@ -34,16 +34,10 @@ than used as a general SQL execution surface.
 ## Dependencies and boundaries
 
 It depends on `foundation-contracts`, `host-ownership`, Kysely, and `pg`.
-Database connection and Host context come from the caller's owning layer. Keep
-schema ownership separate from transaction and lifecycle ownership; do not add
-a second schema authority in persistence or Bootstrap.
-
-## Change constraints
-
-Keep one current PRE_PRODUCTION schema baseline. Development chronology does not
-justify append-only compatibility migrations or readers. Use the owning Host
-context and keep connection-pool and Bootstrap maintenance policy outside this
-package.
+Database connection and Host context come from the caller's owning layer.
+Schema ownership remains separate from transaction and lifecycle ownership;
+persistence and Bootstrap consume this schema boundary rather than becoming
+parallel schema authorities.
 
 ## Verification
 
@@ -53,7 +47,7 @@ requires the PRE_PRODUCTION reset/recreate procedure and full repository gates.
 
 ## Architecture references
 
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
-- [`S12 — 验证、研究与评估`](../../docs/architecture/contracts/verification-research-evaluation.md)
-- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
-- [`S17 — Storage Workspace 与 DataLifecycle`](../../docs/architecture/contracts/storage-workspace-data-lifecycle.md)
+- [`Canonical schema Spec`](../../specs/data/canonical-schema.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
+- [`Verification system`](../../project/qualification/verification-system.md)
+- [`Storage lifecycle Architecture`](../../docs/architecture/storage-lifecycle.md)

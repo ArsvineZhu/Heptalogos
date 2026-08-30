@@ -144,7 +144,13 @@ export default [
             },
             {
               sourceTag: "area:execution",
-              onlyDependOnLibsWithTags: ["area:shared", "area:data", "area:execution"],
+              onlyDependOnLibsWithTags: [
+                "area:shared",
+                "area:data",
+                "area:execution",
+                "area:bootstrap",
+                "area:work-queue",
+              ],
             },
             {
               sourceTag: "area:bootstrap",

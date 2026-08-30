@@ -6,7 +6,7 @@
 
 # Interface: BootstrapAdminInspectionOptions
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:73
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:76
 
 Supplies credentials and authority for read-only database inspection.
 
@@ -16,7 +16,7 @@ Supplies credentials and authority for read-only database inspection.
 
 > `readonly` `optional` **clientFactory?**: `unknown`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:77
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:80
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:77
 
 > `readonly` **mutationAuthority**: [`BootstrapMutationAuthority`](BootstrapMutationAuthority.md)
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:76
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:79
 
 ---
 
@@ -32,7 +32,7 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:76
 
 > `readonly` **passwordProvider**: [`BootstrapAdminPasswordProvider`](BootstrapAdminPasswordProvider.md)
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:75
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:78
 
 ---
 
@@ -40,4 +40,4 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:75
 
 > `readonly` **port**: `number`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:74
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:77

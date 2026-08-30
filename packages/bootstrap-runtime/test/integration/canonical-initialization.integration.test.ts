@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createCanonicalSchemaInitializer } from "@heptalogos/canonical-schema";
+import { createDurableExecutionSchemaProvisioner } from "@heptalogos/durable-execution";
 import {
   BootstrapStateStore,
   BOOTSTRAP_STATE_DIGEST_DOMAIN,
@@ -14,10 +15,16 @@ import {
   digestCanonicalJson,
   type CanonicalJsonValue,
 } from "@heptalogos/foundation-contracts";
-import { HOST_RUNTIME_ROLE } from "@heptalogos/host-ownership";
+import {
+  HOST_DURABLE_EXECUTION_ROLE,
+  HOST_MIGRATION_ROLE,
+  HOST_OWNERSHIP_OWNER_ROLE,
+  HOST_RUNTIME_ROLE,
+} from "@heptalogos/host-ownership";
 import {
   BOOTSTRAP_PASSWORD,
   CANONICAL_OPTIONS,
+  DURABLE_EXECUTION_PASSWORD,
   HOST_TIMING,
   MIGRATION_PASSWORD,
   RUNTIME_PASSWORD,
@@ -36,6 +43,19 @@ import {
 
 const describeRealPostgres = qualifiedPgBin === undefined ? describe.skip : describe;
 
+const durableSchemaProvisioner = createDurableExecutionSchemaProvisioner({
+  processTimeoutMs: 120_000,
+  connectionTimeoutMs: 10_000,
+  statementTimeoutMs: 10_000,
+});
+const canonicalInitializer = createCanonicalSchemaInitializer(CANONICAL_OPTIONS);
+const initializeCanonicalAndDurable = async (
+  context: Parameters<typeof canonicalInitializer>[0],
+): Promise<void> => {
+  await canonicalInitializer(context);
+  await durableSchemaProvisioner.ensureCurrent(context.authority);
+};
+
 afterEach(async () => {
   await cleanupCanonicalPostgresFixtures();
 });
@@ -43,7 +63,7 @@ afterEach(async () => {
 describeRealPostgres.sequential(
   "Canonical canonical continuity PostgreSQL qualification",
   () => {
-    it("C1 materializes the BootstrapState epoch before managed Host exposure", async () => {
+    it("materializes the BootstrapState epoch before managed Host exposure", async () => {
       const fixture = await makeFixture();
       const result = await boot(fixture);
       expect(result.host.continuityEpochId).toBe(result.epoch);
@@ -189,7 +209,158 @@ describeRealPostgres.sequential(
       await stopManagedHostWithoutRuntime(result.host);
     }, 180_000);
 
-    it("C2 preserves the epoch across a second boot with a new Host identity", async () => {
+    it("provisions current DBOS schema, exact role rights, and restart idempotence", async () => {
+      const fixture = await makeFixture();
+      const first = await boot(fixture, initializeCanonicalAndDurable);
+
+      await expect(
+        queryAs(
+          fixture,
+          HOST_DURABLE_EXECUTION_ROLE,
+          DURABLE_EXECUTION_PASSWORD,
+          `SELECT current_user, count(*)::integer AS workflow_count
+           FROM "dbos"."workflow_status"`,
+        ),
+      ).resolves.toMatchObject({
+        rows: [
+          {
+            current_user: HOST_DURABLE_EXECUTION_ROLE,
+            workflow_count: 0,
+          },
+        ],
+      });
+
+      const workflowId = createInstanceId();
+      await queryAs(
+        fixture,
+        HOST_DURABLE_EXECUTION_ROLE,
+        DURABLE_EXECUTION_PASSWORD,
+        `INSERT INTO "dbos"."workflow_status" (workflow_uuid, status)
+         VALUES ($1, 'ENQUEUED')`,
+        [workflowId],
+      );
+      await expect(
+        queryAs(
+          fixture,
+          HOST_DURABLE_EXECUTION_ROLE,
+          DURABLE_EXECUTION_PASSWORD,
+          `SELECT workflow_uuid FROM "dbos"."workflow_status" WHERE workflow_uuid = $1`,
+          [workflowId],
+        ),
+      ).resolves.toMatchObject({ rows: [{ workflow_uuid: workflowId }] });
+      await queryAs(
+        fixture,
+        HOST_DURABLE_EXECUTION_ROLE,
+        DURABLE_EXECUTION_PASSWORD,
+        `DELETE FROM "dbos"."workflow_status" WHERE workflow_uuid = $1`,
+        [workflowId],
+      );
+
+      await expectQueryDenied(
+        fixture,
+        HOST_DURABLE_EXECUTION_ROLE,
+        DURABLE_EXECUTION_PASSWORD,
+        `SELECT * FROM "heptalogos"."work_item"`,
+      );
+      await expectQueryDenied(
+        fixture,
+        HOST_DURABLE_EXECUTION_ROLE,
+        DURABLE_EXECUTION_PASSWORD,
+        `SELECT * FROM "heptalogos"."activity_record"`,
+      );
+      await expectQueryDenied(
+        fixture,
+        HOST_DURABLE_EXECUTION_ROLE,
+        DURABLE_EXECUTION_PASSWORD,
+        `SELECT * FROM "heptalogos"."evidence_record"`,
+      );
+      await expectQueryDenied(
+        fixture,
+        HOST_DURABLE_EXECUTION_ROLE,
+        DURABLE_EXECUTION_PASSWORD,
+        `CREATE TABLE "dbos"."durable_ddl_forbidden" (value integer)`,
+      );
+      await expectQueryDenied(
+        fixture,
+        HOST_DURABLE_EXECUTION_ROLE,
+        DURABLE_EXECUTION_PASSWORD,
+        `CREATE TABLE "heptalogos"."durable_product_ddl_forbidden" (value integer)`,
+      );
+
+      await expect(
+        queryAs(
+          fixture,
+          HOST_MIGRATION_ROLE,
+          MIGRATION_PASSWORD,
+          "SELECT current_user, session_user",
+        ),
+      ).resolves.toMatchObject({
+        rows: [
+          {
+            current_user: HOST_MIGRATION_ROLE,
+            session_user: HOST_MIGRATION_ROLE,
+          },
+        ],
+      });
+      await expectQueryDenied(
+        fixture,
+        HOST_MIGRATION_ROLE,
+        MIGRATION_PASSWORD,
+        `CREATE SCHEMA "migration_without_owner_forbidden"`,
+      );
+      await expect(
+        queryAs(
+          fixture,
+          HOST_MIGRATION_ROLE,
+          MIGRATION_PASSWORD,
+          "SELECT current_user, session_user",
+          [],
+          `-c role=${HOST_OWNERSHIP_OWNER_ROLE}`,
+        ),
+      ).resolves.toMatchObject({
+        rows: [
+          {
+            current_user: HOST_OWNERSHIP_OWNER_ROLE,
+            session_user: HOST_MIGRATION_ROLE,
+          },
+        ],
+      });
+
+      await first.host.shutdownKeepingPrivatePostgres({
+        async quiesce() {
+          return { async resumeAfterAbort() {} };
+        },
+      });
+      const second = await boot(fixture, initializeCanonicalAndDurable);
+      await expect(
+        queryAs(
+          fixture,
+          HOST_DURABLE_EXECUTION_ROLE,
+          DURABLE_EXECUTION_PASSWORD,
+          `SELECT count(*)::integer AS workflow_count FROM "dbos"."workflow_status"`,
+        ),
+      ).resolves.toMatchObject({ rows: [{ workflow_count: 0 }] });
+      await stopManagedHostWithoutRuntime(second.host);
+    }, 300_000);
+
+    it("blocks Host exposure when the vendor schema becomes invalid", async () => {
+      const fixture = await makeFixture();
+      const first = await boot(fixture, initializeCanonicalAndDurable);
+      await mutateAsBootstrap(fixture, `DROP TABLE "dbos"."workflow_status" CASCADE`);
+      await first.host.shutdownKeepingPrivatePostgres({
+        async quiesce() {
+          return { async resumeAfterAbort() {} };
+        },
+      });
+
+      await expect(boot(fixture, initializeCanonicalAndDurable)).rejects.toMatchObject({
+        problem: {
+          problemCode: "durable.execution.schema.verification_failed",
+        },
+      });
+    }, 300_000);
+
+    it("preserves the epoch across a second boot with a new Host identity", async () => {
       const fixture = await makeFixture();
       const first = await boot(fixture);
       const firstBoot = first.host.bootId;
@@ -207,7 +378,7 @@ describeRealPostgres.sequential(
       await stopManagedHostWithoutRuntime(second.host);
     }, 240_000);
 
-    it("C3 retries the committed epoch after authority loss between migration and materialization", async () => {
+    it("retries the committed epoch after authority loss between migration and materialization", async () => {
       const fixture = await makeFixture();
       const realInitializer = createCanonicalSchemaInitializer(CANONICAL_OPTIONS);
       let assertCount = 0;
@@ -247,8 +418,12 @@ describeRealPostgres.sequential(
     }, 240_000);
 
     it.each([
-      ["C4", "epoch", "canonical-schema.continuity_epoch_mismatch"],
-      ["C5", "instance", "canonical-schema.continuity_instance_mismatch"],
+      ["epoch-mismatch", "epoch", "canonical-schema.continuity_epoch_mismatch"],
+      [
+        "instance-mismatch",
+        "instance",
+        "canonical-schema.continuity_instance_mismatch",
+      ],
     ] as const)(
       "%s rejects a canonical continuity %s mismatch without overwrite",
       async (_name, kind, problemCode) => {
@@ -291,7 +466,7 @@ describeRealPostgres.sequential(
       240_000,
     );
 
-    it("C6 and C7 keep migration and runtime authorities distinct and read-only", async () => {
+    it("keeps migration and runtime authorities distinct and read-only", async () => {
       const fixture = await makeFixture();
       const result = await boot(fixture);
       await expect(
@@ -347,7 +522,7 @@ describeRealPostgres.sequential(
       await stopManagedHostWithoutRuntime(result.host);
     }, 180_000);
 
-    it("C8 rejects corrupted current migration history", async () => {
+    it("rejects corrupted current migration history", async () => {
       const fixture = await makeFixture();
       const first = await boot(fixture);
       await stopManagedHostWithoutRuntime(first.host);
@@ -371,7 +546,7 @@ describeRealPostgres.sequential(
 );
 
 describe("Canonical BootstrapState unsupported development shape", () => {
-  it("C9 rejects current V1 bytes without ContinuityEpochId", async () => {
+  it("rejects current V1 bytes without ContinuityEpochId", async () => {
     const directory = await mkdtemp(
       join(tmpdir(), "heptalogos-canonical-unsupported-state-"),
     );

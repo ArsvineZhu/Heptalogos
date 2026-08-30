@@ -52,6 +52,7 @@ export type { RetentionClass, Sensitivity } from "./data-governance.js";
 export {
   createCapabilityId,
   createContributionId,
+  asDurableCodeVersion,
   createMicroSystemId,
   createMicroSystemInstanceId,
   createProviderId,
@@ -60,6 +61,7 @@ export {
   NAMESPACED_ID_PATTERN,
   parseCapabilityId,
   parseContributionId,
+  parseDurableCodeVersion,
   parseMicroSystemId,
   parseMicroSystemInstanceId,
   parseProviderId,
@@ -67,6 +69,7 @@ export {
   parseWorkItemId,
   type CapabilityId,
   type ContributionId,
+  type DurableCodeVersion,
   type MicroSystemId,
   type MicroSystemInstanceId,
   type NamespacedId,

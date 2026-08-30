@@ -8,6 +8,6 @@
 
 > **ProviderId** = [`NamespacedId`](NamespacedId.md)\<`"ProviderId"`>\>
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:22
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:25
 
 Identifies a Runtime provider.

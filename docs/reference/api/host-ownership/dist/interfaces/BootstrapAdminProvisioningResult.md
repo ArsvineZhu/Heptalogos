@@ -6,7 +6,7 @@
 
 # Interface: BootstrapAdminProvisioningResult
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:50
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:52
 
 Reports the role and database resources created by provisioning.
 
@@ -16,7 +16,15 @@ Reports the role and database resources created by provisioning.
 
 > `readonly` **databaseCreated**: `boolean`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:55
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:58
+
+---
+
+### durableExecutionRoleCreated
+
+> `readonly` **durableExecutionRoleCreated**: `boolean`
+
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:57
 
 ---
 
@@ -24,7 +32,7 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:55
 
 > `readonly` **hostLeaseRoleCreated**: `boolean`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:52
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:54
 
 ---
 
@@ -32,7 +40,7 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:52
 
 > `readonly` **migrationRoleCreated**: `boolean`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:54
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:56
 
 ---
 
@@ -40,7 +48,7 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:54
 
 > `readonly` **ownerRoleCreated**: `boolean`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:51
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:53
 
 ---
 
@@ -48,4 +56,4 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:51
 
 > `readonly` **runtimeRoleCreated**: `boolean`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:53
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:55

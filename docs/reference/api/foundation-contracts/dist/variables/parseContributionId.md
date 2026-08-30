@@ -8,7 +8,7 @@
 
 > `const` **parseContributionId**: (`value`) => [`ContributionId`](../type-aliases/ContributionId.md) \| `undefined`
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:38
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:41
 
 Parses a Contribution identity and rejects malformed namespace syntax.
 

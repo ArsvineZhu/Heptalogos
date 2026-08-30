@@ -8,6 +8,6 @@
 
 > `const` **HOST\_OWNERSHIP\_SCHEMA**: `"heptalogos"`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:18
+Defined in: packages/host-ownership/dist/contracts.d.ts:20
 
 Schema containing Host ownership and Foundation tables.

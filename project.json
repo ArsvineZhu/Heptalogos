@@ -7,13 +7,13 @@
     "check:agents": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "node .agents/heptalogos/validate-skill-resources.mjs"
+        "command": "node scripts/verify/agents.mjs"
       }
     },
-    "check:documentation": {
+    "check:knowledge": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "node scripts/verify/documentation.mjs"
+        "command": "node scripts/verify/knowledge.mjs"
       }
     },
     "check:repository": {
@@ -90,7 +90,7 @@
     "source-docs:lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint \"packages/*/src/**/*.{ts,tsx}\" \"tools/*/src/**/*.{js,mjs,ts}\" \"scripts/**/*.{js,mjs,ts}\" \".agents/**/*.mjs\""
+        "command": "eslint \"packages/*/src/**/*.{ts,tsx}\" \"tools/*/src/**/*.{js,mjs,ts}\" \"scripts/**/*.{js,mjs,ts}\""
       }
     },
     "tooling:lint": {
@@ -144,7 +144,7 @@
     "check:repo": {
       "dependsOn": [
         "check:agents",
-        "check:documentation",
+        "check:knowledge",
         "check:repository",
         "check:hygiene",
         "check:dependencies",

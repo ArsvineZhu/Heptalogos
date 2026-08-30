@@ -340,7 +340,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("R1 starts provider before dependent and keeps independent C running", async () => {
+  it("starts provider before dependent and keeps independent systems running", async () => {
     const serviceId = createServiceId("test.x");
     const a = provider("a", serviceId);
     const b = consumer("b", serviceId);
@@ -356,7 +356,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("R2 leaves a missing hard Service consumer BLOCKED", async () => {
+  it("leaves a missing hard Service consumer BLOCKED", async () => {
     const b = consumer("b", createServiceId("test.missing"));
     const supervisor = createSupervisor([b]);
     try {
@@ -368,7 +368,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("R3 adding a provider later starts the consumer without changing Desired State", async () => {
+  it("adding a provider later starts the consumer without changing Desired State", async () => {
     const serviceId = createServiceId("test.later");
     const b = consumer("b", serviceId);
     const supervisor = createSupervisor([b]);
@@ -385,7 +385,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("R4 replaces a hard Service provider by stopping and restarting dependents", async () => {
+  it("replaces a hard Service provider by stopping and restarting dependents", async () => {
     const serviceId = createServiceId("test.replace");
     let bActivations = 0;
     const a = provider("a", serviceId);
@@ -983,7 +983,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("R5 isolates a provider activation failure from an independent branch", async () => {
+  it("isolates a provider activation failure from an independent branch", async () => {
     const serviceId = createServiceId("test.failure");
     let bActivations = 0;
     const a = provider("a", serviceId, async () => {
@@ -1203,7 +1203,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("R6 tracks background failure and withdraws provider bindings", async () => {
+  it("tracks background failure and withdraws provider bindings", async () => {
     const serviceId = createServiceId("test.background");
     let rejectBackground!: (reason: unknown) => void;
     const background = new Promise<void>((_resolve, reject) => {
@@ -1317,7 +1317,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("R7 capability changes are handled without a hard consumer restart", async () => {
+  it("handles capability changes without a hard consumer restart", async () => {
     const supervisor = createSupervisor([]);
     const capabilityId = createCapabilityId("test.dynamic");
     const providerId = createProviderId("provider.capability");
@@ -1376,7 +1376,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("R8 SAFE stops mode-ineligible systems without mutating Desired State", async () => {
+  it("stops mode-ineligible systems without mutating Desired State", async () => {
     const safeOnly = system("system.normal-only", async () => undefined, {
       operatingModes: ["NORMAL"],
     });
@@ -1392,7 +1392,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("R9 NORMAL reactivates the original Desired State", async () => {
+  it("reactivates the original Desired State", async () => {
     const systemDefinition = system("system.resume", async () => undefined, {
       operatingModes: ["NORMAL"],
     });
@@ -1575,7 +1575,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("R10 shutdown disposes scopes in hard dependency order", async () => {
+  it("shuts down scopes in hard dependency order", async () => {
     const serviceId = createServiceId("test.shutdown");
     const order: string[] = [];
     const a = provider("a", serviceId, async (context) => {
@@ -1603,7 +1603,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     expect(order).toEqual(["b", "a"]);
   });
 
-  it("R11 does not automatically retry failed activation", async () => {
+  it("does not automatically retry failed activation", async () => {
     let attempts = 0;
     const failing = system("system.once", async () => {
       attempts += 1;
@@ -1618,7 +1618,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("R12 serializes concurrent reconcile requests", async () => {
+  it("serializes concurrent reconcile requests", async () => {
     let activations = 0;
     let release!: () => void;
     const gate = new Promise<void>((resolve) => {
@@ -1644,7 +1644,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("R13 preserves a background failure that races activation registration", async () => {
+  it("preserves a background failure that races activation registration", async () => {
     const failing = system(
       "system.immediate-background-failure",
       async () => undefined,
@@ -2005,7 +2005,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("R14 contains cleanup failures from asynchronous background failure handling", async () => {
+  it("contains cleanup failures from asynchronous background failure handling", async () => {
     const failing = system("system.background-cleanup-failure", async () => undefined);
     const substrate: RuntimeSubstrate = {
       async activate(request) {
@@ -2040,7 +2040,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("R15 binds Service call Activities to the provider runtime origin", async () => {
+  it("binds Service call Activities to the provider runtime origin", async () => {
     const serviceId = createServiceId("test.provider-origin-activity");
     const a = provider("activity-a", serviceId);
     const b = consumer("activity-b", serviceId);
@@ -2084,7 +2084,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("R16 does not retain a no-op reconcile Activity", async () => {
+  it("does not retain a no-op reconcile Activity", async () => {
     const systemDefinition = system("system.no-op-reconcile", async () => undefined);
     const reconcileKinds: string[] = [];
     const lifecycleLineage = {
@@ -2164,7 +2164,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("Q1 closes Service admission synchronously while an admitted call drains", async () => {
+  it("closes Service admission synchronously while an admitted call drains", async () => {
     const serviceId = createServiceId("test.q1-service");
     const providerId = createProviderId("provider.q1-service");
     const capabilityId = createCapabilityId("test.q1-capability");
@@ -2226,7 +2226,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("Q2 quiesces hard dependents before providers with deterministic independent ordering", async () => {
+  it("quiesces hard dependents before providers with deterministic independent ordering", async () => {
     const serviceId = createServiceId("test.q2-service");
     const providerId = createProviderId("provider.q2-service");
     const order: string[] = [];
@@ -2271,7 +2271,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("Q3 restores captured Desired with fresh MicroSystemInstanceIds and fences", async () => {
+  it("restores captured Desired with fresh MicroSystemInstanceIds and fences", async () => {
     const serviceId = createServiceId("test.q3-service");
     const providerId = createProviderId("provider.q3-service");
     const instanceIds: string[] = [];
@@ -2322,7 +2322,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("Q5 makes the resume lease one-shot", async () => {
+  it("makes the resume lease one-shot", async () => {
     const definition = system("system.q5-one-shot", async () => undefined);
     const supervisor = createSupervisor([definition]);
     try {
@@ -2337,7 +2337,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("Q6 leaves the accepted Desired snapshot unchanged through quiescence", async () => {
+  it("leaves the accepted Desired snapshot unchanged through quiescence", async () => {
     const serviceId = createServiceId("test.q6-service");
     const providerId = createProviderId("provider.q6-service");
     const definition = provider("q6-service", serviceId);
@@ -2360,7 +2360,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("Q7 can resume an empty supervisor before any Desired snapshot is accepted", async () => {
+  it("can resume an empty supervisor before any Desired snapshot is accepted", async () => {
     let activations = 0;
     const definition = system("system.q7-empty", async () => {
       activations += 1;
@@ -2377,7 +2377,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("Q8 terminalizes the supervisor when its owner signal aborts", async () => {
+  it("terminalizes the supervisor when its owner signal aborts", async () => {
     const owner = new AbortController();
     const terminalFailures: unknown[] = [];
     const definition = system("system.q8-owner-abort", async () => undefined);
@@ -2399,7 +2399,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     expect(terminalFailures).toEqual([]);
   });
 
-  it("Q9 does not double-retire or resurrect during an owner/background-failure race", async () => {
+  it("does not double-retire or resurrect during an owner/background-failure race", async () => {
     const owner = new AbortController();
     let activationRequest!: Parameters<RuntimeSubstrate["activate"]>[0];
     let disposeCount = 0;
@@ -2447,7 +2447,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("Q10 closes the substrate after quiescence without resuming", async () => {
+  it("closes the substrate after quiescence without resuming", async () => {
     let closeCount = 0;
     const definition = system("system.q10-close-after-quiesce", async () => undefined);
     const substrate: RuntimeSubstrate = {
@@ -2473,7 +2473,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     });
   });
 
-  it("Q11 keeps admission closed when quiescence settlement times out", async () => {
+  it("keeps admission closed when quiescence settlement times out", async () => {
     const serviceId = createServiceId("test.q11-service");
     const providerId = createProviderId("provider.q11-service");
     const entered = deferred<void>();
@@ -2517,7 +2517,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("Q12 prevents a queued later start after quiescence is requested", async () => {
+  it("prevents a queued later start after quiescence is requested", async () => {
     const started = deferred<void>();
     const released = deferred<void>();
     let laterActivations = 0;
@@ -2735,7 +2735,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("Q13 admits no work when the owner signal is already aborted", async () => {
+  it("admits no work when the owner signal is already aborted", async () => {
     const owner = new AbortController();
     owner.abort();
     let activations = 0;
@@ -2764,7 +2764,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     expect(closeCount).toBe(1);
   });
 
-  it("Q14 returns the same idempotent terminal close outcome", async () => {
+  it("returns the same idempotent terminal close outcome", async () => {
     let closeCount = 0;
     const supervisor = createSupervisorWithSubstrate([], {
       async activate() {
@@ -2782,7 +2782,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     expect(closeCount).toBe(1);
   });
 
-  it("Q15 fails closed when resume encounters a structural activation failure", async () => {
+  it("fails closed when resume encounters a structural activation failure", async () => {
     let activations = 0;
     const definition = system("system.q15-structural-resume", async () => {
       activations += 1;

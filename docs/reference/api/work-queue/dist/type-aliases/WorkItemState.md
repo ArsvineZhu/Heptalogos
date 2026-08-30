@@ -8,6 +8,6 @@
 
 > **WorkItemState** = `"PENDING"` \| `"RUNNING"` \| `"WAITING_DEPENDENCY"` \| `"RETRY_WAIT"` \| `"WAITING_RESTORE_RECONCILIATION"` \| `"SUCCEEDED"` \| `"FAILED"` \| `"CANCELLED"` \| `"SUPERSEDED"`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:17
+Defined in: packages/work-queue/dist/contracts.d.ts:48
 
 Durable lifecycle states for one WorkItem.

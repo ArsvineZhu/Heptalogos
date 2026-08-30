@@ -252,8 +252,12 @@ function completeActivityHook(
   options: WorkAttemptExecutorOptions,
   activity: ExecutionContext,
   outcomeRef?: string,
+  retainBeforeComplete = false,
 ): MutationAppliedHook {
   return async (transaction, completed) => {
+    if (retainBeforeComplete) {
+      await options.lineage.retainCurrent(transaction, activity);
+    }
     await options.lineage.completeCurrent(transaction, activity, {
       endedAt: options.time.now(),
       outcome: outcomeForActivity(completed),
@@ -415,8 +419,23 @@ export function createWorkAttemptExecutor(
           outcome: item.outcome,
         };
       }
-      if (item.dispatchRevision !== expectedRevision || item.state !== "PENDING") {
+      if (item.dispatchRevision !== expectedRevision) {
         return { status: "STALE_NOOP", item };
+      }
+
+      const recoveringRunning = item.state === "RUNNING";
+      if (!recoveringRunning && item.state !== "PENDING") {
+        return { status: "STALE_NOOP", item };
+      }
+      const expectedAttemptId = createDispatchAttemptId(
+        item.workItemId,
+        expectedRevision,
+      );
+      if (recoveringRunning && item.activeAttemptId !== expectedAttemptId) {
+        throw workQueueProblem(
+          "work.recovery.active_attempt_mismatch",
+          "RUNNING WorkItem activeAttemptId does not match its deterministic revision identity",
+        );
       }
 
       const requestedTerminal = cancellationOutcome(item);
@@ -424,18 +443,31 @@ export function createWorkAttemptExecutor(
         requestedTerminal === undefined
           ? options.handlerRegistry.resolve(item.handler)
           : undefined;
+      if (recoveringRunning && requestedTerminal === undefined && lease === undefined) {
+        throw workQueueProblem(
+          "work.recovery.handler_generation_missing",
+          "The exact generation-bound WorkHandler is unavailable for RUNNING recovery",
+        );
+      }
 
       return runAttemptActivity(
         options.execution,
         lease?.runtimeActivity,
         item.lineageContextRef,
         async (activity: ExecutionContext) => {
+          const expectedState = recoveringRunning ? "RUNNING" : "PENDING";
+          const expectedActiveAttemptId = recoveringRunning
+            ? expectedAttemptId
+            : undefined;
           if (requestedTerminal !== undefined) {
             return resultForMutation(
               await options.repository.commitTerminal({
                 workItemId: item.workItemId,
                 expectedDispatchRevision: item.dispatchRevision,
-                expectedState: "PENDING",
+                expectedState,
+                ...(expectedActiveAttemptId === undefined
+                  ? {}
+                  : { expectedActiveAttemptId }),
                 outcome: requestedTerminal,
                 updatedAt: options.time.now(),
                 onApplied: earlyActivityHook(
@@ -468,6 +500,13 @@ export function createWorkAttemptExecutor(
             ).value;
           } catch (error) {
             if (isPayloadDependencyProblem(error)) {
+              if (recoveringRunning) {
+                throw workQueueProblem(
+                  "work.recovery.handler_generation_missing",
+                  "The exact generation-bound WorkHandler cannot validate the RUNNING recovery payload",
+                  error,
+                );
+              }
               return resultForMutation(
                 await options.repository.markWaitingDependency({
                   workItemId: item.workItemId,
@@ -482,7 +521,10 @@ export function createWorkAttemptExecutor(
               await options.repository.commitTerminal({
                 workItemId: item.workItemId,
                 expectedDispatchRevision: item.dispatchRevision,
-                expectedState: "PENDING",
+                expectedState,
+                ...(expectedActiveAttemptId === undefined
+                  ? {}
+                  : { expectedActiveAttemptId }),
                 outcome: {
                   schemaVersion: 1,
                   kind: "FAILED",
@@ -504,7 +546,10 @@ export function createWorkAttemptExecutor(
               await options.repository.markRetryWait({
                 workItemId: item.workItemId,
                 expectedDispatchRevision: item.dispatchRevision,
-                expectedState: "PENDING",
+                expectedState,
+                ...(expectedActiveAttemptId === undefined
+                  ? {}
+                  : { expectedActiveAttemptId }),
                 retryClass: "transient",
                 reasonCode: "not-before-not-yet-due",
                 notBefore: item.notBefore,
@@ -515,73 +560,90 @@ export function createWorkAttemptExecutor(
           }
 
           let reservation: RuntimeWorkHandlerInvocationReservation;
-          try {
-            reservation = lease.reserveInvocation();
-          } catch (error) {
-            if (
-              error instanceof ProblemError &&
-              error.problem.problemCode === "runtime.generation.retired"
-            ) {
-              return resultForMutation(
-                await options.repository.markWaitingDependency({
-                  workItemId: item.workItemId,
-                  expectedDispatchRevision: item.dispatchRevision,
-                  updatedAt: options.time.now(),
-                  onApplied: earlyActivityHook(options, activity, "WAITING_DEPENDENCY"),
-                }),
+          if (recoveringRunning) {
+            try {
+              reservation = lease.reserveInvocation();
+            } catch (error) {
+              throw workQueueProblem(
+                "work.recovery.handler_generation_missing",
+                "The exact generation-bound WorkHandler could not be reserved for RUNNING recovery",
+                error,
               );
             }
-            throw error;
+          } else {
+            try {
+              reservation = lease.reserveInvocation();
+            } catch (error) {
+              if (
+                error instanceof ProblemError &&
+                error.problem.problemCode === "runtime.generation.retired"
+              ) {
+                return resultForMutation(
+                  await options.repository.markWaitingDependency({
+                    workItemId: item.workItemId,
+                    expectedDispatchRevision: item.dispatchRevision,
+                    updatedAt: options.time.now(),
+                    onApplied: earlyActivityHook(
+                      options,
+                      activity,
+                      "WAITING_DEPENDENCY",
+                    ),
+                  }),
+                );
+              }
+              throw error;
+            }
           }
 
-          const attemptId = createDispatchAttemptId(
-            item.workItemId,
-            item.dispatchRevision,
-          );
-          let claimed: WorkItemMutationResult;
-          try {
-            claimed = await options.repository.markRunning({
-              workItemId: item.workItemId,
-              expectedDispatchRevision: item.dispatchRevision,
-              activeAttemptId: attemptId,
-              updatedAt: options.time.now(),
-              onApplied: async (transaction, _running) => {
-                await options.lineage.retainCurrent(transaction, activity);
-              },
-            });
-          } catch (error) {
-            reservation.release();
-            throw error;
-          }
-          if (claimed.status !== "APPLIED" || claimed.item === undefined) {
-            reservation.release();
-            const racedRequest =
-              claimed.item === undefined
-                ? undefined
-                : cancellationOutcome(claimed.item);
-            if (
-              claimed.status === "STALE" &&
-              claimed.item?.state === "PENDING" &&
-              racedRequest !== undefined
-            ) {
-              return resultForMutation(
-                await options.repository.commitTerminal({
-                  workItemId: claimed.item.workItemId,
-                  expectedDispatchRevision: claimed.item.dispatchRevision,
-                  expectedState: "PENDING",
-                  outcome: racedRequest,
-                  updatedAt: options.time.now(),
-                  onApplied: earlyActivityHook(
-                    options,
-                    activity,
-                    racedRequest.reasonCode,
-                  ),
-                }),
-              );
+          let running: WorkItem;
+          if (recoveringRunning) {
+            running = item;
+          } else {
+            let claimed: WorkItemMutationResult;
+            try {
+              claimed = await options.repository.markRunning({
+                workItemId: item.workItemId,
+                expectedDispatchRevision: item.dispatchRevision,
+                activeAttemptId: expectedAttemptId,
+                updatedAt: options.time.now(),
+                onApplied: async (transaction, _running) => {
+                  await options.lineage.retainCurrent(transaction, activity);
+                },
+              });
+            } catch (error) {
+              reservation.release();
+              throw error;
             }
-            return resultForMutation(claimed);
+            if (claimed.status !== "APPLIED" || claimed.item === undefined) {
+              reservation.release();
+              const racedRequest =
+                claimed.item === undefined
+                  ? undefined
+                  : cancellationOutcome(claimed.item);
+              if (
+                claimed.status === "STALE" &&
+                claimed.item?.state === "PENDING" &&
+                racedRequest !== undefined
+              ) {
+                return resultForMutation(
+                  await options.repository.commitTerminal({
+                    workItemId: claimed.item.workItemId,
+                    expectedDispatchRevision: claimed.item.dispatchRevision,
+                    expectedState: "PENDING",
+                    outcome: racedRequest,
+                    updatedAt: options.time.now(),
+                    onApplied: earlyActivityHook(
+                      options,
+                      activity,
+                      racedRequest.reasonCode,
+                    ),
+                  }),
+                );
+              }
+              return resultForMutation(claimed);
+            }
+            running = claimed.item;
           }
-          const running = claimed.item;
           const abortController = new AbortController();
           let successOutcome: WorkItemOutcome;
           try {
@@ -620,12 +682,17 @@ export function createWorkAttemptExecutor(
                 workItemId: running.workItemId,
                 expectedDispatchRevision: running.dispatchRevision,
                 expectedState: "RUNNING",
-                expectedActiveAttemptId: running.activeAttemptId,
+                expectedActiveAttemptId: expectedAttemptId,
                 retryClass: decision.retryClass,
                 reasonCode: decision.reasonCode,
                 notBefore: decision.notBefore,
                 updatedAt: options.time.now(),
-                onApplied: completeActivityHook(options, activity, decision.reasonCode),
+                onApplied: completeActivityHook(
+                  options,
+                  activity,
+                  decision.reasonCode,
+                  recoveringRunning,
+                ),
               });
               return resultForMutation(retried);
             }
@@ -633,7 +700,7 @@ export function createWorkAttemptExecutor(
               workItemId: running.workItemId,
               expectedDispatchRevision: running.dispatchRevision,
               expectedState: "RUNNING",
-              expectedActiveAttemptId: running.activeAttemptId,
+              expectedActiveAttemptId: expectedAttemptId,
               outcome: {
                 schemaVersion: 1,
                 kind: "FAILED",
@@ -641,7 +708,12 @@ export function createWorkAttemptExecutor(
                 reasonCode: decision.reasonCode,
               },
               updatedAt: options.time.now(),
-              onApplied: completeActivityHook(options, activity, decision.reasonCode),
+              onApplied: completeActivityHook(
+                options,
+                activity,
+                decision.reasonCode,
+                recoveringRunning,
+              ),
             });
             return resultForMutation(failed);
           }
@@ -649,10 +721,15 @@ export function createWorkAttemptExecutor(
             workItemId: running.workItemId,
             expectedDispatchRevision: running.dispatchRevision,
             expectedState: "RUNNING",
-            expectedActiveAttemptId: running.activeAttemptId,
+            expectedActiveAttemptId: expectedAttemptId,
             outcome: successOutcome,
             updatedAt: options.time.now(),
-            onApplied: completeActivityHook(options, activity),
+            onApplied: completeActivityHook(
+              options,
+              activity,
+              undefined,
+              recoveringRunning,
+            ),
           });
           return resultForMutation(committed);
         },

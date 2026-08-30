@@ -36,6 +36,20 @@
       "options": {
         "command": "vitest run --root packages/bootstrap-runtime test/integration/bootstrap-recovery-process.postgres.integration.test.ts"
       }
+    },
+    "test:durable-recovery-process": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run --root packages/bootstrap-runtime test/integration/durable-work-recovery.integration.test.ts"
+      }
+    },
+    "test:foundation-spine": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run --root packages/bootstrap-runtime test/integration/foundation-executable-spine.integration.test.ts"
+      }
     }
   }
 }

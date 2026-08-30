@@ -24,7 +24,7 @@ reduce latency between canonical commits and WorkQueue reconciliation.
 The entry point exports Signal topic/codec helpers, the PostgreSQL Signal
 service factory, the transactional publisher, and framework-free contracts for
 the listener, subscription, and Host authority seams. Raw `pg.Client` objects
-do not cross the package boundary.
+remain private to the package boundary.
 
 ## Dependencies and boundaries
 
@@ -33,14 +33,6 @@ credentials and lifetime, `PersistenceInternalTransaction` only through the
 Foundation repository seam for publication, and SchemaRuntime for strict hint
 validation. It owns one dedicated listener client and never reuses a pooled
 mutation connection for LISTEN.
-
-## Change constraints
-
-Keep Signal best-effort: notifications may be lost or coalesced, and every
-wakeup must lead to canonical re-query by its consumer. Keep the channel fixed,
-the payload bounded and typed, and reconnects followed by `LISTEN` and rescan.
-Do not add durable facts, payloads, credentials, a second event bus, or a
-queue scheduler here.
 
 ## Verification
 
@@ -51,7 +43,8 @@ tests; real LISTEN/NOTIFY claims require real PostgreSQL.
 
 ## Architecture references
 
-- [`S02 — 异步、WorkQueue、Durable Execution 与 Time`](../../docs/architecture/contracts/async-work-queue-durable-time.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
-- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
-- [`S16 — Execution Lineage Observability`](../../docs/architecture/contracts/execution-lineage-observability.md)
+- [`Signal Spec`](../../specs/execution/signal.md)
+- [`Work Item Spec`](../../specs/execution/work-item.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
+- [`Execution lineage Spec`](../../specs/execution/execution-lineage.md)
+- [`Foundation services Architecture`](../../docs/architecture/foundation-services.md)

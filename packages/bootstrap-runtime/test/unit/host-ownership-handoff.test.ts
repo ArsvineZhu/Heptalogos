@@ -171,6 +171,12 @@ function makeOptions(): HostOwnershipHandoffOptions {
       ): Promise<T> {
         return use(new TextEncoder().encode("M".repeat(32)));
       },
+      async withPrivatePostgresDurableExecutionPassword<T>(
+        _context: BootstrapKeyRequestContext,
+        use: (passwordUtf8: Uint8Array) => Promise<T>,
+      ): Promise<T> {
+        return use(new TextEncoder().encode("D".repeat(32)));
+      },
     },
     timing: {
       connectionTimeoutMs: 1_000,
@@ -207,6 +213,9 @@ function installSuccessMocks(): {
       const result = {
         ownerRoleCreated: true,
         hostLeaseRoleCreated: true,
+        runtimeRoleCreated: true,
+        migrationRoleCreated: true,
+        durableExecutionRoleCreated: true,
         databaseCreated: true,
       };
       mutationAuthority.assertCurrent();
@@ -354,6 +363,9 @@ describe("bootstrap to Host ownership handoff", () => {
     hostOwnershipMocks.provision.mockResolvedValue({
       ownerRoleCreated: false,
       hostLeaseRoleCreated: false,
+      runtimeRoleCreated: false,
+      migrationRoleCreated: false,
+      durableExecutionRoleCreated: false,
       databaseCreated: false,
     });
     hostOwnershipMocks.reserve.mockResolvedValue(undefined);

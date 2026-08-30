@@ -47,6 +47,9 @@ describe("BootstrapKeyProvider", () => {
       async withPrivatePostgresMigrationPassword(_context, use) {
         return use(new TextEncoder().encode("M".repeat(32)));
       },
+      async withPrivatePostgresDurableExecutionPassword(_context, use) {
+        return use(new TextEncoder().encode("D".repeat(32)));
+      },
     };
 
     await provider.withPrivatePostgresBootstrapPassword(context, async (password) => {
@@ -91,6 +94,9 @@ describe("BootstrapKeyProvider", () => {
       async withPrivatePostgresMigrationPassword(_context, use) {
         return use(new TextEncoder().encode("M".repeat(32)));
       },
+      async withPrivatePostgresDurableExecutionPassword(_context, use) {
+        return use(new TextEncoder().encode("D".repeat(32)));
+      },
     };
     let observedPurpose: BootstrapKeyRequestContext["purpose"] | undefined;
     let observedLength = 0;
@@ -129,6 +135,9 @@ describe("BootstrapKeyProvider", () => {
       },
       async withPrivatePostgresMigrationPassword(_context, use) {
         return use(new TextEncoder().encode("M".repeat(32)));
+      },
+      async withPrivatePostgresDurableExecutionPassword(_context, use) {
+        return use(new TextEncoder().encode("D".repeat(32)));
       },
     };
     let observedPurpose: BootstrapKeyRequestContext["purpose"] | undefined;

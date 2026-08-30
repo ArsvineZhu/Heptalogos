@@ -28,23 +28,16 @@ framework, database, or process adapter.
 The entry point exports canonicalization and digest helpers, branded identity
 constructors/parsers, lifecycle-root IDs, Problem types, retry classes, and
 data-governance types. `createProblem` and `createProblemError` are the shared
-construction seam for canonical Problem envelopes. Public values must retain
-the semantic distinctions that their names communicate; do not flatten
-authority or lifecycle roots into untyped strings.
+construction seam for canonical Problem envelopes. Public values preserve the
+semantic distinctions communicated by their names, including authority and
+lifecycle roots rather than flattening them into untyped strings.
 
 ## Dependencies and boundaries
 
-It depends only on the adopted canonicalization library and UUID library. Keep
-the package dependency-light and framework-free. Higher packages may depend on
-these primitives; this package must not import them back or perform side effects
-to discover runtime state.
-
-## Change constraints
-
-Keep this package framework-, database-, process-, and network-free. Preserve
-semantic distinctions in branded IDs and error/retry contracts. Use the adopted
-canonicalization and UUID dependencies; do not move higher-level Authority or
-policy into shared primitives.
+It depends only on the adopted canonicalization library and UUID library. The
+package stays dependency-light and framework-free; higher packages depend on
+these primitives rather than the reverse, and runtime discovery has no side
+effects.
 
 ## Verification
 
@@ -53,7 +46,7 @@ and the relevant property tests for identity or canonicalization changes.
 
 ## Architecture references
 
-- [`00 — 项目宪法与工程宪法`](../../docs/governance/constitution.md)
+- [`00 — 项目宪法与工程宪法`](../../project/governance/constitution.md)
 - [`03 — 核心概念与 Authority`](../../docs/architecture/authority-and-core-concepts.md)
 - [`12 — 数据、证据、内容与持久化`](../../docs/architecture/data-evidence-persistence.md)
 - [`22 — Execution-Lineage 与可观测执行`](../../docs/architecture/execution-lineage.md)

@@ -8,7 +8,7 @@
 
 > `const` **createMicroSystemId**: (`value`) => [`MicroSystemId`](../type-aliases/MicroSystemId.md)
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:42
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:49
 
 Creates a validated MicroSystem identity from its canonical name.
 

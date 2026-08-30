@@ -35,9 +35,11 @@ import type {
   WorkConfigurationBinding,
   WorkHandlerTarget,
   WorkItem,
+  WorkQueueProfileCatalog,
   WorkQueueRuntimeOptions,
   WorkQueueProfileId,
 } from "./contracts.js";
+import { isWorkQueueProfilePartitioned } from "./contracts.js";
 import {
   createWorkQueueRepository,
   type WorkItemInsertResult,
@@ -83,6 +85,7 @@ export interface WorkQueueServiceOptions {
   readonly time: TimeService;
   readonly signalPublisher: SignalPublisher;
   readonly admission: WorkAdmissionPort;
+  readonly profiles: WorkQueueProfileCatalog;
   readonly runtimeOptions: WorkQueueRuntimeOptions;
   readonly onBackgroundError: (error: unknown) => void;
   readonly scheduleReconciliation?: () => void | Promise<void>;
@@ -269,6 +272,12 @@ export function createWorkQueueService(
       "WorkQueueService requires a background error sink",
     );
   }
+  if (options.profiles === undefined || typeof options.profiles.get !== "function") {
+    throw workQueueProblem(
+      "work.queue.profile_catalog_required",
+      "WorkQueueService requires an explicit WorkQueueProfileCatalog",
+    );
+  }
   const repository =
     options.repository ?? createWorkQueueRepository(options.persistence);
 
@@ -313,6 +322,26 @@ export function createWorkQueueService(
         throw workQueueProblem(
           "work.queue.profile_mismatch",
           "WorkItem queueProfileId does not match the exact WorkHandler descriptor",
+        );
+      }
+      const profile = options.profiles.get(queueProfileId);
+      if (profile === undefined) {
+        throw workQueueProblem(
+          "work.queue.profile_unavailable",
+          "WorkItem queueProfileId is not present in the Host-composed profile catalog",
+        );
+      }
+      const partitioned = isWorkQueueProfilePartitioned(profile);
+      if (partitioned && partitionKey === undefined) {
+        throw workQueueProblem(
+          "work.queue.partition_required",
+          "Partitioned WorkQueue profiles require a partitionKey",
+        );
+      }
+      if (!partitioned && partitionKey !== undefined) {
+        throw workQueueProblem(
+          "work.queue.partition_not_supported",
+          "Unpartitioned WorkQueue profiles do not accept a partitionKey",
         );
       }
       if (resourceAdmissionClass !== descriptor.resourceAdmissionClass) {

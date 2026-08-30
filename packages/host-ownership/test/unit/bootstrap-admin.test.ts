@@ -5,6 +5,7 @@ import {
   HOST_OWNERSHIP_OWNER_ROLE,
   HOST_RUNTIME_ROLE,
   HOST_MIGRATION_ROLE,
+  HOST_DURABLE_EXECUTION_ROLE,
 } from "../../src/contracts.js";
 import {
   type BootstrapAdminClient,
@@ -34,6 +35,15 @@ const EXACT_MIGRATION_VERIFIER = encodePostgresScramSha256Verifier(MIGRATION_PAS
   iterations: 4096,
   salt: MIGRATION_SALT,
 });
+const DURABLE_EXECUTION_PASSWORD = new TextEncoder().encode("D".repeat(32));
+const DURABLE_EXECUTION_SALT = new TextEncoder().encode("durable-salt-016");
+const EXACT_DURABLE_EXECUTION_VERIFIER = encodePostgresScramSha256Verifier(
+  DURABLE_EXECUTION_PASSWORD,
+  {
+    iterations: 4096,
+    salt: DURABLE_EXECUTION_SALT,
+  },
+);
 const mutationAuthority = { assertCurrent(): void {} };
 
 interface RoleRow {
@@ -86,13 +96,15 @@ function exactRole(name: string, login: boolean, connectionLimit: number): RoleR
     rolreplication: false,
     rolbypassrls: false,
     rolconnlimit: connectionLimit,
-    rolinherit: false,
+    rolinherit: name === HOST_DURABLE_EXECUTION_ROLE,
     rolpassword: login
       ? name === HOST_RUNTIME_ROLE
         ? EXACT_RUNTIME_VERIFIER
         : name === HOST_MIGRATION_ROLE
           ? EXACT_MIGRATION_VERIFIER
-          : EXACT_HOST_VERIFIER
+          : name === HOST_DURABLE_EXECUTION_ROLE
+            ? EXACT_DURABLE_EXECUTION_VERIFIER
+            : EXACT_HOST_VERIFIER
       : null,
   };
 }
@@ -123,6 +135,7 @@ function exactProvisionedState(
       [HOST_LEASE_ROLE, exactRole(HOST_LEASE_ROLE, true, 1)],
       [HOST_RUNTIME_ROLE, exactRole(HOST_RUNTIME_ROLE, true, -1)],
       [HOST_MIGRATION_ROLE, migrationRole],
+      [HOST_DURABLE_EXECUTION_ROLE, exactRole(HOST_DURABLE_EXECUTION_ROLE, true, -1)],
     ]),
     databases: new Map([[HOST_OWNERSHIP_CANONICAL_DATABASE, exactDatabase()]]),
     membershipRows,
@@ -177,6 +190,7 @@ class FakeClient implements BootstrapAdminClient {
       const host = normalized.includes(`"${HOST_LEASE_ROLE}"`);
       const runtime = normalized.includes(`"${HOST_RUNTIME_ROLE}"`);
       const migration = normalized.includes(`"${HOST_MIGRATION_ROLE}"`);
+      const durableExecution = normalized.includes(`"${HOST_DURABLE_EXECUTION_ROLE}"`);
       if (host && this.fault === "before-host-role-create") {
         this.fault = undefined;
         throw new Error("injected before host role create");
@@ -187,10 +201,16 @@ class FakeClient implements BootstrapAdminClient {
           ? HOST_RUNTIME_ROLE
           : migration
             ? HOST_MIGRATION_ROLE
-            : HOST_OWNERSHIP_OWNER_ROLE;
+            : durableExecution
+              ? HOST_DURABLE_EXECUTION_ROLE
+              : HOST_OWNERSHIP_OWNER_ROLE;
       this.state.roles.set(
         name,
-        exactRole(name, host || runtime || migration, host || migration ? 1 : -1),
+        exactRole(
+          name,
+          host || runtime || migration || durableExecution,
+          host || migration ? 1 : -1,
+        ),
       );
       if (
         (!host && this.fault === "after-owner-role-create") ||
@@ -278,6 +298,11 @@ function makeFixture(
       ): Promise<T> {
         return use(new TextEncoder().encode("M".repeat(32)));
       },
+      async withDurableExecutionPassword<T>(
+        use: (passwordUtf8: Uint8Array) => Promise<T>,
+      ): Promise<T> {
+        return use(DURABLE_EXECUTION_PASSWORD);
+      },
     },
   };
   return { client, factory, options };
@@ -322,6 +347,11 @@ function makeFaultFixture(
       ): Promise<T> {
         return use(new TextEncoder().encode("M".repeat(32)));
       },
+      async withDurableExecutionPassword<T>(
+        use: (passwordUtf8: Uint8Array) => Promise<T>,
+      ): Promise<T> {
+        return use(new TextEncoder().encode("D".repeat(32)));
+      },
     },
   };
   return { client, options };
@@ -354,6 +384,7 @@ describe("bootstrap host ownership database provisioning", () => {
       hostLeaseRoleCreated: true,
       runtimeRoleCreated: true,
       migrationRoleCreated: true,
+      durableExecutionRoleCreated: true,
       databaseCreated: true,
     });
 
@@ -361,11 +392,15 @@ describe("bootstrap host ownership database provisioning", () => {
     expect(sql).toContain(`CREATE ROLE "${HOST_OWNERSHIP_OWNER_ROLE}"`);
     expect(sql).toContain(`CREATE ROLE "${HOST_LEASE_ROLE}"`);
     expect(sql).toContain('CREATE ROLE "heptalogos_migration"');
+    expect(sql).toContain(`CREATE ROLE "${HOST_DURABLE_EXECUTION_ROLE}"`);
     expect(sql).toContain(
       "NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT",
     );
     expect(sql).toContain(
       "LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT CONNECTION LIMIT 1",
+    );
+    expect(sql).toContain(
+      `CREATE ROLE "${HOST_DURABLE_EXECUTION_ROLE}" LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS INHERIT CONNECTION LIMIT -1`,
     );
     expect(sql).toContain(`CREATE DATABASE "${HOST_OWNERSHIP_CANONICAL_DATABASE}"`);
     expect(sql).toContain(
@@ -373,9 +408,11 @@ describe("bootstrap host ownership database provisioning", () => {
     );
     expect(sql).toContain("GRANT CONNECT ON DATABASE");
     expect(sql).toContain(HOST_MIGRATION_ROLE);
+    expect(sql).toContain(HOST_DURABLE_EXECUTION_ROLE);
     expect(sql).toContain("SCRAM-SHA-256$4096:");
     expect(sql).not.toContain("B".repeat(32));
     expect(sql).not.toContain("H".repeat(32));
+    expect(sql).not.toContain("D".repeat(32));
   });
 
   it("creates a distinct least-privilege runtime role", async () => {
@@ -478,6 +515,7 @@ describe("bootstrap host ownership database provisioning", () => {
         [HOST_LEASE_ROLE, exactRole(HOST_LEASE_ROLE, true, 1)],
         [HOST_RUNTIME_ROLE, exactRole(HOST_RUNTIME_ROLE, true, -1)],
         [HOST_MIGRATION_ROLE, exactRole(HOST_MIGRATION_ROLE, true, 1)],
+        [HOST_DURABLE_EXECUTION_ROLE, exactRole(HOST_DURABLE_EXECUTION_ROLE, true, -1)],
       ]),
       databases: new Map([[HOST_OWNERSHIP_CANONICAL_DATABASE, exactDatabase()]]),
       membershipRows: [
@@ -498,6 +536,7 @@ describe("bootstrap host ownership database provisioning", () => {
       hostLeaseRoleCreated: false,
       runtimeRoleCreated: false,
       migrationRoleCreated: false,
+      durableExecutionRoleCreated: false,
       databaseCreated: false,
     });
 
@@ -584,6 +623,9 @@ describe("bootstrap host ownership database provisioning", () => {
     ).resolves.toMatchObject({
       ownerRoleCreated: expect.any(Boolean),
       hostLeaseRoleCreated: expect.any(Boolean),
+      runtimeRoleCreated: expect.any(Boolean),
+      migrationRoleCreated: expect.any(Boolean),
+      durableExecutionRoleCreated: expect.any(Boolean),
       databaseCreated: expect.any(Boolean),
     });
     expect(state.roles.get(HOST_OWNERSHIP_OWNER_ROLE)).toMatchObject(
@@ -685,17 +727,19 @@ describe("bootstrap host ownership database provisioning", () => {
         HOST_MIGRATION_ROLE,
         HOST_OWNERSHIP_OWNER_ROLE,
         HOST_RUNTIME_ROLE,
+        HOST_DURABLE_EXECUTION_ROLE,
       ].sort(),
     );
     const roleQuery = fixture.client.calls.find((call) =>
       call.text.includes("FROM pg_catalog.pg_roles"),
     );
-    expect(roleQuery?.text).toContain("rolname IN ($1, $2, $3, $4)");
+    expect(roleQuery?.text).toContain("rolname IN ($1, $2, $3, $4, $5)");
     expect(roleQuery?.values).toEqual([
       HOST_OWNERSHIP_OWNER_ROLE,
       HOST_LEASE_ROLE,
       HOST_RUNTIME_ROLE,
       HOST_MIGRATION_ROLE,
+      HOST_DURABLE_EXECUTION_ROLE,
     ]);
   });
 });

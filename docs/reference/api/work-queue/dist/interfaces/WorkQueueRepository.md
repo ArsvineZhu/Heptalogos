@@ -16,7 +16,7 @@ Foundation-backed owner of all canonical WorkItem reads and state mutations.
 
 > **commitTerminal**(`input`): `Promise`\<`WorkItemMutationResult`>\>
 
-Defined in: packages/work-queue/dist/repository.d.ts:134
+Defined in: packages/work-queue/dist/repository.d.ts:142
 
 Commit one bounded terminal outcome with revision and attempt fencing.
 
@@ -100,7 +100,7 @@ Insert a new item or return the existing non-terminal deduplication match.
 
 > **listDueRetry**(`input`): `Promise`\<readonly [`WorkItem`](WorkItem.md)[]\>
 
-Defined in: packages/work-queue/dist/repository.d.ts:107
+Defined in: packages/work-queue/dist/repository.d.ts:115
 
 Read retry-wait items whose not-before instant has arrived.
 
@@ -152,11 +152,41 @@ Read one fair page of pending projection candidates through the bound.
 
 ---
 
+### listRunning()
+
+> **listRunning**(`input`): `Promise`\<readonly [`WorkItem`](WorkItem.md)[]\>
+
+Defined in: packages/work-queue/dist/repository.d.ts:109
+
+Read one fair page of canonical RUNNING items through the bound.
+
+#### Parameters
+
+##### input
+
+###### after?
+
+`WorkItemScanCursor`
+
+###### limit
+
+`number`
+
+###### through
+
+`WorkItemScanCursor`
+
+#### Returns
+
+`Promise`\<readonly [`WorkItem`](WorkItem.md)[]\>
+
+---
+
 ### listWaitingDependency()
 
 > **listWaitingDependency**(`input`): `Promise`\<readonly [`WorkItem`](WorkItem.md)[]\>
 
-Defined in: packages/work-queue/dist/repository.d.ts:114
+Defined in: packages/work-queue/dist/repository.d.ts:122
 
 Read one fair page of dependency-waiting items through the bound.
 
@@ -186,7 +216,7 @@ Read one fair page of dependency-waiting items through the bound.
 
 > **markRetryWait**(`input`): `Promise`\<`WorkItemMutationResult`>\>
 
-Defined in: packages/work-queue/dist/repository.d.ts:126
+Defined in: packages/work-queue/dist/repository.d.ts:134
 
 Persist retry classification and the next eligible dispatch time.
 
@@ -206,7 +236,7 @@ Persist retry classification and the next eligible dispatch time.
 
 > **markRunning**(`input`): `Promise`\<`WorkItemMutationResult`>\>
 
-Defined in: packages/work-queue/dist/repository.d.ts:120
+Defined in: packages/work-queue/dist/repository.d.ts:128
 
 Claim a pending item for the exact dispatch attempt and revision.
 
@@ -226,7 +256,7 @@ Claim a pending item for the exact dispatch attempt and revision.
 
 > **markWaitingDependency**(`input`): `Promise`\<`WorkItemMutationResult`>\>
 
-Defined in: packages/work-queue/dist/repository.d.ts:122
+Defined in: packages/work-queue/dist/repository.d.ts:130
 
 Move a dispatch back to dependency waiting under optimistic fencing.
 
@@ -246,7 +276,7 @@ Move a dispatch back to dependency waiting under optimistic fencing.
 
 > **requestCancel**(`input`): `Promise`\<`WorkItemMutationResult`>\>
 
-Defined in: packages/work-queue/dist/repository.d.ts:130
+Defined in: packages/work-queue/dist/repository.d.ts:138
 
 Record a cancellation request for a still-live item.
 
@@ -266,7 +296,7 @@ Record a cancellation request for a still-live item.
 
 > **requestSupersede**(`input`): `Promise`\<`WorkItemMutationResult`>\>
 
-Defined in: packages/work-queue/dist/repository.d.ts:132
+Defined in: packages/work-queue/dist/repository.d.ts:140
 
 Record that a still-live item has been replaced by another item.
 
@@ -296,11 +326,25 @@ Capture the upper cursor bound for a projection scan.
 
 ---
 
+### snapshotRunningCeiling()
+
+> **snapshotRunningCeiling**(): `Promise`\<`WorkItemScanCursor` \| `undefined`>\>
+
+Defined in: packages/work-queue/dist/repository.d.ts:107
+
+Capture the upper cursor bound for canonical RUNNING recovery scans.
+
+#### Returns
+
+`Promise`\<`WorkItemScanCursor` \| `undefined`\>
+
+---
+
 ### snapshotWaitingDependencyCeiling()
 
 > **snapshotWaitingDependencyCeiling**(): `Promise`\<`WorkItemScanCursor` \| `undefined`>\>
 
-Defined in: packages/work-queue/dist/repository.d.ts:112
+Defined in: packages/work-queue/dist/repository.d.ts:120
 
 Capture the upper cursor bound for dependency-waiting scans.
 
@@ -314,7 +358,7 @@ Capture the upper cursor bound for dependency-waiting scans.
 
 > **wakeDependency**(`input`): `Promise`\<`WorkItemMutationResult`>\>
 
-Defined in: packages/work-queue/dist/repository.d.ts:124
+Defined in: packages/work-queue/dist/repository.d.ts:132
 
 Wake a dependency-waiting item when its exact revision is still current.
 
@@ -334,7 +378,7 @@ Wake a dependency-waiting item when its exact revision is still current.
 
 > **wakeDueRetry**(`input`): `Promise`\<`WorkItemMutationResult`>\>
 
-Defined in: packages/work-queue/dist/repository.d.ts:128
+Defined in: packages/work-queue/dist/repository.d.ts:136
 
 Wake an eligible retry item without accepting stale revisions.
 

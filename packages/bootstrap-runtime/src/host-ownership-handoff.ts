@@ -19,6 +19,7 @@ import {
   ensureHostOwnershipSchema,
   HOST_OWNERSHIP_CANONICAL_DATABASE,
   HOST_RUNTIME_ROLE,
+  HOST_DURABLE_EXECUTION_ROLE,
   inspectCanonicalHostDatabase,
   provisionHostOwnershipDatabase,
   publishHostOwnershipToken,
@@ -225,6 +226,17 @@ function passwordProvider(
           instanceId: context.instanceId,
           bootId: context.bootId,
           purpose: "private-postgres-migration-role",
+        },
+        use,
+      );
+    },
+    withDurableExecutionPassword(use) {
+      return keyProvider.withPrivatePostgresDurableExecutionPassword(
+        {
+          installationId: context.installationId,
+          instanceId: context.instanceId,
+          bootId: context.bootId,
+          purpose: "private-postgres-durable-execution-role",
         },
         use,
       );
@@ -575,6 +587,26 @@ export async function handoffPrivatePostgresToManagedHostForOwnedPrelude(
               instanceId: context.instanceId,
               bootId: host.bootId,
               purpose: "private-postgres-runtime-role",
+            },
+            use,
+          );
+        },
+      },
+      {
+        continuityEpochId: handoff.continuityEpochId,
+        target: {
+          host: "127.0.0.1",
+          port: ready.port,
+          database: HOST_OWNERSHIP_CANONICAL_DATABASE,
+          user: HOST_DURABLE_EXECUTION_ROLE,
+        },
+        withDurableExecutionDatabasePassword(use) {
+          return options.keyProvider.withPrivatePostgresDurableExecutionPassword(
+            {
+              installationId: context.installationId,
+              instanceId: context.instanceId,
+              bootId: host.bootId,
+              purpose: "private-postgres-durable-execution-role",
             },
             use,
           );

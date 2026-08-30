@@ -8,7 +8,7 @@
 
 > `const` **createWorkItemId**: () => [`WorkItemId`](../type-aliases/WorkItemId.md)
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:52
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:59
 
 Creates a new WorkItem UUID-v7 identity.
 

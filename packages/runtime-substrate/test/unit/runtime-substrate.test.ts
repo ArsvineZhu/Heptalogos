@@ -65,7 +65,7 @@ describe("RuntimeSubstrate", () => {
     });
   });
 
-  it("C1 activates one Cordis-backed scope and disposes its resource", async () => {
+  it("activates one Cordis-backed scope and disposes its resource", async () => {
     const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
     const failures: RuntimeSubstrateFailure[] = [];
     let disposed = 0;
@@ -89,7 +89,7 @@ describe("RuntimeSubstrate", () => {
     await substrate.close();
   });
 
-  it("C2 cleans already-registered effects after partial activation failure", async () => {
+  it("cleans already-registered effects after partial activation failure", async () => {
     const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
     const failures: RuntimeSubstrateFailure[] = [];
     const order: string[] = [];
@@ -117,7 +117,7 @@ describe("RuntimeSubstrate", () => {
     await substrate.close();
   });
 
-  it("C3 isolates parent and sibling activation resources", async () => {
+  it("isolates parent and sibling activation resources", async () => {
     const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
     const failures: RuntimeSubstrateFailure[] = [];
     let parentDisposed = false;
@@ -153,7 +153,7 @@ describe("RuntimeSubstrate", () => {
     await substrate.close();
   });
 
-  it("C4 makes repeated and concurrent disposal idempotent", async () => {
+  it("makes repeated and concurrent disposal idempotent", async () => {
     const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
     const failures: RuntimeSubstrateFailure[] = [];
     let disposed = 0;
@@ -176,7 +176,7 @@ describe("RuntimeSubstrate", () => {
     await substrate.close();
   });
 
-  it("C5 cancels an activation settling asynchronously without resurrecting its Fiber", async () => {
+  it("cancels an activation settling asynchronously without resurrecting its Fiber", async () => {
     const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
     const failures: RuntimeSubstrateFailure[] = [];
     const started = deferred<void>();
@@ -206,7 +206,7 @@ describe("RuntimeSubstrate", () => {
     expect(failures).toEqual([]);
   });
 
-  it("C6 surfaces tracked background rejection through onFailure", async () => {
+  it("surfaces tracked background rejection through onFailure", async () => {
     const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
     const failures: RuntimeSubstrateFailure[] = [];
     const background = deferred<void>();
@@ -234,7 +234,7 @@ describe("RuntimeSubstrate", () => {
     await substrate.close();
   });
 
-  it("C7 reports disposer rejection instead of converting disposal to success", async () => {
+  it("reports disposer rejection instead of converting disposal to success", async () => {
     const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
     const failures: RuntimeSubstrateFailure[] = [];
     const handle = await substrate.activate(
@@ -259,7 +259,7 @@ describe("RuntimeSubstrate", () => {
     await expect(substrate.close()).resolves.toBeUndefined();
   });
 
-  it("C8 aborts the scope before owned disposal starts", async () => {
+  it("aborts the scope before owned disposal starts", async () => {
     const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
     const failures: RuntimeSubstrateFailure[] = [];
     const order: string[] = [];
@@ -285,7 +285,7 @@ describe("RuntimeSubstrate", () => {
     await substrate.close();
   });
 
-  it("C9 reports a stable settlement timeout for never-settling tracked work", async () => {
+  it("reports a stable settlement timeout for never-settling tracked work", async () => {
     const substrate = createRuntimeSubstrate({ settleTimeoutMs: 10 });
     const failures: RuntimeSubstrateFailure[] = [];
     const handle = await substrate.activate(
@@ -305,7 +305,7 @@ describe("RuntimeSubstrate", () => {
     expect(handle.state).toBe("DISPOSED");
   });
 
-  it("C10 closes remaining handles in reverse activation order", async () => {
+  it("closes remaining handles in reverse activation order", async () => {
     const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
     const failures: RuntimeSubstrateFailure[] = [];
     const order: string[] = [];
@@ -338,7 +338,7 @@ describe("RuntimeSubstrate", () => {
     expect(second.state).toBe("DISPOSED");
   });
 
-  it("C11 drains a late disposer admitted while disposal is in progress", async () => {
+  it("drains a late disposer admitted while disposal is in progress", async () => {
     const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
     const failures: RuntimeSubstrateFailure[] = [];
     const disposalGate = deferred<void>();
@@ -371,7 +371,7 @@ describe("RuntimeSubstrate", () => {
     await substrate.close();
   });
 
-  it("C12 reports a late disposer failure through dispose", async () => {
+  it("reports a late disposer failure through dispose", async () => {
     const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
     const failures: RuntimeSubstrateFailure[] = [];
     const disposalGate = deferred<void>();
@@ -402,7 +402,7 @@ describe("RuntimeSubstrate", () => {
     await substrate.close().catch(() => undefined);
   });
 
-  it("C13 rejects new tracked work after disposal begins", async () => {
+  it("rejects new tracked work after disposal begins", async () => {
     const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
     const failures: RuntimeSubstrateFailure[] = [];
     let capturedScope!: ActivationResourceScope;
@@ -428,7 +428,7 @@ describe("RuntimeSubstrate", () => {
     await substrate.close();
   });
 
-  it("C14 removes settled tracked work from the activation drain set", async () => {
+  it("removes settled tracked work from the activation drain set", async () => {
     const substrate = createRuntimeSubstrate({ settleTimeoutMs: 50 });
     const failures: RuntimeSubstrateFailure[] = [];
     let capturedHandle!: object;

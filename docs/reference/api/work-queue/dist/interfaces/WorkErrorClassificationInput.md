@@ -6,7 +6,7 @@
 
 # Interface: WorkErrorClassificationInput
 
-Defined in: packages/work-queue/dist/contracts.d.ts:131
+Defined in: packages/work-queue/dist/contracts.d.ts:196
 
 Work item and normalized failure supplied to retry classification.
 
@@ -16,7 +16,7 @@ Work item and normalized failure supplied to retry classification.
 
 > `readonly` **failure**: [`NormalizedWorkFailure`](NormalizedWorkFailure.md)
 
-Defined in: packages/work-queue/dist/contracts.d.ts:133
+Defined in: packages/work-queue/dist/contracts.d.ts:198
 
 ---
 
@@ -24,4 +24,4 @@ Defined in: packages/work-queue/dist/contracts.d.ts:133
 
 > `readonly` **workItem**: [`WorkItem`](WorkItem.md)
 
-Defined in: packages/work-queue/dist/contracts.d.ts:132
+Defined in: packages/work-queue/dist/contracts.d.ts:197

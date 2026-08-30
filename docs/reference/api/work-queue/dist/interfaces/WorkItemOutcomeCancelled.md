@@ -6,7 +6,7 @@
 
 # Interface: WorkItemOutcomeCancelled
 
-Defined in: packages/work-queue/dist/contracts.d.ts:40
+Defined in: packages/work-queue/dist/contracts.d.ts:71
 
 Durable cancellation outcome recorded when work is intentionally stopped.
 
@@ -16,7 +16,7 @@ Durable cancellation outcome recorded when work is intentionally stopped.
 
 > `readonly` **kind**: `"CANCELLED"`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:42
+Defined in: packages/work-queue/dist/contracts.d.ts:73
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/work-queue/dist/contracts.d.ts:42
 
 > `readonly` **reasonCode**: `string`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:43
+Defined in: packages/work-queue/dist/contracts.d.ts:74
 
 ---
 
@@ -32,4 +32,4 @@ Defined in: packages/work-queue/dist/contracts.d.ts:43
 
 > `readonly` **schemaVersion**: `1`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:41
+Defined in: packages/work-queue/dist/contracts.d.ts:72

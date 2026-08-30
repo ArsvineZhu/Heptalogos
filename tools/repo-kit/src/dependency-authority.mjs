@@ -10,7 +10,10 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const authority = JSON.parse(
-  readFileSync(join(root, "docs", "dependencies", "dependency-routing.json"), "utf8"),
+  readFileSync(
+    join(root, "project", "dependencies", "dependency-routing.json"),
+    "utf8",
+  ),
 );
 
 const routes = new Map();
@@ -28,12 +31,16 @@ for (const route of authority.routes ?? []) {
   }
   routes.set(route.roleId, route);
   for (const packageName of route.packages) {
-    if (packageRoutes.has(packageName)) {
+    const existingRoute = packageRoutes.get(packageName);
+    if (existingRoute === undefined) {
+      packageRoutes.set(packageName, route);
+      continue;
+    }
+    if (existingRoute.directive !== route.directive) {
       throw new Error(
-        `dependency-routing authority has duplicate package identity: ${packageName}`,
+        `dependency-routing authority has conflicting directives for package identity: ${packageName}`,
       );
     }
-    packageRoutes.set(packageName, route);
   }
 }
 

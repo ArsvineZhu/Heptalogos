@@ -1,173 +1,97 @@
 # AGENTS.md
 
-Repository-wide execution contract for coding agents working on Heptalogos.
-This file is intentionally small. It is not an architecture summary, roadmap,
-or Skill router.
+Repository-wide execution contract for Heptalogos.
 
-## 1. Working authority
+## Work authorization
 
-For an implementation task, follow this order:
+- Execute the explicitly approved active Plan. Do not select another Plan by
+  recency, filename, or convenience.
+- Plans authorize a bounded change; they do not silently become standing
+  semantic Authority.
+- A material unresolved semantic, ownership, provider, state, failure-model, or
+  evidence decision is PLAN_GAP. Report the smallest blocker and stop that
+  branch of work.
 
-1. the current Architecture Corpus;
-2. the explicitly approved active implementation plan;
-3. current code/tests as implementation reality.
+## Current-value engineering restraint
 
-The Corpus owns semantics. The plan owns the authorized change sequence and
-all task-specific decisions. Existing code and historical behavior do not gain
-Authority merely because they already exist.
+Satisfy the approved current requirement with the smallest semantically correct
+permanent maintenance surface. Future reuse, theoretical completeness,
+symmetry, or adjacent possibility does not independently authorize new
+abstraction, state, branch, recovery, configuration, validator, test matrix,
+dependency role, or meta-tool.
 
-Execute the plan that the task explicitly names. Do not select another plan by
-filename, recency, or convenience.
+The current executable Product or Foundation spine and its real consumers take
+priority over elegant but unused capability.
 
-A plan must be decision-complete for non-trivial work. You may choose local
-code organization only when alternatives are semantically equivalent. You may
-not choose or reinterpret Authority, package boundaries, dependency roles,
-compatibility policy, durable shapes, stable identities, lifecycle semantics,
-stage scope, or verification claims. If a required non-trivial decision is not
-resolved by Corpus + plan, stop and report `PLAN_GAP`; do not improvise.
+## Ownership and complexity admission
 
-If Corpus and plan conflict, stop and report the conflict.
+- Keep canonical mutation and semantic ownership singular; do not bypass the
+  owning boundary to simplify implementation or tests.
+- New durable or product state requires a current semantic distinction and
+  consumer.
+- Resilience requires a current failure model; security requires a current
+  threat model.
+- A first-order recovery does not authorize recovery-of-recovery. Bounded
+  fencing or fail-stop is a valid outcome when it preserves canonical truth.
+- Tests do not independently justify a public interface, DI layer, factory,
+  wrapper, mock seam, product state, or product branch.
+- A completed fix does not authorize another hardening pass.
 
-## 2. Current tree is not development history
+## Mandatory Library / Dependency First
 
-Current source, tests, test-support, fixtures, scripts, tooling, configuration,
-workflow definitions, and current agent instructions must describe what the
-system is now, not the milestone/PR/session that created them.
+Before writing non-trivial generic mechanics, inspect in this order:
 
-Do not leave development provenance such as milestone IDs, phase IDs,
-corrective-cycle names, PR IDs, temporary migration names, or “new/old”
-development labels in long-lived executable identities. Use semantic role names.
+semantic owner → existing repository primitive/adapter → adopted provider role
+→ Standard, language, Node, or OS facility → mature library/framework →
+narrow composition or adapter → custom generic mechanic only with concrete
+insufficiency evidence.
 
-Git history, completed plans, and historical qualification records preserve
-provenance. Do not keep one-time phase evidence or phase scripts in the current
-tree solely as an archive.
+This applies to parsing, schema, process, filesystem, concurrency, retry,
+timeouts, lifecycle, queues, state machines, serialization, database, protocol,
+observability, and repository-tooling mechanics. Trivial language operations
+and Heptalogos-specific semantics remain local code.
 
-## 3. PRE_PRODUCTION evolution
+## Completion and reopen
 
-`CompatibilityEpoch = PRE_PRODUCTION`.
-Current compatibility obligations are declared only in
-`docs/governance/compatibility-obligations.json`.
+Acceptance criteria plus required executable or evidence proof close the
+current change. Reopen only for new current evidence, an accepted
+current-Horizon failure case, a current consumer or invariant, or an explicit
+active-Plan requirement. Imagined edge cases, generic future-proofing,
+failure inside new recovery, and recovery-of-recovery do not reopen it.
+When the accepted path is green, STOP.
 
-No declaration means no obligation.
+## PRE_PRODUCTION and executable truth
 
-Project-owned development history — previous commits, branches, milestones,
-local fixtures, developer databases, and previous local builds — does not
-justify backward compatibility.
+CompatibilityEpoch is PRE_PRODUCTION. Only
+project/governance/compatibility-obligations.json declares compatibility
+obligations. Development history does not create compatibility work. Rewrite
+current internal shapes and remove obsolete paths, aliases, shims, fallback
+parsers, and bridge migrations unless a declared obligation exists.
 
-When a current contract/schema changes during PRE_PRODUCTION:
+Code and tests are executable implementation reality, not Authority for an
+unresolved standing semantic. A component can be locally elegant while the
+required executable path remains broken.
 
-1. rewrite the current canonical shape;
-2. update current callers/tests;
-3. rewrite/squash the development migration baseline when applicable;
-4. reset/recreate project-owned development state;
-5. delete obsolete implementation.
+## Evidence and Skills
 
-Do not add legacy readers, compatibility shims, upcasters/downcasters, bridge
-migrations, aliases, dual readers/writers, deprecated internal APIs, or fallback
-parsers for project development history. Do not preserve such code merely
-because it already exists.
+Use only PASS, FAIL, NOT_RUN, or BLOCKED, and keep every claim within the proof
+boundary that actually ran. Mock evidence does not prove a live provider or
+protocol; one platform does not prove another; source-tree execution does not
+prove a source-less artifact.
 
-Version fields remain required where architecture requires versioned contracts;
-versioning does not itself create a backward-compatibility obligation.
+Load an applicable procedural Skill when its description matches the
+specialized implementation activity. Skill discovery is open-ended; do not
+enumerate the current Skill set here.
 
-## 4. Implementation constraints
+## Current execution policy
 
-Stay inside the approved plan. Do not opportunistically add capabilities,
-packages, dependencies, compatibility paths, or architecture abstractions.
+Ordinary GitHub Actions are disabled. Use local verification entrypoints and
+the permanent gates required by the approved Plan. Keep pnpm verify runnable.
+For docs, specs, project, packages, or Skills work, read the applicable local
+README, INDEX, or AGENTS scope before editing.
 
-Use the existing semantic owner and mutation Authority. Do not create a second
-Authority path or bypass owning services with direct SQL/filesystem/shell
-mutation.
+## Repository knowledge
 
-For generic mechanics, follow the adopted dependency route. Do not silently
-replace an adopted library/framework with custom infrastructure. Keep framework
-objects behind Heptalogos-owned contracts.
-
-Before implementing generic mechanics:
-
-1. search the target package and workspace for an existing owner/primitive;
-2. read the target package README and `packages/INDEX.md` for ownership;
-3. consult dependency-routing / implementation-routing for an adopted provider;
-4. prefer a Standard/Node/OS facility or the adopted mature provider;
-5. if the existing owner lacks a primitive, extend the owner instead of copying it;
-6. custom generic implementation requires explicit evidence in the governing plan or
-   current change rationale.
-
-Existing code is not evidence that a duplicate mechanic is legitimate. Do not
-preserve a local implementation merely to minimize diff size.
-
-Any process-memory background work must have an owner and bounded
-cancel/drain/dispose behavior. Anything that must survive restart requires the
-Foundation-owned durable primitive specified by the Corpus/plan.
-
-Behavior-affecting literals must follow the repository configuration policy;
-do not hide product policy in incidental constants.
-
-Durable source modules require meaningful package/module docs.
-Document exported contracts and non-obvious invariants.
-Comments explain semantics/why, not syntax.
-Do not duplicate TypeScript type information in prose.
-Generated API docs are derived; edit source documentation instead.
-
-## 5. Verification and candidate integrity
-
-Verification state is exactly:
-
-`PASS | FAIL | NOT_RUN | BLOCKED`
-
-Never report PASS for a command/scenario that did not run. Match evidence to the
-claim: mocks do not prove live protocols; one OS does not prove another; a
-development tree does not prove a source-less artifact.
-
-Run the plan's focused tests while editing and all required permanent gates
-before claiming completion. `pnpm verify` must remain locally runnable.
-
-Do not dispatch ordinary CI. Follow the repository closure playbook for live
-PR lifecycle, Independent Review, manual final CI, and squash merge.
-
-PR candidate integrity is governed by PR lifecycle, not commit hashes in
-documents.
-
-Terminology: `Independent Review` in Heptalogos NEVER means GitHub's Pull
-Request Review feature.
-
-Independent Review is an external governance verdict. It is not a GitHub Pull
-Request review, approval, requested-reviewer state, review comment, status
-check, or branch-protection signal. GitHub hosts the candidate and CI evidence;
-it does not provide the Independent Review Authority.
-
-The authorized independent reviewer supplies an explicit `PASS` or
-`REQUEST_CHANGES` verdict out-of-band to the implementation Agent. That verdict
-is authoritative for the current Ready candidate. The implementation Agent MUST
-NOT query GitHub reviews, approvals, requested reviewers, or review comments to
-determine Independent Review state. Absence of GitHub review objects has no
-meaning for this gate.
-
-Draft = mutable.
-Ready = review candidate.
-
-The current Ready PR is the candidate transport presented to the authorized
-external reviewer. Any repository mutation after an external Independent Review
-`PASS` makes that verdict stale; return the PR to Draft before continuing.
-Final manual CI runs only after an external Independent Review `PASS`. Any
-PR-branch mutation after final CI makes review and CI stale.
-
-Do not copy commit SHAs into plans, qualification records, PR bodies, or Agent
-instructions. Git/GitHub/CI may use revision identity internally.
-
-For work under `packages/**`, follow `packages/AGENTS.md` and read the target
-package `README.md` before editing.
-
-## 6. Stop conditions
-
-Stop instead of inventing a workaround when execution would require:
-
-- changing Corpus semantics or resolving a Corpus conflict;
-- making a non-trivial decision absent from the approved plan;
-- adding/replacing a dependency or creating a new subsystem/package;
-- declaring a new compatibility obligation or preserving an undeclared one;
-- changing stage boundaries or pulling later-stage semantics forward;
-- bypassing an owning Authority to make a test pass;
-- claiming required evidence that cannot actually be produced.
-
-Report the smallest concrete blocker and the evidence that exposed it.
+When editing repository knowledge, write the artifact's owned content directly.
+Keep file-type authoring policy in the applicable scoped AGENTS or
+knowledge-system guidance.

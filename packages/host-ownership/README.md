@@ -14,12 +14,22 @@ loss into a database-visible fence rather than relying on process-local state.
 - Host token publication, revocation, and inspection.
 - Bootstrap reservation and Host ownership database setup primitives.
 - Lease-bound PostgreSQL connection acquisition.
-- Host ownership schema and role constants required by the contract.
+- Host ownership schema and the five protected role constants required by the
+  contract, including the database-only durable-execution role.
+- The fenced `HostDurableExecutionAuthority` contract and its callback-scoped
+  database credential boundary.
+
+The durable-execution consumer receives only the fenced durable database target
+and password callback. It cannot use this contract to reach canonical
+`heptalogos.*` tables; DBOS schema mechanics and lifecycle remain owned by the
+separate durable-execution adapter.
 
 ## Does not own
 
 - Bootstrap orchestration or private PostgreSQL process control.
 - The normal persistence service or canonical schema migration authority.
+- DBOS lifecycle, queue, or workflow mechanics; the durable role is only the
+  Host-owned database boundary for that engine.
 - Runtime Kernel desired/actual reconciliation.
 - Product policy that merely uses a Host ownership context.
 
@@ -28,31 +38,27 @@ loss into a database-visible fence rather than relying on process-local state.
 The public entry point exports Host lease/fence contracts, bootstrap reservation
 and provisioning operations, ownership schema setup, token publication and
 revocation, database inspection, and `acquireHostLeaseConnection`. Consumers
-must carry the typed ownership context through mutation paths.
+carry the typed ownership context through mutation paths. Durable-engine
+consumers receive `HostDurableExecutionAuthority`; they do not receive product
+schema privileges through it.
 
 ## Dependencies and boundaries
 
 It depends on `foundation-contracts`, `pg`, and XState. Private PostgreSQL and
-integration helpers are development-only composition. Keep raw `pg` access in
-this adapter; higher packages consume the ownership contracts and do not create
-parallel lease semantics.
-
-## Change constraints
-
-Keep one Host ownership Authority and one database fence contract. Require
-ownership context for canonical mutation connections. Keep raw `pg` mechanics
-inside this adapter and do not add Bootstrap orchestration or Runtime lifecycle
-semantics.
+integration helpers are development-only composition. Raw `pg` access stays in
+this adapter; higher packages consume the ownership contracts rather than
+creating parallel lease semantics.
 
 ## Verification
 
 Run `pnpm nx run host-ownership:test`, its integration target against real
 PostgreSQL, and the repository type, boundary, and hygiene gates for boundary
-changes.
+changes. Durable-execution qualification also exercises the durable role's schema/data privilege
+isolation through the real Host composition.
 
 ## Architecture references
 
-- [`S01 — 启动、恢复与运行时监督`](../../docs/architecture/contracts/startup-recovery-runtime-supervision.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
-- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
-- [`S17 — Storage Workspace 与 DataLifecycle`](../../docs/architecture/contracts/storage-workspace-data-lifecycle.md)
+- [`Host ownership Spec`](../../specs/runtime/host-ownership.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
+- [`Bootstrap closure Spec`](../../specs/runtime/bootstrap-closure.md)
+- [`Storage lifecycle Architecture`](../../docs/architecture/storage-lifecycle.md)

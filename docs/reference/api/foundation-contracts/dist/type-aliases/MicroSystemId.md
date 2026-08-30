@@ -8,6 +8,6 @@
 
 > **MicroSystemId** = [`NamespacedId`](NamespacedId.md)\<`"MicroSystemId"`>\>
 
-Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:16
+Defined in: packages/foundation-contracts/dist/runtime-identity.d.ts:19
 
 Identifies a MicroSystem definition.

@@ -19,7 +19,8 @@ export interface BootstrapKeyRequestContext {
     | "private-postgres-bootstrap-superuser"
     | "private-postgres-host-lease-role"
     | "private-postgres-runtime-role"
-    | "private-postgres-migration-role";
+    | "private-postgres-migration-role"
+    | "private-postgres-durable-execution-role";
 }
 
 /** Supplies one Bootstrap secret only for the duration of an async callback. */
@@ -41,6 +42,11 @@ export interface BootstrapKeyProvider {
   ): Promise<T>;
   /** Uses the migration-role password within a bounded callback scope. */
   withPrivatePostgresMigrationPassword<T>(
+    context: BootstrapKeyRequestContext,
+    use: (passwordUtf8: Uint8Array) => Promise<T>,
+  ): Promise<T>;
+  /** Uses the durable-engine password within a bounded callback scope. */
+  withPrivatePostgresDurableExecutionPassword<T>(
     context: BootstrapKeyRequestContext,
     use: (passwordUtf8: Uint8Array) => Promise<T>,
   ): Promise<T>;

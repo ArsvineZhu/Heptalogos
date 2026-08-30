@@ -177,7 +177,7 @@ async function insertFact(
 describePostgres.sequential(
   "Execution Foundation required Activity/Evidence transaction atomicity",
   () => {
-    it("A1 commits canonical fact, current Activity, and required Evidence atomically", async () => {
+    it("commits canonical fact, current Activity, and required Evidence atomically", async () => {
       const fixture = await makeFixture();
       const bootResult = await boot(fixture);
       await createFixtureTable(fixture);
@@ -219,7 +219,7 @@ describePostgres.sequential(
       }
     }, 180_000);
 
-    it("A2 rolls back all three writes after a failure following the writes", async () => {
+    it("rolls back all three writes after a failure following the writes", async () => {
       const fixture = await makeFixture();
       const bootResult = await boot(fixture);
       await createFixtureTable(fixture);
@@ -259,7 +259,7 @@ describePostgres.sequential(
       }
     }, 180_000);
 
-    it("A3 rolls back canonical and Activity writes when required Evidence validation fails", async () => {
+    it("rolls back canonical and Activity writes when required Evidence validation fails", async () => {
       const fixture = await makeFixture();
       const bootResult = await boot(fixture);
       await createFixtureTable(fixture);
@@ -296,7 +296,7 @@ describePostgres.sequential(
       }
     }, 180_000);
 
-    it("A4 rejects a read-only transaction at the Foundation write seam", async () => {
+    it("rejects a read-only transaction at the Foundation write seam", async () => {
       const fixture = await makeFixture();
       const bootResult = await boot(fixture);
       await createFixtureTable(fixture);
@@ -318,7 +318,7 @@ describePostgres.sequential(
       }
     }, 180_000);
 
-    it("A5 keeps the required transaction body limited to local SQL and retained records", async () => {
+    it("keeps the required transaction body limited to local SQL and retained records", async () => {
       const source = await Promise.all([
         readFile(
           new URL(
@@ -335,7 +335,7 @@ describePostgres.sequential(
       expect(source).not.toMatch(/setTimeout|fetch\(|execFile|spawn\(/u);
     });
 
-    it("B1/B2 projects the real BootstrapJournal identity and retains one bounded summary", async () => {
+    it("projects the real BootstrapJournal identity and retains one bounded summary", async () => {
       const fixture = await makeFixture();
       const bootResult = await boot(fixture);
       const composition = createComposition(bootResult.host);
@@ -382,7 +382,7 @@ describePostgres.sequential(
       }
     }, 180_000);
 
-    it("B3/B4 links the first current Host Activity to Bootstrap and leaves journal bytes unchanged", async () => {
+    it("links the first current Host Activity to Bootstrap and leaves journal bytes unchanged", async () => {
       const fixture = await makeFixture();
       const bootResult = await boot(fixture);
       const composition = createComposition(bootResult.host);
@@ -448,7 +448,7 @@ describePostgres.sequential(
       }
     }, 180_000);
 
-    it("B5 represents failed and incomplete journal input without silently marking success", async () => {
+    it("represents failed and incomplete journal input without silently marking success", async () => {
       const fixture = await makeFixture();
       const bootResult = await boot(fixture);
       try {
@@ -482,7 +482,7 @@ describePostgres.sequential(
       }
     }, 180_000);
 
-    it("B6 keeps BootstrapJournal readable without normal lineage composition", async () => {
+    it("keeps BootstrapJournal readable without normal lineage composition", async () => {
       const fixture = await makeFixture();
       const bootResult = await boot(fixture);
       const journalPath = join(

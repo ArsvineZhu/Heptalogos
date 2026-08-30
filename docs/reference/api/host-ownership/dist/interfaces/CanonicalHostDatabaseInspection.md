@@ -6,7 +6,7 @@
 
 # Interface: CanonicalHostDatabaseInspection
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:80
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:83
 
 Reports whether the canonical Host database exists and its identity.
 
@@ -16,7 +16,7 @@ Reports whether the canonical Host database exists and its identity.
 
 > `readonly` `optional` **database?**: `object`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:82
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:85
 
 #### datname
 
@@ -36,4 +36,4 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:82
 
 > `readonly` **exists**: `boolean`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:81
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:84

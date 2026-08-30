@@ -8,6 +8,6 @@
 
 > `const` **HOST\_LEASE\_SCRAM\_SALT\_BYTES**: `16`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:26
+Defined in: packages/host-ownership/dist/contracts.d.ts:28
 
 Salt size required for Host lease SCRAM credentials.

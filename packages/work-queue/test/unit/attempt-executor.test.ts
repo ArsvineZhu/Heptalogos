@@ -34,6 +34,7 @@ import type {
 } from "@heptalogos/runtime-kernel";
 import type { TimeService } from "@heptalogos/time-service";
 import {
+  createDispatchAttemptId,
   createWorkAttemptExecutor,
   type WorkErrorClassifier,
   type WorkHandlerResolver,
@@ -326,6 +327,95 @@ describe("engine-neutral WorkAttemptExecutor", () => {
       status: "STALE_NOOP",
     });
     expect(Reflect.get(stale.lease, "reserveInvocation")).not.toHaveBeenCalled();
+  });
+
+  it("recovers a RUNNING item through the same attempt without claiming it again", async () => {
+    const pending = item(context());
+    const attemptId = createDispatchAttemptId(
+      pending.workItemId,
+      pending.dispatchRevision,
+    );
+    const value = {
+      ...pending,
+      state: "RUNNING" as const,
+      activeAttemptId: attemptId,
+    };
+    const handler = vi.fn(async () => ({ outcome: { ok: true } as never }));
+    const attempt = fixture(value, handler);
+
+    await expect(
+      attempt.executor.execute(value.workItemId, value.dispatchRevision),
+    ).resolves.toMatchObject({
+      status: "SUCCEEDED",
+    });
+
+    expect(Reflect.get(attempt.repository, "markRunning")).not.toHaveBeenCalled();
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(attempt.retainCurrent).toHaveBeenCalledTimes(1);
+    expect(Reflect.get(attempt.repository, "commitTerminal")).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expectedState: "RUNNING",
+        expectedActiveAttemptId: attemptId,
+      }),
+    );
+  });
+
+  it("rejects a RUNNING item whose active attempt identity is inconsistent", async () => {
+    const pending = item(context());
+    const value = {
+      ...pending,
+      state: "RUNNING" as const,
+      activeAttemptId: createDispatchAttemptId(pending.workItemId, 2),
+    };
+    const attempt = fixture(value);
+
+    await expect(attempt.executor.execute(value.workItemId, 1)).rejects.toMatchObject({
+      problem: { problemCode: "work.recovery.active_attempt_mismatch" },
+    });
+    expect(Reflect.get(attempt.repository, "markRunning")).not.toHaveBeenCalled();
+    expect(Reflect.get(attempt.repository, "commitTerminal")).not.toHaveBeenCalled();
+  });
+
+  it("keeps a RUNNING item unchanged when its exact handler generation is missing", async () => {
+    const pending = item(context());
+    const value = {
+      ...pending,
+      state: "RUNNING" as const,
+      activeAttemptId: createDispatchAttemptId(pending.workItemId, 1),
+    };
+    const attempt = fixture(value);
+    attempt.handlerRegistry.resolve = vi.fn(() => undefined);
+
+    await expect(attempt.executor.execute(value.workItemId, 1)).rejects.toMatchObject({
+      problem: { problemCode: "work.recovery.handler_generation_missing" },
+    });
+    expect(Reflect.get(attempt.repository, "markRunning")).not.toHaveBeenCalled();
+    expect(Reflect.get(attempt.repository, "commitTerminal")).not.toHaveBeenCalled();
+  });
+
+  it("terminalizes an accepted cancellation during RUNNING recovery without invoking the handler", async () => {
+    const pending = item(context());
+    const value = {
+      ...pending,
+      state: "RUNNING" as const,
+      activeAttemptId: createDispatchAttemptId(pending.workItemId, 1),
+      cancelRequestedAt: now,
+      cancellationReasonCode: "operator.cancelled",
+    };
+    const handler = vi.fn(async () => ({ outcome: { ok: true } as never }));
+    const attempt = fixture(value, handler);
+
+    await expect(attempt.executor.execute(value.workItemId, 1)).resolves.toMatchObject({
+      status: "CANCELLED",
+    });
+    expect(handler).not.toHaveBeenCalled();
+    expect(Reflect.get(attempt.repository, "markRunning")).not.toHaveBeenCalled();
+    expect(Reflect.get(attempt.repository, "commitTerminal")).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expectedState: "RUNNING",
+        expectedActiveAttemptId: value.activeAttemptId,
+      }),
+    );
   });
 
   it("claims and invokes only the exact generation, outside any product transaction", async () => {

@@ -8,6 +8,6 @@
 
 > `const` **HOST\_LEASE\_SCRAM\_ITERATIONS**: `4096`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:24
+Defined in: packages/host-ownership/dist/contracts.d.ts:26
 
 SCRAM work factor required for Host lease credentials.

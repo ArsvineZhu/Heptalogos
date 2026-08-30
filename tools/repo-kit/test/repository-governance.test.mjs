@@ -8,6 +8,7 @@ import {
 } from "../../../scripts/verify/repository.mjs";
 import {
   CURRENT_MACHINE_AUTHORITIES,
+  discoverResponsibilityRoots,
   validateRootPackageIdentity,
   validateRootTopology,
 } from "../src/repository-governance.mjs";
@@ -91,58 +92,58 @@ describe("repository workflow governance", () => {
     }
   });
 
-  it("rejects a new responsibility root without a topology update", async () => {
+  it("discovers responsibility roots and requires only global index coverage", async () => {
     const root = await mkdtemp(join(tmpdir(), "heptalogos-root-topology-"));
     try {
-      for (const directory of [
+      const roots = [
         ".agents",
         ".github",
         "docs",
         "packages",
+        "project",
         "scripts",
+        "specs",
         "tests",
         "tools",
-      ]) {
+      ];
+      for (const directory of roots) {
         await mkdir(join(root, directory), { recursive: true });
       }
-      await mkdir(join(root, "docs", "engineering"), { recursive: true });
-      await mkdir(join(root, "apps"));
+      expect(discoverResponsibilityRoots({ root })).toEqual(roots);
       await writeFile(
-        join(root, "docs", "engineering", "README.md"),
-        [
-          "# Engineering knowledge",
-          "",
-          "## Current responsibility roots",
-          "",
-          "```text",
-          ".agents/",
-          ".github/",
-          "docs/",
-          "packages/",
-          "scripts/",
-          "tests/",
-          "tools/",
-          "```",
-          "",
-        ].join("\n"),
+        join(root, "INDEX.md"),
+        roots.map((name) => "[" + name + "](./" + name + "/)").join("\n"),
       );
-
+      await mkdir(join(root, "apps"), { recursive: true });
       expect(validateRootTopology({ root })).toEqual([expect.stringContaining("apps")]);
+      await writeFile(
+        join(root, "INDEX.md"),
+        roots
+          .concat("apps")
+          .map((name) => "[" + name + "](./" + name + "/)")
+          .join("\n"),
+      );
+      expect(validateRootTopology({ root })).toEqual([]);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
   });
 
-  it("classifies executable Authorities separately from evidence projections", () => {
+  it("uses the new typed machine Authority homes", () => {
     expect(CURRENT_MACHINE_AUTHORITIES).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          id: "compatibility-obligations",
+          path: "project/governance/compatibility-obligations.json",
+        }),
+        expect.objectContaining({
           id: "dependency-routing",
-          kind: "EXECUTABLE_MACHINE_AUTHORITY",
+          path: "project/dependencies/dependency-routing.json",
         }),
         expect.objectContaining({
           id: "qualification-status",
           kind: "CURRENT_EVIDENCE_PROJECTION",
+          path: "project/qualification/results/qualification-status.json",
         }),
       ]),
     );
@@ -152,7 +153,6 @@ describe("repository workflow governance", () => {
     const errors = validateVerifyWorkflow(
       workflowPrefix + "jobs:\n  resolve-candidate:\n    outputs:\n" + baseOutput,
     );
-
     expect(errors).toEqual([]);
   });
 
@@ -181,7 +181,6 @@ describe("repository workflow governance", () => {
         "jobs:\n  resolve-candidate:\n    outputs:\n" +
         baseOutput,
     );
-
     expect(errors).toEqual([
       "verify workflow must not expose revision input: base_sha:",
       "verify workflow must not expose revision input: target_sha:",
@@ -192,10 +191,9 @@ describe("repository workflow governance", () => {
     const errors = validateVerifyWorkflow(
       workflowPrefix.replace(
         "  workflow_dispatch:\n",
-        `  ${trigger}: {}\n  workflow_dispatch:\n`,
+        "  " + trigger + ": {}\n  workflow_dispatch:\n",
       ) + "jobs:\n  verify:\n    runs-on: ubuntu-latest\n",
     );
-
-    expect(errors).toContain(`verify workflow must not auto-trigger via ${trigger}`);
+    expect(errors).toContain("verify workflow must not auto-trigger via " + trigger);
   });
 });

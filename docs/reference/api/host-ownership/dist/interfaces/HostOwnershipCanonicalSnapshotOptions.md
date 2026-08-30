@@ -6,7 +6,7 @@
 
 # Interface: HostOwnershipCanonicalSnapshotOptions
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:137
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:140
 
 Supplies credentials and a client seam for canonical snapshot inspection.
 
@@ -16,7 +16,7 @@ Supplies credentials and a client seam for canonical snapshot inspection.
 
 > `readonly` `optional` **clientFactory?**: `unknown`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:140
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:143
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:140
 
 > `readonly` **passwordProvider**: [`BootstrapAdminPasswordProvider`](BootstrapAdminPasswordProvider.md)
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:139
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:142
 
 ---
 
@@ -32,4 +32,4 @@ Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:139
 
 > `readonly` **port**: `number`
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:138
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:141

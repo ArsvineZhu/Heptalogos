@@ -6,7 +6,7 @@
 
 # Interface: DurableDispatchPort
 
-Defined in: packages/work-queue/dist/contracts.d.ts:121
+Defined in: packages/work-queue/dist/contracts.d.ts:152
 
 Port used to submit a previously admitted dispatch request.
 
@@ -16,7 +16,7 @@ Port used to submit a previously admitted dispatch request.
 
 > **dispatch**(`request`): `Promise`\<`void`>\>
 
-Defined in: packages/work-queue/dist/contracts.d.ts:123
+Defined in: packages/work-queue/dist/contracts.d.ts:154
 
 Submit the request while preserving its revision and attempt identity.
 

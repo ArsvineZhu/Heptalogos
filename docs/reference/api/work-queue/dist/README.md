@@ -11,6 +11,8 @@ generation-fenced attempt components; the concrete repository is restricted.
 
 ## Interfaces
 
+- [DurableAttemptInspectionPort](interfaces/DurableAttemptInspectionPort.md)
+- [DurableAttemptInspectionRequest](interfaces/DurableAttemptInspectionRequest.md)
 - [DurableDispatchPort](interfaces/DurableDispatchPort.md)
 - [DurableDispatchRequest](interfaces/DurableDispatchRequest.md)
 - [NormalizedWorkFailure](interfaces/NormalizedWorkFailure.md)
@@ -32,8 +34,14 @@ generation-fenced attempt components; the concrete repository is restricted.
 - [WorkItemOutcomeSucceeded](interfaces/WorkItemOutcomeSucceeded.md)
 - [WorkItemOutcomeSuperseded](interfaces/WorkItemOutcomeSuperseded.md)
 - [WorkItemStateMachine](interfaces/WorkItemStateMachine.md)
+- [WorkQueuePartitionLimits](interfaces/WorkQueuePartitionLimits.md)
+- [WorkQueueProfileCatalog](interfaces/WorkQueueProfileCatalog.md)
+- [WorkQueueProfileDefinition](interfaces/WorkQueueProfileDefinition.md)
+- [WorkQueueRateLimit](interfaces/WorkQueueRateLimit.md)
 - [WorkQueueReconciler](interfaces/WorkQueueReconciler.md)
 - [WorkQueueReconcilerOptions](interfaces/WorkQueueReconcilerOptions.md)
+- [WorkQueueRecoveryCoordinator](interfaces/WorkQueueRecoveryCoordinator.md)
+- [WorkQueueRecoveryScanResult](interfaces/WorkQueueRecoveryScanResult.md)
 - [WorkQueueRepository](interfaces/WorkQueueRepository.md)
 - [WorkQueueRuntimeOptions](interfaces/WorkQueueRuntimeOptions.md)
 - [WorkQueueService](interfaces/WorkQueueService.md)
@@ -42,6 +50,7 @@ generation-fenced attempt components; the concrete repository is restricted.
 ## Type Aliases
 
 - [DispatchAttemptId](type-aliases/DispatchAttemptId.md)
+- [DurableAttemptProjection](type-aliases/DurableAttemptProjection.md)
 - [ResourceAdmissionClassId](type-aliases/ResourceAdmissionClassId.md)
 - [WorkAttemptExecutionStatus](type-aliases/WorkAttemptExecutionStatus.md)
 - [WorkConfigurationBinding](type-aliases/WorkConfigurationBinding.md)
@@ -66,9 +75,12 @@ generation-fenced attempt components; the concrete repository is restricted.
 - [createDispatchAttemptId](functions/createDispatchAttemptId.md)
 - [createWorkAttemptExecutor](functions/createWorkAttemptExecutor.md)
 - [createWorkItemStateMachine](functions/createWorkItemStateMachine.md)
+- [createWorkQueueProfileCatalog](functions/createWorkQueueProfileCatalog.md)
 - [createWorkQueueReconciler](functions/createWorkQueueReconciler.md)
+- [createWorkQueueRecoveryCoordinator](functions/createWorkQueueRecoveryCoordinator.md)
 - [createWorkQueueService](functions/createWorkQueueService.md)
 - [dispatchAttemptIdToWorkflowId](functions/dispatchAttemptIdToWorkflowId.md)
+- [isWorkQueueProfilePartitioned](functions/isWorkQueueProfilePartitioned.md)
 - [parseDispatchAttemptId](functions/parseDispatchAttemptId.md)
 - [transitionWorkItemState](functions/transitionWorkItemState.md)
 - [validateWorkQueueRuntimeOptions](functions/validateWorkQueueRuntimeOptions.md)

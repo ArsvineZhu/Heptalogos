@@ -6,7 +6,7 @@
 
 # Interface: PostgresScramVerifierOptions
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:28
+Defined in: packages/host-ownership/dist/contracts.d.ts:30
 
 Supplies SCRAM parameters for deterministic verifier construction.
 
@@ -16,7 +16,7 @@ Supplies SCRAM parameters for deterministic verifier construction.
 
 > `readonly` **iterations**: `number`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:29
+Defined in: packages/host-ownership/dist/contracts.d.ts:31
 
 ---
 
@@ -24,4 +24,4 @@ Defined in: packages/host-ownership/dist/contracts.d.ts:29
 
 > `readonly` **salt**: `Uint8Array`
 
-Defined in: packages/host-ownership/dist/contracts.d.ts:30
+Defined in: packages/host-ownership/dist/contracts.d.ts:32

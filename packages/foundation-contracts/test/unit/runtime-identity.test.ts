@@ -7,6 +7,9 @@ import {
   createProviderId,
   createServiceId,
   createWorkItemId,
+  asDurableCodeVersion,
+  digestCanonicalJson,
+  parseDurableCodeVersion,
   parseCapabilityId,
   parseContributionId,
   parseMicroSystemId,
@@ -86,5 +89,13 @@ describe("runtime identity primitives", () => {
   it("rejects invalid and non-v7 WorkItemId values", () => {
     expect(parseWorkItemId("not-a-uuid")).toBeUndefined();
     expect(parseWorkItemId("550e8400-e29b-41d4-a716-446655440000")).toBeUndefined();
+  });
+
+  it("keeps DurableCodeVersion distinct while using the canonical digest shape", () => {
+    const digest = digestCanonicalJson("test.durable-code/v1", { code: "a" });
+    const version = asDurableCodeVersion(digest);
+
+    expect(parseDurableCodeVersion(version)).toBe(version);
+    expect(parseDurableCodeVersion(version.toUpperCase())).toBeUndefined();
   });
 });

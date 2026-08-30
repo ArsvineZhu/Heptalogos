@@ -25,8 +25,8 @@ machine clock.
 
 The package exports the time contracts, `createFakeTimeService`,
 `createSystemTimeService`, and `parseTimeZoneId`. Consumers request the service
-through their owning composition and preserve monotonic versus human-local
-time semantics rather than using raw clock calls in domain code.
+through their owning composition, preserving monotonic versus human-local time
+semantics instead of coupling domain code to raw clock calls.
 
 ## Dependencies and boundaries
 
@@ -34,12 +34,6 @@ It depends only on `foundation-contracts`. Keep the implementation small and
 side-effect limited to the system-clock adapter. Time values are inputs to
 other owners; this package does not decide retention, lifecycle, scheduling, or
 configuration policy.
-
-## Change constraints
-
-Keep monotonic elapsed time distinct from human-local wall time. Use the fake
-service for deterministic tests rather than global clock mocks. Do not add
-scheduling, retry, persistence, or lifecycle ownership.
 
 ## Verification
 
@@ -49,8 +43,9 @@ lifecycle, persistence, or Evidence tests as well.
 
 ## Architecture references
 
-- [`S02 — 异步、WorkQueue、Durable 与 Time`](../../docs/architecture/contracts/async-work-queue-durable-time.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
-- [`S10 — Evidence、Replay、Observability 与 Content`](../../docs/architecture/contracts/evidence-replay-observability-content.md)
-- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
-- [`S16 — Execution Lineage Observability`](../../docs/architecture/contracts/execution-lineage-observability.md)
+- [`Time Spec`](../../specs/execution/time.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
+- [`Evidence Spec`](../../specs/execution/evidence.md)
+- [`Execution lineage Spec`](../../specs/execution/execution-lineage.md)
+- [`Contract versioning Spec`](../../specs/core/contract-versioning.md)
+- [`Execution model Architecture`](../../docs/architecture/execution-model.md)

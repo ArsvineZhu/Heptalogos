@@ -27,22 +27,15 @@ silently mutate state after Host ownership is lost.
 The entry point exports persistence runtime options, transaction and execution
 context types, `PersistenceService`, state types, and
 `createPersistenceService`. The `./foundation-repository` subpath exposes the
-explicit repository integration surface. Consumers must use the service and
-carry the required Host and execution context.
+explicit repository integration surface. The service is the supported consumer
+route and carries the required Host and execution context.
 
 ## Dependencies and boundaries
 
 It depends on `foundation-contracts`, `execution-lineage`, `host-ownership`,
 `schema-runtime`, `time-service`, Kysely, and `pg`. Host ownership remains the
-fence Authority and canonical-schema remains the schema Authority. Do not
-introduce direct SQL mutation paths around the service.
-
-## Change constraints
-
-Canonical normal mutation remains Host-fenced and must use the persistence
-service. Do not create a second direct canonical mutation path. Keep schema
-ownership in `canonical-schema`, lease ownership in `host-ownership`, and pool
-lifecycle bounded.
+fence Authority and canonical-schema remains the schema Authority; direct SQL
+mutation stays behind this service boundary.
 
 ## Verification
 
@@ -52,7 +45,7 @@ the corresponding persistence and Host qualification scenarios.
 
 ## Architecture references
 
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
-- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
-- [`S16 — Execution Lineage Observability`](../../docs/architecture/contracts/execution-lineage-observability.md)
-- [`S17 — Storage Workspace 与 DataLifecycle`](../../docs/architecture/contracts/storage-workspace-data-lifecycle.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
+- [`Host ownership Spec`](../../specs/runtime/host-ownership.md)
+- [`Execution lineage Spec`](../../specs/execution/execution-lineage.md)
+- [`Storage lifecycle Architecture`](../../docs/architecture/storage-lifecycle.md)

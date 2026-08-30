@@ -6,7 +6,7 @@
 
 # Interface: WorkItemOutcomeSucceeded
 
-Defined in: packages/work-queue/dist/contracts.d.ts:27
+Defined in: packages/work-queue/dist/contracts.d.ts:58
 
 Durable success outcome containing the bounded handler value.
 
@@ -16,7 +16,7 @@ Durable success outcome containing the bounded handler value.
 
 > `readonly` **kind**: `"SUCCEEDED"`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:29
+Defined in: packages/work-queue/dist/contracts.d.ts:60
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/work-queue/dist/contracts.d.ts:29
 
 > `readonly` **schemaVersion**: `1`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:28
+Defined in: packages/work-queue/dist/contracts.d.ts:59
 
 ---
 
@@ -32,4 +32,4 @@ Defined in: packages/work-queue/dist/contracts.d.ts:28
 
 > `readonly` **value**: [`CanonicalJsonValue`](../../../foundation-contracts/dist/type-aliases/CanonicalJsonValue.md)
 
-Defined in: packages/work-queue/dist/contracts.d.ts:30
+Defined in: packages/work-queue/dist/contracts.d.ts:61

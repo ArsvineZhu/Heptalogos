@@ -38,6 +38,6 @@ Defined in: packages/bootstrap-runtime/dist/bootstrap-key-provider.d.ts:10
 
 ### purpose
 
-> `readonly` **purpose**: `"private-postgres-bootstrap-superuser"` \| `"private-postgres-host-lease-role"` \| `"private-postgres-runtime-role"` \| `"private-postgres-migration-role"`
+> `readonly` **purpose**: `"private-postgres-bootstrap-superuser"` \| `"private-postgres-host-lease-role"` \| `"private-postgres-runtime-role"` \| `"private-postgres-migration-role"` \| `"private-postgres-durable-execution-role"`
 
 Defined in: packages/bootstrap-runtime/dist/bootstrap-key-provider.d.ts:12

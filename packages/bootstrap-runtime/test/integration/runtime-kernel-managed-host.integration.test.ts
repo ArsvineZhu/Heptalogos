@@ -251,7 +251,7 @@ async function closeComposition(
 }
 
 describePostgres.sequential("Runtime Kernel Runtime Kernel on the managed Host", () => {
-  it("I1-I4 persists runtime lifecycle lineage and keeps direct runtime UPDATE denied", async () => {
+  it("persists runtime lifecycle lineage and keeps direct runtime UPDATE denied", async () => {
     const fixture = await makeFixture();
     const productGenerationId = testProductGenerationId();
     const serviceId = createServiceId("runtime.integration.service");
@@ -376,7 +376,7 @@ describePostgres.sequential("Runtime Kernel Runtime Kernel on the managed Host",
     }
   }, 180_000);
 
-  it("I5-I6 replaces a hard Service and fences the old ServiceLease", async () => {
+  it("replaces a hard Service and fences the old ServiceLease", async () => {
     const fixture = await makeFixture();
     const productGenerationId = testProductGenerationId();
     const serviceId = createServiceId("runtime.integration.replace");
@@ -419,7 +419,7 @@ describePostgres.sequential("Runtime Kernel Runtime Kernel on the managed Host",
     }
   }, 180_000);
 
-  it("I7 proves Capability provider activation, rebind, readiness, and fail-closed explicit binding", async () => {
+  it("proves Capability provider activation, rebind, readiness, and fail-closed explicit binding", async () => {
     const fixture = await makeFixture();
     const productGenerationId = testProductGenerationId();
     const capabilityId = createCapabilityId("runtime.integration.capability");
@@ -515,7 +515,7 @@ describePostgres.sequential("Runtime Kernel Runtime Kernel on the managed Host",
     }
   }, 180_000);
 
-  it("L9-L16 completes only the current Activity, idempotently, without wall-clock ordering", async () => {
+  it("completes only the current Activity, idempotently, without wall-clock ordering", async () => {
     const fixture = await makeFixture();
     const productGenerationId = testProductGenerationId();
     const serviceId = createServiceId("runtime.integration.completion");
@@ -603,7 +603,7 @@ describePostgres.sequential("Runtime Kernel Runtime Kernel on the managed Host",
     }
   }, 180_000);
 
-  it("I7-I10 isolates provider failure, preserves mode Desired State, and shuts down scopes", async () => {
+  it("isolates provider failure, preserves mode Desired State, and shuts down scopes", async () => {
     const fixture = await makeFixture();
     const productGenerationId = testProductGenerationId();
     const serviceId = createServiceId("runtime.integration.failure");

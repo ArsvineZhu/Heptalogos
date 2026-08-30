@@ -188,6 +188,12 @@ function makeOptions(
     ): Promise<T> {
       return use(new TextEncoder().encode("M".repeat(32)));
     },
+    async withPrivatePostgresDurableExecutionPassword<T>(
+      _context: BootstrapKeyRequestContext,
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      return use(new TextEncoder().encode("D".repeat(32)));
+    },
   };
   return {
     toolchainBinDirectory,

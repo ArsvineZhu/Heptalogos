@@ -6,7 +6,7 @@
 
 # Interface: WorkItemOutcomeSuperseded
 
-Defined in: packages/work-queue/dist/contracts.d.ts:46
+Defined in: packages/work-queue/dist/contracts.d.ts:77
 
 Durable outcome identifying work replaced by another WorkItem.
 
@@ -16,7 +16,7 @@ Durable outcome identifying work replaced by another WorkItem.
 
 > `readonly` **kind**: `"SUPERSEDED"`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:48
+Defined in: packages/work-queue/dist/contracts.d.ts:79
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/work-queue/dist/contracts.d.ts:48
 
 > `readonly` **reasonCode**: `string`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:49
+Defined in: packages/work-queue/dist/contracts.d.ts:80
 
 ---
 
@@ -32,7 +32,7 @@ Defined in: packages/work-queue/dist/contracts.d.ts:49
 
 > `readonly` **schemaVersion**: `1`
 
-Defined in: packages/work-queue/dist/contracts.d.ts:47
+Defined in: packages/work-queue/dist/contracts.d.ts:78
 
 ---
 
@@ -40,4 +40,4 @@ Defined in: packages/work-queue/dist/contracts.d.ts:47
 
 > `readonly` `optional` **supersededBy?**: [`WorkItemId`](../../../foundation-contracts/dist/type-aliases/WorkItemId.md)
 
-Defined in: packages/work-queue/dist/contracts.d.ts:50
+Defined in: packages/work-queue/dist/contracts.d.ts:81

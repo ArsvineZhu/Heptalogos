@@ -3,8 +3,8 @@
   "ignoreDependencies": ["@typescript/native"],
   "workspaces": {
     ".": {
-      "entry": ["scripts/**/*.mjs", ".agents/**/*.mjs"],
-      "project": ["scripts/**/*.mjs", ".agents/**/*.mjs"]
+      "entry": ["scripts/**/*.mjs"],
+      "project": ["scripts/**/*.mjs"]
     },
     "packages/*": {
       "project": ["src/**/*.ts", "test/**/*.ts"]
@@ -16,6 +16,10 @@
     "packages/persistence": {
       "entry": ["src/foundation-repository.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
+    },
+    "packages/durable-execution": {
+      "project": ["src/**/*.ts", "test/**/*.ts"],
+      "ignoreDependencies": ["^@dbos-inc/dbos-sdk$"]
     }
   }
 }

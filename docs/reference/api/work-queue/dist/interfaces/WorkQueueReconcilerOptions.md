@@ -6,7 +6,7 @@
 
 # Interface: WorkQueueReconcilerOptions
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:14
+Defined in: packages/work-queue/dist/reconciler.d.ts:15
 
 Dependencies and bounded policy for the canonical WorkItem projection loop.
 
@@ -16,7 +16,7 @@ Dependencies and bounded policy for the canonical WorkItem projection loop.
 
 > `readonly` **admission**: [`WorkAdmissionPort`](WorkAdmissionPort.md)
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:18
+Defined in: packages/work-queue/dist/reconciler.d.ts:19
 
 ---
 
@@ -24,7 +24,7 @@ Defined in: packages/work-queue/dist/reconciler.d.ts:18
 
 > `readonly` **durableDispatch**: [`DurableDispatchPort`](DurableDispatchPort.md)
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:16
+Defined in: packages/work-queue/dist/reconciler.d.ts:17
 
 ---
 
@@ -32,7 +32,7 @@ Defined in: packages/work-queue/dist/reconciler.d.ts:16
 
 > `readonly` **execution**: [`ExecutionContextRuntime`](../../../execution-lineage/dist/interfaces/ExecutionContextRuntime.md)
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:20
+Defined in: packages/work-queue/dist/reconciler.d.ts:21
 
 ---
 
@@ -40,7 +40,7 @@ Defined in: packages/work-queue/dist/reconciler.d.ts:20
 
 > `readonly` **handlerRegistry**: [`WorkHandlerResolver`](WorkHandlerResolver.md)
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:17
+Defined in: packages/work-queue/dist/reconciler.d.ts:18
 
 ---
 
@@ -48,7 +48,7 @@ Defined in: packages/work-queue/dist/reconciler.d.ts:17
 
 > `readonly` **onBackgroundError**: (`error`) => `void`
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:23
+Defined in: packages/work-queue/dist/reconciler.d.ts:26
 
 #### Parameters
 
@@ -62,11 +62,21 @@ Defined in: packages/work-queue/dist/reconciler.d.ts:23
 
 ---
 
+### recovery?
+
+> `readonly` `optional` **recovery?**: [`WorkQueueRecoveryCoordinator`](WorkQueueRecoveryCoordinator.md)
+
+Defined in: packages/work-queue/dist/reconciler.d.ts:25
+
+Optional engine-consistency lane owned by this scan gate.
+
+---
+
 ### repository
 
 > `readonly` **repository**: [`WorkQueueRepository`](WorkQueueRepository.md)
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:15
+Defined in: packages/work-queue/dist/reconciler.d.ts:16
 
 ---
 
@@ -74,7 +84,7 @@ Defined in: packages/work-queue/dist/reconciler.d.ts:15
 
 > `readonly` **runtimeOptions**: [`WorkQueueRuntimeOptions`](WorkQueueRuntimeOptions.md)
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:22
+Defined in: packages/work-queue/dist/reconciler.d.ts:23
 
 ---
 
@@ -82,7 +92,7 @@ Defined in: packages/work-queue/dist/reconciler.d.ts:22
 
 > `readonly` **signal**: [`SignalService`](../../../signal/dist/interfaces/SignalService.md)
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:19
+Defined in: packages/work-queue/dist/reconciler.d.ts:20
 
 ---
 
@@ -90,4 +100,4 @@ Defined in: packages/work-queue/dist/reconciler.d.ts:19
 
 > `readonly` **time**: [`TimeService`](../../../time-service/dist/interfaces/TimeService.md)
 
-Defined in: packages/work-queue/dist/reconciler.d.ts:21
+Defined in: packages/work-queue/dist/reconciler.d.ts:22

@@ -17,6 +17,7 @@ import {
   acquireHostLeaseConnection,
   deriveHostAdvisoryKey,
   ensureHostOwnershipSchema,
+  HOST_DURABLE_EXECUTION_ROLE,
   HOST_LEASE_ROLE,
   HOST_MIGRATION_ROLE,
   HOST_OWNERSHIP_OWNER_ROLE,
@@ -46,6 +47,8 @@ const BOOTSTRAP_PASSWORD = "HOST_OWNERSHIP_TEST_BOOTSTRAP_PASSWORD_0123456789";
 const HOST_LEASE_PASSWORD = "HOST_OWNERSHIP_TEST_HOST_LEASE_PASSWORD_0123456789";
 const RUNTIME_PASSWORD = "HOST_OWNERSHIP_TEST_RUNTIME_PASSWORD_0123456789";
 const MIGRATION_PASSWORD = "HOST_OWNERSHIP_TEST_MIGRATION_PASSWORD_0123456789";
+const DURABLE_EXECUTION_PASSWORD =
+  "HOST_OWNERSHIP_TEST_DURABLE_EXECUTION_PASSWORD_0123456789";
 const TIMING: HostOwnershipTimingOptions = {
   connectionTimeoutMs: 10_000,
   statementTimeoutMs: 10_000,
@@ -143,6 +146,16 @@ function makeProvider(): BootstrapAdminPasswordProvider {
       use: (passwordUtf8: Uint8Array) => Promise<T>,
     ): Promise<T> {
       const password = new TextEncoder().encode(MIGRATION_PASSWORD);
+      try {
+        return await use(password);
+      } finally {
+        password.fill(0);
+      }
+    },
+    async withDurableExecutionPassword<T>(
+      use: (passwordUtf8: Uint8Array) => Promise<T>,
+    ): Promise<T> {
+      const password = new TextEncoder().encode(DURABLE_EXECUTION_PASSWORD);
       try {
         return await use(password);
       } finally {
@@ -337,6 +350,98 @@ describe("Host ownership real PostgreSQL 18.6 qualification", () => {
       });
     } finally {
       await lease.close();
+    }
+  }, 120_000);
+
+  it("proves the durable role is the fifth database-only protected role", async () => {
+    const fixture = await createCluster();
+    const lease = await prepareHostLease(fixture);
+    const admin = await bootstrapClient(fixture);
+    const durable = new Client({
+      host: "127.0.0.1",
+      port: fixture.port,
+      database: "heptalogos",
+      user: HOST_DURABLE_EXECUTION_ROLE,
+      password: DURABLE_EXECUTION_PASSWORD,
+      connectionTimeoutMillis: 10_000,
+    });
+    try {
+      const roles = await admin.query<{
+        readonly rolname: string;
+        readonly rolcanlogin: boolean;
+        readonly rolsuper: boolean;
+        readonly rolcreatedb: boolean;
+        readonly rolcreaterole: boolean;
+        readonly rolreplication: boolean;
+        readonly rolbypassrls: boolean;
+        readonly rolconnlimit: number;
+        readonly rolinherit: boolean;
+      }>(
+        `SELECT rolname, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole,
+                rolreplication, rolbypassrls, rolconnlimit, rolinherit
+         FROM pg_catalog.pg_roles
+         WHERE rolname IN ($1, $2, $3, $4, $5)
+         ORDER BY rolname`,
+        [
+          HOST_OWNERSHIP_OWNER_ROLE,
+          HOST_LEASE_ROLE,
+          HOST_RUNTIME_ROLE,
+          HOST_MIGRATION_ROLE,
+          HOST_DURABLE_EXECUTION_ROLE,
+        ],
+      );
+      expect(roles.rows).toHaveLength(5);
+      expect(roles.rows.map((role) => role.rolname)).toEqual(
+        [
+          HOST_DURABLE_EXECUTION_ROLE,
+          HOST_LEASE_ROLE,
+          HOST_MIGRATION_ROLE,
+          HOST_OWNERSHIP_OWNER_ROLE,
+          HOST_RUNTIME_ROLE,
+        ].sort(),
+      );
+      expect(
+        roles.rows.find((role) => role.rolname === HOST_DURABLE_EXECUTION_ROLE),
+      ).toEqual({
+        rolname: HOST_DURABLE_EXECUTION_ROLE,
+        rolcanlogin: true,
+        rolsuper: false,
+        rolcreatedb: false,
+        rolcreaterole: false,
+        rolreplication: false,
+        rolbypassrls: false,
+        rolconnlimit: -1,
+        rolinherit: true,
+      });
+
+      const memberships = await admin.query(
+        `SELECT member.rolname AS member_role,
+                granted_role.rolname AS granted_role
+         FROM pg_catalog.pg_auth_members AS memberships
+         JOIN pg_catalog.pg_roles AS member ON member.oid = memberships.member
+         JOIN pg_catalog.pg_roles AS granted_role ON granted_role.oid = memberships.roleid
+         WHERE member.rolname = $1 OR granted_role.rolname = $1`,
+        [HOST_DURABLE_EXECUTION_ROLE],
+      );
+      expect(memberships.rows).toEqual([]);
+
+      await durable.connect();
+      await expect(durable.query("SELECT current_user")).resolves.toMatchObject({
+        rows: [{ current_user: HOST_DURABLE_EXECUTION_ROLE }],
+      });
+      await expect(
+        durable.query("SELECT singleton FROM heptalogos.host_ownership_fence"),
+      ).rejects.toThrow();
+      await expect(
+        durable.query("CREATE TABLE heptalogos.durable_forbidden (value integer)"),
+      ).rejects.toThrow();
+      await expect(
+        durable.query(`SET ROLE "${HOST_OWNERSHIP_OWNER_ROLE}"`),
+      ).rejects.toThrow();
+    } finally {
+      await durable.end().catch(() => undefined);
+      await admin.end().catch(() => undefined);
+      await lease.close().catch(() => undefined);
     }
   }, 120_000);
 

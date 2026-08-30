@@ -29,6 +29,7 @@ lifecycle roots, Problems, and data governance without runtime side effects.
 - [ContentDigest](type-aliases/ContentDigest.md)
 - [ContinuityEpochId](type-aliases/ContinuityEpochId.md)
 - [ContributionId](type-aliases/ContributionId.md)
+- [DurableCodeVersion](type-aliases/DurableCodeVersion.md)
 - [EvidenceId](type-aliases/EvidenceId.md)
 - [HostOwnershipToken](type-aliases/HostOwnershipToken.md)
 - [InstallationId](type-aliases/InstallationId.md)
@@ -50,6 +51,7 @@ lifecycle roots, Problems, and data governance without runtime side effects.
 
 ## Variables
 
+- [asDurableCodeVersion](variables/asDurableCodeVersion.md)
 - [createActivityId](variables/createActivityId.md)
 - [createBootId](variables/createBootId.md)
 - [createCapabilityId](variables/createCapabilityId.md)
@@ -72,6 +74,7 @@ lifecycle roots, Problems, and data governance without runtime side effects.
 - [parseCapabilityId](variables/parseCapabilityId.md)
 - [parseContinuityEpochId](variables/parseContinuityEpochId.md)
 - [parseContributionId](variables/parseContributionId.md)
+- [parseDurableCodeVersion](variables/parseDurableCodeVersion.md)
 - [parseEvidenceId](variables/parseEvidenceId.md)
 - [parseHostOwnershipToken](variables/parseHostOwnershipToken.md)
 - [parseInstallationId](variables/parseInstallationId.md)

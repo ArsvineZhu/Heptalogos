@@ -8,7 +8,7 @@
 
 > **inspectCanonicalHostDatabase**(`options`): `Promise`\<[`CanonicalHostDatabaseInspection`](../interfaces/CanonicalHostDatabaseInspection.md)>\>
 
-Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:152
+Defined in: packages/host-ownership/dist/bootstrap-admin.d.ts:155
 
 Inspects the canonical Host database from the Bootstrap-admin connection.
 
