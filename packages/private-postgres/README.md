@@ -34,9 +34,9 @@ and bounded control results rather than manipulating `pg_ctl` directly.
 ## Dependencies and boundaries
 
 It uses `foundation-contracts`, `execa`, and XState. Process execution remains
-inside the adapter and must use the repository subprocess mechanics. Bootstrap
-and Host packages authorize when these mechanics may be used; this package does
-not decide that authority.
+inside the adapter and is routed through the repository subprocess mechanics.
+Bootstrap and Host packages authorize when these mechanics may be used; this
+package does not decide that authority.
 
 ## Verification
 

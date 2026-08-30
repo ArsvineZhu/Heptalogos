@@ -28,16 +28,16 @@ framework, database, or process adapter.
 The entry point exports canonicalization and digest helpers, branded identity
 constructors/parsers, lifecycle-root IDs, Problem types, retry classes, and
 data-governance types. `createProblem` and `createProblemError` are the shared
-construction seam for canonical Problem envelopes. Public values must retain
-the semantic distinctions that their names communicate; do not flatten
-authority or lifecycle roots into untyped strings.
+construction seam for canonical Problem envelopes. Public values preserve the
+semantic distinctions communicated by their names, including authority and
+lifecycle roots rather than flattening them into untyped strings.
 
 ## Dependencies and boundaries
 
-It depends only on the adopted canonicalization library and UUID library. Keep
-the package dependency-light and framework-free. Higher packages may depend on
-these primitives; this package must not import them back or perform side effects
-to discover runtime state.
+It depends only on the adopted canonicalization library and UUID library. The
+package stays dependency-light and framework-free; higher packages depend on
+these primitives rather than the reverse, and runtime discovery has no side
+effects.
 
 ## Verification
 

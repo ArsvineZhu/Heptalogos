@@ -25,16 +25,16 @@ mechanics package, not a product schema Authority.
 
 The root entry point exports schema validation issue/result/validator types and
 `compileSchema`. The `./typebox` subpath exposes the explicitly routed TypeBox
-mechanics. Consumers should translate results into their own domain contracts
-without exposing Ajv internals as product Authority; direct Ajv/TypeBox imports
-outside this package are prohibited.
+mechanics. Consumers translate results into their own domain contracts without
+exposing Ajv internals as product Authority. The repository schema lint keeps
+direct Ajv/TypeBox imports inside this package.
 
 ## Dependencies and boundaries
 
-It depends on Ajv and TypeBox only. Keep it deterministic and side-effect free;
-do not add database, filesystem, framework, or network behavior. Current
-PRE_PRODUCTION shapes are defined by their owning package, and unsupported
-shapes must fail according to that package's contract.
+It depends on Ajv and TypeBox only. The implementation is deterministic and
+side-effect free, with no database, filesystem, framework, or network behavior.
+Current PRE_PRODUCTION shapes are defined by their owning package, and
+unsupported shapes fail according to that package's contract.
 
 ## Verification
 

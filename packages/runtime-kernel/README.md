@@ -32,17 +32,17 @@ not the Bootstrap or PostgreSQL owner.
 The entry point exports runtime contracts, contract-matching helpers, registries,
 generation fences, readiness evaluation, graph/reconciler types,
 `MicroSystemSupervisor`, and lifecycle-lineage helpers. Activation contexts carry
-cooperative cancellation and owner scope; callers must respect quiescence and
-retirement rather than retaining private supervisor state.
+cooperative cancellation and owner scope so callers can participate in
+quiescence and retirement without retaining private supervisor state.
 
 ## Dependencies and boundaries
 
 It depends on `foundation-contracts`, `execution-lineage`, `persistence`,
 `runtime-substrate`, `time-service`, Graphlib, and the adopted XState route. The
 package-private graph, registry, generation, and lifecycle adapters own those
-mechanics while this package owns runtime meaning. Bootstrap production source
-must remain outside this dependency path; integration composition belongs at
-the higher Host/product boundary.
+mechanics while this package owns runtime meaning. The dependency graph keeps
+Bootstrap production source outside this path; integration composition belongs
+at the higher Host/product boundary.
 
 ## Verification
 

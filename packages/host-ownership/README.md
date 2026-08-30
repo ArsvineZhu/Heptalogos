@@ -38,16 +38,16 @@ separate durable-execution adapter.
 The public entry point exports Host lease/fence contracts, bootstrap reservation
 and provisioning operations, ownership schema setup, token publication and
 revocation, database inspection, and `acquireHostLeaseConnection`. Consumers
-must carry the typed ownership context through mutation paths. Durable-engine
+carry the typed ownership context through mutation paths. Durable-engine
 consumers receive `HostDurableExecutionAuthority`; they do not receive product
 schema privileges through it.
 
 ## Dependencies and boundaries
 
 It depends on `foundation-contracts`, `pg`, and XState. Private PostgreSQL and
-integration helpers are development-only composition. Keep raw `pg` access in
-this adapter; higher packages consume the ownership contracts and do not create
-parallel lease semantics.
+integration helpers are development-only composition. Raw `pg` access stays in
+this adapter; higher packages consume the ownership contracts rather than
+creating parallel lease semantics.
 
 ## Verification
 

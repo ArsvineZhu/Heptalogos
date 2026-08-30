@@ -2,7 +2,7 @@
 
 **Status:** LIVING ROADMAP / planning guidance<br>
 **Date:** 2026-08-29<br>
-**Repository baseline:** current `dev/h3a2-durable-recovery` tree with H3A-2 closed and the Foundation executable-spine evidence recorded; current repository work is Harness/governance reconciliation<br>
+**Repository baseline:** current `dev/h3a2-durable-recovery` tree with H3A-2 closed and the Foundation executable-spine evidence recorded; the Harness/governance reconciliation is complete and has no active implementation Plan<br>
 **Architecture baseline:** `docs/architecture/` design state 2026-08-20
 
 > This document owns development sequencing, Horizon truth, and qualification guidance. It does not replace the canonical Human Architecture, current Specs, Governance, Dependencies, Qualification, or active Plan. Update this Roadmap when evidence changes sequencing or eligibility; update the relevant canonical owner when semantics change.
@@ -367,9 +367,8 @@ H3_FOUNDATION_EXECUTABLE_SPINE: PASS
 H3B: BLOCKED_UNTIL_H3A2_AND_SPINE
 H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
-currentRepositoryWork: Harness/governance reconciliation
+currentRepositoryWork: no active repository implementation Plan after Harness/governance closure
 githubActions: DISABLED_CURRENT_EXECUTION_POLICY
-activeImplementationPlan: project/plans/active/repository/agent-harness-engineering-restraint-governance-reconciliation-2026-08-30.md
 ```
 
 The H3A-1 implementation includes complete creation-request envelope

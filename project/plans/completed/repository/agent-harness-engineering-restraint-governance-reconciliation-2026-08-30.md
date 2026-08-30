@@ -1,13 +1,13 @@
 # Heptalogos Knowledge Planes, Agent Skills & Engineering Restraint Convergence
 
 **Plan date:** 2026-08-30  
-**Status:** COMPLETE — bounded post-review correction recorded
+**Status:** COMPLETED
 **Prior acceptance:** REQUEST_CHANGES — bounded correction appended below
 **Plan class:** repository knowledge architecture / Coding-Agent Harness / governance convergence  
 **Product Horizon:** unchanged  
 **Runtime semantics:** frozen  
 **Initial installation path:** `docs/plans/active/repository/agent-harness-engineering-restraint-governance-reconciliation-2026-08-30.md`  
-**Final canonical path after knowledge-plane migration:** `project/plans/active/repository/agent-harness-engineering-restraint-governance-reconciliation-2026-08-30.md`
+**Final canonical path:** `project/plans/completed/repository/agent-harness-engineering-restraint-governance-reconciliation-2026-08-30.md`
 
 ---
 

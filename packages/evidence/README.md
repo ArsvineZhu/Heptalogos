@@ -25,14 +25,14 @@ traceable without becoming a generic logging or telemetry replacement.
 
 The package exports `EvidenceDraft`, `EvidenceRecord`, `EvidenceService`, and
 `createEvidenceService`. The service uses the caller's persistence and time
-contracts; callers should not write Evidence tables directly.
+contracts and is the package route for reading and writing Evidence tables.
 
 ## Dependencies and boundaries
 
 It depends on `foundation-contracts`, `persistence`, `time-service`, and Kysely.
 Persistence remains the database mutation owner while this package owns the
-Evidence semantic contract. Execution lineage can correlate a record, but it
-does not become a second Evidence store or identity Authority.
+Evidence semantic contract. Execution lineage can correlate a record without
+becoming a second Evidence store or identity Authority.
 
 ## Verification
 

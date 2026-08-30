@@ -24,7 +24,7 @@ reduce latency between canonical commits and WorkQueue reconciliation.
 The entry point exports Signal topic/codec helpers, the PostgreSQL Signal
 service factory, the transactional publisher, and framework-free contracts for
 the listener, subscription, and Host authority seams. Raw `pg.Client` objects
-do not cross the package boundary.
+remain private to the package boundary.
 
 ## Dependencies and boundaries
 

@@ -31,8 +31,8 @@ profile catalog validation, state-transition validation, repository/service
 ports, and WorkQueue runtime components. The concrete canonical repository
 factory is a restricted Foundation seam at
 `@heptalogos/work-queue/foundation-repository`; it is not a general
-root-package API. Engine-specific composition is outside this package; callers
-must use the Persistence and Runtime Kernel ownership boundaries.
+root-package API. Engine-specific composition follows the Persistence and
+Runtime Kernel ownership boundaries.
 
 ## Dependencies and boundaries
 

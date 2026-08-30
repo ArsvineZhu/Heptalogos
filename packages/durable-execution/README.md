@@ -46,9 +46,10 @@ never destroyed by that client.
 ## Dependencies and boundaries
 
 The package uses the adopted DBOS 4.27.6, Execa, PostgreSQL driver, and XState
-routes. It may consume Foundation, Host ownership, and WorkQueue contracts. It
-must not import `bootstrap-runtime`, `private-postgres`, `persistence`,
-`runtime-kernel`, or `signal`; those owners remain outside this adapter.
+routes. It may consume Foundation, Host ownership, and WorkQueue contracts.
+The dependency graph keeps `bootstrap-runtime`, `private-postgres`,
+`persistence`, `runtime-kernel`, and `signal` outside this adapter; those owners
+remain at the surrounding composition boundary.
 
 ## Verification
 

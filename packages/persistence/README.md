@@ -27,15 +27,15 @@ silently mutate state after Host ownership is lost.
 The entry point exports persistence runtime options, transaction and execution
 context types, `PersistenceService`, state types, and
 `createPersistenceService`. The `./foundation-repository` subpath exposes the
-explicit repository integration surface. Consumers must use the service and
-carry the required Host and execution context.
+explicit repository integration surface. The service is the supported consumer
+route and carries the required Host and execution context.
 
 ## Dependencies and boundaries
 
 It depends on `foundation-contracts`, `execution-lineage`, `host-ownership`,
 `schema-runtime`, `time-service`, Kysely, and `pg`. Host ownership remains the
-fence Authority and canonical-schema remains the schema Authority. Do not
-introduce direct SQL mutation paths around the service.
+fence Authority and canonical-schema remains the schema Authority; direct SQL
+mutation stays behind this service boundary.
 
 ## Verification
 

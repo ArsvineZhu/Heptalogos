@@ -33,7 +33,7 @@ subpath for the explicitly routed integration surface.
 ## Dependencies and boundaries
 
 It depends on `foundation-contracts`, `persistence`, `schema-runtime`,
-`time-service`, OpenTelemetry API, and Kysely. Keep framework telemetry types
+`time-service`, OpenTelemetry API, and Kysely. Framework telemetry types remain
 behind the package contracts. Persistence and Evidence remain their respective
 authorities; lineage adds correlation and causal semantics rather than a second
 database or scheduler.

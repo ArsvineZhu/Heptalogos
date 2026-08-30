@@ -25,8 +25,8 @@ machine clock.
 
 The package exports the time contracts, `createFakeTimeService`,
 `createSystemTimeService`, and `parseTimeZoneId`. Consumers request the service
-through their owning composition and preserve monotonic versus human-local
-time semantics rather than using raw clock calls in domain code.
+through their owning composition, preserving monotonic versus human-local time
+semantics instead of coupling domain code to raw clock calls.
 
 ## Dependencies and boundaries
 
