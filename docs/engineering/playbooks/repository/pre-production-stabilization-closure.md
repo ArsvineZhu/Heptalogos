@@ -13,6 +13,22 @@ functional milestone can close.
   external reviewer. Git revision identity remains machine-internal to
   Git/GitHub/CI.
 
+## Completion and reopen
+
+Close stabilization when the bounded plan is complete, its acceptance criteria
+and required executable evidence are green, all admitted blockers are resolved,
+and the candidate is ready for the external closure sequence. Classify a new
+concern before scheduling another implementation round.
+
+Reopen only for an observed defect, a failing current executable path, an
+accepted current-Horizon failure case, a current consumer or invariant, or an
+explicit active-plan requirement. Imagined edge cases, generic hardening,
+future consumers, failures inside newly added recovery, and recovery-of-recovery
+do not reopen stabilization by themselves.
+
+The default decision after bounded stabilization is `STOP`. Review and
+stabilization do not require exhaustive hardening of every touched defense.
+
 ## Procedure
 
 1. Confirm the current baseline and clean worktree, then verify the stabilization

@@ -1,18 +1,17 @@
 # Package Workspace Agent Contract
 
-This contract governs work under `packages/**`.
+This contract adds behavior unique to work under `packages/**`.
 
 - Before editing, read the target package `README.md`. For cross-package work,
-  also read [`INDEX.md`](./INDEX.md) and [`README.md`](./README.md).
-- Package READMEs provide local navigation and boundary guidance; the root
-  contract, Architecture Corpus, and active plan remain authoritative.
-- Keep changes inside the package's semantic ownership and dependency
-  direction. Authority movement, a new cross-package dependency, or
-  compatibility behavior requires an explicit plan; otherwise report
-  `PLAN_GAP`.
-- Load `mechanics-routing` for generic mechanics and load the applicable
-  lifecycle, durable-state, or PRE_PRODUCTION Skill when its trigger applies.
-- Durable source modules need meaningful package/module docs. Document exported
-  contracts and non-obvious invariants; comments explain semantics, not types.
-- Do not create nested `AGENTS.md` files in package directories. Run focused
-  package checks and all affected repository gates before claiming completion.
+  use [`INDEX.md`](./INDEX.md) and [`README.md`](./README.md) to discover
+  ownership and relationships.
+- Keep package changes inside their documented semantic ownership and dependency
+  direction. Update the package public-surface documentation when that surface
+  changes.
+- Durable source modules require meaningful package/module documentation for
+  exported contracts and non-obvious invariants. Comments explain semantics,
+  not duplicated type information.
+- Run the package-focused checks and affected repository gates before claiming
+  completion.
+
+Do not create nested `AGENTS.md` files inside package directories.

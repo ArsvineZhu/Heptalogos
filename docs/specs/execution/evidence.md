@@ -18,8 +18,8 @@ qualification truth.
 - `EVID-002` An Evidence envelope MUST carry identity/type, schema version,
   producer/generation, scope, timestamps, causation/correlation, sensitivity,
   lifecycle class, payload/reference, and digest as applicable.
-- `EVID-003` Required Authority transition, state transition, effect, approval,
-  management, configuration, package, and recovery evidence MUST follow the
+- `EVID-003` Required Authority-transition, state-transition, package, and
+  recovery evidence produced by current Foundation operations MUST follow the
   owning mutation's atomic or fail-safe rule.
 - `EVID-004` Secret plaintext is always excluded. Sensitive or large content
   uses bounded redacted payloads, digests, or Artifact references according to

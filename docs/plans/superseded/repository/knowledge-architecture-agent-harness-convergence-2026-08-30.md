@@ -3,11 +3,18 @@
 ## H3A-2 Bounded Closure → Documentation/Specification Recomposition → Procedural Agent Harness
 
 **Plan date:** 2026-08-30
-**Status:** ACTIVE
+**Status:** SUPERSEDED — historical repository/Harness convergence record
 **Current product horizon:** unchanged; remain at the current H3/H3A-2 closure boundary
 **Plan class:** repository/governance/harness convergence with bounded H3A-2 closure
-**Canonical active path:**
-`docs/plans/active/repository/knowledge-architecture-agent-harness-convergence-2026-08-30.md`
+**Historical path:**
+`docs/plans/superseded/repository/knowledge-architecture-agent-harness-convergence-2026-08-30.md`
+
+The accepted documentation topology, normative Specs, H3A-2 bounded closure,
+and retired topic-router model remain preserved. Agent Harness acceptance was
+rejected because the implementation froze a Skill enumeration, retained
+migration tombstones, over-compressed procedural guidance and indexes, and
+evaluated routing rather than capability. The correction is owned by
+`docs/plans/active/repository/agent-harness-capability-correction-2026-08-30.md`.
 
 ---
 

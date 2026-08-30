@@ -367,7 +367,7 @@ H3_FOUNDATION_EXECUTABLE_SPINE: PASS
 H3B: BLOCKED_UNTIL_H3A2_AND_SPINE
 H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
-activeImplementationPlan: docs/plans/active/repository/knowledge-architecture-agent-harness-convergence-2026-08-30.md
+activeImplementationPlan: docs/plans/active/repository/agent-harness-capability-correction-2026-08-30.md
 ```
 
 The H3A-1 implementation includes complete creation-request envelope

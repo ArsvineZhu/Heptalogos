@@ -1,23 +1,19 @@
 # Documentation Agent Contract
 
-This contract governs current documentation under `docs/**`.
+This contract adds behavior unique to current documentation under `docs/**`.
 
-- Keep one canonical home per fact and respect the document-class owner.
-- Standing documents describe present truth; plans and historical records may
-  preserve chronology and historical paths.
-- README answers what an area is and why it exists. INDEX provides compact
-  navigation. AGENTS contains persistent subtree instructions. Do not duplicate
-  architecture, governance, or Skill content in any of them.
-- Architecture is conceptual and human-readable. `docs/specs/**` owns concise
-  normative current contracts. Plans authorize changes; qualification records
-  own executed evidence.
-- Active executable plans live under `docs/plans/active/`; completed and
-  superseded plans are historical and are not current routes.
-- Every current local Markdown link must resolve. Use ASCII semantic slugs for
-  durable filenames, and keep derived facts generated or freshness-checked.
-- Keep current and historical evidence separate and preserve
-  `PASS | FAIL | NOT_RUN | BLOCKED` distinctions.
-- Load the `documentation-maintenance` Skill when documentation topology,
-  canonical ownership, navigation, or migration changes.
+- Give each current fact one canonical document owner. Classify a change before
+  editing and update affected derived projections in the same change.
+- `README.md` explains an area and its purpose. `INDEX.md` is a retrieval
+  surface. `AGENTS.md` contains persistent subtree behavior. Specs state exact
+  current normative contracts; Architecture explains conceptual design.
+- Keep current documentation and historical plans/qualification records
+  distinct. Current links point to current homes; historical paths may remain
+  only as historical text.
+- Use semantic ASCII filenames and maintain local navigation. Every current
+  Markdown link must resolve, and INDEX entries must provide enough context for
+  an unfamiliar reader to choose the target without opening every candidate.
+- Maintain generated or derived documentation from its source, and run
+  `pnpm check:documentation` when ownership, navigation, or projections change.
 
 Do not create nested `AGENTS.md` files under `docs/`.

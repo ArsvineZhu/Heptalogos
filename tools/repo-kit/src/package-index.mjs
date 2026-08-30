@@ -1,12 +1,12 @@
 /**
- * Derives the compact package index from package metadata and README purpose
- * sections, keeping navigation generated from package-owned sources.
+ * Derives the retrieval-oriented package index from package metadata and
+ * package README ownership/boundary sections.
  * @module package-index
  */
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { firstSectionParagraph } from "./markdown.mjs";
+import { firstSectionParagraph, section } from "./markdown.mjs";
 import { normalizeRepositoryPath as normalize } from "./paths.mjs";
 import { discoverProductPackages } from "./workspace.mjs";
 
@@ -16,21 +16,61 @@ function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
+function normalizeText(value) {
+  return value.replace(/\s+/gu, " ").trim();
+}
+
 function purposeSummary(source) {
-  const paragraph = firstSectionParagraph(source, "Purpose")
-    .replace(/\s+/gu, " ")
-    .trim();
-  if (paragraph.length === 0) return "Purpose is documented in the package README.";
-  const firstSentence = paragraph.match(/^.*?(?:[.!?](?=\s|$)|$)/u)?.[0] ?? paragraph;
-  const summary = firstSentence.trim();
-  return summary.length <= 140 ? summary : `${summary.slice(0, 137).trimEnd()}...`;
+  const paragraph = normalizeText(firstSectionParagraph(source, "Purpose"));
+  return paragraph.length > 0
+    ? paragraph
+    : "Purpose is documented in the package README.";
+}
+
+function sectionItems(source, heading) {
+  const lines = section(source, heading).split(/\r?\n/gu);
+  const items = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const item = trimmed.match(/^[-*+]\s+(.+)$/u);
+    if (item !== null) {
+      items.push(normalizeText(item[1]));
+    } else if (items.length > 0 && trimmed.length > 0) {
+      items[items.length - 1] = normalizeText(`${items[items.length - 1]} ${trimmed}`);
+    }
+  }
+  return items.join("; ");
+}
+
+function sectionSummary(source, heading) {
+  return normalizeText(
+    section(source, heading)
+      .replace(/^\s*[-*+]\s+/gmu, "")
+      .replace(/\r?\n/gu, " "),
+  );
+}
+
+function packageOwnership(source) {
+  return sectionItems(source, "Owns") || purposeSummary(source);
+}
+
+function packageBoundaries(source) {
+  return (
+    sectionSummary(source, "Dependencies and boundaries") ||
+    sectionItems(source, "Does not own") ||
+    "See the package README for current boundaries."
+  );
+}
+
+function packageReadWhen(source) {
+  return purposeSummary(source);
 }
 
 function escapeTableCell(value) {
   return value.replaceAll("|", "\\|");
 }
 
-/** Build the package-index model from package metadata and README purpose text. */
+/** Build package-index entries from package metadata and README sections. */
 export async function collectPackageIndex({
   root = process.cwd(),
   productPackages,
@@ -69,13 +109,16 @@ export async function collectPackageIndex({
           `${normalize(repositoryRoot, projectPath)} must declare string tags[]`,
         );
       }
+      const readmeSource = readFileSync(readmePath, "utf8");
       return {
         directoryName,
         name: manifestName,
         readmePath,
         readmeLink: `./${directoryName}/README.md`,
         tags: project.tags,
-        purpose: purposeSummary(readFileSync(readmePath, "utf8")),
+        owns: packageOwnership(readmeSource),
+        readWhen: packageReadWhen(readmeSource),
+        boundaries: packageBoundaries(readmeSource),
       };
     },
   );
@@ -91,9 +134,17 @@ export function renderPackageIndex(model) {
   const rows = packages.map((entry) => [
     `[${entry.name}](${entry.readmeLink})`,
     escapeTableCell(entry.tags.join(", ")),
-    escapeTableCell(entry.purpose),
+    escapeTableCell(entry.owns),
+    escapeTableCell(entry.readWhen),
+    escapeTableCell(entry.boundaries),
   ]);
-  const headers = ["Package", "Semantic tags", "Responsibility"];
+  const headers = [
+    "Package",
+    "Semantic tags",
+    "Owns",
+    "Read when / purpose",
+    "Key boundaries / relationships",
+  ];
   const renderRow = (cells) => `| ${cells.join(" | ")} |`;
   return [
     "# Package index",

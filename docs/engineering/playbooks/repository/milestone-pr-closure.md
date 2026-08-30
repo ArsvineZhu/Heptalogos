@@ -27,6 +27,22 @@ Merge sequence. It is the operational companion to the repository contract in
 9. Reconcile current truth through a separate docs/evidence-only PR. That PR
    changes no production code, tests, or behavior contract.
 
+## Completion and reopen
+
+Close the implementation review when the approved scope is complete, its
+acceptance criteria are satisfied, the required executable evidence is green,
+and no admitted blocker remains. A newly noticed concern is classified before
+it becomes another implementation round.
+
+Reopen only for an observed defect, a failing current executable path, an
+accepted current-Horizon failure case, a current consumer or invariant, or an
+explicit active-plan requirement. Theoretical completeness, generic future
+proofing, a failure inside a new recovery mechanism, and recovery-of-recovery
+do not reopen a completed change by themselves.
+
+The default decision after completion is `STOP`; external review must not turn
+every newly imagined edge case into an instruction to harden the candidate.
+
 ## Invalidation rules
 
 ```text

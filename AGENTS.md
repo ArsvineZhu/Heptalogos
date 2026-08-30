@@ -1,59 +1,93 @@
 # AGENTS.md
 
-Repository-wide execution contract for Heptalogos. This is a persistent
-bootloader, not an architecture summary, roadmap, or knowledge encyclopedia.
+Repository-wide execution contract for Heptalogos. This is the persistent
+behavior context for Coding Agents, not an architecture summary, roadmap, or
+knowledge encyclopedia.
 
-## Authority and scope
+## Work authorization
 
-- Execute the explicitly named active plan. Do not select a different plan by
-  filename, recency, or convenience.
-- Apply the current Architecture Corpus first, the active plan second, and
-  current code/tests as implementation reality third.
-- The Corpus owns semantics; the plan owns the authorized change sequence.
-  Existing code or history does not acquire Authority by existence.
-- A missing non-trivial decision, Corpus/plan conflict, or unauthorized
-  boundary change is `PLAN_GAP`; stop and report the smallest concrete blocker.
+- Execute the explicitly named approved active plan. Do not choose another plan
+  by recency, filename, convenience, or perceived completeness.
+- The current Architecture Corpus supplies standing semantics. The active plan
+  authorizes the current change sequence and task decisions; it does not
+  silently redefine standing semantics.
+- Current code and tests are implementation reality, not Authority for an
+  unresolved semantic choice.
+- A non-trivial missing decision, unauthorized boundary movement, or unresolved
+  Authority conflict is `PLAN_GAP`. Stop and report the smallest concrete
+  blocker with the evidence that exposed it.
 
-## Present tree and evolution
+## Current value and executable truth
 
-- Current source, tests, fixtures, tooling, configuration, and instructions
-  describe present truth. Keep development provenance in history and historical
-  records, not in current executable identities.
-- `CompatibilityEpoch = PRE_PRODUCTION`. Only
-  `docs/governance/compatibility-obligations.json` declares compatibility
-  obligations. For an undeclared current contract change, rewrite the
-  canonical shape, update callers/tests, rewrite the development baseline,
-  reset project-owned state, and delete obsolete paths.
-- Do not add legacy readers, aliases, shims, dual formats, or fallback parsers
-  for project development history.
-- Keep semantic ownership and mutation Authority singular. New dependencies,
-  subsystems, or architecture boundaries require explicit plan authorization.
+Implement what the active plan, current consumer, current executable path, and
+accepted failure model require. Future usefulness or theoretical completeness
+does not independently authorize current implementation.
 
-## Engineering guardrails
+A component can be architecturally elegant and locally correct while the
+required executable path is still broken. Prioritize the current Product or
+Foundation spine and its real consumers; do not grow Foundation capability in
+the absence of that need.
 
-- Identify the current Horizon and accepted failure class before resilience,
-  security, or lifecycle expansion. F3/F4 work is `DEFER` unless authorized.
-- Load the applicable procedural Skill for scope control, generic mechanics,
-  lifecycle, durable state, PRE_PRODUCTION evolution, evidence, or
-  documentation maintenance. Follow its route and stop conditions.
-- Reuse the owning primitive or adopted provider for generic mechanics; do not
-  create duplicate infrastructure or bypass an owning service.
-- Do not create recovery-of-recovery, fallback chains, or product states solely
-  for failure-injection tests. Fail-stop is valid when it preserves truth.
-- A completed fix does not authorize another hardening pass. Reopen only for
-  current evidence, an accepted failure case, a current consumer/invariant, or
-  an explicit active-plan requirement.
+A completed acceptance condition closes the current change. New implementation
+work requires new admissible current evidence, an accepted current-Horizon
+failure case, a current consumer/invariant, or an explicit active-plan
+requirement.
 
-## Evidence and closure
+## Present tree and PRE_PRODUCTION
 
-- Verification states are exactly `PASS | FAIL | NOT_RUN | BLOCKED`. Match every
-  claim to the evidence that actually ran; mocks do not prove live protocols,
-  one OS does not prove cross-platform behavior, and a development tree does
-  not prove a source-less artifact.
-- Run focused checks while editing and all permanent gates required by the
-  active plan before claiming completion. Keep `pnpm verify` runnable.
-- Do not dispatch ordinary CI. Follow the repository closure playbook for any
-  external review and final candidate handling.
+Current source, tests, fixtures, tooling, configuration, workflows, and
+instructions describe present semantics. Development chronology belongs in Git
+and historical records, not current executable identities.
+
+`CompatibilityEpoch = PRE_PRODUCTION`. Only
+`docs/governance/compatibility-obligations.json` declares compatibility
+obligations. Internal development history does not create compatibility work.
+When the current internal shape changes, rewrite the canonical shape, update
+current consumers/tests, rewrite the development baseline, reset project-owned
+state where appropriate, and remove obsolete paths.
+
+Do not preserve internal history with legacy readers, aliases, shims, dual
+formats, fallback parsers, or bridge migrations. Current names and structures
+must express present roles.
+
+## Ownership and complexity admission
+
+- Keep semantic ownership and canonical mutation Authority singular. Do not
+  bypass an owning service or create a second Authority path to simplify an
+  implementation or test.
+- Use the adopted project primitive/provider route for generic mechanics. New
+  foundational dependencies, duplicate mechanics, or subsystem boundaries
+  require explicit plan authorization.
+- New persistent/product state is admitted only for a real new semantic fact
+  that a current consumer must preserve across the relevant durability boundary.
+- Resilience complexity requires a current failure model. Security complexity
+  requires a current threat. Failure-injection tests provide evidence about a
+  scenario; they do not independently create product architecture.
+- Bounded fencing or fail-stop is a valid outcome when it preserves canonical
+  truth. A first-order recovery does not authorize recovery-of-recovery,
+  fallback-of-fallback, or another unbounded recovery layer.
+- A fix does not automatically authorize another hardening pass. Classify new
+  findings before implementation and return to the original task after a
+  deferred finding is recorded.
+
+## Skills and evidence
+
+Repository Skills are an open-ended set of on-demand implementation procedures.
+Load a Skill when its metadata trigger matches the engineering activity. A
+Skill must improve the decision procedure, not merely route to a topic or
+replace the active plan.
+
+Verification states are exactly `PASS | FAIL | NOT_RUN | BLOCKED`. Every claim
+must match evidence that actually ran: mock evidence does not prove a live
+protocol or provider, one platform does not prove another, and source-tree
+execution does not prove a source-less shipping artifact.
+
+## Repository execution policy
+
+Ordinary GitHub Actions remain disabled. Use local verification entry points,
+run focused checks while editing, and run the permanent gates required by the
+active plan before claiming completion. Keep `pnpm verify` runnable.
 
 For work under `docs/**` or `packages/**`, follow the corresponding scope
-contract and read the target README/INDEX before editing.
+contract and read the target README/INDEX before editing. Do not add nested
+scope instructions unless a subtree has a distinct persistent behavior need.

@@ -63,7 +63,7 @@ async function fixtureTree(setup) {
     await writeFixtureFile(
       root,
       "docs/specs/INDEX.md",
-      "# Spec index\n| Prefix | Spec | Purpose |\n| --- | --- | --- |\n| `EX` | [Example](./core/example.md) | Example |\n",
+      "# Spec index\n| Spec | Read when | Current contract | Owner | Prefix |\n| --- | --- | --- | --- | --- |\n| [Example](./core/example.md) | Example change | Example contract | example | `EX` |\n",
     );
     await writeFixtureFile(root, "docs/specs/core/example.md", "# Example\n");
     await writeFixtureFile(root, "docs/plans/INDEX.md", "# Plan index\n");
@@ -328,10 +328,10 @@ describe("documentation topology verification", () => {
         "docs/specs/INDEX.md",
         [
           "# Spec index",
-          "| Prefix | Spec | Purpose |",
-          "| --- | --- | --- |",
-          "| `EX` | [Example](./core/example.md) | Example |",
-          "| `EX` | [Other](./core/other.md) | Other |",
+          "| Spec | Read when | Current contract | Owner | Prefix |",
+          "| --- | --- | --- | --- | --- |",
+          "| [Example](./core/example.md) | Example change | Example contract | example | `EX` |",
+          "| [Other](./core/other.md) | Other change | Other contract | other | `EX` |",
           "",
         ].join("\n"),
       );

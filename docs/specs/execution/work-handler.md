@@ -20,9 +20,10 @@ contribution owner defines its payload and outcome schema.
 - `WH-003` A handler attempt MUST be restartable. Canonical writes MUST be
   keyed/fenced by the owning WorkItem or operation identity.
 - `WH-004` A stale, superseded, cancelled, or terminal attempt MUST NOT commit a
-  new outcome or effect. A terminal WorkItem re-entry returns its stored result.
+  new canonical outcome. A terminal WorkItem re-entry returns its stored result.
 - `WH-005` A handler contribution MUST NOT register raw DBOS workflows or bypass
-  Persistence, Host fencing, Lineage, or owning effect contracts.
+  Persistence, Host fencing, or Lineage. Any separately owned side-effect
+  contract remains responsible for its own admission and fencing.
 - `WH-006` If a referenced generation cannot read the payload, the owner must
   retain a compatible handler, explicitly migrate/cancel/supersede, or block
   retirement; silent rebinding is not allowed.

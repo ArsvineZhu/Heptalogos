@@ -1,34 +1,21 @@
 # Documentation index
 
-Start at [`README.md`](README.md). This index is the sole global navigation map
-for maintained current documentation.
+Use this page to choose the first canonical document for a question. Local
+README/INDEX files refine the route after the area is selected.
 
-## Governance and architecture
+| Area          | Use when / questions answered                                                                                                | Start here                                            |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Governance    | You need the constitution, engineering principles, maturity/failure scope, or PRE_PRODUCTION compatibility rules.            | [Governance](governance/constitution.md)              |
+| Product       | You need product purpose, experience boundaries, or the current product shape.                                               | [Product goals](product/product-goals.md)             |
+| Architecture  | You need conceptual system shape, semantic ownership, Authority relationships, or cross-domain runtime views.                | [Architecture](architecture/README.md)                |
+| Specs         | You need an exact current normative implementation contract for identity, Runtime, Host, WorkItem, evidence, or persistence. | [Normative Specs](specs/INDEX.md)                     |
+| Dependencies  | You need the adopted generic-mechanics/provider role, implementation route, or dependency qualification decision.            | [Dependency routing](dependencies/README.md)          |
+| Engineering   | You need repository procedures, Harness design/evaluation, source documentation, toolchain, or closure playbooks.            | [Engineering knowledge](engineering/README.md)        |
+| Qualification | You need observed PASS/FAIL/NOT_RUN/BLOCKED evidence, claim scope, or current versus historical qualification.               | [Qualification](qualification/README.md)              |
+| Roadmap       | You need current Horizon, milestone sequencing, eligibility, or product-stage boundaries.                                    | [Development roadmap](roadmap/development-roadmap.md) |
+| Plans         | You need the active work authorization, historical plan rationale, or the successor to a superseded plan.                    | [Implementation plans](plans/README.md)               |
+| Reference     | You need stable terminology and definitions used across the Corpus, Specs, and packages.                                     | [Glossary](reference/glossary.md)                     |
 
-- [Governance](governance/constitution.md) — current constitution, evolution, and
-  compatibility policy.
-- [Architecture](architecture/README.md) — logical Architecture Corpus entry
-  point and conceptual subsystem pages.
-- [Specs](specs/INDEX.md) — current normative implementation contracts.
-- [Product goals](product/product-goals.md) — product purpose and boundaries.
-- [Reference](reference/glossary.md) — shared terminology.
-
-## Engineering and dependencies
-
-- [Dependencies](dependencies/README.md) — adopted routes, decisions, and
-  implementation routing.
-- [Qualification](qualification/README.md) — verification system, property
-  evidence, and remaining qualification boundaries.
-- [Engineering](engineering/README.md) — repository procedures, playbooks,
-  gotchas, and engineering specifications.
-
-## Planning and sequencing
-
-- [Development roadmap](roadmap/development-roadmap.md) — current milestone
-  truth and sequencing.
-- [Implementation plans](plans/README.md) — active plans and completed
-  historical records.
-
-Each first-level documentation area is listed once here. Local READMEs own the
-navigation within an area; completed plans and qualification results may retain
-historical paths as historical facts.
+This index is navigation, not a duplicate of the linked documents. Current
+documents link to current owners; completed or superseded plans and qualification
+records may preserve historical paths as historical facts.

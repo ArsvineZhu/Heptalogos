@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Validates the objective structure of the repository's procedural Skills.
+ * Validates the generic structural contract for current repository Skills.
  * @module agents
  */
 
@@ -18,145 +18,136 @@ import {
 const scriptFile = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptFile), "../..");
 const skillsRoot = path.join(repoRoot, ".agents", "skills");
-const oldRoutingRoot = path.join(repoRoot, ".agents", "heptalogos");
-const expectedSkills = new Set([
-  "scope-control",
-  "mechanics-routing",
-  "lifecycle-change",
-  "durable-state-change",
-  "preproduction-evolution",
-  "claim-verification",
-  "documentation-maintenance",
-]);
-const deprecatedSkills = new Set([
-  "heptalogos-architecture",
-  "heptalogos-config-data",
-  "heptalogos-dependencies",
-  "heptalogos-extensions",
-  "heptalogos-interaction",
-  "heptalogos-management",
-  "heptalogos-runtime-durability",
-  "heptalogos-verification",
-]);
-
 const errors = [];
+
+function relativePath(file) {
+  return path.relative(repoRoot, file).replaceAll(path.sep, "/");
+}
 
 function fail(message) {
   errors.push(message);
 }
 
-function requireFile(file, label) {
+function requireFile(file, label = relativePath(file)) {
   if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
-    fail(`Missing file: ${label ?? path.relative(repoRoot, file)}`);
+    fail(`Missing file: ${label}`);
     return false;
   }
   return true;
 }
 
-function requireDirectory(directory, label) {
+function requireDirectory(directory, label = relativePath(directory)) {
   if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) {
-    fail(`Missing directory: ${label ?? path.relative(repoRoot, directory)}`);
+    fail(`Missing directory: ${label}`);
     return false;
   }
   return true;
-}
-
-function requireAbsent(file, label) {
-  if (fs.existsSync(file)) fail(`Deprecated file remains: ${label}`);
 }
 
 function parseFrontmatter(source, file) {
-  const match = source.match(/^---\n([\s\S]*?)\n---\n/u);
+  const match = source.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/u);
   if (!match) {
-    fail(`Missing YAML frontmatter: ${path.relative(repoRoot, file)}`);
+    fail(`Missing YAML frontmatter: ${relativePath(file)}`);
     return undefined;
   }
   try {
     const parsed = parseYaml(match[1], file);
     if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-      fail(`Skill frontmatter must be a mapping: ${path.relative(repoRoot, file)}`);
+      fail(`Skill frontmatter must be a mapping: ${relativePath(file)}`);
       return undefined;
     }
     return parsed;
   } catch (error) {
-    fail(
-      `Invalid YAML frontmatter: ${path.relative(repoRoot, file)}: ${error.message}`,
-    );
+    fail(`Invalid YAML frontmatter: ${relativePath(file)}: ${error.message}`);
     return undefined;
   }
 }
 
-function validateSkillLinks(skillName, skillFile, source) {
+function validateMarkdownLinks(file, source) {
   for (const { target } of markdownLinks(source)) {
-    const resolved = path.resolve(path.dirname(skillFile), decodeURI(target));
+    let decodedTarget;
+    try {
+      decodedTarget = decodeURI(target);
+    } catch (error) {
+      fail(
+        `Invalid Skill reference: ${relativePath(file)}: ${target}: ${error.message}`,
+      );
+      continue;
+    }
+    const resolved = path.resolve(path.dirname(file), decodedTarget);
     if (!isWithinPath(repoRoot, resolved)) {
-      fail(`Skill reference escapes repository: ${skillName}: ${target}`);
+      fail(`Skill reference escapes repository: ${relativePath(file)}: ${target}`);
       continue;
     }
     if (!fs.existsSync(resolved)) {
-      fail(`Broken Skill reference: ${skillName}: ${target}`);
+      fail(`Broken Skill reference: ${relativePath(file)}: ${target}`);
     }
+  }
+}
+
+function validateSkillDirectory(skillDirectory, names) {
+  const skillFile = path.join(skillDirectory, "SKILL.md");
+  if (!requireFile(skillFile)) return;
+
+  const skillFiles = findRepositoryFilesSync({
+    root: skillDirectory,
+    patterns: ["**/*.md"],
+  });
+  let frontmatter;
+  for (const file of skillFiles) {
+    const source = fs.readFileSync(file, "utf8");
+    validateMarkdownLinks(file, source);
+    if (file === skillFile) frontmatter = parseFrontmatter(source, file);
+  }
+
+  if (frontmatter === undefined) return;
+  const skillName = frontmatter.name;
+  if (typeof skillName !== "string" || skillName.trim() === "") {
+    fail(`Skill frontmatter name is required: ${relativePath(skillFile)}`);
+  } else {
+    if (skillName !== path.basename(skillDirectory)) {
+      fail(
+        `Skill frontmatter name must match directory: ${relativePath(skillDirectory)} -> ${skillName}`,
+      );
+    }
+    const previous = names.get(skillName);
+    if (previous !== undefined) {
+      fail(
+        `Duplicate Skill name: ${skillName} in ${previous} and ${relativePath(skillFile)}`,
+      );
+    } else {
+      names.set(skillName, relativePath(skillFile));
+    }
+  }
+
+  if (
+    typeof frontmatter.description !== "string" ||
+    frontmatter.description.trim() === ""
+  ) {
+    fail(`Skill description is required: ${relativePath(skillFile)}`);
   }
 }
 
 requireFile(path.join(repoRoot, "AGENTS.md"));
-requireFile(path.join(repoRoot, "docs", "AGENTS.md"));
-requireFile(path.join(repoRoot, "packages", "AGENTS.md"));
-requireDirectory(skillsRoot, ".agents/skills directory");
-requireAbsent(
-  path.join(oldRoutingRoot, "corpus-routes.json"),
-  ".agents/heptalogos/corpus-routes.json",
-);
-requireAbsent(
-  path.join(oldRoutingRoot, "tests", "skill-routing-cases.json"),
-  ".agents/heptalogos/tests/skill-routing-cases.json",
-);
-
-const actualSkills = new Set();
-if (fs.existsSync(skillsRoot) && fs.statSync(skillsRoot).isDirectory()) {
-  for (const entry of fs.readdirSync(skillsRoot, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    actualSkills.add(entry.name);
-    const skillFile = path.join(skillsRoot, entry.name, "SKILL.md");
-    if (!requireFile(skillFile, `.agents/skills/${entry.name}/SKILL.md`)) continue;
-    const source = fs.readFileSync(skillFile, "utf8");
-    const frontmatter = parseFrontmatter(source, skillFile);
-    if (frontmatter !== undefined) {
-      if (frontmatter.name !== entry.name) {
-        fail(
-          `Skill frontmatter name mismatch: ${entry.name} -> ${frontmatter.name ?? "<missing>"}`,
-        );
-      }
-      if (
-        typeof frontmatter.description !== "string" ||
-        frontmatter.description.trim() === ""
-      ) {
-        fail(`Skill description is required: ${entry.name}`);
-      }
-    }
-    validateSkillLinks(entry.name, skillFile, source);
+if (requireDirectory(skillsRoot, ".agents/skills")) {
+  const skillDirectories = fs
+    .readdirSync(skillsRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(skillsRoot, entry.name))
+    .sort((left, right) => left.localeCompare(right));
+  const names = new Map();
+  for (const skillDirectory of skillDirectories) {
+    validateSkillDirectory(skillDirectory, names);
   }
 }
 
-for (const name of expectedSkills) {
-  if (!actualSkills.has(name)) fail(`Required procedural Skill is missing: ${name}`);
-}
-for (const name of actualSkills) {
-  if (!expectedSkills.has(name)) {
-    fail(
-      deprecatedSkills.has(name)
-        ? `Deprecated topical Skill remains: ${name}`
-        : `Unexpected Skill directory: ${name}`,
-    );
-  }
-}
-
+const skillFiles = fs.existsSync(skillsRoot)
+  ? findRepositoryFilesSync({ root: skillsRoot, patterns: ["*/SKILL.md"] })
+  : [];
 console.log("Heptalogos procedural Skill validation");
 console.log(`repo root: ${repoRoot}`);
-console.log(`skills: ${actualSkills.size}`);
-console.log(
-  `skill files: ${findRepositoryFilesSync({ root: skillsRoot, patterns: ["*/SKILL.md"] }).length}`,
-);
+console.log(`skills: ${skillFiles.length}`);
+console.log(`skill files: ${skillFiles.length}`);
 
 if (errors.length > 0) {
   console.error(`\nFAIL (${errors.length})`);

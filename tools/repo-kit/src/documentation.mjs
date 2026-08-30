@@ -369,10 +369,31 @@ function validateSpecIndex(docsRoot, repository, errors) {
   const linked = new Map();
   const prefixes = new Map();
   const source = readFileSync(indexPath, "utf8");
-  const rowPattern = /^\s*\|\s*`([^`]+)`\s*\|\s*\[[^\]]+\]\(([^)]+)\)/gmu;
-  for (const match of source.matchAll(rowPattern)) {
-    const prefix = match[1].trim();
-    const target = match[2].trim();
+  const tableLines = source
+    .split(/\r?\n/gu)
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("|"));
+  for (const line of tableLines) {
+    const cells = line
+      .replace(/^\||\|$/gu, "")
+      .split("|")
+      .map((cell) => cell.trim());
+    if (cells.length < 2 || cells.every((cell) => /^:?-{3,}:?$/u.test(cell))) continue;
+    const linkCell = cells.find((cell) => /\[[^\]]+\]\([^)]+\)/u.test(cell));
+    const prefixCell = cells.find((cell) => /^`[^`]+`$/u.test(cell));
+    if (linkCell === undefined || prefixCell === undefined) {
+      if (cells[0] === "Spec" || cells[0] === "Prefix") continue;
+      addError(
+        errors,
+        "malformed-spec-index-entry",
+        "docs/specs/INDEX.md",
+        "each Spec index row must provide a Markdown link and a backticked prefix",
+      );
+      continue;
+    }
+    const target = linkCell.match(/\[[^\]]+\]\(([^)]+)\)/u)?.[1]?.trim();
+    const prefix = prefixCell.slice(1, -1).trim();
+    if (target === undefined || prefix.length === 0) continue;
     const relativeTarget = normalize(repository, resolve(dirname(indexPath), target));
     if (prefixes.has(prefix)) {
       addError(

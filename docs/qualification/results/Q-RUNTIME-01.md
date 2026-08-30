@@ -372,7 +372,7 @@ not carried forward to this candidate until the claim-matched reruns complete.
 
 ```yaml
 candidateId: H3A2-FOUNDATION-CONTAINMENT-2026-08-29
-plan: docs/plans/active/repository/knowledge-architecture-agent-harness-convergence-2026-08-30.md
+plan: docs/plans/superseded/repository/knowledge-architecture-agent-harness-convergence-2026-08-30.md
 lifecycle: DRAFT
 foundation_executable_spine_boot_work_stop: PASS
 foundation_executable_spine_restart: PASS

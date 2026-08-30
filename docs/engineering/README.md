@@ -12,6 +12,10 @@ For generic helper, adapter, and library decisions, use the [mechanics ownership
 
 For source comments and exported API contracts, use the [source documentation playbook](playbooks/repository/source-documentation.md).
 
+For Coding-Agent Harness capability, persistent context, and Skill evolution,
+read the [Harness design](repository/agent-harness-design.md) and its
+[evaluation protocol](repository/agent-harness-evaluation.md).
+
 ## Current responsibility roots
 
 The reviewed long-lived repository responsibilities are grouped under these

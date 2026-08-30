@@ -37,7 +37,7 @@ describe("generated package index", () => {
     );
   });
 
-  it("renders manifest names, README links, tags, and package purpose", async () => {
+  it("renders package ownership, purpose, boundaries, and secondary tags", async () => {
     const model = await collectPackageIndex({ root });
     const text = renderPackageIndex(model);
 
@@ -46,6 +46,11 @@ describe("generated package index", () => {
     );
     expect(text).toContain("kind:product, area:shared");
     expect(text).toContain("low-level shared vocabulary for Foundation packages");
+    expect(text).toContain(
+      "Branded IDs and parsing/formatting for Foundation identities",
+    );
+    expect(text).toContain("Higher packages may depend on these primitives");
+    expect(text).not.toContain("...");
   });
 
   it("accepts the rendered current package index", async () => {

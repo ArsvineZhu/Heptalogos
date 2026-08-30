@@ -23,9 +23,9 @@ remain engine-private.
   metadata, and commit through the owning transaction boundary.
 - `PERSIST-004` Required retained lineage/evidence identity MUST be established
   atomically with the canonical mutation when the owning contract requires it.
-- `PERSIST-005` A transaction MUST NOT span model inference, network I/O, human
-  approval, long media work, or durable sleep. Use snapshot/revision then
-  validate-and-commit.
+- `PERSIST-005` A current mutation transaction MUST NOT span external I/O,
+  model/inference work, human approval, long-running media work, or durable
+  sleep. Use snapshot/revision then validate-and-commit.
 - `PERSIST-006` Read-only paths MUST NOT obtain a normal mutation repository or
   bypass the Host fence.
 - `PERSIST-007` Schema and vendor migrations are owned maintenance operations;

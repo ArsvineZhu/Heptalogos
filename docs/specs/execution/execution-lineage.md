@@ -14,8 +14,8 @@ service. Domain owners retain Authority over their own objects and outcomes.
 ## Invariants
 
 - `LIN-001` Every meaningful lifecycle, Service/Capability/Contribution,
-  WorkItem, Management, network/model, effect, recovery, and shutdown boundary
-  MUST be able to enter semantic lineage.
+  WorkItem, recovery, and shutdown boundary in the current Foundation/runtime
+  implementation MUST be able to enter semantic lineage.
 - `LIN-002` `ActivityId`, `TraceId`, and `SpanId` are different identities. A
   sampled or lost telemetry projection MUST NOT erase required Activity,
   Evidence, or Audit truth.
@@ -41,7 +41,9 @@ service. Domain owners retain Authority over their own objects and outcomes.
 
 Bootstrap may use bounded early observability before PostgreSQL. Normal lineage
 then continues the same causal chain. Shutdown records a terminal or
-interrupted stage.
+interrupted stage. Management, model/network, effect, and Subject integrations
+are outside the current Foundation implementation scope; their future owners
+must define their own current contract before they become implementation work.
 
 ## References
 

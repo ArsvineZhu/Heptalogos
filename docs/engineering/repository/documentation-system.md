@@ -37,13 +37,18 @@ updated as part of the same change.
 it is organized. It may contain a few entry links but is not exhaustive
 navigation.
 
-`INDEX.md` is navigation. It answers where the canonical document or package
-for a topic is located, preferably as compact `topic → location — purpose`
-entries. It does not carry architecture explanations or policy prose.
+`INDEX.md` is a retrieval surface. Each entry carries enough semantic context
+for a reader who has not opened the target to decide whether it answers the
+current question. Optimize for retrieval accuracy, disambiguation, and low
+search cost. Explain what the target is, when to read it, what it owns, and the
+important adjacent boundary where useful. Do not reproduce the target's full
+normative or explanatory body, truncate descriptions, or use opaque tags as the
+primary meaning.
 
-`AGENTS.md` is persistent subtree execution policy. It says what a Coding Agent
-must do in that scope. It is not an architecture summary, roadmap, knowledge
-encyclopedia, or duplicate Skill.
+`AGENTS.md` is the minimum complete persistent behavior required in a subtree.
+It says what a Coding Agent must do in that scope. Quality is behavioral
+completeness, not a line-count or scarcity target. It is not an architecture
+summary, roadmap, knowledge encyclopedia, or duplicate Skill.
 
 Create a file only when its semantic role is needed. Do not create README,
 INDEX, and AGENTS mechanically in every directory.
@@ -66,6 +71,13 @@ in [`docs/specs/README.md`](../../specs/README.md). Architecture may remain
 primarily Chinese for human design work; stable technical identifiers remain
 English. Broad translation work is out of scope unless governance explicitly
 reopens it.
+
+The Coding-Agent Harness is documented in
+[`agent-harness-design.md`](./agent-harness-design.md). It defines open-ended
+procedural Skill evolution, capability expectations, progressive disclosure,
+and the boundary between persistent instructions and on-demand procedures.
+Skill count, directory names, body shape, and supporting-resource presence are
+not fixed repository invariants.
 
 ## Current Truth and History
 
@@ -101,7 +113,9 @@ docs/INDEX.md
 
 Use a procedural Skill only when its metadata trigger matches the engineering
 activity. Skills are procedures, not broad document routers or replacements for
-canonical facts.
+canonical facts. A Skill is admitted by a recurring implementation-time need
+that benefits from non-trivial specialized procedure; future Skills remain
+open-ended and are not constrained by a central enumeration.
 
 ## Section Migration Classification
 
@@ -135,6 +149,7 @@ redirect or compatibility stub for PRE_PRODUCTION development history.
 
 The current tree must have a current owner, semantic or operational purpose,
 current consumer or normative need, and identity describing its present role.
-One-time phase artifacts without such an owner are removed after their current
-purpose ends; they are not moved to an archive directory inside the current
-tree.
+One-time phase artifacts, migration-only tombstones, and absence checks without
+a current purpose are removed when their migration closes; they are not moved
+to an archive directory or retained in current tooling merely to remember the
+old layout.

@@ -21,8 +21,9 @@ mutations.
 - `HOST-003` A new Host MUST publish its token under an exclusive fence that
   serializes already-entered mutations before the new token becomes current.
 - `HOST-004` Lease loss, fence failure, or token mismatch MUST fence the old
-  Host and stop new normal mutation/effect admission. The old Host MUST return
-  through Bootstrap Closure rather than reacquiring in place.
+  Host and stop new normal mutation admission. The old Host MUST return
+  through Bootstrap Closure rather than reacquiring in place. Any independently
+  owned effect contract must apply this fence at its own admission boundary.
 - `HOST-005` HostOwnershipToken is a fencing identity, not an authentication
   credential.
 
