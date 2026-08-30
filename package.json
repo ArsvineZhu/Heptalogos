@@ -16,7 +16,7 @@
     "test": "nx run repository:test",
     "build": "nx run repository:build",
     "nx:check": "nx --version",
-    "check:agents": "node .agents/heptalogos/validate-skill-resources.mjs",
+    "check:agents": "node scripts/verify/agents.mjs",
     "check:documentation": "node scripts/verify/documentation.mjs",
     "check:repository": "node scripts/verify/repository.mjs",
     "check:hygiene": "node scripts/verify/current-tree-hygiene.mjs",

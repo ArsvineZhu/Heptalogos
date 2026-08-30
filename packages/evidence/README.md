@@ -49,7 +49,8 @@ matched to actual runs.
 
 ## Architecture references
 
-- [`S10 — Evidence、Replay、Observability 与 Content`](../../docs/architecture/contracts/evidence-replay-observability-content.md)
-- [`S12 — 验证、研究与评估`](../../docs/architecture/contracts/verification-research-evaluation.md)
-- [`S16 — Execution Lineage Observability`](../../docs/architecture/contracts/execution-lineage-observability.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
+- [`Evidence Spec`](../../docs/specs/execution/evidence.md)
+- [`Execution lineage Spec`](../../docs/specs/execution/execution-lineage.md)
+- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
+- [`Verification system`](../../docs/qualification/verification-system.md)
+- [`Data, evidence, and persistence Architecture`](../../docs/architecture/data-evidence-persistence.md)

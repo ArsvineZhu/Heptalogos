@@ -52,7 +52,7 @@ the corresponding persistence and Host qualification scenarios.
 
 ## Architecture references
 
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
-- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
-- [`S16 — Execution Lineage Observability`](../../docs/architecture/contracts/execution-lineage-observability.md)
-- [`S17 — Storage Workspace 与 DataLifecycle`](../../docs/architecture/contracts/storage-workspace-data-lifecycle.md)
+- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
+- [`Host ownership Spec`](../../docs/specs/runtime/host-ownership.md)
+- [`Execution lineage Spec`](../../docs/specs/execution/execution-lineage.md)
+- [`Storage lifecycle Architecture`](../../docs/architecture/storage-lifecycle.md)

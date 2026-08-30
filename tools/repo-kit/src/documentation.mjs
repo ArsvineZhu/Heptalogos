@@ -23,8 +23,12 @@ const requiredEntrypoints = [
   "docs/governance/pre-production-evolution.md",
   "docs/governance/compatibility-obligations.json",
   "docs/architecture/README.md",
+  "docs/architecture/INDEX.md",
+  "docs/specs/README.md",
+  "docs/specs/INDEX.md",
   "docs/dependencies/dependency-routing.json",
   "docs/qualification/dependency-status.json",
+  "docs/plans/INDEX.md",
 ];
 
 const currentAuthorityByFilename = new Map(
@@ -310,19 +314,18 @@ function validateDocumentationIndex(docsRoot, repository, errors) {
 
 function validateArchitectureIndex(docsRoot, repository, errors) {
   const architectureRoot = join(docsRoot, "architecture");
-  const indexPath = join(architectureRoot, "README.md");
+  const indexPath = join(architectureRoot, "INDEX.md");
   if (!existsSync(indexPath)) return;
   const expected = [
     ...readdirSync(architectureRoot, { withFileTypes: true })
       .filter(
         (entry) =>
-          entry.isFile() && entry.name.endsWith(".md") && entry.name !== "README.md",
+          entry.isFile() &&
+          entry.name.endsWith(".md") &&
+          entry.name !== "README.md" &&
+          entry.name !== "INDEX.md",
       )
       .map((entry) => join(architectureRoot, entry.name)),
-    ...findRepositoryFilesSync({
-      root: repository,
-      patterns: ["docs/architecture/contracts/**/*.md"],
-    }),
   ].sort((left, right) => left.localeCompare(right));
   const counts = new Map(expected.map((path) => [normalize(repository, path), 0]));
   for (const target of localMarkdownTargets(readFileSync(indexPath, "utf8"))) {
@@ -337,7 +340,7 @@ function validateArchitectureIndex(docsRoot, repository, errors) {
         errors,
         "unindexed-architecture-document",
         relativeTarget,
-        "architecture README must link every direct architecture and contract document",
+        "architecture INDEX must link every direct architecture document",
       );
     } else if (count > 1) {
       addError(
@@ -346,6 +349,80 @@ function validateArchitectureIndex(docsRoot, repository, errors) {
         relativeTarget,
         `architecture README links this document ${count} times`,
       );
+    }
+  }
+}
+
+function validateSpecIndex(docsRoot, repository, errors) {
+  const specsRoot = join(docsRoot, "specs");
+  const indexPath = join(specsRoot, "INDEX.md");
+  if (!existsSync(indexPath)) return;
+
+  const expected = findRepositoryFilesSync({
+    root: specsRoot,
+    patterns: ["**/*.md"],
+  })
+    .filter((path) => path !== join(specsRoot, "README.md") && path !== indexPath)
+    .map((path) => normalize(repository, path))
+    .sort();
+  const expectedSet = new Set(expected);
+  const linked = new Map();
+  const prefixes = new Map();
+  const source = readFileSync(indexPath, "utf8");
+  const rowPattern = /^\s*\|\s*`([^`]+)`\s*\|\s*\[[^\]]+\]\(([^)]+)\)/gmu;
+  for (const match of source.matchAll(rowPattern)) {
+    const prefix = match[1].trim();
+    const target = match[2].trim();
+    const relativeTarget = normalize(repository, resolve(dirname(indexPath), target));
+    if (prefixes.has(prefix)) {
+      addError(
+        errors,
+        "duplicate-spec-prefix",
+        "docs/specs/INDEX.md",
+        `Spec prefix is listed more than once: ${prefix}`,
+      );
+    }
+    prefixes.set(prefix, relativeTarget);
+    linked.set(relativeTarget, (linked.get(relativeTarget) ?? 0) + 1);
+    if (!expectedSet.has(relativeTarget)) {
+      addError(
+        errors,
+        "nonexistent-spec-index-entry",
+        "docs/specs/INDEX.md",
+        `Spec index entry does not point to a current Spec: ${target}`,
+      );
+    }
+  }
+  for (const relativeTarget of expected) {
+    const count = linked.get(relativeTarget) ?? 0;
+    if (count !== 1) {
+      addError(
+        errors,
+        count === 0 ? "unindexed-spec" : "duplicate-spec-index-entry",
+        relativeTarget,
+        `docs/specs/INDEX.md must link each Spec exactly once (found ${count})`,
+      );
+    }
+  }
+
+  const requirementIds = new Map();
+  for (const relativePath of expected) {
+    const path = join(repository, relativePath);
+    const text = readFileSync(path, "utf8");
+    const requirementPattern = /^\s*(?:[-*]|\d+\.)\s+`?([A-Z][A-Z0-9]*-\d{3})\b/gmu;
+    for (const match of text.matchAll(requirementPattern)) {
+      const id = match[1];
+      const previous = requirementIds.get(id);
+      if (previous !== undefined) {
+        addError(
+          errors,
+          "duplicate-spec-requirement-id",
+          relativePath,
+          `Spec requirement ID ${id} is already defined in ${previous}`,
+        );
+      } else {
+        requirementIds.set(id, relativePath);
+      }
     }
   }
 }
@@ -374,6 +451,7 @@ export function validateDocumentation({ root = process.cwd() } = {}) {
   validateStandingProvenance(markdownFiles, repository, errors);
   validateDocumentationIndex(docsRoot, repository, errors);
   validateArchitectureIndex(docsRoot, repository, errors);
+  validateSpecIndex(docsRoot, repository, errors);
 
   errors.sort((left, right) =>
     `${left.code}:${left.path}:${left.message}`.localeCompare(

@@ -1,33 +1,23 @@
 # Documentation Agent Contract
 
-This file governs all current documentation under `docs/**`. It is an
-AI-facing operational contract; use concise technical English.
+This contract governs current documentation under `docs/**`.
 
-- `docs/` is the complete current documentation system.
-- Authority is determined by document class, not by being outside `docs/`.
-- Keep one canonical home per fact.
-- Keep standing documents in current-state prose; plans and history may
-  preserve chronology.
-- Do not put reasoning transcripts in standing documents.
-- Do not put development-stage provenance in current architecture, governance,
-  or reference documents.
-- Translation work is disabled during PRE_PRODUCTION development unless project
-  governance explicitly reopens it.
-- Use language-neutral ASCII semantic slugs for durable filenames.
-- Generate derived facts or freshness-check them against their source.
-- Do not create nested `AGENTS.md` files under `docs/`.
-- Every current local Markdown link must resolve.
-- Completed historical plans may reference historical paths as historical facts.
-- Executable plans live only under `docs/plans/active/`; completed and
-  superseded plans are historical and must not be used as current routes.
+- Keep one canonical home per fact and respect the document-class owner.
+- Standing documents describe present truth; plans and historical records may
+  preserve chronology and historical paths.
+- README answers what an area is and why it exists. INDEX provides compact
+  navigation. AGENTS contains persistent subtree instructions. Do not duplicate
+  architecture, governance, or Skill content in any of them.
+- Architecture is conceptual and human-readable. `docs/specs/**` owns concise
+  normative current contracts. Plans authorize changes; qualification records
+  own executed evidence.
+- Active executable plans live under `docs/plans/active/`; completed and
+  superseded plans are historical and are not current routes.
+- Every current local Markdown link must resolve. Use ASCII semantic slugs for
+  durable filenames, and keep derived facts generated or freshness-checked.
+- Keep current and historical evidence separate and preserve
+  `PASS | FAIL | NOT_RUN | BLOCKED` distinctions.
+- Load the `documentation-maintenance` Skill when documentation topology,
+  canonical ownership, navigation, or migration changes.
 
-Durable source modules require meaningful package/module docs.
-Document exported contracts and non-obvious invariants.
-Comments explain semantics/why, not syntax.
-Do not duplicate TypeScript type information in prose.
-Generated API docs are derived; edit source documentation instead.
-
-Before changing documentation, identify its audience, canonical facts, and
-current evidence. Update navigation and affected agent routes in the same
-change. Preserve `PASS | FAIL | NOT_RUN | BLOCKED` evidence distinctions and
-keep historical evidence separate from current truth.
+Do not create nested `AGENTS.md` files under `docs/`.

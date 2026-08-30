@@ -7,6 +7,7 @@ import { validateDocumentation } from "../src/documentation.mjs";
 const areaTargets = [
   ["governance", "governance/README.md"],
   ["architecture", "architecture/README.md"],
+  ["specs", "specs/README.md"],
   ["product", "product/product-goals.md"],
   ["reference", "reference/glossary.md"],
   ["dependencies", "dependencies/README.md"],
@@ -51,17 +52,21 @@ async function fixtureTree(setup) {
         obligations: [],
       }),
     );
-    await writeFixtureFile(
-      root,
-      "docs/architecture/README.md",
-      "# Architecture\n[System](system.md)\n[Contract](contracts/contract.md)\n",
-    );
+    await writeFixtureFile(root, "docs/architecture/README.md", "# Architecture\n");
     await writeFixtureFile(root, "docs/architecture/system.md", "# System\n");
     await writeFixtureFile(
       root,
-      "docs/architecture/contracts/contract.md",
-      "# Contract\n",
+      "docs/architecture/INDEX.md",
+      "# Architecture index\n[System](./system.md)\n",
     );
+    await writeFixtureFile(root, "docs/specs/README.md", "# Specs\n");
+    await writeFixtureFile(
+      root,
+      "docs/specs/INDEX.md",
+      "# Spec index\n| Prefix | Spec | Purpose |\n| --- | --- | --- |\n| `EX` | [Example](./core/example.md) | Example |\n",
+    );
+    await writeFixtureFile(root, "docs/specs/core/example.md", "# Example\n");
+    await writeFixtureFile(root, "docs/plans/INDEX.md", "# Plan index\n");
     await writeFixtureFile(
       root,
       "docs/dependencies/dependency-routing.json",
@@ -309,15 +314,40 @@ describe("documentation topology verification", () => {
     expect(result.errors).toEqual([]);
   });
 
-  it("rejects an architecture contract missing from its README", async () => {
+  it("rejects an architecture page missing from its INDEX", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(root, "docs/architecture/unindexed.md", "# Unindexed\n");
+    });
+    expect(hasCode(result, "unindexed-architecture-document")).toBe(true);
+  });
+
+  it("rejects duplicate Spec prefixes and requirement IDs", async () => {
     const result = await fixtureTree(async (root) => {
       await writeFixtureFile(
         root,
-        "docs/architecture/contracts/unindexed.md",
-        "# Unindexed\n",
+        "docs/specs/INDEX.md",
+        [
+          "# Spec index",
+          "| Prefix | Spec | Purpose |",
+          "| --- | --- | --- |",
+          "| `EX` | [Example](./core/example.md) | Example |",
+          "| `EX` | [Other](./core/other.md) | Other |",
+          "",
+        ].join("\n"),
+      );
+      await writeFixtureFile(
+        root,
+        "docs/specs/core/example.md",
+        "# Example\n\n- `EX-001` first\n",
+      );
+      await writeFixtureFile(
+        root,
+        "docs/specs/core/other.md",
+        "# Other\n\n- `EX-001` duplicate\n",
       );
     });
-    expect(hasCode(result, "unindexed-architecture-document")).toBe(true);
+    expect(hasCode(result, "duplicate-spec-prefix")).toBe(true);
+    expect(hasCode(result, "duplicate-spec-requirement-id")).toBe(true);
   });
 
   it("rejects a nested documentation AGENTS file", async () => {

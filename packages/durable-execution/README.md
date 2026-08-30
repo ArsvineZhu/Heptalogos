@@ -72,7 +72,8 @@ remaining `NOT_RUN` boundaries in that qualification record.
 
 ## Architecture references
 
-- [`S01 — 启动、恢复与运行时监督`](../../docs/architecture/contracts/startup-recovery-runtime-supervision.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
-- [`S13 — Foundation Service/Capability/Readiness`](../../docs/architecture/contracts/foundation-service-capability-readiness-catalog.md)
-- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
+- [`Durable dispatch Spec`](../../docs/specs/execution/durable-dispatch.md)
+- [`Work Item Spec`](../../docs/specs/execution/work-item.md)
+- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
+- [`Bootstrap closure Spec`](../../docs/specs/runtime/bootstrap-closure.md)
+- [`Execution model Architecture`](../../docs/architecture/execution-model.md)

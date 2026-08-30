@@ -51,7 +51,8 @@ tests; real LISTEN/NOTIFY claims require real PostgreSQL.
 
 ## Architecture references
 
-- [`S02 — 异步、WorkQueue、Durable Execution 与 Time`](../../docs/architecture/contracts/async-work-queue-durable-time.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
-- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
-- [`S16 — Execution Lineage Observability`](../../docs/architecture/contracts/execution-lineage-observability.md)
+- [`Signal Spec`](../../docs/specs/execution/signal.md)
+- [`Work Item Spec`](../../docs/specs/execution/work-item.md)
+- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
+- [`Execution lineage Spec`](../../docs/specs/execution/execution-lineage.md)
+- [`Foundation services Architecture`](../../docs/architecture/foundation-services.md)

@@ -20,9 +20,10 @@ function purposeSummary(source) {
   const paragraph = firstSectionParagraph(source, "Purpose")
     .replace(/\s+/gu, " ")
     .trim();
-  return paragraph.length > 0
-    ? paragraph
-    : "Purpose is documented in the package README.";
+  if (paragraph.length === 0) return "Purpose is documented in the package README.";
+  const firstSentence = paragraph.match(/^.*?(?:[.!?](?=\s|$)|$)/u)?.[0] ?? paragraph;
+  const summary = firstSentence.trim();
+  return summary.length <= 140 ? summary : `${summary.slice(0, 137).trimEnd()}...`;
 }
 
 function escapeTableCell(value) {
@@ -93,16 +94,13 @@ export function renderPackageIndex(model) {
     escapeTableCell(entry.purpose),
   ]);
   const headers = ["Package", "Semantic tags", "Responsibility"];
-  const widths = headers.map((header, index) =>
-    Math.max(header.length, ...rows.map((row) => row[index].length)),
-  );
-  const renderRow = (cells) =>
-    `| ${cells.map((cell, index) => cell.padEnd(widths[index])).join(" | ")} |`;
+  const renderRow = (cells) => `| ${cells.join(" | ")} |`;
   return [
     "# Package index",
     "",
+    "<!-- prettier-ignore -->",
     renderRow(headers),
-    renderRow(widths.map((width) => "-".repeat(width))),
+    renderRow(headers.map(() => "---")),
     ...rows.map(renderRow),
     "",
   ].join("\n");

@@ -164,7 +164,8 @@ Bootstrap/Recovery
 
 Foundation 统一记录 Activity identity、causation、origin/generation、Service/Capability/Provider 和 outcome，并把 Pino/OpenTelemetry/Evidence 映射到同一血缘。
 
-详细见 `execution-lineage.md` 与 `contracts/execution-lineage-observability.md`。
+详细见 [`execution-lineage.md`](execution-lineage.md) 与
+[`Execution lineage Spec`](../specs/execution/execution-lineage.md)。
 
 ## 5. Domain Engines
 

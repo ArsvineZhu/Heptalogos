@@ -360,14 +360,14 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 
 ```yaml
 H3: OPEN
-H3A: CORRECTION_AND_EXECUTABLE_PROOF_IN_PROGRESS
+H3A: FUNCTIONALLY_COMPLETE
 H3A_1: CLOSED
-H3A_2: CORRECTION_AND_EXECUTABLE_PROOF_IN_PROGRESS
-H3_FOUNDATION_EXECUTABLE_SPINE: REQUIRED
+H3A_2: CLOSED
+H3_FOUNDATION_EXECUTABLE_SPINE: PASS
 H3B: BLOCKED_UNTIL_H3A2_AND_SPINE
 H3_FUNCTIONAL: IN_PROGRESS
 H3_STABILIZATION: NOT_ELIGIBLE
-activeImplementationPlan: docs/plans/active/foundation/h3a2-foundation-containment-executable-truth-2026-08-29.md
+activeImplementationPlan: docs/plans/active/repository/knowledge-architecture-agent-harness-convergence-2026-08-30.md
 ```
 
 The H3A-1 implementation includes complete creation-request envelope
@@ -376,13 +376,16 @@ bootstrap-runtime test budgets. It is accepted as the current product baseline
 by the completed H3A-1 governance recovery record. Existing implementation and
 Draft cross-platform evidence remains preserved, while Independent Review and
 final manual CI remain `NOT_RUN`; they are not inferred from the GitHub merge
-fact. H3A-2 is now active under the decision-complete Foundation containment
-and executable-truth plan. The current Foundation containment candidate remains
-Draft and unfrozen. Earlier candidate observations are historical and do not
-qualify the current source after lifecycle, credential-scope, and executable
-spine changes. Windows, Ubuntu/Linux, macOS, source-less, service/headless, and
-ResourceGovernor qualification remain individually scoped and must not be
-inferred from another platform or candidate.
+fact. H3A-2 bounded closure is complete for the current H3 scope: no
+observed/current authorized F0-F2 blocker remains, the Foundation executable
+spine passes the real-process boot/work/stop and same-Instance restart
+scenarios, and the terminal-commit restart scenario passes. This does not
+close all product qualification boundaries. Windows and Ubuntu/Linux evidence
+is current for the recorded scenarios; macOS, source-less, service/headless,
+and ResourceGovernor qualification remain individually scoped and must not be
+inferred from another platform or candidate. The active repository
+knowledge-architecture plan now governs the remaining documentation and Agent
+Harness convergence work.
 
 ### Implementation decomposition
 

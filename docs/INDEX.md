@@ -8,7 +8,8 @@ for maintained current documentation.
 - [Governance](governance/constitution.md) — current constitution, evolution, and
   compatibility policy.
 - [Architecture](architecture/README.md) — logical Architecture Corpus entry
-  point, subsystem pages, and detailed contracts.
+  point and conceptual subsystem pages.
+- [Specs](specs/INDEX.md) — current normative implementation contracts.
 - [Product goals](product/product-goals.md) — product purpose and boundaries.
 - [Reference](reference/glossary.md) — shared terminology.
 

@@ -60,8 +60,7 @@ Use real PostgreSQL only for claims that cross the runtime/Host integration.
 
 ## Architecture references
 
-- [`S01 — 启动、恢复与运行时监督`](../../docs/architecture/contracts/startup-recovery-runtime-supervision.md)
-- [`S06 — Extension、Package Trust 与 ExecutionDomain`](../../docs/architecture/contracts/extension-package-trust-execution-domain.md)
-- [`S13 — Foundation Service/Capability/Readiness`](../../docs/architecture/contracts/foundation-service-capability-readiness-catalog.md)
-- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
-- [`S16 — Execution Lineage Observability`](../../docs/architecture/contracts/execution-lineage-observability.md)
+- [`Runtime supervision Spec`](../../docs/specs/runtime/runtime-supervision.md)
+- [`Service, capability, and readiness Spec`](../../docs/specs/core/service-capability-readiness.md)
+- [`Extensions Architecture`](../../docs/architecture/extensions.md)
+- [`Execution lineage Spec`](../../docs/specs/execution/execution-lineage.md)

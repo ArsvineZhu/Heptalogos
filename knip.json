@@ -3,8 +3,8 @@
   "ignoreDependencies": ["@typescript/native"],
   "workspaces": {
     ".": {
-      "entry": ["scripts/**/*.mjs", ".agents/**/*.mjs"],
-      "project": ["scripts/**/*.mjs", ".agents/**/*.mjs"]
+      "entry": ["scripts/**/*.mjs"],
+      "project": ["scripts/**/*.mjs"]
     },
     "packages/*": {
       "project": ["src/**/*.ts", "test/**/*.ts"]

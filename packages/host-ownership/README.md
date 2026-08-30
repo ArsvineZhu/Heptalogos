@@ -65,7 +65,7 @@ isolation through the real Host composition.
 
 ## Architecture references
 
-- [`S01 — 启动、恢复与运行时监督`](../../docs/architecture/contracts/startup-recovery-runtime-supervision.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
-- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
-- [`S17 — Storage Workspace 与 DataLifecycle`](../../docs/architecture/contracts/storage-workspace-data-lifecycle.md)
+- [`Host ownership Spec`](../../docs/specs/runtime/host-ownership.md)
+- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
+- [`Bootstrap closure Spec`](../../docs/specs/runtime/bootstrap-closure.md)
+- [`Storage lifecycle Architecture`](../../docs/architecture/storage-lifecycle.md)

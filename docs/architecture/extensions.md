@@ -316,7 +316,9 @@ Durable payload / Contribution contract upcast
 
 Host 管理 ordering、backup/recovery/generation fence；Extension 拥有自己的 domain transform。
 
-详细合同见 `storage-lifecycle.md` 与 `contracts/storage-workspace-data-lifecycle.md`。
+详细概念见 [`storage-lifecycle.md`](storage-lifecycle.md)；当前持久化合同见
+[`Work Item Spec`](../specs/execution/work-item.md) 与
+[`Canonical schema Spec`](../specs/data/canonical-schema.md)。
 
 ## 10.2 WorkHandler Restartability
 

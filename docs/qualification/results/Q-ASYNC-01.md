@@ -10,7 +10,7 @@ implementationQualification: REQUIRED
 selectedRoute: "DBOS Queue"
 h3a2Candidate:
   candidateId: H3A2-FOUNDATION-CONTAINMENT-2026-08-29
-  plan: docs/plans/active/foundation/h3a2-foundation-containment-executable-truth-2026-08-29.md
+  plan: docs/plans/active/repository/knowledge-architecture-agent-harness-convergence-2026-08-30.md
   lifecycle: DRAFT
   freeze: NOT_RUN
   independentReview: NOT_RUN
@@ -35,7 +35,7 @@ evidence:
   postgres_restart_read: PASS
   missing_retained_generation_blocks: PASS
   terminal_retry_single_effect: PASS
-  crash_after_terminal_commit: NOT_RUN
+  h3a1_crash_after_terminal_commit: NOT_RUN
   h3a1_contribution_origin: PASS
   h3a1_workitem_canonical_state: PASS
   h3a1_generation_pinned_handler: PASS
@@ -66,7 +66,7 @@ evidence:
 
 ## NOT_RUN / deferred properties
 
-- `crash_after_terminal_commit`: No process-level crash was injected after the canonical terminal commit; only a real DBOS retry attempt was exercised.
+- `h3a1_crash_after_terminal_commit`: H3A-1 had no DBOS process-level checkpoint boundary; the current H3A2 process scenario is recorded separately below.
 - `h3a1_dbos_real_engine`: H3A-1 deliberately implements engine-neutral WorkQueue semantics; DBOS integration is deferred to H3A-2.
 - `h3a1_process_crash_after_terminal_commit`: H3A-1 has no process-level crash harness or DBOS engine checkpoint to exercise this boundary; it remains deferred to H3A-2.
 
@@ -141,13 +141,14 @@ claims remain `NOT_RUN` and are outside this correction.
 
 ```yaml
 candidateId: H3A2-FOUNDATION-CONTAINMENT-2026-08-29
-plan: docs/plans/active/foundation/h3a2-foundation-containment-executable-truth-2026-08-29.md
+plan: docs/plans/active/repository/knowledge-architecture-agent-harness-convergence-2026-08-30.md
 lifecycle: DRAFT
 freeze: NOT_RUN
 independentReview: NOT_RUN
 finalManualVerification: NOT_RUN
 foundation_executable_spine_boot_work_stop: PASS
 foundation_executable_spine_restart: PASS
+h3a2_crash_after_terminal_commit: PASS
 h3a2_c1_reversible_quiescence: PASS
 h3a2_c2_truthful_retryable_close: PASS
 h3a2_c3_bounded_workqueue_quiescence: PASS
@@ -163,7 +164,8 @@ githubActions: NOT_ENABLED_OR_REQUIRED
 ```
 
 The current candidate has fresh focused, full bootstrap-runtime,
-Foundation-spine, and existing crash/recovery evidence, and fresh Ubuntu/Linux
+Foundation-spine, and existing crash/recovery evidence, including the
+terminal-commit restart scenario, and fresh Ubuntu/Linux
 real PostgreSQL 18.6 + DBOS qualification on the current host: private-postgres
 integration 20/20, persistence 9/9, host-ownership 11/11, bootstrap-runtime
 integration 9 files/108 tests, and the durable-work-recovery / Foundation-spine
@@ -179,7 +181,7 @@ The pre-correction focused unit suites passed on 2026-08-26: foundation-contract
 
 此 role 的当前 RoleDecision 由 `../dependency-status.json` 冻结为 `ADOPTED`；本记录只报告已证明的 property 与剩余 implementation/product qualification，不构成第二套 Authority。
 
-Crash-after-terminal-commit, restart/source-less and full WorkItem/Effect integration remain implementation qualification.
+Restart/source-less and full WorkItem/Effect integration remain implementation qualification. The current H3A2 terminal-commit restart scenario is `PASS`; the H3A1-scoped property above remains `NOT_RUN` because H3A-1 did not own a DBOS process checkpoint.
 
 若未来真实 implementation 暴露 reproducible hard blocker，才允许按 `../DEPENDENCY-QUALIFICATION.md` 的 reopening rule 重开 RoleDecision。
 

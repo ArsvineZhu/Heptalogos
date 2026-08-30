@@ -7,7 +7,7 @@
     "check:agents": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "node .agents/heptalogos/validate-skill-resources.mjs"
+        "command": "node scripts/verify/agents.mjs"
       }
     },
     "check:documentation": {
@@ -90,7 +90,7 @@
     "source-docs:lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint \"packages/*/src/**/*.{ts,tsx}\" \"tools/*/src/**/*.{js,mjs,ts}\" \"scripts/**/*.{js,mjs,ts}\" \".agents/**/*.mjs\""
+        "command": "eslint \"packages/*/src/**/*.{ts,tsx}\" \"tools/*/src/**/*.{js,mjs,ts}\" \"scripts/**/*.{js,mjs,ts}\""
       }
     },
     "tooling:lint": {

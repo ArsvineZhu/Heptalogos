@@ -49,8 +49,9 @@ lifecycle, persistence, or Evidence tests as well.
 
 ## Architecture references
 
-- [`S02 — 异步、WorkQueue、Durable 与 Time`](../../docs/architecture/contracts/async-work-queue-durable-time.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
-- [`S10 — Evidence、Replay、Observability 与 Content`](../../docs/architecture/contracts/evidence-replay-observability-content.md)
-- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
-- [`S16 — Execution Lineage Observability`](../../docs/architecture/contracts/execution-lineage-observability.md)
+- [`Time Spec`](../../docs/specs/execution/time.md)
+- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
+- [`Evidence Spec`](../../docs/specs/execution/evidence.md)
+- [`Execution lineage Spec`](../../docs/specs/execution/execution-lineage.md)
+- [`Contract versioning Spec`](../../docs/specs/core/contract-versioning.md)
+- [`Execution model Architecture`](../../docs/architecture/execution-model.md)

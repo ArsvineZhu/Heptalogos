@@ -53,7 +53,7 @@ requires the PRE_PRODUCTION reset/recreate procedure and full repository gates.
 
 ## Architecture references
 
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
-- [`S12 — 验证、研究与评估`](../../docs/architecture/contracts/verification-research-evaluation.md)
-- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
-- [`S17 — Storage Workspace 与 DataLifecycle`](../../docs/architecture/contracts/storage-workspace-data-lifecycle.md)
+- [`Canonical schema Spec`](../../docs/specs/data/canonical-schema.md)
+- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
+- [`Verification system`](../../docs/qualification/verification-system.md)
+- [`Storage lifecycle Architecture`](../../docs/architecture/storage-lifecycle.md)

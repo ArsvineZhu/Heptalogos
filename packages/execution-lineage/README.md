@@ -53,7 +53,7 @@ PostgreSQL when the claim concerns durable lineage.
 
 ## Architecture references
 
-- [`22 — Execution-Lineage 与可观测执行`](../../docs/architecture/execution-lineage.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
-- [`S10 — Evidence、Replay、Observability 与 Content`](../../docs/architecture/contracts/evidence-replay-observability-content.md)
-- [`S16 — Execution Lineage Observability`](../../docs/architecture/contracts/execution-lineage-observability.md)
+- [`Execution lineage Architecture`](../../docs/architecture/execution-lineage.md)
+- [`Execution lineage Spec`](../../docs/specs/execution/execution-lineage.md)
+- [`Evidence Spec`](../../docs/specs/execution/evidence.md)
+- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)

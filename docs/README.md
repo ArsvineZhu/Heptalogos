@@ -9,7 +9,9 @@ document classes.
 - [`governance/`](governance/) owns current repository governance and
   compatibility policy.
 - [`architecture/`](architecture/) owns the logical Architecture Corpus and
-  current Foundation contracts.
+- conceptual system design and semantic boundaries.
+- [`specs/`](specs/INDEX.md) owns compact current normative implementation
+  contracts.
 - [`dependencies/`](dependencies/) owns dependency decisions and implementation
   routing.
 - [`qualification/`](qualification/) owns property evidence and qualification

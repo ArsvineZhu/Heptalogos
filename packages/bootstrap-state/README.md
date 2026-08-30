@@ -51,7 +51,7 @@ to durable shapes, also run `pnpm check:documentation`, `pnpm check:hygiene`,
 
 ## Architecture references
 
-- [`S01 — 启动、恢复与运行时监督`](../../docs/architecture/contracts/startup-recovery-runtime-supervision.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
-- [`S17 — Storage Workspace 与 DataLifecycle`](../../docs/architecture/contracts/storage-workspace-data-lifecycle.md)
-- [`16 — 验证与资格认定体系`](../../docs/qualification/verification-system.md)
+- [`Bootstrap closure Spec`](../../docs/specs/runtime/bootstrap-closure.md)
+- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
+- [`Storage lifecycle Architecture`](../../docs/architecture/storage-lifecycle.md)
+- [`Verification system`](../../docs/qualification/verification-system.md)

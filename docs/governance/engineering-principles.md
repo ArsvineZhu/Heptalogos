@@ -525,3 +525,41 @@ rollback-of-rollback
 recovery-of-recovery
 fallback-of-fallback
 ```
+
+## 20. Review Completion / Reopen Rule
+
+For an authorized change, the default decision is `STOP` when all of the
+following are true:
+
+```text
+the authorized change is complete;
+its acceptance criteria are satisfied;
+the required executable path is green; and
+no observed/current authorized blocker remains.
+```
+
+Implementation may reopen only from new current evidence:
+
+```text
+an observed defect;
+a failing current executable path;
+an accepted current-Horizon failure case;
+a current consumer or invariant; or
+an explicit active-plan requirement.
+```
+
+The following do not reopen implementation by default:
+
+```text
+a newly imagined edge case;
+theoretical non-perfect atomicity;
+generic future-proofing, robustness, or security;
+a failure only inside the newly-added recovery mechanism;
+recovery-of-recovery;
+a failure-injection test without an accepted failure model; or
+a future consumer.
+```
+
+```text
+A completed fix does not authorize another hardening pass.
+```

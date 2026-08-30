@@ -61,8 +61,9 @@ and are not implemented here.
 
 ## Architecture references
 
-- [`S02 — 异步、WorkQueue、Durable 与 Time`](../../docs/architecture/contracts/async-work-queue-durable-time.md)
-- [`S03 — 持久化、事务与 EffectFence`](../../docs/architecture/contracts/persistence-transactions-effect-fence.md)
-- [`S13 — Foundation Service/Capability/Readiness Catalog`](../../docs/architecture/contracts/foundation-service-capability-readiness-catalog.md)
-- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
-- [`S16 — Execution Lineage Observability`](../../docs/architecture/contracts/execution-lineage-observability.md)
+- [`Work Item Spec`](../../docs/specs/execution/work-item.md)
+- [`Durable dispatch Spec`](../../docs/specs/execution/durable-dispatch.md)
+- [`Signal Spec`](../../docs/specs/execution/signal.md)
+- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
+- [`Execution lineage Spec`](../../docs/specs/execution/execution-lineage.md)
+- [`Execution model Architecture`](../../docs/architecture/execution-model.md)

@@ -659,7 +659,6 @@ async function main(): Promise<void> {
   if (mode === "foundation-boot-work-stop" || mode === "foundation-restart-work-stop") {
     await reconciler.start();
     const created = await createWorkItem();
-    await dispatchWorkItem(created);
     await waitUntil(async () => {
       const item = await repository.getWorkItem(created.item.workItemId);
       return item?.state === "SUCCEEDED";

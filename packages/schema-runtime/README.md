@@ -51,8 +51,8 @@ gates when public exports change.
 
 ## Architecture references
 
-- [`02 — 架构原则与反 NIH 约束`](../../docs/governance/engineering-principles.md)
-- [`12 — 数据、证据、内容与持久化`](../../docs/architecture/data-evidence-persistence.md)
-- [`16 — 验证与资格认定体系`](../../docs/qualification/verification-system.md)
-- [`24 — 依赖使用与实现路由`](../../docs/dependencies/implementation-routing.md)
-- [`S15 — Foundation 横切合同`](../../docs/architecture/contracts/foundation-cross-cutting-contracts.md)
+- [`Engineering principles`](../../docs/governance/engineering-principles.md)
+- [`Data, evidence, and persistence Architecture`](../../docs/architecture/data-evidence-persistence.md)
+- [`Canonical schema Spec`](../../docs/specs/data/canonical-schema.md)
+- [`Verification system`](../../docs/qualification/verification-system.md)
+- [`Dependency implementation routing`](../../docs/dependencies/implementation-routing.md)
