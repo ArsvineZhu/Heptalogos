@@ -66,5 +66,5 @@ What remains unproved:
 Result: PASS | FAIL | NOT_RUN | BLOCKED
 ```
 
-Read the [verification system](../../../docs/qualification/verification-system.md)
-and [Evidence Spec](../../../docs/specs/execution/evidence.md).
+Read the [verification system](../../../project/qualification/verification-system.md)
+and [Evidence Spec](../../../specs/execution/evidence.md).

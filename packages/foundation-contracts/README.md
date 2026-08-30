@@ -53,7 +53,7 @@ and the relevant property tests for identity or canonicalization changes.
 
 ## Architecture references
 
-- [`00 — 项目宪法与工程宪法`](../../docs/governance/constitution.md)
+- [`00 — 项目宪法与工程宪法`](../../project/governance/constitution.md)
 - [`03 — 核心概念与 Authority`](../../docs/architecture/authority-and-core-concepts.md)
 - [`12 — 数据、证据、内容与持久化`](../../docs/architecture/data-evidence-persistence.md)
 - [`22 — Execution-Lineage 与可观测执行`](../../docs/architecture/execution-lineage.md)

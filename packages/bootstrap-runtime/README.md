@@ -74,8 +74,8 @@ or Subject vertical slice exists.
 
 ## Architecture references
 
-- [`Bootstrap closure Spec`](../../docs/specs/runtime/bootstrap-closure.md)
-- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
-- [`Service, capability, and readiness Spec`](../../docs/specs/core/service-capability-readiness.md)
-- [`Maintenance handoff Spec`](../../docs/specs/runtime/maintenance-handoff.md)
+- [`Bootstrap closure Spec`](../../specs/runtime/bootstrap-closure.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
+- [`Service, capability, and readiness Spec`](../../specs/core/service-capability-readiness.md)
+- [`Maintenance handoff Spec`](../../specs/runtime/maintenance-handoff.md)
 - [`Storage lifecycle Architecture`](../../docs/architecture/storage-lifecycle.md)

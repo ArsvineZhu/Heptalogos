@@ -54,6 +54,6 @@ PostgreSQL when the claim concerns durable lineage.
 ## Architecture references
 
 - [`Execution lineage Architecture`](../../docs/architecture/execution-lineage.md)
-- [`Execution lineage Spec`](../../docs/specs/execution/execution-lineage.md)
-- [`Evidence Spec`](../../docs/specs/execution/evidence.md)
-- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
+- [`Execution lineage Spec`](../../specs/execution/execution-lineage.md)
+- [`Evidence Spec`](../../specs/execution/evidence.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)

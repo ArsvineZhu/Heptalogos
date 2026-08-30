@@ -55,9 +55,9 @@ async function writeRoutingAuthority(root) {
       '  "@bybrave/proper-lockfile2": 5.0.0\nallowBuilds:',
     ),
   );
-  await mkdir(join(root, "docs/dependencies"), { recursive: true });
+  await mkdir(join(root, "project/dependencies"), { recursive: true });
   await writeFile(
-    join(root, "docs/dependencies/dependency-routing.json"),
+    join(root, "project/dependencies/dependency-routing.json"),
     JSON.stringify({
       schemaVersion: 4,
       routes: [
@@ -142,7 +142,7 @@ describe("repository version Authorities", () => {
           root,
           dependencyRouting: JSON.parse(
             await readFile(
-              join(root, "docs/dependencies/dependency-routing.json"),
+              join(root, "project/dependencies/dependency-routing.json"),
               "utf8",
             ),
           ),
@@ -211,18 +211,18 @@ describe("repository version Authorities", () => {
   it("rejects any copied exact routed package pin, not only the current Catalog patch", async () => {
     await fixtureTree(async (root) => {
       await writeRoutingAuthority(root);
-      await mkdir(join(root, "docs/qualification/results"), { recursive: true });
+      await mkdir(join(root, "project/qualification/results"), { recursive: true });
       for (const relativePath of STANDING_DEPENDENCY_DOCUMENTS) {
         const path = join(root, relativePath);
         await mkdir(join(path, ".."), { recursive: true });
         await writeFile(path, "");
       }
       await writeFile(
-        join(root, "docs/dependencies/implementation-routing.md"),
+        join(root, "project/dependencies/implementation-routing.md"),
         "@bybrave/proper-lockfile2@5.0.1\n",
       );
       await writeFile(
-        join(root, "docs/qualification/results/exercised.md"),
+        join(root, "project/qualification/results/exercised.md"),
         "exercised @bybrave/proper-lockfile2@5.0.0\n",
       );
 

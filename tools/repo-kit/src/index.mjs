@@ -1,6 +1,6 @@
 /**
  * Public repository-tooling mechanics for process execution, discovery,
- * documentation, dependency authority, and fail-closed governance checks.
+ * knowledge, dependency authority, and fail-closed governance checks.
  * @module index
  */
 
@@ -12,7 +12,7 @@ export * from "./discovery.mjs";
 export * from "./paths.mjs";
 export * from "./markdown.mjs";
 export * from "./package-docs.mjs";
-export * from "./documentation.mjs";
+export * from "./knowledge.mjs";
 export * from "./clean.mjs";
 export * from "./workspace.mjs";
 export * from "./package-index.mjs";

@@ -42,7 +42,7 @@ recovery/reacquisition outcome.
 ## Terminal commit and crash
 
 A process dies after canonical terminal commit but before an engine checkpoint.
-The proof claim must say which layer was exercised. If the current H3A2 scenario
+The proof claim must say which layer was exercised. If the current durable-execution scenario
 already covers the claim, record that exact evidence. If a different boundary is
 not accepted, keep it `NOT_RUN` rather than broadening the recovery design.
 

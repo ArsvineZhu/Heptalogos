@@ -90,5 +90,5 @@ Verification claim and state:
 Plan authorization:
 ```
 
-Read the [Contract Versioning Spec](../../../docs/specs/core/contract-versioning.md)
-and [Persistence Transactions Spec](../../../docs/specs/data/persistence-transactions.md).
+Read the [Contract Versioning Spec](../../../specs/core/contract-versioning.md)
+and [Persistence Transactions Spec](../../../specs/data/persistence-transactions.md).

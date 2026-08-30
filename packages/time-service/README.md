@@ -49,9 +49,9 @@ lifecycle, persistence, or Evidence tests as well.
 
 ## Architecture references
 
-- [`Time Spec`](../../docs/specs/execution/time.md)
-- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
-- [`Evidence Spec`](../../docs/specs/execution/evidence.md)
-- [`Execution lineage Spec`](../../docs/specs/execution/execution-lineage.md)
-- [`Contract versioning Spec`](../../docs/specs/core/contract-versioning.md)
+- [`Time Spec`](../../specs/execution/time.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
+- [`Evidence Spec`](../../specs/execution/evidence.md)
+- [`Execution lineage Spec`](../../specs/execution/execution-lineage.md)
+- [`Contract versioning Spec`](../../specs/core/contract-versioning.md)
 - [`Execution model Architecture`](../../docs/architecture/execution-model.md)

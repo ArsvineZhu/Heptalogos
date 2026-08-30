@@ -1,7 +1,7 @@
 # Canonical System Flows
 
 This page gives human-readable runtime views across the current and future
-architecture. Exact current contracts live in [Specs](../specs/INDEX.md);
+architecture. Exact current contracts live in [Specs](../../specs/INDEX.md);
 future steps shown here are design boundaries, not implementation authority.
 All meaningful flows carry ExecutionContext/Activity lineage and preserve the
 owning Authority of each domain.
@@ -136,6 +136,6 @@ handoff when private PostgreSQL stops, and finalizes the bootstrap journal.
 - [Management presentation](./management-presentation.md)
 - [Storage lifecycle](./storage-lifecycle.md)
 - [Backup, portability, update, and recovery](./backup-portability-update-recovery.md)
-- [Bootstrap closure Spec](../specs/runtime/bootstrap-closure.md)
-- [Work Item Spec](../specs/execution/work-item.md)
-- [Evidence Spec](../specs/execution/evidence.md)
+- [Bootstrap closure Spec](../../specs/runtime/bootstrap-closure.md)
+- [Work Item Spec](../../specs/execution/work-item.md)
+- [Evidence Spec](../../specs/execution/evidence.md)

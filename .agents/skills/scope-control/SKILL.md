@@ -91,5 +91,5 @@ Route specialized work to [`recovery-design`](../recovery-design/SKILL.md),
 [`semantic-boundary-change`](../semantic-boundary-change/SKILL.md) after scope
 admission, not instead of it.
 
-Read the [engineering completion and reopen rule](../../../docs/governance/engineering-principles.md)
-and the [Architecture Corpus failure classes](../../../docs/governance/constitution.md).
+Read the [engineering completion and reopen rule](../../../project/governance/engineering-principles.md)
+and the [governance failure classes](../../../project/governance/constitution.md).

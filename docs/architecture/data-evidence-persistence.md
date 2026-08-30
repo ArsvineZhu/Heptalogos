@@ -70,7 +70,7 @@ Digest
 
 非 JSON bytes 通过 Blob/Artifact content digest 表达，不伪装成 JSON canonicalization。
 
-Schema runtime 的当前边界见 [`Canonical schema Spec`](../specs/data/canonical-schema.md)：
+Schema runtime 的当前边界见 [`Canonical schema Spec`](../../specs/data/canonical-schema.md)：
 canonical Management/Configuration 输入验证禁止 silent coercion/default
 insertion/additional-field deletion。
 
@@ -343,7 +343,7 @@ sensitivity
 
 Secret plaintext 永不发出；PII/sensitive attributes 按 classification/redaction
 policy 处理；metric cardinality 有界。详细见
-[`Execution lineage Spec`](../specs/execution/execution-lineage.md)。
+[`Execution lineage Spec`](../../specs/execution/execution-lineage.md)。
 
 ## 13. Replay
 

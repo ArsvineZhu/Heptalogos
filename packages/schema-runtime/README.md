@@ -51,8 +51,8 @@ gates when public exports change.
 
 ## Architecture references
 
-- [`Engineering principles`](../../docs/governance/engineering-principles.md)
+- [`Engineering principles`](../../project/governance/engineering-principles.md)
 - [`Data, evidence, and persistence Architecture`](../../docs/architecture/data-evidence-persistence.md)
-- [`Canonical schema Spec`](../../docs/specs/data/canonical-schema.md)
-- [`Verification system`](../../docs/qualification/verification-system.md)
-- [`Dependency implementation routing`](../../docs/dependencies/implementation-routing.md)
+- [`Canonical schema Spec`](../../specs/data/canonical-schema.md)
+- [`Verification system`](../../project/qualification/verification-system.md)
+- [`Dependency implementation routing`](../../project/dependencies/implementation-routing.md)

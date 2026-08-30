@@ -344,7 +344,7 @@ OpenTelemetry Span/Pino log 是其 telemetry projection；required Evidence/Audi
 提供 Activity tree、causal chain、runtime call graph、Extension lifecycle、Service consumer/provider、failure propagation 等 read-only projection，供 CLI/API/Operator Assistant 使用。
 
 详细视图见 [`execution-lineage.md`](execution-lineage.md) 与
-[`Execution lineage Spec`](../specs/execution/execution-lineage.md)。
+[`Execution lineage Spec`](../../specs/execution/execution-lineage.md)。
 
 ---
 
@@ -538,7 +538,7 @@ protocol revision
 ```
 
 具体横切规则由相关 Specs 和
-[`documentation-system.md`](../engineering/repository/documentation-system.md)
+[`knowledge-system.md`](../../project/engineering/repository/knowledge-system.md)
 分别拥有；本页只保留 Foundation 的概念边界。
 
 ---

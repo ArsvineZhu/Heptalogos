@@ -49,8 +49,8 @@ matched to actual runs.
 
 ## Architecture references
 
-- [`Evidence Spec`](../../docs/specs/execution/evidence.md)
-- [`Execution lineage Spec`](../../docs/specs/execution/execution-lineage.md)
-- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
-- [`Verification system`](../../docs/qualification/verification-system.md)
+- [`Evidence Spec`](../../specs/execution/evidence.md)
+- [`Execution lineage Spec`](../../specs/execution/execution-lineage.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
+- [`Verification system`](../../project/qualification/verification-system.md)
 - [`Data, evidence, and persistence Architecture`](../../docs/architecture/data-evidence-persistence.md)

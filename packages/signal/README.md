@@ -51,8 +51,8 @@ tests; real LISTEN/NOTIFY claims require real PostgreSQL.
 
 ## Architecture references
 
-- [`Signal Spec`](../../docs/specs/execution/signal.md)
-- [`Work Item Spec`](../../docs/specs/execution/work-item.md)
-- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
-- [`Execution lineage Spec`](../../docs/specs/execution/execution-lineage.md)
+- [`Signal Spec`](../../specs/execution/signal.md)
+- [`Work Item Spec`](../../specs/execution/work-item.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
+- [`Execution lineage Spec`](../../specs/execution/execution-lineage.md)
 - [`Foundation services Architecture`](../../docs/architecture/foundation-services.md)

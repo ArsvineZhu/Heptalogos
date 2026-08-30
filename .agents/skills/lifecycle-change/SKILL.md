@@ -101,5 +101,5 @@ Recovery route, if any:
 Verification claim and state:
 ```
 
-Read the [Runtime Supervision Spec](../../../docs/specs/runtime/runtime-supervision.md)
-and [Maintenance Handoff Spec](../../../docs/specs/runtime/maintenance-handoff.md).
+Read the [Runtime Supervision Spec](../../../specs/runtime/runtime-supervision.md)
+and [Maintenance Handoff Spec](../../../specs/runtime/maintenance-handoff.md).

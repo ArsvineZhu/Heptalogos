@@ -54,7 +54,7 @@ changing startup or maintenance behavior.
 
 ## Architecture references
 
-- [`Bootstrap closure Spec`](../../docs/specs/runtime/bootstrap-closure.md)
-- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
+- [`Bootstrap closure Spec`](../../specs/runtime/bootstrap-closure.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
 - [`Platform and distribution Architecture`](../../docs/architecture/platform-distribution.md)
 - [`Storage lifecycle Architecture`](../../docs/architecture/storage-lifecycle.md)

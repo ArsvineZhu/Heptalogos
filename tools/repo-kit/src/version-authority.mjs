@@ -28,16 +28,16 @@ function parsePackageManager(value) {
 }
 
 const NODE_VERSION_PROJECTION_FILES = Object.freeze([".node-version", ".nvmrc"]);
-const DEPENDENCY_ROUTING_PATH = "docs/dependencies/dependency-routing.json";
+const DEPENDENCY_ROUTING_PATH = "project/dependencies/dependency-routing.json";
 const STANDING_DEPENDENCY_DOCUMENTS = Object.freeze([
   DEPENDENCY_ROUTING_PATH,
-  "docs/dependencies/implementation-routing.md",
-  "docs/dependencies/decision-ledger.md",
-  "docs/qualification/dependency-matrix.md",
-  "docs/qualification/dependencies.md",
-  "docs/qualification/dependency-status.json",
-  "docs/engineering/repository/toolchain.md",
-  "docs/engineering/gotchas/bootstrap/proper-lockfile-stale-reclaim.md",
+  "project/dependencies/implementation-routing.md",
+  "project/dependencies/decision-ledger.md",
+  "project/qualification/dependency-matrix.md",
+  "project/qualification/dependencies.md",
+  "project/qualification/dependency-status.json",
+  "project/engineering/repository/toolchain.md",
+  "project/engineering/gotchas/bootstrap/proper-lockfile-stale-reclaim.md",
 ]);
 
 const EXACT_VERSION_PATTERN =

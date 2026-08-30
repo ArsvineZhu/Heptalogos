@@ -64,7 +64,7 @@ Run `pnpm nx run durable-execution:test`, its typecheck and lint targets, and
 the repository dependency, boundary, documentation, and hygiene gates. Real
 DBOS schema, queue, and crash-recovery claims require the PostgreSQL and
 process integration scenarios recorded in the
-[`durable execution qualification record`](../../docs/qualification/results/Q-ASYNC-01.md).
+[`durable execution qualification record`](../../project/qualification/results/Q-ASYNC-01.md).
 Those records are platform- and candidate-scoped: a result on one platform
 does not establish a cross-platform, source-less, or service/headless product
 claim. The current qualification record records its exact platform scope and
@@ -72,8 +72,8 @@ remaining `NOT_RUN` boundaries in that qualification record.
 
 ## Architecture references
 
-- [`Durable dispatch Spec`](../../docs/specs/execution/durable-dispatch.md)
-- [`Work Item Spec`](../../docs/specs/execution/work-item.md)
-- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
-- [`Bootstrap closure Spec`](../../docs/specs/runtime/bootstrap-closure.md)
+- [`Durable dispatch Spec`](../../specs/execution/durable-dispatch.md)
+- [`Work Item Spec`](../../specs/execution/work-item.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
+- [`Bootstrap closure Spec`](../../specs/runtime/bootstrap-closure.md)
 - [`Execution model Architecture`](../../docs/architecture/execution-model.md)

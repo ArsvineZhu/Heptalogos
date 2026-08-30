@@ -42,6 +42,10 @@ keep the exploratory result separate from normative coverage.
 Prefer one strong regression test over a combinatorial matrix that expands the
 modeled failure surface without a corresponding product requirement.
 
+Verification strategy follows the claim and current uncertainty or risk. TDD
+is one useful implementation technique for some deterministic contracts; it is
+not a repository-wide workflow law and does not create architecture Authority.
+
 ## Failure-injection doctrine
 
 A failure-injection scenario shows that a path can be exercised; it does not

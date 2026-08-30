@@ -185,4 +185,4 @@ Effect dispatch 必须存在 causal Decision/Action/Evidence refs
 
 因此 Execution Lineage 同时是运行诊断、产品可解释性、Extension 可追溯性和架构 conformance 的公共地基。
 
-当前规范见 [`Execution lineage Spec`](../specs/execution/execution-lineage.md)。
+当前规范见 [`Execution lineage Spec`](../../specs/execution/execution-lineage.md)。

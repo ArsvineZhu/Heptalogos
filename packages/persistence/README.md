@@ -52,7 +52,7 @@ the corresponding persistence and Host qualification scenarios.
 
 ## Architecture references
 
-- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
-- [`Host ownership Spec`](../../docs/specs/runtime/host-ownership.md)
-- [`Execution lineage Spec`](../../docs/specs/execution/execution-lineage.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
+- [`Host ownership Spec`](../../specs/runtime/host-ownership.md)
+- [`Execution lineage Spec`](../../specs/execution/execution-lineage.md)
 - [`Storage lifecycle Architecture`](../../docs/architecture/storage-lifecycle.md)

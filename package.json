@@ -17,7 +17,7 @@
     "build": "nx run repository:build",
     "nx:check": "nx --version",
     "check:agents": "node scripts/verify/agents.mjs",
-    "check:documentation": "node scripts/verify/documentation.mjs",
+    "check:knowledge": "node scripts/verify/knowledge.mjs",
     "check:repository": "node scripts/verify/repository.mjs",
     "check:hygiene": "node scripts/verify/current-tree-hygiene.mjs",
     "check:dependencies": "node scripts/verify/dependencies.mjs",

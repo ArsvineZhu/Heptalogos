@@ -19,8 +19,8 @@ turning the repository into a dependency encyclopedia.
 4. Search the target package, workspace exports, and package navigation for an
    existing primitive or adapter.
 5. Read the adopted role/provider decision in
-   [`dependency-routing.json`](../../../docs/dependencies/dependency-routing.json)
-   and the [Library-First playbook](../../../docs/engineering/playbooks/mechanics-ownership-and-library-first.md).
+   [`dependency-routing.json`](../../../project/dependencies/dependency-routing.json)
+   and the [Library-First playbook](../../../project/engineering/playbooks/mechanics-ownership-and-library-first.md).
 6. Reuse or extend the existing owner when it is sufficient.
 7. Otherwise use the adopted Standard/Node/OS or library route behind a
    Heptalogos-owned contract.
@@ -58,6 +58,20 @@ unresolved package direction.
 A real provider blocker must include the exact required primitive, the current
 consumer, the adopted route inspected, and why reuse/extension cannot provide
 it. “Another library seems cleaner” is not blocker evidence.
+
+## Custom mechanics admission
+
+When the existing owner and adopted route appear insufficient, read the
+[custom mechanics admission](references/custom-mechanics-admission.md)
+reference before writing a generic mechanic. Record the current consumer,
+semantic owner, existing primitive, adopted provider capability, Standard or
+Node option, mature library option, narrow adapter feasibility, concrete
+insufficiency, maintenance burden, lifecycle/concurrency/security/platform
+impact, and current authorization.
+
+Use custom code only after concrete insufficiency evidence. A foundational
+provider role that is unresolved and not authorized is PLAN_GAP. Trivial
+transformations and Heptalogos-specific semantics remain local code.
 
 ## Interaction with other procedures
 

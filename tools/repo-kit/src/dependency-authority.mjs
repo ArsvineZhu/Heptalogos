@@ -10,7 +10,10 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const authority = JSON.parse(
-  readFileSync(join(root, "docs", "dependencies", "dependency-routing.json"), "utf8"),
+  readFileSync(
+    join(root, "project", "dependencies", "dependency-routing.json"),
+    "utf8",
+  ),
 );
 
 const routes = new Map();

@@ -61,9 +61,9 @@ and are not implemented here.
 
 ## Architecture references
 
-- [`Work Item Spec`](../../docs/specs/execution/work-item.md)
-- [`Durable dispatch Spec`](../../docs/specs/execution/durable-dispatch.md)
-- [`Signal Spec`](../../docs/specs/execution/signal.md)
-- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
-- [`Execution lineage Spec`](../../docs/specs/execution/execution-lineage.md)
+- [`Work Item Spec`](../../specs/execution/work-item.md)
+- [`Durable dispatch Spec`](../../specs/execution/durable-dispatch.md)
+- [`Signal Spec`](../../specs/execution/signal.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
+- [`Execution lineage Spec`](../../specs/execution/execution-lineage.md)
 - [`Execution model Architecture`](../../docs/architecture/execution-model.md)

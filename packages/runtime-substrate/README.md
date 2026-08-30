@@ -54,7 +54,7 @@ owner or generation behavior.
 
 ## Architecture references
 
-- [`Runtime supervision Spec`](../../docs/specs/runtime/runtime-supervision.md)
-- [`Service, capability, and readiness Spec`](../../docs/specs/core/service-capability-readiness.md)
+- [`Runtime supervision Spec`](../../specs/runtime/runtime-supervision.md)
+- [`Service, capability, and readiness Spec`](../../specs/core/service-capability-readiness.md)
 - [`Extensions Architecture`](../../docs/architecture/extensions.md)
-- [`Execution lineage Spec`](../../docs/specs/execution/execution-lineage.md)
+- [`Execution lineage Spec`](../../specs/execution/execution-lineage.md)

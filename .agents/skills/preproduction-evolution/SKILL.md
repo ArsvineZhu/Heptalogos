@@ -15,7 +15,7 @@ Skill performs a deliberate replacement of the current internal shape.
 ## Ordered workflow
 
 1. Read `CompatibilityEpoch` and inspect the declared obligations in
-   [`compatibility-obligations.json`](../../../docs/governance/compatibility-obligations.json).
+   [`compatibility-obligations.json`](../../../project/governance/compatibility-obligations.json).
 2. Identify the one current canonical shape, its version fields, owner, and
    current executable identifiers.
 3. Find every current caller, reader, writer, test, fixture, baseline, doc,
@@ -70,5 +70,5 @@ Verification claim and state:
 ```
 
 Read [`durable-state-change`](../durable-state-change/SKILL.md) for restart-
-visible state and [`documentation-maintenance`](../documentation-maintenance/SKILL.md)
+visible state and [`knowledge-maintenance`](../knowledge-maintenance/SKILL.md)
 for current documentation routes.

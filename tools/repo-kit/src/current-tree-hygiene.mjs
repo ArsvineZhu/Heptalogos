@@ -99,7 +99,7 @@ export function listTrackedPaths({ root = process.cwd() } = {}) {
 }
 
 function scanCompatibilityRegister(root, findings) {
-  const path = join(root, "docs", "governance", "compatibility-obligations.json");
+  const path = join(root, "project", "governance", "compatibility-obligations.json");
   const relativePath = normalize(root, path);
   if (!existsSync(path)) {
     addFinding(

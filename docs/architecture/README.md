@@ -1,16 +1,16 @@
 # Architecture
 
-This directory is the current logical Architecture Corpus for Heptalogos. It
+This directory is the current human conceptual Architecture collection for Heptalogos. It
 owns stable product boundaries, Foundation responsibilities, subsystem
 contracts, and architecture reading paths. The physical location under
-`docs/` is a repository topology choice; the Architecture Corpus remains a
+`docs/` is the Human Knowledge Plane; conceptual Architecture remains a
 logical Authority concept.
 
 ## Navigation
 
 Use the compact [Architecture index](INDEX.md) for the complete set of current
 conceptual pages. Normative implementation contracts live under
-[`docs/specs/`](../specs/INDEX.md); dependency decisions, qualification
+[`specs/`](../../specs/INDEX.md); dependency decisions, qualification
 evidence, roadmap truth, and plan history remain in their own document classes.
 
 Architecture pages explain concepts, ownership, rationale, and runtime views.
@@ -26,6 +26,6 @@ implementations remain outside Foundation scope unless an explicit current
 owner exists.
 
 Architecture pages are current-state documents. Qualification evidence belongs
-under [`../qualification/`](../qualification/), dependency decisions under
-[`../dependencies/`](../dependencies/), and implementation chronology under
-[`../plans/`](../plans/).
+under [`../../project/qualification/`](../../project/qualification/), dependency decisions under
+[`../../project/dependencies/`](../../project/dependencies/), and implementation chronology under
+[`../../project/plans/`](../../project/plans/).

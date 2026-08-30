@@ -53,7 +53,7 @@ requires the PRE_PRODUCTION reset/recreate procedure and full repository gates.
 
 ## Architecture references
 
-- [`Canonical schema Spec`](../../docs/specs/data/canonical-schema.md)
-- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
-- [`Verification system`](../../docs/qualification/verification-system.md)
+- [`Canonical schema Spec`](../../specs/data/canonical-schema.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
+- [`Verification system`](../../project/qualification/verification-system.md)
 - [`Storage lifecycle Architecture`](../../docs/architecture/storage-lifecycle.md)

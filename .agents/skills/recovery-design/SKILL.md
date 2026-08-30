@@ -104,5 +104,5 @@ If the only reason for a new branch is that a recovery handler is fallible,
 choose the existing bounded outcome and stop. A failure handler becoming
 fallible does not itself authorize another recovery layer.
 
-Read the [recovery boundary in the Constitution](../../../docs/governance/constitution.md)
-and the [maintenance handoff Spec](../../../docs/specs/runtime/maintenance-handoff.md).
+Read the [recovery boundary in the Constitution](../../../project/governance/constitution.md)
+and the [maintenance handoff Spec](../../../specs/runtime/maintenance-handoff.md).

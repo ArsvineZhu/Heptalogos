@@ -582,4 +582,4 @@ first-party TOML codec        → js-toml
 
 它们全部位于 Heptalogos-owned adapter 后。Extension/高级 Domain 的 `OWNER_NATIVE` storage freedom 不等于 Foundation 自己也重复造 parser、atomic writer 或跨平台 watcher。
 
-完整强制路由见 `../dependencies/implementation-routing.md`。
+完整强制路由见 `../../project/dependencies/implementation-routing.md`。

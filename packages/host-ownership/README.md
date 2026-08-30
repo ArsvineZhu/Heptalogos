@@ -65,7 +65,7 @@ isolation through the real Host composition.
 
 ## Architecture references
 
-- [`Host ownership Spec`](../../docs/specs/runtime/host-ownership.md)
-- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
-- [`Bootstrap closure Spec`](../../docs/specs/runtime/bootstrap-closure.md)
+- [`Host ownership Spec`](../../specs/runtime/host-ownership.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
+- [`Bootstrap closure Spec`](../../specs/runtime/bootstrap-closure.md)
 - [`Storage lifecycle Architecture`](../../docs/architecture/storage-lifecycle.md)

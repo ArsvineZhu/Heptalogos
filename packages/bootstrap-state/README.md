@@ -46,12 +46,12 @@ database, Host lease, or Runtime lifecycle ownership here.
 ## Verification
 
 Run `pnpm nx run bootstrap-state:test` and the package lint target. For changes
-to durable shapes, also run `pnpm check:documentation`, `pnpm check:hygiene`,
+to durable shapes, also run `pnpm check:knowledge`, `pnpm check:hygiene`,
 `pnpm typecheck`, and the relevant recovery qualification.
 
 ## Architecture references
 
-- [`Bootstrap closure Spec`](../../docs/specs/runtime/bootstrap-closure.md)
-- [`Persistence transaction Spec`](../../docs/specs/data/persistence-transactions.md)
+- [`Bootstrap closure Spec`](../../specs/runtime/bootstrap-closure.md)
+- [`Persistence transaction Spec`](../../specs/data/persistence-transactions.md)
 - [`Storage lifecycle Architecture`](../../docs/architecture/storage-lifecycle.md)
-- [`Verification system`](../../docs/qualification/verification-system.md)
+- [`Verification system`](../../project/qualification/verification-system.md)

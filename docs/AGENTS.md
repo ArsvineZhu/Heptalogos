@@ -1,19 +1,21 @@
 # Documentation Agent Contract
 
-This contract adds behavior unique to current documentation under `docs/**`.
+This scope contains human-facing product, conceptual Architecture, and
+reference knowledge.
 
-- Give each current fact one canonical document owner. Classify a change before
-  editing and update affected derived projections in the same change.
-- `README.md` explains an area and its purpose. `INDEX.md` is a retrieval
-  surface. `AGENTS.md` contains persistent subtree behavior. Specs state exact
-  current normative contracts; Architecture explains conceptual design.
-- Keep current documentation and historical plans/qualification records
-  distinct. Current links point to current homes; historical paths may remain
-  only as historical text.
-- Use semantic ASCII filenames and maintain local navigation. Every current
-  Markdown link must resolve, and INDEX entries must provide enough context for
-  an unfamiliar reader to choose the target without opening every candidate.
-- Maintain generated or derived documentation from its source, and run
-  `pnpm check:documentation` when ownership, navigation, or projections change.
+- Give each current fact one canonical owner and update necessary projections
+  in the same change.
+- README explains an area; INDEX is retrieval; AGENTS contains only persistent
+  authoring behavior for this subtree.
+- Architecture explains concepts and rationale. Exact current implementation
+  contracts belong in specs/. Governance, provider decisions, evidence, Plans,
+  and Agent procedures belong in project/ or .agents/skills/.
+- Keep narrative, diagrams, trade-offs, and Chinese prose when they improve
+  human understanding; do not compress Human Knowledge into Agent shorthand.
+- Keep generated reference identifiable as generated and preserve working local
+  navigation. Use the global INDEX for cross-plane links.
+- Current links resolve. Historical Plans and qualification records preserve
+  chronology without becoming current Authority.
 
-Do not create nested `AGENTS.md` files under `docs/`.
+Nested AGENTS files are allowed only when a subtree has distinct persistent
+authoring behavior that cannot be expressed at this scope.
