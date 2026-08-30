@@ -34,17 +34,11 @@ Persistence remains the database mutation owner while this package owns the
 Evidence semantic contract. Execution lineage can correlate a record, but it
 does not become a second Evidence store or identity Authority.
 
-## Change constraints
-
-Use the persistence service and keep Evidence distinct from telemetry, Activity
-lineage, and logs. Preserve sensitivity and retention semantics from shared
-contracts. Match qualification claims to observed evidence and environment.
-
 ## Verification
 
 Run `pnpm nx run evidence:test`, lint, typecheck, and the persistence-backed
-Evidence scenarios. For evidence projection changes, run Corpus and
-qualification-navigation checks and keep PASS/FAIL/NOT_RUN/BLOCKED claims
+Evidence scenarios. For evidence projection changes, run `pnpm check:knowledge`
+and qualification-navigation checks and keep PASS/FAIL/NOT_RUN/BLOCKED claims
 matched to actual runs.
 
 ## Architecture references

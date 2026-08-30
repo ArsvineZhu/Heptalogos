@@ -37,12 +37,6 @@ own their file mutation path and must remain bounded and crash-safe. Callers
 should use the exported models and stores rather than reaching into codec or
 file details. It does not import normal Runtime or Host packages.
 
-## Change constraints
-
-Keep durable envelopes and journals versioned where their contracts require it.
-Preserve atomic file mutation and explicit parse failures. Do not add normal
-database, Host lease, or Runtime lifecycle ownership here.
-
 ## Verification
 
 Run `pnpm nx run bootstrap-state:test` and the package lint target. For changes

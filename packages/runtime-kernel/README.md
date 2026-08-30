@@ -44,14 +44,6 @@ mechanics while this package owns runtime meaning. Bootstrap production source
 must remain outside this dependency path; integration composition belongs at
 the higher Host/product boundary.
 
-## Change constraints
-
-Runtime topology Authority is `DesiredRuntimeSnapshot` reconciliation; do not
-add a general imperative topology mutation path. Do not import Bootstrap private
-types. Keep Cordis mechanics behind `runtime-substrate` and do not introduce
-product durable-work/effect semantics. Lifecycle and quiescence changes require
-focused concurrency and cancellation tests.
-
 ## Verification
 
 Run `pnpm nx run runtime-kernel:test`, lint, `pnpm typecheck`, `pnpm tsc6`, and

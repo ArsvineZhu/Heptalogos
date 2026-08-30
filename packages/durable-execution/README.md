@@ -50,14 +50,6 @@ routes. It may consume Foundation, Host ownership, and WorkQueue contracts. It
 must not import `bootstrap-runtime`, `private-postgres`, `persistence`,
 `runtime-kernel`, or `signal`; those owners remain outside this adapter.
 
-## Change constraints
-
-Resolve DBOS only from the installed package metadata and package-contained
-CLI file. Invoke it through the current Node executable with `shell: false`, a
-required bounded timeout, sanitized inherited PostgreSQL environment, and
-bounded redacted diagnostics. Keep provider classes, process results, DBOS
-configuration, and lifecycle mechanics behind Heptalogos-owned contracts.
-
 ## Verification
 
 Run `pnpm nx run durable-execution:test`, its typecheck and lint targets, and

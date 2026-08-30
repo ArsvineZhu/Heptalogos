@@ -39,13 +39,6 @@ the package dependency-light and framework-free. Higher packages may depend on
 these primitives; this package must not import them back or perform side effects
 to discover runtime state.
 
-## Change constraints
-
-Keep this package framework-, database-, process-, and network-free. Preserve
-semantic distinctions in branded IDs and error/retry contracts. Use the adopted
-canonicalization and UUID dependencies; do not move higher-level Authority or
-policy into shared primitives.
-
 ## Verification
 
 Run `pnpm nx run foundation-contracts:test`, lint, `pnpm typecheck`, `pnpm tsc6`,

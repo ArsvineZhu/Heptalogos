@@ -1,7 +1,8 @@
 # Heptalogos Knowledge Planes, Agent Skills & Engineering Restraint Convergence
 
 **Plan date:** 2026-08-30  
-**Status:** ACTIVE — replacement content for the current active repository plan  
+**Status:** COMPLETE — bounded post-review correction recorded
+**Prior acceptance:** REQUEST_CHANGES — bounded correction appended below
 **Plan class:** repository knowledge architecture / Coding-Agent Harness / governance convergence  
 **Product Horizon:** unchanged  
 **Runtime semantics:** frozen  
@@ -3057,4 +3058,75 @@ or:
 PLAN BLOCKED
 ```
 
-After `PLAN COMPLETE`, do not append speculative future improvements.
+The prior `PLAN COMPLETE` record is preserved as historical execution evidence.
+Its acceptance state is reopened only by the bounded post-review correction
+recorded below; do not append speculative future improvements.
+
+# 37. Bounded Post-Review Correction — 2026-08-30
+
+## 37.1 Review state
+
+The prior acceptance result is `REQUEST_CHANGES`. The review identified
+concrete inconsistencies in current PRE_PRODUCTION governance, scope admission,
+content/authoring separation, package README ownership, dynamic root
+resolution, and retrieval surfaces.
+
+This section integrates the post-review correction into the current active Plan.
+It does not create a second active Plan or another supersession chain.
+
+## 37.2 Locked correction boundary
+
+Preserve the accepted four-plane knowledge architecture, current Skill model,
+and Foundation/H3A-2 runtime closure. The correction is limited to:
+
+- typed Authority and disabled-Actions reconciliation in current governance;
+- the `scope-control` owner/boundary decision;
+- content versus authoring guidance placement;
+- current package README responsibility and `work-queue` review;
+- dynamic current-root resolution in knowledge validation;
+- duplicate and misleading INDEX/README retrieval entries;
+- bounded current-truth review and claim-matched repository verification.
+
+No product runtime, Foundation, provider, durable product state, CI
+re-enablement, taxonomy reset, generic authoring/meta-lint framework, or new
+active-plan cycle is authorized.
+
+## 37.3 Execution order
+
+1. Correct `project/governance/pre-production-evolution.md` and the
+   `scope-control` Skill references.
+2. Add the Content / Authoring Separation principle to the knowledge-system
+   guidance, keep only its minimum persistent consequence in root `AGENTS.md`,
+   and clean the named current entry artifacts.
+3. Audit current package READMEs, explicitly resolve `work-queue`, and remove
+   duplicate normative ownership from package projections and scoped AGENTS.
+4. Remove the hidden root inventory from `tools/repo-kit/src/knowledge.mjs`,
+   add focused resolver tests, and correct the named INDEX/README entries.
+5. Run one bounded current-standing sweep, admitting only authoring-commentary,
+   Authority, hidden-inventory, duplicate-package-fact, or disabled-CI findings.
+6. Run focused repository-tooling tests and the permanent local gates.
+
+## 37.4 Acceptance
+
+The correction closes only when the named review findings are resolved,
+current content and Authority remain singular, dynamic root resolution is
+tested without a production allow-list, no prose/meta-validator is added,
+runtime source remains unchanged, and the required local commands in the
+post-review correction request are `PASS`. Independent Agent behavior is
+reported separately as `NOT_RUN` when no independent runner is available.
+
+## 37.5 Bounded sweep disposition
+
+The current sweep fixed only admitted authoring-commentary, Authority,
+hidden-inventory, duplicate-package-fact, and disabled-CI findings. Historical
+Qualification records retain past CI/Corpus wording as evidence chronology;
+historical Roadmap reconciliation retains past CI outcomes without making them
+current closure requirements. These remain `RECORD/DEFER` and are not current
+Authority or executable instructions.
+
+## 37.6 Completion
+
+The bounded post-review correction is `REVIEW CORRECTION COMPLETE`. The required
+local repository gates and focused repository-tooling tests are `PASS`; no
+product runtime source was changed or reopened. Independent Coding-Agent
+behavior execution is `NOT_RUN` because no independent runner is available.

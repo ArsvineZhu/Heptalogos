@@ -1,8 +1,7 @@
 # Project Control Plane
 
 project/ is the Project Control Plane. It records how the repository is
-governed, sequenced, qualified, and maintained; it does not replace Human
-Knowledge or current normative Specs.
+governed, sequenced, qualified, and maintained.
 
 Its areas are governance, dependencies, roadmap, Plans, qualification, and
 engineering. The [project INDEX](INDEX.md) routes each responsibility. The

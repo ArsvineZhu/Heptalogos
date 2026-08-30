@@ -217,7 +217,7 @@ B 应通过 TS7 consumer compile/conformance 判断；C 仅是 evidence，不得
 
 ## 7. Version selection 必须基于当前证据
 
-Agent 不得根据模型记忆、旧 Corpus patch、旧 lockfile 或“通常最新版本”选择 exact dependency version。
+Agent 不得根据模型记忆、stale historical patch numbers、旧 lockfile 或“通常最新版本”选择 exact dependency version。
 
 每次首次 Catalog freeze 或 role upgrade：
 

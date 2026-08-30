@@ -38,13 +38,6 @@ behind the package contracts. Persistence and Evidence remain their respective
 authorities; lineage adds correlation and causal semantics rather than a second
 database or scheduler.
 
-## Change constraints
-
-Keep Activity/ExecutionContext identity distinct from Evidence and telemetry.
-Use the persistence service for durable mutations. Preserve causal propagation
-and current Host/generation fences; do not add scheduler, durable-work, or
-Runtime reconciliation semantics.
-
 ## Verification
 
 Run `pnpm nx run execution-lineage:test`, lint, typecheck, and persistence-backed

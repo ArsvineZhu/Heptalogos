@@ -13,6 +13,5 @@ implementation-time procedural Skills.
   authoring context.
 
 Root and scoped AGENTS files persist behavior. Current Specs, Governance,
-Dependencies, Plans, and Qualification remain in their canonical planes; this
-directory is human-maintainer guidance, not an automatically loaded Skill
-bundle.
+Dependencies, Plans, and Qualification remain in their canonical planes. This
+directory routes the human-maintainer guidance for the Harness.

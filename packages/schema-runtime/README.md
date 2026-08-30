@@ -36,13 +36,6 @@ do not add database, filesystem, framework, or network behavior. Current
 PRE_PRODUCTION shapes are defined by their owning package, and unsupported
 shapes must fail according to that package's contract.
 
-## Change constraints
-
-Keep validator mechanics behind the package contract. Do not define product or
-domain Authority, compatibility policy, or fallback readers here. Preserve
-explicit validation failures and keep the package deterministic and side-effect
-free.
-
 ## Verification
 
 Run `pnpm nx run schema-runtime:test`, lint, typecheck, and the schema contract

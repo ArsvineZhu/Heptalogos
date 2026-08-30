@@ -1,8 +1,7 @@
 # Package retrieval index
 
-Use this projection to choose a package README before tracing code. Exact
-current contracts are linked from the README to specs/; this table is
-deliberate navigation, not a generated copy of README prose.
+Find the package that owns the behavior you need to inspect or change. Each
+entry identifies when to open it, what it owns, and its key handoffs.
 
 | Package                                                              | Read when                                                                                 | Owns                                                                    | Key handoffs / boundaries                                                                                         |
 | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |

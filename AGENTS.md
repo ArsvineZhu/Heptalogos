@@ -1,7 +1,6 @@
 # AGENTS.md
 
-Repository-wide execution contract for Heptalogos. This file contains
-persistent Coding-Agent behavior, not the repository encyclopedia.
+Repository-wide execution contract for Heptalogos.
 
 ## Work authorization
 
@@ -90,3 +89,9 @@ Ordinary GitHub Actions are disabled. Use local verification entrypoints and
 the permanent gates required by the approved Plan. Keep pnpm verify runnable.
 For docs, specs, project, packages, or Skills work, read the applicable local
 README, INDEX, or AGENTS scope before editing.
+
+## Repository knowledge
+
+When editing repository knowledge, write the artifact's owned content directly.
+Keep file-type authoring policy in the applicable scoped AGENTS or
+knowledge-system guidance.

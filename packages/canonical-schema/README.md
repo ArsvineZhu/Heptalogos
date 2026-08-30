@@ -38,13 +38,6 @@ Database connection and Host context come from the caller's owning layer. Keep
 schema ownership separate from transaction and lifecycle ownership; do not add
 a second schema authority in persistence or Bootstrap.
 
-## Change constraints
-
-Keep one current PRE_PRODUCTION schema baseline. Development chronology does not
-justify append-only compatibility migrations or readers. Use the owning Host
-context and keep connection-pool and Bootstrap maintenance policy outside this
-package.
-
 ## Verification
 
 Run `pnpm nx run canonical-schema:test`, lint, typecheck, and the relevant real

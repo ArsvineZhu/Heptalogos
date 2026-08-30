@@ -41,6 +41,15 @@ inspected, decision, forbidden overreach, evidence boundary, and stop behavior.
   should-trigger, non-trigger, and behavior cases.
 - A retrieval question crosses Human Knowledge, Specs, Project Control, and
   Agent Execution: use the global INDEX and typed Authority map.
+- Authoring commentary leaks into a governed INDEX: keep the authoring rule in
+  knowledge-system or scoped guidance, write direct retrieval content, and do
+  not create a prose lint.
+- A normal bug appears in an adjacent clear owner without blocking the approved
+  task: record/defer it unless the current Plan independently authorizes the
+  correction; a different owner alone is not PLAN_GAP.
+- A legitimate maintained top-level repository area is added: dynamic discovery
+  recognizes it, root INDEX coverage is updated, and no current-root allow-list
+  or regex is extended.
 
 ## Skill-specific review
 

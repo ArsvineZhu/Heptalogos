@@ -82,7 +82,7 @@ RoleDecision
 
 不要求先完成最终跨平台产品实现。
 
-当前 Foundation provider selection 已关闭；本 Corpus 不再要求额外 pre-implementation Pilot 才能进入 Implementation Plan。后续 Q/C evidence 仅用于 adopted-route conformance 或真实 product qualification。
+当前 Foundation provider selection 已关闭；本项目不再要求额外 pre-implementation Pilot 才能进入 Implementation Plan。后续 Q/C evidence 仅用于 adopted-route conformance 或真实 product qualification。
 
 本地可复现验证与需要外部环境的资格认定是不同层次。Foundation selection、Implementation Plan gate 与常规本地验收必须能够通过仓库内可直接执行的命令与证据产物完成；GitHub Actions 不是这些 gate 的唯一 Authority，也不是唯一 verification substrate。跨平台或 live-provider claim 只有在对应环境实际执行后才可记录为证据；普通 GitHub Actions 当前禁用，不是本次 repository closure 的 gate。
 

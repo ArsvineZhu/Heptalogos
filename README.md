@@ -3,8 +3,10 @@
 Heptalogos is a research and prototype repository for an AI-native system
 whose Foundation is being developed around explicit ownership, durable
 contracts, and executable evidence. The current repository work focuses on
-truthful engineering and a reliable Coding-Agent Harness; product runtime
-semantics are governed by the current Specs and Roadmap.
+truthful engineering and a reliable Coding-Agent Harness.
+
+Current implementation contracts are in the Specs; the Roadmap records the
+current development Horizon and sequencing.
 
 Start with the [global repository INDEX](INDEX.md) to route a question:
 

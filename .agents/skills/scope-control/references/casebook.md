@@ -34,8 +34,9 @@ assertable.
 A parser accepts an ordinary input that violates an existing current contract.
 If the parser and contract are in the approved owner and the acceptance
 condition covers validation, admit the narrow correction and its regression
-test. If it requires a new owner, durable state, or broader policy, stop at the
-boundary and report `PLAN_GAP`.
+test. If another clear owner is unrelated to the documentation task, record and
+defer the finding. If the current acceptance requires a new owner, durable
+state, or broader policy, stop at the boundary and report `PLAN_GAP`.
 
 ## E. Future consumer requests a Foundation state
 
@@ -57,3 +58,24 @@ The required path is green and evidence matches the acceptance condition. A
 reviewer proposes a more uniform timeout budget “while we are here.” Unless an
 accepted current failure model or explicit plan requirement admits it, close
 the change and stop.
+
+## H. Different-owner boundary pair
+
+Case A:
+
+A normal bug exists in an adjacent package. The current task does not depend on
+it, the owner and canonical truth are clear, and deferral preserves a bounded
+truthful outcome.
+
+```text
+RECORD/DEFER
+```
+
+Case B:
+
+The current task cannot satisfy acceptance without changing that adjacent
+owner, but the Plan does not decide the ownership, API, or semantic boundary.
+
+```text
+PLAN_GAP
+```

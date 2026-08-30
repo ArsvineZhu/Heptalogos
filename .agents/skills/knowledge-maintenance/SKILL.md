@@ -36,7 +36,10 @@ product semantics.
 6. Keep historical Plans and Qualification records chronological without
    letting them become current Authority.
 7. Search for duplicate normative facts, stale paths, and broken current links.
-8. Run pnpm check:knowledge plus the focused affected repository check.
+8. Before finalizing a knowledge artifact, separate its owned content from
+   authoring guidance; keep the former in the artifact and the latter in the
+   applicable scoped AGENTS or knowledge-system guidance.
+9. Run pnpm check:knowledge plus the focused affected repository check.
 
 ## Retrieval quality
 

@@ -1,8 +1,8 @@
 # Coding-Agent Harness design
 
 This document is the human-maintainer design for the Coding-Agent Harness. It
-describes capability boundaries and maintenance rules; it does not authorize
-product work or replace an active Plan.
+describes capability boundaries and maintenance rules. Current implementation
+authorization comes from `project/plans/active/`.
 
 ## Purpose and layers
 

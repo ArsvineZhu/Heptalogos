@@ -105,10 +105,10 @@ function authorityForReference(reference) {
 
 function resolveAuthorityReference(repository, sourcePath, reference) {
   const normalized = reference.replaceAll("\\", "/");
-  const rootRelative =
-    /^(?:\.agents|\.github|docs|packages|project|scripts|specs|tests|tools)\//u.test(
-      normalized,
-    );
+  const firstSegment = normalized.split("/")[0] ?? "";
+  const rootRelative = discoverResponsibilityRoots({ root: repository }).includes(
+    firstSegment,
+  );
   const target = rootRelative
     ? resolve(repository, normalized)
     : resolve(dirname(sourcePath), normalized);

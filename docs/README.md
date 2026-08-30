@@ -2,8 +2,7 @@
 
 docs/ is Heptalogos's Human Knowledge Plane. It helps human designers,
 maintainers, and developers understand product intent, conceptual Architecture,
-and maintained reference material. It is not the complete repository knowledge
-system.
+and maintained reference material.
 
 ## Areas
 

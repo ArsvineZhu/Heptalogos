@@ -34,14 +34,6 @@ Foundation repository seam for publication, and SchemaRuntime for strict hint
 validation. It owns one dedicated listener client and never reuses a pooled
 mutation connection for LISTEN.
 
-## Change constraints
-
-Keep Signal best-effort: notifications may be lost or coalesced, and every
-wakeup must lead to canonical re-query by its consumer. Keep the channel fixed,
-the payload bounded and typed, and reconnects followed by `LISTEN` and rescan.
-Do not add durable facts, payloads, credentials, a second event bus, or a
-queue scheduler here.
-
 ## Verification
 
 Run `pnpm nx run signal:test`, `pnpm nx run signal:lint`, typecheck, and the

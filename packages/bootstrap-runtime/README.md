@@ -49,14 +49,6 @@ composition dependencies for integration tests only. Bootstrap owns authorized
 handoff and must not control PostgreSQL from a closed Host; cleanup after Host
 terminal shutdown reacquires Bootstrap authority first.
 
-## Change constraints
-
-Production source must not import `@heptalogos/runtime-kernel`,
-`@heptalogos/runtime-substrate`, or `cordis`; integration/test composition may
-use them. Preserve Bootstrap → Host ownership order and reacquire Bootstrap
-authority before post-Host PostgreSQL cleanup. Keep shutdown and quiescence
-bounded, and never control PostgreSQL from a closed Host.
-
 ## Verification
 
 Run `pnpm nx run bootstrap-runtime:test`, the real PostgreSQL integration target,

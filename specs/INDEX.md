@@ -22,6 +22,6 @@ Foundation boundary. Prefixes are secondary search aids for requirement IDs.
 | [Persistence Transactions](./data/persistence-transactions.md)               | Changing canonical PostgreSQL mutation, transaction scope, Host fencing, or repository access.                    | Host-fenced mutation, lineage/evidence atomicity, transaction boundaries, and engine separation.     | `persistence`, domain repositories                         | `PERSIST` |
 | [Canonical Schema](./data/canonical-schema.md)                               | Changing current tables, constraints, migrations, validation, schema baseline, or canonical database shape.       | Current PRE_PRODUCTION baseline, schema ownership, strict validation, and obsolete-shape removal.    | `canonical-schema`, `schema-runtime`                       | `SCHEMA`  |
 
-Architecture explains the concepts behind these contracts. The active plan
-still authorizes implementation changes; a Spec's existence is not permission
-to build future behavior.
+Architecture explains the concepts behind these contracts. Provider decisions,
+qualification evidence, and current work authorization are routed from the
+Project Control plane.

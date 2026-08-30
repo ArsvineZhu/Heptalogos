@@ -49,13 +49,6 @@ integration helpers are development-only composition. Keep raw `pg` access in
 this adapter; higher packages consume the ownership contracts and do not create
 parallel lease semantics.
 
-## Change constraints
-
-Keep one Host ownership Authority and one database fence contract. Require
-ownership context for canonical mutation connections. Keep raw `pg` mechanics
-inside this adapter and do not add Bootstrap orchestration or Runtime lifecycle
-semantics.
-
 ## Verification
 
 Run `pnpm nx run host-ownership:test`, its integration target against real

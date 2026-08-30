@@ -243,7 +243,7 @@ package dependency declared
 → known competing provider for same frozen role is absent
 ```
 
-The physical package paths for allowed imports belong to the Implementation Plan because package layout is not frozen in this Corpus. The invariant is frozen here: **selected mechanics may not leak into arbitrary packages, and a new dependency may not silently create a second provider for an existing role.**
+The physical package paths for allowed imports belong to the Implementation Plan because package layout is not frozen in this document. The invariant is frozen here: **selected mechanics may not leak into arbitrary packages, and a new dependency may not silently create a second provider for an existing role.**
 
 This gate is project governance logic, not a replacement package manager or generic dependency resolver. pnpm/Nx/ESLint continue to own the generic mechanics.
 

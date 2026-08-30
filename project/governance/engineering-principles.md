@@ -173,7 +173,7 @@ Package identity, compatible line and role are Architecture decisions; exact dir
 
 ```text
 model memory
-old Corpus patch number
+stale historical patch number
 stale lockfile
 "stable is always safer"
 ```

@@ -41,15 +41,6 @@ Persistence, Time Service, Runtime Kernel WorkHandler leases, Signal, and the
 adopted XState 5 local state-machine mechanic. Persistence remains the Host
 fence and WorkItem Authority; Signal is only a best-effort wakeup hint.
 
-## Change constraints
-
-Keep WorkItem as the only product Authority for durable work. Require explicit
-runtime options, admission, retry classification, generation/revision fences,
-profile/partition validation, and bounded payload/outcome validation. Do not
-add hidden backoff defaults, DBOS dependencies, per-item timers, or compatibility
-readers for development history. Engine projection inspection may report
-contradictions but must not mutate canonical WorkItem outcomes.
-
 ## Verification
 
 Run `pnpm nx run work-queue:test`, lint, typecheck, build, and the repository

@@ -26,8 +26,13 @@ unresolved non-trivial decision -> PLAN_GAP -> stop
 ```
 
 Executor 不得按 filename、recency 或 convenience 选择另一份 active plan，也不得
-把现有代码或历史行为提升为 Architecture Authority。Corpus 与 plan 冲突时停止并
-报告冲突。
+把现有代码或历史行为提升为 Architecture Authority。当前未解决的事实必须回到
+对应的 typed owner：产品意图在 `docs/product/`，概念 Architecture 在
+`docs/architecture/`，精确实现契约在 `specs/`，治理政策在 `project/governance/`，
+Provider/mechanics 决策在 `project/dependencies/`，当前授权在
+`project/plans/active/`，开发 Horizon 在 `project/roadmap/`，已执行证据在
+`project/qualification/`。Plan 可以授权修改这些 owner，但完成后不成为第二个
+standing Authority；若 owner、边界或语义仍未决定，停止并报告冲突。
 
 ## 3. A/B/C scope budget 与 Stop Rule
 
@@ -102,8 +107,9 @@ closure records 与 changelog 可以保留 exact historical identifiers，因为
 
 ### Normative architecture surfaces
 
-`docs/architecture/**` 维护稳定原则、contract 与 governance policy，不复制某时点的
-Roadmap/qualification milestone truth。
+`docs/architecture/**` 维护概念模型、语义边界、关系与 rationale；`specs/**` 维护
+精确的当前实现契约；`project/governance/**` 维护 standing engineering/evolution
+policy。三者不得互相替代，也不复制某时点的 Roadmap/qualification milestone truth。
 
 ## 8. Negative test rule
 
@@ -135,62 +141,37 @@ Sweep E — Current-candidate qualification truth
 永久 `check:hygiene` gate 必须覆盖 Sweep A-C，且不得提供 generic allowlist、baseline
 或 suppression escape hatch。
 
-## 11. Live PR closure
+## 11. Candidate closure and operational playbooks
 
-稳定化默认使用一个 bounded plan、一个短生命周期 branch 和一个 Draft PR。候选身份由
-PR 生命周期表达，而不是要求人员在文档中抄录 Git revision。
+稳定化使用一个 bounded Plan 和当前仓库的候选闭环。具体的 candidate transport、
+Draft/Ready、Independent Review、qualification 与 merge 操作由当前 Playbooks 负责：
 
-```text
-Candidate transport = GitHub PR
-Independent Review Authority = authorized external reviewer
-GitHub PR Review = unrelated GitHub platform feature
-```
+- [pre-production stabilization closure](../engineering/playbooks/repository/pre-production-stabilization-closure.md)
+- [milestone PR closure](../engineering/playbooks/repository/milestone-pr-closure.md)
 
-Independent Review is an external governance verdict. It is not a GitHub Pull
-Request review, approval, requested-reviewer state, review comment, status
-check, or branch-protection signal. GitHub hosts the candidate and CI evidence;
-it does not provide the Independent Review Authority. The authorized external
-reviewer supplies an explicit `PASS` or `REQUEST_CHANGES` verdict out-of-band
-to the implementation Agent, and that verdict governs the current Ready
-candidate.
-
-The implementation Agent MUST NOT query GitHub reviews, approvals, requested
-reviewers, or review comments to determine Independent Review state. Absence of
-GitHub review objects has no meaning for this gate.
+Standing closure invariant 为：
 
 ```text
-Draft = mutable implementation candidate
-Ready = current live review candidate
-Independent Review PASS = external reviewer supplied PASS for current Ready candidate
-```
-
-Hn-S candidate 必须在 Independent Review 前完成所有计划内 repository mutation。Review
-PASS 后不得修改 PR branch；若发生 mutation，review 立即失效，PR 必须回到 Draft 并重新
-完成受影响的 qualification 与 review。Final manual CI 只在 Independent Review PASS 后运行，并验证
-当前 PR 与当前 base 的临时集成；PR branch mutation 会使 review 与 CI 同时失效。
-
-Any base-branch movement after the Ready candidate is frozen invalidates the current
-review candidate, regardless of any Agent assessment of the diff. Return the PR
-to Draft, integrate and requalify against
-the new base, then obtain a new Independent Review before final manual CI.
-
-```text
-implementation plan complete
-+ required local qualification complete
+approved Plan complete
++ required local/current qualification complete
 + mandatory Hn-S sweeps complete
-+ PR Ready
-+ Independent Review PASS supplied by the authorized external reviewer
-+ no PR-branch mutation after external Independent Review PASS
-+ final manual CI PASS on Ubuntu/macOS/Windows for the current PR revision
-   integrated with the current base
-+ no PR-branch mutation after final CI
-+ squash merge succeeds
++ external Independent Review PASS where the governing workflow requires it
++ candidate unchanged after the applicable review boundary
++ current merge conditions satisfied
 ```
+
+Independent Review 是 authorized external reviewer 提供的外部治理 verdict，不等于
+GitHub Pull Request review、approval、requested reviewer、comment、status check 或
+branch protection signal。其具体证据边界和候选不变规则以当前 Playbook 为准。
+
+Ordinary GitHub Actions execution remains disabled by current repository policy. 本规则
+不把 workflow definitions 或 GitHub review objects 设为当前 closure Authority；
+跨平台、live provider 或 source-less artifact 的 claim 仍必须有对应的实际执行证据。
 
 ## 12. Current milestone truth owner
 
-本 Corpus 不重复维护某时点的 `Hn`、`Hn-S` 或 `HnA` 状态。当前 milestone truth 的唯一
-运行时投影是：
+本页面不重复维护某时点的 `Hn`、`Hn-S` 或 `HnA` 状态。当前 milestone truth 的维护
+投影是：
 
 ```text
 project/roadmap/development-roadmap.md

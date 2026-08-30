@@ -34,26 +34,28 @@ For every incidental finding, write down the following before changing code:
 
 ## Decision rules
 
-| Finding                                                           | Default decision                                                      | Why                                                                                |
-| ----------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Normal executable path is broken                                  | `IMPLEMENT`                                                           | The current required behavior is defective.                                        |
-| Common startup/shutdown operation actually hangs                  | `IMPLEMENT`                                                           | A reproduced common operational failure is current evidence.                       |
-| Obvious normal-input validation bug adjacent to the task          | `IMPLEMENT` when within the same semantic owner; otherwise `PLAN_GAP` | Correctness is admitted only when the owner and plan boundary are clear.           |
-| Rare scheduler interleaving imagined after the fix                | `RECORD/DEFER`                                                        | Possibility alone does not establish a current consumer or accepted failure model. |
-| Recovery cleanup fails after first-order recovery already failed  | `RECORD/DEFER`                                                        | Recovery-of-recovery needs separate current authority.                             |
-| Failure-injection test exposes an unmodeled case                  | Classify first; usually `RECORD/DEFER`                                | A test is evidence, not product-state Authority.                                   |
-| Acceptance is green but a timeout budget could be more elegant    | `STOP`                                                                | A completed condition does not authorize another hardening pass.                   |
-| Future provider or Subject work might need a new Foundation state | `RECORD/DEFER`                                                        | Future consumers do not authorize present state-space growth.                      |
-| A current real consumer cannot use the existing contract          | `IMPLEMENT` if authorized; otherwise `PLAN_GAP`                       | Current consumer evidence can reopen or expose a missing plan decision.            |
+| Finding                                                           | Default decision                                                                                                                                                                          | Why                                                                                |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Normal executable path is broken                                  | `IMPLEMENT`                                                                                                                                                                               | The current required behavior is defective.                                        |
+| Common startup/shutdown operation actually hangs                  | `IMPLEMENT`                                                                                                                                                                               | A reproduced common operational failure is current evidence.                       |
+| Obvious normal-input validation bug adjacent to the task          | `IMPLEMENT` when the task and owner are already authorized; `RECORD/DEFER` when another clear owner is unrelated; `PLAN_GAP` only when current acceptance requires an unresolved boundary | A different owner alone is not an unresolved plan decision.                        |
+| Rare scheduler interleaving imagined after the fix                | `RECORD/DEFER`                                                                                                                                                                            | Possibility alone does not establish a current consumer or accepted failure model. |
+| Recovery cleanup fails after first-order recovery already failed  | `RECORD/DEFER`                                                                                                                                                                            | Recovery-of-recovery needs separate current authority.                             |
+| Failure-injection test exposes an unmodeled case                  | Classify first; usually `RECORD/DEFER`                                                                                                                                                    | A test is evidence, not product-state Authority.                                   |
+| Acceptance is green but a timeout budget could be more elegant    | `STOP`                                                                                                                                                                                    | A completed condition does not authorize another hardening pass.                   |
+| Future provider or Subject work might need a new Foundation state | `RECORD/DEFER`                                                                                                                                                                            | Future consumers do not authorize present state-space growth.                      |
+| A current real consumer cannot use the existing contract          | `IMPLEMENT` if authorized; otherwise `PLAN_GAP`                                                                                                                                           | Current consumer evidence can reopen or expose a missing plan decision.            |
 
 ## Admission outcomes
 
 Choose `IMPLEMENT` only when the finding is inside the approved task or is a
 current defect whose owner and acceptance impact are already authorized. Choose
 `RECORD/DEFER` when the current system preserves truth and Authority without the
-change. Choose `PLAN_GAP` when the finding may be current and material but the
-plan has not decided ownership, state, provider, failure semantics, or evidence
-scope.
+change. A different semantic owner alone does not produce `PLAN_GAP`: if the
+finding is unrelated and non-blocking, record/defer it. Choose `PLAN_GAP` when
+the approved task cannot complete without crossing a material semantic,
+ownership, provider, state, failure, or evidence boundary that the plan has not
+decided.
 
 Do not use a test failure, a future design document, a generic “safer” argument,
 or the existence of a named service as a substitute for admission evidence.

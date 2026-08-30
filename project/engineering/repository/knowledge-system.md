@@ -54,6 +54,44 @@ The [global INDEX](../../../INDEX.md) routes cross-plane questions. The
 [Human Knowledge INDEX](../../../docs/INDEX.md), [Spec INDEX](../../../specs/INDEX.md),
 and [Project INDEX](../../INDEX.md) refine retrieval within their planes.
 
+## Content / Authoring Separation
+
+A governed artifact directly states the information, contract, procedure,
+authorization, evidence, or navigation that it owns. Guidance about how that
+artifact type should be authored belongs in the applicable scoped AGENTS file
+or repository knowledge/authoring guidance.
+
+The distinction is:
+
+```text
+README
+→ explain the owned area
+
+INDEX
+→ route the reader
+
+Spec
+→ state the current normative contract
+
+Skill
+→ execute a specialized procedure
+
+Plan
+→ authorize bounded work
+
+Qualification
+→ report observed evidence
+
+AGENTS
+→ persist behavior for the scope
+```
+
+Rules such as keeping README prose out of an INDEX, keeping future concepts out
+of a current Spec, or keeping a Skill from becoming a topic encyclopedia are
+authoring guidance. They belong in scoped AGENTS or the repository
+knowledge/Harness authoring guidance, not repeated as self-justifying prose in
+every governed artifact.
+
 ## Current and historical knowledge
 
 Current documents link to current canonical homes. Completed and superseded

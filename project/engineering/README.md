@@ -1,8 +1,7 @@
 # Engineering knowledge
 
 project/engineering/ contains human and supervisory procedures for maintaining
-the repository. It is part of the Project Control Plane, not a replacement for
-Specs or Coding-Agent Skills.
+the repository as part of the Project Control Plane.
 
 | Area          | Use when                                                                                | Entry                                                          |
 | ------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------- |

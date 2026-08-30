@@ -290,7 +290,7 @@ prove from direct evidence if possible
 为了判断 CLI framework 是否合适先写完整 Management backend
 ```
 
-Exact package/version selection must be refreshed from current registry/upstream evidence rather than inferred from model memory or stale Corpus patch numbers. Stable/prerelease labels are inputs to maturity analysis, not automatic accept/reject rules. Detailed toolchain/version policy: `../engineering/repository/toolchain.md`.
+Exact package/version selection must be refreshed from current registry/upstream evidence rather than inferred from model memory or stale historical patch numbers. Stable/prerelease labels are inputs to maturity analysis, not automatic accept/reject rules. Detailed toolchain/version policy: `../engineering/repository/toolchain.md`.
 
 资格计划见 `qualification/DEPENDENCY-QUALIFICATION.md`。
 

@@ -120,6 +120,71 @@ describe("repository knowledge topology", () => {
     expect(result.errors).toEqual([]);
   });
 
+  it("resolves a canonical machine Authority path from the repository root", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "project/governance/current.md",
+        "project/governance/compatibility-obligations.json\n",
+      );
+    });
+    expect(result.errors).toEqual([]);
+  });
+
+  it("keeps an ordinary Authority filename reference source-relative", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "project/governance/current.md",
+        "compatibility-obligations.json\n",
+      );
+    });
+    expect(result.errors).toEqual([]);
+  });
+
+  it("resolves a newly discovered responsibility root without an allow-list edit", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(root, "temporary-owner/README.md", "# Temporary owner\n");
+      await writeFixtureFile(
+        root,
+        "INDEX.md",
+        [
+          "# Index",
+          "",
+          "[Agents](./.agents/skills/AGENTS.md)",
+          "[Docs](./docs/README.md)",
+          "[Packages](./packages/README.md)",
+          "[Project](./project/README.md)",
+          "[Specs](./specs/README.md)",
+          "[Temporary](./temporary-owner/README.md)",
+          "",
+        ].join("\n"),
+      );
+      await writeFixtureFile(
+        root,
+        "project/governance/current.md",
+        "temporary-owner/compatibility-obligations.json\n",
+      );
+    });
+    const error = result.errors.find(
+      ({ code }) => code === "noncanonical-authority-reference",
+    );
+    expect(error?.message).toContain(
+      "resolves to temporary-owner/compatibility-obligations.json",
+    );
+  });
+
+  it("rejects an Authority document link that escapes the repository", async () => {
+    const result = await fixtureTree(async (root) => {
+      await writeFixtureFile(
+        root,
+        "project/governance/current.md",
+        "[outside](../../../outside.md)\n",
+      );
+    });
+    expect(hasCode(result, "link-outside-repository")).toBe(true);
+  });
+
   it("validates current links and root index coverage", async () => {
     const result = await fixtureTree(async (root) => {
       await writeFixtureFile(

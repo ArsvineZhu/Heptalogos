@@ -38,13 +38,6 @@ inside the adapter and must use the repository subprocess mechanics. Bootstrap
 and Host packages authorize when these mechanics may be used; this package does
 not decide that authority.
 
-## Change constraints
-
-Keep process control behind the exported controller contracts and the adopted
-subprocess route. Preserve bounded timeouts, identity/profile checks, and
-explicit failure dispositions. Do not decide Bootstrap ownership, Host fencing,
-or normal persistence policy here.
-
 ## Verification
 
 Run `pnpm nx run private-postgres:test`,

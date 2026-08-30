@@ -35,7 +35,7 @@ Independent Review verdict.
 - Draft work is mutable.
 - Ready identifies the candidate presented to the external reviewer.
 - External `REQUEST_CHANGES` returns the PR to Draft for bounded correction.
-- External `PASS` authorizes the next planned governance step, normally final
-  manual CI.
+- External `PASS` authorizes the next explicitly required local or provider
+  qualification step named by the current closure Playbook.
 - Any repository or base movement after the verdict makes the candidate stale;
   return to Draft and obtain a new external verdict after requalification.

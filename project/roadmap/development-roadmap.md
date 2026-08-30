@@ -845,7 +845,7 @@ Every future plan should answer the following before listing tasks.
 
 ### 9.2 Authority and invariants
 
-- Which Corpus files/specs own the semantics?
+- Which typed owner (`docs/architecture/`, `specs/`, or `project/`) owns the semantics?
 - Who owns canonical state?
 - Which object is proposal, which is Authority?
 - What Desired/Actual split exists?
@@ -915,7 +915,7 @@ Do not use a mock or one OS to upgrade a product qualification claim.
 Plans should explicitly stop rather than improvise if:
 
 - an adopted dependency has a genuine hard blocker;
-- required correctness would violate Corpus Authority;
+- required correctness would violate a canonical Authority boundary;
 - a fix requires introducing a second Authority/provider/runtime path;
 - a supposedly local change pulls a later horizon’s subsystem into the critical path;
 - cross-platform/native behavior would have to be overclaimed;

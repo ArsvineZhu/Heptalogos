@@ -35,12 +35,6 @@ side-effect limited to the system-clock adapter. Time values are inputs to
 other owners; this package does not decide retention, lifecycle, scheduling, or
 configuration policy.
 
-## Change constraints
-
-Keep monotonic elapsed time distinct from human-local wall time. Use the fake
-service for deterministic tests rather than global clock mocks. Do not add
-scheduling, retry, persistence, or lifecycle ownership.
-
 ## Verification
 
 Run `pnpm nx run time-service:test`, lint, typecheck, and deterministic fake-time

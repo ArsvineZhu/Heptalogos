@@ -91,6 +91,11 @@ material current possibility + unresolved owner/state/provider/failure decision
     → PLAN_GAP
 ```
 
+A different semantic owner is not, by itself, an unresolved decision. A
+non-blocking finding in a clear adjacent owner is `RECORD/DEFER`; use
+`PLAN_GAP` only when the approved task cannot complete without crossing an
+unresolved boundary.
+
 After recording the outcome, return to the approved task. A deferred finding
 may be useful evidence for a future plan, but it is not an implicit backlog
 that the current Agent must implement.

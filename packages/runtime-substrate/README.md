@@ -39,13 +39,6 @@ process-memory task created here must have an owner and bounded
 cancel/drain/dispose behavior; work that must survive restart belongs to a
 Foundation durable primitive in a later stage.
 
-## Change constraints
-
-Cordis objects and mechanics must not escape this adapter boundary. Substrate
-owns mechanics, not Desired/Actual state, Service/Capability meaning, provider
-selection, or Generation Authority. Every process-memory task needs an owner
-and bounded cancel/drain/dispose behavior.
-
 ## Verification
 
 Run `pnpm nx run runtime-substrate:test`, lint, typecheck, and focused resource
