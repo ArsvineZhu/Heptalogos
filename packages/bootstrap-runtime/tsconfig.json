@@ -55,6 +55,9 @@
     },
     {
       "path": "../durable-execution"
+    },
+    {
+      "path": "../effect-operation"
     }
   ]
 }

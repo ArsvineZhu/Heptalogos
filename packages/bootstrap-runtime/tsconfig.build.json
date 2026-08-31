@@ -52,10 +52,13 @@
       "path": "../evidence/tsconfig.build.json"
     },
     {
-      "path": "../canonical-schema/tsconfig.build.json"
+      "path": "../effect-operation/tsconfig.build.json"
     },
     {
       "path": "../durable-execution/tsconfig.build.json"
+    },
+    {
+      "path": "../canonical-schema/tsconfig.build.json"
     }
   ]
 }

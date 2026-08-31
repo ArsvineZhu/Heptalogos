@@ -2,7 +2,7 @@
 
 **Status:** LIVING ROADMAP / planning guidance<br>
 **Date:** 2026-08-29<br>
-**Repository baseline:** current `dev/h3a2-durable-recovery` tree with H3A-2 closed and the Foundation executable-spine evidence recorded; the Harness/governance reconciliation is complete and has no active implementation Plan<br>
+**Repository baseline:** current merged `master` tree with H3A-2 closed and the Foundation executable-spine evidence recorded; the Harness/governance reconciliation is complete and H3B is now the active implementation Plan<br>
 **Architecture baseline:** `docs/architecture/` design state 2026-08-20
 
 > This document owns development sequencing, Horizon truth, and qualification guidance. It does not replace the canonical Human Architecture, current Specs, Governance, Dependencies, Qualification, or active Plan. Update this Roadmap when evidence changes sequencing or eligibility; update the relevant canonical owner when semantics change.
@@ -132,7 +132,7 @@ The repository can safely evolve Foundation code with truthful gates and stable 
 - per-BootId BootstrapJournal;
 - atomic publication boundary;
 - cross-platform repository process substrate;
-- manual-only CI/review/squash closure process for the current live PR.
+- manual-only CI/review/squash closure process under the current execution policy.
 
 ### What H0 does not prove
 
@@ -364,10 +364,10 @@ H3A: FUNCTIONALLY_COMPLETE
 H3A_1: CLOSED
 H3A_2: CLOSED
 H3_FOUNDATION_EXECUTABLE_SPINE: PASS
-H3B: BLOCKED_UNTIL_H3A2_AND_SPINE
+H3B: IN_PROGRESS
 H3_FUNCTIONAL: IN_PROGRESS
-H3_STABILIZATION: NOT_ELIGIBLE
-currentRepositoryWork: no active repository implementation Plan after Harness/governance closure
+H3_STABILIZATION: ELIGIBLE_AFTER_H3B
+currentRepositoryWork: H3B Consequential Effect & Uncertainty
 githubActions: DISABLED_CURRENT_EXECUTION_POLICY
 ```
 
@@ -384,17 +384,17 @@ scenarios, and the terminal-commit restart scenario passes. This does not
 close all product qualification boundaries. Windows and Ubuntu/Linux evidence
 is current for the recorded scenarios; macOS, source-less, service/headless,
 and ResourceGovernor qualification remain individually scoped and must not be
-inferred from another platform or candidate. The active repository
-engineering-restraint and governance-reconciliation plan now governs the
-remaining documentation and Agent Harness convergence work. Ordinary GitHub
-Actions are disabled under the current execution policy; local repository
-gates remain the closure route for this work.
+inferred from another platform or candidate. H3B is the current authorized
+implementation work under the active EffectOperation plan; H3-S remains
+sequenced after H3B so the Foundation containment pass follows the final H3
+semantic owner. Ordinary GitHub Actions are disabled under the current
+execution policy; local repository gates remain the closure route.
 
 ### Implementation decomposition
 
 - H3A-1 implements canonical work/handler/signal semantics without DBOS.
 - H3A-2 materializes DBOS durable mechanics and crash recovery.
-- H3B, which is blocked until H3A-2 and the Foundation spine close, adds the
+- H3B, now authorized after H3A-2 and the Foundation spine close, adds the
   minimal EffectOperation uncertainty boundary.
 - Real `CONFIG_PINNED` ConfigurationRevision resolution remains H4-owned; H3A
   uses configuration-free handlers and fails closed for pinned binding.
@@ -459,8 +459,8 @@ At minimum, kill the process around key boundaries and prove:
 ### H3-S — Foundation Containment / Stabilization
 
 H3-S is a convergence/subtraction stage, not another hardening expansion. It
-becomes eligible only after H3A-2 and the Foundation executable spine. Its
-bounded scope is:
+is sequenced after H3B for this development line, following the already-closed
+H3A-2 and Foundation executable spine. Its bounded scope is:
 
 ```text
 current-tree residue and PRE_PRODUCTION compatibility cleanup

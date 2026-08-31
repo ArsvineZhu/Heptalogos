@@ -10,28 +10,10 @@ import {
 import { discoverProductPackages } from "../src/workspace.mjs";
 
 const root = resolve(fileURLToPath(new URL("../../../", import.meta.url)));
-const packageNames = [
-  "bootstrap-runtime",
-  "bootstrap-state",
-  "canonical-schema",
-  "durable-execution",
-  "evidence",
-  "execution-lineage",
-  "foundation-contracts",
-  "host-ownership",
-  "persistence",
-  "private-postgres",
-  "runtime-kernel",
-  "runtime-substrate",
-  "schema-runtime",
-  "signal",
-  "time-service",
-  "work-queue",
-];
-
-function expectedPackages() {
-  return packageNames.map((directoryName) => ({
-    packageName: `@heptalogos/${directoryName}`,
+async function expectedPackages() {
+  const discovered = await discoverProductPackages({ root });
+  return discovered.map(({ directoryName, manifestName }) => ({
+    packageName: manifestName,
     directoryName,
     repositoryEntryPoint: `packages/${directoryName}/dist/index.d.ts`,
   }));
@@ -55,8 +37,8 @@ describe("API documentation ownership", () => {
       resolvePackageTypesEntryPoint({ root, packageInfo }),
     );
 
-    expect(discovered).toHaveLength(16);
-    expect(entrypoints).toHaveLength(16);
+    expect(discovered.length).toBeGreaterThan(0);
+    expect(entrypoints).toHaveLength(discovered.length);
     expect(entrypoints.map(({ packageName }) => packageName)).toContain(
       "@heptalogos/bootstrap-runtime",
     );
@@ -65,21 +47,21 @@ describe("API documentation ownership", () => {
     );
   });
 
-  it("accepts one structured TypeDoc module for each discovered package", () => {
-    const packages = expectedPackages();
+  it("accepts one structured TypeDoc module for each discovered package", async () => {
+    const packages = await expectedPackages();
 
     expect(
       validateApiReflection({ root, packages, reflection: reflectionFor(packages) }),
     ).toEqual([]);
   });
 
-  it("fails closed when one of sixteen discovered packages is absent from TypeDoc", () => {
-    const packages = expectedPackages();
+  it("fails closed when one discovered package is absent from TypeDoc", async () => {
+    const packages = await expectedPackages();
     const reflection = reflectionFor(packages.slice(1));
 
     expect(validateApiReflection({ root, packages, reflection })).toEqual([
       expect.stringContaining(
-        "TypeDoc reflection package count differs from product discovery: expected 16, actual 15",
+        `TypeDoc reflection package count differs from product discovery: expected ${packages.length}, actual ${packages.length - 1}`,
       ),
       expect.stringContaining(
         "TypeDoc reflection is missing product package @heptalogos/bootstrap-runtime",

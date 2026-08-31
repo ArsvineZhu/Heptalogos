@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-29T21:12:19+08:00",
+  "recordedAt": "2026-08-31T09:44:07+08:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": ["PASS", "FAIL", "NOT_RUN", "BLOCKED"],
@@ -914,6 +914,52 @@
         "h2a3_review_and_closure": "H2A-3 exact-pair independent review PASS and squash merge PASS; final cross-platform CI remains NOT_RUN.",
         "h2b_current_head_real_postgres_rerun": "The sixth corrective cycle changed only runtime-kernel contract validation/projection and documentation; prior Windows PostgreSQL evidence is carried forward."
       }
+    },
+    {
+      "qualificationId": "Q-EFFECT-01",
+      "testedProperty": "Canonical EffectOperation identity, immutable request, Host-fenced one-dispatch admission, explicit outcome uncertainty, WorkItem separation, reconciliation, and process restart behavior",
+      "evidenceStatus": "PASS",
+      "qualificationState": "PARTIAL",
+      "evidence": {
+        "effect_contract_unit": "PASS (effect-operation 2 files/9 tests)",
+        "effect_identity_unit": "PASS (foundation-contracts 6 files/34 tests)",
+        "effect_schema_unit": "PASS (canonical-schema 4/4 tests)",
+        "effect_real_postgres_transitions": "PASS (6/6 real PostgreSQL service qualification tests)",
+        "effect_concurrent_dispatch_admission": "PASS (two concurrent dispatches, one external call, one canonical admission)",
+        "effect_host_fenced_completion": "PASS (stale Host lease cannot commit the admitted outcome)",
+        "effect_host_fenced_refinement": "PASS (fenced Host cannot invoke or commit reconciliation refinement)",
+        "effect_reconciliation_semantics": "PASS (UNKNOWN preserves UNCERTAIN; positive read-only observation refines without dispatch)",
+        "effect_process_success": "PASS (EU-01)",
+        "effect_process_definitive_failure": "PASS (EU-02)",
+        "effect_process_ambiguous_crash": "PASS (EU-03; external sink count remains one)",
+        "effect_no_redispatch_after_restart": "PASS (EU-03, EU-04, EU-05, EU-06)",
+        "effect_conservative_prewrite_crash": "PASS (EU-04; sink count remains zero)",
+        "effect_outcome_replay": "PASS (EU-05; committed effect is reused by WorkItem recovery)",
+        "effect_host_loss_after_external_call": "PASS (EU-06; authentic Host lease termination)",
+        "effect_lineage_evidence": "PASS (real PostgreSQL Activity/Evidence assertions)",
+        "workitem_effect_truth_separation": "PASS (effect FAILED/UNCERTAIN settles WorkItem SUCCEEDED)",
+        "dbos_effect_authority_boundary": "PASS (DBOS remains WorkItem projection/mechanics in the process qualification)",
+        "no_effect_scheduler_or_retry_engine": "PASS (current-tree architecture inspection)",
+        "no_preproduction_compatibility_baggage": "PASS (single baseline and strict V1 normalization)",
+        "foundation_executable_spine_regression": "PASS (2/2 real process scenarios)"
+      },
+      "evidenceSource": {
+        "environment": "Windows / Node 24.20.0 / pnpm 11.24.0 / TypeScript 7 toolchain",
+        "postgres": "PostgreSQL 18.6 extracted qualification binary via explicit HEPTALOGOS_TEST_PG_BIN=C:\\dev\\Heptalogos\\tmp\\pg\\extracted\\pgsql\\bin",
+        "realPostgresService": "pnpm nx run bootstrap-runtime:test:effect-uncertainty; 6/6 transaction/service tests PASS",
+        "realProcessQualification": "pnpm nx run bootstrap-runtime:test:effect-uncertainty; 12/12 tests PASS across EU-01 through EU-06",
+        "foundationSpineRegression": "pnpm nx run bootstrap-runtime:test:foundation-spine; 2/2 tests PASS",
+        "externalBoundary": "Synthetic file-backed sink outside canonical PostgreSQL; no live network/provider was invoked"
+      },
+      "notRunReasons": {
+        "real_network_provider": "No live network or provider adapter is in the current scope.",
+        "real_messaging_driver": "Messaging Driver integration is deferred.",
+        "real_ai_provider": "AI provider integration is deferred.",
+        "source_less": "The process proof used the source checkout, not a source-less shipping artifact.",
+        "service_headless": "No installed service/headless product artifact was executed.",
+        "macos_real_effect_process": "Only the Windows process boundary was executed.",
+        "hardware_power_loss": "Power-loss and hardware corruption are deferred catastrophic failure classes."
+      }
     }
   ],
   "architectureReviewRequired": [],
@@ -934,7 +980,8 @@
       "Q-POLICY-01",
       "Q-BOOT-01",
       "Q-PRIVATE-POSTGRES-01",
-      "Q-PERSISTENCE-01"
+      "Q-PERSISTENCE-01",
+      "Q-EFFECT-01"
     ]
   }
 }

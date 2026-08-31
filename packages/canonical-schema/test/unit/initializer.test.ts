@@ -43,6 +43,12 @@ describe("canonical schema adapter", () => {
 
     const sql = statements.join("\n");
     expect(sql).toContain('create table "heptalogos"."work_item"');
+    expect(sql).toContain('create table "heptalogos"."effect_operation"');
+    expect(sql).toContain('"dispatch_host_ownership_token"');
+    expect(sql).toContain(
+      "state IN ('PREPARED', 'DISPATCHING', 'SUCCEEDED', 'FAILED', 'UNCERTAIN')",
+    );
+    expect(sql).toContain("outcome->>'status' = state");
     expect(sql).toContain('"contribution_id"');
     expect(sql).toContain('"work_item_dispatchable_index"');
     expect(sql).toContain('"work_item_projection_index"');

@@ -23,6 +23,7 @@
   "devDependencies": {
     "@heptalogos/canonical-schema": "workspace:*",
     "@heptalogos/durable-execution": "workspace:*",
+    "@heptalogos/effect-operation": "workspace:*",
     "@heptalogos/evidence": "workspace:*",
     "@heptalogos/execution-lineage": "workspace:*",
     "@heptalogos/persistence": "workspace:*",
