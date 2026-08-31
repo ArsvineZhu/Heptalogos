@@ -126,6 +126,8 @@ export interface EffectOperationService {
     port: EffectDispatchPort,
     options?: { readonly signal?: AbortSignal },
   ): Promise<EffectOperation>;
+  /** Recovers an explicitly abandoned DISPATCHING operation without dispatching. */
+  recoverDispatch(effectOperationId: EffectOperationId): Promise<EffectOperation>;
   /** Refines UNCERTAIN only through a read-only reconciliation observation. */
   reconcile(
     effectOperationId: EffectOperationId,

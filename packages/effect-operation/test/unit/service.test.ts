@@ -346,15 +346,30 @@ describe("EffectOperation service", () => {
     expect(calls).toBe(1);
   });
 
-  it("recovers DISPATCHING to UNCERTAIN without invoking the adapter", async () => {
+  it("observes live DISPATCHING and recovers it only explicitly", async () => {
     const fixture = makeFixture();
     const operation = await prepared(fixture);
+
+    await expect(
+      fixture.execution.runActivity(
+        {
+          kind: "test.recovery-prepared",
+          importance: "routine",
+          retentionClass: "retained",
+          sensitivity: "operational",
+        },
+        () => fixture.service.recoverDispatch(operation.operation.effectOperationId),
+      ),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "effect.transition.invalid" },
+    });
+
     fixture.repository.forceDispatching();
     let calls = 0;
 
-    const recovered = await fixture.execution.runActivity(
+    const observed = await fixture.execution.runActivity(
       {
-        kind: "test.recovery",
+        kind: "test.dispatch-observer",
         importance: "routine",
         retentionClass: "retained",
         sensitivity: "operational",
@@ -369,7 +384,52 @@ describe("EffectOperation service", () => {
         ),
     );
 
+    expect(observed.state).toBe("DISPATCHING");
+    expect(calls).toBe(0);
+
+    const recovered = await fixture.execution.runActivity(
+      {
+        kind: "test.recovery",
+        importance: "routine",
+        retentionClass: "retained",
+        sensitivity: "operational",
+      },
+      () => fixture.service.recoverDispatch(operation.operation.effectOperationId),
+    );
     expect(recovered.state).toBe("UNCERTAIN");
+    expect(calls).toBe(0);
+  });
+
+  it("fails before port invocation when the dispatch signal is already aborted", async () => {
+    const fixture = makeFixture();
+    const operation = await prepared(fixture);
+    const controller = new AbortController();
+    controller.abort();
+    let calls = 0;
+
+    const failed = await fixture.execution.runActivity(
+      {
+        kind: "test.dispatch-aborted",
+        importance: "routine",
+        retentionClass: "retained",
+        sensitivity: "operational",
+      },
+      () =>
+        fixture.service.dispatch(
+          operation.operation.effectOperationId,
+          port(async () => {
+            calls += 1;
+            return { status: "SUCCEEDED" };
+          }),
+          { signal: controller.signal },
+        ),
+    );
+
+    expect(failed.state).toBe("FAILED");
+    expect(failed.outcome).toMatchObject({
+      status: "FAILED",
+      problem: { problemCode: "effect.dispatch.aborted_before_call" },
+    });
     expect(calls).toBe(0);
   });
 

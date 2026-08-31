@@ -17,6 +17,45 @@
 
 ---
 
+## Active-plan amendment — PR #31 review correction (2026-08-31)
+
+This bounded amendment supersedes only the original dispatch/recovery wording
+that conflates a live concurrent observer with an abandoned dispatch.
+
+```text
+dispatch() observes DISPATCHING
+→ return the current operation unchanged
+→ no canonical mutation
+→ no recovery
+→ no external port call
+
+explicit recoverDispatch() on a recovered WorkHandler invocation
+→ Host-fenced DISPATCHING → UNCERTAIN
+→ retain recovery Activity/Evidence
+→ never call the external port
+```
+
+The current WorkHandler distinguishes these cases using the existing durable
+WorkItem invocation boundary: an operation observed as `DISPATCHING` by
+`prepare()` at invocation start takes explicit recovery, while a caller that
+loses the `PREPARED → DISPATCHING` admission race only observes the live state.
+The existing WorkHandler and Host abort signals are composed with Node's
+`AbortSignal.any()` and passed into the admitted dispatch. Recovery failure is
+fail-stop; there is no recovery-of-recovery, retry loop, scheduler, or state
+expansion.
+
+The corrected qualification boundary is six real PostgreSQL service tests plus
+six process tests for EU-01 through EU-06, for twelve tests in the combined
+target. Provider, cross-platform, source-less, service/headless, and hardware
+claims remain individually `NOT_RUN` unless actually executed.
+
+Where the original dispatch algorithm below says that calling `dispatch()` on
+`DISPATCHING` recovers the operation, this amendment is authoritative for the
+current candidate: only the explicit `recoverDispatch()` operation performs
+that first-order recovery.
+
+---
+
 # 0. Activation, Authority and Current-Truth Reconciliation
 
 ## 0.1 Activation preconditions
@@ -884,8 +923,8 @@ If final canonical commit fails, do not call the external port again in the same
 ```text
 DISPATCHING:
   do not dispatch
-  recover as UNCERTAIN under current Host
-  return UNCERTAIN
+  do not recover
+  return current DISPATCHING unchanged
 
 SUCCEEDED | FAILED | UNCERTAIN:
   do not dispatch

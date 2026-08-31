@@ -67,11 +67,11 @@ not create a compatibility reader, bridge migration, alias, or fallback.
 - `EFFECT-002` Existing preparation is idempotent only when effect kind, request version, and canonical request are identical. Any difference MUST fail with an identity conflict.
 - `EFFECT-003` Legal transitions are `PREPARED → DISPATCHING`, `DISPATCHING → SUCCEEDED | FAILED | UNCERTAIN`, and `UNCERTAIN → SUCCEEDED | FAILED` during read-only reconciliation. `SUCCEEDED` and `FAILED` are terminal.
 - `EFFECT-004` `PREPARED → DISPATCHING` MUST be a Host-fenced compare-and-set mutation. Concurrent callers MUST have at most one admission winner.
-- `EFFECT-005` Only the caller that commits dispatch admission MAY invoke the injected dispatch port. Observing any other state MUST NOT invoke it.
+- `EFFECT-005` Only the caller that commits dispatch admission MAY invoke the injected dispatch port. A dispatch caller that observes `DISPATCHING` MUST return it unchanged and MUST NOT recover or mutate it; observing any other state MUST NOT invoke the port.
 - `EFFECT-006` The port receives `EffectOperationId` as the external request key. The current contract admits one dispatch per operation and MUST NOT create automatic redispatch.
 - `EFFECT-007` Ownership or cancellation lost before the external call MUST prevent the call when the current Host signal proves admission is no longer valid. A definitive no-effect result MAY be `FAILED`; otherwise completion is fail-closed.
 - `EFFECT-008` Once the external call may have started, an exception, cancellation, timeout, or missing canonical outcome MUST be `UNCERTAIN` unless positive evidence proves `FAILED`.
-- `EFFECT-009` A recovered `DISPATCHING` operation MUST be Host-fenced to `UNCERTAIN` and MUST NOT be dispatched again, including after a crash before the call.
+- `EFFECT-009` An explicitly recovered `DISPATCHING` operation MUST be Host-fenced to `UNCERTAIN` and MUST NOT be dispatched again, including after a crash before the call. The owner MUST expose this as `recoverDispatch()`; `dispatch()` MUST NOT infer recovery from a live `DISPATCHING` observation.
 - `EFFECT-010` `UNCERTAIN` is stable current truth. It MUST NOT become `DISPATCHING` automatically and MUST NOT cause a WorkItem retry merely because the effect is uncertain.
 - `EFFECT-011` Reconciliation MUST accept only `UNCERTAIN`, use the exact matching read-only reconciliation operation, and never call dispatch. `UNKNOWN` leaves `UNCERTAIN`; only positive success or failure evidence may refine it.
 - `EFFECT-012` State-changing effect Activities MUST retain Lineage and Evidence distinctions for preparation, dispatch admission, outcome, recovery to uncertainty, and reconciliation.
@@ -80,8 +80,12 @@ not create a compatibility reader, bridge migration, alias, or fallback.
 
 ## Operations
 
-The owner exposes `get`, `prepare`, `dispatch`, and `reconcile`. A dispatch
-adapter returns knowledge, not retry policy:
+The owner exposes `get`, `prepare`, `dispatch`, explicit `recoverDispatch`, and
+`reconcile`. `recoverDispatch` requires a current ExecutionContext, accepts no
+dispatch port, performs one Host-fenced `DISPATCHING → UNCERTAIN` transition,
+and fails stop on mutation/evidence/lineage failure. It rejects `PREPARED`
+recovery and does not retry itself. A dispatch adapter returns knowledge, not
+retry policy:
 
 ```ts
 interface EffectDispatchPort {
@@ -123,10 +127,11 @@ admission and outside the mutation transaction. A final outcome commit failure
 MUST NOT invoke the external port again in the same execution path.
 
 If the current Host loses authority after dispatch admission, the stale caller
-MUST NOT commit an outcome. A replacement owner observes `DISPATCHING` and
-applies bounded recovery to `UNCERTAIN`. Lease reacquisition, external rollback,
-background reconciliation scheduling, and recovery-of-recovery are outside this
-contract.
+MUST NOT commit an outcome. An explicitly authorized replacement handling path
+may observe `DISPATCHING` and apply bounded recovery to `UNCERTAIN`; a concurrent
+dispatch observer MUST leave the live state unchanged. Lease reacquisition,
+external rollback, background reconciliation scheduling, and recovery-of-recovery
+are outside this contract.
 
 ## References
 

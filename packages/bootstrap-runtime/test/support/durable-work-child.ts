@@ -507,10 +507,28 @@ async function main(): Promise<void> {
               return { status: "UNKNOWN" as const };
             },
           };
-          const resolvedEffect = await effectService.dispatch(
-            effectOperationId,
-            effectPort,
-          );
+          let resolvedEffect = preparedEffect.operation;
+          switch (preparedEffect.operation.state) {
+            case "PREPARED": {
+              const effectSignal = AbortSignal.any([input.signal, host.signal]);
+              resolvedEffect = await effectService.dispatch(
+                effectOperationId,
+                effectPort,
+                { signal: effectSignal },
+              );
+              if (resolvedEffect.state === "DISPATCHING") {
+                throw new Error("fresh EffectOperation dispatch remained DISPATCHING");
+              }
+              break;
+            }
+            case "DISPATCHING":
+              resolvedEffect = await effectService.recoverDispatch(effectOperationId);
+              break;
+            case "SUCCEEDED":
+            case "FAILED":
+            case "UNCERTAIN":
+              break;
+          }
           emit({
             type: "EFFECT_OUTCOME",
             workItemId: input.workItemId,

@@ -23,6 +23,7 @@ import {
   effectContextRequiredProblem,
   effectDispatchAbortedBeforeCallProblem,
   effectDispatchUncertainProblem,
+  effectInvalidTransitionProblem,
   effectKindMismatchProblem,
   effectNotFoundProblem,
   effectReconciliationUnsupportedProblem,
@@ -262,6 +263,12 @@ export function createEffectOperationService(
   ): Promise<EffectOperation> => {
     const id = requireEffectOperationId(effectOperationId);
     requireCurrent(options.execution);
+    const current = await get(id);
+    if (current === undefined) throw effectNotFoundProblem();
+    if (current.state === "PREPARED") {
+      throw effectInvalidTransitionProblem("PREPARED", "UNCERTAIN");
+    }
+    if (current.state !== "DISPATCHING") return current;
     return options.execution.runActivity(
       activityRequest("effect.recover-uncertain", id),
       async (context) => {
@@ -278,7 +285,15 @@ export function createEffectOperationService(
             recoveryOutcome,
             options.time.now(),
           );
-          if (!recovered.changed) return recovered.operation;
+          if (!recovered.changed) {
+            await options.lineage.retainCurrent(transaction, context);
+            await options.lineage.completeCurrent(transaction, context, {
+              endedAt: options.time.now(),
+              outcome: "SUCCEEDED",
+              outcomeRef: completionRef(recovered.operation),
+            });
+            return recovered.operation;
+          }
           await options.lineage.retainCurrent(transaction, context);
           await options.evidence.recordRequired(
             transaction,
@@ -333,6 +348,7 @@ export function createEffectOperationService(
         },
       );
     },
+    recoverDispatch,
 
     async dispatch(
       effectOperationId: EffectOperationId,
@@ -344,7 +360,7 @@ export function createEffectOperationService(
       if (operation === undefined) throw effectNotFoundProblem();
       assertPortKind(operation, port);
       requireCurrent(options.execution);
-      if (operation.state === "DISPATCHING") return recoverDispatch(id);
+      if (operation.state === "DISPATCHING") return operation;
       if (operation.state !== "PREPARED") return operation;
 
       return options.execution.runActivity(
@@ -366,9 +382,6 @@ export function createEffectOperationService(
             return result;
           });
           if (admission.status !== "ADMITTED") {
-            if (admission.operation.state === "DISPATCHING") {
-              return recoverDispatch(id);
-            }
             return admission.operation;
           }
 

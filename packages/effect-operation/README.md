@@ -26,8 +26,9 @@ network client, provider registry, scheduler, or retry engine.
 ## Public surface
 
 The package root exports the immutable EffectOperation contracts, the narrow
-dispatch/reconciliation port, and `EffectOperationService`. Repository details
-and persistence transaction handles stay package-private.
+dispatch/reconciliation port, and `EffectOperationService` with explicit
+dispatch recovery. Repository details and persistence transaction handles stay
+package-private.
 
 ## Dependencies and handoffs
 

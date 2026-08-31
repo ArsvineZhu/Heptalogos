@@ -222,7 +222,7 @@ describePostgres.sequential("EffectOperation PostgreSQL qualification", () => {
     });
   }, 240_000);
 
-  it("has one concurrent dispatch admission winner and one external call", async () => {
+  it("has one concurrent dispatch admission winner while the observer leaves it live", async () => {
     const item = await makeRunningEffect();
     const id = createEffectOperationId();
     await prepare(item, id);
@@ -244,12 +244,15 @@ describePostgres.sequential("EffectOperation PostgreSQL qualification", () => {
     const first = inActivity(item, () => item.service.dispatch(id, port));
     await enteredPromise;
     const second = inActivity(item, () => item.service.dispatch(id, port));
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    const observed = await second;
+    expect(observed.state).toBe("DISPATCHING");
+    await expect(effectRow(item, id)).resolves.toMatchObject({ state: "DISPATCHING" });
     release();
-    await Promise.allSettled([first, second]);
+    const winner = await first;
 
     expect(calls).toBe(1);
-    await expect(item.service.get(id)).resolves.toMatchObject({ state: "UNCERTAIN" });
+    expect(winner.state).toBe("SUCCEEDED");
+    await expect(item.service.get(id)).resolves.toMatchObject({ state: "SUCCEEDED" });
   }, 240_000);
 
   it("normalizes ambiguous dispatch, never redispatches, and reconciles read-only", async () => {

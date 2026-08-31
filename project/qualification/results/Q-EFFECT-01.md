@@ -20,17 +20,28 @@ transaction boundary; `execution-lineage` and `evidence` retain causal facts;
 The request is V1, immutable after preparation, and identified externally by
 the caller-supplied `EffectOperationId`. Only a committed
 `PREPARED → DISPATCHING` compare-and-set winner may invoke the injected port.
-An ambiguous dispatch or recovered `DISPATCHING` operation becomes
-`UNCERTAIN`; reconciliation is read-only and cannot dispatch again.
+An ambiguous dispatch or an explicitly recovered `DISPATCHING` operation
+becomes `UNCERTAIN`; a live concurrent observer leaves `DISPATCHING` unchanged.
+Reconciliation is read-only and cannot dispatch again. The synthetic
+WorkHandler composes its existing invocation signal with the managed Host
+signal using Node's `AbortSignal.any()` before dispatch.
 
 ## Evidence
 
 ```yaml
+effectOperationUnit: PASS (2 files, 10 tests)
+realPostgresServiceQualification: PASS (6/6 tests)
+processQualification: PASS (6/6 tests; EU-01, EU-02, EU-03, EU-04, EU-05, EU-06)
+effectUncertaintyTarget: PASS (12/12 combined tests)
 effect_contract_unit: PASS
 effect_identity_unit: PASS
 effect_schema_unit: PASS
 effect_real_postgres_transitions: PASS
 effect_concurrent_dispatch_admission: PASS
+effect_live_dispatch_observer: PASS
+effect_explicit_recovery: PASS
+effect_pre_call_abort: PASS
+effect_work_handler_signal_propagation: PASS
 effect_host_fenced_completion: PASS
 effect_host_fenced_refinement: PASS
 effect_reconciliation_semantics: PASS
@@ -51,13 +62,14 @@ foundation_executable_spine_regression: PASS
 
 Actual runs on the current Windows host:
 
-- `effect-operation` unit: 2 files, 9 tests, `PASS`.
+- `effect-operation` unit: 2 files, 10 tests, `PASS`.
 - `foundation-contracts` unit: 6 files, 34 tests, `PASS`.
 - `canonical-schema` unit: 4 tests, `PASS`.
 - `bootstrap-runtime:test:effect-uncertainty` real PostgreSQL service
   qualification: 6 tests, `PASS`.
-- The same target's process qualification: 12 tests, `PASS`, covering EU-01
-  through EU-06 with a file-backed sink outside canonical PostgreSQL.
+- The same target's process qualification: 6 tests, `PASS`, covering EU-01
+  through EU-06; the combined target ran 12 tests, `PASS`, with a file-backed
+  sink outside canonical PostgreSQL.
 - `bootstrap-runtime:test:foundation-spine`: 2 tests, `PASS`.
 
 The process proof establishes one sink write for successful dispatch, zero for
@@ -76,17 +88,19 @@ source_less: NOT_RUN
 service_headless: NOT_RUN
 macos_real_effect_process: NOT_RUN
 hardware_power_loss: NOT_RUN
+independent_review: NOT_RUN
 ```
 
 No live provider, Messaging Driver, AI provider, source-less artifact,
 service/headless installation, macOS process, or hardware power-loss path was
-claimed by this record.
+claimed by this record. The required new out-of-band Independent Review was
+also not claimed by this record.
 
 ## Decision
 
 ```yaml
 effect_implementation: PASS
 qualificationState: PARTIAL
-reason: "All current EffectOperation semantic and Windows real PostgreSQL/process proof claims passed; deferred provider, artifact, platform, service, and hardware boundaries remain NOT_RUN."
+reason: "All current corrected EffectOperation semantic and Windows real PostgreSQL/process proof claims passed; deferred provider, artifact, platform, service, hardware, and external review boundaries remain NOT_RUN."
 reopenConditions: "Only new current evidence, an accepted current-Horizon failure, a current consumer/invariant, or an explicit active Plan requirement."
 ```
