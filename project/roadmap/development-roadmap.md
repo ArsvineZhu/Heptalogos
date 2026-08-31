@@ -1,8 +1,8 @@
 # Heptalogos Development Roadmap
 
 **Status:** LIVING ROADMAP / planning guidance<br>
-**Date:** 2026-08-29<br>
-**Repository baseline:** current merged `master` tree with H3A-2 closed and the Foundation executable-spine evidence recorded; the Harness/governance reconciliation is complete and H3B is now the active implementation Plan<br>
+**Date:** 2026-08-31<br>
+**Repository baseline:** current merged `master` tree with H3B closed, the Foundation executable-spine evidence recorded, and no active implementation Plan; H3-S is eligible but not authorized<br>
 **Architecture baseline:** `docs/architecture/` design state 2026-08-20
 
 > This document owns development sequencing, Horizon truth, and qualification guidance. It does not replace the canonical Human Architecture, current Specs, Governance, Dependencies, Qualification, or active Plan. Update this Roadmap when evidence changes sequencing or eligibility; update the relevant canonical owner when semantics change.
@@ -356,7 +356,7 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 
 > Can the system make a durable promise, crash anywhere around dispatch/processing/external effects, and resume without losing the obligation or inventing false certainty?
 
-### Current progress (2026-08-30)
+### Current progress (2026-08-31)
 
 ```yaml
 H3: OPEN
@@ -364,10 +364,12 @@ H3A: FUNCTIONALLY_COMPLETE
 H3A_1: CLOSED
 H3A_2: CLOSED
 H3_FOUNDATION_EXECUTABLE_SPINE: PASS
-H3B: IN_PROGRESS
-H3_FUNCTIONAL: IN_PROGRESS
-H3_STABILIZATION: ELIGIBLE_AFTER_H3B
-currentRepositoryWork: H3B Consequential Effect & Uncertainty
+H3B: CLOSED
+H3_FUNCTIONAL: COMPLETE
+H3_STABILIZATION: ELIGIBLE
+currentRepositoryWork: NONE
+activeImplementationPlan: NONE
+nextAuthorizedPlan: NONE
 githubActions: DISABLED_CURRENT_EXECUTION_POLICY
 ```
 
@@ -384,18 +386,18 @@ scenarios, and the terminal-commit restart scenario passes. This does not
 close all product qualification boundaries. Windows and Ubuntu/Linux evidence
 is current for the recorded scenarios; macOS, source-less, service/headless,
 and ResourceGovernor qualification remain individually scoped and must not be
-inferred from another platform or candidate. H3B is the current authorized
-implementation work under the active EffectOperation plan; H3-S remains
-sequenced after H3B so the Foundation containment pass follows the final H3
-semantic owner. Ordinary GitHub Actions are disabled under the current
-execution policy; local repository gates remain the closure route.
+inferred from another platform or candidate. H3B is now closed after the
+completed EffectOperation plan; H3-S is eligible but not authorized, and
+remains sequenced after H3B so the Foundation containment pass follows the
+final H3 semantic owner. Ordinary GitHub Actions are disabled under the
+current execution policy; local repository gates remain the closure route.
 
 ### Implementation decomposition
 
 - H3A-1 implements canonical work/handler/signal semantics without DBOS.
 - H3A-2 materializes DBOS durable mechanics and crash recovery.
-- H3B, now authorized after H3A-2 and the Foundation spine close, adds the
-  minimal EffectOperation uncertainty boundary.
+- H3B, completed after H3A-2 and the Foundation spine close, added the minimal
+  EffectOperation uncertainty boundary.
 - Real `CONFIG_PINNED` ConfigurationRevision resolution remains H4-owned; H3A
   uses configuration-free handlers and fails closed for pinned binding.
 - Real PressureSnapshot/ResourceGovernor remains H8-owned; H3A establishes
@@ -459,8 +461,9 @@ At minimum, kill the process around key boundaries and prove:
 ### H3-S — Foundation Containment / Stabilization
 
 H3-S is a convergence/subtraction stage, not another hardening expansion. It
-is sequenced after H3B for this development line, following the already-closed
-H3A-2 and Foundation executable spine. Its bounded scope is:
+is eligible but not authorized, and is sequenced after H3B for this development
+line, following the already-closed H3A-2 and Foundation executable spine. Its
+bounded scope is:
 
 ```text
 current-tree residue and PRE_PRODUCTION compatibility cleanup

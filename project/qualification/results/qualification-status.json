@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-31T11:31:02+08:00",
+  "recordedAt": "2026-08-31T11:55:21+08:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": ["PASS", "FAIL", "NOT_RUN", "BLOCKED"],
@@ -951,7 +951,10 @@
         "dbos_effect_authority_boundary": "PASS (DBOS remains WorkItem projection/mechanics in the process qualification)",
         "no_effect_scheduler_or_retry_engine": "PASS (current-tree architecture inspection)",
         "no_preproduction_compatibility_baggage": "PASS (single baseline and strict V1 normalization)",
-        "foundation_executable_spine_regression": "PASS (2/2 real process scenarios)"
+        "foundation_executable_spine_regression": "PASS (2/2 real process scenarios)",
+        "independent_review": "PASS (operator-supplied exact candidate review)",
+        "squash_merge": "PASS (PR #31)",
+        "post_merge_reconciliation": "PASS"
       },
       "evidenceSource": {
         "environment": "Windows / Node 24.20.0 / pnpm 11.24.0 / TypeScript 7 toolchain",
@@ -963,7 +966,14 @@
         "processQualification": "pnpm nx run bootstrap-runtime:test:effect-uncertainty; 6/6 process tests PASS (EU-01 through EU-06)",
         "effectUncertaintyTarget": "pnpm nx run bootstrap-runtime:test:effect-uncertainty; 12/12 combined tests PASS",
         "foundationSpineRegression": "pnpm nx run bootstrap-runtime:test:foundation-spine; 2/2 tests PASS",
-        "externalBoundary": "Synthetic file-backed sink outside canonical PostgreSQL; no live network/provider was invoked"
+        "externalBoundary": "Synthetic file-backed sink outside canonical PostgreSQL; no live network/provider was invoked",
+        "candidateBaseAtReview": "474d5426088e10bd19c768c7a06439aaf8a3b5a8",
+        "candidateHeadAtReview": "68b549eb618e07bbe132517d34660467a5c04d80",
+        "reviewSource": "operator_supplied_exact_candidate_review",
+        "independentReview": "PASS",
+        "pullRequest": 31,
+        "squashMergeSha": "6557d9fbf2370212ed9601342f7ea351b10347b1",
+        "postMergeReconciliation": "PASS"
       },
       "notRunReasons": {
         "real_network_provider": "No live network or provider adapter is in the current scope.",
@@ -972,8 +982,7 @@
         "source_less": "The process proof used the source checkout, not a source-less shipping artifact.",
         "service_headless": "No installed service/headless product artifact was executed.",
         "macos_real_effect_process": "Only the Windows process boundary was executed.",
-        "hardware_power_loss": "Power-loss and hardware corruption are deferred catastrophic failure classes.",
-        "independent_review": "The required new out-of-band Independent Review has not been supplied."
+        "hardware_power_loss": "Power-loss and hardware corruption are deferred catastrophic failure classes."
       }
     }
   ],

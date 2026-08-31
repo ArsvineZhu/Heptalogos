@@ -93,19 +93,34 @@ source_less: NOT_RUN
 service_headless: NOT_RUN
 macos_real_effect_process: NOT_RUN
 hardware_power_loss: NOT_RUN
-independent_review: NOT_RUN
+independent_review: PASS (operator-supplied exact candidate review)
 ```
 
 No live provider, Messaging Driver, AI provider, source-less artifact,
 service/headless installation, macOS process, or hardware power-loss path was
-claimed by this record. The required new out-of-band Independent Review was
-also not claimed by this record.
+claimed by this record. The operator-supplied Independent Review PASS is a
+separate governance closure fact and does not upgrade those deferred product
+qualification boundaries.
 
 ## Decision
 
 ```yaml
 effect_implementation: PASS
 qualificationState: PARTIAL
-reason: "All current corrected EffectOperation semantic and Windows real PostgreSQL/process proof claims passed, including direct FAILED reconciliation and required Activity/Evidence distinctions; deferred provider, artifact, platform, service, hardware, and external review boundaries remain NOT_RUN."
+reason: "All current corrected EffectOperation semantic and Windows real PostgreSQL/process proof claims passed, including direct FAILED reconciliation and required Activity/Evidence distinctions; the exact candidate received operator-supplied Independent Review PASS and was squash-merged; deferred provider, artifact, platform, service, and hardware boundaries remain NOT_RUN."
 reopenConditions: "Only new current evidence, an accepted current-Horizon failure, a current consumer/invariant, or an explicit active Plan requirement."
 ```
+
+## Post-merge closure reconciliation
+
+```yaml
+pullRequest: 31
+independentReview: PASS
+squashMerge: PASS
+postMergeReconciliation: PASS
+```
+
+The exact review candidate pair and squash-merge commit are recorded in
+`qualification-status.json`. `qualificationState` remains `PARTIAL` because
+the provider, source-less, platform, service/headless, and hardware boundaries
+remain explicitly `NOT_RUN`.

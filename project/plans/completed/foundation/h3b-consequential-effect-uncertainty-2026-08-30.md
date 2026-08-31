@@ -3,11 +3,11 @@
 ## Decision-Complete Implementation, Qualification & Closure Plan
 
 **Plan date:** 2026-08-30
-**Status:** ACTIVE
+**Status:** COMPLETED
 **Plan class:** Foundation / H3B behavior candidate
 **Current Horizon:** H3 — Survive Asynchrony
 **Executable Truth target:** H3 effect-boundary process proof on top of the already-green Foundation L3 spine
-**Intended canonical active path:** `project/plans/active/foundation/h3b-consequential-effect-uncertainty-2026-08-30.md`
+**Intended canonical completed path:** `project/plans/completed/foundation/h3b-consequential-effect-uncertainty-2026-08-30.md`
 **Suggested behavior branch:** `dev/h3b-effect-uncertainty`
 **Next bounded stage after closure:** H3-S Foundation Containment / Stabilization
 **Ordinary GitHub Actions:** disabled; not a closure requirement unless the user explicitly authorizes a one-off run
@@ -1901,3 +1901,28 @@ STOP H3B.
 ```
 
 Do not begin H3-S in the same change.
+
+---
+
+## Post-merge closure reconciliation (2026-08-31)
+
+PR #31 was squash-merged after the final local qualification, repository
+verification, and operator-supplied Independent Review `PASS` for the exact
+reviewed candidate. The exact candidate pair and merge commit are retained in
+the current Q-EFFECT-01 qualification projection.
+
+```yaml
+closure:
+  implementation: PASS
+  requiredLocalQualification: PASS
+  foundationSpine: PASS
+  independentReview: PASS
+  finalCrossPlatformCI: NOT_RUN
+  squashMerge: PASS
+  postMergeReconciliation: PASS
+```
+
+The Plan is historical and no longer authorizes implementation. H3-S remains
+eligible but requires its own explicitly authorized Plan; no H3-S work is
+started by this reconciliation. Deferred provider, artifact, platform,
+service/headless, and hardware boundaries remain `NOT_RUN`.
