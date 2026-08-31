@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   createCapabilityId,
   createContributionId,
+  createEffectKindId,
+  createEffectOperationId,
   createMicroSystemId,
   createMicroSystemInstanceId,
   createProviderId,
@@ -12,6 +14,8 @@ import {
   parseDurableCodeVersion,
   parseCapabilityId,
   parseContributionId,
+  parseEffectKindId,
+  parseEffectOperationId,
   parseMicroSystemId,
   parseMicroSystemInstanceId,
   parseProviderId,
@@ -84,6 +88,33 @@ describe("runtime identity primitives", () => {
 
     expect(parseWorkItemId(workItemId)).toBe(workItemId);
     expect(parseMicroSystemId(workItemId)).toBeUndefined();
+  });
+
+  it("creates and parses the EffectOperation UUID and EffectKind identities", () => {
+    const effectOperationId = createEffectOperationId();
+    const effectKind = createEffectKindId("synthetic.external-write");
+
+    expect(parseEffectOperationId(effectOperationId)).toBe(effectOperationId);
+    expect(parseEffectKindId(effectKind)).toBe(effectKind);
+    expect(parseEffectKindId(effectOperationId)).toBeUndefined();
+  });
+
+  it("rejects malformed EffectOperation and EffectKind identities", () => {
+    expect(
+      parseEffectOperationId("550e8400-e29b-41d4-a716-446655440000"),
+    ).toBeUndefined();
+    for (const value of [
+      "Synthetic.external-write",
+      "synthetic_external-write",
+      "synthetic..external-write",
+      "synthetic.",
+      "1synthetic.external-write",
+      "a".repeat(129),
+      "",
+    ]) {
+      expect(parseEffectKindId(value)).toBeUndefined();
+    }
+    expect(() => createEffectKindId("Synthetic.external-write")).toThrow(TypeError);
   });
 
   it("rejects invalid and non-v7 WorkItemId values", () => {

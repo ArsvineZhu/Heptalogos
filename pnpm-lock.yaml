@@ -213,6 +213,9 @@ importers:
       '@heptalogos/durable-execution':
         specifier: workspace:*
         version: link:../durable-execution
+      '@heptalogos/effect-operation':
+        specifier: workspace:*
+        version: link:../effect-operation
       '@heptalogos/evidence':
         specifier: workspace:*
         version: link:../evidence
@@ -321,6 +324,28 @@ importers:
       '@types/pg':
         specifier: 'catalog:'
         version: 8.23.1
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
+
+  packages/effect-operation:
+    dependencies:
+      '@heptalogos/evidence':
+        specifier: workspace:*
+        version: link:../evidence
+      '@heptalogos/execution-lineage':
+        specifier: workspace:*
+        version: link:../execution-lineage
+      '@heptalogos/foundation-contracts':
+        specifier: workspace:*
+        version: link:../foundation-contracts
+      '@heptalogos/persistence':
+        specifier: workspace:*
+        version: link:../persistence
+      '@heptalogos/time-service':
+        specifier: workspace:*
+        version: link:../time-service
+    devDependencies:
       vitest:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))

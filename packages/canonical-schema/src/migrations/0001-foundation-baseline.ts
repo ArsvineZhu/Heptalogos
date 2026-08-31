@@ -367,6 +367,62 @@ export const foundationBaselineMigration: Migration = {
 
     await db.schema
       .withSchema(schema)
+      .createTable("effect_operation")
+      .addColumn("effect_operation_id", "uuid", (column) =>
+        column.notNull().primaryKey(),
+      )
+      .addColumn("schema_version", "integer", (column) => column.notNull())
+      .addColumn("effect_kind", "text", (column) => column.notNull())
+      .addColumn("request_version", "integer", (column) => column.notNull())
+      .addColumn("request", "jsonb", (column) => column.notNull())
+      .addColumn("state", "text", (column) => column.notNull())
+      .addColumn("lineage_context_ref", "jsonb", (column) => column.notNull())
+      .addColumn("dispatch_host_ownership_token", "uuid")
+      .addColumn("outcome", "jsonb")
+      .addColumn("created_at", "timestamptz(3)", (column) => column.notNull())
+      .addColumn("updated_at", "timestamptz(3)", (column) => column.notNull())
+      .addCheckConstraint(
+        "effect_operation_id_shape_check",
+        sql`
+          effect_operation_id::text ~ '^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+        `,
+      )
+      .addCheckConstraint(
+        "effect_operation_schema_version_check",
+        sql`schema_version = 1`,
+      )
+      .addCheckConstraint(
+        "effect_operation_kind_shape_check",
+        sql`
+          octet_length(effect_kind) BETWEEN 1 AND 128 AND
+          effect_kind ~ '^[a-z][a-z0-9]*(\\.[a-z0-9]+|-[a-z0-9]+)*$'
+        `,
+      )
+      .addCheckConstraint(
+        "effect_operation_request_version_check",
+        sql`request_version BETWEEN 1 AND 2147483647`,
+      )
+      .addCheckConstraint(
+        "effect_operation_state_check",
+        sql`state IN ('PREPARED', 'DISPATCHING', 'SUCCEEDED', 'FAILED', 'UNCERTAIN')`,
+      )
+      .addCheckConstraint(
+        "effect_operation_state_shape_check",
+        sql`
+          (state = 'PREPARED' AND dispatch_host_ownership_token IS NULL AND outcome IS NULL) OR
+          (state = 'DISPATCHING' AND dispatch_host_ownership_token IS NOT NULL AND outcome IS NULL) OR
+          (state IN ('SUCCEEDED', 'FAILED', 'UNCERTAIN') AND
+            dispatch_host_ownership_token IS NOT NULL AND
+            outcome IS NOT NULL AND
+            jsonb_typeof(outcome) = 'object' AND
+            outcome->>'schemaVersion' = '1' AND
+            outcome->>'status' = state)
+        `,
+      )
+      .execute();
+
+    await db.schema
+      .withSchema(schema)
       .createTable("activity_link")
       .addColumn("source_activity_id", "uuid", (column) =>
         column.notNull().references(`${schema}.activity_record.activity_id`),
@@ -435,6 +491,7 @@ export const foundationBaselineMigration: Migration = {
       "activity_link",
       "evidence_record",
       "work_item",
+      "effect_operation",
     ]) {
       await sql`
         REVOKE ALL ON TABLE "heptalogos".${sql.ref(table)} FROM PUBLIC
@@ -450,6 +507,9 @@ export const foundationBaselineMigration: Migration = {
     }
     await sql`
       GRANT SELECT, INSERT, UPDATE ON TABLE "heptalogos"."work_item" TO "heptalogos_runtime"
+    `.execute(db);
+    await sql`
+      GRANT SELECT, INSERT, UPDATE ON TABLE "heptalogos"."effect_operation" TO "heptalogos_runtime"
     `.execute(db);
 
     await sql`

@@ -3,12 +3,20 @@ import {
   asContentDigest,
   asDurableCodeVersion,
   createContributionId,
+  createEffectKindId,
+  createEffectOperationId,
   createMicroSystemId,
   digestCanonicalJson,
+  parseEffectKindId,
+  parseEffectOperationId,
   type ProductGenerationId,
   type PackageGenerationId,
   type WorkItemId,
 } from "@heptalogos/foundation-contracts";
+import {
+  createEffectOperationService,
+  type EffectDispatchPort,
+} from "@heptalogos/effect-operation";
 import { createCanonicalSchemaInitializer } from "@heptalogos/canonical-schema";
 import {
   createDbosAttemptInspectionPort,
@@ -26,6 +34,7 @@ import {
   createExecutionLineageService,
   createPersistenceExecutionContextProvider,
 } from "@heptalogos/execution-lineage";
+import { createEvidenceService } from "@heptalogos/evidence";
 import { createPersistenceService } from "@heptalogos/persistence";
 import {
   createRuntimeLifecycleLineage,
@@ -84,10 +93,11 @@ const [
   counterPath,
   versionLabel = "current",
   expectedWorkItemIdText,
+  effectSinkPathText,
 ] = process.argv.slice(2);
 if (!anchorRoot || !pgBin || !portText || !mode || !counterPath) {
   throw new Error(
-    "usage: durable-work-child.ts <anchor> <pg-bin> <port> <mode> <counter-file> [version]",
+    "usage: durable-work-child.ts <anchor> <pg-bin> <port> <mode> <counter-file> [version] [work-item-id] [effect-sink-file]",
   );
 }
 
@@ -113,9 +123,26 @@ type ChildEvent = {
   readonly applicationVersion?: string;
   readonly attemptCount?: number;
   readonly activeWorkAttemptInvocations?: number;
+  readonly effectOperationId?: string;
+  readonly effectState?: string;
 };
 
 const expectedWorkItemId = expectedWorkItemIdText as WorkItemId | undefined;
+const effectModes = new Set([
+  "effect-success",
+  "effect-failure",
+  "effect-crash-after-write",
+  "effect-crash-before-write",
+  "effect-outcome-before-terminal",
+  "effect-lease-loss",
+  "effect-recover",
+]);
+const effectMode = effectModes.has(mode);
+const effectSinkPath = effectSinkPathText;
+if (effectMode && effectSinkPath === undefined) {
+  throw new Error("effect modes require an external sink path");
+}
+const syntheticEffectKind = createEffectKindId("synthetic.external-write");
 
 function emit(event: ChildEvent): void {
   process.stdout.write(`HEPTALOGOS_EVENT ${JSON.stringify(event)}\n`);
@@ -280,7 +307,13 @@ const descriptor: WorkHandlerProvisionDescriptor = {
       version: 1,
       schema: {
         type: "object",
-        properties: { value: { type: "string" } },
+        properties: {
+          value: { type: "string" },
+          effectOperationId: { type: "string" },
+          effectKind: { type: "string" },
+          requestVersion: { type: "integer", minimum: 1 },
+          request: { type: "object" },
+        },
         required: ["value"],
         additionalProperties: false,
       },
@@ -288,7 +321,11 @@ const descriptor: WorkHandlerProvisionDescriptor = {
   ],
   outcomeSchema: {
     type: "object",
-    properties: { accepted: { type: "boolean" } },
+    properties: {
+      accepted: { type: "boolean" },
+      effectOperationId: { type: "string" },
+      effectState: { type: "string" },
+    },
     required: ["accepted"],
     additionalProperties: false,
   },
@@ -371,6 +408,13 @@ async function main(): Promise<void> {
     createPersistenceExecutionContextProvider(execution),
   );
   const lineage = createExecutionLineageService();
+  const effectService = createEffectOperationService({
+    persistence,
+    execution,
+    lineage,
+    evidence: createEvidenceService(time),
+    time,
+  });
   const lifecycleLineage = createRuntimeLifecycleLineage({
     execution,
     persistence,
@@ -387,6 +431,119 @@ async function main(): Promise<void> {
           `${input.workItemId}:${input.dispatchRevision}\n`,
           "utf8",
         );
+        if (effectMode) {
+          const payload = input.payload as Readonly<Record<string, unknown>>;
+          const effectOperationId = parseEffectOperationId(payload.effectOperationId);
+          const effectKind = parseEffectKindId(payload.effectKind);
+          if (
+            effectOperationId === undefined ||
+            effectKind === undefined ||
+            typeof payload.requestVersion !== "number"
+          ) {
+            throw new Error("effect WorkItem payload is invalid");
+          }
+          const preparedEffect = await effectService.prepare({
+            effectOperationId,
+            effectKind,
+            requestVersion: payload.requestVersion,
+            request: payload.request,
+          });
+          emit({
+            type: "EFFECT_PREPARED",
+            workItemId: input.workItemId,
+            effectOperationId,
+            effectState: preparedEffect.operation.state,
+          });
+          const effectPort: EffectDispatchPort = {
+            effectKind,
+            async dispatch(dispatchInput) {
+              if (mode === "effect-recover") {
+                emit({
+                  type: "EFFECT_REDISPATCH_ATTEMPT",
+                  workItemId: input.workItemId,
+                  effectOperationId: dispatchInput.effectOperationId,
+                });
+                throw new Error("recovered EffectOperation was redispatched");
+              }
+              if (mode === "effect-crash-before-write") {
+                emit({
+                  type: "EFFECT_DISPATCHING",
+                  workItemId: input.workItemId,
+                  effectOperationId: dispatchInput.effectOperationId,
+                });
+                await releaseRequested;
+              }
+              if (mode === "effect-failure") {
+                return {
+                  status: "FAILED" as const,
+                  problem: {
+                    schemaVersion: 1 as const,
+                    problemCode: "synthetic.no-effect",
+                    category: "unavailable",
+                    retryClass: "manual" as const,
+                    title: "Synthetic sink reported no external success",
+                  },
+                };
+              }
+              await appendFile(
+                effectSinkPath!,
+                `${dispatchInput.effectOperationId}\n`,
+                "utf8",
+              );
+              emit({
+                type: "EFFECT_EXTERNAL_WRITTEN",
+                workItemId: input.workItemId,
+                effectOperationId: dispatchInput.effectOperationId,
+              });
+              if (mode === "effect-crash-after-write" || mode === "effect-lease-loss") {
+                await releaseRequested;
+              }
+              return {
+                status: "SUCCEEDED" as const,
+                receipt: { accepted: true },
+              };
+            },
+            async reconcile() {
+              return { status: "UNKNOWN" as const };
+            },
+          };
+          let resolvedEffect = preparedEffect.operation;
+          switch (preparedEffect.operation.state) {
+            case "PREPARED": {
+              const effectSignal = AbortSignal.any([input.signal, host.signal]);
+              resolvedEffect = await effectService.dispatch(
+                effectOperationId,
+                effectPort,
+                { signal: effectSignal },
+              );
+              if (resolvedEffect.state === "DISPATCHING") {
+                throw new Error("fresh EffectOperation dispatch remained DISPATCHING");
+              }
+              break;
+            }
+            case "DISPATCHING":
+              resolvedEffect = await effectService.recoverDispatch(effectOperationId);
+              break;
+            case "SUCCEEDED":
+            case "FAILED":
+            case "UNCERTAIN":
+              break;
+          }
+          emit({
+            type: "EFFECT_OUTCOME",
+            workItemId: input.workItemId,
+            effectOperationId,
+            effectState: resolvedEffect.state,
+          });
+          if (mode === "effect-outcome-before-terminal") await releaseRequested;
+          return {
+            outcome: {
+              accepted: true,
+              effectOperationId,
+              effectState: resolvedEffect.state,
+            },
+          };
+        }
         if (mode === "running-before-terminal" || mode === "lease-loss") {
           emit({
             type: "RUNNING_COMMITTED",
@@ -624,10 +781,19 @@ async function main(): Promise<void> {
     state: host.state,
   });
 
-  const createWorkItem = () =>
-    execution.runActivity(
+  const createWorkItem = () => {
+    const payload = effectMode
+      ? {
+          value: "durable-effect-child",
+          effectOperationId: createEffectOperationId(),
+          effectKind: syntheticEffectKind,
+          requestVersion: 1,
+          request: { value: "synthetic-effect" },
+        }
+      : { value: "durable-work-child" };
+    return execution.runActivity(
       {
-        kind: "durable-work.child.create",
+        kind: effectMode ? "effect-work.child.create" : "durable-work.child.create",
         importance: "significant",
         retentionClass: "operational",
         sensitivity: "operational",
@@ -635,12 +801,13 @@ async function main(): Promise<void> {
       () =>
         work.create({
           target: workItemTarget,
-          payload: { value: "durable-work-child" },
+          payload,
           queueProfileId,
           resourceAdmissionClass,
           priority: 100,
         }),
     );
+  };
   const dispatchWorkItem = async (
     created: Awaited<ReturnType<typeof createWorkItem>>,
   ): Promise<void> => {
@@ -655,6 +822,44 @@ async function main(): Promise<void> {
       priority: created.item.priority,
     });
   };
+
+  if (mode === "effect-recover") {
+    if (expectedWorkItemId === undefined) {
+      throw new Error("effect-recover requires a WorkItemId");
+    }
+    await reconciler.start();
+    await waitUntil(async () => {
+      const item = await repository.getWorkItem(expectedWorkItemId);
+      return item?.state === "SUCCEEDED";
+    });
+    emit({
+      type: "EFFECT_RECOVERED",
+      workItemId: expectedWorkItemId,
+      state: "SUCCEEDED",
+    });
+    await releaseRequested;
+    await clean();
+    emit({ type: "RELEASED" });
+    return;
+  }
+
+  if (effectMode) {
+    await reconciler.start();
+    const created = await createWorkItem();
+    await waitUntil(async () => {
+      const item = await repository.getWorkItem(created.item.workItemId);
+      return item?.state === "SUCCEEDED";
+    });
+    emit({
+      type: "EFFECT_WORK_SUCCEEDED",
+      workItemId: created.item.workItemId,
+      state: "SUCCEEDED",
+    });
+    await releaseRequested;
+    await clean();
+    emit({ type: "RELEASED" });
+    return;
+  }
 
   if (mode === "foundation-boot-work-stop" || mode === "foundation-restart-work-stop") {
     await reconciler.start();

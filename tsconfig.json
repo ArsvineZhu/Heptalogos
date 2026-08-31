@@ -48,6 +48,9 @@
     },
     {
       "path": "./packages/durable-execution"
+    },
+    {
+      "path": "./packages/effect-operation"
     }
   ]
 }

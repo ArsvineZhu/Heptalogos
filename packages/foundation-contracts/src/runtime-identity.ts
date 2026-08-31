@@ -39,6 +39,10 @@ export type ProviderId = NamespacedId<"ProviderId">;
 export type ContributionId = NamespacedId<"ContributionId">;
 /** Identifies a durable WorkItem. */
 export type WorkItemId = UuidV7Id<"WorkItemId">;
+/** Identifies one canonical consequential external effect operation. */
+export type EffectOperationId = UuidV7Id<"EffectOperationId">;
+/** Identifies the semantic kind handled by one effect adapter. */
+export type EffectKindId = NamespacedId<"EffectKindId">;
 
 /** The syntax accepted for normalized namespaced Runtime identities. */
 export const NAMESPACED_ID_PATTERN = "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$";
@@ -89,6 +93,12 @@ export const parseContributionId = (value: unknown): ContributionId | undefined 
 /** Parses a WorkItem UUID-v7 identity. */
 export const parseWorkItemId = (value: unknown): WorkItemId | undefined =>
   parseUuidV7Id("WorkItemId", value);
+/** Parses an EffectOperation UUID-v7 identity. */
+export const parseEffectOperationId = (value: unknown): EffectOperationId | undefined =>
+  parseUuidV7Id("EffectOperationId", value);
+/** Parses an EffectKind semantic identity. */
+export const parseEffectKindId = (value: unknown): EffectKindId | undefined =>
+  parseNamespacedId("EffectKindId", value);
 /** Parses a durable-code application version as its own digest identity. */
 export const parseDurableCodeVersion = (
   value: unknown,
@@ -116,6 +126,12 @@ export const createContributionId = (value: string): ContributionId =>
   createNamespacedId("ContributionId", value);
 /** Creates a new WorkItem UUID-v7 identity. */
 export const createWorkItemId = (): WorkItemId => createUuidV7Id("WorkItemId");
+/** Creates a new EffectOperation UUID-v7 identity. */
+export const createEffectOperationId = (): EffectOperationId =>
+  createUuidV7Id("EffectOperationId");
+/** Creates a validated EffectKind semantic identity. */
+export const createEffectKindId = (value: string): EffectKindId =>
+  createNamespacedId("EffectKindId", value);
 
 /** Creates a new MicroSystem instance identity. */
 export const createMicroSystemInstanceId = (): MicroSystemInstanceId =>

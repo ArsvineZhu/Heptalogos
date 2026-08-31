@@ -20,7 +20,14 @@
     "test:integration": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vitest run --root packages/bootstrap-runtime test/integration/private-postgres-bootstrap.integration.test.ts test/integration/host-ownership-handoff.integration.test.ts test/integration/host-maintenance.integration.test.ts test/integration/bootstrap-recovery.integration.test.ts test/integration/canonical-initialization.integration.test.ts test/integration/execution-foundation.integration.test.ts test/integration/runtime-kernel-managed-host.integration.test.ts test/integration/runtime-host-lifecycle.integration.test.ts test/integration/durable-work-host.integration.test.ts"
+        "command": "vitest run --root packages/bootstrap-runtime test/integration/private-postgres-bootstrap.integration.test.ts test/integration/host-ownership-handoff.integration.test.ts test/integration/host-maintenance.integration.test.ts test/integration/bootstrap-recovery.integration.test.ts test/integration/canonical-initialization.integration.test.ts test/integration/execution-foundation.integration.test.ts test/integration/runtime-kernel-managed-host.integration.test.ts test/integration/runtime-host-lifecycle.integration.test.ts test/integration/durable-work-host.integration.test.ts test/integration/effect-uncertainty.integration.test.ts"
+      }
+    },
+    "test:effect-uncertainty": {
+      "dependsOn": ["build", "^build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run --root packages/bootstrap-runtime test/integration/effect-uncertainty.integration.test.ts test/integration/effect-uncertainty-process.integration.test.ts"
       }
     },
     "test:recovery-process": {

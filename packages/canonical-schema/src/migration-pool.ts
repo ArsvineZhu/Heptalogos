@@ -81,6 +81,19 @@ export interface CanonicalDatabase {
     readonly created_at: Date | string;
     readonly updated_at: Date | string;
   };
+  readonly effect_operation: {
+    readonly effect_operation_id: string;
+    readonly schema_version: number;
+    readonly effect_kind: string;
+    readonly request_version: number;
+    readonly request: unknown;
+    readonly state: string;
+    readonly lineage_context_ref: unknown;
+    readonly dispatch_host_ownership_token: string | null;
+    readonly outcome: unknown;
+    readonly created_at: Date | string;
+    readonly updated_at: Date | string;
+  };
   readonly activity_link: {
     readonly source_activity_id: string;
     readonly link_kind: string;
