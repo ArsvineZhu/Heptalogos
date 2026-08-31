@@ -146,6 +146,36 @@ async function effectRow(item: RunningEffect, id: EffectOperationId) {
   ).rows[0];
 }
 
+async function effectActivityKinds(item: RunningEffect, id: EffectOperationId) {
+  return (
+    await queryAs(
+      item.bootResult.fixture,
+      "heptalogos_bootstrap",
+      BOOTSTRAP_PASSWORD,
+      `SELECT kind
+         FROM "heptalogos"."activity_record"
+        WHERE operation_id = $1
+        ORDER BY started_at, activity_id`,
+      [id],
+    )
+  ).rows.map((row) => row.kind as string);
+}
+
+async function effectEvidence(item: RunningEffect, id: EffectOperationId) {
+  return (
+    await queryAs(
+      item.bootResult.fixture,
+      "heptalogos_bootstrap",
+      BOOTSTRAP_PASSWORD,
+      `SELECT evidence_kind, fact_ref
+         FROM "heptalogos"."evidence_record"
+        WHERE subject_ref = $1
+        ORDER BY recorded_at, evidence_id`,
+      [id],
+    )
+  ).rows as Array<{ readonly evidence_kind: string; readonly fact_ref: string | null }>;
+}
+
 describePostgres.sequential("EffectOperation PostgreSQL qualification", () => {
   it("prepares immutably, is idempotent, and retains effect evidence", async () => {
     const item = await makeRunningEffect();
@@ -166,6 +196,8 @@ describePostgres.sequential("EffectOperation PostgreSQL qualification", () => {
       problem: { problemCode: "effect.identity_conflict" },
     });
     await expect(effectRow(item, id)).resolves.toMatchObject({ state: "PREPARED" });
+
+    await expect(effectActivityKinds(item, id)).resolves.toContain("effect.prepare");
 
     const evidence = await queryAs(
       item.bootResult.fixture,
@@ -198,6 +230,13 @@ describePostgres.sequential("EffectOperation PostgreSQL qualification", () => {
     );
     expect(success.state).toBe("SUCCEEDED");
     expect(successCalls).toBe(1);
+    expect(await effectActivityKinds(item, successId)).toContain("effect.dispatch");
+    expect(await effectEvidence(item, successId)).toEqual(
+      expect.arrayContaining([
+        { evidence_kind: "effect.dispatch-started", fact_ref: null },
+        { evidence_kind: "effect.outcome", fact_ref: "SUCCEEDED" },
+      ]),
+    );
 
     const failureId = createEffectOperationId();
     await prepare(item, failureId);
@@ -308,6 +347,44 @@ describePostgres.sequential("EffectOperation PostgreSQL qualification", () => {
     expect(dispatchCalls).toBe(1);
     expect(reconcileCalls).toBe(2);
     await expect(effectRow(item, id)).resolves.toMatchObject({ state: "SUCCEEDED" });
+    expect(await effectActivityKinds(item, id)).toContain("effect.reconcile");
+    expect(await effectEvidence(item, id)).toEqual(
+      expect.arrayContaining([
+        { evidence_kind: "effect.reconciled", fact_ref: "SUCCEEDED" },
+      ]),
+    );
+
+    const failedId = createEffectOperationId();
+    await prepare(item, failedId);
+    let failedDispatchCalls = 0;
+    const failedPort = successPort(
+      async () => {
+        failedDispatchCalls += 1;
+        throw new Error("the external boundary is ambiguous for the failed case");
+      },
+      async () => ({
+        status: "FAILED" as const,
+        problem: {
+          schemaVersion: 1 as const,
+          problemCode: "synthetic.reconcile-no-effect",
+          category: "unavailable" as const,
+          retryClass: "manual" as const,
+          title: "The synthetic effect was not applied",
+        },
+      }),
+    );
+    await inActivity(item, () => item.service.dispatch(failedId, failedPort));
+    expect(failedDispatchCalls).toBe(1);
+    const failed = await inActivity(item, () =>
+      item.service.reconcile(failedId, failedPort),
+    );
+    expect(failed.state).toBe("FAILED");
+    expect(failed.outcome).toMatchObject({
+      status: "FAILED",
+      problem: { problemCode: "synthetic.reconcile-no-effect" },
+    });
+    expect(failedDispatchCalls).toBe(1);
+    await expect(effectRow(item, failedId)).resolves.toMatchObject({ state: "FAILED" });
   }, 240_000);
 
   it("keeps a stale Host from committing the admitted outcome", async () => {

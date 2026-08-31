@@ -44,7 +44,8 @@ effect_pre_call_abort: PASS
 effect_work_handler_signal_propagation: PASS
 effect_host_fenced_completion: PASS
 effect_host_fenced_refinement: PASS
-effect_reconciliation_semantics: PASS
+effect_reconciliation_semantics: PASS (UNKNOWN preserves UNCERTAIN; SUCCEEDED refines to SUCCEEDED; FAILED refines to FAILED; reconciliation does not dispatch)
+effect_lineage_evidence: PASS (real PostgreSQL assertions cover effect.prepare/effect.prepared, effect.dispatch/effect.dispatch-started/effect.outcome, effect.reconcile/effect.reconciled, and process recovery effect.recover-uncertain/effect.outcome)
 effect_process_success: PASS
 effect_process_definitive_failure: PASS
 effect_process_ambiguous_crash: PASS
@@ -52,7 +53,6 @@ effect_no_redispatch_after_restart: PASS
 effect_conservative_prewrite_crash: PASS
 effect_outcome_replay: PASS
 effect_host_loss_after_external_call: PASS
-effect_lineage_evidence: PASS
 workitem_effect_truth_separation: PASS
 dbos_effect_authority_boundary: PASS
 no_effect_scheduler_or_retry_engine: PASS
@@ -70,6 +70,11 @@ Actual runs on the current Windows host:
 - The same target's process qualification: 6 tests, `PASS`, covering EU-01
   through EU-06; the combined target ran 12 tests, `PASS`, with a file-backed
   sink outside canonical PostgreSQL.
+- The existing reconciliation scenario directly proves `FAILED` refinement
+  without an additional dispatch call, `PASS`.
+- Real PostgreSQL assertions directly prove the required Effect Activity and
+  Evidence distinctions for preparation, dispatch/outcome, reconciliation,
+  and explicit process recovery, `PASS`.
 - `bootstrap-runtime:test:foundation-spine`: 2 tests, `PASS`.
 
 The process proof establishes one sink write for successful dispatch, zero for
@@ -101,6 +106,6 @@ also not claimed by this record.
 ```yaml
 effect_implementation: PASS
 qualificationState: PARTIAL
-reason: "All current corrected EffectOperation semantic and Windows real PostgreSQL/process proof claims passed; deferred provider, artifact, platform, service, hardware, and external review boundaries remain NOT_RUN."
+reason: "All current corrected EffectOperation semantic and Windows real PostgreSQL/process proof claims passed, including direct FAILED reconciliation and required Activity/Evidence distinctions; deferred provider, artifact, platform, service, hardware, and external review boundaries remain NOT_RUN."
 reopenConditions: "Only new current evidence, an accepted current-Horizon failure, a current consumer/invariant, or an explicit active Plan requirement."
 ```

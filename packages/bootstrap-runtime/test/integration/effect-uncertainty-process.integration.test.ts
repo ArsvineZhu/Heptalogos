@@ -264,6 +264,36 @@ async function effectRow(fixture: Fixture, effectOperationId: string) {
   ).rows[0];
 }
 
+async function effectActivityKinds(fixture: Fixture, effectOperationId: string) {
+  return (
+    await queryAs(
+      fixture,
+      "heptalogos_bootstrap",
+      BOOTSTRAP_PASSWORD,
+      `SELECT kind
+         FROM "heptalogos"."activity_record"
+        WHERE operation_id = $1
+        ORDER BY started_at, activity_id`,
+      [effectOperationId],
+    )
+  ).rows.map((row) => row.kind as string);
+}
+
+async function effectEvidence(fixture: Fixture, effectOperationId: string) {
+  return (
+    await queryAs(
+      fixture,
+      "heptalogos_bootstrap",
+      BOOTSTRAP_PASSWORD,
+      `SELECT evidence_kind, fact_ref
+         FROM "heptalogos"."evidence_record"
+        WHERE subject_ref = $1
+        ORDER BY recorded_at, evidence_id`,
+      [effectOperationId],
+    )
+  ).rows as Array<{ readonly evidence_kind: string; readonly fact_ref: string | null }>;
+}
+
 async function findHostLeaseBackend(fixture: Fixture): Promise<number> {
   const result = await queryAs(
     fixture,
@@ -364,6 +394,14 @@ describePostgres.sequential(
       expect(recovered.effectState).toBe("UNCERTAIN");
       await restarted.waitFor("EFFECT_RECOVERED");
       expect(await sinkLines(sinkPath)).toHaveLength(1);
+      expect(await effectActivityKinds(fixture, effectOperationId)).toContain(
+        "effect.recover-uncertain",
+      );
+      expect(await effectEvidence(fixture, effectOperationId)).toEqual(
+        expect.arrayContaining([
+          { evidence_kind: "effect.outcome", fact_ref: "recovered" },
+        ]),
+      );
       expect(await effectRow(fixture, effectOperationId)).toMatchObject({
         state: "UNCERTAIN",
       });
