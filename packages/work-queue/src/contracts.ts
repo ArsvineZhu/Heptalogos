@@ -8,7 +8,6 @@ import type {
   CanonicalJsonValue,
   ContentDigest,
   ContinuityEpochId,
-  DurableCodeVersion,
   Instant,
   WorkItemId,
 } from "@heptalogos/foundation-contracts";
@@ -384,30 +383,6 @@ export interface DurableDispatchRequest {
 export interface DurableDispatchPort {
   /** Submit the request while preserving its revision and attempt identity. */
   dispatch(request: DurableDispatchRequest): Promise<void>;
-}
-
-/** Identifies one engine projection that WorkQueue may inspect. */
-export interface DurableAttemptInspectionRequest {
-  readonly workItemId: WorkItemId;
-  readonly dispatchRevision: number;
-  readonly dispatchAttemptId: DispatchAttemptId;
-  readonly queueProfileId: WorkQueueProfileId;
-}
-
-/** Reports engine projection without granting it product-state Authority. */
-export type DurableAttemptProjection =
-  | { readonly kind: "ACTIVE"; readonly applicationVersion: DurableCodeVersion }
-  | { readonly kind: "ABSENT" }
-  | { readonly kind: "ENGINE_SUCCESS"; readonly applicationVersion?: string }
-  | { readonly kind: "ENGINE_ERROR"; readonly applicationVersion?: string }
-  | { readonly kind: "ENGINE_CANCELLED"; readonly applicationVersion?: string }
-  | { readonly kind: "RECOVERY_EXHAUSTED"; readonly applicationVersion?: string }
-  | { readonly kind: "VERSION_MISMATCH"; readonly applicationVersion: string };
-
-/** Reads engine-private state for WorkQueue-owned recovery reconciliation. */
-export interface DurableAttemptInspectionPort {
-  /** Inspect one engine attempt without mutating canonical WorkItem state. */
-  inspect(request: DurableAttemptInspectionRequest): Promise<DurableAttemptProjection>;
 }
 
 /** Engine-independent failure shape consumed by the work classifier. */

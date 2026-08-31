@@ -187,41 +187,6 @@ const problemSpecs: Readonly<Record<string, WorkQueueProblemSpec>> = {
     retryClass: "after-change",
     title: "Running WorkItem handler generation is unavailable",
   },
-  "work.recovery.engine_version_mismatch": {
-    category: "integrity",
-    retryClass: "manual",
-    title: "Durable engine application version does not match",
-  },
-  "work.recovery.engine_projection_absent": {
-    category: "integrity",
-    retryClass: "manual",
-    title: "Running WorkItem engine projection is absent",
-  },
-  "work.recovery.engine_success_conflict": {
-    category: "integrity",
-    retryClass: "manual",
-    title: "Engine success conflicts with canonical WorkItem state",
-  },
-  "work.recovery.engine_error": {
-    category: "unavailable",
-    retryClass: "after-change",
-    title: "Durable engine reported an error",
-  },
-  "work.recovery.engine_cancelled": {
-    category: "integrity",
-    retryClass: "manual",
-    title: "Engine cancellation conflicts with canonical WorkItem state",
-  },
-  "work.recovery.recovery_exhausted": {
-    category: "unavailable",
-    retryClass: "manual",
-    title: "Durable engine recovery budget was exhausted",
-  },
-  "work.recovery.inspection_failed": {
-    category: "unavailable",
-    retryClass: "after-change",
-    title: "Durable engine projection inspection failed",
-  },
 };
 
 function problemSpec(problemCode: string): WorkQueueProblemSpec {

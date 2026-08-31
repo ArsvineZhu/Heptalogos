@@ -11,10 +11,9 @@ lost notifications or dispatch failures.
 
 - WorkItem, retry, admission, dispatch, and error-classification contracts.
 - Immutable WorkQueue profile catalogs and partition-key invariants.
-- Deterministic dispatch-attempt identity and the local WorkItem state machine.
+- Deterministic dispatch-attempt identity and canonical WorkItem transitions.
 - Host-fenced WorkItem repository and WorkQueue creation/reconciliation services.
 - Engine-neutral attempt execution around generation-bound WorkHandlers.
-- Canonical RUNNING recovery diagnostics over an engine inspection port.
 
 ## Does not own
 
@@ -27,8 +26,8 @@ lost notifications or dispatch failures.
 ## Public surface
 
 The entry point exports WorkItem contracts, dispatch-attempt identity helpers,
-profile catalog validation, state-transition validation, repository/service
-ports, and WorkQueue runtime components. The concrete canonical repository
+profile catalog validation, repository/service ports, and WorkQueue runtime
+components. The concrete canonical repository
 factory is a restricted Foundation seam at
 `@heptalogos/work-queue/foundation-repository`; it is not a general
 root-package API. Engine-specific composition follows the Persistence and
@@ -37,8 +36,8 @@ Runtime Kernel ownership boundaries.
 ## Dependencies and boundaries
 
 It depends on Foundation identities and canonical JSON, Execution Lineage,
-Persistence, Time Service, Runtime Kernel WorkHandler leases, Signal, and the
-adopted XState 5 local state-machine mechanic. Persistence remains the Host
+Persistence, Time Service, Runtime Kernel WorkHandler leases, and Signal.
+Persistence remains the Host
 fence and WorkItem Authority; Signal is only a best-effort wakeup hint.
 
 ## Verification

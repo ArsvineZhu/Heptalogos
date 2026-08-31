@@ -19,6 +19,7 @@ import {
   parseEffectOperationId,
   parseHostOwnershipToken,
   parseInstant,
+  parseProblem,
   snapshotCanonicalJson,
 } from "@heptalogos/foundation-contracts";
 import type { LineageContextRef } from "@heptalogos/execution-lineage";
@@ -136,14 +137,6 @@ export interface EffectOperationService {
   ): Promise<EffectOperation>;
 }
 
-const retryClasses = new Set<Problem["retryClass"]>([
-  "never",
-  "immediate",
-  "backoff",
-  "after-change",
-  "manual",
-]);
-
 function recordValue(value: unknown): Record<string, unknown> | undefined {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -171,81 +164,9 @@ export function snapshotEffectRequest(value: unknown): CanonicalJsonSnapshot {
   }
 }
 
-function normalizedProblem(value: unknown): Problem | undefined {
-  const record = recordValue(value);
-  if (record === undefined) return undefined;
-  const allowed = new Set([
-    "schemaVersion",
-    "problemCode",
-    "category",
-    "retryClass",
-    "title",
-    "detail",
-    "activityId",
-    "resourceRef",
-    "fieldErrors",
-    "causeProblemRefs",
-    "metadata",
-  ]);
-  if (Object.keys(record).some((key) => !allowed.has(key))) return undefined;
-  if (
-    record.schemaVersion !== 1 ||
-    typeof record.problemCode !== "string" ||
-    record.problemCode.length === 0 ||
-    typeof record.category !== "string" ||
-    typeof record.retryClass !== "string" ||
-    !retryClasses.has(record.retryClass as Problem["retryClass"]) ||
-    typeof record.title !== "string" ||
-    record.title.length === 0
-  ) {
-    return undefined;
-  }
-  for (const field of ["detail", "activityId", "resourceRef"]) {
-    if (record[field] !== undefined && typeof record[field] !== "string") {
-      return undefined;
-    }
-  }
-  if (record.fieldErrors !== undefined) {
-    if (!Array.isArray(record.fieldErrors)) return undefined;
-    for (const item of record.fieldErrors) {
-      const fieldError = recordValue(item);
-      if (
-        fieldError === undefined ||
-        typeof fieldError.field !== "string" ||
-        typeof fieldError.problemCode !== "string" ||
-        (fieldError.detail !== undefined && typeof fieldError.detail !== "string")
-      ) {
-        return undefined;
-      }
-    }
-  }
-  if (record.causeProblemRefs !== undefined) {
-    if (
-      !Array.isArray(record.causeProblemRefs) ||
-      record.causeProblemRefs.some((item) => typeof item !== "string")
-    ) {
-      return undefined;
-    }
-  }
-  if (
-    record.metadata !== undefined &&
-    (typeof record.metadata !== "object" ||
-      record.metadata === null ||
-      Array.isArray(record.metadata))
-  ) {
-    return undefined;
-  }
-  try {
-    return snapshotCanonicalJson(value as CanonicalJsonValue)
-      .value as unknown as Problem;
-  } catch {
-    return undefined;
-  }
-}
-
 /** Strictly normalizes a canonical Problem embedded in an adapter/result row. */
 export function normalizeEffectProblem(value: unknown): Problem | undefined {
-  return normalizedProblem(decodedJson(value, "problem"));
+  return parseProblem(decodedJson(value, "problem"));
 }
 
 function persistedInstant(value: unknown): Instant | undefined {

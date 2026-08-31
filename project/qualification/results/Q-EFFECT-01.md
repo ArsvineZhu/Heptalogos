@@ -124,3 +124,26 @@ The exact review candidate pair and squash-merge commit are recorded in
 `qualification-status.json`. `qualificationState` remains `PARTIAL` because
 the provider, source-less, platform, service/headless, and hardware boundaries
 remain explicitly `NOT_RUN`.
+
+## H3-S current candidate qualification
+
+```yaml
+candidateId: H3S-FOUNDATION-PERMANENT-SURFACE-ADMISSION-2026-08-31
+baseSha: bbadfbacbd9aaea23639e51d5ce01744bd530da4
+branch: dev/h3-stabilization
+plan: project/plans/active/foundation/h3s-foundation-permanent-surface-admission-2026-08-31.md
+lifecycle: READY
+freeze: PASS
+effectOperationUnit: PASS (1 file, 4 tests)
+realPostgresServiceQualification: PASS (6/6 tests)
+processQualification: PASS (6/6 tests; EU-01 through EU-06)
+foundationExecutableSpineRegression: PASS (2/2 tests)
+bootstrapRuntimeFullIntegration: PASS (10 files, 113 tests)
+repositoryVerify: PASS
+independentReview: NOT_RUN
+```
+
+This current-candidate evidence revalidates the EffectOperation construction
+and Problem-parser ownership changes on the Windows PostgreSQL 18.6 toolchain.
+The prior H3B post-merge record above remains historical evidence for its own
+candidate and is not rewritten.

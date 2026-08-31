@@ -43,10 +43,7 @@ import {
   type EffectPreparationResult,
   type EffectReconciliationResult,
 } from "./contracts.js";
-import {
-  createEffectOperationRepository,
-  type EffectOperationRepository,
-} from "./repository.js";
+import { createEffectOperationRepository } from "./repository.js";
 
 /** Dependencies used by the canonical EffectOperation service. */
 export interface EffectOperationServiceOptions {
@@ -55,7 +52,6 @@ export interface EffectOperationServiceOptions {
   readonly lineage: ExecutionLineageService;
   readonly evidence: EvidenceService;
   readonly time: TimeService;
-  readonly repository?: EffectOperationRepository;
 }
 
 function requireEffectOperationId(value: unknown): EffectOperationId {
@@ -249,7 +245,7 @@ function outcomeForReconciliation(
 export function createEffectOperationService(
   options: EffectOperationServiceOptions,
 ): EffectOperationService {
-  const repository = options.repository ?? createEffectOperationRepository();
+  const repository = createEffectOperationRepository();
 
   const get = async (
     effectOperationId: EffectOperationId,

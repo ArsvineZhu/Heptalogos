@@ -15,20 +15,14 @@ export {
 } from "./hint-codec.js";
 export {
   createPostgresSignalService,
-  PostgresSignalService,
   postgresSignalPublisher,
 } from "./postgres-signal.js";
-export { signalProblem } from "./problems.js";
 export type {
   PostgresSignalRuntimeOptions,
-  SignalClient,
-  SignalClientFactory,
-  SignalClientOptions,
   SignalHostAuthority,
-  SignalListener,
-  SignalNotification,
   SignalPublisher,
   SignalService,
   SignalSubscription,
+  SignalListener,
   SignalTopic,
 } from "./contracts.js";

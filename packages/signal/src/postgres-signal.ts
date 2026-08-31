@@ -128,9 +128,10 @@ export class PostgresSignalService implements SignalService {
   constructor(
     private readonly authority: SignalHostAuthority,
     private readonly options: PostgresSignalRuntimeOptions,
+    clientFactory: SignalClientFactory = defaultClientFactory,
   ) {
     assertOptions(options);
-    this.clientFactory = options.clientFactory ?? defaultClientFactory;
+    this.clientFactory = clientFactory;
     this.authority.signal.addEventListener(
       "abort",
       () => {

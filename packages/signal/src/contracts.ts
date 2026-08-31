@@ -39,7 +39,6 @@ export interface PostgresSignalRuntimeOptions {
   readonly reconnectBaseDelayMs: number;
   readonly reconnectMaxDelayMs: number;
   readonly onBackgroundError: (error: unknown) => void;
-  readonly clientFactory?: SignalClientFactory;
 }
 
 /** Local PostgreSQL connection settings accepted by the signal adapter. */

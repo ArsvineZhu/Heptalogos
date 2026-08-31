@@ -364,11 +364,12 @@ This is current Ubuntu/Linux real-PostgreSQL runtime evidence from the
 explicit matrix. It does not imply macOS, source-less, installed
 service/headless, service-account ACL, or hardware power-loss qualification.
 
-## Current Foundation containment candidate
+## Historical H3A-2 Foundation containment candidate
 
-The current H3A-2 containment plan changes DurableExecution lifecycle and
+The historical H3A-2 containment plan changed DurableExecution lifecycle and
 credential-scoped preflight behavior. Earlier H3A-2 runtime observations are
-not carried forward to this candidate until the claim-matched reruns complete.
+not carried forward to the historical candidate until the claim-matched reruns
+completed.
 
 ```yaml
 candidateId: H3A2-FOUNDATION-CONTAINMENT-2026-08-29
@@ -395,3 +396,23 @@ durable-work-recovery / Foundation-spine / bootstrap-recovery-process
 real-PostgreSQL files 16/16, using the explicit `HEPTALOGOS_TEST_PG_BIN`
 toolchain path (PostgreSQL 18.6). macOS real PostgreSQL, source-less, and
 service/headless remain `NOT_RUN`.
+
+## Current H3-S candidate projection
+
+```yaml
+candidateId: H3S-FOUNDATION-PERMANENT-SURFACE-ADMISSION-2026-08-31
+baseSha: bbadfbacbd9aaea23639e51d5ce01744bd530da4
+branch: dev/h3-stabilization
+plan: project/plans/active/foundation/h3s-foundation-permanent-surface-admission-2026-08-31.md
+lifecycle: READY
+freeze: PASS
+runtimeSubstrateDisposition: KEEP / NO_REOPEN
+runtimeKernelDisposition: KEEP / NO_REOPEN
+currentCandidateQualification: PASS
+repositoryVerify: PASS
+independentReview: NOT_RUN
+```
+
+The H3-S plan explicitly retains RuntimeSubstrate and RuntimeKernel semantics;
+the historical H2B observations above are not relabeled as current H3-S
+execution evidence.

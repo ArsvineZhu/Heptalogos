@@ -90,6 +90,7 @@ export { POSTGRES_INTEGER_MAX } from "./numeric.js";
 export {
   createProblem,
   createProblemError,
+  parseProblem,
   ProblemError,
   type FieldError,
   type Problem,

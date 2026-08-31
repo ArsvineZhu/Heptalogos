@@ -24,4 +24,3 @@ export {
   createDurableDispatchPort,
   type DurableDispatchPortOptions,
 } from "./dbos-dispatch-port.js";
-export { createDbosAttemptInspectionPort } from "./dbos-attempt-inspection.js";

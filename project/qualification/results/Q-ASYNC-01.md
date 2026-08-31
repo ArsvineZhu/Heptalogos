@@ -8,7 +8,28 @@ preImplementationDecisionState: CLOSED
 roleDecision: ADOPTED
 implementationQualification: REQUIRED
 selectedRoute: "DBOS Queue"
-h3a2Candidate:
+currentCandidate:
+  candidateId: H3S-FOUNDATION-PERMANENT-SURFACE-ADMISSION-2026-08-31
+  baseSha: bbadfbacbd9aaea23639e51d5ce01744bd530da4
+  branch: dev/h3-stabilization
+  plan: project/plans/active/foundation/h3s-foundation-permanent-surface-admission-2026-08-31.md
+  lifecycle: READY
+  freeze: PASS
+  independentReview: NOT_RUN
+  finalManualVerification: NOT_RUN
+  githubActions: NOT_ENABLED_OR_REQUIRED
+h3sCurrentEvidence:
+  plan_activation: PASS
+  current_truth_projection: PASS
+  focused_regression: PASS
+  claim_matched_qualification: PASS
+  repository_verify: PASS
+  windows_foundation_spine_boot_work_stop: PASS
+  windows_same_attempt_running_recovery: PASS
+  windows_signal_reconnect_rescan: PASS
+  windows_duplicate_stale_revision_fences: PASS
+  linux_current_candidate: NOT_RUN
+h3a2HistoricalCandidate:
   candidateId: H3A2-FOUNDATION-CONTAINMENT-2026-08-29
   plan: project/plans/superseded/repository/knowledge-architecture-agent-harness-convergence-2026-08-30.md
   lifecycle: DRAFT
@@ -85,7 +106,7 @@ currentUse: historical observation only; affected PASS claims are stale for the 
 
 `H3A2-CORRECTION-2026-08-29` was a prior mutable candidate. It is retained as a
 historical observation with an external `REQUEST_CHANGES` verdict; its affected
-PASS claims do not qualify the current Foundation containment candidate. GitHub
+PASS claims do not qualify the current H3-S candidate. GitHub
 Actions are not enabled or required.
 
 H3A-1 evidence remains historical baseline evidence where it is explicitly
@@ -105,9 +126,9 @@ h3a1_work_creation_envelope_snapshot: PASS
 h3a1_projection_index_query_shape: PASS
 ```
 
-These properties are required for the current candidate and are supported by
-fresh focused or real PostgreSQL qualification as stated in the evidence
-source below.
+These properties were required for the historical H3A-2 candidate and are
+supported by the historical focused or real PostgreSQL qualification stated in
+the evidence source below. They do not qualify the current H3-S candidate.
 
 ## Historical H3A-2 implementation evidence
 
@@ -137,7 +158,7 @@ qualify the current candidate after the lifecycle and credential-scope source
 mutation in this plan. macOS, source-less, service/headless, and ResourceGovernor
 claims remain `NOT_RUN` and are outside this correction.
 
-## Current Foundation containment candidate
+## Historical H3A-2 Foundation containment candidate
 
 ```yaml
 candidateId: H3A2-FOUNDATION-CONTAINMENT-2026-08-29
@@ -163,15 +184,15 @@ service_headless: NOT_RUN
 githubActions: NOT_ENABLED_OR_REQUIRED
 ```
 
-The current candidate has fresh focused, full bootstrap-runtime,
+This historical candidate had fresh focused, full bootstrap-runtime,
 Foundation-spine, and existing crash/recovery evidence, including the
 terminal-commit restart scenario, and fresh Ubuntu/Linux
 real PostgreSQL 18.6 + DBOS qualification on the current host: private-postgres
 integration 20/20, persistence 9/9, host-ownership 11/11, bootstrap-runtime
 integration 9 files/108 tests, and the durable-work-recovery / Foundation-spine
 / bootstrap-recovery-process real-PostgreSQL files 16/16, using the explicit
-`HEPTALOGOS_TEST_PG_BIN` toolchain path. `pnpm verify` is PASS. The candidate
-remains mutable and is not frozen.
+`HEPTALOGOS_TEST_PG_BIN` toolchain path. `pnpm verify` was PASS. The historical
+candidate remained mutable and was not frozen; it does not qualify H3-S.
 
 ## H3A-1 observed implementation evidence
 

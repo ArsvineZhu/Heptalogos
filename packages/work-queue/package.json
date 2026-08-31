@@ -21,8 +21,7 @@
     "@heptalogos/persistence": "workspace:*",
     "@heptalogos/runtime-kernel": "workspace:*",
     "@heptalogos/signal": "workspace:*",
-    "@heptalogos/time-service": "workspace:*",
-    "xstate": "catalog:"
+    "@heptalogos/time-service": "workspace:*"
   },
   "devDependencies": {
     "vitest": "catalog:"

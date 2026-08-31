@@ -29,7 +29,6 @@ import {
 } from "./service.js";
 import type { WorkQueueRepository } from "./repository.js";
 import { workQueueProblem } from "./problems.js";
-import type { WorkQueueRecoveryCoordinator } from "./recovery-coordinator.js";
 import {
   readFairWorkItemPage,
   resetFairScanLane,
@@ -48,8 +47,6 @@ export interface WorkQueueReconcilerOptions {
   readonly execution: ExecutionContextRuntime;
   readonly time: TimeService;
   readonly runtimeOptions: WorkQueueRuntimeOptions;
-  /** Optional engine-consistency lane owned by this scan gate. */
-  readonly recovery?: WorkQueueRecoveryCoordinator;
   readonly onBackgroundError: (error: unknown) => void;
 }
 
@@ -247,18 +244,6 @@ export function createWorkQueueReconciler(
       }
     }
 
-    if (options.recovery !== undefined) {
-      try {
-        await options.recovery.scan();
-      } catch {
-        report(
-          options.onBackgroundError,
-          "work.recovery.scan_failed",
-          "RUNNING engine-consistency scan failed; canonical WorkItem state remains authoritative",
-        );
-      }
-    }
-
     return {
       scanned: dueRetry.length + waiting.length + pending.length,
       awakened: awakenedCount,
@@ -314,7 +299,6 @@ export function createWorkQueueReconciler(
       await scanPromise?.catch(() => undefined);
       resetFairScanLane(projectionLane);
       resetFairScanLane(waitingDependencyLane);
-      options.recovery?.reset();
     },
   };
 }

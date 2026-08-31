@@ -47,19 +47,19 @@ interface PreparedEffectInput {
 }
 
 /** Reports whether a Host-fenced dispatch compare-and-set won. */
-export interface EffectDispatchAdmission {
+interface EffectDispatchAdmission {
   readonly status: "ADMITTED" | "OBSERVED";
   readonly operation: EffectOperation;
 }
 
 /** Reports whether a DISPATCHING recovery transition changed canonical truth. */
-export interface EffectRecoveryResult {
+interface EffectRecoveryResult {
   readonly changed: boolean;
   readonly operation: EffectOperation;
 }
 
 /** Reports whether a reconciliation refinement changed canonical truth. */
-export interface EffectRefinementResult {
+interface EffectRefinementResult {
   readonly changed: boolean;
   readonly operation: EffectOperation;
 }

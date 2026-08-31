@@ -2,7 +2,7 @@
 
 **Status:** LIVING ROADMAP / planning guidance<br>
 **Date:** 2026-08-31<br>
-**Repository baseline:** current merged `master` tree with H3B closed, the Foundation executable-spine evidence recorded, and no active implementation Plan; H3-S is eligible but not authorized<br>
+**Repository baseline:** current H3-S candidate on `dev/h3-stabilization` from merged `master` `bbadfbacbd9aaea23639e51d5ce01744bd530da4`; H3B is closed and H3-S is the active implementation Plan<br>
 **Architecture baseline:** `docs/architecture/` design state 2026-08-20
 
 > This document owns development sequencing, Horizon truth, and qualification guidance. It does not replace the canonical Human Architecture, current Specs, Governance, Dependencies, Qualification, or active Plan. Update this Roadmap when evidence changes sequencing or eligibility; update the relevant canonical owner when semantics change.
@@ -366,9 +366,9 @@ H3A_2: CLOSED
 H3_FOUNDATION_EXECUTABLE_SPINE: PASS
 H3B: CLOSED
 H3_FUNCTIONAL: COMPLETE
-H3_STABILIZATION: ELIGIBLE
-currentRepositoryWork: NONE
-activeImplementationPlan: NONE
+H3_STABILIZATION: ACTIVE
+currentRepositoryWork: H3-S Foundation permanent-surface admission and truth closure
+activeImplementationPlan: project/plans/active/foundation/h3s-foundation-permanent-surface-admission-2026-08-31.md
 nextAuthorizedPlan: NONE
 githubActions: DISABLED_CURRENT_EXECUTION_POLICY
 ```
@@ -387,10 +387,10 @@ close all product qualification boundaries. Windows and Ubuntu/Linux evidence
 is current for the recorded scenarios; macOS, source-less, service/headless,
 and ResourceGovernor qualification remain individually scoped and must not be
 inferred from another platform or candidate. H3B is now closed after the
-completed EffectOperation plan; H3-S is eligible but not authorized, and
-remains sequenced after H3B so the Foundation containment pass follows the
-final H3 semantic owner. Ordinary GitHub Actions are disabled under the
-current execution policy; local repository gates remain the closure route.
+completed EffectOperation plan; H3-S is the active bounded stabilization plan
+after H3B so the Foundation containment pass follows the final H3 semantic
+owner. Ordinary GitHub Actions are disabled under the current execution
+policy; local repository gates remain the closure route.
 
 ### Implementation decomposition
 
@@ -461,9 +461,8 @@ At minimum, kill the process around key boundaries and prove:
 ### H3-S — Foundation Containment / Stabilization
 
 H3-S is a convergence/subtraction stage, not another hardening expansion. It
-is eligible but not authorized, and is sequenced after H3B for this development
-line, following the already-closed H3A-2 and Foundation executable spine. Its
-bounded scope is:
+is the active plan after H3B for this development line, following the
+already-closed H3A-2 and Foundation executable spine. Its bounded scope is:
 
 ```text
 current-tree residue and PRE_PRODUCTION compatibility cleanup

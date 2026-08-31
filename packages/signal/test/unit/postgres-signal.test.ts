@@ -12,15 +12,18 @@ import {
 } from "@heptalogos/host-ownership";
 import { describe, expect, it } from "vitest";
 import {
-  createPostgresSignalService,
   createSignalTopic,
   decodeSignalHint,
   encodeSignalHint,
   SIGNAL_CHANNEL,
-  type SignalClient,
-  type SignalClientFactory,
-  type SignalNotification,
 } from "../../src/index.js";
+import { PostgresSignalService } from "../../src/postgres-signal.js";
+import type {
+  PostgresSignalRuntimeOptions,
+  SignalClient,
+  SignalClientFactory,
+  SignalNotification,
+} from "../../src/contracts.js";
 
 class FakeSignalClient implements SignalClient {
   readonly queries: string[] = [];
@@ -96,24 +99,29 @@ function authority(signal = new AbortController().signal): HostPersistenceAuthor
 }
 
 function options(
-  factory: SignalClientFactory,
   onBackgroundError: (error: unknown) => void = () => {},
   reconnectBaseDelayMs = 1,
   reconnectMaxDelayMs = Math.max(4, reconnectBaseDelayMs),
-): {
-  readonly connectionTimeoutMs: number;
-  readonly reconnectBaseDelayMs: number;
-  readonly reconnectMaxDelayMs: number;
-  readonly clientFactory: SignalClientFactory;
-  readonly onBackgroundError: (error: unknown) => void;
-} {
+): PostgresSignalRuntimeOptions {
   return {
     connectionTimeoutMs: 1_000,
     reconnectBaseDelayMs,
     reconnectMaxDelayMs,
-    clientFactory: factory,
     onBackgroundError,
   };
+}
+
+function service(
+  factory: SignalClientFactory,
+  onBackgroundError: (error: unknown) => void = () => {},
+  reconnectBaseDelayMs = 1,
+  reconnectMaxDelayMs = Math.max(4, reconnectBaseDelayMs),
+): PostgresSignalService {
+  return new PostgresSignalService(
+    authority(),
+    options(onBackgroundError, reconnectBaseDelayMs, reconnectMaxDelayMs),
+    factory,
+  );
 }
 
 function factoryFor(
@@ -173,16 +181,13 @@ describe("Signal hint codec", () => {
 describe("PostgresSignalService", () => {
   it("filters topics, rescans after listener establishment, and closes idempotently", async () => {
     const client = new FakeSignalClient();
-    const service = createPostgresSignalService(
-      authority(),
-      options(factoryFor([client])),
-    );
+    const serviceInstance = service(factoryFor([client]));
     const matchingTopic = createSignalTopic("work.available");
     const otherTopic = createSignalTopic("runtime.changed");
     let matchingWakeups = 0;
     let otherWakeups = 0;
     let rescans = 0;
-    const matching = await service.subscribe(matchingTopic, {
+    const matching = await serviceInstance.subscribe(matchingTopic, {
       onWakeup() {
         matchingWakeups += 1;
       },
@@ -193,7 +198,7 @@ describe("PostgresSignalService", () => {
         throw error;
       },
     });
-    const other = await service.subscribe(otherTopic, {
+    const other = await serviceInstance.subscribe(otherTopic, {
       onWakeup() {
         otherWakeups += 1;
       },
@@ -225,18 +230,18 @@ describe("PostgresSignalService", () => {
   it("re-LISTENs and rescans after a connection end", async () => {
     const first = new FakeSignalClient();
     const second = new FakeSignalClient();
-    const service = createPostgresSignalService(
-      authority(),
-      options(factoryFor([first, second])),
-    );
+    const serviceInstance = service(factoryFor([first, second]));
     let rescans = 0;
-    const subscription = await service.subscribe(createSignalTopic("work.available"), {
-      onWakeup() {},
-      onRescanRequired() {
-        rescans += 1;
+    const subscription = await serviceInstance.subscribe(
+      createSignalTopic("work.available"),
+      {
+        onWakeup() {},
+        onRescanRequired() {
+          rescans += 1;
+        },
+        onBackgroundError() {},
       },
-      onBackgroundError() {},
-    });
+    );
 
     first.emitEnd();
     await waitFor(() => second.queries.length === 1);
@@ -248,13 +253,10 @@ describe("PostgresSignalService", () => {
   it("ignores a late event from an old connection after a replacement is active", async () => {
     const first = new FakeSignalClient();
     const second = new FakeSignalClient();
-    const service = createPostgresSignalService(
-      authority(),
-      options(factoryFor([first, second])),
-    );
+    const serviceInstance = service(factoryFor([first, second]));
     const topic = createSignalTopic("work.available");
     let wakeups = 0;
-    const subscription = await service.subscribe(topic, {
+    const subscription = await serviceInstance.subscribe(topic, {
       onWakeup() {
         wakeups += 1;
       },
@@ -281,19 +283,19 @@ describe("PostgresSignalService", () => {
     const first = new FakeSignalClient();
     const second = new FakeSignalClient();
     let created = 0;
-    const service = createPostgresSignalService(
-      authority(),
-      options(
-        factoryFor([first, second], () => (created += 1)),
-        () => {},
-        50,
-      ),
+    const serviceInstance = service(
+      factoryFor([first, second], () => (created += 1)),
+      () => {},
+      50,
     );
-    const subscription = await service.subscribe(createSignalTopic("work.available"), {
-      onWakeup() {},
-      onRescanRequired() {},
-      onBackgroundError() {},
-    });
+    const subscription = await serviceInstance.subscribe(
+      createSignalTopic("work.available"),
+      {
+        onWakeup() {},
+        onRescanRequired() {},
+        onBackgroundError() {},
+      },
+    );
 
     first.emitError(new Error("connection failed"));
     await subscription.close();
@@ -311,15 +313,15 @@ describe("PostgresSignalService", () => {
       releaseSecond = resolve;
     });
     const second = new FakeSignalClient(undefined, secondGate);
-    const service = createPostgresSignalService(
-      authority(),
-      options(factoryFor([first, second])),
+    const serviceInstance = service(factoryFor([first, second]));
+    const subscription = await serviceInstance.subscribe(
+      createSignalTopic("work.available"),
+      {
+        onWakeup() {},
+        onRescanRequired() {},
+        onBackgroundError() {},
+      },
     );
-    const subscription = await service.subscribe(createSignalTopic("work.available"), {
-      onWakeup() {},
-      onRescanRequired() {},
-      onBackgroundError() {},
-    });
 
     first.emitError(new Error("connection failed"));
     await waitFor(() => second.connectStarted);
@@ -338,11 +340,8 @@ describe("PostgresSignalService", () => {
     });
     const second = new FakeSignalClient(undefined, secondGate);
     const third = new FakeSignalClient();
-    const service = createPostgresSignalService(
-      authority(),
-      options(factoryFor([first, second, third])),
-    );
-    const firstSubscription = await service.subscribe(
+    const serviceInstance = service(factoryFor([first, second, third]));
+    const firstSubscription = await serviceInstance.subscribe(
       createSignalTopic("work.available"),
       {
         onWakeup() {},
@@ -355,7 +354,7 @@ describe("PostgresSignalService", () => {
     await waitFor(() => second.connectStarted);
     await firstSubscription.close();
 
-    const secondSubscriptionPromise = service.subscribe(
+    const secondSubscriptionPromise = serviceInstance.subscribe(
       createSignalTopic("work.available"),
       {
         onWakeup() {},
@@ -375,13 +374,10 @@ describe("PostgresSignalService", () => {
 
   it("normalizes initial listener failure to a canonical Problem", async () => {
     const client = new FakeSignalClient(new Error("connection refused"));
-    const service = createPostgresSignalService(
-      authority(),
-      options(factoryFor([client])),
-    );
+    const serviceInstance = service(factoryFor([client]));
 
     await expect(
-      service.subscribe(createSignalTopic("work.available"), {
+      serviceInstance.subscribe(createSignalTopic("work.available"), {
         onWakeup() {},
         onRescanRequired() {},
         onBackgroundError() {},
@@ -394,15 +390,17 @@ describe("PostgresSignalService", () => {
   it("reports malformed notifications through the background error seam", async () => {
     const client = new FakeSignalClient();
     const errors: unknown[] = [];
-    const service = createPostgresSignalService(
-      authority(),
-      options(factoryFor([client]), (error) => errors.push(error)),
+    const serviceInstance = service(factoryFor([client]), (error) =>
+      errors.push(error),
     );
-    const subscription = await service.subscribe(createSignalTopic("work.available"), {
-      onWakeup() {},
-      onRescanRequired() {},
-      onBackgroundError() {},
-    });
+    const subscription = await serviceInstance.subscribe(
+      createSignalTopic("work.available"),
+      {
+        onWakeup() {},
+        onRescanRequired() {},
+        onBackgroundError() {},
+      },
+    );
 
     client.emitNotification({ channel: SIGNAL_CHANNEL, payload: undefined });
     await waitFor(() => errors.length === 1);

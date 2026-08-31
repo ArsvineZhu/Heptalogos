@@ -28,7 +28,8 @@ framework, database, or process adapter.
 The entry point exports canonicalization and digest helpers, branded identity
 constructors/parsers, lifecycle-root IDs, Problem types, retry classes, and
 data-governance types. `createProblem` and `createProblemError` are the shared
-construction seam for canonical Problem envelopes. Public values preserve the
+construction seam for canonical Problem envelopes, while `parseProblem`
+strictly owns unknown-input V1 parsing. Public values preserve the
 semantic distinctions communicated by their names, including authority and
 lifecycle roots rather than flattening them into untyped strings.
 
