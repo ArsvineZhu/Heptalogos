@@ -224,12 +224,9 @@ Standard / OS Facility
 → Custom Implementation
 ```
 
-自研不是默认选项。
-
-对 generic mechanics 的实现必须先检查 semantic owner、现有 repository
-primitive/adapter、已采用 provider、Standard/Node/OS facility、成熟 library
-以及窄 adapter/composition。回避已采用依赖并在本地重写 generic mechanics 不是
-保守默认，而是需要当前 concrete insufficiency evidence 的架构偏离。
+自研不是默认选项。具体的 mechanics preflight、adapter 路由和实现决策程序由
+[Engineering Principles](engineering-principles.md) 维护；本条保留其长期不可
+绕过的 Library-First / Anti-NIH 原则。
 
 ---
 
@@ -250,18 +247,9 @@ RoleDecision = ADOPTED
 → 完成对应 conformance / product qualification
 ```
 
-不得因为“少依赖更保守”“自己写更简单”“暂时不想增加 package”而另造平行实现。若既定依赖出现真实 hard blocker，必须重新打开 RoleDecision、记录证据并更新依赖 Authority，不能在产品代码里偷偷切换。
-
-机器可读状态与实现路由分别由：
-
-```text
-project/qualification/dependency-status.json
-project/dependencies/dependency-routing.json
-```
-
-实现仓库还必须用 pnpm Catalog + `catalogMode: strict` 集中依赖版本，并用 Nx/ESLint/route gate 机械约束 adapter import boundaries；不能只依赖开发者记得读文档。
-
-约束。`AGENTS.md` 必须把这一规则持续施加给编码 Agent。
+不得因为“少依赖更保守”“自己写更简单”而另造平行实现。RoleDecision、实现路由、
+资格证据和仓库机械约束的具体维护位置见
+[Engineering Principles](engineering-principles.md) 与依赖 Authority。
 
 ---
 
@@ -554,13 +542,11 @@ VERSIONED != HISTORICALLY COMPATIBLE.
 COMPATIBILITY REQUIRES A DECLARED OBLIGATION.
 ```
 
-当前项目的 `CompatibilityEpoch = PRE_PRODUCTION`。版本字段仍然是 durable contract 的强制身份；但 merged commit、内部 retained developer DB、local fixture、previous dev build 或曾经存在的开发格式本身都不构成历史兼容义务。当前最佳 durable shape 必须保持一个 canonical V1 并在原地重写；obsolete development shape 必须 reset/reject。不得仅为 repository/development history 新增 V2/V3、legacy reader、upcaster、bridge migration、alias、shim 或 dual format。只有明确保留的 durable state 或明确的 external consumer 才能建立 compatibility obligation；进入 production compatibility epoch 必须经过显式 architecture decision。
-
-当前 compatibility obligations 只有在
-[compatibility-obligations.json](compatibility-obligations.json) 中声明时才具有 Authority。
-没有匹配声明，就没有 compatibility obligation。
-
-在首次 production compatibility 之前，migration history 本身也是可重写的 development material；当前 baseline 变化时应 squash/rewrite 并重建 dev/test state，而不是为旧开发数据库添加兼容迁移。
+当前 `PRE_PRODUCTION` 的兼容性、baseline 重写和历史残留清理规则由
+[Pre-Production Evolution](pre-production-evolution.md) 维护；唯一的机器可读
+compatibility Authority 是
+[compatibility-obligations.json](compatibility-obligations.json)。没有匹配声明，
+就没有 compatibility obligation。
 
 至少覆盖：
 
@@ -882,11 +868,9 @@ latest capable line
 当前 checkout 描述 canonical present，而不是产生它的 chronology。
 Development provenance 属于 Git、completed plans 与 historical evidence。
 Long-lived executable identities 必须使用当前 domain/operational semantics，
-不得使用 milestone、PR、session 或 temporary migration identity。
-在 PRE_PRODUCTION 中，项目开发历史不能因为残留在代码里就获得 compatibility
-Authority。一次性 phase evidence/scripts 与已经失去 owner 的 historical artifact
-在当前用途结束后必须移除；“为了历史保留”不是 current owner/purpose，Git 才是
-archive。
+不得使用 milestone、PR、session 或 temporary migration identity。具体的
+PRE_PRODUCTION current-tree archaeology、compatibility residue 和删除流程由
+[Pre-Production Evolution](pre-production-evolution.md) 维护。
 
 ### E44. Executable Truth Is First-Class
 
@@ -966,8 +950,10 @@ current explicit security threat
 ```
 
 “future completeness”、“safer in theory”、“we may need it later”或 catalog 中
-存在一个 Service 名称都不足以授权。Tests 不会自行创造 product requirement；仅为
-test 注入而提出的 failure scenario 不能单独强迫新的 production architecture。
+存在一个 Service 名称都不足以授权。具体 admission worksheet、failure model、
+provider 路由和 STOP/reopen procedure 由
+[Engineering Principles](engineering-principles.md) 维护；Tests 不会自行创造
+product requirement。
 
 ## 第三部分：原则优先级
 

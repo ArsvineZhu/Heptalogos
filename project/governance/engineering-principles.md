@@ -554,7 +554,9 @@ why current fail-stop behavior is insufficient
 
 ## 19. No Recursive Hardening
 
-除非另有明确授权，禁止自动扩展为：
+`Constitution` 的 [E46 bounded recovery rule](constitution.md#e46-recovery-is-bounded-not-recursively-complete)
+是本条的 normative owner。除非 active Plan 明确授权，implementation 不得把
+一阶 recovery 自动扩展为：
 
 ```text
 rollback-of-rollback

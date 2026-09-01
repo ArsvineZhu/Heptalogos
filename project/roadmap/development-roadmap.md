@@ -482,27 +482,35 @@ The lifecycle audit records `SEMANTIC_PROTOCOL`, `ADAPTER_GLUE`,
 `GENERIC_MECHANIC_CUSTOM_UNJUSTIFIED`, and `SPECULATIVE_RESILIENCE`. It does not
 start a broad refactor, replace Cordis/DBOS/XState, or add product capability.
 
+The current XState consumers are `private-postgres` and `host-ownership`.
+`runtime-kernel` owns runtime lifecycle meaning and reconciliation but is not a
+current XState consumer.
+
 The current bounded audit classification is:
 
-| Owner                                  | Mechanism                                                                     | Classification                                | Current action                                                                                                                                           |
-| -------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `runtime-substrate`                    | Cordis Fiber/context/effect/disposal                                          | `GENERIC_MECHANIC_DELEGATED`                  | Keep Cordis behind the adapter.                                                                                                                          |
-| `runtime-substrate`                    | task tracking, late disposer handling, settlement timeout                     | `GENERIC_MECHANIC_CUSTOM_JUSTIFIED`           | Retain the Heptalogos owner policy required to bound process-memory work that Cordis does not own; investigate only if a current consumer exposes a gap. |
-| `runtime-substrate` / `runtime-kernel` | background failure projection, owner/generation failure and readiness effects | `SEMANTIC_PROTOCOL`                           | Keep semantic projection in Heptalogos contracts.                                                                                                        |
-| `runtime-kernel`                       | local lifecycle statechart transitions                                        | `GENERIC_MECHANIC_DELEGATED`                  | Keep XState package-private; Kernel owns lifecycle meaning.                                                                                              |
-| `runtime-kernel`                       | component reconciliation, generation fencing and provider selection           | `SEMANTIC_PROTOCOL`                           | Keep component retirement in the Kernel; runtime-level close is terminal and there is no second supervisor.                                              |
-| `private-postgres`                     | PostgreSQL process/tool invocation and local lifecycle statechart             | `ADAPTER_GLUE` / `GENERIC_MECHANIC_DELEGATED` | Use the adopted subprocess and XState routes; no new process manager.                                                                                    |
-| `host-ownership`                       | advisory lease, database fence and token transitions                          | `SEMANTIC_PROTOCOL`                           | Preserve one Host Authority and its PostgreSQL mechanics adapter.                                                                                        |
-| `bootstrap-runtime`                    | Bootstrap/Host handoff, maintenance point of no return and recovery journal   | `SEMANTIC_PROTOCOL`                           | Keep one-way retirement, compact phase witness, and current-truth recovery at this owner.                                                                |
-| `work-queue`                           | WorkItem Authority, admission, reconciliation and fair scan                   | `SEMANTIC_PROTOCOL`                           | Preserve canonical WorkItem ownership and bounded scan behavior.                                                                                         |
-| `durable-execution`                    | DBOS client/pool/terminal lifecycle adapter                                   | `ADAPTER_GLUE` / `GENERIC_MECHANIC_DELEGATED` | Keep DBOS workflow, queue, drain, and first-order restart mechanics below the Heptalogos lifecycle contract.                                             |
+| Owner                                  | Mechanism                                                                            | Classification                                                   | Current action                                                                                                                                           |
+| -------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `runtime-substrate`                    | Cordis Fiber/context/effect/disposal                                                 | `GENERIC_MECHANIC_DELEGATED`                                     | Keep Cordis behind the adapter.                                                                                                                          |
+| `runtime-substrate`                    | task tracking, late disposer handling, settlement timeout                            | `GENERIC_MECHANIC_CUSTOM_JUSTIFIED`                              | Retain the Heptalogos owner policy required to bound process-memory work that Cordis does not own; investigate only if a current consumer exposes a gap. |
+| `runtime-substrate` / `runtime-kernel` | background failure projection, owner/generation failure and readiness effects        | `SEMANTIC_PROTOCOL`                                              | Keep semantic projection in Heptalogos contracts.                                                                                                        |
+| `runtime-kernel`                       | Desired/Actual reconciliation, registries, generation fencing and provider selection | `SEMANTIC_PROTOCOL`                                              | Keep lifecycle meaning and component retirement in the Kernel; runtime-level close is terminal and there is no second supervisor.                        |
+| `private-postgres`                     | PostgreSQL process/tool invocation and local lifecycle statechart                    | `ADAPTER_GLUE` / `GENERIC_MECHANIC_DELEGATED`                    | Use the adopted subprocess and XState routes; no new process manager.                                                                                    |
+| `host-ownership`                       | advisory lease, database fence and token transitions                                 | `SEMANTIC_PROTOCOL`                                              | Preserve one Host Authority and its PostgreSQL mechanics adapter.                                                                                        |
+| `bootstrap-runtime`                    | Bootstrap/Host handoff, maintenance point of no return and recovery journal          | `SEMANTIC_PROTOCOL`                                              | Keep one-way retirement, compact phase witness, and current-truth recovery at this owner.                                                                |
+| `bootstrap-runtime`                    | old-runtime rollback and `resumeAfterAbort`                                          | `SPECULATIVE_RESILIENCE`                                         | Removed; the Authority point of no return is fenced and failed post-entry work is bounded recovery.                                                      |
+| `bootstrap-runtime`                    | historical maintenance-stage replay/recovery workflow                                | `SPECULATIVE_RESILIENCE`                                         | Removed/re-written to current-truth inspection and convergence.                                                                                          |
+| `work-queue`                           | WorkItem Authority, admission, reconciliation and fair scan                          | `SEMANTIC_PROTOCOL`                                              | Preserve canonical WorkItem ownership and bounded scan behavior.                                                                                         |
+| `durable-execution`                    | DBOS client/pool/terminal lifecycle adapter                                          | `ADAPTER_GLUE` / `GENERIC_MECHANIC_DELEGATED`                    | Keep DBOS workflow, queue, drain, and first-order restart mechanics below the Heptalogos lifecycle contract.                                             |
+| `durable-execution`                    | reversible quiesce/resume lifecycle                                                  | `GENERIC_MECHANIC_CUSTOM_UNJUSTIFIED` / `SPECULATIVE_RESILIENCE` | Removed; DBOS retains its adopted terminal lifecycle and first-order recovery mechanics.                                                                 |
 
-No current owner was classified as `GENERIC_MECHANIC_CUSTOM_UNJUSTIFIED` or
-`SPECULATIVE_RESILIENCE`. The Cordis review specifically finds task tracking and
-late-disposer handling to be Heptalogos owner policy around the adopted Cordis
-scope, settlement timeout to be the required bounded contract for unowned-by-
-Cordis process-memory tasks, and background failure projection to be semantic
-failure/readiness behavior. Provider replacement is not authorized.
+The remediation identified and removed the unjustified or speculative
+reversible runtime and maintenance-recovery mechanisms listed above. No such
+mechanism remains in the current Foundation implementation after this
+remediation. The retained Cordis review still classifies task tracking and
+late-disposer handling as Heptalogos owner policy around the adopted Cordis
+scope, settlement timeout as the required bounded contract for process-memory
+tasks, and background failure projection as semantic failure/readiness
+behavior. Provider replacement is not authorized.
 
 ### After H3 — minimum provider prerequisites, then Subject proof
 

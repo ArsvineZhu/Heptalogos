@@ -1,8 +1,9 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignoreDependencies": ["@typescript/native", "@types/pg", "execa", "kysely"],
+  "ignoreDependencies": ["@typescript/native"],
   "workspaces": {
     ".": {
+      "ignoreDependencies": ["@types/pg", "execa", "kysely"],
       "entry": [
         "scripts/**/*.mjs",
         "integration/foundation/vitest.config.ts",
