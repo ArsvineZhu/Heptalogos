@@ -61,12 +61,6 @@ export interface MaintenanceJournalEnvelopeV1 {
   readonly digest: Sha256Digest;
 }
 
-/** Holds the current journal and optional previous atomic-write safety copy. */
-export interface MaintenanceJournalRecoveryHead {
-  readonly current: MaintenanceJournalEnvelopeV1;
-  readonly previous?: MaintenanceJournalEnvelopeV1;
-}
-
 /** Reports an authenticated maintenance envelope or a parse Problem. */
 export type MaintenanceJournalParseResult =
   | { readonly ok: true; readonly value: MaintenanceJournalEnvelopeV1 }

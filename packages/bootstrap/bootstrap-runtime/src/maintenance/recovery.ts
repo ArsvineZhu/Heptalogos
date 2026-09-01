@@ -23,7 +23,6 @@ import {
   parseHostOwnershipToken,
   ProblemError,
   type BootId,
-  type HostOwnershipToken,
   type Problem,
 } from "@heptalogos/foundation-contracts";
 import {
@@ -78,7 +77,6 @@ export interface HostMaintenanceRecoveryOptions {
   readonly timing: HostOwnershipTimingOptions;
   readonly privatePostgres: PrivatePostgresMaintenanceDescriptor;
   readonly bootstrapHeartbeatMs?: number;
-  readonly createHostToken?: () => HostOwnershipToken;
 }
 
 function recoveryProblem(
@@ -461,6 +459,7 @@ export async function recoverInterruptedHostMaintenance(
   const markRecoveryRequired = async (error: unknown): Promise<void> => {
     if (
       body === undefined ||
+      body.phase === "PREPARED" ||
       body.phase === "SUCCEEDED" ||
       body.phase === "ABORTED" ||
       lease.state !== "HELD"
@@ -531,32 +530,28 @@ export async function recoverInterruptedHostMaintenance(
         advisoryKey: deriveHostAdvisoryKey(body.instanceId),
         passwordProvider: provider,
       });
-      const snapshot = await inspectHostOwnershipCanonicalSnapshot({
-        port: body.source.persistedPort,
-        passwordProvider: provider,
-      });
-      if (advisory.live && sourceFenceIsCurrent(snapshot, body)) {
-        const aborted = nextBody(body, "ABORTED");
-        await access.journal.advance(aborted);
-        body = aborted;
-        await lease.release();
-        await recordBootstrapMaintenanceCompletedBestEffort(
-          bootstrapContext(
-            profile,
-            locator.installationId,
-            locator.instanceId,
-            recoveryBootId,
-            recoveryActivityId,
-          ),
+      if (advisory.live) {
+        throw recoveryProblem(
+          "bootstrap.recovery.live_host_owner",
+          "A live Host owner blocks PREPARED maintenance recovery",
+          "Recovery will not mutate a prepared maintenance intent while a normal Host advisory lease is active",
+          "conflict",
         );
-        return { kind: "ABORTED" };
       }
-      throw recoveryProblem(
-        "bootstrap.recovery.prepared_source_not_current",
-        "Prepared maintenance cannot be safely aborted",
-        "The explicit PREPARED abort path requires the original Host advisory lease and source fence to remain current",
-        "conflict",
+      const aborted = nextBody(body, "ABORTED");
+      await access.journal.advance(aborted);
+      body = aborted;
+      await lease.release();
+      await recordBootstrapMaintenanceCompletedBestEffort(
+        bootstrapContext(
+          profile,
+          locator.installationId,
+          locator.instanceId,
+          recoveryBootId,
+          recoveryActivityId,
+        ),
       );
+      return { kind: "ABORTED" };
     }
 
     if (body.phase === "SUCCEEDED" || body.phase === "ABORTED") {

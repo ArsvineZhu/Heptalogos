@@ -72,7 +72,7 @@ describe("MaintenanceJournalStore", () => {
     });
   });
 
-  it("requires exact next revisions and exposes a coherent previous copy", async () => {
+  it("requires exact next revisions and exposes a coherent previous revision", async () => {
     const root = await directory();
     const store = new MaintenanceJournalStore(root);
     const operationId = createUuidV7Id("MaintenanceOperationId");
@@ -84,9 +84,13 @@ describe("MaintenanceJournalStore", () => {
     ).rejects.toMatchObject({
       problem: { problemCode: "maintenance.journal.revision_conflict" },
     });
-    await expect(store.loadRecoveryHead(operationId)).resolves.toMatchObject({
-      current: { state: { revision: 2, phase: "EXECUTING" } },
-      previous: { state: { revision: 1, phase: "PREPARED" } },
+    await writeFile(
+      join(root, "maintenance-journal", operationId, "maintenance-state.json"),
+      "corrupt",
+    );
+    await expect(store.load(operationId)).resolves.toMatchObject({
+      status: "RECOVERED_PREVIOUS",
+      value: { state: { revision: 1, phase: "PREPARED" } },
     });
   });
 

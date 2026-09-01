@@ -67,8 +67,8 @@ export interface PreparedPrivatePostgresMaintenance {
   readonly signal: AbortSignal;
   /** Executes the one-way window after product runtime retirement. */
   execute(retirement: HostRuntimeRetirement): Promise<PrivatePostgresMaintenanceResult>;
-  /** Cancels preparation before the durable point of no return. */
-  abortBeforeEntry(): Promise<void>;
+  /** Cancels preparation before durable execution entry. */
+  abortBeforeExecute(): Promise<void>;
 }
 
 /** Managed Host context that fences all persistence and maintenance operations. */

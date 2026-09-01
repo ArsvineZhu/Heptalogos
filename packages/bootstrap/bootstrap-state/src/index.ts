@@ -49,10 +49,7 @@ export type {
   MaintenancePhase,
 } from "./maintenance/model.js";
 export { MaintenanceJournalStore } from "./maintenance/store.js";
-export type {
-  MaintenanceJournalLoadResult,
-  MaintenanceJournalRecoveryHead,
-} from "./maintenance/model.js";
+export type { MaintenanceJournalLoadResult } from "./maintenance/model.js";
 export {
   BOOTSTRAP_OWNER_WITNESS_DIGEST_DOMAIN,
   canonicalBootstrapOwnerWitnessText,

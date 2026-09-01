@@ -83,7 +83,6 @@ export interface WorkQueueServiceOptions {
   readonly profiles: WorkQueueProfileCatalog;
   readonly runtimeOptions: WorkQueueRuntimeOptions;
   readonly onBackgroundError: (error: unknown) => void;
-  readonly scheduleReconciliation?: () => void | Promise<void>;
 }
 
 /** Admits and persists WorkItems through the owning persistence and lineage seams. */
@@ -227,24 +226,6 @@ function admissionReason(
   return decision.decision === "DELAY" || decision.decision === "THROTTLE"
     ? decision.reasonCode
     : undefined;
-}
-
-function reportBackgroundError(sink: (error: unknown) => void, problem: unknown): void {
-  try {
-    sink(problem);
-  } catch {
-    // Background reporting must not escape canonical creation.
-  }
-}
-
-function scheduleFailure(sink: (error: unknown) => void): void {
-  reportBackgroundError(
-    sink,
-    workQueueProblem(
-      "work.schedule.failed",
-      "Reconciliation scheduling failed after the WorkItem was inserted",
-    ),
-  );
 }
 
 /** Create the WorkQueue service with explicit admission, handler, and signal owners. */
@@ -429,16 +410,6 @@ export function createWorkQueueService(
         status: result.status === "INSERTED" ? "CREATED" : "EXISTING",
         item: result.item,
       };
-      if (
-        result.status === "INSERTED" &&
-        options.scheduleReconciliation !== undefined
-      ) {
-        try {
-          await options.scheduleReconciliation();
-        } catch {
-          scheduleFailure(options.onBackgroundError);
-        }
-      }
       return creationResult;
     },
   };

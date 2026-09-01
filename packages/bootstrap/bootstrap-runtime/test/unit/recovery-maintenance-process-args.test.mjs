@@ -27,6 +27,19 @@ describe("recovery maintenance process argument contract", () => {
     expect(
       parserModule.parseRecoveryMaintenanceProcessArgs([
         "/anchor",
+        "maintenance-prepared",
+        "/pg/bin",
+        "55620",
+      ]),
+    ).toMatchObject({
+      role: "maintenance-prepared",
+      pgBin: "/pg/bin",
+      portText: "55620",
+    });
+
+    expect(
+      parserModule.parseRecoveryMaintenanceProcessArgs([
+        "/anchor",
         "recovery",
         "/pg/bin",
         "55620",

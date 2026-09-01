@@ -16,6 +16,16 @@ export function parseRecoveryMaintenanceProcessArgs(argv) {
     return { anchorRoot, role, pgBin, portText, targetPhase };
   }
 
+  if (role === "maintenance-prepared") {
+    const [pgBin, portText, ...extra] = args;
+    if (!pgBin || !portText || extra.length > 0) {
+      throw new Error(
+        "maintenance-prepared usage: <anchor> maintenance-prepared <pg-bin> <port>",
+      );
+    }
+    return { anchorRoot, role, pgBin, portText };
+  }
+
   if (role === "recovery") {
     const [pgBin, portText, operationIdText, targetPhase, ...extra] = args;
     if (!pgBin || !portText || !operationIdText || !targetPhase || extra.length > 0) {

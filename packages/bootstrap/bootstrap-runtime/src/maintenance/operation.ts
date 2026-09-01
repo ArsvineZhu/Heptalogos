@@ -16,25 +16,19 @@ import {
   type MaintenancePhase,
 } from "@heptalogos/bootstrap-state";
 import {
-  acquireHostLeaseConnection,
-  deriveHostAdvisoryKey,
-  HOST_OWNERSHIP_CANONICAL_DATABASE,
   inspectHostOwnershipCanonicalSnapshot,
-  publishHostOwnershipToken,
   revokeHostOwnershipTokenForBootstrap,
   type HostOwnershipCanonicalSnapshot,
   type HostOwnershipContext,
 } from "@heptalogos/host-ownership";
 import { openPrivatePostgresMaintenanceController } from "@heptalogos/private-postgres";
 import {
-  createBootId,
   createProblemError,
   formatInstant,
   parseBootId,
   parseHostOwnershipToken,
   ProblemError,
   type BootId,
-  type HostOwnershipToken,
   type InstallationId,
   type InstanceId,
   type Problem,
@@ -47,7 +41,6 @@ import {
   openMaintenanceStateAccess,
   type OwnedMaintenanceStateAccess,
 } from "./state-access.js";
-import { admitCanonicalHost } from "../host/admission.js";
 import type {
   BootstrapManagedHostContext,
   HostRuntimeRetirement,
@@ -105,23 +98,16 @@ export interface HostMaintenanceOperationProvenance {
   /** Marks the managed Host non-serving before product retirement begins. */
   readonly terminalizeManagedHost?: () => void;
   readonly beginOldHostRetirement?: () => Promise<void>;
-  readonly createHostToken?: () => HostOwnershipToken;
-  readonly createHostContext?: (
-    connection: Awaited<ReturnType<typeof acquireHostLeaseConnection>>,
-    token: HostOwnershipToken,
-    bootId?: BootId,
-  ) => HostOwnershipContext;
-  readonly createManagedHost?: (
-    raw: HostOwnershipContext,
-  ) => BootstrapManagedHostContext;
-  readonly executeEnteredWindow?: (
+  /** Reuses the single Host handoff owner after private PostgreSQL is ready. */
+  readonly reacquireHost?: (
     window: EnteredMaintenanceWindow,
-  ) => Promise<PrivatePostgresMaintenanceResult>;
+    beforeBootstrapRelease: () => Promise<void>,
+  ) => Promise<BootstrapManagedHostContext>;
   readonly onOldHostTerminal?: () => void;
 }
 
 /** Dispatches the selected stop or restart operation for an entered window. */
-export function executeHostMaintenanceWindow(
+function executeHostMaintenanceWindow(
   provenance: HostMaintenanceOperationProvenance,
   window: EnteredMaintenanceWindow,
 ): Promise<PrivatePostgresMaintenanceResult> {
@@ -423,20 +409,16 @@ function createStopPrivatePostgresEnteredWindowExecutor(
   };
 }
 
-/** Creates the bounded executor for restarting and reacquiring private PostgreSQL. */
+/** Creates the bounded executor for restarting private PostgreSQL. */
 function createRestartPrivatePostgresEnteredWindowExecutor(
   provenance: HostMaintenanceOperationProvenance,
 ): (window: EnteredMaintenanceWindow) => Promise<PrivatePostgresMaintenanceResult> {
   return async (window) => {
-    if (
-      provenance.createHostContext === undefined ||
-      provenance.createManagedHost === undefined ||
-      provenance.createHostToken === undefined
-    ) {
+    if (provenance.reacquireHost === undefined) {
       throw maintenanceProblem(
         "bootstrap.maintenance.restart_executor_not_ready",
         "Private PostgreSQL restart executor is incomplete",
-        "A restart window requires authentic raw Host and managed Host factories for fresh ownership reacquisition",
+        "A restart window requires the canonical Host handoff owner for fresh ownership reacquisition",
         "unavailable",
       );
     }
@@ -454,100 +436,32 @@ function createRestartPrivatePostgresEnteredWindowExecutor(
       );
     }
 
-    let rawHost: HostOwnershipContext | undefined;
-    let leaseConnection:
-      Awaited<ReturnType<typeof acquireHostLeaseConnection>> | undefined;
-    let returned = false;
-    try {
-      await controller.stop();
-      const stoppedState = controller.state;
-      if (stoppedState !== "STOPPED") {
-        throw maintenanceProblem(
-          "bootstrap.maintenance.postgres_stop_unverified",
-          "Private PostgreSQL stop could not be verified",
-          "The maintenance controller did not prove the same cluster STOPPED",
-        );
-      }
-
-      await controller.start();
-      const readyState = controller.state;
-      if (readyState !== "READY") {
-        throw maintenanceProblem(
-          "bootstrap.maintenance.postgres_ready_unverified",
-          "Private PostgreSQL readiness could not be verified",
-          "The maintenance controller did not prove the same cluster READY after restart",
-        );
-      }
-
-      window.lease.assertHeld();
-      leaseConnection = await acquireHostLeaseConnection({
-        target: {
-          host: "127.0.0.1",
-          port: provenance.privatePostgres.expectedIdentity.persistedPort,
-          database: HOST_OWNERSHIP_CANONICAL_DATABASE,
-        },
-        advisoryKey: deriveHostAdvisoryKey(provenance.bootstrap.instanceId),
-        timing: provenance.handoff.timing,
-        passwordProvider: passwordProvider(provenance.bootstrap, provenance.handoff),
-        mutationAuthority: { assertCurrent: () => window.lease.assertHeld() },
-      });
-      window.lease.assertHeld();
-
-      const token = provenance.createHostToken();
-      const freshBootId = createBootId();
-      await publishHostOwnershipToken({
-        connection: leaseConnection,
-        instanceId: provenance.bootstrap.instanceId,
-        bootId: freshBootId,
-        token,
-        fenceLockTimeoutMs: provenance.handoff.timing.fenceLockTimeoutMs,
-        statementTimeoutMs: provenance.handoff.timing.statementTimeoutMs,
-        mutationAuthority: { assertCurrent: () => window.lease.assertHeld() },
-      });
-      leaseConnection.assertActive();
-      rawHost = provenance.createHostContext(leaseConnection, token, freshBootId);
-      rawHost.assertActive();
-      const activeLeaseConnection = leaseConnection;
-      if (activeLeaseConnection === undefined) {
-        throw maintenanceProblem(
-          "bootstrap.maintenance.host_lease_required",
-          "A fresh Host lease is required for canonical admission",
-          "Maintenance restart cannot expose a managed Host without the newly acquired Host lease",
-        );
-      }
-      await admitCanonicalHost({
-        installationId: provenance.bootstrap.installationId,
-        instanceId: provenance.bootstrap.instanceId,
-        bootId: freshBootId,
-        token,
-        port: provenance.privatePostgres.expectedIdentity.persistedPort,
-        bootstrapOwnership: window.lease,
-        hostLeaseConnection: activeLeaseConnection,
-        keyProvider: provenance.handoff.keyProvider,
-        loadCurrentContinuityEpochId: async () => {
-          const currentState = stateBody(await window.access.state.load());
-          assertPrivatePostgresIdentity(currentState.state, provenance.privatePostgres);
-          return currentState.state.continuityEpochId;
-        },
-        initializeCanonicalHost: provenance.handoff.initializeCanonicalHost,
-      });
-      await window.advance("SUCCEEDED");
-
-      await window.lease.release();
-      rawHost.assertActive();
-      await recordBootstrapMaintenanceCompletedBestEffort(provenance.bootstrap);
-      window.complete();
-      const managedHost = provenance.createManagedHost(rawHost);
-      returned = true;
-      leaseConnection = undefined;
-      return { kind: "RESTARTED", host: managedHost };
-    } catch (error) {
-      if (!returned) {
-        await rawHost?.close().catch(() => undefined);
-        await leaseConnection?.close().catch(() => undefined);
-      }
-      throw error;
+    await controller.stop();
+    const stoppedState = controller.state;
+    if (stoppedState !== "STOPPED") {
+      throw maintenanceProblem(
+        "bootstrap.maintenance.postgres_stop_unverified",
+        "Private PostgreSQL stop could not be verified",
+        "The maintenance controller did not prove the same cluster STOPPED",
+      );
     }
+
+    await controller.start();
+    const readyState = controller.state;
+    if (readyState !== "READY") {
+      throw maintenanceProblem(
+        "bootstrap.maintenance.postgres_ready_unverified",
+        "Private PostgreSQL readiness could not be verified",
+        "The maintenance controller did not prove the same cluster READY after restart",
+      );
+    }
+
+    const managedHost = await provenance.reacquireHost(window, () =>
+      window.advance("SUCCEEDED"),
+    );
+    await recordBootstrapMaintenanceCompletedBestEffort(provenance.bootstrap);
+    window.complete();
+    return { kind: "RESTARTED", host: managedHost };
   };
 }
 
@@ -610,6 +524,7 @@ function createPreparedMaintenance(
 ): PreparedPrivatePostgresMaintenance {
   let body = initial;
   let oldHostRetirementPromise: Promise<void> | undefined;
+  let executePromise: Promise<PrivatePostgresMaintenanceResult> | undefined;
 
   const beginOldHostRetirement = (): Promise<void> => {
     if (oldHostRetirementPromise !== undefined) {
@@ -654,9 +569,8 @@ function createPreparedMaintenance(
 
   const markRecoveryRequired = async (error: unknown): Promise<void> => {
     if (
-      lease.state === "HELD" &&
-      body.phase !== "SUCCEEDED" &&
-      body.phase !== "ABORTED"
+      body.phase === "PREPARED" ||
+      (lease.state === "HELD" && body.phase !== "SUCCEEDED" && body.phase !== "ABORTED")
     ) {
       await advance("RECOVERY_REQUIRED", {
         problemCode: problemCodeOf(error),
@@ -664,7 +578,7 @@ function createPreparedMaintenance(
     }
   };
 
-  const execute = async (
+  const executeOnce = async (
     retirement: HostRuntimeRetirement,
   ): Promise<PrivatePostgresMaintenanceResult> => {
     if (body.phase !== "PREPARED") {
@@ -695,13 +609,13 @@ function createPreparedMaintenance(
         );
       }
 
+      await advance("EXECUTING");
       provenance.terminalizeManagedHost?.();
       try {
         await retirement.retire();
       } catch (error) {
         retirementFailure = error;
       }
-      await advance("EXECUTING");
 
       const hostStateAfterRetirement = provenance.host.state;
       if (hostStateAfterRetirement !== "ACTIVE") {
@@ -765,15 +679,7 @@ function createPreparedMaintenance(
       }
       if (executionFailure !== undefined) throw executionFailure;
 
-      if (provenance.executeEnteredWindow === undefined) {
-        throw maintenanceProblem(
-          "bootstrap.maintenance.executor_not_ready",
-          "Maintenance window executor is not ready",
-          "The Host authority retirement is proven but no bounded PostgreSQL maintenance action is connected",
-          "unavailable",
-        );
-      }
-      return await provenance.executeEnteredWindow({
+      return await executeHostMaintenanceWindow(provenance, {
         operationId: body.operationId,
         request,
         lease,
@@ -799,12 +705,20 @@ function createPreparedMaintenance(
     }
   };
 
-  const abortBeforeEntry = async (): Promise<void> => {
-    if (body.phase !== "PREPARED") {
+  const execute = (
+    retirement: HostRuntimeRetirement,
+  ): Promise<PrivatePostgresMaintenanceResult> => {
+    if (executePromise !== undefined) return executePromise;
+    executePromise = executeOnce(retirement);
+    return executePromise;
+  };
+
+  const abortBeforeExecute = async (): Promise<void> => {
+    if (executePromise !== undefined || body.phase !== "PREPARED") {
       throw maintenanceProblem(
         "bootstrap.maintenance.abort_after_entry",
         "Maintenance capability cannot abort after entry",
-        "abortBeforeEntry is legal only while the operation remains PREPARED",
+        "abortBeforeExecute is legal only before execute() enters its durable execution boundary",
         "conflict",
       );
     }
@@ -819,6 +733,6 @@ function createPreparedMaintenance(
     },
     signal: lease.signal,
     execute,
-    abortBeforeEntry,
+    abortBeforeExecute,
   };
 }

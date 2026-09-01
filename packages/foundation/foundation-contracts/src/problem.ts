@@ -41,6 +41,7 @@ const retryClasses = new Set<RetryClass>([
   "after-change",
   "manual",
 ]);
+const fieldErrorKeys = new Set(["field", "problemCode", "detail"]);
 
 function recordValue(value: unknown): Record<string, unknown> | undefined {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -92,6 +93,7 @@ export function parseProblem(value: unknown): Problem | undefined {
       const fieldError = recordValue(item);
       if (
         fieldError === undefined ||
+        Object.keys(fieldError).some((key) => !fieldErrorKeys.has(key)) ||
         typeof fieldError.field !== "string" ||
         typeof fieldError.problemCode !== "string" ||
         (fieldError.detail !== undefined && typeof fieldError.detail !== "string")

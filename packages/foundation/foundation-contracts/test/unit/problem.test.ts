@@ -105,6 +105,14 @@ describe("parseProblem", () => {
     expect(parseProblem({ ...base, unknown: true })).toBeUndefined();
     expect(parseProblem({ ...base, retryClass: "later" })).toBeUndefined();
     expect(parseProblem({ ...base, fieldErrors: "invalid" })).toBeUndefined();
+    expect(
+      parseProblem({
+        ...base,
+        fieldErrors: [
+          { field: "name", problemCode: "foundation.name_required", unexpected: true },
+        ],
+      }),
+    ).toBeUndefined();
     expect(parseProblem({ ...base, metadata: [] })).toBeUndefined();
     expect(parseProblem({ ...base, title: 42 })).toBeUndefined();
   });

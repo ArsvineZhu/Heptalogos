@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
+import { Client } from "pg";
 import {
   BootstrapStateStore,
   MaintenanceJournalStore,
@@ -13,6 +14,7 @@ import {
 } from "@heptalogos/bootstrap-state";
 import {
   asContentDigest,
+  createBootId,
   createInstallationId,
   createInstanceId,
   digestCanonicalJson,
@@ -26,9 +28,14 @@ import {
 } from "@heptalogos/private-postgres";
 import { loadBootstrapLocator } from "../../src/bootstrap/locator.js";
 import { proveLocalInstallationOwner } from "../../src/bootstrap/local-installation-owner.js";
+import { prepareBootstrapPrelude } from "../../src/bootstrap/prelude.js";
 import { resolveBootstrapPathProfile } from "../../src/bootstrap/roots.js";
 import { recoverInterruptedHostMaintenance } from "../../src/maintenance/recovery.js";
-import type { PrivatePostgresMaintenanceDescriptor } from "../../src/postgres/bootstrap.js";
+import type {
+  PrivatePostgresMaintenanceDescriptor,
+  ReadyPrivatePostgres,
+} from "../../src/postgres/bootstrap.js";
+import type { BootstrapManagedHostContext } from "../../src/host/managed-host.js";
 
 const qualifiedPgBin =
   process.env.HEPTALOGOS_TEST_PG_BIN ??
@@ -61,6 +68,8 @@ type ChildMessage = {
   readonly kind?: string;
   readonly problemCode?: string;
   readonly message?: string;
+  readonly sourceToken?: string;
+  readonly clusterSystemIdentifier?: string;
 };
 
 class RealProcessController {
@@ -343,6 +352,47 @@ async function clusterIdentity(
   return value;
 }
 
+async function postmasterStartTime(
+  fixture: Awaited<ReturnType<typeof makeFixture>>,
+  port: number,
+): Promise<string> {
+  let client: Client | undefined;
+  const provider = makeKeyProvider();
+  await provider.withPrivatePostgresBootstrapPassword(
+    {
+      installationId: fixture.installationId,
+      instanceId: fixture.instanceId,
+      bootId: createBootId(),
+      purpose: "private-postgres-bootstrap-superuser",
+    },
+    async (passwordUtf8) => {
+      client = new Client({
+        host: "127.0.0.1",
+        port,
+        database: "heptalogos",
+        user: "heptalogos_bootstrap",
+        password: new TextDecoder().decode(passwordUtf8),
+        connectionTimeoutMillis: 10_000,
+      });
+      await client.connect();
+    },
+  );
+  const connected = client;
+  if (connected === undefined)
+    throw new Error("bootstrap admin client was not connected");
+  try {
+    const result = await connected.query<{ readonly started_at: string }>(
+      "SELECT pg_postmaster_start_time()::text AS started_at",
+    );
+    const startedAt = result.rows[0]?.started_at;
+    if (startedAt === undefined)
+      throw new Error("postmaster start time was not returned");
+    return startedAt;
+  } finally {
+    await connected.end();
+  }
+}
+
 async function stopPostgres(
   toolchain: PrivatePostgresToolchain,
   dataDirectory: string,
@@ -384,6 +434,115 @@ afterEach(async () => {
 });
 
 describe("Bootstrap Recovery real maintenance/recovery process qualification", () => {
+  it("aborts abandoned PREPARED maintenance without executing its restart intent", async () => {
+    const fixture = await makeFixture();
+    const port = 55621;
+    const child = new RealProcessController(
+      fixture.anchorRoot,
+      "maintenance-prepared",
+      [qualifiedPgBin, String(port)],
+    );
+    const prepared = await child.waitFor("maintenance-prepared", "error");
+    if (prepared.type === "error") {
+      throw new Error(
+        prepared.message ?? prepared.problemCode ?? "maintenance child failed",
+      );
+    }
+    if (prepared.operationId === undefined) throw new Error("missing operation id");
+    if (prepared.sourceToken === undefined)
+      throw new Error("missing source Host token");
+
+    const journalBefore = await new MaintenanceJournalStore(
+      fixture.roots.INSTANCE,
+    ).load(prepared.operationId as MaintenanceJournalBodyV1["operationId"]);
+    if (journalBefore.status !== "CURRENT")
+      throw new Error("prepared journal was not current");
+    expect(journalBefore.value.state.phase).toBe("PREPARED");
+    const sourceHostBootId = journalBefore.value.state.source.hostBootId;
+
+    const descriptor = await buildDescriptor(fixture, port);
+    const beforeCluster = await clusterIdentity(
+      descriptor.toolchain,
+      descriptor.placement.canonicalDataDirectory,
+    );
+    const beforeStart = await postmasterStartTime(fixture, port);
+    await child.kill();
+    await markBootstrapLockStale(fixture.roots.INSTANCE);
+
+    const result = await recoverInterruptedHostMaintenance({
+      anchorRoot: fixture.anchorRoot,
+      principal: await proveLocalInstallationOwner(fixture.anchorRoot),
+      expectedOperationId:
+        prepared.operationId as MaintenanceJournalBodyV1["operationId"],
+      initializeCanonicalHost: async ({ authority }) => {
+        authority.assertCurrent();
+      },
+      keyProvider: makeKeyProvider(),
+      timing: HOST_TIMING,
+      privatePostgres: descriptor,
+    });
+    expect(result).toEqual({ kind: "ABORTED" });
+
+    const journalAfter = await new MaintenanceJournalStore(fixture.roots.INSTANCE).load(
+      prepared.operationId as MaintenanceJournalBodyV1["operationId"],
+    );
+    expect(journalAfter).toMatchObject({
+      status: "CURRENT",
+      value: { state: { phase: "ABORTED" } },
+    });
+    await expect(
+      clusterIdentity(
+        descriptor.toolchain,
+        descriptor.placement.canonicalDataDirectory,
+      ),
+    ).resolves.toBe(beforeCluster);
+    await expect(postmasterStartTime(fixture, port)).resolves.toBe(beforeStart);
+
+    let laterOwned:
+      | Awaited<
+          ReturnType<
+            Awaited<ReturnType<typeof prepareBootstrapPrelude>>["acquireOwnership"]
+          >
+        >
+      | undefined;
+    let laterReady: ReadyPrivatePostgres | undefined;
+    let laterHost: BootstrapManagedHostContext | undefined;
+    try {
+      const laterPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+      laterOwned = await laterPrepared.acquireOwnership({ heartbeatMs: 1_000 });
+      laterReady = await laterOwned.preparePrivatePostgres({
+        toolchainBinDirectory: qualifiedPgBin,
+        lifecycle: LIFECYCLE,
+        keyProvider: makeKeyProvider(),
+      });
+      laterHost = await laterOwned.handoffPrivatePostgresToHost(laterReady, {
+        initializeCanonicalHost: async ({ authority }) => authority.assertCurrent(),
+        keyProvider: makeKeyProvider(),
+        timing: HOST_TIMING,
+      });
+      expect(laterHost.token).not.toBe(prepared.sourceToken);
+      expect(laterHost.bootId).not.toBe(sourceHostBootId);
+    } finally {
+      if (laterHost?.state === "ACTIVE") {
+        await laterHost
+          .shutdownKeepingPrivatePostgres({
+            async retire() {
+              // This qualification composes no product Runtime.
+            },
+          })
+          .catch(() => undefined);
+      }
+      await laterReady?.stop().catch(() => undefined);
+      await stopPostgres(
+        descriptor.toolchain,
+        descriptor.placement.canonicalDataDirectory,
+      );
+      if (laterOwned !== undefined && laterOwned.ownershipState !== "RELEASED") {
+        await laterOwned.close().catch(() => undefined);
+      }
+    }
+  }, 240_000);
+
   it("kills real Bootstrap Recovery maintenance after durable EXECUTING and recovers it", async () => {
     const fixture = await makeFixture();
     const port = 55620;

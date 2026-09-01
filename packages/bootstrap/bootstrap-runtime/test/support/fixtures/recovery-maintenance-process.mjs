@@ -213,6 +213,10 @@ async function runMaintenance() {
     sourceToken: host.token,
     clusterSystemIdentifier: ready.clusterSystemIdentifier,
   });
+  if (role === "maintenance-prepared") {
+    await releaseRequested;
+    return;
+  }
   const stopWatching = await watchJournalPhase(
     profile.resolve("INSTANCE").canonicalPath,
     maintenance.operationId,
@@ -275,7 +279,7 @@ async function runRecovery() {
 }
 
 try {
-  if (role === "maintenance") await runMaintenance();
+  if (role === "maintenance" || role === "maintenance-prepared") await runMaintenance();
   else if (role === "recovery" || role === "recovery-complete") await runRecovery();
   else throw new Error(`unsupported role ${role}`);
 } catch (error) {
