@@ -12,7 +12,7 @@ implementationQualification: REQUIRED
 selectedRoute: "`@bybrave/proper-lockfile2` 5.0.0"
 currentCandidate:
   candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
-  behaviorCandidateSha: 7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b
+  behaviorCandidateSha: a6452e9942c13a8c8ff06582067f088bc9c5c5b6
   branch: dev/h3-stabilization
   plan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
   lifecycle: ACTIVE
@@ -41,9 +41,18 @@ recovery_process_without_postgres: PASS
 recovery_process_with_postgres: PASS
 private_postgres_real_integration: PASS (20/20)
 host_ownership_real_integration: PASS (11/11)
-bootstrap_runtime_real_integration: PASS (6 files, 25 tests)
+bootstrap_runtime_real_integration: PASS (6 files, 27 tests)
 prepared_process_kill_before_execute: PASS (dedicated real PostgreSQL process scenario)
-repository_verify: PASS (pnpm nx run repository:verify --skip-nx-cache)
+maintenance_preentry_failure_abortable: PASS (restart integration regression)
+maintenance_executing_before_retirement: PASS (restart integration observes EXECUTING in the retirement callback)
+maintenance_execution_entry_current_truth: PASS (PREPARED and EXECUTING publication outcomes are resolved by journal reread)
+maintenance_restart_real_postgres: PASS (restart integration)
+maintenance_stop_real_postgres: PASS (bootstrap-runtime integration)
+knip_real_dependencies_visible: PASS (execa/kysely are not globally ignored; integration workspace handling is local)
+check_unused: PASS
+roadmap_current_truth_reconciled: PASS
+governance_overlap_pass: PASS
+repository_verify: PASS (pnpm verify --skip-nx-cache)
 windows_real_postgres_recovery: PASS
 linux_real_postgres_recovery: NOT_RUN
 macos_real_postgres_recovery: NOT_RUN
@@ -55,12 +64,12 @@ final_cross_platform_ci: NOT_RUN
 squash_merge: NOT_RUN
 ```
 
-The current candidate uses the compact one-way maintenance witness and
-current-truth recovery path on the Windows PostgreSQL 18.6 toolchain. Bootstrap
-State and BootstrapRuntime unit coverage passed through the repository verify;
-the direct provider and process integration targets also passed. Linux/macOS,
-source-less, service-account, hardware, independent-review, final-CI, and merge
-claims remain `NOT_RUN`.
+The current behavior candidate is `a6452e9942c13a8c8ff06582067f088bc9c5c5b6`.
+It keeps PREPARED abortable after a failed pre-entry attempt, resolves an
+uncertain EXECUTING publication from current journal truth, and preserves the
+one-way post-entry boundary. The Windows PostgreSQL 18.6 focused and process
+qualification targets passed; Linux/macOS, source-less, service-account,
+hardware, independent-review, final-CI, and merge claims remain `NOT_RUN`.
 
 ## Historical H1-S candidate snapshot (2026-08-23)
 
