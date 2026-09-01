@@ -48,5 +48,5 @@ without changing product meaning to match a framework state machine.
 
 - [`system-architecture.md`](../../docs/architecture/system-architecture.md)
 - [`execution-model.md`](../../docs/architecture/execution-model.md)
-- [`runtime-kernel`](../../packages/runtime-kernel/README.md)
-- [`runtime-substrate`](../../packages/runtime-substrate/README.md)
+- [`runtime-kernel`](../../packages/runtime/runtime-kernel/README.md)
+- [`runtime-substrate`](../../packages/runtime/runtime-substrate/README.md)

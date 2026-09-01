@@ -2,55 +2,55 @@
   "files": [],
   "references": [
     {
-      "path": "./packages/foundation-contracts"
+      "path": "./packages/foundation/foundation-contracts"
     },
     {
-      "path": "./packages/bootstrap-state"
+      "path": "./packages/bootstrap/bootstrap-state"
     },
     {
-      "path": "./packages/private-postgres"
+      "path": "./packages/bootstrap/private-postgres"
     },
     {
-      "path": "./packages/bootstrap-runtime"
+      "path": "./packages/bootstrap/bootstrap-runtime"
     },
     {
-      "path": "./packages/host-ownership"
+      "path": "./packages/bootstrap/host-ownership"
     },
     {
-      "path": "./packages/persistence"
+      "path": "./packages/data/persistence"
     },
     {
-      "path": "./packages/canonical-schema"
+      "path": "./packages/data/canonical-schema"
     },
     {
-      "path": "./packages/schema-runtime"
+      "path": "./packages/foundation/schema-runtime"
     },
     {
-      "path": "./packages/time-service"
+      "path": "./packages/foundation/time-service"
     },
     {
-      "path": "./packages/execution-lineage"
+      "path": "./packages/execution/execution-lineage"
     },
     {
-      "path": "./packages/evidence"
+      "path": "./packages/execution/evidence"
     },
     {
-      "path": "./packages/runtime-substrate"
+      "path": "./packages/runtime/runtime-substrate"
     },
     {
-      "path": "./packages/runtime-kernel"
+      "path": "./packages/runtime/runtime-kernel"
     },
     {
-      "path": "./packages/signal"
+      "path": "./packages/execution/signal"
     },
     {
-      "path": "./packages/work-queue"
+      "path": "./packages/execution/work-queue"
     },
     {
-      "path": "./packages/durable-execution"
+      "path": "./packages/execution/durable-execution"
     },
     {
-      "path": "./packages/effect-operation"
+      "path": "./packages/execution/effect-operation"
     }
   ]
 }

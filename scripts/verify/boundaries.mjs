@@ -12,28 +12,28 @@ import { findRepositoryFilesSync } from "@heptalogos/repo-kit";
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const errors = [];
 const workQueuePublicSource = readFileSync(
-  resolve(root, "packages/work-queue/src/index.ts"),
+  resolve(root, "packages/execution/work-queue/src/index.ts"),
   "utf8",
 );
 if (/\bcreateWorkQueueRepository\b/u.test(workQueuePublicSource)) {
   errors.push(
-    "packages/work-queue/src/index.ts: concrete WorkQueue repository factory must remain on the restricted Foundation subpath",
+    "packages/execution/work-queue/src/index.ts: concrete WorkQueue repository factory must remain on the restricted Foundation subpath",
   );
 }
 
-const hostOwnershipSourcePrefix = "packages/host-ownership/src/";
+const hostOwnershipSourcePrefix = "packages/bootstrap/host-ownership/src/";
 const hostOwnershipPublicSource = readFileSync(
-  resolve(root, "packages/host-ownership/src/index.ts"),
+  resolve(root, "packages/bootstrap/host-ownership/src/index.ts"),
   "utf8",
 );
 if (/\b(?:Client|Pool|XState|StateMachine)\b/u.test(hostOwnershipPublicSource)) {
   errors.push(
-    "packages/host-ownership/src/index.ts: raw PostgreSQL/XState mechanics must not leak through the public Host ownership contract",
+    "packages/bootstrap/host-ownership/src/index.ts: raw PostgreSQL/XState mechanics must not leak through the public Host ownership contract",
   );
 }
 
 const bootstrapRuntimePublicSource = readFileSync(
-  resolve(root, "packages/bootstrap-runtime/src/index.ts"),
+  resolve(root, "packages/bootstrap/bootstrap-runtime/src/index.ts"),
   "utf8",
 );
 const rawBootstrapAuthorityExports = [
@@ -48,10 +48,10 @@ const rawBootstrapAuthorityExports = [
   "assertLocalInstallationOwnerFor",
 ];
 const sensitiveBootstrapAuthorityModules = [
-  "./bootstrap-ownership.js",
-  "./bootstrap-recovery.js",
-  "./host-maintenance-recovery.js",
-  "./maintenance-state-access.js",
+  "./bootstrap/ownership.js",
+  "./recovery/bootstrap.js",
+  "./maintenance/recovery.js",
+  "./maintenance/state-access.js",
 ];
 if (
   rawBootstrapAuthorityExports.some((name) =>
@@ -59,22 +59,25 @@ if (
   )
 ) {
   errors.push(
-    "packages/bootstrap-runtime/src/index.ts: raw bootstrap/recovery Authority primitive leaked through the public bootstrap-runtime contract",
+    "packages/bootstrap/bootstrap-runtime/src/index.ts: raw bootstrap/recovery Authority primitive leaked through the public bootstrap-runtime contract",
   );
 }
 
-const persistencePublicSourcePath = resolve(root, "packages/persistence/src/index.ts");
+const persistencePublicSourcePath = resolve(
+  root,
+  "packages/data/persistence/src/index.ts",
+);
 const persistencePublicSource = readFileSync(persistencePublicSourcePath, "utf8");
 const persistenceMechanicsPattern =
   /\b(?:Pool|PoolClient|Client|Kysely|PostgresDialect|Transaction|CompiledQuery)\b/u;
 if (persistenceMechanicsPattern.test(persistencePublicSource)) {
   errors.push(
-    "packages/persistence/src/index.ts: concrete pg/Kysely mechanics must not leak through the persistence package root",
+    "packages/data/persistence/src/index.ts: concrete pg/Kysely mechanics must not leak through the persistence package root",
   );
 }
 const executionLineagePublicSourcePath = resolve(
   root,
-  "packages/execution-lineage/src/index.ts",
+  "packages/execution/execution-lineage/src/index.ts",
 );
 const executionLineagePublicSource = readFileSync(
   executionLineagePublicSourcePath,
@@ -84,11 +87,14 @@ const executionLineageMechanicsPattern =
   /\b(?:AsyncLocalStorage|OTelContext|SpanContext|TracerProvider|ContextManager|Kysely|Pool|Client|PersistenceInternalTransaction|runWithLineageSuppressed)\b/u;
 if (executionLineageMechanicsPattern.test(executionLineagePublicSource)) {
   errors.push(
-    "packages/execution-lineage/src/index.ts: ALS/OTel provider/raw persistence/suppression mechanics must not leak through the execution-lineage package root",
+    "packages/execution/execution-lineage/src/index.ts: ALS/OTel provider/raw persistence/suppression mechanics must not leak through the execution-lineage package root",
   );
 }
 
-const evidencePublicSourcePath = resolve(root, "packages/evidence/src/index.ts");
+const evidencePublicSourcePath = resolve(
+  root,
+  "packages/execution/evidence/src/index.ts",
+);
 const evidencePublicSource = readFileSync(evidencePublicSourcePath, "utf8");
 const evidenceMechanicsPattern =
   /\b(?:Pool|PoolClient|Client|Kysely|PostgresDialect|CompiledQuery|PersistenceInternalTransaction)\b/u;
@@ -96,18 +102,18 @@ const evidenceGenericPayloadPattern =
   /\b(?:metadata|payload)\s*[?:]|Record\s*<\s*string\s*,\s*unknown\s*>/u;
 if (evidenceMechanicsPattern.test(evidencePublicSource)) {
   errors.push(
-    "packages/evidence/src/index.ts: concrete pg/Kysely/persistence mechanics must not leak through the evidence package root",
+    "packages/execution/evidence/src/index.ts: concrete pg/Kysely/persistence mechanics must not leak through the evidence package root",
   );
 }
 if (evidenceGenericPayloadPattern.test(evidencePublicSource)) {
   errors.push(
-    "packages/evidence/src/index.ts: generic evidence payload/metadata must not leak through the evidence package root",
+    "packages/execution/evidence/src/index.ts: generic evidence payload/metadata must not leak through the evidence package root",
   );
 }
 
 const canonicalSchemaPublicSourcePath = resolve(
   root,
-  "packages/canonical-schema/src/index.ts",
+  "packages/data/canonical-schema/src/index.ts",
 );
 const canonicalSchemaPublicSource = readFileSync(
   canonicalSchemaPublicSourcePath,
@@ -117,7 +123,7 @@ const canonicalSchemaMechanicsPattern =
   /\b(?:Pool|PoolClient|Client|Kysely|PostgresDialect|Migrator|MigrationProvider)\b/u;
 if (canonicalSchemaMechanicsPattern.test(canonicalSchemaPublicSource)) {
   errors.push(
-    "packages/canonical-schema/src/index.ts: concrete pg/Kysely migration mechanics must not leak through the canonical-schema package root",
+    "packages/data/canonical-schema/src/index.ts: concrete pg/Kysely migration mechanics must not leak through the canonical-schema package root",
   );
 }
 if (
@@ -128,7 +134,7 @@ if (
   )
 ) {
   errors.push(
-    "packages/bootstrap-runtime/src/index.ts: sensitive bootstrap/recovery Authority module exported through a package-root star export",
+    "packages/bootstrap/bootstrap-runtime/src/index.ts: sensitive bootstrap/recovery Authority module exported through a package-root star export",
   );
 }
 
@@ -143,10 +149,10 @@ for (const path of sourcePaths) {
   if (
     source.includes("createHostOwnershipToken") &&
     !(
-      relativePath === "packages/foundation-contracts/src/identity.ts" ||
-      relativePath === "packages/foundation-contracts/src/index.ts" ||
+      relativePath === "packages/foundation/foundation-contracts/src/identity.ts" ||
+      relativePath === "packages/foundation/foundation-contracts/src/index.ts" ||
       relativePath.startsWith(hostOwnershipSourcePrefix) ||
-      relativePath === "packages/bootstrap-runtime/src/host-ownership-handoff.ts" ||
+      relativePath === "packages/bootstrap/bootstrap-runtime/src/host/handoff.ts" ||
       relativePath.endsWith(".test.ts")
     )
   ) {

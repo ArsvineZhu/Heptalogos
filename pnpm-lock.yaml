@@ -180,7 +180,7 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
 
-  packages/bootstrap-runtime:
+  packages/bootstrap/bootstrap-runtime:
     dependencies:
       '@bybrave/proper-lockfile2':
         specifier: 'catalog:'
@@ -190,7 +190,7 @@ importers:
         version: link:../bootstrap-state
       '@heptalogos/foundation-contracts':
         specifier: workspace:*
-        version: link:../foundation-contracts
+        version: link:../../foundation/foundation-contracts
       '@heptalogos/host-ownership':
         specifier: workspace:*
         version: link:../host-ownership
@@ -199,59 +199,17 @@ importers:
         version: link:../private-postgres
       '@heptalogos/schema-runtime':
         specifier: workspace:*
-        version: link:../schema-runtime
+        version: link:../../foundation/schema-runtime
       pidusage:
         specifier: 'catalog:'
         version: 4.0.1
-      xstate:
-        specifier: 'catalog:'
-        version: 5.32.6
     devDependencies:
-      '@heptalogos/canonical-schema':
-        specifier: workspace:*
-        version: link:../canonical-schema
-      '@heptalogos/durable-execution':
-        specifier: workspace:*
-        version: link:../durable-execution
-      '@heptalogos/effect-operation':
-        specifier: workspace:*
-        version: link:../effect-operation
-      '@heptalogos/evidence':
-        specifier: workspace:*
-        version: link:../evidence
-      '@heptalogos/execution-lineage':
-        specifier: workspace:*
-        version: link:../execution-lineage
-      '@heptalogos/persistence':
-        specifier: workspace:*
-        version: link:../persistence
-      '@heptalogos/runtime-kernel':
-        specifier: workspace:*
-        version: link:../runtime-kernel
-      '@heptalogos/runtime-substrate':
-        specifier: workspace:*
-        version: link:../runtime-substrate
-      '@heptalogos/signal':
-        specifier: workspace:*
-        version: link:../signal
-      '@heptalogos/time-service':
-        specifier: workspace:*
-        version: link:../time-service
-      '@heptalogos/work-queue':
-        specifier: workspace:*
-        version: link:../work-queue
       '@types/pg':
         specifier: 'catalog:'
         version: 8.23.1
       '@types/pidusage':
         specifier: 'catalog:'
         version: 2.0.5
-      execa:
-        specifier: 'catalog:'
-        version: 10.0.1
-      kysely:
-        specifier: 'catalog:'
-        version: 0.29.5
       pg:
         specifier: 'catalog:'
         version: 8.23.0
@@ -259,14 +217,14 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
 
-  packages/bootstrap-state:
+  packages/bootstrap/bootstrap-state:
     dependencies:
       '@heptalogos/foundation-contracts':
         specifier: workspace:*
-        version: link:../foundation-contracts
+        version: link:../../foundation/foundation-contracts
       '@heptalogos/schema-runtime':
         specifier: workspace:*
-        version: link:../schema-runtime
+        version: link:../../foundation/schema-runtime
       write-file-atomic:
         specifier: 'catalog:'
         version: 8.0.0
@@ -275,14 +233,58 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
 
-  packages/canonical-schema:
+  packages/bootstrap/host-ownership:
     dependencies:
       '@heptalogos/foundation-contracts':
         specifier: workspace:*
-        version: link:../foundation-contracts
+        version: link:../../foundation/foundation-contracts
+      pg:
+        specifier: 'catalog:'
+        version: 8.23.0
+      xstate:
+        specifier: 'catalog:'
+        version: 5.32.6
+    devDependencies:
+      '@heptalogos/private-postgres':
+        specifier: workspace:*
+        version: link:../private-postgres
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.23.1
+      fast-check:
+        specifier: 'catalog:'
+        version: 4.9.0
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
+
+  packages/bootstrap/private-postgres:
+    dependencies:
+      '@heptalogos/foundation-contracts':
+        specifier: workspace:*
+        version: link:../../foundation/foundation-contracts
+      execa:
+        specifier: 'catalog:'
+        version: 10.0.1
+      xstate:
+        specifier: 'catalog:'
+        version: 5.32.6
+    devDependencies:
+      fast-check:
+        specifier: 'catalog:'
+        version: 4.9.0
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
+
+  packages/data/canonical-schema:
+    dependencies:
+      '@heptalogos/foundation-contracts':
+        specifier: workspace:*
+        version: link:../../foundation/foundation-contracts
       '@heptalogos/host-ownership':
         specifier: workspace:*
-        version: link:../host-ownership
+        version: link:../../bootstrap/host-ownership
       kysely:
         specifier: 'catalog:'
         version: 0.29.5
@@ -297,17 +299,42 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
 
-  packages/durable-execution:
+  packages/data/persistence:
+    dependencies:
+      '@heptalogos/foundation-contracts':
+        specifier: workspace:*
+        version: link:../../foundation/foundation-contracts
+      '@heptalogos/host-ownership':
+        specifier: workspace:*
+        version: link:../../bootstrap/host-ownership
+      kysely:
+        specifier: 'catalog:'
+        version: 0.29.5
+      pg:
+        specifier: 'catalog:'
+        version: 8.23.0
+    devDependencies:
+      '@heptalogos/private-postgres':
+        specifier: workspace:*
+        version: link:../../bootstrap/private-postgres
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.23.1
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
+
+  packages/execution/durable-execution:
     dependencies:
       '@dbos-inc/dbos-sdk':
         specifier: 'catalog:'
         version: 4.27.6
       '@heptalogos/foundation-contracts':
         specifier: workspace:*
-        version: link:../foundation-contracts
+        version: link:../../foundation/foundation-contracts
       '@heptalogos/host-ownership':
         specifier: workspace:*
-        version: link:../host-ownership
+        version: link:../../bootstrap/host-ownership
       '@heptalogos/work-queue':
         specifier: workspace:*
         version: link:../work-queue
@@ -317,9 +344,6 @@ importers:
       pg:
         specifier: 'catalog:'
         version: 8.23.0
-      xstate:
-        specifier: 'catalog:'
-        version: 5.32.6
     devDependencies:
       '@types/pg':
         specifier: 'catalog:'
@@ -328,7 +352,7 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
 
-  packages/effect-operation:
+  packages/execution/effect-operation:
     dependencies:
       '@heptalogos/evidence':
         specifier: workspace:*
@@ -338,48 +362,48 @@ importers:
         version: link:../execution-lineage
       '@heptalogos/foundation-contracts':
         specifier: workspace:*
-        version: link:../foundation-contracts
+        version: link:../../foundation/foundation-contracts
       '@heptalogos/persistence':
         specifier: workspace:*
-        version: link:../persistence
+        version: link:../../data/persistence
       '@heptalogos/time-service':
         specifier: workspace:*
-        version: link:../time-service
+        version: link:../../foundation/time-service
     devDependencies:
       vitest:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
 
-  packages/evidence:
+  packages/execution/evidence:
     dependencies:
       '@heptalogos/foundation-contracts':
         specifier: workspace:*
-        version: link:../foundation-contracts
+        version: link:../../foundation/foundation-contracts
       '@heptalogos/persistence':
         specifier: workspace:*
-        version: link:../persistence
+        version: link:../../data/persistence
       '@heptalogos/time-service':
         specifier: workspace:*
-        version: link:../time-service
+        version: link:../../foundation/time-service
     devDependencies:
       vitest:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
 
-  packages/execution-lineage:
+  packages/execution/execution-lineage:
     dependencies:
       '@heptalogos/foundation-contracts':
         specifier: workspace:*
-        version: link:../foundation-contracts
+        version: link:../../foundation/foundation-contracts
       '@heptalogos/persistence':
         specifier: workspace:*
-        version: link:../persistence
+        version: link:../../data/persistence
       '@heptalogos/schema-runtime':
         specifier: workspace:*
-        version: link:../schema-runtime
+        version: link:../../foundation/schema-runtime
       '@heptalogos/time-service':
         specifier: workspace:*
-        version: link:../time-service
+        version: link:../../foundation/time-service
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.1
@@ -388,7 +412,60 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
 
-  packages/foundation-contracts:
+  packages/execution/signal:
+    dependencies:
+      '@heptalogos/foundation-contracts':
+        specifier: workspace:*
+        version: link:../../foundation/foundation-contracts
+      '@heptalogos/host-ownership':
+        specifier: workspace:*
+        version: link:../../bootstrap/host-ownership
+      '@heptalogos/persistence':
+        specifier: workspace:*
+        version: link:../../data/persistence
+      '@heptalogos/schema-runtime':
+        specifier: workspace:*
+        version: link:../../foundation/schema-runtime
+      kysely:
+        specifier: 'catalog:'
+        version: 0.29.5
+      pg:
+        specifier: 'catalog:'
+        version: 8.23.0
+    devDependencies:
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.23.1
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
+
+  packages/execution/work-queue:
+    dependencies:
+      '@heptalogos/execution-lineage':
+        specifier: workspace:*
+        version: link:../execution-lineage
+      '@heptalogos/foundation-contracts':
+        specifier: workspace:*
+        version: link:../../foundation/foundation-contracts
+      '@heptalogos/persistence':
+        specifier: workspace:*
+        version: link:../../data/persistence
+      '@heptalogos/runtime-kernel':
+        specifier: workspace:*
+        version: link:../../runtime/runtime-kernel
+      '@heptalogos/signal':
+        specifier: workspace:*
+        version: link:../signal
+      '@heptalogos/time-service':
+        specifier: workspace:*
+        version: link:../../foundation/time-service
+    devDependencies:
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
+
+  packages/foundation/foundation-contracts:
     dependencies:
       canonicalize:
         specifier: 'catalog:'
@@ -401,120 +478,7 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
 
-  packages/host-ownership:
-    dependencies:
-      '@heptalogos/foundation-contracts':
-        specifier: workspace:*
-        version: link:../foundation-contracts
-      pg:
-        specifier: 'catalog:'
-        version: 8.23.0
-      xstate:
-        specifier: 'catalog:'
-        version: 5.32.6
-    devDependencies:
-      '@heptalogos/private-postgres':
-        specifier: workspace:*
-        version: link:../private-postgres
-      '@types/pg':
-        specifier: 'catalog:'
-        version: 8.23.1
-      fast-check:
-        specifier: 'catalog:'
-        version: 4.9.0
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
-
-  packages/persistence:
-    dependencies:
-      '@heptalogos/foundation-contracts':
-        specifier: workspace:*
-        version: link:../foundation-contracts
-      '@heptalogos/host-ownership':
-        specifier: workspace:*
-        version: link:../host-ownership
-      kysely:
-        specifier: 'catalog:'
-        version: 0.29.5
-      pg:
-        specifier: 'catalog:'
-        version: 8.23.0
-    devDependencies:
-      '@heptalogos/private-postgres':
-        specifier: workspace:*
-        version: link:../private-postgres
-      '@types/pg':
-        specifier: 'catalog:'
-        version: 8.23.1
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
-
-  packages/private-postgres:
-    dependencies:
-      '@heptalogos/foundation-contracts':
-        specifier: workspace:*
-        version: link:../foundation-contracts
-      execa:
-        specifier: 'catalog:'
-        version: 10.0.1
-      xstate:
-        specifier: 'catalog:'
-        version: 5.32.6
-    devDependencies:
-      fast-check:
-        specifier: 'catalog:'
-        version: 4.9.0
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
-
-  packages/runtime-kernel:
-    dependencies:
-      '@dagrejs/graphlib':
-        specifier: 'catalog:'
-        version: 4.0.5
-      '@heptalogos/execution-lineage':
-        specifier: workspace:*
-        version: link:../execution-lineage
-      '@heptalogos/foundation-contracts':
-        specifier: workspace:*
-        version: link:../foundation-contracts
-      '@heptalogos/persistence':
-        specifier: workspace:*
-        version: link:../persistence
-      '@heptalogos/runtime-substrate':
-        specifier: workspace:*
-        version: link:../runtime-substrate
-      '@heptalogos/schema-runtime':
-        specifier: workspace:*
-        version: link:../schema-runtime
-      '@heptalogos/time-service':
-        specifier: workspace:*
-        version: link:../time-service
-      xstate:
-        specifier: 'catalog:'
-        version: 5.32.6
-    devDependencies:
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
-
-  packages/runtime-substrate:
-    dependencies:
-      '@heptalogos/foundation-contracts':
-        specifier: workspace:*
-        version: link:../foundation-contracts
-      cordis:
-        specifier: 'catalog:'
-        version: 4.0.0-rc.8
-    devDependencies:
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
-
-  packages/schema-runtime:
+  packages/foundation/schema-runtime:
     dependencies:
       ajv:
         specifier: 'catalog:'
@@ -527,35 +491,7 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
 
-  packages/signal:
-    dependencies:
-      '@heptalogos/foundation-contracts':
-        specifier: workspace:*
-        version: link:../foundation-contracts
-      '@heptalogos/host-ownership':
-        specifier: workspace:*
-        version: link:../host-ownership
-      '@heptalogos/persistence':
-        specifier: workspace:*
-        version: link:../persistence
-      '@heptalogos/schema-runtime':
-        specifier: workspace:*
-        version: link:../schema-runtime
-      kysely:
-        specifier: 'catalog:'
-        version: 0.29.5
-      pg:
-        specifier: 'catalog:'
-        version: 8.23.0
-    devDependencies:
-      '@types/pg':
-        specifier: 'catalog:'
-        version: 8.23.1
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
-
-  packages/time-service:
+  packages/foundation/time-service:
     dependencies:
       '@heptalogos/foundation-contracts':
         specifier: workspace:*
@@ -565,26 +501,42 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
 
-  packages/work-queue:
+  packages/runtime/runtime-kernel:
     dependencies:
+      '@dagrejs/graphlib':
+        specifier: 'catalog:'
+        version: 4.0.5
       '@heptalogos/execution-lineage':
         specifier: workspace:*
-        version: link:../execution-lineage
+        version: link:../../execution/execution-lineage
       '@heptalogos/foundation-contracts':
         specifier: workspace:*
-        version: link:../foundation-contracts
+        version: link:../../foundation/foundation-contracts
       '@heptalogos/persistence':
         specifier: workspace:*
-        version: link:../persistence
-      '@heptalogos/runtime-kernel':
+        version: link:../../data/persistence
+      '@heptalogos/runtime-substrate':
         specifier: workspace:*
-        version: link:../runtime-kernel
-      '@heptalogos/signal':
+        version: link:../runtime-substrate
+      '@heptalogos/schema-runtime':
         specifier: workspace:*
-        version: link:../signal
+        version: link:../../foundation/schema-runtime
       '@heptalogos/time-service':
         specifier: workspace:*
-        version: link:../time-service
+        version: link:../../foundation/time-service
+    devDependencies:
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
+
+  packages/runtime/runtime-substrate:
+    dependencies:
+      '@heptalogos/foundation-contracts':
+        specifier: workspace:*
+        version: link:../../foundation/foundation-contracts
+      cordis:
+        specifier: 'catalog:'
+        version: 4.0.0-rc.8
     devDependencies:
       vitest:
         specifier: 'catalog:'

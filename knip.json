@@ -6,18 +6,18 @@
       "entry": ["scripts/**/*.mjs"],
       "project": ["scripts/**/*.mjs"]
     },
-    "packages/*": {
+    "packages/*/*": {
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "tools/*": {
       "entry": ["test/fixtures/**/*.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     },
-    "packages/persistence": {
+    "packages/data/persistence": {
       "entry": ["src/foundation-repository.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
-    "packages/durable-execution": {
+    "packages/execution/durable-execution": {
       "project": ["src/**/*.ts", "test/**/*.ts"],
       "ignoreDependencies": ["^@dbos-inc/dbos-sdk$"]
     }

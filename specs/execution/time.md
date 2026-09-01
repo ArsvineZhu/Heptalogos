@@ -27,4 +27,4 @@ owners define the meaning of their timestamps.
 ## References
 
 - [`Execution model`](../../docs/architecture/execution-model.md)
-- [`time-service`](../../packages/time-service/README.md)
+- [`time-service`](../../packages/foundation/time-service/README.md)

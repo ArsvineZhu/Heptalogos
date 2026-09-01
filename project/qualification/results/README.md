@@ -44,6 +44,7 @@ evidence; they must not be self-recorded by a post-review repository commit.
 | C-TOOLCHAIN-01        | [C-TOOLCHAIN-01.md](C-TOOLCHAIN-01.md)               |
 | Q-RUNTIME-01          | [Q-RUNTIME-01.md](Q-RUNTIME-01.md)                   |
 | Q-ASYNC-01            | [Q-ASYNC-01.md](Q-ASYNC-01.md)                       |
+| Q-EFFECT-01           | [Q-EFFECT-01.md](Q-EFFECT-01.md)                     |
 | Q-SECRET-01           | [Q-SECRET-01.md](Q-SECRET-01.md)                     |
 | Q-MSG-01              | [Q-MSG-01.md](Q-MSG-01.md)                           |
 | Q-POLICY-01           | [Q-POLICY-01.md](Q-POLICY-01.md)                     |

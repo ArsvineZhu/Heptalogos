@@ -254,13 +254,12 @@ high-impact storage/security changes
 
 ```text
 approve MaintenanceOperation
-→ quiesce Subject
-→ block new external effects
-→ quiesce impacted graph
+→ close consequential admission for impacted owners
+→ retire impacted runtime and graph resources
 → apply change
-→ verify
-→ reconcile
-→ resume
+→ verify current truth
+→ reconcile from current truth
+→ record terminal lineage
 ```
 
 ---
@@ -292,7 +291,7 @@ read-only diagnostics preserved
 
 ```text
 stop accepting new consequential work
-→ quiesce Subject
+→ retire Subject and owned components
 → preserve EffectOperation uncertainty
 → stop Feature/Domain components
 → stop Drivers/Providers

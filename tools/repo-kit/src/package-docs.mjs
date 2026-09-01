@@ -24,10 +24,10 @@ function packageIndexLinks(packageIndex, packagesRoot) {
     const resolvedTarget = resolve(dirname(packageIndex), target);
     if (!isWithin(packagesRoot, resolvedTarget)) continue;
     const packageRelative = normalize(packagesRoot, resolvedTarget).split("/");
-    if (packageRelative.length !== 2 || packageRelative[1] !== "README.md") {
+    if (packageRelative.length !== 3 || packageRelative[2] !== "README.md") {
       continue;
     }
-    const packageName = packageRelative[0];
+    const packageName = packageRelative.slice(0, 2).join("/");
     const count = indexLinks.get(packageName) ?? 0;
     indexLinks.set(packageName, count + 1);
     if (!existsSync(resolvedTarget) || !statSync(resolvedTarget).isFile()) {

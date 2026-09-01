@@ -38,4 +38,4 @@ or handler execution fails.
 
 - [`work-item.md`](./work-item.md)
 - [`service-capability-readiness.md`](../core/service-capability-readiness.md)
-- [`runtime-kernel`](../../packages/runtime-kernel/README.md)
+- [`runtime-kernel`](../../packages/runtime/runtime-kernel/README.md)

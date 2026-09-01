@@ -4,16 +4,22 @@
     "noEmit": true,
     "paths": {
       "@heptalogos/foundation-contracts": [
-        "./packages/foundation-contracts/src/index.ts"
+        "./packages/foundation/foundation-contracts/src/index.ts"
       ],
-      "@heptalogos/bootstrap-state": ["./packages/bootstrap-state/src/index.ts"],
-      "@heptalogos/schema-runtime": ["./packages/schema-runtime/src/index.ts"],
-      "@heptalogos/schema-runtime/typebox": ["./packages/schema-runtime/src/typebox.ts"]
+      "@heptalogos/bootstrap-state": [
+        "./packages/bootstrap/bootstrap-state/src/index.ts"
+      ],
+      "@heptalogos/schema-runtime": [
+        "./packages/foundation/schema-runtime/src/index.ts"
+      ],
+      "@heptalogos/schema-runtime/typebox": [
+        "./packages/foundation/schema-runtime/src/typebox.ts"
+      ]
     },
     "types": ["node"]
   },
   "include": [
-    "packages/foundation-contracts/src/index.ts",
-    "packages/bootstrap-state/src/index.ts"
+    "packages/foundation/foundation-contracts/src/index.ts",
+    "packages/bootstrap/bootstrap-state/src/index.ts"
   ]
 }

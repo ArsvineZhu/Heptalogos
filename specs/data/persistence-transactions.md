@@ -41,4 +41,4 @@ an untracked successful commit.
 
 - [`host-ownership.md`](../runtime/host-ownership.md)
 - [`execution-model.md`](../../docs/architecture/execution-model.md)
-- [`persistence`](../../packages/persistence/README.md)
+- [`persistence`](../../packages/data/persistence/README.md)

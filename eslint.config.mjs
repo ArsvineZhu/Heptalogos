@@ -58,8 +58,8 @@ export default [
   },
   {
     files: [
-      "packages/*/src/**/*.ts",
-      "packages/*/src/**/*.tsx",
+      "packages/*/*/src/**/*.ts",
+      "packages/*/*/src/**/*.tsx",
       "tools/*/src/**/*.{js,mjs,ts}",
       "scripts/**/*.{js,mjs,ts}",
       ".agents/**/*.mjs",
@@ -67,13 +67,13 @@ export default [
     ...sourceDocumentationPlugin,
   },
   {
-    files: ["packages/*/src/**/*.ts", "packages/*/src/**/*.tsx"],
+    files: ["packages/*/*/src/**/*.ts", "packages/*/*/src/**/*.tsx"],
     languageOptions: typescriptLanguageOptions,
   },
   {
     files: [
-      "packages/*/src/**/*.ts",
-      "packages/*/src/**/*.tsx",
+      "packages/*/*/src/**/*.ts",
+      "packages/*/*/src/**/*.tsx",
       "tools/*/src/**/*.{js,mjs,ts}",
       "scripts/**/*.{js,mjs,ts}",
       ".agents/**/*.mjs",
@@ -96,7 +96,7 @@ export default [
     },
   },
   {
-    files: ["packages/*/src/index.ts"],
+    files: ["packages/*/*/src/index.ts"],
     ...sourceDocumentationPlugin,
     rules: {
       ...sourceDocumentationRules,
@@ -115,7 +115,7 @@ export default [
     },
   },
   {
-    files: ["packages/*/src/**/*.ts"],
+    files: ["packages/*/*/src/**/*.ts"],
     languageOptions: typescriptLanguageOptions,
     plugins: {
       "@nx": nxPlugin,

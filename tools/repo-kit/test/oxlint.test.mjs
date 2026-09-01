@@ -28,7 +28,7 @@ function outputOf(result) {
 describe("Oxlint ownership and type-aware rules", () => {
   it("rejects forbidden schema imports and promise hazards in consumers", async () => {
     const directory = await mkdtemp(
-      join(root, "packages", "bootstrap-state", "src", "oxlint-probe-"),
+      join(root, "packages", "bootstrap", "bootstrap-state", "src", "oxlint-probe-"),
     );
     try {
       const ajv = join(directory, "forbidden-ajv.ts");
@@ -65,7 +65,14 @@ describe("Oxlint ownership and type-aware rules", () => {
 
   it("keeps the Nx boundary lane rejecting an invalid package dependency", async () => {
     const directory = await mkdtemp(
-      join(root, "packages", "foundation-contracts", "src", "eslint-probe-"),
+      join(
+        root,
+        "packages",
+        "foundation",
+        "foundation-contracts",
+        "src",
+        "eslint-probe-",
+      ),
     );
     const file = join(directory, "invalid-boundary.ts");
     try {

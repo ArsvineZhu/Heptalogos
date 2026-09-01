@@ -52,5 +52,5 @@ scheduled. Restore reconciliation owns `WAITING_RESTORE_RECONCILIATION`.
 ## References
 
 - [`Execution model`](../../docs/architecture/execution-model.md)
-- [`work-queue`](../../packages/work-queue/README.md)
+- [`work-queue`](../../packages/execution/work-queue/README.md)
 - [`durable-dispatch.md`](./durable-dispatch.md)

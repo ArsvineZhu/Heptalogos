@@ -3,12 +3,62 @@
 ```yaml
 qualificationId: Q-BOOT-01
 role: pre-PostgreSQL ownership lock and abandoned-owner process identity
+date: 2026-09-01
 evidenceStatus: PASS
+qualificationState: PARTIAL
 preImplementationDecisionState: CLOSED
 roleDecision: ADOPTED
 implementationQualification: REQUIRED
 selectedRoute: "`@bybrave/proper-lockfile2` 5.0.0"
+currentCandidate:
+  candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
+  branch: dev/h3-stabilization
+  plan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
+  lifecycle: ACTIVE
+  freeze: NOT_RUN
+  independentReview: NOT_RUN
+  merge: NOT_RUN
 ```
+
+## Current candidate evidence
+
+```yaml
+canonical_bootstrap_state_v1: PASS
+canonical_bootstrap_journal_v1: PASS
+canonical_private_postgres_initialization_profile_v1: PASS
+bootstrap_state_rejects_unsupported_shape: PASS
+maintenance_state_rejects_unsupported_shape: PASS
+recovered_previous_bootstrap_state_read_only: PASS
+recovered_previous_maintenance_journal_read_only: PASS
+recovery_declared_root_closure: PASS
+normal_boot_incomplete_maintenance_blocked: PASS
+host_maintenance_single_in_process_state_source: PASS
+maintenance_success_terminal_v1: PASS
+post_restart_normal_boot_continuity: PASS
+post_stop_normal_boot_continuity: PASS
+recovery_process_without_postgres: PASS
+recovery_process_with_postgres: PASS
+private_postgres_real_integration: PASS (20/20)
+host_ownership_real_integration: PASS (11/11)
+bootstrap_runtime_real_integration: PASS (5 files, 24 tests)
+repository_verify: PASS (pnpm nx run repository:verify --skip-nx-cache)
+windows_real_postgres_recovery: PASS
+linux_real_postgres_recovery: NOT_RUN
+macos_real_postgres_recovery: NOT_RUN
+source_less_recovery: NOT_RUN
+service_account_acl: NOT_RUN
+hardware_power_loss: NOT_RUN
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The current candidate uses the compact one-way maintenance witness and
+current-truth recovery path on the Windows PostgreSQL 18.6 toolchain. Bootstrap
+State and BootstrapRuntime unit coverage passed through the repository verify;
+the direct provider and process integration targets also passed. Linux/macOS,
+source-less, service-account, hardware, independent-review, final-CI, and merge
+claims remain `NOT_RUN`.
 
 ## Historical H1-S candidate snapshot (2026-08-23)
 
@@ -376,11 +426,11 @@ successful run. Windows/macOS real PostgreSQL, source-less recovery,
 service-account ACL, and hardware power-loss remain `NOT_RUN`; repository CI
 does not upgrade those product/platform claims.
 
-## Current-master qualification properties (2026-08-26)
+## Historical current-master qualification properties (2026-08-26)
 
-Current milestone state is owned by the living Roadmap and the machine-readable
-qualification ledger. This section reports only current qualification
-properties.
+This section reports a historical current-master qualification snapshot. The
+current candidate and current qualification properties are owned by the
+sections at the top of this record and by the machine-readable ledger.
 
 ```yaml
 ubuntu_current_master_residual_qualification:

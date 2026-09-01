@@ -37,5 +37,5 @@ be published ahead of it.
 
 - [`authority-and-core-concepts.md`](../../docs/architecture/authority-and-core-concepts.md)
 - [`execution-model.md`](../../docs/architecture/execution-model.md)
-- [`host-ownership`](../../packages/host-ownership/README.md)
+- [`host-ownership`](../../packages/bootstrap/host-ownership/README.md)
 - [`persistence-transactions`](../data/persistence-transactions.md)

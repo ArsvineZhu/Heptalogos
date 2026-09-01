@@ -90,6 +90,10 @@ the permanent gates required by the approved Plan. Keep pnpm verify runnable.
 For docs, specs, project, packages, or Skills work, read the applicable local
 README, INDEX, or AGENTS scope before editing.
 
+Before substantive product, package-boundary, lifecycle, recovery, or
+architecture work, read `project/governance/project-charter.md`, the active
+Plan, and the affected Specs/package documentation.
+
 ## Repository knowledge
 
 When editing repository knowledge, write the artifact's owned content directly.

@@ -35,4 +35,4 @@ qualification truth.
 
 - [`execution-lineage.md`](../../docs/architecture/execution-lineage.md)
 - [`verification-system.md`](../../project/qualification/verification-system.md)
-- [`evidence`](../../packages/evidence/README.md)
+- [`evidence`](../../packages/execution/evidence/README.md)

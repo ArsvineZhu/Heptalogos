@@ -2,7 +2,7 @@
 
 **Status:** LIVING ROADMAP / planning guidance<br>
 **Date:** 2026-08-31<br>
-**Repository baseline:** current H3-S candidate on `dev/h3-stabilization` from merged `master` `bbadfbacbd9aaea23639e51d5ce01744bd530da4`; H3B is closed and H3-S is the active implementation Plan<br>
+**Repository baseline:** current Foundation Remediation Bundle working tree on `dev/h3-stabilization`; H3B is closed and the remediation Plan is the active implementation Plan<br>
 **Architecture baseline:** `docs/architecture/` design state 2026-08-20
 
 > This document owns development sequencing, Horizon truth, and qualification guidance. It does not replace the canonical Human Architecture, current Specs, Governance, Dependencies, Qualification, or active Plan. Update this Roadmap when evidence changes sequencing or eligibility; update the relevant canonical owner when semantics change.
@@ -356,7 +356,7 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 
 > Can the system make a durable promise, crash anywhere around dispatch/processing/external effects, and resume without losing the obligation or inventing false certainty?
 
-### Current progress (2026-08-31)
+### Current progress (2026-09-01)
 
 ```yaml
 H3: OPEN
@@ -367,8 +367,8 @@ H3_FOUNDATION_EXECUTABLE_SPINE: PASS
 H3B: CLOSED
 H3_FUNCTIONAL: COMPLETE
 H3_STABILIZATION: ACTIVE
-currentRepositoryWork: H3-S Foundation permanent-surface admission and truth closure
-activeImplementationPlan: project/plans/active/foundation/h3s-foundation-permanent-surface-admission-2026-08-31.md
+currentRepositoryWork: Foundation Remediation Bundle package, lifecycle, recovery, and truth closure
+activeImplementationPlan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
 nextAuthorizedPlan: NONE
 githubActions: DISABLED_CURRENT_EXECUTION_POLICY
 ```
@@ -387,9 +387,9 @@ close all product qualification boundaries. Windows and Ubuntu/Linux evidence
 is current for the recorded scenarios; macOS, source-less, service/headless,
 and ResourceGovernor qualification remain individually scoped and must not be
 inferred from another platform or candidate. H3B is now closed after the
-completed EffectOperation plan; H3-S is the active bounded stabilization plan
-after H3B so the Foundation containment pass follows the final H3 semantic
-owner. Ordinary GitHub Actions are disabled under the current execution
+completed EffectOperation plan; the Foundation Remediation Bundle is the active
+bounded stabilization plan after H3B so the containment pass follows the final
+H3 semantic owner. Ordinary GitHub Actions are disabled under the current execution
 policy; local repository gates remain the closure route.
 
 ### Implementation decomposition
@@ -458,11 +458,11 @@ At minimum, kill the process around key boundaries and prove:
 - no generic automatic retry turns uncertainty into duplicate reality;
 - restart preserves causal lineage links.
 
-### H3-S — Foundation Containment / Stabilization
+### H3 — Foundation Remediation / Stabilization
 
-H3-S is a convergence/subtraction stage, not another hardening expansion. It
-is the active plan after H3B for this development line, following the
-already-closed H3A-2 and Foundation executable spine. Its bounded scope is:
+The current Foundation remediation is a convergence/subtraction track, not
+another hardening expansion. It follows the already-closed H3A-2 and Foundation
+executable spine. Its bounded scope is:
 
 ```text
 current-tree residue and PRE_PRODUCTION compatibility cleanup
@@ -481,18 +481,18 @@ start a broad refactor, replace Cordis/DBOS/XState, or add product capability.
 
 The current bounded audit classification is:
 
-| Owner                                  | Mechanism                                                                     | Classification                                | Current action                                                                                                                                                           |
-| -------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `runtime-substrate`                    | Cordis Fiber/context/effect/disposal                                          | `GENERIC_MECHANIC_DELEGATED`                  | Keep Cordis behind the adapter.                                                                                                                                          |
-| `runtime-substrate`                    | task tracking, late disposer handling, settlement timeout                     | `GENERIC_MECHANIC_CUSTOM_JUSTIFIED`           | Retain the Heptalogos owner policy required to bound process-memory work that Cordis does not own; investigate further only in H3-S if a current consumer exposes a gap. |
-| `runtime-substrate` / `runtime-kernel` | background failure projection, owner/generation failure and readiness effects | `SEMANTIC_PROTOCOL`                           | Keep semantic projection in Heptalogos contracts.                                                                                                                        |
-| `runtime-kernel`                       | local lifecycle statechart transitions                                        | `GENERIC_MECHANIC_DELEGATED`                  | Keep XState package-private; Kernel owns lifecycle meaning.                                                                                                              |
-| `runtime-kernel`                       | reconciliation, generation fencing, quiescence and provider selection         | `SEMANTIC_PROTOCOL`                           | Keep the Kernel owner; no second supervisor.                                                                                                                             |
-| `private-postgres`                     | PostgreSQL process/tool invocation and local lifecycle statechart             | `ADAPTER_GLUE` / `GENERIC_MECHANIC_DELEGATED` | Use the adopted subprocess and XState routes; no new process manager.                                                                                                    |
-| `host-ownership`                       | advisory lease, database fence and token transitions                          | `SEMANTIC_PROTOCOL`                           | Preserve one Host Authority and its PostgreSQL mechanics adapter.                                                                                                        |
-| `bootstrap-runtime`                    | Bootstrap/Host handoff, maintenance point of no return and recovery journal   | `SEMANTIC_PROTOCOL`                           | Contain scope; do not move current reverse handoff.                                                                                                                      |
-| `work-queue`                           | WorkItem Authority, admission, reconciliation and fair scan                   | `SEMANTIC_PROTOCOL`                           | Preserve canonical WorkItem ownership and bounded scan behavior.                                                                                                         |
-| `durable-execution`                    | DBOS client/pool/lifecycle adapter                                            | `ADAPTER_GLUE` / `GENERIC_MECHANIC_DELEGATED` | Keep DBOS mechanics below the Heptalogos lifecycle contract; C1–C4 are the only current source corrections.                                                              |
+| Owner                                  | Mechanism                                                                     | Classification                                | Current action                                                                                                                                           |
+| -------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `runtime-substrate`                    | Cordis Fiber/context/effect/disposal                                          | `GENERIC_MECHANIC_DELEGATED`                  | Keep Cordis behind the adapter.                                                                                                                          |
+| `runtime-substrate`                    | task tracking, late disposer handling, settlement timeout                     | `GENERIC_MECHANIC_CUSTOM_JUSTIFIED`           | Retain the Heptalogos owner policy required to bound process-memory work that Cordis does not own; investigate only if a current consumer exposes a gap. |
+| `runtime-substrate` / `runtime-kernel` | background failure projection, owner/generation failure and readiness effects | `SEMANTIC_PROTOCOL`                           | Keep semantic projection in Heptalogos contracts.                                                                                                        |
+| `runtime-kernel`                       | local lifecycle statechart transitions                                        | `GENERIC_MECHANIC_DELEGATED`                  | Keep XState package-private; Kernel owns lifecycle meaning.                                                                                              |
+| `runtime-kernel`                       | component reconciliation, generation fencing and provider selection           | `SEMANTIC_PROTOCOL`                           | Keep component retirement in the Kernel; runtime-level close is terminal and there is no second supervisor.                                              |
+| `private-postgres`                     | PostgreSQL process/tool invocation and local lifecycle statechart             | `ADAPTER_GLUE` / `GENERIC_MECHANIC_DELEGATED` | Use the adopted subprocess and XState routes; no new process manager.                                                                                    |
+| `host-ownership`                       | advisory lease, database fence and token transitions                          | `SEMANTIC_PROTOCOL`                           | Preserve one Host Authority and its PostgreSQL mechanics adapter.                                                                                        |
+| `bootstrap-runtime`                    | Bootstrap/Host handoff, maintenance point of no return and recovery journal   | `SEMANTIC_PROTOCOL`                           | Keep one-way retirement, compact phase witness, and current-truth recovery at this owner.                                                                |
+| `work-queue`                           | WorkItem Authority, admission, reconciliation and fair scan                   | `SEMANTIC_PROTOCOL`                           | Preserve canonical WorkItem ownership and bounded scan behavior.                                                                                         |
+| `durable-execution`                    | DBOS client/pool/terminal lifecycle adapter                                   | `ADAPTER_GLUE` / `GENERIC_MECHANIC_DELEGATED` | Keep DBOS workflow, queue, drain, and first-order restart mechanics below the Heptalogos lifecycle contract.                                             |
 
 No current owner was classified as `GENERIC_MECHANIC_CUSTOM_UNJUSTIFIED` or
 `SPECULATIVE_RESILIENCE`. The Cordis review specifically finds task tracking and
@@ -501,7 +501,7 @@ scope, settlement timeout to be the required bounded contract for unowned-by-
 Cordis process-memory tasks, and background failure projection to be semantic
 failure/readiness behavior. Provider replacement is not authorized.
 
-### After H3-S — minimum provider prerequisites, then Subject proof
+### After H3 — minimum provider prerequisites, then Subject proof
 
 The next product-driven path is the smallest real Subject vertical slice. Only
 the minimum H4 prerequisites needed by one real model provider and Subject Base

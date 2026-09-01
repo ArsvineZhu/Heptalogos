@@ -9,22 +9,22 @@ const packageReadme = [
   "",
   "This package owns the example semantic boundary.",
   "",
-  "[Current Architecture](../../docs/architecture/authority.md)",
+  "[Current Architecture](../../../docs/architecture/authority.md)",
   "",
 ].join("\n");
 
 async function fixtureTree(setup) {
   const root = await mkdtemp(join(tmpdir(), "heptalogos-package-docs-"));
   try {
-    await mkdir(join(root, "packages/example"), { recursive: true });
+    await mkdir(join(root, "packages/foundation/example"), { recursive: true });
     await mkdir(join(root, "docs/architecture"), { recursive: true });
     await writeFile(join(root, "packages/AGENTS.md"), "# Package agents\n");
     await writeFile(join(root, "packages/README.md"), "# Packages\n");
     await writeFile(
       join(root, "packages/INDEX.md"),
-      "[example](./example/README.md)\n",
+      "[example](./foundation/example/README.md)\n",
     );
-    await writeFile(join(root, "packages/example/README.md"), packageReadme);
+    await writeFile(join(root, "packages/foundation/example/README.md"), packageReadme);
     await writeFile(join(root, "docs/architecture/authority.md"), "# Architecture\n");
     const result = await setup(root);
     return (
@@ -33,8 +33,8 @@ async function fixtureTree(setup) {
         root,
         productPackages: [
           {
-            directory: join(root, "packages/example"),
-            directoryName: "example",
+            directory: join(root, "packages/foundation/example"),
+            directoryName: "foundation/example",
             manifestName: "@heptalogos/example",
           },
         ],
@@ -57,7 +57,7 @@ describe("package documentation topology", () => {
 
   it("fails when a package README is missing", async () => {
     const result = await fixtureTree(async (root) => {
-      await rm(join(root, "packages/example/README.md"));
+      await rm(join(root, "packages/foundation/example/README.md"));
       return undefined;
     });
     expect(hasError(result, "package README.md is missing")).toBe(true);
@@ -65,8 +65,11 @@ describe("package documentation topology", () => {
 
   it("allows a nested package AGENTS file when a package needs one", async () => {
     const result = await fixtureTree(async (root) => {
-      await mkdir(join(root, "packages/example/src"), { recursive: true });
-      await writeFile(join(root, "packages/example/src/AGENTS.md"), "# Local scope\n");
+      await mkdir(join(root, "packages/foundation/example/src"), { recursive: true });
+      await writeFile(
+        join(root, "packages/foundation/example/src/AGENTS.md"),
+        "# Local scope\n",
+      );
       return undefined;
     });
     expect(result.errors).toEqual([]);
@@ -75,7 +78,7 @@ describe("package documentation topology", () => {
   it("fails when a package README link is broken", async () => {
     const result = await fixtureTree(async (root) => {
       await writeFile(
-        join(root, "packages/example/README.md"),
+        join(root, "packages/foundation/example/README.md"),
         packageReadme.replace("authority.md", "missing.md"),
       );
       return undefined;
@@ -85,7 +88,10 @@ describe("package documentation topology", () => {
 
   it("requires a link to a relevant current knowledge owner", async () => {
     const result = await fixtureTree(async (root) => {
-      await writeFile(join(root, "packages/example/README.md"), "# Example\n");
+      await writeFile(
+        join(root, "packages/foundation/example/README.md"),
+        "# Example\n",
+      );
       return undefined;
     });
     expect(hasError(result, "relevant current knowledge owner")).toBe(true);
@@ -95,7 +101,7 @@ describe("package documentation topology", () => {
     const result = await fixtureTree(async (root) => {
       await writeFile(
         join(root, "packages/INDEX.md"),
-        "[missing](./missing/README.md)\n[example](./example/README.md)\n[example again](./example/README.md)\n",
+        "[missing](./foundation/missing/README.md)\n[example](./foundation/example/README.md)\n[example again](./foundation/example/README.md)\n",
       );
       return undefined;
     });

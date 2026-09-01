@@ -48,5 +48,5 @@ must define their own current contract before they become implementation work.
 ## References
 
 - [`execution-lineage.md`](../../docs/architecture/execution-lineage.md)
-- [`execution-lineage`](../../packages/execution-lineage/README.md)
+- [`execution-lineage`](../../packages/execution/execution-lineage/README.md)
 - [`evidence.md`](./evidence.md)
