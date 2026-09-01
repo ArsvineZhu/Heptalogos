@@ -10,7 +10,7 @@ implementationQualification: REQUIRED
 testedProperty: "Exact PostgreSQL 18.6 private bootstrap initialization, portable identity, bounded lifecycle, ownership-held handoff, and fail-closed recovery boundaries"
 currentCandidate:
   candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
-  behaviorCandidateSha: f4d1501207efbd87b75d2a2c2797523690d7a05b
+  behaviorCandidateSha: 7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b
   branch: dev/h3-stabilization
   plan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
   lifecycle: ACTIVE
@@ -765,7 +765,7 @@ service/headless, service-account ACL, or hardware power-loss qualification.
 
 ```yaml
 candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
-behaviorCandidateSha: f4d1501207efbd87b75d2a2c2797523690d7a05b
+behaviorCandidateSha: 7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b
 branch: dev/h3-stabilization
 plan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
 privatePostgresUnit: PASS (9 files, 59 tests)

@@ -120,7 +120,7 @@ The implementation may edit only paths required by the Bundle and direct compile
 
 ## Evidence and closure
 
-Use only `PASS`, `FAIL`, `NOT_RUN`, or `BLOCKED` for executed evidence. Mock/unit evidence does not prove real PostgreSQL/DBOS/provider/process behavior; one platform does not prove another. The affected production and test TypeScript diff must each have more deletions than additions, obsolete tests and reversible lifecycle/recovery source must be removed, and no new production test-only seam may appear.
+Use only `PASS`, `FAIL`, `NOT_RUN`, or `BLOCKED` for executed evidence. Mock/unit evidence does not prove real PostgreSQL/DBOS/provider/process behavior; one platform does not prove another. The prior remediation remains net subtractive in production, obsolete tests and reversible lifecycle/recovery source are removed, and no new production test-only seam may appear. This correction evaluates changed test surfaces by obsolete-surface removal, semantic ownership, and preserved or strengthened real-provider coverage; raw additions/deletions for mechanically split current test bodies are not a success metric.
 
 Acceptance requires: preserved Host/Persistence/Runtime/Signal/WorkItem/DBOS/Effect/Lineage/Evidence semantics; zero deleted lifecycle/recovery surfaces or equivalent renamed rollback; exact two-level package topology and integration ownership; truthful current Specs/qualification; empty PRE_PRODUCTION obligations; focused and repository gates green; and real H3 PostgreSQL+DBOS executable-spine qualification at the strongest available boundary.
 
