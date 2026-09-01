@@ -10,6 +10,7 @@ testedProperty: "EffectOperation V1 identity, immutable request, Host-fenced dis
 qualificationState: PARTIAL
 currentCandidate:
   candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
+  behaviorCandidateSha: f4d1501207efbd87b75d2a2c2797523690d7a05b
   branch: dev/h3-stabilization
   plan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
   lifecycle: ACTIVE
@@ -166,6 +167,7 @@ candidate and is not rewritten.
 
 ```yaml
 candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
+behaviorCandidateSha: f4d1501207efbd87b75d2a2c2797523690d7a05b
 branch: dev/h3-stabilization
 plan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
 effectOperationUnit: PASS (1 file, 4 tests)

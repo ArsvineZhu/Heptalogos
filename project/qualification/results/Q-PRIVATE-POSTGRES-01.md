@@ -10,6 +10,7 @@ implementationQualification: REQUIRED
 testedProperty: "Exact PostgreSQL 18.6 private bootstrap initialization, portable identity, bounded lifecycle, ownership-held handoff, and fail-closed recovery boundaries"
 currentCandidate:
   candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
+  behaviorCandidateSha: f4d1501207efbd87b75d2a2c2797523690d7a05b
   branch: dev/h3-stabilization
   plan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
   lifecycle: ACTIVE
@@ -26,7 +27,7 @@ canonical_v1_initialization_profile_v1: PASS
 exact_toolchain_18_6: PASS (explicit PostgreSQL 18.6 Windows bin root; required tools verified by the integration harness)
 private_postgres_real_integration: PASS (20/20)
 host_ownership_real_integration: PASS (11/11)
-bootstrap_runtime_real_integration: PASS (5 files, 24 tests)
+bootstrap_runtime_real_integration: PASS (6 files, 25 tests)
 recovery_process_postgres: PASS (included in the bootstrap-runtime integration target)
 maintenance_success_terminal_v1: PASS
 post_restart_normal_boot_continuity: PASS
@@ -764,12 +765,13 @@ service/headless, service-account ACL, or hardware power-loss qualification.
 
 ```yaml
 candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
+behaviorCandidateSha: f4d1501207efbd87b75d2a2c2797523690d7a05b
 branch: dev/h3-stabilization
 plan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
 privatePostgresUnit: PASS (9 files, 59 tests)
 privatePostgresIntegration: PASS (20/20)
 hostOwnershipIntegration: PASS (11/11)
-bootstrapRuntimeMaintenanceIntegration: PASS (5 files, 24 tests)
+bootstrapRuntimeMaintenanceIntegration: PASS (6 files, 25 tests)
 sameClusterStopAndRestart: PASS
 realPostgresProcessRecovery: PASS (included in bootstrap-runtime integration)
 sourceLess: NOT_RUN

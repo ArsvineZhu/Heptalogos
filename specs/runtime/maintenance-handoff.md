@@ -35,8 +35,10 @@ authority mutation.
   the supplied runtime-retirement owner. A successful retirement does not
   reopen the old runtime; a retirement failure does not authorize reconstructing
   it.
-- `MAINT-003` The journal MUST record `EXECUTING` before consequential Host or
-  PostgreSQL authority mutation.
+- `MAINT-003` The journal MUST durably record `EXECUTING` before runtime
+  retirement or consequential Host or PostgreSQL authority mutation. If that
+  write does not complete, the operation remains `PREPARED` and recovery must
+  not execute its intent.
 - `MAINT-004` Host token revocation/fencing is the point of no return. After it,
   the old Host MUST NOT be reported as active or republished.
 - `MAINT-005` STOP MUST converge the same validated PostgreSQL cluster to
@@ -51,10 +53,11 @@ authority mutation.
 ## Recovery
 
 Recovery acquires the required Bootstrap authority and inspects current Host
-fence, journal, and PostgreSQL truth. A safe `PREPARED` operation is resolved
-with terminal `ABORTED`. An executing STOP or RESTART converges the same
-cluster to its recorded target. RESTART uses the ordinary forward handoff and
-does not contain a second Host publication algorithm.
+fence, journal, and PostgreSQL truth. A `PREPARED` operation with a live normal
+Host is blocked without journal mutation; only an authorized no-live-owner
+inspection may resolve it with terminal `ABORTED`. An executing STOP or RESTART
+converges the same cluster to its recorded target. RESTART uses the ordinary
+forward handoff and does not contain a second Host publication algorithm.
 
 If current truth cannot establish a safe convergence, recovery records or
 retains `RECOVERY_REQUIRED` with current Problem evidence. It does not replay

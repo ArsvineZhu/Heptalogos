@@ -43,11 +43,12 @@ integration boundary.
 
 ## Dependencies and boundaries
 
-The production dependency graph keeps `@heptalogos/runtime-kernel`,
-`@heptalogos/runtime-substrate`, and `cordis` outside this package; they are
-development composition dependencies for integration tests only. Authorized
-PostgreSQL control follows Bootstrap-owned handoff, and post-Host cleanup
-reacquires Bootstrap authority before the maintenance witness is finalized.
+The production dependency graph keeps RuntimeKernel, RuntimeSubstrate, Cordis,
+DBOS, and WorkQueue composition at the `integration/foundation` boundary;
+`bootstrap-runtime` does not carry those cross-package dependencies or expose
+test-only composition seams. Authorized PostgreSQL control follows the single
+Bootstrap-owned Host handoff owner, and post-Host cleanup reacquires Bootstrap
+authority before the maintenance witness is finalized.
 
 ## Verification
 

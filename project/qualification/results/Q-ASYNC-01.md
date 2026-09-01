@@ -10,6 +10,7 @@ implementationQualification: REQUIRED
 selectedRoute: "DBOS Queue"
 currentCandidate:
   candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
+  behaviorCandidateSha: f4d1501207efbd87b75d2a2c2797523690d7a05b
   branch: dev/h3-stabilization
   plan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
   lifecycle: ACTIVE
@@ -21,7 +22,7 @@ currentEvidence:
   durable_execution_unit: PASS (9 files, 38 tests)
   durable_execution_terminal_lifecycle: PASS
   signal_rescan_contract: PASS (1 file, 10 tests)
-  integration_foundation: PASS (8 files, 87 tests)
+  integration_foundation: PASS (14 files, 87 tests)
   real_postgres_dbos_process_spine: PASS (foundation-spine 2/2 and durable-recovery-process 8/8)
   real_effect_uncertainty: PASS (12/12 combined tests)
   source_less: NOT_RUN

@@ -11,6 +11,7 @@ selectedRoute: "`cordis` active 4.x package line"
 qualificationState: PARTIAL
 currentCandidate:
   candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
+  behaviorCandidateSha: f4d1501207efbd87b75d2a2c2797523690d7a05b
   branch: dev/h3-stabilization
   plan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
   lifecycle: ACTIVE
@@ -31,7 +32,7 @@ evidence:
   runtime_kernel_terminal_lifecycle: PASS (5 files, 130 tests)
   runtime_kernel_build_typecheck_lint: PASS
   runtime_substrate_preserved: PASS
-  integration_foundation_runtime_composition: PASS (8 files, 87 tests)
+  integration_foundation_runtime_composition: PASS (14 files, 87 tests)
   real_postgres_runtime_qualification: PASS (runtime-kernel managed-host composition included in the real PostgreSQL integration target)
   source_less_runtime: NOT_RUN
   service_headless_runtime: NOT_RUN
@@ -449,13 +450,14 @@ execution evidence.
 
 ```yaml
 candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
+behaviorCandidateSha: f4d1501207efbd87b75d2a2c2797523690d7a05b
 branch: dev/h3-stabilization
 plan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
 runtimeKernelTerminalLifecycle: PASS
 runtimeKernelUnit: PASS (5 files, 130 tests)
 runtimeKernelBuildTypecheckLint: PASS
 runtimeSubstrateBoundary: PASS
-integrationFoundationRuntimeComposition: PASS (8 files, 87 tests)
+integrationFoundationRuntimeComposition: PASS (14 files, 87 tests)
 realPostgresQualification: PASS (runtime-kernel managed-host composition included in the real PostgreSQL integration target)
 sourceLess: NOT_RUN
 serviceHeadless: NOT_RUN

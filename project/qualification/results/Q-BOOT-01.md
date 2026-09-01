@@ -12,6 +12,7 @@ implementationQualification: REQUIRED
 selectedRoute: "`@bybrave/proper-lockfile2` 5.0.0"
 currentCandidate:
   candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
+  behaviorCandidateSha: f4d1501207efbd87b75d2a2c2797523690d7a05b
   branch: dev/h3-stabilization
   plan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
   lifecycle: ACTIVE
@@ -40,7 +41,8 @@ recovery_process_without_postgres: PASS
 recovery_process_with_postgres: PASS
 private_postgres_real_integration: PASS (20/20)
 host_ownership_real_integration: PASS (11/11)
-bootstrap_runtime_real_integration: PASS (5 files, 24 tests)
+bootstrap_runtime_real_integration: PASS (6 files, 25 tests)
+prepared_process_kill_before_execute: PASS (dedicated real PostgreSQL process scenario)
 repository_verify: PASS (pnpm nx run repository:verify --skip-nx-cache)
 windows_real_postgres_recovery: PASS
 linux_real_postgres_recovery: NOT_RUN

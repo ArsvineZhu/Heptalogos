@@ -1,8 +1,8 @@
 # Heptalogos Development Roadmap
 
 **Status:** LIVING ROADMAP / planning guidance<br>
-**Date:** 2026-08-31<br>
-**Repository baseline:** current Foundation Remediation Bundle working tree on `dev/h3-stabilization`; H3B is closed and the remediation Plan is the active implementation Plan<br>
+**Date:** 2026-09-01<br>
+**Repository baseline:** current Foundation Remediation Bundle closure-correction working tree on `dev/h3-stabilization`; H3B is closed and the correction Plan is the active implementation Plan<br>
 **Architecture baseline:** `docs/architecture/` design state 2026-08-20
 
 > This document owns development sequencing, Horizon truth, and qualification guidance. It does not replace the canonical Human Architecture, current Specs, Governance, Dependencies, Qualification, or active Plan. Update this Roadmap when evidence changes sequencing or eligibility; update the relevant canonical owner when semantics change.
@@ -367,7 +367,7 @@ H3_FOUNDATION_EXECUTABLE_SPINE: PASS
 H3B: CLOSED
 H3_FUNCTIONAL: COMPLETE
 H3_STABILIZATION: ACTIVE
-currentRepositoryWork: Foundation Remediation Bundle package, lifecycle, recovery, and truth closure
+currentRepositoryWork: Foundation Remediation Bundle closure correction for package, lifecycle, recovery, test, and truth ownership
 activeImplementationPlan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
 nextAuthorizedPlan: NONE
 githubActions: DISABLED_CURRENT_EXECUTION_POLICY
@@ -382,14 +382,17 @@ final manual CI remain `NOT_RUN`; they are not inferred from the GitHub merge
 fact. H3A-2 bounded closure is complete for the current H3 scope: no
 observed/current authorized F0-F2 blocker remains, the Foundation executable
 spine passes the real-process boot/work/stop and same-Instance restart
-scenarios, and the terminal-commit restart scenario passes. This does not
+scenarios, and the terminal-commit restart scenario passes. The current
+closure correction additionally proves durable maintenance entry before
+retirement, no execution of abandoned PREPARED intent, one package-private Host
+reacquisition owner, and the split integration ownership boundary. This does not
 close all product qualification boundaries. Windows and Ubuntu/Linux evidence
 is current for the recorded scenarios; macOS, source-less, service/headless,
 and ResourceGovernor qualification remain individually scoped and must not be
 inferred from another platform or candidate. H3B is now closed after the
-completed EffectOperation plan; the Foundation Remediation Bundle is the active
-bounded stabilization plan after H3B so the containment pass follows the final
-H3 semantic owner. Ordinary GitHub Actions are disabled under the current execution
+completed EffectOperation plan; the Foundation Remediation Bundle closure
+correction is the active bounded stabilization plan after H3B so the containment
+pass follows the final H3 semantic owner. Ordinary GitHub Actions are disabled under the current execution
 policy; local repository gates remain the closure route.
 
 ### Implementation decomposition
