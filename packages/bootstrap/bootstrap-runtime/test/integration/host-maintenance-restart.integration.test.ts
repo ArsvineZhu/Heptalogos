@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BootstrapStateStore,
   MaintenanceJournalStore,
@@ -15,6 +15,7 @@ import type { BootstrapManagedHostContext } from "../../src/host/managed-host.js
 import {
   assertReady,
   cleanupHostMaintenanceFixtures,
+  connectBootstrapClient,
   getToolchain,
   hostOwnershipSnapshot,
   HOST_TIMING,
@@ -23,10 +24,12 @@ import {
   makeFixture,
   makeKeyProvider,
   maintenanceRetirement,
+  postmasterStartTime,
   qualifiedPgBin,
   stopPostgres,
 } from "../support/host-maintenance-fixture.js";
 
+afterEach(() => vi.restoreAllMocks());
 afterEach(cleanupHostMaintenanceFixtures);
 
 describe("Host maintenance restart and pre-entry PostgreSQL qualification", () => {
@@ -63,6 +66,21 @@ describe("Host maintenance restart and pre-entry PostgreSQL qualification", () =
       const preparedMaintenance = await activeHostA.preparePrivatePostgresMaintenance({
         kind: "RESTART_PRIVATE_POSTGRES",
       });
+      const originalAdvance = Object.getOwnPropertyDescriptor(
+        MaintenanceJournalStore.prototype,
+        "advance",
+      )?.value as MaintenanceJournalStore["advance"] | undefined;
+      if (originalAdvance === undefined) {
+        throw new Error("journal advance implementation is not callable");
+      }
+      const advanceSpy = vi.spyOn(MaintenanceJournalStore.prototype, "advance");
+      advanceSpy.mockImplementationOnce(async function (
+        this: MaintenanceJournalStore,
+        body,
+      ) {
+        await originalAdvance.call(this, body);
+        throw new Error("EXECUTING publication acknowledgement failed");
+      });
 
       const result = await preparedMaintenance.execute({
         async retire() {
@@ -72,6 +90,9 @@ describe("Host maintenance restart and pre-entry PostgreSQL qualification", () =
           expect(entered).toMatchObject({
             status: "CURRENT",
             value: { state: { phase: "EXECUTING" } },
+          });
+          await expect(preparedMaintenance.abortBeforeExecute()).rejects.toMatchObject({
+            problem: { problemCode: "bootstrap.maintenance.abort_after_entry" },
           });
         },
       });
@@ -164,6 +185,178 @@ describe("Host maintenance restart and pre-entry PostgreSQL qualification", () =
           .shutdownKeepingPrivatePostgres(maintenanceRetirement())
           .catch(() => undefined);
       }
+      await ready?.stop().catch(() => undefined);
+      await stopPostgres(toolchain, join(fixture.roots.DATA, "private-postgres"));
+      if (owned.ownershipState !== "RELEASED") {
+        await owned.close().catch(() => undefined);
+      }
+    }
+  }, 180_000);
+
+  it("keeps a failed pre-entry publication abortable when current truth is PREPARED", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const keyProvider = makeKeyProvider();
+    const toolchain = await getToolchain();
+    const port = 55527;
+    let ready: ReadyPrivatePostgres | undefined;
+    let host: BootstrapManagedHostContext | undefined;
+    let followupOwned:
+      Awaited<ReturnType<typeof prepared.acquireOwnership>> | undefined;
+
+    try {
+      ready = await owned.preparePrivatePostgres({
+        toolchainBinDirectory: qualifiedPgBin,
+        initialPort: port,
+        lifecycle: LIFECYCLE,
+        keyProvider,
+      });
+      host = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost,
+        keyProvider,
+        timing: HOST_TIMING,
+      });
+      const maintenance = await host.preparePrivatePostgresMaintenance({
+        kind: "RESTART_PRIVATE_POSTGRES",
+      });
+      const readStartTime = async (): Promise<string> => {
+        const client = await connectBootstrapClient(
+          host as BootstrapManagedHostContext,
+          keyProvider,
+          port,
+        );
+        try {
+          return await postmasterStartTime(client);
+        } finally {
+          await client.end();
+        }
+      };
+      const beforeStartTime = await readStartTime();
+      const entryFailure = new Error("EXECUTING publication failed before commit");
+      vi.spyOn(MaintenanceJournalStore.prototype, "advance").mockImplementationOnce(
+        async () => {
+          throw entryFailure;
+        },
+      );
+      let retirementCalls = 0;
+
+      await expect(
+        maintenance.execute({
+          async retire() {
+            retirementCalls += 1;
+          },
+        }),
+      ).rejects.toBe(entryFailure);
+      expect(retirementCalls).toBe(0);
+      expect(maintenance.state).toBe("PREPARED");
+      await expect(readStartTime()).resolves.toBe(beforeStartTime);
+      await expect(assertReady(toolchain, port)).resolves.toBeUndefined();
+
+      const afterFailure = await new MaintenanceJournalStore(
+        fixture.roots.INSTANCE,
+      ).load(maintenance.operationId);
+      expect(afterFailure).toMatchObject({
+        status: "CURRENT",
+        value: { state: { phase: "PREPARED" } },
+      });
+
+      await expect(maintenance.abortBeforeExecute()).resolves.toBeUndefined();
+      expect(maintenance.state).toBe("ABORTED");
+      const afterAbort = await new MaintenanceJournalStore(fixture.roots.INSTANCE).load(
+        maintenance.operationId,
+      );
+      expect(afterAbort).toMatchObject({
+        status: "CURRENT",
+        value: { state: { phase: "ABORTED" } },
+      });
+
+      const followupPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+      followupOwned = await followupPrepared.acquireOwnership({ heartbeatMs: 1_000 });
+    } finally {
+      await followupOwned?.close().catch(() => undefined);
+      if (host?.state === "ACTIVE") {
+        await host
+          .shutdownKeepingPrivatePostgres(maintenanceRetirement())
+          .catch(() => undefined);
+      }
+      await ready?.stop().catch(() => undefined);
+      await stopPostgres(toolchain, join(fixture.roots.DATA, "private-postgres"));
+      if (owned.ownershipState !== "RELEASED") {
+        await owned.close().catch(() => undefined);
+      }
+    }
+  }, 180_000);
+
+  it("keeps a Host-inactive preflight failure abortable without touching PostgreSQL", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const keyProvider = makeKeyProvider();
+    const toolchain = await getToolchain();
+    const port = 55528;
+    let ready: ReadyPrivatePostgres | undefined;
+    let host: BootstrapManagedHostContext | undefined;
+    let followupOwned:
+      Awaited<ReturnType<typeof prepared.acquireOwnership>> | undefined;
+
+    try {
+      ready = await owned.preparePrivatePostgres({
+        toolchainBinDirectory: qualifiedPgBin,
+        initialPort: port,
+        lifecycle: LIFECYCLE,
+        keyProvider,
+      });
+      host = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost,
+        keyProvider,
+        timing: HOST_TIMING,
+      });
+      const maintenance = await host.preparePrivatePostgresMaintenance({
+        kind: "RESTART_PRIVATE_POSTGRES",
+      });
+      const readStartTime = async (): Promise<string> => {
+        const client = await connectBootstrapClient(
+          host as BootstrapManagedHostContext,
+          keyProvider,
+          port,
+        );
+        try {
+          return await postmasterStartTime(client);
+        } finally {
+          await client.end();
+        }
+      };
+      const beforeStartTime = await readStartTime();
+      await host.shutdownKeepingPrivatePostgres(maintenanceRetirement());
+
+      let retirementCalls = 0;
+      await expect(
+        maintenance.execute({
+          async retire() {
+            retirementCalls += 1;
+          },
+        }),
+      ).rejects.toBeDefined();
+      expect(retirementCalls).toBe(0);
+      expect(maintenance.state).toBe("PREPARED");
+      await expect(readStartTime()).resolves.toBe(beforeStartTime);
+      await expect(assertReady(toolchain, port)).resolves.toBeUndefined();
+
+      const journal = await new MaintenanceJournalStore(fixture.roots.INSTANCE).load(
+        maintenance.operationId,
+      );
+      expect(journal).toMatchObject({
+        status: "CURRENT",
+        value: { state: { phase: "PREPARED" } },
+      });
+
+      await expect(maintenance.abortBeforeExecute()).resolves.toBeUndefined();
+      expect(maintenance.state).toBe("ABORTED");
+      const followupPrepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+      followupOwned = await followupPrepared.acquireOwnership({ heartbeatMs: 1_000 });
+    } finally {
+      await followupOwned?.close().catch(() => undefined);
       await ready?.stop().catch(() => undefined);
       await stopPostgres(toolchain, join(fixture.roots.DATA, "private-postgres"));
       if (owned.ownershipState !== "RELEASED") {

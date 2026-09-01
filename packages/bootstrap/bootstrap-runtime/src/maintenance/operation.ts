@@ -304,6 +304,38 @@ function targetPostgresOf(
     : "STOPPED";
 }
 
+function sameMaintenanceIntent(
+  candidate: MaintenanceJournalBodyV1,
+  expected: MaintenanceJournalBodyV1,
+): boolean {
+  return (
+    candidate.schemaVersion === expected.schemaVersion &&
+    candidate.operationId === expected.operationId &&
+    candidate.activityId === expected.activityId &&
+    candidate.installationId === expected.installationId &&
+    candidate.instanceId === expected.instanceId &&
+    candidate.operationType === expected.operationType &&
+    candidate.source.hostOwnershipToken === expected.source.hostOwnershipToken &&
+    candidate.source.hostBootId === expected.source.hostBootId &&
+    candidate.source.hostOwnershipRevision === expected.source.hostOwnershipRevision &&
+    candidate.source.postgresClusterSystemIdentifier ===
+      expected.source.postgresClusterSystemIdentifier &&
+    candidate.source.persistedPort === expected.source.persistedPort &&
+    candidate.target.privatePostgres === expected.target.privatePostgres
+  );
+}
+
+function executionEntryUnprovenProblem(original: unknown): ProblemError {
+  const originalCode = problemCodeOf(original);
+  return maintenanceProblem(
+    "bootstrap.maintenance.execution_entry_unproven",
+    "Maintenance execution entry could not be proven",
+    originalCode === undefined
+      ? "The current MaintenanceJournal could not prove whether EXECUTING was published"
+      : `The current MaintenanceJournal could not prove whether EXECUTING was published after ${originalCode}`,
+  );
+}
+
 function initialJournalBody(
   operationId: MaintenanceOperationId,
   request: PrivatePostgresMaintenanceRequest,
@@ -525,6 +557,8 @@ function createPreparedMaintenance(
   let body = initial;
   let oldHostRetirementPromise: Promise<void> | undefined;
   let executePromise: Promise<PrivatePostgresMaintenanceResult> | undefined;
+  let executionEntryState: "NOT_ENTERED" | "ENTERED" | "UNPROVEN" = "NOT_ENTERED";
+  let executionEntryFailure: ProblemError | undefined;
 
   const beginOldHostRetirement = (): Promise<void> => {
     if (oldHostRetirementPromise !== undefined) {
@@ -567,15 +601,68 @@ function createPreparedMaintenance(
     body = next;
   };
 
+  const publishExecuting = async (): Promise<void> => {
+    const expectedExecuting: MaintenanceJournalBodyV1 = {
+      ...body,
+      revision: body.revision + 1,
+      phase: "EXECUTING",
+      updatedAt: formatInstant(new Date()),
+    };
+    try {
+      await access.journal.advance(expectedExecuting);
+      body = expectedExecuting;
+      executionEntryState = "ENTERED";
+      return;
+    } catch (originalError) {
+      let current: Awaited<ReturnType<OwnedMaintenanceStateAccess["journal"]["load"]>>;
+      try {
+        current = await access.journal.load(body.operationId);
+      } catch {
+        executionEntryState = "UNPROVEN";
+        executionEntryFailure = executionEntryUnprovenProblem(originalError);
+        if (lease.state === "HELD") await lease.release().catch(() => undefined);
+        throw executionEntryFailure;
+      }
+
+      if (
+        current.status === "CURRENT" &&
+        current.value.state.phase === "PREPARED" &&
+        current.value.state.revision === body.revision &&
+        sameMaintenanceIntent(current.value.state, body)
+      ) {
+        body = current.value.state;
+        throw originalError;
+      }
+
+      if (
+        current.status === "CURRENT" &&
+        current.value.state.phase === "EXECUTING" &&
+        current.value.state.revision === expectedExecuting.revision &&
+        sameMaintenanceIntent(current.value.state, expectedExecuting)
+      ) {
+        body = current.value.state;
+        executionEntryState = "ENTERED";
+        return;
+      }
+
+      executionEntryState = "UNPROVEN";
+      executionEntryFailure = executionEntryUnprovenProblem(originalError);
+      if (lease.state === "HELD") await lease.release().catch(() => undefined);
+      throw executionEntryFailure;
+    }
+  };
+
   const markRecoveryRequired = async (error: unknown): Promise<void> => {
     if (
-      body.phase === "PREPARED" ||
-      (lease.state === "HELD" && body.phase !== "SUCCEEDED" && body.phase !== "ABORTED")
+      executionEntryState !== "ENTERED" ||
+      lease.state !== "HELD" ||
+      (body.phase !== "EXECUTING" && body.phase !== "RECOVERY_REQUIRED")
     ) {
-      await advance("RECOVERY_REQUIRED", {
-        problemCode: problemCodeOf(error),
-      }).catch(() => undefined);
+      return;
     }
+    await advance("RECOVERY_REQUIRED", {
+      problemCode: problemCodeOf(error),
+    }).catch(() => undefined);
   };
 
   const executeOnce = async (
@@ -609,7 +696,7 @@ function createPreparedMaintenance(
         );
       }
 
-      await advance("EXECUTING");
+      await publishExecuting();
       provenance.terminalizeManagedHost?.();
       try {
         await retirement.retire();
@@ -709,11 +796,18 @@ function createPreparedMaintenance(
     retirement: HostRuntimeRetirement,
   ): Promise<PrivatePostgresMaintenanceResult> => {
     if (executePromise !== undefined) return executePromise;
-    executePromise = executeOnce(retirement);
+    const attempt = executeOnce(retirement);
+    executePromise = attempt;
+    void attempt.catch(() => {
+      if (executionEntryState === "NOT_ENTERED" && body.phase === "PREPARED") {
+        executePromise = undefined;
+      }
+    });
     return executePromise;
   };
 
   const abortBeforeExecute = async (): Promise<void> => {
+    if (executionEntryFailure !== undefined) throw executionEntryFailure;
     if (executePromise !== undefined || body.phase !== "PREPARED") {
       throw maintenanceProblem(
         "bootstrap.maintenance.abort_after_entry",
