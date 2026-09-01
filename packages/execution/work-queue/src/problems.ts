@@ -102,11 +102,6 @@ const problemSpecs: Readonly<Record<string, WorkQueueProblemSpec>> = {
     retryClass: "after-change",
     title: "WorkItem Signal publication failed after canonical insertion",
   },
-  "work.schedule.failed": {
-    category: "unavailable",
-    retryClass: "after-change",
-    title: "WorkQueue reconciliation scheduling failed",
-  },
   "work.reconciliation.failed": {
     category: "unavailable",
     retryClass: "after-change",
