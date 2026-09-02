@@ -30,4 +30,4 @@ the semantic meaning and lifecycle of their identifiers.
 
 - [`authority-and-core-concepts.md`](../../docs/architecture/authority-and-core-concepts.md)
 - [`glossary.md`](../../docs/reference/glossary.md)
-- [`foundation-contracts`](../../packages/foundation-contracts/README.md)
+- [`foundation-contracts`](../../packages/foundation/foundation-contracts/README.md)

@@ -754,11 +754,11 @@ export interface PreparedPrivatePostgresMaintenance {
     quiescence: HostMaintenanceQuiescence,
   ): Promise<PrivatePostgresMaintenanceResult>;
 
-  abortBeforeEntry(): Promise<void>;
+  abortBeforeExecute(): Promise<void>;
 }
 ```
 
-`abortBeforeEntry()` is legal only while no PONR has been crossed.
+`abortBeforeExecute()` is legal only while no PONR has been crossed.
 
 Do not expose a generic `executeSql`, `runShell`, `replaceDataRoot`, or arbitrary Recovery verb.
 
@@ -1709,7 +1709,7 @@ git commit -m "feat: add private postgres maintenance control"
 - Implements:
   - `BootstrapManagedHostContext.preparePrivatePostgresMaintenance()`
   - `PreparedPrivatePostgresMaintenance.execute()`
-  - `abortBeforeEntry()`
+  - `abortBeforeExecute()`
 
 - [ ] **Step 1: Write failing prepare-order tests**
 

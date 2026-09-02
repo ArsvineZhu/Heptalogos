@@ -1,8 +1,8 @@
 # Heptalogos Development Roadmap
 
 **Status:** LIVING ROADMAP / planning guidance<br>
-**Date:** 2026-08-31<br>
-**Repository baseline:** current merged `master` tree with H3B closed, the Foundation executable-spine evidence recorded, and no active implementation Plan; H3-S is eligible but not authorized<br>
+**Date:** 2026-09-02<br>
+**Repository baseline:** completed Foundation Remediation Bundle closure-correction tree on `dev/h3-stabilization`; H3B is closed and no Foundation implementation Plan is active<br>
 **Architecture baseline:** `docs/architecture/` design state 2026-08-20
 
 > This document owns development sequencing, Horizon truth, and qualification guidance. It does not replace the canonical Human Architecture, current Specs, Governance, Dependencies, Qualification, or active Plan. Update this Roadmap when evidence changes sequencing or eligibility; update the relevant canonical owner when semantics change.
@@ -356,7 +356,7 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 
 > Can the system make a durable promise, crash anywhere around dispatch/processing/external effects, and resume without losing the obligation or inventing false certainty?
 
-### Current progress (2026-08-31)
+### Current progress (2026-09-02)
 
 ```yaml
 H3: OPEN
@@ -366,11 +366,21 @@ H3A_2: CLOSED
 H3_FOUNDATION_EXECUTABLE_SPINE: PASS
 H3B: CLOSED
 H3_FUNCTIONAL: COMPLETE
-H3_STABILIZATION: ELIGIBLE
+H3_STABILIZATION: CLOSED
 currentRepositoryWork: NONE
 activeImplementationPlan: NONE
 nextAuthorizedPlan: NONE
 githubActions: DISABLED_CURRENT_EXECUTION_POLICY
+```
+
+Current H3 stabilization closure truth:
+
+```yaml
+localQualification: PASS
+finalCandidateRevalidation: PASS
+independentReview: PASS
+finalCrossPlatformCI: NOT_RUN
+merge: NOT_RUN
 ```
 
 The H3A-1 implementation includes complete creation-request envelope
@@ -382,15 +392,29 @@ final manual CI remain `NOT_RUN`; they are not inferred from the GitHub merge
 fact. H3A-2 bounded closure is complete for the current H3 scope: no
 observed/current authorized F0-F2 blocker remains, the Foundation executable
 spine passes the real-process boot/work/stop and same-Instance restart
-scenarios, and the terminal-commit restart scenario passes. This does not
+scenarios, and the terminal-commit restart scenario passes. The current
+closure correction additionally proves durable maintenance entry before
+retirement, no execution of abandoned PREPARED intent, one package-private Host
+reacquisition owner, and the split integration ownership boundary. This does not
 close all product qualification boundaries. Windows and Ubuntu/Linux evidence
 is current for the recorded scenarios; macOS, source-less, service/headless,
 and ResourceGovernor qualification remain individually scoped and must not be
 inferred from another platform or candidate. H3B is now closed after the
-completed EffectOperation plan; H3-S is eligible but not authorized, and
-remains sequenced after H3B so the Foundation containment pass follows the
-final H3 semantic owner. Ordinary GitHub Actions are disabled under the
-current execution policy; local repository gates remain the closure route.
+completed EffectOperation plan; the Foundation Remediation Bundle closure
+correction was the bounded stabilization plan after H3B so the containment pass
+followed the final H3 semantic owner. It is now completed after local
+qualification, final candidate revalidation, and the externally supplied
+exact-candidate Independent Review `PASS`. H3 itself remains `OPEN`; final
+cross-platform CI and merge are `NOT_RUN`, and the remaining product
+qualification boundaries remain individually scoped. Ordinary GitHub Actions
+are disabled under the current execution policy; local repository gates remain
+the closure route.
+
+The completed Foundation Remediation Bundle Plan is
+[`Foundation Remediation Bundle — Closure Correction — 2026-09-01`](../plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md);
+the current property evidence remains in
+[`Q-BOOT-01`](../qualification/results/Q-BOOT-01.md) and the machine-readable
+qualification ledger.
 
 ### Implementation decomposition
 
@@ -458,12 +482,11 @@ At minimum, kill the process around key boundaries and prove:
 - no generic automatic retry turns uncertainty into duplicate reality;
 - restart preserves causal lineage links.
 
-### H3-S — Foundation Containment / Stabilization
+### H3 — Foundation Remediation / Stabilization
 
-H3-S is a convergence/subtraction stage, not another hardening expansion. It
-is eligible but not authorized, and is sequenced after H3B for this development
-line, following the already-closed H3A-2 and Foundation executable spine. Its
-bounded scope is:
+The current Foundation remediation is a convergence/subtraction track, not
+another hardening expansion. It follows the already-closed H3A-2 and Foundation
+executable spine. Its bounded scope is:
 
 ```text
 current-tree residue and PRE_PRODUCTION compatibility cleanup
@@ -480,29 +503,38 @@ The lifecycle audit records `SEMANTIC_PROTOCOL`, `ADAPTER_GLUE`,
 `GENERIC_MECHANIC_CUSTOM_UNJUSTIFIED`, and `SPECULATIVE_RESILIENCE`. It does not
 start a broad refactor, replace Cordis/DBOS/XState, or add product capability.
 
+The current XState consumers are `private-postgres` and `host-ownership`.
+`runtime-kernel` owns runtime lifecycle meaning and reconciliation but is not a
+current XState consumer.
+
 The current bounded audit classification is:
 
-| Owner                                  | Mechanism                                                                     | Classification                                | Current action                                                                                                                                                           |
-| -------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `runtime-substrate`                    | Cordis Fiber/context/effect/disposal                                          | `GENERIC_MECHANIC_DELEGATED`                  | Keep Cordis behind the adapter.                                                                                                                                          |
-| `runtime-substrate`                    | task tracking, late disposer handling, settlement timeout                     | `GENERIC_MECHANIC_CUSTOM_JUSTIFIED`           | Retain the Heptalogos owner policy required to bound process-memory work that Cordis does not own; investigate further only in H3-S if a current consumer exposes a gap. |
-| `runtime-substrate` / `runtime-kernel` | background failure projection, owner/generation failure and readiness effects | `SEMANTIC_PROTOCOL`                           | Keep semantic projection in Heptalogos contracts.                                                                                                                        |
-| `runtime-kernel`                       | local lifecycle statechart transitions                                        | `GENERIC_MECHANIC_DELEGATED`                  | Keep XState package-private; Kernel owns lifecycle meaning.                                                                                                              |
-| `runtime-kernel`                       | reconciliation, generation fencing, quiescence and provider selection         | `SEMANTIC_PROTOCOL`                           | Keep the Kernel owner; no second supervisor.                                                                                                                             |
-| `private-postgres`                     | PostgreSQL process/tool invocation and local lifecycle statechart             | `ADAPTER_GLUE` / `GENERIC_MECHANIC_DELEGATED` | Use the adopted subprocess and XState routes; no new process manager.                                                                                                    |
-| `host-ownership`                       | advisory lease, database fence and token transitions                          | `SEMANTIC_PROTOCOL`                           | Preserve one Host Authority and its PostgreSQL mechanics adapter.                                                                                                        |
-| `bootstrap-runtime`                    | Bootstrap/Host handoff, maintenance point of no return and recovery journal   | `SEMANTIC_PROTOCOL`                           | Contain scope; do not move current reverse handoff.                                                                                                                      |
-| `work-queue`                           | WorkItem Authority, admission, reconciliation and fair scan                   | `SEMANTIC_PROTOCOL`                           | Preserve canonical WorkItem ownership and bounded scan behavior.                                                                                                         |
-| `durable-execution`                    | DBOS client/pool/lifecycle adapter                                            | `ADAPTER_GLUE` / `GENERIC_MECHANIC_DELEGATED` | Keep DBOS mechanics below the Heptalogos lifecycle contract; C1–C4 are the only current source corrections.                                                              |
+| Owner                                  | Mechanism                                                                            | Classification                                                   | Current action                                                                                                                                           |
+| -------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `runtime-substrate`                    | Cordis Fiber/context/effect/disposal                                                 | `GENERIC_MECHANIC_DELEGATED`                                     | Keep Cordis behind the adapter.                                                                                                                          |
+| `runtime-substrate`                    | task tracking, late disposer handling, settlement timeout                            | `GENERIC_MECHANIC_CUSTOM_JUSTIFIED`                              | Retain the Heptalogos owner policy required to bound process-memory work that Cordis does not own; investigate only if a current consumer exposes a gap. |
+| `runtime-substrate` / `runtime-kernel` | background failure projection, owner/generation failure and readiness effects        | `SEMANTIC_PROTOCOL`                                              | Keep semantic projection in Heptalogos contracts.                                                                                                        |
+| `runtime-kernel`                       | Desired/Actual reconciliation, registries, generation fencing and provider selection | `SEMANTIC_PROTOCOL`                                              | Keep lifecycle meaning and component retirement in the Kernel; runtime-level close is terminal and there is no second supervisor.                        |
+| `runtime-kernel`                       | global reversible Host-maintenance supervisor lifecycle                              | `SPECULATIVE_RESILIENCE`                                         | Removed; retain Desired/Actual reconciliation, registries, readiness, GenerationFence and terminal runtime close.                                        |
+| `private-postgres`                     | PostgreSQL process/tool invocation and local lifecycle statechart                    | `ADAPTER_GLUE` / `GENERIC_MECHANIC_DELEGATED`                    | Use the adopted subprocess and XState routes; no new process manager.                                                                                    |
+| `host-ownership`                       | advisory lease, database fence and token transitions                                 | `SEMANTIC_PROTOCOL`                                              | Preserve one Host Authority and its PostgreSQL mechanics adapter.                                                                                        |
+| `bootstrap-runtime`                    | Bootstrap/Host handoff, maintenance point of no return and recovery journal          | `SEMANTIC_PROTOCOL`                                              | Keep one-way retirement, compact phase witness, and current-truth recovery at this owner.                                                                |
+| `bootstrap-runtime`                    | old-runtime rollback and `resumeAfterAbort`                                          | `SPECULATIVE_RESILIENCE`                                         | Removed; the Authority point of no return is fenced and failed post-entry work is bounded recovery.                                                      |
+| `bootstrap-runtime`                    | historical maintenance-stage replay/recovery workflow                                | `SPECULATIVE_RESILIENCE`                                         | Removed/re-written to current-truth inspection and convergence.                                                                                          |
+| `work-queue`                           | WorkItem Authority, admission, reconciliation and fair scan                          | `SEMANTIC_PROTOCOL`                                              | Preserve canonical WorkItem ownership and bounded scan behavior.                                                                                         |
+| `durable-execution`                    | DBOS client/pool/terminal lifecycle adapter                                          | `ADAPTER_GLUE` / `GENERIC_MECHANIC_DELEGATED`                    | Keep DBOS workflow, queue, drain, and first-order restart mechanics below the Heptalogos lifecycle contract.                                             |
+| `durable-execution`                    | reversible quiesce/resume lifecycle                                                  | `GENERIC_MECHANIC_CUSTOM_UNJUSTIFIED` / `SPECULATIVE_RESILIENCE` | Removed; DBOS retains its adopted terminal lifecycle and first-order recovery mechanics.                                                                 |
 
-No current owner was classified as `GENERIC_MECHANIC_CUSTOM_UNJUSTIFIED` or
-`SPECULATIVE_RESILIENCE`. The Cordis review specifically finds task tracking and
-late-disposer handling to be Heptalogos owner policy around the adopted Cordis
-scope, settlement timeout to be the required bounded contract for unowned-by-
-Cordis process-memory tasks, and background failure projection to be semantic
-failure/readiness behavior. Provider replacement is not authorized.
+The remediation identified and removed the unjustified or speculative
+reversible runtime and maintenance-recovery mechanisms listed above. No such
+mechanism remains in the current Foundation implementation after this
+remediation. The retained Cordis review still classifies task tracking and
+late-disposer handling as Heptalogos owner policy around the adopted Cordis
+scope, settlement timeout as the required bounded contract for process-memory
+tasks, and background failure projection as semantic failure/readiness
+behavior. Provider replacement is not authorized.
 
-### After H3-S — minimum provider prerequisites, then Subject proof
+### After H3 — minimum provider prerequisites, then Subject proof
 
 The next product-driven path is the smallest real Subject vertical slice. Only
 the minimum H4 prerequisites needed by one real model provider and Subject Base

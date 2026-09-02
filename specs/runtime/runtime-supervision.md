@@ -32,13 +32,19 @@ behind its contract.
 
 ## Lifecycle
 
-Semantic lifecycle ordering is dependent graph identification, dependent
-quiescence, target disposal, provider activation, dependent reactivation, and
-readiness recomputation. The adopted substrate supplies mechanics, not
-Authority.
+Runtime-level lifecycle is terminal: `ACTIVE` admits normal work,
+`CLOSING` drains and disposes owned resources, and `CLOSED` or `FAILED` does
+not reopen the supervisor. Owner abort or a failed close fences admission and
+requires a fresh Bootstrap/Host handoff for another runtime instance.
+
+Component replacement remains a local reconciliation operation. It identifies
+the affected dependency graph, quiesces and disposes dependents, activates the
+selected provider, recomputes readiness, and reactivates valid dependents. The
+Kernel owns that semantic ordering; RuntimeSubstrate supplies only adopted
+activation and disposal mechanics.
 
 ## References
 
 - [`execution-model.md`](../../docs/architecture/execution-model.md)
-- [`runtime-kernel`](../../packages/runtime-kernel/README.md)
-- [`runtime-substrate`](../../packages/runtime-substrate/README.md)
+- [`runtime-kernel`](../../packages/runtime/runtime-kernel/README.md)
+- [`runtime-substrate`](../../packages/runtime/runtime-substrate/README.md)

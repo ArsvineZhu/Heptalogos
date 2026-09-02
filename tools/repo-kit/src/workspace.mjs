@@ -37,11 +37,11 @@ export async function discoverProductPackages({ root = process.cwd() } = {}) {
       return { directory, directoryName, workspacePackage };
     })
     .filter(({ directoryName }) => {
+      const segments = directoryName.split("/");
       return (
-        directoryName.length > 0 &&
-        !directoryName.startsWith("..") &&
-        !directoryName.includes("/") &&
-        directoryName !== "."
+        segments.length === 2 &&
+        segments.every((segment) => segment.length > 0) &&
+        !directoryName.startsWith("..")
       );
     })
     .map(({ directory, directoryName, workspacePackage }) => {

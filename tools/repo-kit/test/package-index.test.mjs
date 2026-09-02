@@ -12,13 +12,13 @@ async function fixtureTree(setup) {
   const fixtureRoot = await mkdtemp(join(tmpdir(), "heptalogos-package-index-"));
   const productPackages = [
     {
-      directory: join(fixtureRoot, "packages", "alpha"),
-      directoryName: "alpha",
+      directory: join(fixtureRoot, "packages", "foundation", "alpha"),
+      directoryName: "foundation/alpha",
       manifestName: "@heptalogos/alpha",
     },
     {
-      directory: join(fixtureRoot, "packages", "beta"),
-      directoryName: "beta",
+      directory: join(fixtureRoot, "packages", "foundation", "beta"),
+      directoryName: "foundation/beta",
       manifestName: "@heptalogos/beta",
     },
   ];
@@ -60,11 +60,11 @@ describe("package retrieval index", () => {
     const errors = await fixtureTree(async (fixtureRoot) => {
       await writeFile(
         join(fixtureRoot, "packages", "INDEX.md"),
-        "[alpha](./alpha/README.md)\n",
+        "[alpha](./foundation/alpha/README.md)\n",
       );
     });
     expect(errors).toEqual([
-      "packages/INDEX.md must link package README exactly once: beta (found 0)",
+      "packages/INDEX.md must link package README exactly once: foundation/beta (found 0)",
     ]);
   });
 
@@ -73,17 +73,17 @@ describe("package retrieval index", () => {
       await writeFile(
         join(fixtureRoot, "packages", "INDEX.md"),
         [
-          "[alpha](./alpha/README.md)",
-          "[alpha again](./alpha/README.md)",
-          "[missing](./missing/README.md)",
+          "[alpha](./foundation/alpha/README.md)",
+          "[alpha again](./foundation/alpha/README.md)",
+          "[missing](./foundation/missing/README.md)",
           "",
         ].join("\n"),
       );
     });
     expect(errors).toEqual([
-      "packages/INDEX.md links nonexistent package: missing",
-      "packages/INDEX.md must link package README exactly once: alpha (found 2)",
-      "packages/INDEX.md must link package README exactly once: beta (found 0)",
+      "packages/INDEX.md links nonexistent package: foundation/missing",
+      "packages/INDEX.md must link package README exactly once: foundation/alpha (found 2)",
+      "packages/INDEX.md must link package README exactly once: foundation/beta (found 0)",
     ]);
   });
 });

@@ -126,9 +126,10 @@ fail closed.
 
 Safe Mode disables ineligible optional generations while preserving Desired
 State, diagnostics, and bounded management/recovery access. Graceful shutdown
-stops new consequential admission, quiesces dependent work, retires owned
-resources, records terminal lineage, performs the reverse Host/Bootstrap
-handoff when private PostgreSQL stops, and finalizes the bootstrap journal.
+stops new consequential admission, retires dependent work and owned resources,
+records terminal lineage, performs the reverse Host/Bootstrap handoff when
+private PostgreSQL stops, and finalizes the bootstrap journal. The retired
+product runtime is not reopened in place.
 
 ## References
 

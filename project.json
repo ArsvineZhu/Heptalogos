@@ -22,6 +22,12 @@
         "command": "node scripts/verify/repository.mjs"
       }
     },
+    "check:package-layout": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/verify/package-layout.mjs"
+      }
+    },
     "check:hygiene": {
       "executor": "nx:run-commands",
       "options": {
@@ -90,7 +96,7 @@
     "source-docs:lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint \"packages/*/src/**/*.{ts,tsx}\" \"tools/*/src/**/*.{js,mjs,ts}\" \"scripts/**/*.{js,mjs,ts}\""
+        "command": "eslint \"packages/*/*/src/**/*.{ts,tsx}\" \"tools/*/src/**/*.{js,mjs,ts}\" \"scripts/**/*.{js,mjs,ts}\""
       }
     },
     "tooling:lint": {
@@ -146,6 +152,7 @@
         "check:agents",
         "check:knowledge",
         "check:repository",
+        "check:package-layout",
         "check:hygiene",
         "check:dependencies",
         "check:boundaries",
@@ -177,7 +184,7 @@
       "dependsOn": ["check:static"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "nx run-many --targets=test,build --all --exclude=repository --parallel=1"
+        "command": "nx run-many --targets=test,build --all --exclude=repository,integration-foundation --parallel=1"
       }
     }
   }

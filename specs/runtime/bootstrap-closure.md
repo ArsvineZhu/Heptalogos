@@ -53,5 +53,5 @@ unknown database or choose an arbitrary side of an epoch mismatch.
 
 - [`execution-model.md`](../../docs/architecture/execution-model.md)
 - [`platform-distribution.md`](../../docs/architecture/platform-distribution.md)
-- [`bootstrap-runtime`](../../packages/bootstrap-runtime/README.md)
-- [`bootstrap-state`](../../packages/bootstrap-state/README.md)
+- [`bootstrap-runtime`](../../packages/bootstrap/bootstrap-runtime/README.md)
+- [`bootstrap-state`](../../packages/bootstrap/bootstrap-state/README.md)

@@ -3,21 +3,26 @@
   "ignoreDependencies": ["@typescript/native"],
   "workspaces": {
     ".": {
-      "entry": ["scripts/**/*.mjs"],
-      "project": ["scripts/**/*.mjs"]
+      "ignoreDependencies": ["@types/pg", "execa", "kysely"],
+      "entry": [
+        "scripts/**/*.mjs",
+        "integration/foundation/vitest.config.ts",
+        "integration/foundation/test/**/*.integration.test.ts"
+      ],
+      "project": ["scripts/**/*.mjs", "integration/foundation/**/*.ts"]
     },
-    "packages/*": {
+    "packages/*/*": {
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "tools/*": {
       "entry": ["test/fixtures/**/*.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     },
-    "packages/persistence": {
+    "packages/data/persistence": {
       "entry": ["src/foundation-repository.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
-    "packages/durable-execution": {
+    "packages/execution/durable-execution": {
       "project": ["src/**/*.ts", "test/**/*.ts"],
       "ignoreDependencies": ["^@dbos-inc/dbos-sdk$"]
     }

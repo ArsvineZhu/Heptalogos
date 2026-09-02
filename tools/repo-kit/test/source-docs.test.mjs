@@ -50,7 +50,9 @@ describe("source documentation enforcement", () => {
   }, 30_000);
 
   it("requires package entrypoint and exported-contract documentation", async () => {
-    const directory = await mkdtemp(join(root, "packages", "jsdoc-probe-"));
+    const directory = await mkdtemp(
+      join(root, "packages", "foundation", "jsdoc-probe-"),
+    );
     const toolsDirectory = await mkdtemp(
       join(root, "tools", "repo-kit", "src", "jsdoc-probe-"),
     );

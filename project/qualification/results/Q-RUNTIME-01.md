@@ -3,14 +3,24 @@
 ```yaml
 qualificationId: Q-RUNTIME-01
 role: trusted in-process lifecycle mechanics
+date: 2026-09-01
 evidenceStatus: PASS
-preImplementationDecisionState: CLOSED
 roleDecision: ADOPTED
 implementationQualification: REQUIRED
 selectedRoute: "`cordis` active 4.x package line"
+qualificationState: PARTIAL
+currentCandidate:
+  candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
+  behaviorCandidateSha: 7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b
+  branch: dev/h3-stabilization
+  plan: project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md
+  lifecycle: ACTIVE
+  freeze: NOT_RUN
+  independentReview: NOT_RUN
+  merge: NOT_RUN
 ```
 
-## Observed properties
+## Current candidate evidence
 
 ```yaml
 evidence:
@@ -19,9 +29,28 @@ evidence:
   P3_disposer_failure: PASS
   P4_scope_generation_isolation: PASS
   L2_adapter_fit: PASS
+  runtime_kernel_terminal_lifecycle: PASS (5 files, 130 tests)
+  runtime_kernel_build_typecheck_lint: PASS
+  runtime_substrate_preserved: PASS
+  integration_foundation_runtime_composition: PASS (14 files, 87 tests)
+  real_postgres_runtime_qualification: PASS (runtime-kernel managed-host composition included in the real PostgreSQL integration target)
+  source_less_runtime: NOT_RUN
+  service_headless_runtime: NOT_RUN
+  macos_runtime: NOT_RUN
+  repository_verify: PASS (pnpm nx run repository:verify --skip-nx-cache)
+  independent_review: NOT_RUN
+  merge: NOT_RUN
 ```
 
-## H2B first corrective-cycle addendum (2026-08-25)
+The current evidence proves the adopted Cordis adapter and RuntimeKernel
+component reconciliation at their package/unit boundaries, plus the current
+cross-package managed-host composition on the Windows PostgreSQL 18.6
+toolchain. Runtime-level close is terminal; component-level quiescence and
+generation retirement remain local reconciliation semantics. Source-less,
+service/headless, macOS, review, merge, and final repository-gate claims remain
+separately qualified.
+
+## Historical H2B first corrective-cycle addendum (2026-08-25)
 
 ```yaml
 candidate_status: NOT_FROZEN
@@ -59,7 +88,7 @@ and all five cases were skipped because the qualification toolchain was not
 configured. This is `NOT_RUN`, not product/runtime qualification. Linux/macOS,
 source-less, and service/headless claims remain deferred.
 
-## H2B second corrective-cycle addendum (2026-08-25)
+## Historical H2B second corrective-cycle addendum (2026-08-25)
 
 ```yaml
 candidate_status: NOT_FROZEN
@@ -87,7 +116,7 @@ The previous `3ce96cf7...` H2B-on-master snapshot was preserved at
 independent review or final-CI evidence. The exact candidate pair remains
 unfrozen until the final documentation/qualification mutation is complete.
 
-## H2B third corrective-cycle addendum (2026-08-25)
+## Historical H2B third corrective-cycle addendum (2026-08-25)
 
 ```yaml
 candidate_status: NOT_FROZEN
@@ -119,7 +148,7 @@ The previous `pnpm verify: PASS` and focused counts remain historical evidence
 for the prior corrective cycle. They are not reused as verification for this
 new working tree until the current code and documentation are rerun together.
 
-## H2B fourth corrective-cycle addendum (2026-08-25)
+## Historical H2B fourth corrective-cycle addendum (2026-08-25)
 
 ```yaml
 candidate_status: FROZEN_ON_PR_HEAD
@@ -151,7 +180,7 @@ This addendum records candidate-boundary authority without embedding the live
 head SHA in the candidate itself: PR #22 metadata is the exact head authority.
 The previous `ffe6949...` review result remains historical `REQUEST_CHANGES`.
 
-## H2B fifth corrective-cycle addendum (2026-08-25)
+## Historical H2B fifth corrective-cycle addendum (2026-08-25)
 
 The independent review of `19ebef1...` → `674f5b2...` returned
 `REQUEST_CHANGES`. The current tree addresses the remaining Object.prototype
@@ -195,7 +224,7 @@ final cross-platform CI, independent review, and squash merge remain
 `NOT_RUN`. The candidate head is authoritative only through live PR #22
 metadata; this record does not embed a self-referential SHA.
 
-## H2B sixth corrective-cycle addendum (2026-08-25)
+## Historical H2B sixth corrective-cycle addendum (2026-08-25)
 
 The independent review of `19ebef1...` → `ee256dd...` returned
 `REQUEST_CHANGES`. The current tree narrows the H2B boundary to a supported
@@ -229,11 +258,11 @@ qualification claim for this exact head. Linux/macOS, source-less,
 service/headless, independent review, final cross-platform CI, and squash merge
 remain `NOT_RUN`.
 
-## NOT_RUN / deferred properties
+## Historical NOT_RUN / deferred properties
 
 - `product_runtime_start_stop`: Pilot remains synthetic L1/L2; no complete managed-Host product runtime was executed.
 
-## Architecture disposition
+## Historical architecture disposition
 
 此 role 的当前 RoleDecision 由 `../dependency-status.json` 冻结为 `ADOPTED`；本记录只报告已证明的 property 与剩余 implementation/product qualification，不构成第二套 Authority。
 
@@ -241,7 +270,7 @@ Exact-package RuntimeSubstrate integration, product start/stop, source-less and 
 
 若未来真实 implementation 暴露 reproducible hard blocker，才允许按 `../DEPENDENCY-QUALIFICATION.md` 的 reopening rule 重开 RoleDecision。
 
-## H2B post-merge truth reconciliation (2026-08-26)
+## Historical H2B post-merge truth reconciliation (2026-08-26)
 
 ```yaml
 h2b_review_candidate_base_sha: 19ebef1c62a737ad077414a6817ffdf8ac3ad2a4
@@ -260,7 +289,7 @@ database behavior. H2A-3's historical final cross-platform CI remains
 PostgreSQL, source-less, service/headless, and complete product runtime
 start/stop claims remain `NOT_RUN` or `PARTIAL` as previously recorded.
 
-## H2-S pre-merge candidate qualification (2026-08-26)
+## Historical H2-S pre-merge candidate qualification (2026-08-26)
 
 ```yaml
 candidate:
@@ -318,7 +347,7 @@ evidence. The fresh Windows PostgreSQL 18.6 suite and all required local gates
 completed after the implementation mutation; the external closure gates were
 subsequently completed and are recorded below.
 
-## H2-S post-merge closure (2026-08-26)
+## Historical H2-S post-merge closure (2026-08-26)
 
 ```yaml
 h2s_post_merge_closure:
@@ -340,7 +369,7 @@ qualification on Linux or macOS. Source-less, installed service/headless,
 service-account ACL, and hardware power-loss properties remain residuals at
 their recorded `NOT_RUN` states.
 
-## Current-master Ubuntu residual qualification (2026-08-26)
+## Historical current-master Ubuntu residual qualification (2026-08-26)
 
 ```yaml
 ubuntu_current_master_residual_qualification:
@@ -364,11 +393,12 @@ This is current Ubuntu/Linux real-PostgreSQL runtime evidence from the
 explicit matrix. It does not imply macOS, source-less, installed
 service/headless, service-account ACL, or hardware power-loss qualification.
 
-## Current Foundation containment candidate
+## Historical H3A-2 Foundation containment candidate
 
-The current H3A-2 containment plan changes DurableExecution lifecycle and
+The historical H3A-2 containment plan changed DurableExecution lifecycle and
 credential-scoped preflight behavior. Earlier H3A-2 runtime observations are
-not carried forward to this candidate until the claim-matched reruns complete.
+not carried forward to the historical candidate until the claim-matched reruns
+completed.
 
 ```yaml
 candidateId: H3A2-FOUNDATION-CONTAINMENT-2026-08-29
@@ -395,3 +425,49 @@ durable-work-recovery / Foundation-spine / bootstrap-recovery-process
 real-PostgreSQL files 16/16, using the explicit `HEPTALOGOS_TEST_PG_BIN`
 toolchain path (PostgreSQL 18.6). macOS real PostgreSQL, source-less, and
 service/headless remain `NOT_RUN`.
+
+## Historical H3-S candidate projection
+
+```yaml
+candidateId: H3S-FOUNDATION-PERMANENT-SURFACE-ADMISSION-2026-08-31
+baseSha: bbadfbacbd9aaea23639e51d5ce01744bd530da4
+branch: dev/h3-stabilization
+plan: project/plans/active/foundation/h3s-foundation-permanent-surface-admission-2026-08-31.md
+lifecycle: READY
+freeze: PASS
+runtimeSubstrateDisposition: KEEP / NO_REOPEN
+runtimeKernelDisposition: KEEP / NO_REOPEN
+currentCandidateQualification: PASS
+repositoryVerify: PASS
+independentReview: NOT_RUN
+```
+
+The H3-S plan explicitly retains RuntimeSubstrate and RuntimeKernel semantics;
+the historical H2B observations above are not relabeled as current H3-S
+execution evidence.
+
+## Current Foundation remediation projection (2026-09-01)
+
+```yaml
+candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
+behaviorCandidateSha: 7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b
+branch: dev/h3-stabilization
+plan: project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md
+runtimeKernelTerminalLifecycle: PASS
+runtimeKernelUnit: PASS (5 files, 130 tests)
+runtimeKernelBuildTypecheckLint: PASS
+runtimeSubstrateBoundary: PASS
+integrationFoundationRuntimeComposition: PASS (14 files, 87 tests)
+realPostgresQualification: PASS (runtime-kernel managed-host composition included in the real PostgreSQL integration target)
+sourceLess: NOT_RUN
+serviceHeadless: NOT_RUN
+macos: NOT_RUN
+repositoryVerify: PASS
+independentReview: NOT_RUN
+merge: NOT_RUN
+qualificationState: PARTIAL
+```
+
+This projection belongs to the current unmerged remediation candidate. It does
+not inherit the historical H2/H3-S candidate's provider, process, platform, or
+external-governance evidence.

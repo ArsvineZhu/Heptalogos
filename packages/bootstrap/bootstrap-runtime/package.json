@@ -1,0 +1,28 @@
+{
+  "name": "@heptalogos/bootstrap-runtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@bybrave/proper-lockfile2": "catalog:",
+    "@heptalogos/bootstrap-state": "workspace:*",
+    "@heptalogos/foundation-contracts": "workspace:*",
+    "@heptalogos/host-ownership": "workspace:*",
+    "@heptalogos/private-postgres": "workspace:*",
+    "@heptalogos/schema-runtime": "workspace:*",
+    "pidusage": "catalog:"
+  },
+  "devDependencies": {
+    "@types/pg": "catalog:",
+    "@types/pidusage": "catalog:",
+    "pg": "catalog:",
+    "vitest": "catalog:"
+  }
+}

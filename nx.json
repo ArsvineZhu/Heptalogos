@@ -27,5 +27,6 @@
     "typecheck": {
       "cache": true
     }
-  }
+  },
+  "analytics": false
 }

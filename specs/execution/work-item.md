@@ -30,8 +30,14 @@ target, payload, dispatch revision, outcome, and reconciliation semantics.
   identity/revision wins.
 - `WI-007` WorkItem payloads MUST be bounded, versioned, and free of secret
   plaintext, session material, and temporary credentials.
-- `WI-008` Signal loss, engine projection loss, and process restart MUST leave
-  the canonical obligation recoverable through reconciliation.
+- `WI-008` Lost or coalesced Signal MUST be recoverable through a canonical
+  rescan/anti-entropy pass. A dispatch or engine-projection failure before the
+  WorkItem becomes `RUNNING` MUST leave canonical `PENDING` work rediscoverable.
+  An ordinary process crash after `RUNNING` MUST use the adopted durable engine
+  to re-enter the same deterministic attempt. Arbitrary loss, corruption, or
+  absence of the durable-engine projection after `RUNNING` is not an automatic
+  H3 recovery claim: the canonical WorkItem remains authoritative, no outcome
+  may be inferred, and the system MUST NOT heuristic-redispatch it.
 
 ## Lifecycle
 
@@ -46,5 +52,5 @@ scheduled. Restore reconciliation owns `WAITING_RESTORE_RECONCILIATION`.
 ## References
 
 - [`Execution model`](../../docs/architecture/execution-model.md)
-- [`work-queue`](../../packages/work-queue/README.md)
+- [`work-queue`](../../packages/execution/work-queue/README.md)
 - [`durable-dispatch.md`](./durable-dispatch.md)

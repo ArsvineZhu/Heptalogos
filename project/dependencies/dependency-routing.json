@@ -176,7 +176,7 @@
     {
       "roleId": "runtime.local-state-machine",
       "route": "XState stable 5.x line using pure transition APIs",
-      "boundary": "implementation-only local complex FSM/statechart mechanics behind owning package boundaries; current consumers include private-postgres, host-ownership, bootstrap-runtime, work-queue, and runtime-kernel supervisor lifecycle",
+      "boundary": "implementation-only local complex FSM/statechart mechanics behind owning package boundaries; current consumers are private-postgres and host-ownership",
       "directive": "USE",
       "versionConstraint": {
         "major": 5

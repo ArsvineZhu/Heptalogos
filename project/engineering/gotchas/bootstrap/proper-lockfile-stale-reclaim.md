@@ -25,7 +25,7 @@ The normal `bootstrap-runtime` adapter passes an effectively non-expiring stale 
 
 ## Regression evidence
 
-`packages/bootstrap-runtime/src/bootstrap-lock-provider.test.ts` covers the historical #121 failure, atomic delayed/double stale reclaim exclusion, active heartbeat protection, killed-owner reclaim notification, compromise fencing, and Unicode/space paths. `packages/bootstrap-runtime/src/bootstrap-ownership.test.ts` covers the adapter's normal no-auto-reclaim and cross-process ownership behavior.
+`packages/bootstrap/bootstrap-runtime/test/unit/bootstrap-lock-provider.test.ts` covers the historical #121 failure, atomic delayed/double stale reclaim exclusion, active heartbeat protection, killed-owner reclaim notification, compromise fencing, and Unicode/space paths. `packages/bootstrap/bootstrap-runtime/test/unit/bootstrap-ownership.test.ts` covers the adapter's normal no-auto-reclaim and cross-process ownership behavior.
 
 ## Reopen trigger
 

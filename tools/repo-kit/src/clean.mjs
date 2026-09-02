@@ -110,9 +110,18 @@ function orphanPackageTargets(root) {
     if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
     const directory = join(packagesRoot, entry.name);
     if (existsSync(join(directory, "package.json"))) continue;
-    const unknown = readdirSync(directory, { withFileTypes: true }).filter(
-      (child) => !knownResidue(child.name),
-    );
+    const children = readdirSync(directory, { withFileTypes: true });
+    if (
+      children.some(
+        (child) =>
+          child.isDirectory() &&
+          !child.isSymbolicLink() &&
+          existsSync(join(directory, child.name, "package.json")),
+      )
+    ) {
+      continue;
+    }
+    const unknown = children.filter((child) => !knownResidue(child.name));
     if (unknown.length > 0) {
       throw new Error(
         `${normalized(root, directory)} contains unknown file or directory: ${unknown

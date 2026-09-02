@@ -36,4 +36,4 @@ outcome. It does not authorize silent coercion or fallback parsing.
 
 - [`pre-production-evolution.md`](../../project/governance/pre-production-evolution.md)
 - [`constitution.md`](../../project/governance/constitution.md)
-- [`canonical-schema`](../../packages/canonical-schema/README.md)
+- [`canonical-schema`](../../packages/data/canonical-schema/README.md)

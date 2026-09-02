@@ -36,9 +36,14 @@ Authority.
 The adapter owns a Host-bound DBOS pool and process binding. Close is truthful:
 the lifecycle is not `CLOSED` until required DBOS shutdown, active invocation
 drain, pool close, listener cleanup, and binding release are proven.
+The adapter starts DBOS once for its Host/runtime generation and closes
+terminally; a failed close is observable and is not converted into an
+in-process runtime restoration. DBOS retains first-order workflow, queue, and
+process-restart recovery mechanics while canonical WorkItem and WorkAttempt
+semantics remain Heptalogos-owned.
 
 ## References
 
 - [`Execution model`](../../docs/architecture/execution-model.md)
-- [`durable-execution`](../../packages/durable-execution/README.md)
+- [`durable-execution`](../../packages/execution/durable-execution/README.md)
 - [`work-item.md`](./work-item.md)

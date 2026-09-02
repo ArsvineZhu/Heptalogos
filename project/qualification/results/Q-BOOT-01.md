@@ -3,12 +3,81 @@
 ```yaml
 qualificationId: Q-BOOT-01
 role: pre-PostgreSQL ownership lock and abandoned-owner process identity
+date: 2026-09-02
 evidenceStatus: PASS
+qualificationState: PARTIAL
 preImplementationDecisionState: CLOSED
 roleDecision: ADOPTED
 implementationQualification: REQUIRED
 selectedRoute: "`@bybrave/proper-lockfile2` 5.0.0"
+currentCandidate:
+  candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
+  behaviorCandidateSha: e8325c5a31601bf5082d6c5c39aa9cf05896b4f7
+  branch: dev/h3-stabilization
+  plan: project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md
+  lifecycle: ACTIVE
+  freeze: NOT_RUN
+  reviewCandidateHeadSha: a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf
+  reviewSource: external_out_of_band_user_operator_feedback
+  independentReview: PASS
+  finalCandidateRevalidation: PASS
+  merge: NOT_RUN
 ```
+
+## Current candidate evidence
+
+```yaml
+canonical_bootstrap_state_v1: PASS
+canonical_bootstrap_journal_v1: PASS
+canonical_private_postgres_initialization_profile_v1: PASS
+bootstrap_state_rejects_unsupported_shape: PASS
+maintenance_state_rejects_unsupported_shape: PASS
+recovered_previous_bootstrap_state_read_only: PASS
+recovered_previous_maintenance_journal_read_only: PASS
+recovery_declared_root_closure: PASS
+normal_boot_incomplete_maintenance_blocked: PASS
+host_maintenance_single_in_process_state_source: PASS
+maintenance_success_terminal_v1: PASS
+post_restart_normal_boot_continuity: PASS
+post_stop_normal_boot_continuity: PASS
+recovery_process_without_postgres: PASS
+recovery_process_with_postgres: PASS
+private_postgres_real_integration: PASS (20/20)
+host_ownership_real_integration: PASS (11/11)
+bootstrap_runtime_real_integration: PASS (6 files, 27 tests)
+prepared_process_kill_before_execute: PASS (dedicated real PostgreSQL process scenario)
+maintenance_preentry_failure_abortable: PASS (restart integration regression)
+maintenance_executing_before_retirement: PASS (restart integration observes EXECUTING in the retirement callback)
+maintenance_execution_entry_current_truth: PASS (PREPARED and EXECUTING publication outcomes are resolved by journal reread)
+maintenance_unproven_state_observation: PASS (restart integration: 1 file, 6 tests; state, abort, retry, lease, and retirement remain fail-closed)
+maintenance_restart_real_postgres: PASS (restart integration)
+maintenance_stop_real_postgres: PASS (bootstrap-runtime integration)
+knip_real_dependencies_visible: PASS (execa/kysely are not globally ignored; integration workspace handling is local)
+check_unused: PASS
+roadmap_current_truth_reconciled: PASS
+governance_overlap_pass: PASS
+repository_verify: PASS (pnpm verify --skip-nx-cache)
+final_candidate_revalidation: PASS (pnpm verify --skip-nx-cache on review HEAD tree)
+windows_real_postgres_recovery: PASS
+linux_real_postgres_recovery: NOT_RUN
+macos_real_postgres_recovery: NOT_RUN
+source_less_recovery: NOT_RUN
+service_account_acl: NOT_RUN
+hardware_power_loss: NOT_RUN
+independent_review: PASS (operator-supplied exact candidate review; review HEAD a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf; behavior candidate e8325c5a31601bf5082d6c5c39aa9cf05896b4f7)
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+```
+
+The current behavior candidate is `e8325c5a31601bf5082d6c5c39aa9cf05896b4f7`.
+It keeps PREPARED abortable after a failed pre-entry attempt, resolves an
+uncertain EXECUTING publication from current journal truth, makes UNPROVEN
+capability observation fail closed, and preserves the one-way post-entry
+boundary. The affected Windows PostgreSQL 18.6 restart integration passed all
+6 tests, and the exact behavior candidate received external Independent Review
+`PASS` at review HEAD
+`a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf`. Linux/macOS, source-less,
+service-account, hardware, final-CI, and merge claims remain `NOT_RUN`.
 
 ## Historical H1-S candidate snapshot (2026-08-23)
 
@@ -376,11 +445,11 @@ successful run. Windows/macOS real PostgreSQL, source-less recovery,
 service-account ACL, and hardware power-loss remain `NOT_RUN`; repository CI
 does not upgrade those product/platform claims.
 
-## Current-master qualification properties (2026-08-26)
+## Historical current-master qualification properties (2026-08-26)
 
-Current milestone state is owned by the living Roadmap and the machine-readable
-qualification ledger. This section reports only current qualification
-properties.
+This section reports a historical current-master qualification snapshot. The
+current candidate and current qualification properties are owned by the
+sections at the top of this record and by the machine-readable ledger.
 
 ```yaml
 ubuntu_current_master_residual_qualification:

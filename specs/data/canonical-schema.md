@@ -40,5 +40,5 @@ behavior is part of the claim.
 
 - [`persistence-transactions.md`](./persistence-transactions.md)
 - [`pre-production-evolution.md`](../../project/governance/pre-production-evolution.md)
-- [`canonical-schema`](../../packages/canonical-schema/README.md)
-- [`schema-runtime`](../../packages/schema-runtime/README.md)
+- [`canonical-schema`](../../packages/data/canonical-schema/README.md)
+- [`schema-runtime`](../../packages/foundation/schema-runtime/README.md)

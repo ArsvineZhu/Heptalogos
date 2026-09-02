@@ -33,7 +33,7 @@
   },
   "overrides": [
     {
-      "files": ["packages/schema-runtime/**"],
+      "files": ["packages/foundation/schema-runtime/**"],
       "rules": {
         "no-restricted-imports": "off"
       }

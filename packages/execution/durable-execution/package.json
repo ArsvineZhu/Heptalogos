@@ -1,0 +1,25 @@
+{
+  "name": "@heptalogos/durable-execution",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@dbos-inc/dbos-sdk": "catalog:",
+    "@heptalogos/foundation-contracts": "workspace:*",
+    "@heptalogos/host-ownership": "workspace:*",
+    "@heptalogos/work-queue": "workspace:*",
+    "execa": "catalog:",
+    "pg": "catalog:"
+  },
+  "devDependencies": {
+    "@types/pg": "catalog:",
+    "vitest": "catalog:"
+  }
+}

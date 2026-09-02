@@ -2,12 +2,55 @@
 
 ```yaml
 qualificationId: Q-PRIVATE-POSTGRES-01
+date: 2026-09-01
 evidenceStatus: PASS
 qualificationState: PARTIAL
 roleDecision: ADOPTED
 implementationQualification: REQUIRED
 testedProperty: "Exact PostgreSQL 18.6 private bootstrap initialization, portable identity, bounded lifecycle, ownership-held handoff, and fail-closed recovery boundaries"
+currentCandidate:
+  candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
+  behaviorCandidateSha: 7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b
+  branch: dev/h3-stabilization
+  plan: project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md
+  lifecycle: ACTIVE
+  freeze: NOT_RUN
+  independentReview: NOT_RUN
+  merge: NOT_RUN
 ```
+
+## Current candidate evidence
+
+```yaml
+canonical_v1_private_postgres_identity_commit: PASS
+canonical_v1_initialization_profile_v1: PASS
+exact_toolchain_18_6: PASS (explicit PostgreSQL 18.6 Windows bin root; required tools verified by the integration harness)
+private_postgres_real_integration: PASS (20/20)
+host_ownership_real_integration: PASS (11/11)
+bootstrap_runtime_real_integration: PASS (6 files, 25 tests)
+recovery_process_postgres: PASS (included in the bootstrap-runtime integration target)
+maintenance_success_terminal_v1: PASS
+post_restart_normal_boot_continuity: PASS
+post_stop_normal_boot_continuity: PASS
+windows_real_pg: PASS
+linux_real_pg: NOT_RUN
+macos_real_pg: NOT_RUN
+source_less_shipping_closure: NOT_RUN
+service_account_acl_closure: NOT_RUN
+hardware_power_loss: NOT_RUN
+independent_review: NOT_RUN
+final_cross_platform_ci: NOT_RUN
+squash_merge: NOT_RUN
+repository_verify: PASS (pnpm nx run repository:verify --skip-nx-cache)
+```
+
+The current candidate was exercised with `HEPTALOGOS_TEST_PG_BIN` pointing to
+the ignored repository-local PostgreSQL 18.6 toolchain. The terminal
+maintenance witness, same-cluster STOP/RESTART paths, ownership-held handoff,
+and fail-closed host-loss path are covered by the current BootstrapRuntime,
+HostOwnership, and integration-foundation runs. Linux/macOS, source-less,
+service-account, hardware, review, merge, and final-gate claims remain
+`NOT_RUN`.
 
 ## Historical H1-S candidate snapshot (2026-08-23)
 
@@ -23,7 +66,7 @@ behavior_candidate_sha: 3cc589b667b0cd64342881caf7d382c2d960a928
 This is a historical candidate snapshot. Its milestone statuses and candidate
 identity were true at that point in the H1-S sequence and are retained as
 historical evidence; they are not current milestone state. The machine-readable
-ledger and the current-master section at the end of this record own current
+ledger and the Current candidate evidence section above own current
 qualification properties.
 
 ## Historical H1-S candidate properties (2026-08-23)
@@ -689,7 +732,7 @@ platforms. This is repository verification, not real PostgreSQL qualification
 on Windows or macOS. Source-less recovery, service-account ACL, and hardware
 power-loss remain `NOT_RUN`.
 
-## Current-master qualification properties (2026-08-26)
+## Historical current-master qualification properties (2026-08-26)
 
 Current milestone state is owned by the living Roadmap and the machine-readable
 qualification ledger. This section reports only current qualification
@@ -717,3 +760,29 @@ current_master_ubuntu_linux_qualification:
 The Ubuntu/Linux result is limited to the explicit PostgreSQL 18.6 runtime
 qualification above. It does not imply macOS, source-less, installed
 service/headless, service-account ACL, or hardware power-loss qualification.
+
+## Current Foundation remediation projection (2026-09-01)
+
+```yaml
+candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
+behaviorCandidateSha: 7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b
+branch: dev/h3-stabilization
+plan: project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md
+privatePostgresUnit: PASS (9 files, 59 tests)
+privatePostgresIntegration: PASS (20/20)
+hostOwnershipIntegration: PASS (11/11)
+bootstrapRuntimeMaintenanceIntegration: PASS (6 files, 25 tests)
+sameClusterStopAndRestart: PASS
+realPostgresProcessRecovery: PASS (included in bootstrap-runtime integration)
+sourceLess: NOT_RUN
+serviceHeadless: NOT_RUN
+macos: NOT_RUN
+repositoryVerify: PASS
+independentReview: NOT_RUN
+merge: NOT_RUN
+qualificationState: PARTIAL
+```
+
+This projection is for the current unmerged remediation candidate. It keeps
+private PostgreSQL identity and external process uncertainty as explicit
+qualification properties and does not inherit historical candidate evidence.

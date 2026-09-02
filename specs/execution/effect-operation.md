@@ -141,4 +141,4 @@ are outside this contract.
 - [`Evidence`](./evidence.md)
 - [`Persistence Transactions`](../data/persistence-transactions.md)
 - [`Contract Versioning`](../core/contract-versioning.md)
-- [`effect-operation`](../../packages/effect-operation/README.md)
+- [`effect-operation`](../../packages/execution/effect-operation/README.md)

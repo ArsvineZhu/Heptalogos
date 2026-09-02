@@ -59,8 +59,8 @@ on exact version `18.6`.
 The Unix-socket behavior was reproduced with the extracted Ubuntu 18.6
 qualification runtime. The Windows `pg_ctl` behavior was reproduced with the
 explicit EDB 18.6 Windows x64 runtime. Both are covered by
-`packages/private-postgres/src/controller.integration.test.ts` and
-`packages/bootstrap-runtime/src/private-postgres-bootstrap.integration.test.ts`.
+`packages/bootstrap/private-postgres/src/controller.integration.test.ts` and
+`packages/bootstrap/bootstrap-runtime/test/integration/private-postgres-bootstrap.integration.test.ts`.
 These mechanics do not by themselves establish macOS real PostgreSQL,
 source-less artifact, service-account ACL, or installed service/headless
 qualification; those remain separate qualification properties.

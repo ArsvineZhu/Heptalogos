@@ -49,7 +49,7 @@
     },
     {
       "files": ["packages/**/*.ts"],
-      "excludeFiles": ["packages/schema-runtime/**"],
+      "excludeFiles": ["packages/foundation/schema-runtime/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -81,9 +81,9 @@
     {
       "files": ["packages/**/*.ts"],
       "excludeFiles": [
-        "packages/schema-runtime/**",
-        "packages/bootstrap-state/**",
-        "packages/bootstrap-runtime/**"
+        "packages/foundation/schema-runtime/**",
+        "packages/bootstrap/bootstrap-state/**",
+        "packages/bootstrap/bootstrap-runtime/**"
       ],
       "rules": {
         "no-restricted-imports": [
@@ -108,10 +108,10 @@
     {
       "files": ["packages/**/*.ts"],
       "excludeFiles": [
-        "packages/private-postgres/**",
-        "packages/bootstrap-runtime/**",
-        "packages/host-ownership/test/integration/host-ownership.integration.test.ts",
-        "packages/persistence/test/integration/persistence.integration.test.ts"
+        "packages/bootstrap/private-postgres/**",
+        "packages/bootstrap/bootstrap-runtime/**",
+        "packages/bootstrap/host-ownership/test/integration/host-ownership.integration.test.ts",
+        "packages/data/persistence/test/integration/persistence.integration.test.ts"
       ],
       "rules": {
         "no-restricted-imports": [
@@ -136,8 +136,8 @@
     {
       "files": ["packages/**/*.ts"],
       "excludeFiles": [
-        "packages/bootstrap-runtime/test/integration/canonical-initialization.integration.test.ts",
-        "packages/bootstrap-runtime/test/support/canonical-postgres.ts"
+        "packages/bootstrap/bootstrap-runtime/test/integration/canonical-initialization.integration.test.ts",
+        "packages/bootstrap/bootstrap-runtime/test/support/canonical-postgres.ts"
       ],
       "rules": {
         "no-restricted-imports": [
@@ -161,7 +161,7 @@
     },
     {
       "files": ["packages/**/*.ts"],
-      "excludeFiles": ["packages/runtime-substrate/**"],
+      "excludeFiles": ["packages/runtime/runtime-substrate/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -183,7 +183,7 @@
       }
     },
     {
-      "files": ["packages/runtime-substrate/src/**/*.ts"],
+      "files": ["packages/runtime/runtime-substrate/src/**/*.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -212,7 +212,7 @@
       }
     },
     {
-      "files": ["packages/runtime-kernel/src/**/*.ts"],
+      "files": ["packages/runtime/runtime-kernel/src/**/*.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -256,7 +256,7 @@
       }
     },
     {
-      "files": ["packages/host-ownership/src/**/*.ts"],
+      "files": ["packages/bootstrap/host-ownership/src/**/*.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -295,10 +295,10 @@
       }
     },
     {
-      "files": ["packages/host-ownership/src/**/*.ts"],
+      "files": ["packages/bootstrap/host-ownership/src/**/*.ts"],
       "excludeFiles": [
-        "packages/host-ownership/src/bootstrap-admin.ts",
-        "packages/host-ownership/src/host-lease-connection.ts"
+        "packages/bootstrap/host-ownership/src/bootstrap-admin.ts",
+        "packages/bootstrap/host-ownership/src/host-lease-connection.ts"
       ],
       "rules": {
         "no-restricted-imports": [
@@ -322,7 +322,7 @@
     },
     {
       "files": ["packages/**/*.ts"],
-      "excludeFiles": ["packages/runtime-kernel/**"],
+      "excludeFiles": ["packages/runtime/runtime-kernel/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -346,8 +346,8 @@
     {
       "files": ["packages/**/*.ts"],
       "excludeFiles": [
-        "packages/execution-lineage/src/observability-adapter.ts",
-        "packages/execution-lineage/test/unit/execution-context-runtime.test.ts"
+        "packages/execution/execution-lineage/src/observability-adapter.ts",
+        "packages/execution/execution-lineage/test/unit/execution-context-runtime.test.ts"
       ],
       "rules": {
         "no-restricted-imports": [
@@ -371,7 +371,7 @@
     },
     {
       "files": ["packages/**/*.ts"],
-      "excludeFiles": ["packages/runtime-kernel/**"],
+      "excludeFiles": ["packages/runtime/runtime-kernel/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -388,7 +388,9 @@
     },
     {
       "files": ["packages/**/*.ts"],
-      "excludeFiles": ["packages/bootstrap-runtime/src/bootstrap-ownership.ts"],
+      "excludeFiles": [
+        "packages/bootstrap/bootstrap-runtime/src/bootstrap/ownership.ts"
+      ],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -405,7 +407,7 @@
     },
     {
       "files": ["packages/**/*.ts"],
-      "excludeFiles": ["packages/private-postgres/src/process-adapter.ts"],
+      "excludeFiles": ["packages/bootstrap/private-postgres/src/process-adapter.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -423,14 +425,10 @@
     {
       "files": ["packages/**/*.ts"],
       "excludeFiles": [
-        "packages/host-ownership/**",
-        "packages/persistence/**",
-        "packages/canonical-schema/**",
-        "packages/signal/**",
-        "packages/bootstrap-runtime/test/integration/host-maintenance.integration.test.ts",
-        "packages/bootstrap-runtime/test/integration/bootstrap-recovery.integration.test.ts",
-        "packages/bootstrap-runtime/test/integration/canonical-initialization.integration.test.ts",
-        "packages/bootstrap-runtime/test/support/canonical-postgres.ts"
+        "packages/bootstrap/host-ownership/**",
+        "packages/data/persistence/**",
+        "packages/data/canonical-schema/**",
+        "packages/execution/signal/**"
       ],
       "rules": {
         "no-restricted-imports": [
@@ -455,13 +453,12 @@
     {
       "files": ["packages/**/*.ts"],
       "excludeFiles": [
-        "packages/persistence/**",
-        "packages/canonical-schema/**",
-        "packages/signal/**",
-        "packages/work-queue/**",
-        "packages/execution-lineage/src/activity-repository.ts",
-        "packages/evidence/src/evidence-service.ts",
-        "packages/bootstrap-runtime/test/integration/execution-foundation.integration.test.ts"
+        "packages/data/persistence/**",
+        "packages/data/canonical-schema/**",
+        "packages/execution/signal/**",
+        "packages/execution/work-queue/**",
+        "packages/execution/execution-lineage/src/activity-repository.ts",
+        "packages/execution/evidence/src/evidence-service.ts"
       ],
       "rules": {
         "no-restricted-imports": [
@@ -486,12 +483,11 @@
     {
       "files": ["packages/**/*.ts"],
       "excludeFiles": [
-        "packages/execution-lineage/**",
-        "packages/evidence/**",
-        "packages/persistence/**",
-        "packages/signal/**",
-        "packages/work-queue/**",
-        "packages/bootstrap-runtime/test/integration/execution-foundation.integration.test.ts"
+        "packages/execution/execution-lineage/**",
+        "packages/execution/evidence/**",
+        "packages/data/persistence/**",
+        "packages/execution/signal/**",
+        "packages/execution/work-queue/**"
       ],
       "rules": {
         "no-restricted-imports": [
@@ -509,12 +505,7 @@
     },
     {
       "files": ["packages/**/*.ts"],
-      "excludeFiles": [
-        "packages/work-queue/**",
-        "packages/bootstrap-runtime/test/integration/durable-work-host.integration.test.ts",
-        "packages/bootstrap-runtime/test/integration/runtime-host-lifecycle.integration.test.ts",
-        "packages/bootstrap-runtime/test/support/durable-work-child.ts"
-      ],
+      "excludeFiles": ["packages/execution/work-queue/**"],
       "rules": {
         "no-restricted-imports": [
           "error",

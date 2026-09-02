@@ -71,7 +71,7 @@ export function findProductSourceFilesSync({
 } = {}) {
   return findRepositoryFilesSync({
     root,
-    patterns: patterns ?? ["packages/*/src/**/*.{ts,tsx}"],
+    patterns: patterns ?? ["packages/*/*/src/**/*.{ts,tsx}"],
     ignore,
   });
 }
@@ -80,7 +80,7 @@ export function findProductSourceFilesSync({
 export function findPackageFilesSync({ root = process.cwd(), patterns, ignore } = {}) {
   return findRepositoryFilesSync({
     root,
-    patterns: patterns ?? ["packages/*/**/*"],
+    patterns: patterns ?? ["packages/*/*/**/*"],
     ignore,
   });
 }

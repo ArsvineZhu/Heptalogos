@@ -37,10 +37,10 @@ export async function validatePackageIndex({
     const resolvedTarget = resolve(dirname(packageIndex), target);
     if (!isWithin(packagesRoot, resolvedTarget)) continue;
     const relativeTarget = normalize(packagesRoot, resolvedTarget).split("/");
-    if (relativeTarget.length !== 2 || relativeTarget[1] !== "README.md") {
+    if (relativeTarget.length !== 3 || relativeTarget[2] !== "README.md") {
       continue;
     }
-    const packageName = relativeTarget[0];
+    const packageName = relativeTarget.slice(0, 2).join("/");
     counts.set(packageName, (counts.get(packageName) ?? 0) + 1);
     if (!knownPackages.has(packageName)) {
       errors.push("packages/INDEX.md links nonexistent package: " + packageName);

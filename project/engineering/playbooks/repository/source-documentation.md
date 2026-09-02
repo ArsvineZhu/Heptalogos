@@ -5,9 +5,9 @@ modules and exported contracts.
 
 ## Required documentation
 
-- Every `packages/*/src/index.ts` file starts with one meaningful TSDoc block
+- Every `packages/*/*/src/index.ts` file starts with one meaningful TSDoc block
   containing `@packageDocumentation`.
-- Every other durable module under `packages/*/src/**/*.{ts,tsx}`,
+- Every other durable module under `packages/*/*/src/**/*.{ts,tsx}`,
   `tools/*/src/**/*.{js,mjs,ts}`, `scripts/**/*.{js,mjs,ts}`, and
   `.agents/**/*.mjs` starts with one meaningful TSDoc/JSDoc block containing
   `@module`.

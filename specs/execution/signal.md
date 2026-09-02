@@ -32,5 +32,5 @@ and canonical repository reads remain authoritative.
 ## References
 
 - [`Execution model`](../../docs/architecture/execution-model.md)
-- [`signal`](../../packages/signal/README.md)
+- [`signal`](../../packages/execution/signal/README.md)
 - [`work-item.md`](./work-item.md)
