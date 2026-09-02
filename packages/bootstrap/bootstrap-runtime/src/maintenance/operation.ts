@@ -823,6 +823,7 @@ function createPreparedMaintenance(
   return {
     operationId: body.operationId,
     get state() {
+      if (executionEntryFailure !== undefined) throw executionEntryFailure;
       return body.phase;
     },
     signal: lease.signal,

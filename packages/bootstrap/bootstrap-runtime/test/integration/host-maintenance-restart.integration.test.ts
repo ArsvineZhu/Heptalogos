@@ -9,6 +9,7 @@ import {
   validateExistingCluster,
 } from "@heptalogos/private-postgres";
 import type { BootstrapKeyRequestContext } from "../../src/bootstrap/key-provider.js";
+import { acquireBootstrapOwnership } from "../../src/bootstrap/ownership.js";
 import { prepareBootstrapPrelude } from "../../src/bootstrap/prelude.js";
 import type { ReadyPrivatePostgres } from "../../src/postgres/bootstrap.js";
 import type { BootstrapManagedHostContext } from "../../src/host/managed-host.js";
@@ -275,6 +276,107 @@ describe("Host maintenance restart and pre-entry PostgreSQL qualification", () =
       followupOwned = await followupPrepared.acquireOwnership({ heartbeatMs: 1_000 });
     } finally {
       await followupOwned?.close().catch(() => undefined);
+      if (host?.state === "ACTIVE") {
+        await host
+          .shutdownKeepingPrivatePostgres(maintenanceRetirement())
+          .catch(() => undefined);
+      }
+      await ready?.stop().catch(() => undefined);
+      await stopPostgres(toolchain, join(fixture.roots.DATA, "private-postgres"));
+      if (owned.ownershipState !== "RELEASED") {
+        await owned.close().catch(() => undefined);
+      }
+    }
+  }, 180_000);
+
+  it("fails closed when execution entry truth is unprovable", async () => {
+    const fixture = await makeFixture();
+    const prepared = await prepareBootstrapPrelude(fixture.anchorRoot);
+    const owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const keyProvider = makeKeyProvider();
+    const toolchain = await getToolchain();
+    const port = 55529;
+    let ready: ReadyPrivatePostgres | undefined;
+    let host: BootstrapManagedHostContext | undefined;
+    let followupLease:
+      Awaited<ReturnType<typeof acquireBootstrapOwnership>> | undefined;
+
+    try {
+      ready = await owned.preparePrivatePostgres({
+        toolchainBinDirectory: qualifiedPgBin,
+        initialPort: port,
+        lifecycle: LIFECYCLE,
+        keyProvider,
+      });
+      host = await owned.handoffPrivatePostgresToHost(ready, {
+        initializeCanonicalHost,
+        keyProvider,
+        timing: HOST_TIMING,
+      });
+      const maintenance = await host.preparePrivatePostgresMaintenance({
+        kind: "RESTART_PRIVATE_POSTGRES",
+      });
+      const entryFailure = new Error("EXECUTING publication outcome is unknown");
+      vi.spyOn(MaintenanceJournalStore.prototype, "advance").mockImplementationOnce(
+        async () => {
+          throw entryFailure;
+        },
+      );
+      vi.spyOn(MaintenanceJournalStore.prototype, "load").mockImplementationOnce(
+        async () => {
+          throw new Error("maintenance journal reread failed");
+        },
+      );
+      let retirementCalls = 0;
+
+      const executionPromise = maintenance.execute({
+        async retire() {
+          retirementCalls += 1;
+        },
+      });
+      const executionError = await executionPromise.then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+      expect(executionError).toMatchObject({
+        problem: { problemCode: "bootstrap.maintenance.execution_entry_unproven" },
+      });
+      expect(retirementCalls).toBe(0);
+
+      let stateError: unknown;
+      try {
+        void maintenance.state;
+      } catch (error) {
+        stateError = error;
+      }
+      expect(stateError).toBe(executionError);
+
+      let abortError: unknown;
+      try {
+        await maintenance.abortBeforeExecute();
+      } catch (error) {
+        abortError = error;
+      }
+      expect(abortError).toBe(executionError);
+
+      const retryPromise = maintenance.execute({
+        async retire() {
+          retirementCalls += 1;
+        },
+      });
+      expect(retryPromise).toBe(executionPromise);
+      await expect(retryPromise).rejects.toBe(executionError);
+      expect(retirementCalls).toBe(0);
+
+      followupLease = await acquireBootstrapOwnership(
+        prepared.paths.resolve("INSTANCE"),
+        {
+          heartbeatMs: 1_000,
+          bootId: prepared.bootId,
+        },
+      );
+    } finally {
+      await followupLease?.release().catch(() => undefined);
       if (host?.state === "ACTIVE") {
         await host
           .shutdownKeepingPrivatePostgres(maintenanceRetirement())
