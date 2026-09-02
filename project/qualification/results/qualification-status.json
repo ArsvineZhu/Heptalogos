@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-09-01T20:57:15+08:00",
+  "recordedAt": "2026-09-02T09:55:04+08:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": ["PASS", "FAIL", "NOT_RUN", "BLOCKED"],
@@ -473,7 +473,7 @@
       "qualificationState": "PARTIAL",
       "currentCandidate": {
         "candidateId": "FOUNDATION-REMEDIATION-BUNDLE-2026-09-01",
-        "behaviorCandidateSha": "a6452e9942c13a8c8ff06582067f088bc9c5c5b6",
+        "behaviorCandidateSha": "e8325c5a31601bf5082d6c5c39aa9cf05896b4f7",
         "branch": "dev/h3-stabilization",
         "plan": "project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md",
         "lifecycle": "ACTIVE",
@@ -504,6 +504,7 @@
         "maintenance_preentry_failure_abortable": "PASS (restart integration regression)",
         "maintenance_executing_before_retirement": "PASS (restart integration observes EXECUTING in the retirement callback)",
         "maintenance_execution_entry_current_truth": "PASS (PREPARED and EXECUTING publication outcomes are resolved by journal reread)",
+        "maintenance_unproven_state_observation": "PASS (restart integration: 1 file, 6 tests; state, abort, retry, lease, and retirement remain fail-closed)",
         "maintenance_restart_real_postgres": "PASS (restart integration)",
         "maintenance_stop_real_postgres": "PASS (bootstrap-runtime integration)",
         "knip_real_dependencies_visible": "PASS (execa/kysely are not globally ignored; integration workspace handling is local)",
@@ -566,7 +567,7 @@
       "implementationQualification": "REQUIRED",
       "evidenceSource": {
         "candidate": "FOUNDATION-REMEDIATION-BUNDLE-2026-09-01",
-        "behaviorCandidateSha": "a6452e9942c13a8c8ff06582067f088bc9c5c5b6",
+        "behaviorCandidateSha": "e8325c5a31601bf5082d6c5c39aa9cf05896b4f7",
         "branch": "dev/h3-stabilization",
         "plan": "project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md",
         "runtime": "Windows / Node 24.20.0 / pnpm 11.24.0 / TypeScript 7 toolchain",
@@ -588,7 +589,7 @@
         "maintenanceRestart": "PASS (real PostgreSQL restart integration)",
         "maintenanceStop": "PASS (real PostgreSQL stop integration)",
         "knip": "PASS (pnpm check:unused; execa/kysely are not globally ignored)",
-        "roadmap": "PASS (current XState ownership and removed mechanisms reconciled)",
+        "roadmap": "PASS (current XState ownership and removed mechanisms, including runtime-kernel global reversible Host-maintenance lifecycle, reconciled)",
         "governance": "PASS (bounded overlap pass)",
         "foundationIntegration": "14 files, 87 tests PASS",
         "foundationSpine": "2/2 PASS",

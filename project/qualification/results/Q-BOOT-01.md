@@ -12,7 +12,7 @@ implementationQualification: REQUIRED
 selectedRoute: "`@bybrave/proper-lockfile2` 5.0.0"
 currentCandidate:
   candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
-  behaviorCandidateSha: a6452e9942c13a8c8ff06582067f088bc9c5c5b6
+  behaviorCandidateSha: e8325c5a31601bf5082d6c5c39aa9cf05896b4f7
   branch: dev/h3-stabilization
   plan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
   lifecycle: ACTIVE
@@ -46,6 +46,7 @@ prepared_process_kill_before_execute: PASS (dedicated real PostgreSQL process sc
 maintenance_preentry_failure_abortable: PASS (restart integration regression)
 maintenance_executing_before_retirement: PASS (restart integration observes EXECUTING in the retirement callback)
 maintenance_execution_entry_current_truth: PASS (PREPARED and EXECUTING publication outcomes are resolved by journal reread)
+maintenance_unproven_state_observation: PASS (restart integration: 1 file, 6 tests; state, abort, retry, lease, and retirement remain fail-closed)
 maintenance_restart_real_postgres: PASS (restart integration)
 maintenance_stop_real_postgres: PASS (bootstrap-runtime integration)
 knip_real_dependencies_visible: PASS (execa/kysely are not globally ignored; integration workspace handling is local)
@@ -64,12 +65,13 @@ final_cross_platform_ci: NOT_RUN
 squash_merge: NOT_RUN
 ```
 
-The current behavior candidate is `a6452e9942c13a8c8ff06582067f088bc9c5c5b6`.
+The current behavior candidate is `e8325c5a31601bf5082d6c5c39aa9cf05896b4f7`.
 It keeps PREPARED abortable after a failed pre-entry attempt, resolves an
-uncertain EXECUTING publication from current journal truth, and preserves the
-one-way post-entry boundary. The Windows PostgreSQL 18.6 focused and process
-qualification targets passed; Linux/macOS, source-less, service-account,
-hardware, independent-review, final-CI, and merge claims remain `NOT_RUN`.
+uncertain EXECUTING publication from current journal truth, makes UNPROVEN
+capability observation fail closed, and preserves the one-way post-entry
+boundary. The affected Windows PostgreSQL 18.6 restart integration passed all
+6 tests; Linux/macOS, source-less, service-account, hardware,
+independent-review, final-CI, and merge claims remain `NOT_RUN`.
 
 ## Historical H1-S candidate snapshot (2026-08-23)
 
