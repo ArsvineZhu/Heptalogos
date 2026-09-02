@@ -2,7 +2,8 @@
 
 **Status:** LIVING ROADMAP / planning guidance<br>
 **Date:** 2026-09-02<br>
-**Repository baseline:** merged `master` at `51317428a89b5545d3ac614f1012d869a1251203` (PR #32, H3 Foundation stabilization closure correction); H3 is closed and no Foundation implementation Plan is active<br>
+**Current repository locus:** master after completed T0 current-authority reconciliation<br>
+**H3 closure merge baseline:** PR #32, merge commit 51317428a89b5545d3ac614f1012d869a1251203; preserved as H3 closure evidence, not a current HEAD pin<br>
 **Architecture baseline:** `docs/architecture/` design state 2026-08-20
 
 > This document owns development sequencing, Horizon truth, and qualification guidance. It does not replace the canonical Human Architecture, current Specs, Governance, Dependencies, Qualification, or active Plan. Update this Roadmap when evidence changes sequencing or eligibility; update the relevant canonical owner when semantics change.
@@ -542,23 +543,109 @@ scope, settlement timeout as the required bounded contract for process-memory
 tasks, and background failure projection as semantic failure/readiness
 behavior. Provider replacement is not authorized.
 
-### After H3 — minimum provider prerequisites, then Subject proof
+### Post-H3 Product Entry — bounded product route
 
-The next product-driven path is the smallest real Subject vertical slice. Only
-the minimum H4 prerequisites needed by one real model provider and Subject Base
-are pulled forward:
+The route from closed H3 to the first real Product slice is:
 
 ```text
-minimal Configuration ownership
-minimal Secret ownership
-minimal Network/Capability policy boundary
+T1 Product Authority convergence
+        ↓
+T2 H4-Min + H6 normative Spec freeze
+        ↓
+P1 Product Host + minimum Management spine
+        ↓
+P2 provider prerequisites
+        ↓
+P3 Subject Base + Messaging + Subject Chat
+        ↓
+P4 Reaction + Behavior Authority
+        ↓
+Q H6 real Product L4 slice
+        ↓
+bounded stabilization
 ```
 
-The entire H4 Management/Cedar/Approval/HTTP/CLI universe is not a prerequisite
-unless a hard architecture edge requires it. Full H5 third-party Extension
-package lifecycle is likewise not a prerequisite for first-party Subject
-functionality. The hard edge remains: real provider use requires
-Configuration/Secret/Network/Capability boundaries.
+T1, T2, P1–P4, and Q are planning decomposition labels for this route. They
+are not additional permanent architecture layers or new Horizons.
+
+### H4-Min — provider prerequisites and minimum Management spine
+
+H4-Min is a bounded prerequisite set for the first Product slice, not a new
+Horizon. It contains only the following:
+
+Provider prerequisites:
+
+- minimal Configuration ownership;
+- minimal Secret ownership;
+- minimal NetworkAccess policy boundary;
+- AIRuntime/provider binding boundary.
+
+Minimum Management spine:
+
+- canonical Management Contract;
+- minimum canonical Read Models for the first Product Host;
+- minimum SystemAction and System Authority semantics;
+- ManagementClient;
+- loopback Management HTTP/OpenAPI as needed by that contract.
+
+Full H4 remains a broader capability closure. The following are not required by
+H4-Min before H6 unless T2 identifies a hard consumer: the complete CLI
+universe, complete Cedar policy surface, generic/full Approval, remote
+administration, every management resource, Extension/package lifecycle,
+backup/restore management, Product Update management, and the remainder of
+full H4.
+
+The route therefore keeps these decisions explicit:
+
+```yaml
+fullH4RequiredBeforeH6: false
+fullH5RequiredBeforeH6: false
+operatorAndPresentationRecognizedAsProductRequirements: true
+```
+
+Full H5 package and data lifecycle is likewise not a prerequisite for the
+first-party Subject slice. H5 remains responsible for broader replaceable and
+third-party generations when a hard product consumer exists.
+
+### T2 normative Spec ownership map
+
+T2 must freeze the following ownership map before implementation plans write
+normative contracts. These are planned Spec targets, not files created by T1:
+
+| Planned Spec target                       | ID    | Owned contract                                                                           |
+| ----------------------------------------- | ----- | ---------------------------------------------------------------------------------------- |
+| specs/system/configuration.md             | CFG   | Configuration source, revision, and activation.                                          |
+| specs/system/secret.md                    | SEC   | SecretRef, SecretService, backend boundary, and no-plaintext handling.                   |
+| specs/system/network-access.md            | NET   | Managed outbound network policy.                                                         |
+| specs/system/ai-runtime.md                | AIR   | Provider, model, profile, binding, and invocation boundary.                              |
+| specs/management/system-authority.md      | MGMT  | Management Contract, Read Models, minimum SystemAction, and System Authority.            |
+| specs/subject/subject-base.md             | SUBJ  | Subject identity, Desired/Actual state, authority revision, and readiness prerequisites. |
+| specs/messaging/messaging-subject-chat.md | MSG   | Canonical messaging facts and built-in Subject Chat.                                     |
+| specs/subject/reaction-behavior.md        | REACT | Reaction, BehaviorIntent, Review, Commit, Expression, silence, and supersession.         |
+
+T2 should split these targets further only when a genuine semantic owner and
+current consumer require it. BehaviorIntent, Review, DecisionCommit,
+CommunicationCommit, Expression, ConversationMailbox, and PresentationIntent
+do not each become separate Specs by noun alone.
+
+After T1, T2 — H4-Min + H6 Normative Specification Freeze — is eligible for a
+separately authorized Plan. T1 does not create or activate T2, and this route
+does not introduce a temporary direct mutation API.
+
+### T2 exclusions around the first Product slice
+
+T2 does not pull the following into the first normative freeze or H6 critical
+path: Persona, Memory, Relationship, Attention, Advanced Observation Window,
+Living State, Appraisal, Epistemic State, Commitments, Reflection, Diary,
+Dream, external IM, MCP, full CapabilityBroker, full package lifecycle,
+backup/restore, Product Update, or a complete Presentation visual
+specification.
+
+Operator Assistant and Control Plane Presentation remain real Product
+requirements. Their first useful experience can begin with Assistant Explain and
+Navigate, followed by bounded Operate through SystemAction. Presentation
+consumes canonical contracts and never becomes Authority; a frontend is not an
+H6 prerequisite.
 
 ---
 
@@ -661,7 +748,11 @@ Use the smallest product-relevant vertical slice:
 - no Persona implementation;
 - no Memory implementation;
 - no Relationship/Attention/Living State/etc. implementation;
-- minimal context/prompt/reaction contracts only.
+- minimal context/prompt/reaction contracts only;
+- full H4 is not required before this slice;
+- full H5 is not required before this slice;
+- Operator Assistant and Control Plane Presentation are recognized product
+  requirements, while H6 does not require their full implementation.
 
 ### Capability closure
 
@@ -1018,36 +1109,39 @@ Do **not** revise the roadmap merely because a package/file layout changes.
 
 ```text
 H0  Engineering/Contract Spine  [DONE]
- |
- v
+  |
+  v
 H1  Installation + Bootstrap + Private PG + Host Ownership
- |\
- | \
- v  v
-H2A Canonical Persistence + Time + ExecutionContext/Lineage
-H2B RuntimeSubstrate + Kernel/Reconciliation
- \  /
-  \/
-H3  Durable Work + Signal + Effect + Crash Recovery Semantics
- |
- v
-H4  Config + Secret + Auth + Policy + Approval + Management + CLI
- |\
- | \
- |  +---------------------> Presentation research lane
- v
-H5  Storage/DataOwner + Generation/Extension + Capability/Network substrate
- |\
- | \
- |  +---------------------> Advanced cognition research lane (contract-bound)
- v
-H6  Subject Base + Subject Chat + Messaging + AI + Basic Reaction
- |
- v
-H7  External IM + MCP + Media + Provider/Protocol Diversity
- |
- v
-H8  Backup/Restore/Update/Pressure/Source-less/Cross-platform Product Closure
+  |
+  v
+H2A/H2B  Canonical Truth + Runtime Composition
+  |
+  v
+H3  Durable Work + Signal + Effect + Crash Recovery Semantics  [CLOSED]
+  |
+  v
+T1  Product Authority convergence
+  |
+  v
+T2  H4-Min + H6 normative Spec freeze
+  |
+  +--> P1 Product Host + minimum Management spine
+  |        ↓
+  |    P2 provider prerequisites
+  |        ↓
+  |    P3 Subject Base + Messaging + Subject Chat
+  |        ↓
+  |    P4 Reaction + Behavior Authority
+  |        ↓
+  |    Q H6 real Product L4 slice
+  |        ↓
+  |    H7 External IM + MCP + Media + Provider Diversity
+  |        ↓
+  |    H8 Backup/Restore/Update/Pressure/Source-less/Cross-platform Product Closure
+  |
+  +--> Full H4 system administration [parallel; not required before H6]
+  |
+  +--> Full H5 package/data lifecycle [parallel; not required before H6]
 ```
 
 The arrows show dependency pressure, not a ban on parallel exploratory work.
