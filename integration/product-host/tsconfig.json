@@ -1,0 +1,28 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "vitest/globals"],
+    "noEmit": true,
+    "paths": {
+      "@heptalogos/foundation-contracts": [
+        "../../packages/foundation/foundation-contracts/dist/index.d.ts"
+      ],
+      "@heptalogos/os-credential": [
+        "../../packages/system/os-credential/dist/index.d.ts"
+      ],
+      "@heptalogos/management-client": [
+        "../../packages/application/management-client/dist/index.d.ts"
+      ],
+      "@heptalogos/management-client/node": [
+        "../../packages/application/management-client/dist/node.d.ts"
+      ],
+      "pg": ["../../packages/data/persistence/node_modules/@types/pg/index.d.ts"]
+    }
+  },
+  "include": ["test/**/*.ts", "support/**/*.ts"],
+  "references": [
+    { "path": "../../packages/foundation/foundation-contracts" },
+    { "path": "../../packages/system/os-credential" },
+    { "path": "../../packages/application/management-client" }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "name": "@heptalogos/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "heptalogos": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@heptalogos/management-client": "workspace:*",
+    "@inquirer/password": "catalog:",
+    "@oclif/core": "catalog:"
+  },
+  "oclif": {
+    "bin": "heptalogos",
+    "dirname": "heptalogos",
+    "topicSeparator": " ",
+    "commands": {
+      "strategy": "pattern",
+      "target": "./dist/commands"
+    }
+  },
+  "devDependencies": {
+    "vitest": "catalog:"
+  }
+}

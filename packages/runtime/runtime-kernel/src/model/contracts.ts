@@ -220,3 +220,34 @@ export interface ReadinessResult {
   readonly missingRequiredCapabilities: readonly CapabilityId[];
   readonly missingOptionalCapabilities: readonly CapabilityId[];
 }
+
+/** Exposes only data needed by read-only Management Runtime projections. */
+export interface RuntimeKernelReadOnlySnapshot {
+  readonly operatingMode: OperatingMode;
+  readonly desiredRevision: number;
+  readonly systems: readonly {
+    readonly microSystemId: MicroSystemId;
+    readonly role: MicroSystemRole;
+    readonly actualState: MicroSystemActualState;
+    readonly generation: RuntimeGenerationRef;
+    readonly serviceRequirements: readonly {
+      readonly serviceId: ServiceId;
+      readonly contractVersion: ContractVersion;
+    }[];
+    readonly serviceProvisions: readonly ServiceProvisionDescriptor[];
+    readonly capabilityRequirements: readonly {
+      readonly capabilityId: CapabilityId;
+      readonly contractVersion: ContractVersion;
+      readonly required: boolean;
+    }[];
+    readonly capabilityProvisions: readonly CapabilityProvisionDescriptor[];
+  }[];
+  readonly selectedServiceBindings: readonly {
+    readonly id: ServiceId;
+    readonly providerId: ProviderId;
+  }[];
+  readonly selectedCapabilityBindings: readonly {
+    readonly id: CapabilityId;
+    readonly providerId: ProviderId;
+  }[];
+}

@@ -23,7 +23,7 @@ import {
   type ResourceAdmissionClassId,
   type WorkQueueProfileId,
 } from "../../src/index.js";
-import { createWorkQueueRepository } from "../../src/foundation-repository.js";
+import { createWorkQueueRepository } from "../../src/repository.js";
 import type { WorkItemMutationResult } from "../../src/repository.js";
 import type { WorkItem } from "../../src/contracts.js";
 
@@ -31,8 +31,8 @@ const mocks = vi.hoisted(() => ({
   executeQuery: vi.fn(),
 }));
 
-vi.mock("@heptalogos/persistence/foundation-repository", () => ({
-  executeFoundationSql: async (
+vi.mock("@heptalogos/persistence/repository", () => ({
+  executeRepositorySql: async (
     transaction: {
       executeQuery: (query: unknown) => Promise<{ readonly rows: readonly unknown[] }>;
     },
@@ -42,11 +42,11 @@ vi.mock("@heptalogos/persistence/foundation-repository", () => ({
     transaction
       .executeQuery({ sql: text, parameters: [...parameters] })
       .then((result) => result.rows),
-  useFoundationMutationTransaction: async (
+  useRepositoryMutationTransaction: async (
     _context: unknown,
     operation: (transaction: unknown) => Promise<unknown>,
   ) => operation({ executeQuery: mocks.executeQuery }),
-  useFoundationReadTransaction: async (
+  useRepositoryReadTransaction: async (
     _context: unknown,
     operation: (transaction: unknown) => Promise<unknown>,
   ) => operation({ executeQuery: mocks.executeQuery }),

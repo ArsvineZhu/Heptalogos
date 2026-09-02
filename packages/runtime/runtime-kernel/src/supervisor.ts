@@ -28,6 +28,7 @@ import type {
   ReadinessProfileDefinition,
   ReadinessResult,
   RuntimeOwnerLifecycle,
+  RuntimeKernelReadOnlySnapshot,
   ServiceId,
   ServiceProvisionDescriptor,
 } from "./model/contracts.js";
@@ -115,6 +116,7 @@ export class MicroSystemSupervisor {
   private readonly desiredServiceBindings = new Map<ServiceId, ProviderId>();
   private readonly capabilityBindings = new Map<CapabilityId, ProviderId>();
   private operatingMode: import("./model/contracts.js").OperatingMode = "NORMAL";
+  private desiredRevision = 0;
   private mutationChain: Promise<void> = Promise.resolve();
   private lifecycleState: SupervisorLifecycleState = "ACTIVE";
   private readonly startingFences = new Set<GenerationFence>();
@@ -169,6 +171,56 @@ export class MicroSystemSupervisor {
     return new Map(this.actual);
   }
 
+  /** Returns a detached, data-only snapshot for Management read projections. */
+  getReadOnlySnapshot(): RuntimeKernelReadOnlySnapshot {
+    const systems = [...this.definitions.values()]
+      .sort((left, right) => left.microSystemId.localeCompare(right.microSystemId))
+      .map((definition) =>
+        Object.freeze({
+          microSystemId: definition.microSystemId,
+          role: definition.role,
+          actualState: this.getActualState(definition.microSystemId),
+          generation: Object.freeze({ ...definition.generation }),
+          serviceRequirements: Object.freeze(
+            definition.serviceRequirements.map((requirement) => ({
+              serviceId: requirement.serviceId,
+              contractVersion: requirement.contract.version,
+            })),
+          ),
+          serviceProvisions: Object.freeze(
+            definition.serviceProvisions.map((provision) => ({ ...provision })),
+          ),
+          capabilityRequirements: Object.freeze(
+            definition.capabilityRequirements.map((requirement) => ({
+              capabilityId: requirement.capabilityId,
+              contractVersion: requirement.contract.version,
+              required: requirement.required,
+            })),
+          ),
+          capabilityProvisions: Object.freeze(
+            definition.capabilityProvisions.map((provision) => ({ ...provision })),
+          ),
+        }),
+      );
+    return Object.freeze({
+      operatingMode: this.operatingMode,
+      desiredRevision: this.desiredRevision,
+      systems: Object.freeze(systems),
+      selectedServiceBindings: Object.freeze(
+        [...this.serviceBindings.entries()].map(([id, providerId]) => ({
+          id,
+          providerId,
+        })),
+      ),
+      selectedCapabilityBindings: Object.freeze(
+        [...this.capabilityBindings.entries()].map(([id, providerId]) => ({
+          id,
+          providerId,
+        })),
+      ),
+    });
+  }
+
   /** Evaluates a readiness profile against current Runtime bindings. */
   evaluateReadiness(profile: ReadinessProfileDefinition): ReadinessResult {
     return evaluateReadiness(
@@ -219,6 +271,7 @@ export class MicroSystemSupervisor {
       currentCapabilityBindings: this.capabilityBindings,
     });
     this.operatingMode = desired.operatingMode;
+    this.desiredRevision = desired.revision;
     const blockedTransition = [...result.blocked.keys()].some(
       (microSystemId) => this.getActualState(microSystemId) !== "BLOCKED",
     );

@@ -64,7 +64,7 @@ describe("API documentation ownership", () => {
         `TypeDoc reflection package count differs from product discovery: expected ${packages.length}, actual ${packages.length - 1}`,
       ),
       expect.stringContaining(
-        "TypeDoc reflection is missing product package @heptalogos/bootstrap-runtime",
+        `TypeDoc reflection is missing product package ${packages[0].packageName}`,
       ),
     ]);
   });

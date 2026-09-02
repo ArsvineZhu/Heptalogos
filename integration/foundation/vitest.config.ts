@@ -20,11 +20,7 @@ const aliases = {
   "@heptalogos/private-postgres": source("bootstrap", "private-postgres"),
   "@heptalogos/host-ownership": source("bootstrap", "host-ownership"),
   "@heptalogos/canonical-schema": source("data", "canonical-schema"),
-  "@heptalogos/persistence/foundation-repository": source(
-    "data",
-    "persistence",
-    "foundation-repository.js",
-  ),
+  "@heptalogos/persistence/repository": source("data", "persistence", "repository.js"),
   "@heptalogos/persistence": source("data", "persistence"),
   "@heptalogos/runtime-substrate": source("runtime", "runtime-substrate"),
   "@heptalogos/runtime-kernel": source("runtime", "runtime-kernel"),
@@ -36,10 +32,10 @@ const aliases = {
   "@heptalogos/execution-lineage": source("execution", "execution-lineage"),
   "@heptalogos/evidence": source("execution", "evidence"),
   "@heptalogos/signal": source("execution", "signal"),
-  "@heptalogos/work-queue/foundation-repository": source(
+  "@heptalogos/work-queue/repository": source(
     "execution",
     "work-queue",
-    "foundation-repository.js",
+    "repository.js",
   ),
   "@heptalogos/work-queue": source("execution", "work-queue"),
   "@heptalogos/durable-execution": source("execution", "durable-execution"),

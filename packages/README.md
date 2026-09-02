@@ -14,6 +14,9 @@ co-change rather than file size.
 
 Current groups:
 
+| system | Cross-cutting system adapters and Management semantic services | os-credential, management |
+| application | Headless Product Host and client projections | product-host, management-client, cli |
+
 | Group                                | Role                                                        | Members                                                                                          |
 | ------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | [foundation](./foundation/README.md) | Shared contracts, schema mechanics, and time                | `foundation-contracts`, `schema-runtime`, `time-service`                                         |

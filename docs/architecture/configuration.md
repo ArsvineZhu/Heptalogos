@@ -786,7 +786,7 @@ ConfigurationDefinition 本身应成为机器可读文档源。
 ```text
 CLI help
 Web help
-Operator context
+Management context
 reference docs
 schema docs
 ```

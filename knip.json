@@ -14,12 +14,33 @@
     "packages/*/*": {
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
+    "packages/application/cli": {
+      "entry": ["src/index.ts", "src/bin.ts", "src/commands/**/*.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/application/management-client": {
+      "entry": [
+        "src/index.ts",
+        "src/node.ts",
+        "src/generated/**/*.ts",
+        "scripts/generate.mjs"
+      ],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/application/product-host": {
+      "entry": ["src/index.ts", "src/bin.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/system/management": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"]
+    },
     "tools/*": {
       "entry": ["test/fixtures/**/*.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     },
     "packages/data/persistence": {
-      "entry": ["src/foundation-repository.ts"],
+      "entry": ["src/repository.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/execution/durable-execution": {

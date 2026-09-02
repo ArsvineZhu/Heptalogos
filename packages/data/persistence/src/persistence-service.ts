@@ -27,7 +27,7 @@ import {
   type PersistenceTransactionMode,
 } from "./contracts.js";
 import { createKyselyAdapter } from "./kysely-adapter.js";
-import { executeFoundationSql } from "./foundation-repository.js";
+import { executeRepositorySql } from "./repository.js";
 import { createPersistencePool } from "./pg-pool.js";
 import {
   persistenceServiceCloseFailedProblem,
@@ -269,10 +269,10 @@ function createPersistenceServiceFromDatabase(
     try {
       return await database.transaction().execute(async (transaction) => {
         if (mode === "READ") {
-          await executeFoundationSql(transaction, "SET TRANSACTION READ ONLY");
+          await executeRepositorySql(transaction, "SET TRANSACTION READ ONLY");
         } else {
           assertAuthorityActive();
-          const rows = await executeFoundationSql<HostFenceRow>(
+          const rows = await executeRepositorySql<HostFenceRow>(
             transaction,
             HOST_FENCE_QUERY,
           );

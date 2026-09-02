@@ -44,6 +44,15 @@ describe("canonical schema adapter", () => {
     const sql = statements.join("\n");
     expect(sql).toContain('create table "heptalogos"."work_item"');
     expect(sql).toContain('create table "heptalogos"."effect_operation"');
+    expect(sql).toContain('create table "heptalogos"."administrator"');
+    expect(sql).toContain('create table "heptalogos"."first_administrator_claim"');
+    expect(sql).toContain('create table "heptalogos"."server_session"');
+    expect(sql).toContain('"first_administrator_claim_current_unique"');
+    expect(sql).toContain('"management_create_or_replace_claim"');
+    expect(sql).toContain('"management_consume_claim_create_administrator"');
+    expect(sql).toContain('"management_create_session"');
+    expect(sql).toContain('"management_revoke_session"');
+    expect(sql).toContain('REVOKE ALL ON TABLE "heptalogos"."administrator"');
     expect(sql).toContain('"dispatch_host_ownership_token"');
     expect(sql).toContain(
       "state IN ('PREPARED', 'DISPATCHING', 'SUCCEEDED', 'FAILED', 'UNCERTAIN')",

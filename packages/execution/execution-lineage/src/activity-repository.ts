@@ -10,11 +10,11 @@ import {
   parseInstant,
 } from "@heptalogos/foundation-contracts";
 import type { PersistenceMutationTransactionContext } from "@heptalogos/persistence";
-import type { PersistenceInternalTransaction } from "@heptalogos/persistence/foundation-repository";
+import type { PersistenceInternalTransaction } from "@heptalogos/persistence/repository";
 import {
-  executeFoundationSql as executeSql,
-  useFoundationMutationTransaction,
-} from "@heptalogos/persistence/foundation-repository";
+  executeRepositorySql as executeSql,
+  useRepositoryMutationTransaction,
+} from "@heptalogos/persistence/repository";
 import type {
   ActivityCompletion,
   BootstrapRetainedActivityDraft,
@@ -329,7 +329,7 @@ export function createExecutionLineageService(): ExecutionLineageService {
     async retainCurrent(transaction, context) {
       assertCurrentActivity(transaction, context);
       await runWithLineageSuppressed(() =>
-        useFoundationMutationTransaction(transaction, async (databaseTransaction) => {
+        useRepositoryMutationTransaction(transaction, async (databaseTransaction) => {
           await insertCurrentActivity(databaseTransaction, context);
         }),
       );
@@ -337,7 +337,7 @@ export function createExecutionLineageService(): ExecutionLineageService {
     async retainBootstrapReference(transaction, draft) {
       assertBootstrapDraft(transaction, draft);
       await runWithLineageSuppressed(() =>
-        useFoundationMutationTransaction(transaction, async (databaseTransaction) => {
+        useRepositoryMutationTransaction(transaction, async (databaseTransaction) => {
           await retainBootstrap(databaseTransaction, draft);
         }),
       );
@@ -349,7 +349,7 @@ export function createExecutionLineageService(): ExecutionLineageService {
       }
       assertCompletion(completion);
       await runWithLineageSuppressed(() =>
-        useFoundationMutationTransaction(transaction, async (databaseTransaction) => {
+        useRepositoryMutationTransaction(transaction, async (databaseTransaction) => {
           await completeActivity(databaseTransaction, context, completion);
         }),
       );

@@ -1,0 +1,26 @@
+{
+  "name": "@heptalogos/management-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js",
+      "default": "./dist/node.js"
+    }
+  },
+  "dependencies": {
+    "@heptalogos/foundation-contracts": "workspace:*",
+    "@heptalogos/os-credential": "workspace:*"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "catalog:",
+    "vitest": "catalog:"
+  }
+}

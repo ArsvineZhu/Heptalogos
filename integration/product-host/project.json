@@ -1,0 +1,15 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "product-host-integration",
+  "projectType": "application",
+  "tags": ["kind:integration", "area:integration"],
+  "sourceRoot": "integration/product-host",
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm nx run product-host:build && pnpm nx run cli:build && vitest run --root integration/product-host"
+      }
+    }
+  }
+}

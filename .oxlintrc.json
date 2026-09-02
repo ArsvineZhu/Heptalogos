@@ -487,7 +487,8 @@
         "packages/execution/evidence/**",
         "packages/data/persistence/**",
         "packages/execution/signal/**",
-        "packages/execution/work-queue/**"
+        "packages/execution/work-queue/**",
+        "packages/system/management/**"
       ],
       "rules": {
         "no-restricted-imports": [
@@ -495,8 +496,8 @@
           {
             "paths": [
               {
-                "name": "@heptalogos/persistence/foundation-repository",
-                "message": "The persistence foundation repository is an explicit internal adapter subpath."
+                "name": "@heptalogos/persistence/repository",
+                "message": "The persistence repository integration surface is an explicit internal adapter subpath."
               }
             ]
           }
@@ -512,8 +513,8 @@
           {
             "paths": [
               {
-                "name": "@heptalogos/work-queue/foundation-repository",
-                "message": "The WorkQueue foundation repository is an explicit internal adapter subpath."
+                "name": "@heptalogos/work-queue/repository",
+                "message": "The WorkQueue repository integration surface is an explicit internal adapter subpath."
               }
             ]
           }

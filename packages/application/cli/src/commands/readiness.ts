@@ -1,0 +1,22 @@
+/**
+ * Implements the readiness command.
+ * @module commands/readiness
+ */
+
+import { BaseCommand, type CommonFlags } from "../base-command.js";
+
+/** Reads current Product Host readiness. */
+export default class Readiness extends BaseCommand {
+  static summary = "Read current P1 readiness";
+
+  /** Executes the readiness command. */
+  async run(): Promise<unknown> {
+    const { flags } = await this.parse(Readiness);
+    const common = flags as typeof flags & CommonFlags;
+    return this.execute(
+      common["anchor-root"],
+      (local) => local.client.getReadiness(),
+      true,
+    );
+  }
+}

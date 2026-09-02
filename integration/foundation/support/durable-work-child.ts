@@ -58,7 +58,7 @@ import {
   type WorkErrorClassifier,
   type WorkQueueRuntimeOptions,
 } from "../../../packages/execution/work-queue/dist/index.js";
-import { createWorkQueueRepository } from "../../../packages/execution/work-queue/dist/foundation-repository.js";
+import { createWorkQueueRepository } from "../../../packages/execution/work-queue/dist/repository.js";
 import {
   createPostgresSignalService,
   postgresSignalPublisher,

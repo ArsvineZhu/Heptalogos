@@ -29,7 +29,7 @@ The entry point exports WorkItem contracts, dispatch-attempt identity helpers,
 profile catalog validation, repository/service ports, and WorkQueue runtime
 components. The concrete canonical repository
 factory is a restricted Foundation seam at
-`@heptalogos/work-queue/foundation-repository`; it is not a general
+`@heptalogos/work-queue/repository`; it is not a general
 root-package API. Engine-specific composition follows the Persistence and
 Runtime Kernel ownership boundaries.
 

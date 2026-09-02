@@ -13,7 +13,7 @@ silently mutate state after Host ownership is lost.
 - Normal PostgreSQL connection-pool lifecycle.
 - Host-fenced transaction entry and mutation/read transaction contexts.
 - Persistence service state and execution metadata propagation.
-- The package's foundation repository integration surface.
+- The package's restricted repository integration surface.
 
 ## Does not own
 
@@ -26,9 +26,9 @@ silently mutate state after Host ownership is lost.
 
 The entry point exports persistence runtime options, transaction and execution
 context types, `PersistenceService`, state types, and
-`createPersistenceService`. The `./foundation-repository` subpath exposes the
-explicit repository integration surface. The service is the supported consumer
-route and carries the required Host and execution context.
+createPersistenceService. The ./repository subpath exposes the explicit
+repository integration surface. The service is the supported consumer route
+and carries the required Host and execution context.
 
 ## Dependencies and boundaries
 

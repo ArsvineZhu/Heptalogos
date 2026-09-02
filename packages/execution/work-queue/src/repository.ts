@@ -31,11 +31,11 @@ import type {
   PersistenceService,
 } from "@heptalogos/persistence";
 import {
-  useFoundationMutationTransaction,
-  useFoundationReadTransaction,
-  executeFoundationSql as executeSql,
+  useRepositoryMutationTransaction,
+  useRepositoryReadTransaction,
+  executeRepositorySql as executeSql,
   type PersistenceInternalTransaction,
-} from "@heptalogos/persistence/foundation-repository";
+} from "@heptalogos/persistence/repository";
 import type {
   DispatchAttemptId,
   ResourceAdmissionClassId,
@@ -758,7 +758,7 @@ function readContext(
   operation: (transaction: PersistenceInternalTransaction) => Promise<unknown>,
 ): Promise<unknown> {
   return persistence.read((context: PersistenceReadTransactionContext) =>
-    useFoundationReadTransaction(context, operation),
+    useRepositoryReadTransaction(context, operation),
   );
 }
 
@@ -770,7 +770,7 @@ function mutationContext<T>(
   ) => Promise<T>,
 ): Promise<T> {
   return persistence.mutate((context) =>
-    useFoundationMutationTransaction(context, (transaction) =>
+    useRepositoryMutationTransaction(context, (transaction) =>
       operation(transaction, context),
     ),
   );

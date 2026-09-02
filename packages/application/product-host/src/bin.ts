@@ -1,0 +1,64 @@
+#!/usr/bin/env node
+/**
+ * Built daemon entrypoint for the real headless Product Host.
+ * @module bin
+ */
+
+import { ProblemError } from "@heptalogos/foundation-contracts";
+import { startProductHostFromArgv } from "./host.js";
+
+function problemCode(error: unknown): string {
+  if (error instanceof ProblemError) return error.problem.problemCode;
+  return "product-host.startup_failed";
+}
+
+function reportFailure(error: unknown): void {
+  const detail =
+    error instanceof ProblemError
+      ? (error.problem.detail ?? error.problem.title)
+      : undefined;
+  process.stderr.write(
+    JSON.stringify({
+      type: "ERROR",
+      problemCode: problemCode(error),
+      ...(detail === undefined ? {} : { detail }),
+    }) + "\n",
+  );
+}
+
+const main = async (): Promise<void> => {
+  const host = await startProductHostFromArgv(process.argv.slice(2));
+  process.stdout.write(
+    JSON.stringify({
+      type: "READY",
+      installationId: host.endpoint.installationId,
+      instanceId: host.host.instanceId,
+      bootId: host.endpoint.bootId,
+      origin: host.origin,
+      productGeneration: host.productGeneration,
+    }) + "\n",
+  );
+
+  let stopping: Promise<void> | undefined;
+  let stoppedResolve: (() => void) | undefined;
+  const stopped = new Promise<void>((resolve) => {
+    stoppedResolve = resolve;
+  });
+  const stop = (): void => {
+    if (stopping !== undefined) return;
+    stopping = host.close().finally(() => {
+      stoppedResolve?.();
+    });
+  };
+  process.once("SIGINT", stop);
+  process.once("SIGTERM", stop);
+  host.host.signal.addEventListener("abort", stop, { once: true });
+  await stopped;
+};
+
+try {
+  await main();
+} catch (error) {
+  reportFailure(error);
+  process.exitCode = 1;
+}

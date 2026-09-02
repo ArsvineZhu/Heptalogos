@@ -51,7 +51,7 @@ import {
   type WorkQueueProfileCatalog,
   type WorkQueueRuntimeOptions,
 } from "@heptalogos/work-queue";
-import { createWorkQueueRepository } from "@heptalogos/work-queue/foundation-repository";
+import { createWorkQueueRepository } from "@heptalogos/work-queue/repository";
 import {
   createPostgresSignalService,
   postgresSignalPublisher,

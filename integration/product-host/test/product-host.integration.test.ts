@@ -1,0 +1,163 @@
+import { Client } from "pg";
+import { afterEach, describe, expect, it } from "vitest";
+import { createOsCredentialStore } from "@heptalogos/os-credential";
+import {
+  createManagementClient,
+  ManagementClientError,
+} from "../../../packages/application/management-client/dist/index.js";
+import { openLocalManagementClient } from "../../../packages/application/management-client/dist/node.js";
+import {
+  makeFixture,
+  readRunJson,
+  runCli,
+  runHost,
+  type ProductHostFixture,
+  type RunningHost,
+} from "../support/fixture.js";
+
+const postgresBin = process.env.HEPTALOGOS_TEST_PG_BIN;
+const suite = postgresBin === undefined ? describe.skip : describe;
+let fixture: ProductHostFixture | undefined;
+let running: RunningHost | undefined;
+
+afterEach(async () => {
+  await running?.stop().catch(() => undefined);
+  running = undefined;
+  await fixture?.cleanup().catch(() => undefined);
+  fixture = undefined;
+});
+
+suite("built Product Host process", () => {
+  it("proves Q1 fresh boot, Q2 client/CLI reads, and Q3 restart identity", async () => {
+    fixture = await makeFixture(postgresBin!);
+    running = await runHost(fixture);
+    expect(running.ready.installationId).toBe(fixture.installationId);
+    const endpoint = (await readRunJson(fixture, "management-endpoint.json")) as {
+      origin: string;
+      bootId: string;
+    };
+    const claim = (await readRunJson(fixture, "management-first-claim.json")) as {
+      claimId: string;
+      claimSecret: string;
+    };
+    expect(endpoint.origin).toBe(running.ready.origin);
+    expect(claim.claimSecret).toHaveLength(43);
+
+    const password = "P1-Administrator-password-012345";
+    const claimed = await runCli(
+      fixture,
+      ["admin", "claim", "--password-stdin", "--json"],
+      password + "\r\n",
+    );
+    expect(claimed.code).toBe(0);
+    expect(JSON.parse(claimed.stdout)).toHaveProperty("administratorId");
+    expect(claimed.stdout).not.toContain(claim.claimSecret);
+
+    const replayClient = createManagementClient({ origin: running.ready.origin });
+    await expect(
+      replayClient.claimFirstAdministrator({
+        claimId: claim.claimId,
+        claimSecret: claim.claimSecret,
+        password,
+      }),
+    ).rejects.toMatchObject<Partial<ManagementClientError>>({
+      problem: { problemCode: "management.first_claim_consumed" },
+    });
+
+    const login = await runCli(
+      fixture,
+      ["auth", "login", "--password-stdin", "--json"],
+      password + "\n",
+    );
+    expect(login.code).toBe(0);
+    const loginJson = JSON.parse(login.stdout) as Record<string, unknown>;
+    expect(loginJson.authenticated).toBe(true);
+    expect(login.stdout).not.toMatch(/[A-Za-z0-9_-]{43}/u);
+
+    for (const command of [
+      ["contract"],
+      ["status"],
+      ["host", "status"],
+      ["runtime", "graph"],
+      ["capability", "graph"],
+      ["readiness"],
+    ]) {
+      const result = await runCli(fixture, [...command, "--json"]);
+      expect(result.code, result.stderr).toBe(0);
+      expect(() => JSON.parse(result.stdout)).not.toThrow();
+    }
+    const logout = await runCli(fixture, ["auth", "logout", "--json"]);
+    expect(logout.code).toBe(0);
+
+    const firstBootId = running.ready.bootId;
+    const firstGeneration = running.ready.productGeneration;
+    await running.stop();
+    running = await runHost(fixture, { includeInitialPort: false });
+    expect(running.ready.bootId).not.toBe(firstBootId);
+    expect(running.ready.productGeneration).toBe(firstGeneration);
+    expect(running.ready.installationId).toBe(fixture.installationId);
+    await expect(
+      readRunJson(fixture, "management-first-claim.json"),
+    ).rejects.toBeDefined();
+  });
+
+  it("proves Q4 stale descriptor replacement and graceful shutdown", async () => {
+    fixture = await makeFixture(postgresBin!);
+    running = await runHost(fixture);
+    const stale = await readRunJson(fixture, "management-endpoint.json");
+    await running.crash();
+    running = undefined;
+    expect(await readRunJson(fixture, "management-endpoint.json")).toEqual(stale);
+    running = await runHost(fixture, { includeInitialPort: false });
+    const current = await readRunJson(fixture, "management-endpoint.json");
+    expect(current).not.toEqual(stale);
+    expect((current as { bootId: string }).bootId).toBe(running.ready.bootId);
+  });
+
+  it("proves Q5 fail-closed credential recovery and Q6 Host-fenced ACLs", async () => {
+    fixture = await makeFixture(postgresBin!);
+    running = await runHost(fixture);
+    const runtimeKey = {
+      service: "Heptalogos/" + fixture.installationId,
+      account: "bootstrap/private-postgres-runtime-role",
+    };
+    const runtimePassword = await fixture.credentialStore.withCredential(
+      runtimeKey,
+      async (bytes) => new TextDecoder().decode(bytes),
+    );
+    const client = new Client({
+      host: "127.0.0.1",
+      port: fixture.postgresPort,
+      database: "heptalogos",
+      user: "heptalogos_runtime",
+      password: runtimePassword,
+    });
+    await client.connect();
+    await expect(
+      client.query('INSERT INTO "heptalogos"."administrator" DEFAULT VALUES'),
+    ).rejects.toBeDefined();
+    await client.end();
+
+    await running.stop();
+    running = undefined;
+    await fixture.credentialStore.delete(runtimeKey);
+    const failed = await runHost(fixture, { includeInitialPort: false }).catch(
+      (error: Error) => error,
+    );
+    expect(failed).toBeInstanceOf(Error);
+    expect((failed as Error).message).toContain("bootstrap_credential_missing");
+  });
+
+  it("proves Q7 generated client discovery and Q8 production boundary", async () => {
+    fixture = await makeFixture(postgresBin!);
+    running = await runHost(fixture);
+    const local = await openLocalManagementClient({
+      anchorRoot: fixture.anchorRoot,
+      credentialStore: createOsCredentialStore(),
+    });
+    const discovery = await local.client.getDiscovery();
+    expect(discovery.installationId).toBe(fixture.installationId);
+    expect(discovery.compatibility.coreContractVersion).toBe("management.v1");
+    expect(local.endpoint.origin).toBe(running.ready.origin);
+  });
+});

@@ -24,6 +24,7 @@ export type {
   ReadinessResult,
   ReadinessState,
   RuntimeGenerationRef,
+  RuntimeKernelReadOnlySnapshot,
   RuntimeOwnerLifecycle,
   ServiceLease,
   ServiceProvisionDescriptor,

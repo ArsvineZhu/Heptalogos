@@ -32,8 +32,8 @@
         "../../packages/data/canonical-schema/dist/index.d.ts"
       ],
       "@heptalogos/persistence": ["../../packages/data/persistence/dist/index.d.ts"],
-      "@heptalogos/persistence/foundation-repository": [
-        "../../packages/data/persistence/dist/foundation-repository.d.ts"
+      "@heptalogos/persistence/repository": [
+        "../../packages/data/persistence/dist/repository.d.ts"
       ],
       "@heptalogos/runtime-substrate": [
         "../../packages/runtime/runtime-substrate/dist/index.d.ts"
@@ -50,8 +50,8 @@
       "@heptalogos/evidence": ["../../packages/execution/evidence/dist/index.d.ts"],
       "@heptalogos/signal": ["../../packages/execution/signal/dist/index.d.ts"],
       "@heptalogos/work-queue": ["../../packages/execution/work-queue/dist/index.d.ts"],
-      "@heptalogos/work-queue/foundation-repository": [
-        "../../packages/execution/work-queue/dist/foundation-repository.d.ts"
+      "@heptalogos/work-queue/repository": [
+        "../../packages/execution/work-queue/dist/repository.d.ts"
       ],
       "@heptalogos/durable-execution": [
         "../../packages/execution/durable-execution/dist/index.d.ts"

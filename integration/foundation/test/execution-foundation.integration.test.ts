@@ -15,7 +15,7 @@ import {
   createPersistenceService,
   type PersistenceMutationTransactionContext,
 } from "@heptalogos/persistence";
-import { useFoundationMutationTransaction } from "@heptalogos/persistence/foundation-repository";
+import { useRepositoryMutationTransaction } from "@heptalogos/persistence/repository";
 import {
   createUuidV7Id,
   parseActivityId,
@@ -164,7 +164,7 @@ async function insertFact(
   transaction: PersistenceMutationTransactionContext,
   factId: string,
 ): Promise<void> {
-  await useFoundationMutationTransaction(transaction, async (databaseTransaction) => {
+  await useRepositoryMutationTransaction(transaction, async (databaseTransaction) => {
     await databaseTransaction.executeQuery(
       CompiledQuery.raw(
         `INSERT INTO "heptalogos"."${FIXTURE_TABLE}" (fact_id, value) VALUES ($1, $2)`,
@@ -304,7 +304,7 @@ describePostgres.sequential(
       try {
         await expect(
           composition.persistence.read(async (transaction) =>
-            useFoundationMutationTransaction(
+            useRepositoryMutationTransaction(
               transaction as unknown as PersistenceMutationTransactionContext,
               async () => undefined,
             ),

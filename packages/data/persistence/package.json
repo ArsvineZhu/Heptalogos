@@ -9,10 +9,10 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./foundation-repository": {
-      "types": "./dist/foundation-repository.d.ts",
-      "import": "./dist/foundation-repository.js",
-      "default": "./dist/foundation-repository.js"
+    "./repository": {
+      "types": "./dist/repository.d.ts",
+      "import": "./dist/repository.js",
+      "default": "./dist/repository.js"
     }
   },
   "dependencies": {

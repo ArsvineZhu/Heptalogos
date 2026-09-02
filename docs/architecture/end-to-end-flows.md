@@ -52,7 +52,7 @@ become canonical state by itself.
 Static and dynamic management clients converge on one System Authority:
 
 ```text
-CLI / HTTP / Operator / Web or Desktop client
+CLI / local HTTP / external Presentation client
 → Management Contract
 → authentication and policy
 → SystemChangePlan / approval when required

@@ -21,7 +21,7 @@ import type {
   PersistenceTransactionMode,
 } from "../../src/index.js";
 import { createPersistenceServiceForTests } from "../../src/persistence-service.js";
-import { useFoundationMutationTransaction } from "../../src/foundation-repository.js";
+import { useRepositoryMutationTransaction } from "../../src/repository.js";
 import {
   issueTransactionContext,
   releaseTransactionContext,
@@ -213,12 +213,12 @@ describe("persistence package root", () => {
     const context = issueTransactionContext("MUTATION", transaction, execution);
 
     await expect(
-      useFoundationMutationTransaction(context, async (resolved) => resolved),
+      useRepositoryMutationTransaction(context, async (resolved) => resolved),
     ).resolves.toBe(transaction);
 
     releaseTransactionContext(context);
     await expect(
-      useFoundationMutationTransaction(context, async () => transaction),
+      useRepositoryMutationTransaction(context, async () => transaction),
     ).rejects.toMatchObject({
       problem: { problemCode: "persistence.transaction.context_invalid" },
     });
@@ -232,12 +232,12 @@ describe("persistence package root", () => {
     const fakeContext = { mode: "MUTATION", execution } as const;
 
     await expect(
-      useFoundationMutationTransaction(readContext as never, async () => transaction),
+      useRepositoryMutationTransaction(readContext as never, async () => transaction),
     ).rejects.toMatchObject({
       problem: { problemCode: "persistence.transaction.context_invalid" },
     });
     await expect(
-      useFoundationMutationTransaction(fakeContext, async () => transaction),
+      useRepositoryMutationTransaction(fakeContext, async () => transaction),
     ).rejects.toMatchObject({
       problem: { problemCode: "persistence.transaction.context_invalid" },
     });

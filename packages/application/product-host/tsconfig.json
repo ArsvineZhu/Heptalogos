@@ -1,0 +1,51 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "rootDir": ".",
+    "outDir": "./dist/types",
+    "tsBuildInfoFile": "./dist/types/tsconfig.tsbuildinfo",
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "references": [
+    {
+      "path": "../../bootstrap/bootstrap-state"
+    },
+    {
+      "path": "../../foundation/time-service"
+    },
+    {
+      "path": "../../runtime/runtime-substrate"
+    },
+    {
+      "path": "../../runtime/runtime-kernel"
+    },
+    {
+      "path": "../../data/persistence"
+    },
+    {
+      "path": "../../system/os-credential"
+    },
+    {
+      "path": "../../system/management"
+    },
+    {
+      "path": "../../foundation/foundation-contracts"
+    },
+    {
+      "path": "../../execution/execution-lineage"
+    },
+    {
+      "path": "../../execution/evidence"
+    },
+    {
+      "path": "../../data/canonical-schema"
+    },
+    {
+      "path": "../../bootstrap/bootstrap-runtime"
+    }
+  ]
+}

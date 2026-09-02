@@ -31,7 +31,7 @@ describe("repository boundary ownership", () => {
     expect(eslintSource).not.toContain("no-restricted-imports");
     expect(oxlintSource).toContain("no-restricted-imports");
     expect(oxlintSource).toContain('"@heptalogos/repo-kit"');
-    expect(oxlintSource).toContain("@heptalogos/persistence/foundation-repository");
+    expect(oxlintSource).toContain("@heptalogos/persistence/repository");
     expect(schemaOwnerOxlintSource).toContain('"ajv"');
     expect(schemaOwnerOxlintSource).toContain('"typebox"');
     expect(eslintSource).toContain("@nx/enforce-module-boundaries");

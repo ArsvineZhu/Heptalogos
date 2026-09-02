@@ -423,6 +423,240 @@ export const foundationBaselineMigration: Migration = {
 
     await db.schema
       .withSchema(schema)
+      .createTable("administrator")
+      .addColumn("singleton", "boolean", (column) => column.notNull().primaryKey())
+      .addColumn("administrator_id", "uuid", (column) => column.notNull().unique())
+      .addColumn("auth_epoch", "bigint", (column) => column.notNull())
+      .addColumn("password_algorithm", "text", (column) => column.notNull())
+      .addColumn("password_salt", "bytea", (column) => column.notNull())
+      .addColumn("password_nonce", "bytea", (column) => column.notNull())
+      .addColumn("password_verifier", "bytea", (column) => column.notNull())
+      .addColumn("password_memory_cost", "integer", (column) => column.notNull())
+      .addColumn("password_time_cost", "integer", (column) => column.notNull())
+      .addColumn("password_parallelism", "integer", (column) => column.notNull())
+      .addColumn("password_normalization_id", "text", (column) => column.notNull())
+      .addColumn("created_at", "timestamptz(3)", (column) => column.notNull())
+      .addColumn("password_changed_at", "timestamptz(3)", (column) => column.notNull())
+      .addCheckConstraint("administrator_singleton_check", sql.raw("singleton"))
+      .addCheckConstraint("administrator_auth_epoch_check", sql.raw("auth_epoch >= 1"))
+      .addCheckConstraint(
+        "administrator_algorithm_check",
+        sql.raw("password_algorithm = 'argon2id'"),
+      )
+      .addCheckConstraint(
+        "administrator_normalization_check",
+        sql.raw("password_normalization_id = 'NFKC-v1'"),
+      )
+      .execute();
+
+    await db.schema
+      .withSchema(schema)
+      .createTable("first_administrator_claim")
+      .addColumn("claim_id", "uuid", (column) => column.notNull().primaryKey())
+      .addColumn("secret_digest", "text", (column) => column.notNull())
+      .addColumn("created_at", "timestamptz(3)", (column) => column.notNull())
+      .addColumn("expires_at", "timestamptz(3)", (column) => column.notNull())
+      .addColumn("consumed_at", "timestamptz(3)")
+      .addCheckConstraint(
+        "first_administrator_claim_digest_check",
+        sql.raw("secret_digest ~ '^[0-9a-f]{64}$'"),
+      )
+      .addCheckConstraint(
+        "first_administrator_claim_expiry_check",
+        sql.raw("expires_at > created_at"),
+      )
+      .execute();
+
+    await db.schema
+      .withSchema(schema)
+      .createTable("server_session")
+      .addColumn("session_id", "uuid", (column) => column.notNull().primaryKey())
+      .addColumn("token_digest", "text", (column) => column.notNull().unique())
+      .addColumn("administrator_id", "uuid", (column) =>
+        column.notNull().references("heptalogos.administrator.administrator_id"),
+      )
+      .addColumn("auth_epoch", "bigint", (column) => column.notNull())
+      .addColumn("issued_at", "timestamptz(3)", (column) => column.notNull())
+      .addColumn("expires_at", "timestamptz(3)", (column) => column.notNull())
+      .addColumn("revoked_at", "timestamptz(3)")
+      .addCheckConstraint(
+        "server_session_token_digest_check",
+        sql.raw("token_digest ~ '^[0-9a-f]{64}$'"),
+      )
+      .addCheckConstraint("server_session_auth_epoch_check", sql.raw("auth_epoch >= 1"))
+      .addCheckConstraint(
+        "server_session_expiry_check",
+        sql.raw("expires_at > issued_at"),
+      )
+      .execute();
+
+    await sql
+      .raw(
+        'CREATE UNIQUE INDEX "first_administrator_claim_current_unique" ON "heptalogos"."first_administrator_claim" ((consumed_at IS NULL)) WHERE consumed_at IS NULL',
+      )
+      .execute(db);
+
+    for (const table of [
+      "administrator",
+      "first_administrator_claim",
+      "server_session",
+    ]) {
+      await sql
+        .raw(
+          `REVOKE ALL ON TABLE "heptalogos"."${table}" FROM PUBLIC; GRANT SELECT ON TABLE "heptalogos"."${table}" TO "heptalogos_runtime"`,
+        )
+        .execute(db);
+    }
+
+    await sql
+      .raw(
+        [
+          'CREATE OR REPLACE FUNCTION "heptalogos"."management_create_or_replace_claim"(',
+          "  p_claim_id uuid, p_secret_digest text, p_created_at timestamptz,",
+          "  p_expires_at timestamptz, p_instance_id uuid, p_boot_id uuid,",
+          "  p_host_ownership_token uuid",
+          ") RETURNS text",
+          "LANGUAGE plpgsql SECURITY DEFINER",
+          "SET search_path = heptalogos, pg_catalog",
+          "AS $management$",
+          "BEGIN",
+          "  PERFORM 1 FROM heptalogos.lock_host_ownership_fence()",
+          "   WHERE singleton = true AND instance_id = p_instance_id",
+          "     AND boot_id = p_boot_id AND host_ownership_token = p_host_ownership_token;",
+          "  IF NOT FOUND THEN RETURN 'HOST_FENCE_LOST'; END IF;",
+          "  DELETE FROM heptalogos.first_administrator_claim WHERE consumed_at IS NULL;",
+          "  INSERT INTO heptalogos.first_administrator_claim",
+          "    (claim_id, secret_digest, created_at, expires_at)",
+          "  VALUES (p_claim_id, p_secret_digest, p_created_at, p_expires_at);",
+          "  RETURN 'CREATED';",
+          "END;",
+          "$management$;",
+        ].join("\n"),
+      )
+      .execute(db);
+
+    await sql
+      .raw(
+        [
+          'CREATE OR REPLACE FUNCTION "heptalogos"."management_consume_claim_create_administrator"(',
+          "  p_claim_id uuid, p_secret_digest text, p_now timestamptz,",
+          "  p_administrator_id uuid, p_auth_epoch bigint, p_password_algorithm text,",
+          "  p_password_salt bytea, p_password_nonce bytea, p_password_verifier bytea,",
+          "  p_password_memory_cost integer, p_password_time_cost integer,",
+          "  p_password_parallelism integer, p_password_normalization_id text,",
+          "  p_instance_id uuid, p_boot_id uuid, p_host_ownership_token uuid",
+          ") RETURNS text",
+          "LANGUAGE plpgsql SECURITY DEFINER",
+          "SET search_path = heptalogos, pg_catalog",
+          "AS $management$",
+          "DECLARE",
+          "  inserted administrator%ROWTYPE;",
+          "  claim first_administrator_claim%ROWTYPE;",
+          "BEGIN",
+          "  PERFORM 1 FROM heptalogos.lock_host_ownership_fence()",
+          "   WHERE singleton = true AND instance_id = p_instance_id",
+          "     AND boot_id = p_boot_id AND host_ownership_token = p_host_ownership_token;",
+          "  IF NOT FOUND THEN RETURN 'HOST_FENCE_LOST'; END IF;",
+          "  SELECT * INTO claim FROM heptalogos.first_administrator_claim",
+          "   WHERE claim_id = p_claim_id FOR UPDATE;",
+          "  IF NOT FOUND THEN RETURN 'CLAIM_NOT_FOUND'; END IF;",
+          "  IF claim.consumed_at IS NOT NULL THEN RETURN 'CLAIM_CONSUMED'; END IF;",
+          "  IF claim.secret_digest <> p_secret_digest THEN RETURN 'CLAIM_INVALID'; END IF;",
+          "  IF claim.expires_at <= p_now THEN RETURN 'CLAIM_EXPIRED'; END IF;",
+          "  INSERT INTO heptalogos.administrator",
+          "    (singleton, administrator_id, auth_epoch, password_algorithm, password_salt,",
+          "     password_nonce, password_verifier, password_memory_cost, password_time_cost,",
+          "     password_parallelism, password_normalization_id, created_at, password_changed_at)",
+          "  VALUES (true, p_administrator_id, p_auth_epoch, p_password_algorithm, p_password_salt,",
+          "     p_password_nonce, p_password_verifier, p_password_memory_cost, p_password_time_cost,",
+          "     p_password_parallelism, p_password_normalization_id, p_now, p_now)",
+          "  ON CONFLICT (singleton) DO NOTHING",
+          "  RETURNING * INTO inserted;",
+          "  IF NOT FOUND THEN RETURN 'ADMINISTRATOR_EXISTS'; END IF;",
+          "  UPDATE heptalogos.first_administrator_claim SET consumed_at = p_now",
+          "   WHERE claim_id = p_claim_id;",
+          "  RETURN 'CLAIMED';",
+          "END;",
+          "$management$;",
+        ].join("\n"),
+      )
+      .execute(db);
+
+    await sql
+      .raw(
+        [
+          'CREATE OR REPLACE FUNCTION "heptalogos"."management_create_session"(',
+          "  p_session_id uuid, p_token_digest text, p_administrator_id uuid,",
+          "  p_auth_epoch bigint, p_issued_at timestamptz, p_expires_at timestamptz,",
+          "  p_instance_id uuid, p_boot_id uuid, p_host_ownership_token uuid",
+          ") RETURNS text",
+          "LANGUAGE plpgsql SECURITY DEFINER",
+          "SET search_path = heptalogos, pg_catalog",
+          "AS $management$",
+          "BEGIN",
+          "  PERFORM 1 FROM heptalogos.lock_host_ownership_fence()",
+          "   WHERE singleton = true AND instance_id = p_instance_id",
+          "     AND boot_id = p_boot_id AND host_ownership_token = p_host_ownership_token;",
+          "  IF NOT FOUND THEN RETURN 'HOST_FENCE_LOST'; END IF;",
+          "  IF NOT EXISTS (SELECT 1 FROM heptalogos.administrator",
+          "    WHERE administrator_id = p_administrator_id AND auth_epoch = p_auth_epoch)",
+          "  THEN RETURN 'ADMINISTRATOR_NOT_FOUND'; END IF;",
+          "  INSERT INTO heptalogos.server_session",
+          "    (session_id, token_digest, administrator_id, auth_epoch, issued_at, expires_at)",
+          "  VALUES (p_session_id, p_token_digest, p_administrator_id, p_auth_epoch,",
+          "    p_issued_at, p_expires_at)",
+          "  ON CONFLICT (session_id) DO NOTHING;",
+          "  IF NOT FOUND THEN RETURN 'SESSION_EXISTS'; END IF;",
+          "  RETURN 'CREATED';",
+          "END;",
+          "$management$;",
+        ].join("\n"),
+      )
+      .execute(db);
+
+    await sql
+      .raw(
+        [
+          'CREATE OR REPLACE FUNCTION "heptalogos"."management_revoke_session"(',
+          "  p_session_id uuid, p_token_digest text, p_revoked_at timestamptz,",
+          "  p_instance_id uuid, p_boot_id uuid, p_host_ownership_token uuid",
+          ") RETURNS text",
+          "LANGUAGE plpgsql SECURITY DEFINER",
+          "SET search_path = heptalogos, pg_catalog",
+          "AS $management$",
+          "BEGIN",
+          "  PERFORM 1 FROM heptalogos.lock_host_ownership_fence()",
+          "   WHERE singleton = true AND instance_id = p_instance_id",
+          "     AND boot_id = p_boot_id AND host_ownership_token = p_host_ownership_token;",
+          "  IF NOT FOUND THEN RETURN 'HOST_FENCE_LOST'; END IF;",
+          "  UPDATE heptalogos.server_session SET revoked_at = p_revoked_at",
+          "   WHERE session_id = p_session_id AND token_digest = p_token_digest",
+          "     AND revoked_at IS NULL;",
+          "  IF NOT FOUND THEN RETURN 'NOT_FOUND'; END IF;",
+          "  RETURN 'REVOKED';",
+          "END;",
+          "$management$;",
+        ].join("\n"),
+      )
+      .execute(db);
+
+    await sql
+      .raw(
+        [
+          'REVOKE ALL ON FUNCTION "heptalogos"."management_create_or_replace_claim"(uuid, text, timestamptz, timestamptz, uuid, uuid, uuid) FROM PUBLIC',
+          'REVOKE ALL ON FUNCTION "heptalogos"."management_consume_claim_create_administrator"(uuid, text, timestamptz, uuid, bigint, text, bytea, bytea, bytea, integer, integer, integer, text, uuid, uuid, uuid) FROM PUBLIC',
+          'REVOKE ALL ON FUNCTION "heptalogos"."management_create_session"(uuid, text, uuid, bigint, timestamptz, timestamptz, uuid, uuid, uuid) FROM PUBLIC',
+          'REVOKE ALL ON FUNCTION "heptalogos"."management_revoke_session"(uuid, text, timestamptz, uuid, uuid, uuid) FROM PUBLIC',
+          'GRANT EXECUTE ON FUNCTION "heptalogos"."management_create_or_replace_claim"(uuid, text, timestamptz, timestamptz, uuid, uuid, uuid) TO "heptalogos_runtime"',
+          'GRANT EXECUTE ON FUNCTION "heptalogos"."management_consume_claim_create_administrator"(uuid, text, timestamptz, uuid, bigint, text, bytea, bytea, bytea, integer, integer, integer, text, uuid, uuid, uuid) TO "heptalogos_runtime"',
+          'GRANT EXECUTE ON FUNCTION "heptalogos"."management_create_session"(uuid, text, uuid, bigint, timestamptz, timestamptz, uuid, uuid, uuid) TO "heptalogos_runtime"',
+          'GRANT EXECUTE ON FUNCTION "heptalogos"."management_revoke_session"(uuid, text, timestamptz, uuid, uuid, uuid) TO "heptalogos_runtime"',
+        ].join(";\n"),
+      )
+      .execute(db);
+
+    await db.schema
+      .withSchema(schema)
       .createTable("activity_link")
       .addColumn("source_activity_id", "uuid", (column) =>
         column.notNull().references(`${schema}.activity_record.activity_id`),

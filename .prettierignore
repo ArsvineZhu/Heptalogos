@@ -5,6 +5,7 @@ test-results/
 .nx/
 .vite/
 .cache/
+packages/application/management-client/src/generated/
 .pnpm-store/
 /tmp/
 pnpm-lock.yaml

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-09-02T17:03:46+08:00",
+  "recordedAt": "2026-09-03T07:00:00+08:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": ["PASS", "FAIL", "NOT_RUN", "BLOCKED"],
@@ -1260,11 +1260,62 @@
         "hardware_power_loss": "Power-loss and hardware corruption are deferred catastrophic failure classes.",
         "final_cross_platform_ci": "Final cross-platform CI was not run under the current execution policy."
       }
+    },
+    {
+      "qualificationId": "Q-P1-PRODUCT-HOST-01",
+      "testedProperty": "Built Product Host composition, loopback Management contract, generated client, reference CLI, production bootstrap credentials, and Q1-Q8 process scenarios",
+      "evidenceStatus": "PASS",
+      "qualificationState": "PARTIAL",
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "evidence": {
+        "builtHostExecutable": "PASS",
+        "builtCliExecutable": "PASS",
+        "productionBootstrapKeyProvider": "PASS",
+        "nativeOsCredentialAdapterWindows": "PASS",
+        "productGenerationId": "PASS",
+        "canonicalManagementSchema": "PASS",
+        "managementHttpOpenApi": "PASS",
+        "generatedManagementClient": "PASS",
+        "referenceCliMachineMode": "PASS",
+        "Q1_freshRealBoot": "PASS",
+        "Q2_claimLoginCliReadModelsLogout": "PASS",
+        "Q3_restartIdentityAndHostExclusion": "PASS",
+        "Q4_hardKillStaleDescriptorReplacementAndGracefulShutdown": "PASS",
+        "Q5_missingBootstrapCredentialFailsClosed": "PASS",
+        "Q6_runtimeDirectDmlDeniedAndHostFencedManagementPath": "PASS",
+        "Q7_routeSchemaOpenApiGeneratedClientChain": "PASS",
+        "Q8_builtProcessAndPackageBoundary": "PASS",
+        "finalCrossPlatformCI": "NOT_RUN",
+        "linuxNativeKeyring": "NOT_RUN",
+        "macosNativeKeyring": "NOT_RUN",
+        "sourceLessArtifact": "NOT_RUN",
+        "installedServiceAccountAcl": "NOT_RUN",
+        "hardwarePowerLoss": "NOT_RUN"
+      },
+      "evidenceSource": {
+        "environment": "Windows x64 / Node 24.20.0 / pnpm 11.24.0",
+        "postgres": "PostgreSQL 18.6 from HEPTALOGOS_TEST_PG_BIN",
+        "startingRepositoryHead": "0dcc79380d51db6bc5677b0740cb4175f0f460d0",
+        "integration": "pnpm nx run product-host-integration:test --skip-nx-cache; 1 file / 4 tests PASS covering Q1-Q8",
+        "nativeKeyring": "pnpm nx run os-credential:test with HEPTALOGOS_TEST_NATIVE_KEYRING=1; create/read/replace/delete/not-found PASS; Q3 child-process restart reuse PASS",
+        "generation": "pnpm nx run management-client:generate:check; OpenAPI-to-generated-client drift PASS",
+        "ordinaryGitHubActions": "DISABLED_CURRENT_EXECUTION_POLICY"
+      },
+      "notRunReasons": {
+        "linuxNativeKeyring": "Only the current Windows qualification profile was available.",
+        "macosNativeKeyring": "Only the current Windows qualification profile was available.",
+        "sourceLessArtifact": "The built process ran from the source checkout, not a source-less shipping artifact.",
+        "installedServiceAccountAcl": "No installed service-account product profile was executed.",
+        "hardwarePowerLoss": "Hardware power-loss qualification is outside this bounded P1 run.",
+        "finalCrossPlatformCI": "Ordinary GitHub Actions are disabled under the current execution policy."
+      }
     }
   ],
   "architectureReviewRequired": [],
   "remaining": {
     "preImplementationSelection": [],
+    "currentProductQualification": ["Q-P1-PRODUCT-HOST-01"],
     "implementationConformance": [
       "C-MGMT-01",
       "C-CLI-01",

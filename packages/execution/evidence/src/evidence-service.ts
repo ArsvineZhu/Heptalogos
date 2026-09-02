@@ -6,10 +6,10 @@
 
 import { createEvidenceId } from "@heptalogos/foundation-contracts";
 import {
-  executeFoundationSql,
+  executeRepositorySql,
   type PersistenceInternalTransaction,
-  useFoundationMutationTransaction,
-} from "@heptalogos/persistence/foundation-repository";
+  useRepositoryMutationTransaction,
+} from "@heptalogos/persistence/repository";
 import type { EvidenceDraft, EvidenceRecord, EvidenceService } from "./contracts.js";
 import {
   evidenceActivityRequiredProblem,
@@ -64,7 +64,7 @@ async function executeSql(
   parameters: readonly unknown[],
 ): Promise<void> {
   try {
-    await executeFoundationSql(transaction, text, parameters);
+    await executeRepositorySql(transaction, text, parameters);
   } catch (error) {
     if (
       typeof error === "object" &&
@@ -85,7 +85,7 @@ export function createEvidenceService(time: TimeService): EvidenceService {
       validateDraft(draft);
       const evidenceId = createEvidenceId();
       const recordedAt = time.now();
-      await useFoundationMutationTransaction(
+      await useRepositoryMutationTransaction(
         transaction,
         async (databaseTransaction) => {
           await executeSql(

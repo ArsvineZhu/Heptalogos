@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
-  "asOf": "2026-08-22",
-  "authority": "Machine-readable source of truth for the current Foundation and explicitly adopted Product Operations dependency role decisions. This baseline contains no open provider selection; product qualification remains a separate dimension.",
+  "asOf": "2026-09-03",
+  "authority": "Machine-readable source of truth for the current Foundation and explicitly adopted Product dependency role decisions. This baseline contains no open provider selection; product qualification remains a separate dimension. Exact P1 package materialization is owned by the pnpm Catalog and lockfile.",
   "roleDecisionValues": [
     "ADOPTED",
     "PRIMARY_CANDIDATE",
@@ -310,12 +310,28 @@
       "qualification": "C-MGMT-01 generated-client conformance"
     },
     {
+      "id": "http.openapi",
+      "role": "Fastify OpenAPI document generation",
+      "candidate": "@fastify/swagger Fastify-5-compatible line",
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "qualification": "C-MGMT-01 generated-client conformance"
+    },
+    {
       "id": "cli.framework",
       "role": "complete reference CLI mechanics",
-      "candidate": "oclif",
+      "candidate": "@oclif/core",
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
       "qualification": "C-CLI-01 reference-client conformance + L3 packaging"
+    },
+    {
+      "id": "cli.protected-input",
+      "role": "reference CLI protected password input",
+      "candidate": "@inquirer/password",
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "qualification": "C-CLI-01 protected input conformance"
     },
     {
       "id": "http.fastify",

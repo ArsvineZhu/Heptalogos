@@ -19,7 +19,10 @@ Implementation conformance remaining
   C-STORAGE-FS-01
   C-SESSION-01
 
-Product qualification deferred to implementation
+Current Product slice qualification
+  Q-P1-PRODUCT-HOST-01
+
+Product qualification deferred to later implementation
   Q-RUNTIME-01
   Q-ASYNC-01
   Q-SECRET-01
@@ -58,3 +61,4 @@ evidence; they must not be self-recorded by a post-review repository commit.
 | C-STORAGE-FS-01       | [C-STORAGE-FS-01.md](C-STORAGE-FS-01.md)             |
 | C-SESSION-01          | [C-SESSION-01.md](C-SESSION-01.md)                   |
 | C-CONFIG-TOML-01      | [C-CONFIG-TOML-01.md](C-CONFIG-TOML-01.md)           |
+| Q-P1-PRODUCT-HOST-01  | [Q-P1-PRODUCT-HOST-01.md](Q-P1-PRODUCT-HOST-01.md)   |

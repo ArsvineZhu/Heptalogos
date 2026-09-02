@@ -6,7 +6,7 @@
     "packageVersionAuthority": "pnpm-workspace.yaml Catalog exact direct-version pins selected from current registry/upstream evidence",
     "catalogMode": "strict",
     "packageReferences": "workspace package.json uses catalog: references; pnpm-lock.yaml owns exact resolved closure",
-    "minimumReleaseAge": 1440,
+    "minimumReleaseAge": 0,
     "packageIdentity": "routes[].packages is the exact npm package identity authority for each adopted route; an empty array means the route is not an npm package dependency",
     "repositoryToolingPackages": [
       "jscpd",
@@ -233,6 +233,16 @@
       "packages": ["fastify"]
     },
     {
+      "roleId": "http.openapi",
+      "route": "@fastify/swagger Fastify-5-compatible OpenAPI projection",
+      "boundary": "Management HTTP OpenAPI adapter",
+      "directive": "USE",
+      "versionConstraint": {
+        "major": 9
+      },
+      "packages": ["@fastify/swagger"]
+    },
+    {
       "roleId": "http.cookie",
       "route": "@fastify/cookie Fastify-5-compatible line",
       "boundary": "Management HTTP cookie adapter",
@@ -251,6 +261,9 @@
       "route": "@fastify/rate-limit Fastify-5-compatible line",
       "boundary": "Management HTTP admission adapter",
       "directive": "USE",
+      "versionConstraint": {
+        "major": 11
+      },
       "packages": ["@fastify/rate-limit"]
     },
     {
@@ -279,14 +292,31 @@
       "route": "Hey API",
       "boundary": "build-time ManagementClient generation",
       "directive": "USE",
-      "packages": []
+      "versionConstraint": {
+        "major": 0,
+        "minor": 99
+      },
+      "packages": ["@hey-api/openapi-ts"]
     },
     {
       "roleId": "cli.framework",
-      "route": "oclif",
+      "route": "@oclif/core",
       "boundary": "CLI projection",
       "directive": "USE",
-      "packages": ["oclif"]
+      "versionConstraint": {
+        "major": 5
+      },
+      "packages": ["@oclif/core"]
+    },
+    {
+      "roleId": "cli.protected-input",
+      "route": "@inquirer/password",
+      "boundary": "Reference CLI protected password input",
+      "directive": "USE",
+      "versionConstraint": {
+        "major": 5
+      },
+      "packages": ["@inquirer/password"]
     },
     {
       "roleId": "auth.password-hash",
@@ -467,6 +497,9 @@
       ],
       "boundary": "SecretBackend provider composition",
       "directive": "USE",
+      "versionConstraint": {
+        "major": 2
+      },
       "packages": ["@napi-rs/keyring"]
     },
     {

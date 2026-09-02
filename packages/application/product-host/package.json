@@ -1,0 +1,37 @@
+{
+  "name": "@heptalogos/product-host",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "heptalogos-host": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@fastify/rate-limit": "catalog:",
+    "@fastify/swagger": "catalog:",
+    "@heptalogos/bootstrap-runtime": "workspace:*",
+    "@heptalogos/bootstrap-state": "workspace:*",
+    "@heptalogos/canonical-schema": "workspace:*",
+    "@heptalogos/evidence": "workspace:*",
+    "@heptalogos/execution-lineage": "workspace:*",
+    "@heptalogos/foundation-contracts": "workspace:*",
+    "@heptalogos/management": "workspace:*",
+    "@heptalogos/os-credential": "workspace:*",
+    "@heptalogos/persistence": "workspace:*",
+    "@heptalogos/runtime-kernel": "workspace:*",
+    "@heptalogos/runtime-substrate": "workspace:*",
+    "@heptalogos/time-service": "workspace:*",
+    "fastify": "catalog:",
+    "write-file-atomic": "catalog:"
+  },
+  "devDependencies": {
+    "vitest": "catalog:"
+  }
+}

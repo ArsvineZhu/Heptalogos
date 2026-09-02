@@ -51,6 +51,21 @@
     },
     {
       "path": "./packages/execution/effect-operation"
+    },
+    {
+      "path": "./packages/system/os-credential"
+    },
+    {
+      "path": "./packages/system/management"
+    },
+    {
+      "path": "./packages/application/management-client"
+    },
+    {
+      "path": "./packages/application/product-host"
+    },
+    {
+      "path": "./packages/application/cli"
     }
   ]
 }

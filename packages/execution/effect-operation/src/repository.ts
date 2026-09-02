@@ -9,11 +9,11 @@ import type {
   PersistenceReadTransactionContext,
 } from "@heptalogos/persistence";
 import {
-  executeFoundationSql,
-  useFoundationMutationTransaction,
-  useFoundationReadTransaction,
+  executeRepositorySql,
+  useRepositoryMutationTransaction,
+  useRepositoryReadTransaction,
   type PersistenceInternalTransaction,
-} from "@heptalogos/persistence/foundation-repository";
+} from "@heptalogos/persistence/repository";
 import type { CanonicalJsonValue } from "@heptalogos/foundation-contracts";
 import { canonicalizeJson } from "@heptalogos/foundation-contracts";
 import type {
@@ -117,7 +117,7 @@ async function selectById(
   transaction: PersistenceInternalTransaction,
   id: EffectOperationId,
 ): Promise<EffectOperation | undefined> {
-  const rows = await executeFoundationSql<Record<string, unknown>>(
+  const rows = await executeRepositorySql<Record<string, unknown>>(
     transaction,
     `SELECT ${operationColumns}
        FROM "heptalogos"."effect_operation"
@@ -145,20 +145,20 @@ function sameImmutableRequest(
 export function createEffectOperationRepository(): EffectOperationRepository {
   return {
     async get(context, id) {
-      return useFoundationReadTransaction(context, (transaction) =>
+      return useRepositoryReadTransaction(context, (transaction) =>
         selectById(transaction, id),
       );
     },
 
     async getInMutation(context, id) {
-      return useFoundationMutationTransaction(context, (transaction) =>
+      return useRepositoryMutationTransaction(context, (transaction) =>
         selectById(transaction, id),
       );
     },
 
     async insertPrepared(context, input) {
-      return useFoundationMutationTransaction(context, async (transaction) => {
-        const inserted = await executeFoundationSql<Record<string, unknown>>(
+      return useRepositoryMutationTransaction(context, async (transaction) => {
+        const inserted = await executeRepositorySql<Record<string, unknown>>(
           transaction,
           `INSERT INTO "heptalogos"."effect_operation" (
              effect_operation_id, schema_version, effect_kind, request_version,
@@ -193,8 +193,8 @@ export function createEffectOperationRepository(): EffectOperationRepository {
     },
 
     async beginDispatch(context, id, updatedAt) {
-      return useFoundationMutationTransaction(context, async (transaction) => {
-        const admitted = await executeFoundationSql<Record<string, unknown>>(
+      return useRepositoryMutationTransaction(context, async (transaction) => {
+        const admitted = await executeRepositorySql<Record<string, unknown>>(
           transaction,
           `UPDATE "heptalogos"."effect_operation"
               SET state = 'DISPATCHING',
@@ -218,8 +218,8 @@ export function createEffectOperationRepository(): EffectOperationRepository {
     },
 
     async completeDispatch(context, id, outcome, updatedAt) {
-      return useFoundationMutationTransaction(context, async (transaction) => {
-        const completed = await executeFoundationSql<Record<string, unknown>>(
+      return useRepositoryMutationTransaction(context, async (transaction) => {
+        const completed = await executeRepositorySql<Record<string, unknown>>(
           transaction,
           `UPDATE "heptalogos"."effect_operation"
               SET state = $3,
@@ -247,8 +247,8 @@ export function createEffectOperationRepository(): EffectOperationRepository {
     },
 
     async recoverDispatchAsUncertain(context, id, outcome, updatedAt) {
-      return useFoundationMutationTransaction(context, async (transaction) => {
-        const recovered = await executeFoundationSql<Record<string, unknown>>(
+      return useRepositoryMutationTransaction(context, async (transaction) => {
+        const recovered = await executeRepositorySql<Record<string, unknown>>(
           transaction,
           `UPDATE "heptalogos"."effect_operation"
               SET state = 'UNCERTAIN',
@@ -269,8 +269,8 @@ export function createEffectOperationRepository(): EffectOperationRepository {
     },
 
     async refineUncertain(context, id, outcome, updatedAt) {
-      return useFoundationMutationTransaction(context, async (transaction) => {
-        const refined = await executeFoundationSql<Record<string, unknown>>(
+      return useRepositoryMutationTransaction(context, async (transaction) => {
+        const refined = await executeRepositorySql<Record<string, unknown>>(
           transaction,
           `UPDATE "heptalogos"."effect_operation"
               SET state = $2,

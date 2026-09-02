@@ -6,6 +6,7 @@
     "denyWarnings": true,
     "reportUnusedDisableDirectives": "deny"
   },
+  "ignorePatterns": ["packages/application/management-client/src/generated/**"],
   "rules": {
     "typescript/no-floating-promises": "error",
     "typescript/no-misused-promises": "error",

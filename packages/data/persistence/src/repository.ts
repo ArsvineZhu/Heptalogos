@@ -1,7 +1,7 @@
 /**
- * Provides the restricted Foundation repository seam over persistence
- * transactions so domain owners cannot bypass the Host fence with direct SQL.
- * @module foundation-repository
+ * Provides the restricted repository seam over persistence transactions so
+ * domain owners cannot bypass the Host fence with direct SQL.
+ * @module repository
  */
 
 import type {
@@ -17,8 +17,8 @@ import { persistenceTransactionContextInvalidProblem } from "./problems.js";
 
 export type { PersistenceInternalTransaction } from "./transaction-context.js";
 
-/** Executes raw SQL only through the restricted Foundation transaction seam. */
-export async function executeFoundationSql<Row = Record<string, unknown>>(
+/** Executes raw SQL only through the restricted repository transaction seam. */
+export async function executeRepositorySql<Row = Record<string, unknown>>(
   transaction: PersistenceInternalTransaction,
   text: string,
   parameters: readonly unknown[] = [],
@@ -29,8 +29,8 @@ export async function executeFoundationSql<Row = Record<string, unknown>>(
   return result.rows;
 }
 
-/** Runs a Foundation read operation after validating its transaction mode. */
-export async function useFoundationReadTransaction<T>(
+/** Runs a repository read operation after validating its transaction mode. */
+export async function useRepositoryReadTransaction<T>(
   context: PersistenceReadTransactionContext,
   operation: (transaction: PersistenceInternalTransaction) => Promise<T>,
 ): Promise<T> {
@@ -40,8 +40,8 @@ export async function useFoundationReadTransaction<T>(
   return operation(resolveTransactionContext(context));
 }
 
-/** Runs a Foundation mutation operation after validating its transaction mode. */
-export async function useFoundationMutationTransaction<T>(
+/** Runs a repository mutation operation after validating its transaction mode. */
+export async function useRepositoryMutationTransaction<T>(
   context: PersistenceMutationTransactionContext,
   operation: (transaction: PersistenceInternalTransaction) => Promise<T>,
 ): Promise<T> {

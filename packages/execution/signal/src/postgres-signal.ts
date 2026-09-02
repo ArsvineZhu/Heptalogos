@@ -27,8 +27,8 @@ import type {
 } from "./contracts.js";
 import { signalProblem } from "./problems.js";
 import type { PersistenceMutationTransactionContext } from "@heptalogos/persistence";
-import type { PersistenceInternalTransaction } from "@heptalogos/persistence/foundation-repository";
-import { useFoundationMutationTransaction } from "@heptalogos/persistence/foundation-repository";
+import type { PersistenceInternalTransaction } from "@heptalogos/persistence/repository";
+import { useRepositoryMutationTransaction } from "@heptalogos/persistence/repository";
 import { ProblemError } from "@heptalogos/foundation-contracts";
 
 const utf8Decoder = new TextDecoder("utf-8", { fatal: true });
@@ -450,7 +450,7 @@ export const postgresSignalPublisher: SignalPublisher = {
   ) {
     try {
       const encoded = encodeSignalHint({ schemaVersion: 1, topic });
-      await useFoundationMutationTransaction(transaction, (databaseTransaction) =>
+      await useRepositoryMutationTransaction(transaction, (databaseTransaction) =>
         executeNotify(databaseTransaction, encoded),
       );
     } catch (error) {

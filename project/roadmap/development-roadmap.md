@@ -617,23 +617,31 @@ T1: COMPLETED
 T1C: COMPLETED
 T2: COMPLETED
 normativeProductContracts: FROZEN_FOR_FIRST_PRODUCT_SLICE
+P1: COMPLETE_HEADLESS_PRODUCT_HOST_AND_INITIAL_MANAGEMENT
+P1_QUALIFICATION: PARTIAL_WINDOWS_PROFILE
 nextEligibleImplementation:
-  P1: Product Host + initial Management spine
-P1: ELIGIBLE_NOT_AUTHORIZED
+  P2: provider prerequisites
+  O1: OpenClaw integration baseline
+P2: ELIGIBLE_NOT_AUTHORIZED
+O1: ELIGIBLE_NOT_AUTHORIZED
 activeProductImplementationPlan: NONE
+currentProductWork: NONE
+ordinaryGitHubActions: DISABLED_CURRENT_EXECUTION_POLICY
 ```
 
 T2 completed the eight current H4-Min/H6 normative Product Specs and the
-S1–S16 cross-Spec paper execution audit. P1 is eligible for a separately
-authorized implementation Plan, but is not active or started. The frozen
-current-slice decisions include MANAGED_REVISION-only normal configuration,
+S1–S16 cross-Spec paper execution audit. P1 has now materialized the first
+headless Product Host, initial Management plane, generated client, and
+reference CLI under its separately authorized Plan. The frozen current-slice
+decisions include MANAGED_REVISION-only normal configuration,
 SecretRef-only Product secret references, controllable provider transport
 through NetworkAccess, the two Subject model bindings, one Administrator,
 plan-bound SystemAction execution, deferred-but-adopted Cedar, no generic
 ApprovalService or ManagementOperation, direct text-only Subject Chat, and
-minimal REPLY/SILENCE behavior commit semantics. OpenClaw remains an adopted
-external Machine Operations route and is not an H4-Min or Subject readiness
-dependency.
+minimal REPLY/SILENCE behavior commit semantics. P2 provider prerequisites and
+O1 OpenClaw integration are eligible for separate authorization but are not
+active. OpenClaw remains an adopted external Machine Operations route and is
+not an H4-Min or Subject readiness dependency.
 
 ### H4-Min — provider prerequisites and minimum Management spine
 
@@ -707,10 +715,10 @@ separate Specs by noun alone. PresentationIntent remains a Presentation
 projection concern and does not create an internal assistant or Host Authority
 contract by itself.
 
-The completed T2 Plan records the contract freeze and the S1–S16 audit.
-P1 — Product Host + initial Management spine — is the next eligible work, but
-T2 does not create or activate a P1 implementation Plan and this route does not
-introduce a temporary direct mutation API.
+The completed T2 Plan records the contract freeze and the S1–S16 audit. The
+completed P1 Plan records the first real headless Host and initial Management
+implementation. This route does not introduce a temporary direct mutation API;
+P2 and O1 remain separately eligible and unauthorized.
 
 ### T2 exclusions around the first Product slice
 
