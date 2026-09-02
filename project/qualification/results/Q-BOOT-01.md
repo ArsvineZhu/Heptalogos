@@ -13,15 +13,19 @@ selectedRoute: "`@bybrave/proper-lockfile2` 5.0.0"
 currentCandidate:
   candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
   behaviorCandidateSha: e8325c5a31601bf5082d6c5c39aa9cf05896b4f7
-  branch: dev/h3-stabilization
+  repositoryBaseline: master
+  formerCandidateBranch: dev/h3-stabilization
   plan: project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md
-  lifecycle: ACTIVE
+  candidateLifecycle: MERGED
+  pullRequest: 32
+  mergeCommitSha: 51317428a89b5545d3ac614f1012d869a1251203
   freeze: NOT_RUN
   reviewCandidateHeadSha: a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf
   reviewSource: external_out_of_band_user_operator_feedback
   independentReview: PASS
   finalCandidateRevalidation: PASS
-  merge: NOT_RUN
+  finalCrossPlatformCI: NOT_RUN
+  merge: PASS
 ```
 
 ## Current candidate evidence
@@ -66,10 +70,11 @@ service_account_acl: NOT_RUN
 hardware_power_loss: NOT_RUN
 independent_review: PASS (operator-supplied exact candidate review; review HEAD a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf; behavior candidate e8325c5a31601bf5082d6c5c39aa9cf05896b4f7)
 final_cross_platform_ci: NOT_RUN
-squash_merge: NOT_RUN
+squash_merge: PASS (PR #32 merge 51317428a89b5545d3ac614f1012d869a1251203)
 ```
 
-The current behavior candidate is `e8325c5a31601bf5082d6c5c39aa9cf05896b4f7`.
+The merged Foundation baseline includes behavior candidate
+`e8325c5a31601bf5082d6c5c39aa9cf05896b4f7`.
 It keeps PREPARED abortable after a failed pre-entry attempt, resolves an
 uncertain EXECUTING publication from current journal truth, makes UNPROVEN
 capability observation fail closed, and preserves the one-way post-entry
@@ -77,7 +82,8 @@ boundary. The affected Windows PostgreSQL 18.6 restart integration passed all
 6 tests, and the exact behavior candidate received external Independent Review
 `PASS` at review HEAD
 `a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf`. Linux/macOS, source-less,
-service-account, hardware, final-CI, and merge claims remain `NOT_RUN`.
+service-account, hardware, and final-CI claims remain `NOT_RUN`; the reviewed
+candidate is represented by the merged `master` baseline through PR #32.
 
 ## Historical H1-S candidate snapshot (2026-08-23)
 

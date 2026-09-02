@@ -11,12 +11,19 @@ selectedRoute: "DBOS Queue"
 currentCandidate:
   candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
   behaviorCandidateSha: 7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b
-  branch: dev/h3-stabilization
+  repositoryBaseline: master
+  formerCandidateBranch: dev/h3-stabilization
   plan: project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md
-  lifecycle: ACTIVE
+  candidateLifecycle: MERGED
+  pullRequest: 32
+  mergeCommitSha: 51317428a89b5545d3ac614f1012d869a1251203
+  reviewCandidateHeadSha: a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf
+  reviewSource: external_out_of_band_user_operator_feedback
   freeze: NOT_RUN
-  independentReview: NOT_RUN
-  merge: NOT_RUN
+  independentReview: PASS
+  finalCandidateRevalidation: PASS
+  finalCrossPlatformCI: NOT_RUN
+  merge: PASS
 currentEvidence:
   work_queue_unit: PASS (6 files, 57 tests)
   durable_execution_unit: PASS (9 files, 38 tests)
@@ -28,13 +35,18 @@ currentEvidence:
   source_less: NOT_RUN
   macos: NOT_RUN
   repository_verify: PASS (pnpm nx run repository:verify --skip-nx-cache)
+  independent_review: PASS
+  final_candidate_revalidation: PASS
+  final_cross_platform_ci: NOT_RUN
+  merge: PASS
 ```
 
-The current candidate retains canonical WorkItem/CAS, fair scan, Signal
+The merged Foundation baseline retains canonical WorkItem/CAS, fair scan, Signal
 anti-entropy, generation/revision fencing, DBOS queue mechanics, and Effect
 uncertainty. The current Windows run proves the package/unit surfaces and the
-real PostgreSQL/DBOS process boundaries; source-less, macOS, repository-gate,
-review, and merge claims remain separately qualified.
+real PostgreSQL/DBOS process boundaries; source-less and macOS claims remain
+separately qualified. Independent Review, final candidate revalidation, and
+merge are recorded as `PASS`; final cross-platform CI remains `NOT_RUN`.
 
 ## Historical observed properties
 

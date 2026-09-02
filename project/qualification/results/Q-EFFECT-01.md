@@ -11,12 +11,19 @@ qualificationState: PARTIAL
 currentCandidate:
   candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
   behaviorCandidateSha: 7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b
-  branch: dev/h3-stabilization
+  repositoryBaseline: master
+  formerCandidateBranch: dev/h3-stabilization
   plan: project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md
-  lifecycle: ACTIVE
+  candidateLifecycle: MERGED
+  pullRequest: 32
+  mergeCommitSha: 51317428a89b5545d3ac614f1012d869a1251203
+  reviewCandidateHeadSha: a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf
+  reviewSource: external_out_of_band_user_operator_feedback
   freeze: NOT_RUN
-  independentReview: NOT_RUN
-  merge: NOT_RUN
+  independentReview: PASS
+  finalCandidateRevalidation: PASS
+  finalCrossPlatformCI: NOT_RUN
+  merge: PASS
 ```
 
 ## Current boundary
@@ -72,8 +79,10 @@ source_less: NOT_RUN
 service_headless: NOT_RUN
 macos_real_effect_process: NOT_RUN
 hardware_power_loss: NOT_RUN
-independent_review: NOT_RUN
-merge: NOT_RUN
+independent_review: PASS
+final_candidate_revalidation: PASS
+final_cross_platform_ci: NOT_RUN
+merge: PASS
 ```
 
 Actual runs on the current Windows host:
@@ -99,7 +108,7 @@ write, zero writes plus conservative `UNCERTAIN` after a crash before the
 write, no duplicate after an already committed effect outcome, and no
 redispatch after authentic Host lease loss.
 
-## Unrun boundaries
+## Remaining unrun boundaries
 
 ```yaml
 real_network_provider: NOT_RUN
@@ -109,20 +118,21 @@ source_less: NOT_RUN
 service_headless: NOT_RUN
 macos_real_effect_process: NOT_RUN
 hardware_power_loss: NOT_RUN
-independent_review: NOT_RUN
-merge: NOT_RUN
+final_cross_platform_ci: NOT_RUN
 ```
 
 No live provider, Messaging Driver, AI provider, source-less artifact,
-service/headless installation, macOS process, hardware power-loss path,
-independent review, or merge was claimed for the current unmerged candidate.
+service/headless installation, macOS process, or hardware power-loss path is
+claimed. Independent Review, final candidate revalidation, and merge are
+recorded as `PASS` for the merged `master` baseline; final cross-platform CI
+remains `NOT_RUN`.
 
 ## Decision
 
 ```yaml
 effect_implementation: PASS
 qualificationState: PARTIAL
-reason: "All current EffectOperation semantic and Windows real PostgreSQL/process proof claims passed, including direct FAILED reconciliation and required Activity/Evidence distinctions; the current candidate remains unmerged and external review/merge are NOT_RUN; deferred provider, artifact, platform, service, and hardware boundaries remain NOT_RUN."
+reason: "All current EffectOperation semantic and Windows real PostgreSQL/process proof claims passed, including direct FAILED reconciliation and required Activity/Evidence distinctions; the reviewed candidate was revalidated and merged into master; deferred provider, artifact, platform, service, hardware, and final cross-platform CI boundaries remain NOT_RUN."
 reopenConditions: "Only new current evidence, an accepted current-Horizon failure, a current consumer/invariant, or an explicit active Plan requirement."
 ```
 
@@ -168,17 +178,28 @@ candidate and is not rewritten.
 ```yaml
 candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
 behaviorCandidateSha: 7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b
-branch: dev/h3-stabilization
+repositoryBaseline: master
+formerCandidateBranch: dev/h3-stabilization
 plan: project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md
+candidateLifecycle: MERGED
+pullRequest: 32
+mergeCommitSha: 51317428a89b5545d3ac614f1012d869a1251203
+reviewCandidateHeadSha: a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf
+reviewSource: external_out_of_band_user_operator_feedback
 effectOperationUnit: PASS (1 file, 4 tests)
 realPostgresService: PASS (6/6 service tests)
 processQualification: PASS (6/6 tests; EU-01 through EU-06)
 foundationExecutableSpine: PASS (2/2 tests)
 repositoryVerify: PASS
-independentReview: NOT_RUN
-merge: NOT_RUN
+independentReview: PASS
+finalCandidateRevalidation: PASS
+finalCrossPlatformCI: NOT_RUN
+merge: PASS
 qualificationState: PARTIAL
 ```
 
-The current projection does not inherit H3B or H3-S candidate evidence after
-the remediation source and integration-boundary changes.
+The current projection describes the merged Foundation remediation baseline on
+`master`; the candidate SHAs remain evidence provenance. It does not inherit
+H3B or H3-S candidate evidence after the remediation source and
+integration-boundary changes. Source-less, service/headless, macOS, hardware,
+and final cross-platform CI qualification remain `NOT_RUN`.

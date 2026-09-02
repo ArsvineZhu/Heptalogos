@@ -11,12 +11,19 @@ testedProperty: "Exact PostgreSQL 18.6 private bootstrap initialization, portabl
 currentCandidate:
   candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
   behaviorCandidateSha: 7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b
-  branch: dev/h3-stabilization
+  repositoryBaseline: master
+  formerCandidateBranch: dev/h3-stabilization
   plan: project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md
-  lifecycle: ACTIVE
+  candidateLifecycle: MERGED
+  pullRequest: 32
+  mergeCommitSha: 51317428a89b5545d3ac614f1012d869a1251203
+  reviewCandidateHeadSha: a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf
+  reviewSource: external_out_of_band_user_operator_feedback
   freeze: NOT_RUN
-  independentReview: NOT_RUN
-  merge: NOT_RUN
+  independentReview: PASS
+  finalCandidateRevalidation: PASS
+  finalCrossPlatformCI: NOT_RUN
+  merge: PASS
 ```
 
 ## Current candidate evidence
@@ -38,19 +45,21 @@ macos_real_pg: NOT_RUN
 source_less_shipping_closure: NOT_RUN
 service_account_acl_closure: NOT_RUN
 hardware_power_loss: NOT_RUN
-independent_review: NOT_RUN
+independent_review: PASS
+final_candidate_revalidation: PASS
 final_cross_platform_ci: NOT_RUN
-squash_merge: NOT_RUN
+squash_merge: PASS (PR #32 merge 51317428a89b5545d3ac614f1012d869a1251203)
 repository_verify: PASS (pnpm nx run repository:verify --skip-nx-cache)
 ```
 
-The current candidate was exercised with `HEPTALOGOS_TEST_PG_BIN` pointing to
+The current merged baseline was exercised with `HEPTALOGOS_TEST_PG_BIN` pointing to
 the ignored repository-local PostgreSQL 18.6 toolchain. The terminal
 maintenance witness, same-cluster STOP/RESTART paths, ownership-held handoff,
 and fail-closed host-loss path are covered by the current BootstrapRuntime,
 HostOwnership, and integration-foundation runs. Linux/macOS, source-less,
-service-account, hardware, review, merge, and final-gate claims remain
-`NOT_RUN`.
+service-account, hardware, and final cross-platform CI claims remain `NOT_RUN`;
+Independent Review, final candidate revalidation, and merge are recorded as
+`PASS` for the merged `master` baseline.
 
 ## Historical H1-S candidate snapshot (2026-08-23)
 
@@ -766,8 +775,14 @@ service/headless, service-account ACL, or hardware power-loss qualification.
 ```yaml
 candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
 behaviorCandidateSha: 7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b
-branch: dev/h3-stabilization
+repositoryBaseline: master
+formerCandidateBranch: dev/h3-stabilization
 plan: project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md
+candidateLifecycle: MERGED
+pullRequest: 32
+mergeCommitSha: 51317428a89b5545d3ac614f1012d869a1251203
+reviewCandidateHeadSha: a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf
+reviewSource: external_out_of_band_user_operator_feedback
 privatePostgresUnit: PASS (9 files, 59 tests)
 privatePostgresIntegration: PASS (20/20)
 hostOwnershipIntegration: PASS (11/11)
@@ -778,11 +793,16 @@ sourceLess: NOT_RUN
 serviceHeadless: NOT_RUN
 macos: NOT_RUN
 repositoryVerify: PASS
-independentReview: NOT_RUN
-merge: NOT_RUN
+independentReview: PASS
+finalCandidateRevalidation: PASS
+finalCrossPlatformCI: NOT_RUN
+merge: PASS
 qualificationState: PARTIAL
 ```
 
-This projection is for the current unmerged remediation candidate. It keeps
-private PostgreSQL identity and external process uncertainty as explicit
-qualification properties and does not inherit historical candidate evidence.
+This projection describes the merged Foundation remediation baseline on
+`master`. It keeps private PostgreSQL identity and external process uncertainty
+as explicit qualification properties, preserves candidate SHAs as evidence
+provenance, and does not inherit historical candidate evidence. Linux/macOS,
+source-less, service-account, hardware, and final cross-platform CI claims
+remain `NOT_RUN`.

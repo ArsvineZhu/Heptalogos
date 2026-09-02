@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-09-02T13:56:43+08:00",
+  "recordedAt": "2026-09-02T17:03:46+08:00",
   "authority": "../dependency-status.json",
   "statusSemantics": {
     "evidenceStatus": ["PASS", "FAIL", "NOT_RUN", "BLOCKED"],
@@ -32,8 +32,9 @@
         "toolchain": "Windows / Node 24.20.0 / pnpm 11.24.0 / TypeScript 7 toolchain",
         "foundationExecutableSpine": "Windows real PostgreSQL 18.6 and DBOS 4.27.6; 2 process-level scenarios passed",
         "foundationExecutableSpineUbuntu": "Ubuntu/Linux real PostgreSQL 18.6 and DBOS on the current host: durable-work-recovery / Foundation-spine / bootstrap-recovery-process real-PostgreSQL files 16/16; explicit HEPTALOGOS_TEST_PG_BIN",
-        "currentCandidateLifecycle": "DRAFT; current Foundation containment candidate remains mutable",
-        "repositoryVerify": "PASS (pnpm verify on current Foundation containment candidate)"
+        "currentCandidateLifecycle": "MERGED (PR #32; master at 51317428a89b5545d3ac614f1012d869a1251203)",
+        "repositoryBaseline": "master at 51317428a89b5545d3ac614f1012d869a1251203",
+        "repositoryVerify": "PASS (pnpm verify on merged master baseline)"
       },
       "notRunReasons": {
         "product_runtime_start_stop": "The Foundation spine is not the H6 Product Runtime or Subject vertical slice.",
@@ -48,12 +49,19 @@
       "currentCandidate": {
         "candidateId": "FOUNDATION-REMEDIATION-BUNDLE-2026-09-01",
         "behaviorCandidateSha": "7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b",
-        "branch": "dev/h3-stabilization",
+        "repositoryBaseline": "master",
+        "formerCandidateBranch": "dev/h3-stabilization",
         "plan": "project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md",
-        "lifecycle": "ACTIVE",
+        "candidateLifecycle": "MERGED",
+        "pullRequest": 32,
+        "mergeCommitSha": "51317428a89b5545d3ac614f1012d869a1251203",
+        "reviewCandidateHeadSha": "a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf",
+        "reviewSource": "external_out_of_band_user_operator_feedback",
         "freeze": "NOT_RUN",
-        "independentReview": "NOT_RUN",
-        "merge": "NOT_RUN"
+        "independentReview": "PASS",
+        "finalCandidateRevalidation": "PASS",
+        "finalCrossPlatformCI": "NOT_RUN",
+        "merge": "PASS"
       },
       "currentEvidence": {
         "runtimeKernelTerminalLifecycle": "PASS (5 files, 130 tests)",
@@ -62,8 +70,10 @@
         "integrationFoundationRuntimeComposition": "PASS (14 files, 87 tests)",
         "realPostgresRuntimeQualification": "PASS (runtime-kernel managed-host composition included in the real PostgreSQL integration target)",
         "repositoryVerify": "PASS (pnpm nx run repository:verify --skip-nx-cache)",
-        "independentReview": "NOT_RUN",
-        "merge": "NOT_RUN"
+        "independentReview": "PASS",
+        "finalCandidateRevalidation": "PASS",
+        "finalCrossPlatformCI": "NOT_RUN",
+        "merge": "PASS"
       },
       "historicalEvidence": {
         "P1_dependency_lifecycle": "PASS",
@@ -178,8 +188,7 @@
         "sourceLessRuntime": "No source-less artifact was executed.",
         "serviceHeadlessRuntime": "No installed service/headless runtime was executed.",
         "macosRuntime": "Only the current Windows host is available in this run.",
-        "independentReview": "Independent review of this exact unmerged candidate has not run.",
-        "merge": "This working tree has not been merged."
+        "finalCrossPlatformCI": "Final cross-platform CI was not run under the current execution policy."
       },
       "preImplementationDecisionState": "CLOSED",
       "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification unless explicitly promoted by a future blocker."
@@ -192,13 +201,21 @@
       "candidate": {
         "candidateId": "FOUNDATION-REMEDIATION-BUNDLE-2026-09-01",
         "behaviorCandidateSha": "7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b",
-        "branch": "dev/h3-stabilization",
+        "repositoryBaseline": "master",
+        "formerCandidateBranch": "dev/h3-stabilization",
         "plan": "project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md",
-        "lifecycle": "ACTIVE",
+        "candidateLifecycle": "MERGED",
+        "pullRequest": 32,
+        "mergeCommitSha": "51317428a89b5545d3ac614f1012d869a1251203",
+        "reviewCandidateHeadSha": "a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf",
+        "reviewSource": "external_out_of_band_user_operator_feedback",
         "freeze": "NOT_RUN",
-        "independentReview": "NOT_RUN",
+        "independentReview": "PASS",
+        "finalCandidateRevalidation": "PASS",
+        "finalCrossPlatformCI": "NOT_RUN",
+        "merge": "PASS",
         "finalManualVerification": "NOT_RUN",
-        "githubActions": "NOT_ENABLED_OR_REQUIRED"
+        "githubActions": "DISABLED_CURRENT_EXECUTION_POLICY"
       },
       "evidence": {
         "workQueueUnit": "PASS (6 files, 57 tests)",
@@ -209,14 +226,20 @@
         "realPostgresDbosProcessSpine": "PASS (foundation-spine 2/2 and durable-recovery-process 8/8)",
         "realEffectUncertainty": "PASS (12/12 combined tests)",
         "repositoryVerify": "PASS (pnpm nx run repository:verify --skip-nx-cache)",
-        "independentReview": "NOT_RUN",
-        "merge": "NOT_RUN"
+        "independentReview": "PASS",
+        "finalCandidateRevalidation": "PASS",
+        "finalCrossPlatformCI": "NOT_RUN",
+        "merge": "PASS"
       },
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
       "evidenceSource": {
-        "baseline": "da7e2f013d92066b09da187ce03875207b085962",
-        "branch": "dev/h3-stabilization",
+        "planBaseline": "da7e2f013d92066b09da187ce03875207b085962",
+        "repositoryBaseline": "master at 51317428a89b5545d3ac614f1012d869a1251203",
+        "formerCandidateBranch": "dev/h3-stabilization",
+        "pullRequest": 32,
+        "mergeCommitSha": "51317428a89b5545d3ac614f1012d869a1251203",
+        "reviewCandidateHeadSha": "a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf",
         "plan": "project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md",
         "environment": "Windows / Node 24.20.0 / pnpm 11.24.0 / TypeScript 7 toolchain",
         "postgresToolchain": "tmp/pg/extracted/pgsql/bin configured for the current Windows run",
@@ -378,12 +401,10 @@
       },
       "notRunReasons": {
         "linux_current_candidate": "No Linux execution environment was available in this run.",
-        "h3s_independent_review": "An out-of-band Independent Review verdict has not been supplied.",
-        "h3s_final_manual_ci": "Ordinary GitHub Actions are disabled; final manual CI follows Independent Review under the closure playbook.",
-        "h3s_merge": "No external review/merge has occurred."
+        "final_cross_platform_ci": "Final cross-platform CI was not run under the current execution policy."
       },
       "preImplementationDecisionState": "CLOSED",
-      "decisionNote": "H3-S current local implementation, claim-matched Windows evidence, and repository verification are PASS; external closure remains NOT_RUN. Earlier H3A-2 candidate data is preserved under historicalEvidence."
+      "decisionNote": "The reviewed Foundation candidate is represented by the merged master baseline. Final cross-platform CI and unexecuted product properties remain NOT_RUN; earlier H3A-2 candidate data is preserved under historicalEvidence."
     },
     {
       "qualificationId": "Q-SECRET-01",
@@ -474,15 +495,19 @@
       "currentCandidate": {
         "candidateId": "FOUNDATION-REMEDIATION-BUNDLE-2026-09-01",
         "behaviorCandidateSha": "e8325c5a31601bf5082d6c5c39aa9cf05896b4f7",
-        "branch": "dev/h3-stabilization",
+        "repositoryBaseline": "master",
+        "formerCandidateBranch": "dev/h3-stabilization",
         "plan": "project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md",
-        "lifecycle": "ACTIVE",
+        "candidateLifecycle": "MERGED",
+        "pullRequest": 32,
+        "mergeCommitSha": "51317428a89b5545d3ac614f1012d869a1251203",
         "freeze": "NOT_RUN",
         "reviewCandidateHeadSha": "a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf",
         "reviewSource": "external_out_of_band_user_operator_feedback",
         "independentReview": "PASS",
         "finalCandidateRevalidation": "PASS",
-        "merge": "NOT_RUN"
+        "finalCrossPlatformCI": "NOT_RUN",
+        "merge": "PASS"
       },
       "currentEvidence": {
         "canonical_bootstrap_state_v1": "PASS",
@@ -524,7 +549,7 @@
         "hardware_power_loss": "NOT_RUN",
         "independent_review": "PASS (operator-supplied exact candidate review; review HEAD a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf; behavior candidate e8325c5a31601bf5082d6c5c39aa9cf05896b4f7)",
         "final_cross_platform_ci": "NOT_RUN",
-        "squash_merge": "NOT_RUN"
+        "squash_merge": "PASS (PR #32 merge 51317428a89b5545d3ac614f1012d869a1251203)"
       },
       "historicalEvidence": {
         "canonical_bootstrap_state_v1": "PASS",
@@ -572,11 +597,12 @@
       "evidenceSource": {
         "candidate": "FOUNDATION-REMEDIATION-BUNDLE-2026-09-01",
         "behaviorCandidateSha": "e8325c5a31601bf5082d6c5c39aa9cf05896b4f7",
+        "repositoryBaseline": "master at 51317428a89b5545d3ac614f1012d869a1251203",
+        "formerCandidateBranch": "dev/h3-stabilization",
         "reviewCandidateHeadSha": "a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf",
         "reviewSource": "external_out_of_band_user_operator_feedback",
         "independentReview": "PASS (operator-supplied exact candidate review)",
         "finalCandidateRevalidation": "PASS (pnpm verify --skip-nx-cache on review HEAD tree)",
-        "branch": "dev/h3-stabilization",
         "plan": "project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md",
         "runtime": "Windows / Node 24.20.0 / pnpm 11.24.0 / TypeScript 7 toolchain",
         "selectedRoute": "@bybrave/proper-lockfile2@5.0.0",
@@ -611,12 +637,10 @@
         "source_less_recovery": "Source-less recovery invocation was not run.",
         "service_account_acl": "Installer/service-account ACL qualification was not run.",
         "hardware_power_loss": "Hardware power-loss qualification was not run.",
-        "independent_review": "Independent review of this exact unmerged candidate has not run.",
-        "final_cross_platform_ci": "Final cross-platform CI of this exact candidate has not run.",
-        "squash_merge": "The stabilization branch has not been squash-merged."
+        "final_cross_platform_ci": "Final cross-platform CI was not run under the current execution policy."
       },
       "preImplementationDecisionState": "CLOSED",
-      "decisionNote": "Provider selection is frozen by the current Architecture authority. NOT_RUN properties are residual implementation/product qualification or external closure gates; they do not reopen the adopted route."
+      "decisionNote": "The reviewed Foundation candidate is represented by the merged master baseline. Final cross-platform CI and unexecuted product properties remain NOT_RUN; they do not reopen the adopted route."
     },
     {
       "qualificationId": "C-SCHEMA-01",
@@ -798,12 +822,19 @@
       "currentCandidate": {
         "candidateId": "FOUNDATION-REMEDIATION-BUNDLE-2026-09-01",
         "behaviorCandidateSha": "7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b",
-        "branch": "dev/h3-stabilization",
+        "repositoryBaseline": "master",
+        "formerCandidateBranch": "dev/h3-stabilization",
         "plan": "project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md",
-        "lifecycle": "ACTIVE",
+        "candidateLifecycle": "MERGED",
+        "pullRequest": 32,
+        "mergeCommitSha": "51317428a89b5545d3ac614f1012d869a1251203",
+        "reviewCandidateHeadSha": "a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf",
+        "reviewSource": "external_out_of_band_user_operator_feedback",
         "freeze": "NOT_RUN",
-        "independentReview": "NOT_RUN",
-        "merge": "NOT_RUN"
+        "independentReview": "PASS",
+        "finalCandidateRevalidation": "PASS",
+        "finalCrossPlatformCI": "NOT_RUN",
+        "merge": "PASS"
       },
       "currentEvidence": {
         "canonical_v1_private_postgres_identity_commit": "PASS",
@@ -823,9 +854,10 @@
         "service_account_acl_closure": "NOT_RUN",
         "hardware_power_loss": "NOT_RUN",
         "repository_verify": "PASS (pnpm nx run repository:verify --skip-nx-cache)",
-        "independent_review": "NOT_RUN",
+        "independent_review": "PASS",
+        "final_candidate_revalidation": "PASS",
         "final_cross_platform_ci": "NOT_RUN",
-        "squash_merge": "NOT_RUN"
+        "squash_merge": "PASS (PR #32 merge 51317428a89b5545d3ac614f1012d869a1251203)"
       },
       "historicalEvidence": {
         "canonical_v1_private_postgres_identity_commit": "PASS",
@@ -853,7 +885,8 @@
       "evidenceSource": {
         "candidate": "FOUNDATION-REMEDIATION-BUNDLE-2026-09-01",
         "behaviorCandidateSha": "7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b",
-        "branch": "dev/h3-stabilization",
+        "repositoryBaseline": "master at 51317428a89b5545d3ac614f1012d869a1251203",
+        "formerCandidateBranch": "dev/h3-stabilization",
         "plan": "project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md",
         "runtime": "Windows / Node 24.20.0 / pnpm 11.24.0 / TypeScript 7 toolchain",
         "postgresProvenance": "EDB PostgreSQL 18.6 Windows x86-64 binary archive extracted under the ignored repository-local qualification directory; not a source-less shipping artifact",
@@ -878,9 +911,7 @@
         "source_less_shipping_closure": "The qualification runtime was an extracted EDB Windows package set, not a source-less Heptalogos shipping artifact.",
         "service_account_acl_closure": "Installer/service-account ACL qualification was not run.",
         "hardware_power_loss": "Hardware power-loss qualification was not run.",
-        "independent_review": "Independent review of this exact candidate has not run.",
-        "final_cross_platform_ci": "Manual final cross-platform CI of this exact candidate has not run.",
-        "squash_merge": "The stabilization branch has not been squash-merged."
+        "final_cross_platform_ci": "Final cross-platform CI was not run under the current execution policy."
       }
     },
     {
@@ -1102,12 +1133,19 @@
       "currentCandidate": {
         "candidateId": "FOUNDATION-REMEDIATION-BUNDLE-2026-09-01",
         "behaviorCandidateSha": "7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b",
-        "branch": "dev/h3-stabilization",
+        "repositoryBaseline": "master",
+        "formerCandidateBranch": "dev/h3-stabilization",
         "plan": "project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md",
-        "lifecycle": "ACTIVE",
+        "candidateLifecycle": "MERGED",
+        "pullRequest": 32,
+        "mergeCommitSha": "51317428a89b5545d3ac614f1012d869a1251203",
+        "reviewCandidateHeadSha": "a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf",
+        "reviewSource": "external_out_of_band_user_operator_feedback",
         "freeze": "NOT_RUN",
-        "independentReview": "NOT_RUN",
-        "merge": "NOT_RUN"
+        "independentReview": "PASS",
+        "finalCandidateRevalidation": "PASS",
+        "finalCrossPlatformCI": "NOT_RUN",
+        "merge": "PASS"
       },
       "currentEvidence": {
         "effectOperationUnit": "PASS (1 file, 4 tests)",
@@ -1146,8 +1184,10 @@
         "service_headless": "NOT_RUN",
         "macos_real_effect_process": "NOT_RUN",
         "hardware_power_loss": "NOT_RUN",
-        "independent_review": "NOT_RUN",
-        "merge": "NOT_RUN"
+        "independent_review": "PASS",
+        "final_candidate_revalidation": "PASS",
+        "final_cross_platform_ci": "NOT_RUN",
+        "merge": "PASS"
       },
       "historicalEvidence": {
         "effectOperationUnit": "PASS (2 files/10 tests)",
@@ -1190,6 +1230,15 @@
         "postgres": "PostgreSQL 18.6 extracted qualification binary via explicit HEPTALOGOS_TEST_PG_BIN=C:\\dev\\Heptalogos\\tmp\\pg\\extracted\\pgsql\\bin",
         "candidate": "FOUNDATION-REMEDIATION-BUNDLE-2026-09-01",
         "behaviorCandidateSha": "7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b",
+        "repositoryBaseline": "master at 51317428a89b5545d3ac614f1012d869a1251203",
+        "formerCandidateBranch": "dev/h3-stabilization",
+        "reviewCandidateHeadSha": "a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf",
+        "reviewSource": "external_out_of_band_user_operator_feedback",
+        "independentReview": "PASS",
+        "finalCandidateRevalidation": "PASS",
+        "finalCrossPlatformCI": "NOT_RUN",
+        "mergeCommitSha": "51317428a89b5545d3ac614f1012d869a1251203",
+        "merge": "PASS",
         "plan": "project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md",
         "realPostgresService": "pnpm nx run integration-foundation:test:effect-uncertainty; 6/6 transaction/service tests PASS",
         "realProcessQualification": "pnpm nx run integration-foundation:test:effect-uncertainty; 6/6 process tests PASS across EU-01 through EU-06; combined target 12/12 PASS",
@@ -1209,8 +1258,7 @@
         "service_headless": "No installed service/headless product artifact was executed.",
         "macos_real_effect_process": "Only the Windows process boundary was executed.",
         "hardware_power_loss": "Power-loss and hardware corruption are deferred catastrophic failure classes.",
-        "independent_review": "Independent review of this exact unmerged candidate has not run.",
-        "merge": "This working tree has not been merged."
+        "final_cross_platform_ci": "Final cross-platform CI was not run under the current execution policy."
       }
     }
   ],

@@ -2,7 +2,7 @@
 
 **Status:** LIVING ROADMAP / planning guidance<br>
 **Date:** 2026-09-02<br>
-**Repository baseline:** completed Foundation Remediation Bundle closure-correction tree on `dev/h3-stabilization`; H3B is closed and no Foundation implementation Plan is active<br>
+**Repository baseline:** merged `master` at `51317428a89b5545d3ac614f1012d869a1251203` (PR #32, H3 Foundation stabilization closure correction); H3 is closed and no Foundation implementation Plan is active<br>
 **Architecture baseline:** `docs/architecture/` design state 2026-08-20
 
 > This document owns development sequencing, Horizon truth, and qualification guidance. It does not replace the canonical Human Architecture, current Specs, Governance, Dependencies, Qualification, or active Plan. Update this Roadmap when evidence changes sequencing or eligibility; update the relevant canonical owner when semantics change.
@@ -163,7 +163,7 @@ H2B: CLOSED
 H2_FUNCTIONAL: COMPLETE
 H2_STABILIZATION: CLOSED
 H2: CLOSED
-H3: ELIGIBLE
+H3: CLOSED
 ```
 
 H2B is closed and H2 is now closed after the H2-S behavior candidate completed
@@ -187,7 +187,7 @@ current_product_qualification:
 ```
 
 H2A and H2B are functionally complete, H2-S stabilization is `CLOSED`, and H3
-is `ELIGIBLE`. H2 closure is not product-qualification closure. The current
+is `CLOSED`. H2 closure is not product-qualification closure. The current
 evidence proves real PostgreSQL on Windows and Ubuntu/Linux; macOS real
 PostgreSQL, source-less execution, installed service/headless execution,
 service-account ACLs, and hardware power-loss behavior remain `NOT_RUN`. Those
@@ -359,7 +359,7 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 ### Current progress (2026-09-02)
 
 ```yaml
-H3: OPEN
+H3: CLOSED
 H3A: FUNCTIONALLY_COMPLETE
 H3A_1: CLOSED
 H3A_2: CLOSED
@@ -380,35 +380,43 @@ localQualification: PASS
 finalCandidateRevalidation: PASS
 independentReview: PASS
 finalCrossPlatformCI: NOT_RUN
-merge: NOT_RUN
+merge: PASS
 ```
 
 The H3A-1 implementation includes complete creation-request envelope
 snapshotting, the canonical fair-scan projection index, and cross-platform
 bootstrap-runtime test budgets. It is accepted as the current product baseline
 by the completed H3A-1 governance recovery record. Existing implementation and
-Draft cross-platform evidence remains preserved, while Independent Review and
-final manual CI remain `NOT_RUN`; they are not inferred from the GitHub merge
-fact. H3A-2 bounded closure is complete for the current H3 scope: no
-observed/current authorized F0-F2 blocker remains, the Foundation executable
-spine passes the real-process boot/work/stop and same-Instance restart
-scenarios, and the terminal-commit restart scenario passes. The current
-closure correction additionally proves durable maintenance entry before
-retirement, no execution of abandoned PREPARED intent, one package-private Host
-reacquisition owner, and the split integration ownership boundary. This does not
-close all product qualification boundaries. Windows and Ubuntu/Linux evidence
-is current for the recorded scenarios; macOS, source-less, service/headless,
-and ResourceGovernor qualification remain individually scoped and must not be
-inferred from another platform or candidate. H3B is now closed after the
-completed EffectOperation plan; the Foundation Remediation Bundle closure
-correction was the bounded stabilization plan after H3B so the containment pass
-followed the final H3 semantic owner. It is now completed after local
-qualification, final candidate revalidation, and the externally supplied
-exact-candidate Independent Review `PASS`. H3 itself remains `OPEN`; final
-cross-platform CI and merge are `NOT_RUN`, and the remaining product
-qualification boundaries remain individually scoped. Ordinary GitHub Actions
-are disabled under the current execution policy; local repository gates remain
-the closure route.
+draft cross-platform evidence remain preserved. H3A-2 bounded closure is
+complete for the current H3 scope: no observed/current authorized F0-F2 blocker
+remains, the Foundation executable spine passes the real-process boot/work/stop
+and same-Instance restart scenarios, and the terminal-commit restart scenario
+passes. The closure correction additionally proves durable maintenance entry
+before retirement, no execution of abandoned PREPARED intent, one
+package-private Host reacquisition owner, and the split integration ownership
+boundary. This does not close all product qualification boundaries. Windows and
+Ubuntu/Linux evidence is current for the recorded scenarios; macOS, source-less,
+service/headless, and ResourceGovernor qualification remain individually scoped
+and must not be inferred from another platform or candidate. H3B is closed and
+the Foundation Remediation Bundle stabilization result is also complete. The
+current H3 closure is:
+
+```yaml
+localQualification: PASS
+finalCandidateRevalidation: PASS
+independentReview: PASS
+finalCrossPlatformCI: NOT_RUN
+merge: PASS
+```
+
+The merged repository baseline is `master` at
+`51317428a89b5545d3ac614f1012d869a1251203`; the former development branch and
+candidate SHAs remain qualification provenance, not the current repository
+locus. H3 closure is a Horizon statement and does not imply macOS, source-less,
+service/headless, service-account ACL, hardware power-loss, ResourceGovernor, or
+release/shipping qualification. Ordinary GitHub Actions are disabled under the
+current execution policy; local repository gates and the recorded external
+closure evidence define the H3 closure route.
 
 The completed Foundation Remediation Bundle Plan is
 [`Foundation Remediation Bundle — Closure Correction — 2026-09-01`](../plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md);

@@ -12,12 +12,19 @@ qualificationState: PARTIAL
 currentCandidate:
   candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
   behaviorCandidateSha: 7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b
-  branch: dev/h3-stabilization
+  repositoryBaseline: master
+  formerCandidateBranch: dev/h3-stabilization
   plan: project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md
-  lifecycle: ACTIVE
+  candidateLifecycle: MERGED
+  pullRequest: 32
+  mergeCommitSha: 51317428a89b5545d3ac614f1012d869a1251203
+  reviewCandidateHeadSha: a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf
+  reviewSource: external_out_of_band_user_operator_feedback
   freeze: NOT_RUN
-  independentReview: NOT_RUN
-  merge: NOT_RUN
+  independentReview: PASS
+  finalCandidateRevalidation: PASS
+  finalCrossPlatformCI: NOT_RUN
+  merge: PASS
 ```
 
 ## Current candidate evidence
@@ -38,8 +45,10 @@ evidence:
   service_headless_runtime: NOT_RUN
   macos_runtime: NOT_RUN
   repository_verify: PASS (pnpm nx run repository:verify --skip-nx-cache)
-  independent_review: NOT_RUN
-  merge: NOT_RUN
+  independent_review: PASS
+  final_candidate_revalidation: PASS
+  final_cross_platform_ci: NOT_RUN
+  merge: PASS
 ```
 
 The current evidence proves the adopted Cordis adapter and RuntimeKernel
@@ -47,8 +56,9 @@ component reconciliation at their package/unit boundaries, plus the current
 cross-package managed-host composition on the Windows PostgreSQL 18.6
 toolchain. Runtime-level close is terminal; component-level quiescence and
 generation retirement remain local reconciliation semantics. Source-less,
-service/headless, macOS, review, merge, and final repository-gate claims remain
-separately qualified.
+service/headless, and macOS claims remain separately qualified; Independent
+Review, final candidate revalidation, and merge are recorded as `PASS`, while
+final cross-platform CI remains `NOT_RUN`.
 
 ## Historical H2B first corrective-cycle addendum (2026-08-25)
 
@@ -451,8 +461,14 @@ execution evidence.
 ```yaml
 candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
 behaviorCandidateSha: 7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b
-branch: dev/h3-stabilization
+repositoryBaseline: master
+formerCandidateBranch: dev/h3-stabilization
 plan: project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md
+candidateLifecycle: MERGED
+pullRequest: 32
+mergeCommitSha: 51317428a89b5545d3ac614f1012d869a1251203
+reviewCandidateHeadSha: a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf
+reviewSource: external_out_of_band_user_operator_feedback
 runtimeKernelTerminalLifecycle: PASS
 runtimeKernelUnit: PASS (5 files, 130 tests)
 runtimeKernelBuildTypecheckLint: PASS
@@ -463,11 +479,16 @@ sourceLess: NOT_RUN
 serviceHeadless: NOT_RUN
 macos: NOT_RUN
 repositoryVerify: PASS
-independentReview: NOT_RUN
-merge: NOT_RUN
+independentReview: PASS
+finalCandidateRevalidation: PASS
+finalCrossPlatformCI: NOT_RUN
+merge: PASS
 qualificationState: PARTIAL
 ```
 
-This projection belongs to the current unmerged remediation candidate. It does
-not inherit the historical H2/H3-S candidate's provider, process, platform, or
-external-governance evidence.
+This projection describes the merged Foundation remediation baseline on
+`master`. It preserves the candidate SHAs as evidence provenance and does not
+inherit the historical H2/H3-S candidate's provider, process, platform, or
+external-governance evidence. Source-less, service/headless, and macOS
+qualification remain `NOT_RUN`; final cross-platform CI also remains
+`NOT_RUN`.
