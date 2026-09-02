@@ -198,11 +198,13 @@ Subject 对管理员的本地 outbound：
 
 ```text
 CommunicationCommit
-→ internal EffectOperation
-→ durable outbound MessageFact
+→ canonical outbound MessageFact
+→ client query / catch-up / live projection
 ```
 
-Presentation client 断线不产生 external `uncertain`。
+本地 Presentation client 断线、错过 live event 或关闭窗口不产生
+EffectOperation `uncertain`。MessageFact 保持 canonical truth，客户端恢复
+后通过 query/catch-up 读取。
 
 客户端恢复后 query/catch-up canonical message。
 

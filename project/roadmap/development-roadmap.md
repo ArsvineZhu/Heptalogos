@@ -610,14 +610,30 @@ O1 does not block the first H6 semantic Subject proof unless a concrete
 current dependency requires it. These labels are planning decomposition, not
 permanent architecture layer names.
 
-Current Product Authority status:
+Current Product Authority and normative-contract status:
 
 ```yaml
 T1: COMPLETED
 T1C: COMPLETED
-T2: ELIGIBLE_NOT_AUTHORIZED
+T2: COMPLETED
+normativeProductContracts: FROZEN_FOR_FIRST_PRODUCT_SLICE
+nextEligibleImplementation:
+  P1: Product Host + initial Management spine
+P1: ELIGIBLE_NOT_AUTHORIZED
 activeProductImplementationPlan: NONE
 ```
+
+T2 completed the eight current H4-Min/H6 normative Product Specs and the
+S1–S16 cross-Spec paper execution audit. P1 is eligible for a separately
+authorized implementation Plan, but is not active or started. The frozen
+current-slice decisions include MANAGED_REVISION-only normal configuration,
+SecretRef-only Product secret references, controllable provider transport
+through NetworkAccess, the two Subject model bindings, one Administrator,
+plan-bound SystemAction execution, deferred-but-adopted Cedar, no generic
+ApprovalService or ManagementOperation, direct text-only Subject Chat, and
+minimal REPLY/SILENCE behavior commit semantics. OpenClaw remains an adopted
+external Machine Operations route and is not an H4-Min or Subject readiness
+dependency.
 
 ### H4-Min — provider prerequisites and minimum Management spine
 
@@ -669,8 +685,9 @@ third-party generations when a hard product consumer exists.
 
 ### T2 normative Spec ownership map
 
-T2 must freeze the following ownership map before implementation plans write
-normative contracts. These are planned Spec targets, not files created by T1:
+T2 froze the following ownership map before implementation plans write
+implementation code. These are current normative Specs, not package or
+workspace topology:
 
 | Planned Spec target                       | ID    | Owned contract                                                                           |
 | ----------------------------------------- | ----- | ---------------------------------------------------------------------------------------- |
@@ -690,9 +707,10 @@ separate Specs by noun alone. PresentationIntent remains a Presentation
 projection concern and does not create an internal assistant or Host Authority
 contract by itself.
 
-After T1C, T2 — H4-Min + H6 Normative Specification Freeze — is eligible for a
-separately authorized Plan. T1C does not create or activate T2, and this route
-does not introduce a temporary direct mutation API.
+The completed T2 Plan records the contract freeze and the S1–S16 audit.
+P1 — Product Host + initial Management spine — is the next eligible work, but
+T2 does not create or activate a P1 implementation Plan and this route does not
+introduce a temporary direct mutation API.
 
 ### T2 exclusions around the first Product slice
 

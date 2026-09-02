@@ -25,12 +25,15 @@ AI SDK 承担 generic mechanics：
 provider/model interface
 text/stream
 structured output
-tool-call protocol mechanics
-bounded step execution
 usage
 abort/timeout
 middleware
 ```
+
+AI SDK may expose broader mechanics, but the current H6 Product path consumes
+only text generation, structured output, usage when supplied, and
+abort/timeout. Tool and autonomous-step mechanics remain future integration
+choices and do not create current AIRuntime Authority.
 
 Heptalogos 拥有：
 
@@ -53,21 +56,15 @@ Evidence
 ```text
 subject.primary
 subject.expression
-operator.primary
 future.review
 future.embedding
 ```
 
-`future.*` 只表示可扩展 binding namespace，不表示 Foundation 必须实现对应高级 subsystem。
-
-例如：
-
-```text
-Subject primary model unavailable
-Operator model available
-```
-
-是合法状态。
+当前 Heptalogos AIRuntime 只定义 `subject.primary` 和
+`subject.expression` 两个 ModelBinding 角色；它们可以绑定同一个
+ModelProfile。`future.*` 只表示未来可扩展的命名空间，不表示当前存在
+Operator 或 System Assistant 的内部模型绑定。OpenClaw 的模型配置由
+OpenClaw 自己拥有，不是 Heptalogos AIRuntime 配置。
 
 ---
 
