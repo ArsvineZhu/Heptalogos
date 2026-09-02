@@ -12,7 +12,7 @@ currentCandidate:
   candidateId: FOUNDATION-REMEDIATION-BUNDLE-2026-09-01
   behaviorCandidateSha: 7e975d8c2d3e720f65a8d80d1c0e7fd531c1802b
   branch: dev/h3-stabilization
-  plan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
+  plan: project/plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md
   lifecycle: ACTIVE
   freeze: NOT_RUN
   independentReview: NOT_RUN

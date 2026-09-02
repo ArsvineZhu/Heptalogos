@@ -1,14 +1,13 @@
 # Heptalogos Foundation Remediation Bundle — Closure Correction — 2026-09-01
 
-**State:** `ACTIVE`
+**State:** `COMPLETED`
 **Mode:** `PRE_PRODUCTION`
 **Branch:** `dev/h3-stabilization`
 **Baseline:** `da7e2f013d92066b09da187ce03875207b085962`
 
-This file is the repository's self-contained active authorization for the bounded
-closure correction. It records the binding result, scope, ceilings, and closure
-conditions; no temporary or missing execution bundle is required to authorize
-the current work.
+This file is the repository's completed record for the bounded closure
+correction. It records the binding result, scope, ceilings, closure conditions,
+and observed external outcome; it no longer authorizes implementation work.
 
 The correction preserves the existing Foundation remediation candidate's
 PRE_PRODUCTION scope and makes the following current truths executable: durable
@@ -98,8 +97,9 @@ Create the repository-level `integration/foundation` Nx project for cross-packag
   package.
 - Current package READMEs, maintenance specs, qualification projections, and
   Roadmap entries describe the same ownership and evidence boundary. Local
-  evidence may be `PASS`; Independent Review and merge remain `NOT_RUN` until
-  those external gates actually run.
+  evidence is recorded as `PASS`; Independent Review is recorded only from the
+  external exact-candidate verdict, while final cross-platform CI and merge
+  remain `NOT_RUN` until they actually run.
 
 ## Explicit non-goals and ceilings
 
@@ -124,4 +124,38 @@ Use only `PASS`, `FAIL`, `NOT_RUN`, or `BLOCKED` for executed evidence. Mock/uni
 
 Acceptance requires: preserved Host/Persistence/Runtime/Signal/WorkItem/DBOS/Effect/Lineage/Evidence semantics; zero deleted lifecycle/recovery surfaces or equivalent renamed rollback; exact two-level package topology and integration ownership; truthful current Specs/qualification; empty PRE_PRODUCTION obligations; focused and repository gates green; and real H3 PostgreSQL+DBOS executable-spine qualification at the strongest available boundary.
 
-External Independent Review and merge are separate closure gates. If they are not actually executed, record them as `NOT_RUN`; do not infer them from local tests, GitHub metadata, or prior candidate records. Once every required current evidence and external gate is green, move this Plan to `project/plans/completed/`, update Roadmap/qualification truth, verify no active implementation Plan remains, and STOP. A concrete unresolved owner/provider/state/failure/evidence contradiction is `PLAN_GAP`; do not improvise around it.
+External Independent Review and merge are separate closure gates. If they are not
+actually executed, record them as `NOT_RUN`; do not infer them from local tests,
+GitHub metadata, or prior candidate records. The bounded implementation and
+stabilization stage may be completed with deferred external boundaries retained
+as `NOT_RUN`; actual merge remains a separate event. A concrete unresolved
+owner/provider/state/failure/evidence contradiction is `PLAN_GAP`; do not
+improvise around it.
+
+## Final closure record (2026-09-02)
+
+The reviewed executable behavior is the `e8325c5a31601bf5082d6c5c39aa9cf05896b4f7`
+candidate. The external Independent Review assessed repository review HEAD
+`a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf`; the difference is qualification
+documentation only and does not change the executable tree. This record is an
+operator-supplied external outcome, not an inference from local verification.
+
+```yaml
+planState: COMPLETED
+implementation: PASS
+requiredLocalQualification: PASS
+finalCandidateRevalidation: PASS
+behaviorCandidate: e8325c5a31601bf5082d6c5c39aa9cf05896b4f7
+reviewHead: a20cb664d6c63fbe1e6b3c6587cf68292fc73fbf
+reviewSource: external_out_of_band_user_operator_feedback
+independentReview: PASS
+finalCrossPlatformCI: NOT_RUN
+merge: NOT_RUN
+H3_STABILIZATION: CLOSED
+H3: OPEN
+```
+
+The final candidate revalidation was `pnpm verify --skip-nx-cache` on the
+reviewed tree. Linux, macOS, source-less, service-account, hardware, final
+cross-platform CI, and merge evidence remain `NOT_RUN`. No executable-tree
+mutation is authorized by this closure record.

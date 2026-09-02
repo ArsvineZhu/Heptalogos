@@ -1,8 +1,8 @@
 # Heptalogos Development Roadmap
 
 **Status:** LIVING ROADMAP / planning guidance<br>
-**Date:** 2026-09-01<br>
-**Repository baseline:** current Foundation Remediation Bundle closure-correction working tree on `dev/h3-stabilization`; H3B is closed and the correction Plan is the active implementation Plan<br>
+**Date:** 2026-09-02<br>
+**Repository baseline:** completed Foundation Remediation Bundle closure-correction tree on `dev/h3-stabilization`; H3B is closed and no Foundation implementation Plan is active<br>
 **Architecture baseline:** `docs/architecture/` design state 2026-08-20
 
 > This document owns development sequencing, Horizon truth, and qualification guidance. It does not replace the canonical Human Architecture, current Specs, Governance, Dependencies, Qualification, or active Plan. Update this Roadmap when evidence changes sequencing or eligibility; update the relevant canonical owner when semantics change.
@@ -356,7 +356,7 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 
 > Can the system make a durable promise, crash anywhere around dispatch/processing/external effects, and resume without losing the obligation or inventing false certainty?
 
-### Current progress (2026-09-01)
+### Current progress (2026-09-02)
 
 ```yaml
 H3: OPEN
@@ -366,11 +366,21 @@ H3A_2: CLOSED
 H3_FOUNDATION_EXECUTABLE_SPINE: PASS
 H3B: CLOSED
 H3_FUNCTIONAL: COMPLETE
-H3_STABILIZATION: ACTIVE
-currentRepositoryWork: Foundation Remediation Bundle closure correction for package, lifecycle, recovery, test, and truth ownership
-activeImplementationPlan: project/plans/active/foundation/foundation-remediation-bundle-2026-09-01.md
+H3_STABILIZATION: CLOSED
+currentRepositoryWork: NONE
+activeImplementationPlan: NONE
 nextAuthorizedPlan: NONE
 githubActions: DISABLED_CURRENT_EXECUTION_POLICY
+```
+
+Current H3 stabilization closure truth:
+
+```yaml
+localQualification: PASS
+finalCandidateRevalidation: PASS
+independentReview: PASS
+finalCrossPlatformCI: NOT_RUN
+merge: NOT_RUN
 ```
 
 The H3A-1 implementation includes complete creation-request envelope
@@ -391,9 +401,20 @@ is current for the recorded scenarios; macOS, source-less, service/headless,
 and ResourceGovernor qualification remain individually scoped and must not be
 inferred from another platform or candidate. H3B is now closed after the
 completed EffectOperation plan; the Foundation Remediation Bundle closure
-correction is the active bounded stabilization plan after H3B so the containment
-pass follows the final H3 semantic owner. Ordinary GitHub Actions are disabled under the current execution
-policy; local repository gates remain the closure route.
+correction was the bounded stabilization plan after H3B so the containment pass
+followed the final H3 semantic owner. It is now completed after local
+qualification, final candidate revalidation, and the externally supplied
+exact-candidate Independent Review `PASS`. H3 itself remains `OPEN`; final
+cross-platform CI and merge are `NOT_RUN`, and the remaining product
+qualification boundaries remain individually scoped. Ordinary GitHub Actions
+are disabled under the current execution policy; local repository gates remain
+the closure route.
+
+The completed Foundation Remediation Bundle Plan is
+[`Foundation Remediation Bundle — Closure Correction — 2026-09-01`](../plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md);
+the current property evidence remains in
+[`Q-BOOT-01`](../qualification/results/Q-BOOT-01.md) and the machine-readable
+qualification ledger.
 
 ### Implementation decomposition
 
