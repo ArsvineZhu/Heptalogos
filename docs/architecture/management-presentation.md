@@ -1,140 +1,134 @@
-# 接口、CLI、Web 与 Presentation
+# Management Contract、CLI 与 Presentation
 
-## 1. Management Contract 是稳定边界
+## 1. Management Contract 是 living product boundary
 
-Foundation 先定义 typed Management Contract，再投影到具体客户端。
+Heptalogos 先定义 typed Management Contract，再投影到具体机器客户端和
+外部 Presentation。Management Contract 随真实消费者出现而演进：
 
-```text
+```
 Domain / System Service
         ↓
-SystemAction / Read Models / Operations
-        ↓
-Canonical Management Contract
+canonical Management Contract
         ├─ ManagementClient
-        ├─ CLI
+        ├─ complete reference CLI
         ├─ HTTP API
-        ├─ Operator Assistant tools
-        └─ future Web / other Presentation
+        ├─ automation
+        ├─ OpenClaw typed tools
+        └─ external Presentation repository
 ```
 
-不得让 Fastify route、CLI parser、Web component 或 Operator prompt 成为系统管理语义的定义处。
+Fastify route、CLI parser、Web component、OpenClaw prompt 或 Presentation
+state 都不能成为管理语义的定义处。语义仍由 Heptalogos canonical
+services、System Authority 和相关 Domain owner 持有。
 
----
+永久目标是：每个已经进入产品的、administratively meaningful capability
+都具有相对于当前 capability set 的完整 machine-consumable
+normal-management surface。这个目标不要求预先预测所有未来 UI 查询。
 
-## 2. Host 是 Management Server
+## 2. Host 是正常 Management Server
 
-正常管理面由 Host 提供，不增加第二个 Control Plane backend Authority。
+正常 Product Host 提供唯一的 canonical Management Server：
 
-Management server 暴露：
-
-```text
-read models
-SystemAction planning/execution
-ManagementOperation state
-Approval flows
-Subject Chat protocol endpoint
-Operator service endpoint when enabled
-live projection channels
+```
+Product Host
+  └─ Canonical Management Server
+       ├─ Read Models
+       ├─ SystemAction / ManagementOperation
+       ├─ Management Contract
+       ├─ Subject Chat protocol endpoint
+       ├─ query / projection / diagnostic surfaces
+       └─ live projection channels
 ```
 
-Recovery Core 只提供受限、独立的恢复接口。
+它覆盖正常产品管理语义，不创建第二个 Control Plane backend Authority。
+Bootstrap/Recovery Core 只提供受限、独立的恢复接口。Machine Operations
+Plane 是外部独立运行域，不作为 Product Host child process、System
+Service 或 Host normal dependency。
 
----
+## 3. Management Read Models
 
-## 3. Fastify 的角色
+当前能力进入产品时，Management Contract 需要提供与其对应的可追溯
+Read Models，例如：
 
-Fastify 负责：
-
-```text
-HTTP routing
-request/reply lifecycle
-schema hooks
-transport plugins
 ```
-
-不负责：
-
-```text
-SystemAction
-Policy
-Approval
-Subject Authority
-Data Lifecycle Authority
-```
-
----
-
-## 4. Management Read Models
-
-至少提供：
-
-```text
-RuntimeGraph
-CapabilityGraph
-Readiness Profiles
+status / health / readiness
+RuntimeGraph / CapabilityGraph
 OperatingMode / Pressure
-Subject state
+Subject state and lifecycle
 Configuration Surface
+Secret metadata and governed operations
+provider/model binding
 Extension/package inventory
-SystemAction catalog
 ManagementOperations
 Approvals
-Evidence indexes/refs
-Artifacts metadata
-Network/endpoint diagnostics
-backup/update state
+Evidence / Execution Lineage
+Network / endpoint diagnostics
+backup / restore / update state
+contract and schema introspection
 ```
 
-read model 可以是 projection，但必须可追溯到 canonical owner。
+Read Model 是 canonical owner 的 projection。它可以为聚合查询、分页、
+filter、live view、诊断或外部 Presentation 提供便利，但不取得被投影
+领域的 mutation Authority。
 
----
+## 4. Management mutations
 
-## 5. Management Mutations
+所有 normal Product Management mutation 遵循同一语义顺序：
 
-所有 mutation：
-
-```text
+```
 request
-→ normalize/validate
+→ normalize / validate
 → SystemChangePlan
 → Authentication / Authorization / Risk
 → Approval when required
-→ durable ManagementOperation
+→ durable / owned operation semantics
 → owning Service
 → verify postconditions
 → Evidence
 ```
 
-客户端不得直接调用 repository、DBOS、filesystem 或 package directories 作为捷径。
+客户端不得直接调用 repository、DBOS、filesystem、package directory 或
+Secret backend 作为捷径。normal Product Management arbitrary shell 不是
+该接口的 capability；机器级 shell 与部署修复属于独立 Machine Operations
+Plane。
 
----
+## 5. OpenAPI、ManagementClient 与 contract evolution
 
-## 6. OpenAPI / Typed Client
+Network-facing Management Contract 应以机器可读 schema 表达，HTTP surface
+优先使用 OpenAPI。ManagementClient 负责 transport 和 types mechanics；
+领域语义仍归 canonical contract。
 
-Network-facing Management Contract 应产生机器可读 schema，优先使用 OpenAPI 表达 HTTP surface。
+要求包括：
 
-生成或机械派生的 `ManagementClient` 负责 transport/types mechanics；领域语义仍由 Management Contract 定义。
-
-要求：
-
-```text
+```
 one canonical action/read schema
-no manually duplicated CLI/Web DTOs
-stable error model
-operation/approval identifiers
-contractVersion
-backward-compatibility policy
+stable machine-readable Problem model
+resource / operation / activity identity
+contractVersion and schema identity
+client/server negotiation where useful
 ```
 
-OpenAPI client generator 是 build-time tool，不成为 runtime Authority。
+这是一项 living interface。真实 external Presentation、CLI、automation、
+OpenClaw integration 或 operations tooling 可以提出新的 Host-owned
+projection、aggregate query、resource summary、diagnostic capability、
+pagination/filter、Subject Chat capability 或 action metadata。
 
----
+Presentation 可以推动 Host contract requirement，但不能获取或重新定义
+domain Authority。不得为了避免 contract 演进而让 Presentation 在客户端
+重建 Host-owned semantics，也不得用 UI-only hidden mutation endpoint、
+direct database mutation、unversioned private DTO 或 duplicated business
+rules 代替正式 contract。
 
-## 6.0.1 Management Compatibility Descriptor
+在 PRE_PRODUCTION 下，current consumers 可以协调地改变 endpoint、schema
+或 contract version。开发历史本身不产生 legacy endpoint、deprecated alias、
+dual reader、upcaster、compatibility shim 或旧 generated client 的义务；
+兼容责任只来自当前 machine-readable compatibility Authority。
 
-Management API 提供固定 read-only compatibility descriptor：
+### 5.1 Compatibility descriptor
 
-```text
+Management API 可提供固定的 read-only compatibility descriptor：
+
+```
 InstanceId
 ContinuityEpochId
 ProductGeneration
@@ -144,367 +138,186 @@ problemSchemaVersion
 systemActionCatalogRevision
 ```
 
-CLI/remote client 在 mutation 前检查 core contract range。客户端不兼容时只允许最小 compatibility/status/recovery guidance reads，并返回 structured `Problem`；不能依赖 HTTP 404/反序列化异常猜测 server 版本。
+CLI 或 remote client 在 mutation 前检查 core contract range。未认证探测
+只暴露建立协议所需的最小版本范围；完整 descriptor 需要正常认证。
+客户端不兼容时只允许最小的 compatibility/status/recovery guidance reads，
+并返回 structured Problem，不能依赖 HTTP 404 或反序列化异常猜测版本。
 
-Dynamic Extension action 的兼容性由每个 `actionVersion + schemaVersion + catalogRevision` 单独决定，不要求重新生成 static ManagementClient。
+### 5.2 Static contract 与 dynamic action catalog
 
-未认证兼容性探测只暴露建立协议所需的最小版本范围，不暴露 `InstanceId`、完整 ProductGeneration、Extension inventory 等 fingerprint。完整 descriptor 需要正常认证；first-admin local claim flow 使用独立、loopback-only 的 bootstrap contract。
+核心资源、固定动作和 read models 使用 versioned static
+Management Contract。运行时安装的 Extension action 使用
+SystemActionCatalog：
 
-## 6.1 Static Core Contract 与 Dynamic SystemAction Catalog
-
-Foundation 核心资源、固定管理动作和 read models 由 versioned static OpenAPI/Management Contract 描述，并生成强类型 `ManagementClient`。
-
-运行时安装的 Extension 不可能在 CLI build 时已知，因此动态动作使用 `SystemActionCatalog`：
-
-```text
+```
 actionId / actionVersion
 owner PackageId / PackageGenerationId
 input/output JSON Schema
-risk/effect/apply mode
-help/taxonomy/presentation metadata
+risk / effect / apply mode
+help / taxonomy / presentation metadata
 availability
 ```
 
-Static client 提供通用 typed envelope 方法：
+静态 client 提供通用的 list/inspect/plan/execute/operation envelope；安装
+Extension 不触发 CLI/client 重新生成。Extension 不向 CLI 进程注入
+executable command code，执行仍发生在 Host Authority 或其正式 owner 中。
 
-```text
-listActions()
-inspectAction()
-planAction(actionId, input)
-executeApprovedAction(...)
-inspectOperation()
+## 6. CLI 是完整 reference client
+
+CLI 是本仓库的 headless first-class product，不是某个 GUI 的附属工具：
+
 ```
-
-安装 Extension 不触发 CLI/client 重新生成。Extension 默认不能向 CLI 进程注入 executable JavaScript command code；CLI 只把 descriptor 投影为帮助、参数/JSON 输入和别名，执行始终发生在 Host Authority 中。
-
----
-
-## 6.2 Structured Problem Contract
-
-Management Contract 的失败使用 Foundation `Problem`：stable `problemCode/category/retryClass` + optional `activityId/resourceRef/fieldErrors`。HTTP 投影使用 RFC 9457 `application/problem+json`；CLI machine mode投影同一语义。
-
-Human error message、HTTP status、CLI exit code 都不是领域错误 identity。客户端需要深层原因时通过 `activityId` 查询 Execution Lineage/Evidence，而不是解析日志文本。
-
-## 7. CLI 是完整 Reference Management Client
-
-Foundation 的管理能力必须先在 CLI 上完整可用。
-
-正常路径：
-
-```text
 CLI
 → ManagementClient
 → canonical Management HTTP API on loopback by default
-→ System Authority
+→ Heptalogos System Authority
 ```
 
-恢复路径：
+每个 administratively meaningful resource/action 都应能够通过 CLI：
 
-```text
-CLI recovery commands
-→ bounded Recovery Core
 ```
-
-CLI 不直接修改 DB/files/config package 作为隐藏后门。
-
-### 7.1 Coverage Principle
-
-每个 administratively meaningful Foundation resource/action 必须可以从 CLI：
-
-```text
 inspect
-list/query
+list / query
 configure when applicable
 plan mutation
-execute/approve/deny/cancel when applicable
+execute / approve / deny / cancel when applicable
 observe long-running operation
 diagnose failure
 export structured result
 ```
 
-CLI coverage 是 Management Contract 完整性的 reference check。
+CLI coverage 是 Management Contract 完整性的 reference check，但 CLI command
+coverage 不等于每个 Presentation-only aggregate/read projection 都需要一个
+独立的 ergonomic command。Presentation 可以消费 dense aggregate read model、
+multi-resource projection、live UI summary 和 presentation metadata；CLI
+可以使用 generic raw/read/query form。
 
-### 7.2 Command Families
+CLI 同时支持 human-readable 与 machine-stable mode：
 
-具体命名可以在实现阶段规范化，但 Foundation 至少需要覆盖这些语义族：
-
-```text
-status / doctor
-system / runtime / readiness / mode
-subject lifecycle
-component / service / capability inspection
-extension package / generation lifecycle
-configuration definitions/sources/revisions/activation/export/reload
-path profile / lifecycle roots
-storage owners / usage / verification / cache purge
-secret metadata/set/rotate/revoke flows
-management operations
-approvals
-backup / restore
-product update
-network / endpoint diagnostics
-evidence / diagnostics
-contract/schema introspection
-completion / help
 ```
-
-Extension 可以贡献 CLI commands/actions，但 contribution 仍由 Heptalogos Package/Runtime Authority 管理，不使用 CLI framework 自己的插件系统作为第二套 package authority。
-
-### 7.3 Machine Interface
-
-CLI 必须同时支持 human-readable 与 machine-stable mode。
-
-要求：
-
-```text
-stable JSON/structured output
-stable exit codes
+versioned structured output
+stable exit semantics
 stdout = requested result
-stderr = diagnostics/progress unless structured contract says otherwise
+stderr = diagnostics / progress
 non-interactive operation
-stdin-compatible secret/input flow where safe
+stdin-compatible protected input flow
 no ANSI requirement for automation
 ```
 
-交互式提示不能是唯一操作方式。
+复杂 object/list/union schema 使用 input JSON 或等价的 structured stream；
+Secret plaintext 不通过 argv、普通 environment 或明文 JSON 文件传递。
 
-### 7.3.1 Complex Input Contract
+## 7. Subject Chat 与 Product Management 分离
 
-任何 Management/SystemAction/Configuration schema 都必须有不依赖 shell quoting 的 canonical CLI 输入路径：
+Subject Chat 是内建的 Subject Authority 协议，不是 UI 到 Reactor 的
+shortcut：
 
-```text
---input-json <file>
-stdin JSON document
-or equivalent structured stream
 ```
-
-简单 scalar/enum 可以额外投影为 ergonomic flags；object/list/union/recursive structure 不要求全部扁平化为 flags。Secret plaintext 不通过 JSON file/argv；使用 SecretRef 或受保护 prompt/stdin delivery path。
-
-### 7.3.2 Machine Output Envelope
-
-一次性 machine mode 输出一个 versioned `CliResultEnvelope`：
-
-```text
-schemaVersion
-command/contractVersion
-ok
-result? | problem?
-activityId?
-operationId?
-```
-
-持续 watch/stream 使用 versioned NDJSON `CliStreamEvent`，每行独立可解析并带 sequence/type/activity/operation refs；不能在 stdout 混入 human progress 文本。Human mode progress/diagnostics 使用 stderr。
-
-### 7.4 Cross-platform Shell Semantics
-
-必须验证：
-
-```text
-PowerShell
-cmd.exe
-bash/zsh/sh-family invocation
-quoting
-Unicode
-paths
-stdin/stdout encoding
-signals/cancellation
-```
-
----
-
-## 7.5 CLI Authentication
-
-Normal CLI 也是普通 Management principal client，不因本机执行而自动获得 System Authority。
-
-交互式登录：
-
-```text
-heptalogos auth login
-→ username + password from secure TTY/stdin prompt
-→ canonical Management auth endpoint
-→ opaque server-side session token
-```
-
-禁止 password/session token 出现在 argv、shell history、普通 environment、log、Activity/Evidence。
-
-跨命令 session persistence 只有在 qualified OS-protected client credential store 可用时才允许；无安全 backend 时 fail closed，要求重新认证或显式受保护的 stdin/file-descriptor credential path，不落明文 token cache。
-
-Headless automation 使用专门的 non-interactive credential mechanism，并服从相同 Policy/session/revocation/audit；不能以“localhost”作为认证替代品。
-
-`recentAuth` 要求的高风险动作必须触发显式 re-authentication。Recovery CLI 使用 `LOCAL_INSTALLATION_OWNER` 的本地 OS/ACL boundary 作为默认 RecoveryPrincipal，不复用 normal Host session 作为唯一恢复凭据；额外 recovery credential 可以加强但不能制造 DB-dependent recovery loop。
-
-## 8. Subject Chat 与 Operator API 分离
-
-```text
 SubjectChatClient
-→ Subject Chat Protocol
+→ Subject Chat protocol endpoint / Driver
+→ MessagingService
+→ canonical MessageFact
+→ WorkItem
+→ ConversationMailbox
 → Subject Authority
-
-OperatorClient
-→ Operator Service
-→ System Authority
 ```
 
-不能用一个 chat endpoint 的 `mode` flag 切换 Authority。
+管理员在 Subject Chat 中表达系统管理意图时，必须显式进入
+AuthorityHandoff；一条 chat endpoint 的 mode flag 不能静默切换
+Subject Authority 与 System Authority。
 
-AuthorityHandoff 是显式领域对象。
+System Assistant 的机器运维 surface 由外部 Machine Operations Plane
+承载；它可以在 Host 健康时消费 Management API/CLI，但本仓库不需要
+第二个内部 assistant backend。
 
----
+## 8. Normal transport 与 Recovery transport
 
-## 8.1 Normal CLI Transport 与 Recovery CLI
+正常 CLI 使用与其他 Management client 相同的 canonical HTTP contract：
 
-Foundation 第一阶段不创建第二套 local IPC protocol。
-
-```text
+```
 normal CLI
-→ same canonical HTTP Management API
-→ loopback-only listener by default
+→ loopback-only Management HTTP by default
 
-remote CLI
+remote client
 → same API
-→ explicit remote exposure + TLS/auth/policy
+→ explicit exposure + TLS/auth/policy
 
 recovery CLI
-→ bounded Bootstrap/Recovery interface
-→ only fixed recovery verbs
+→ bounded Bootstrap / Recovery interface
+→ fixed recovery verbs only
 ```
 
-若以后有明确产品证据要求 Unix socket/named pipe，可作为 transport projection 增加，但不能产生新的 Management semantics。
+不因为本机执行就跳过认证、Policy、session、audit 或 lineage。若未来有
+明确证据要求 Unix socket 或 named pipe，它只能作为 transport projection
+增加，不产生第二套 Management semantics。
 
----
+## 9. Live projection
 
-## 9. Live Projection
+SSE 或等价机制可以承载：
 
-SSE 或等价机制可以承担：
-
-```text
-runtime/readiness changes
+```
+runtime / readiness changes
 operation progress
 approval updates
 Subject Chat messages
 activity notifications
 ```
 
-但 live channel 只作 projection/hint。
+Live channel 只是 projection/hint：
 
-```text
+```
 reconnect
-→ re-query canonical read model
+→ re-query canonical Read Model and message/operation state
 ```
 
-客户端不能把“是否收到 live event”当产品真相。
+客户端不能把“收到或错过 live event”当作产品真相。
 
----
+## 10. External Presentation boundary
 
-## 10. Authentication / Session / Endpoint Security
+Browser、Desktop、Electron 和其他 GUI 应用属于外部 Presentation
+repository。本仓库不实现它们的 renderer、页面、frontend runtime、GUI
+E2E 或 visual assets。
 
-Normal Management HTTP 使用 server-side opaque session：
+外部 Presentation 是 first-class product consumer，消费：
 
-```text
-high-entropy bearer token in secure cookie/client store
-→ server hashes token
-→ PostgreSQL session row
-→ principal/authEpoch/expiry/recentAuth/revocation
 ```
-
-首个管理员通过 local one-shot claim ceremony 建立，不存在默认密码或远程未认证 onboarding endpoint。
-
-Endpoint 默认只绑定 loopback。Remote exposure 必须显式配置，并进入 Network/Management Endpoint Security policy：TLS、Host/origin/CSRF、rate/admission、body limits、auth freshness、redaction 与 audit/lineage。
-
-Session token、password、claim secret 永不进入日志、Activity attribute、Evidence 或 Operator context。
-
-## 11. Web / GUI 的 Foundation 边界
-
-Web UI 的视觉、页面结构、交互细节、renderer 和 frontend runtime **不属于 Foundation 实现范围**。
-
-Foundation 只冻结未来 Presentation 所需的 semantic contracts：
-
-```text
-ManagementClient
-Subject Chat Protocol
-Operator API
-read models
+ManagementClient / HTTP contract
+Subject Chat protocol
+canonical Read Models
 SystemAction metadata
-Configuration projections
-operation/approval streams
-PresentationIntent
-Web/Presentation contribution descriptors
-CSP/security requirements
+operation / approval / activity projections
+PresentationIntent where the Presentation contract defines it
 ```
 
-Web 设计与实现应在独立 Presentation 工作流中进行，不能阻塞 Foundation 完成，也不能反向改变 Authority。
+它可以基于真实产品要求推动新的 Host-owned contract 或 projection，但
+Presentation state、视觉布局、renderer 和前端框架永远不拥有 Heptalogos
+System、Subject、Host、数据库或 Machine Operations Authority。
 
----
+## 11. System Assistant integration boundary
 
-## 12. Configuration Projection
+System Assistant / Maintenance Assistant 是 Heptalogos 的产品标签；
+Machine Operations Plane 是其独立高权限运行边界。产品 surface 与
+Machine Operations surface 可以共享视觉语言，但应保持 separate
+authentication context、session/cookie scope、privileged credentials
+和实际可行的 origin/security context。
 
-Configuration Foundation 冻结：
+Heptalogos Host 不默认保存 OpenClaw Gateway/admin token、privileged UI
+credential、operator session 或 host-execution credential。OpenClaw typed
+tools 是 future integration adapters；它们从 canonical Management
+Contract、ManagementClient 或 CLI 派生，而不是创建第二个 domain contract。
 
-```text
-JSON Schema 2020-12
-Heptalogos annotations
-current/pending revision
-validation diagnostics
-visibility/manageability
-activation impact
-platform/deployment applicability
+## 12. Security and ownership summary
+
+本页的 ownership summary 是：
+
+```
+canonical domain/service
+→ Management Contract
+→ ManagementClient / CLI / HTTP / automation / external Presentation
+→ authorized Machine Operations integration
 ```
 
-CLI 必须能够完整消费受权 projection。
-
-未来 Web/GUI 可以选择任意 renderer/custom design，只要不改变 canonical Configuration contract。
-
-Foundation 不选择或实现具体 Web form renderer。
-
----
-
-## 13. Presentation Contributions
-
-Extension 可以声明 semantic Presentation contributions，例如：
-
-```text
-navigation intent descriptor
-resource detail panel descriptor
-action affordance descriptor
-custom Presentation bundle metadata
-```
-
-Foundation 只定义 contribution schema、ownership、generation、permissions 和 ManagementClient boundary。
-
-具体 Web bundle loader/microfrontend framework 不在 Foundation dependency selection 中。
-
-自定义 Presentation code 也只能通过受权客户端：
-
-```text
-query Management Contract
-request SystemAction
-use Subject Chat Protocol
-emit PresentationIntent
-```
-
-不能直接：
-
-```text
-read local filesystem
-connect canonical DB
-read Secret plaintext
-bypass Policy/Approval
-mutate runtime graph
-```
-
-## 14. Browser/Desktop carrier convergence
-
-Browser UI 与 Desktop UI 是同一个 front-end application 的不同 carrier，
-不是两套 product architecture。Presentation 始终是 projection/client，不拥有
-System、Subject 或 Host Authority；多个 Presentation client 收敛到同一个
-Management/System Authority。
-
-Desktop shell 的 main/preload code 也不能绕过 Management/System Authority。
-关闭或卸载 Desktop Presentation shell 不会停止或删除 Host、Subject 或 durable
-product data。
-
-Application-owned visual chrome 可以与 platform-owned window semantics 共存。Native
-snapping、accessibility、fullscreen、DPI 与 window behavior 仍由 platform 负责。
-Electron 是未来 Desktop shell 的 preferred direction，因为 Chromium/render
-determinism 有价值；但 Electron 是可替换的 implementation technology，不是
-product identity。
+所有正常 Product Management mutation 仍由 Heptalogos owner 计划、授权、
+执行、验证并记录 Evidence。Machine Operations Plane 可以在 OS/deployment
+层执行 break-glass maintenance，但不把这些动作伪装成 normal
+SystemAction，也不使 Heptalogos 获得对整个机器的虚构控制权。

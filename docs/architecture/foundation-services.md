@@ -341,7 +341,7 @@ OpenTelemetry Span/Pino log 是其 telemetry projection；required Evidence/Audi
 
 ### `LineageQueryService`
 
-提供 Activity tree、causal chain、runtime call graph、Extension lifecycle、Service consumer/provider、failure propagation 等 read-only projection，供 CLI/API/Operator Assistant 使用。
+提供 Activity tree、causal chain、runtime call graph、Extension lifecycle、Service consumer/provider、failure propagation 等 read-only projection，供 CLI、Management API、external Presentation 和 authorized Machine Operations agents 使用。
 
 详细视图见 [`execution-lineage.md`](execution-lineage.md) 与
 [`Execution lineage Spec`](../../specs/execution/execution-lineage.md)。
@@ -386,7 +386,7 @@ auth freshness
 
 统一 `SystemAction` registry / plan / execute / verify。
 
-CLI、HTTP、Operator Assistant 和未来 Web 都投影同一 semantics。
+CLI、HTTP、external Presentation 和 authorized Machine Operations tools 都投影同一 semantics。
 
 ---
 

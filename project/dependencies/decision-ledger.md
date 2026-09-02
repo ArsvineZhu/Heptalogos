@@ -185,15 +185,36 @@ advanced Presentation runtime
 
 ---
 
-## 5. Rejected for Current Role
+## 5. Adopted external product-operation roles
 
-### Arbitrary shell as Operator control plane
+### Machine Operations agent runtime
+
+```text
+candidate: OpenClaw
+RoleDecision: ADOPTED
+ImplementationQualification: REQUIRED
+ownership: external independent operational runtime
+```
+
+OpenClaw 是 Machine Operations Plane 的外部实现路线，不是 Host package、
+Product Host child process 或 Heptalogos System Service。它可以按自身及
+OS/deployment policy 使用机器级 host execution；Product Host 不因此获得
+OpenClaw privileged control credential。Exact release/commit、独立进程/
+service 集成、信任与凭据隔离、许可证和分发闭包必须在首个集成/分发 Plan
+中重新验证。
+
+## 6. Rejected for Current Role
+
+### Arbitrary shell in normal Product Management
 
 ```text
 REJECTED_FOR_ROLE
 ```
 
-原因：绕过 typed `SystemAction / Policy / Approval / Evidence`。
+原因：arbitrary shell 不是 normal Product Management capability；将其放入
+Host 管理面会绕过 Heptalogos-owned SystemAction / Policy / Approval /
+Evidence 语义。机器级 shell 属于独立 Machine Operations Plane，不通过
+这个 Product Management role 决定。
 
 ### Runtime npm/pnpm install as production Extension install
 

@@ -17,6 +17,10 @@ Architecture pages explain concepts, ownership, rationale, and runtime views.
 They do not become implementation checklists and do not duplicate a Spec merely
 to make the conceptual page self-contained.
 
+The [Machine Operations Plane](machine-operations.md) owns the conceptual
+boundary between the headless Heptalogos Product Host and the independent
+OpenClaw-backed machine/deployment operations runtime.
+
 ## Boundaries
 
 Foundation provides stable typed contracts and Authority boundaries. Mature

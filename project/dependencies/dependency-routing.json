@@ -1,6 +1,6 @@
 {
   "schemaVersion": 4,
-  "authority": "Current implementation routing for Foundation generic mechanics. All Foundation provider selections in scope are frozen; deferred L3 roles are intentionally absent from mandatory routes.",
+  "authority": "Current implementation routing for Foundation generic mechanics and explicitly adopted external product-operation runtimes. All in-scope provider selections are frozen; deferred L3 roles are intentionally absent from mandatory routes.",
   "rule": "ADOPTED is an implementation directive. Use the selected route behind the designated Heptalogos boundary. Residual product qualification does not authorize an unapproved parallel implementation.",
   "repositoryMaterialization": {
     "packageVersionAuthority": "pnpm-workspace.yaml Catalog exact direct-version pins selected from current registry/upstream evidence",
@@ -490,6 +490,13 @@
         }
       },
       "packages": ["pidusage", "@types/pidusage"]
+    },
+    {
+      "roleId": "machine-operations.agent-runtime",
+      "route": "OpenClaw external independent runtime; exact release/commit is selected by the first integration/distribution Plan",
+      "boundary": "Machine Operations Plane; outside the Product Host, Runtime Graph, and Heptalogos System Services",
+      "directive": "USE",
+      "packages": []
     },
     {
       "roleId": "runtime.graph",

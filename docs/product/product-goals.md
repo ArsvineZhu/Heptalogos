@@ -202,50 +202,46 @@ uncertain
 
 ---
 
-## 9. Subject Authority 与 System Authority 分离
+## 9. Subject Authority、System Authority 与 Machine Operations 分离
 
-Web 中可能同时有两类聊天：
+产品提供相互独立的 Authority 路径：
 
 ```text
 Subject Chat
 → 管理员 ↔ 同一个 Subject
 → Subject Authority
 
-Operator Chat
-→ 管理员 ↔ 系统智能助手
-→ System Authority
+Direct Management
+→ 确定性的 Product Management
+→ Heptalogos System Authority
+
+System Assistant / Maintenance Assistant
+→ Machine Operations Plane
+→ 优先使用 Heptalogos Management API / CLI
+→ 在系统修复时使用机器级维护能力
 ```
 
-两者可以视觉上相似，但不能共享隐式 Authority。
+Subject interaction、normal Product Management 与 machine/deployment
+maintenance 可以共享产品语境，但不能共享隐式 Authority。Machine
+Operations Plane 是独立的高权限运行域，不属于 Product Host 的内部
+System Service，也不改变 Heptalogos canonical product truth 的拥有者。
 
 ---
 
-## 10. 系统智能助手不是 LLM + Shell
+## 10. System Assistant 是机器运维体验
 
-Operator Assistant 应依赖：
+System Assistant 是 Heptalogos 产品中的高能力机器运维体验，由独立的
+operations runtime 支撑。Product Host 健康时，它优先使用结构化的
+Management Contract、ManagementClient 和 reference CLI，获得稳定的
+状态、Problem、Operation、Lineage 与 Evidence 语义。
 
-```text
-RuntimeGraph
-CapabilityGraph
-BootReport
-Configuration Surface
-SystemAction Catalog
-Evidence
-```
+当 Product Host、Management API 或 CLI 不可用时，Machine Operations
+Plane 可以在其独立的 OS/deployment 权限范围内执行诊断、服务修复、仓库
+修复、依赖修复和其他 break-glass maintenance。普通低权限 Product
+Management surface 不接收该运行域的凭据。
 
-然后通过：
-
-```text
-SystemAction proposal
-→ SystemChangePlan
-→ Policy
-→ Approval
-→ ManagementOperation
-```
-
-修改系统。
-
-正常模式下不提供任意 shell / SQL / filesystem root。
+System Assistant 的产品身份是 Heptalogos；其外部实现与分发归属由
+Architecture、Dependencies 和后续集成资格记录维护。
 
 ---
 

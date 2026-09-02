@@ -40,6 +40,7 @@ D. Subject Authority & Cognition Plane
 E. Integration & Effect Plane
 F. Execution Lineage, Evidence & Introspection Plane
 G. Presentation Plane
+H. Machine Operations Plane (external to the Product Host)
 ```
 
 同一个 MicroSystem 可以跨多个 Plane。
@@ -204,7 +205,7 @@ Feature 是用户可感知能力的组合：
 ```text
 Basic Chat
 Subject Chat
-Operator Assistant
+System Assistant experience
 future Proactive Messaging
 future Diary
 future Voice Conversation
@@ -249,14 +250,31 @@ Driver / Provider 不自动拥有领域 Authority。
 Host
 complete reference CLI
 Launcher / Bootstrap
-future Web / GUI clients
+external Web / GUI Presentation clients
 ```
 
-Host 承载主 runtime。
+Host 承载 headless 主 runtime。Browser、Desktop、Electron 和其他 GUI
+Presentation 不在本仓库实现，而是通过正式 Management/Subject contracts
+消费 Product Host。
 
-Foundation 先完成 canonical Management Contract 与完整 CLI；HTTP/protocol APIs 暴露同一语义。Web/GUI 的视觉、页面、renderer 和 frontend runtime 独立设计，不是 Foundation gate。
+Foundation 先完成 canonical Management Contract 与完整 CLI；HTTP/protocol
+APIs 暴露同一语义。外部 Presentation 是 first-class product consumer，
+可以推动 Host-owned read model 或 contract 演进，但不能拥有 backend
+Authority。
 
 Presentation 不成为产品 Authority。
+
+## 8.1 Machine Operations Plane
+
+Machine Operations Plane 位于 Product Host、Runtime Graph 和普通
+Heptalogos System Authority 之外。它以独立的 OpenClaw process/Gateway
+承载机器级诊断、修复和 deployment maintenance，并拥有独立的 lifecycle、
+state、configuration、credentials 和 operational failure domain。
+
+当 Host 健康时，Machine Operations 优先使用 Management API、ManagementClient
+和 CLI；当 Host 不可用时，它可以在自己的 OS/deployment 权限内进行
+break-glass repair。Product Host 不默认持有 OpenClaw privileged control
+credential。完整边界见 [Machine Operations Plane](machine-operations.md)。
 
 ---
 

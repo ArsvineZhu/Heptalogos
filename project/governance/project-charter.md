@@ -21,14 +21,14 @@ Foundation exists only to make the Subject and real IM execution trustworthy eno
 
 1. **Subject != Model.** Replacing a model/provider/prompt/runtime does not create a new Subject.
 2. **State > Prompt.** Long-lived product state belongs to typed semantic owners; prompts are projections.
-3. **Proposal != Authority.** Model output, retrieval, tools, extensions, and assistants propose; explicit commit paths mutate canonical truth.
-4. **Subject Authority != System Authority.** Cognitive/social control and infrastructure administration are separate authority domains.
+3. **Proposal != Authority within Heptalogos Product Authority.** Model output, retrieval, tools, extensions, and assistants do not become canonical product truth without the owning commit path. External machine/deployment operators act outside this boundary at the OS/deployment layer.
+4. **Subject Authority != System Authority != Machine/Deployment Authority.** Cognitive/social control, normal Heptalogos administration, and machine/deployment maintenance are separate authority domains.
 5. **Canonical truth precedes async work.** Durable obligation follows canonical fact, not the reverse.
 6. **External effects may be uncertain.** `uncertain` is a first-class truthful outcome.
 7. **Signal is a hint.** Wakeups never replace durable/canonical state.
 8. **Execution is attributable.** Important decisions, effects, state changes, and recovery actions retain lineage/evidence appropriate to their semantics.
 9. **Generation is fenced.** Retired/stale generation code cannot receive new current-generation work or commit as current.
-10. **Presentation is projection.** Web, CLI, IM adapters, and operator surfaces do not own product truth.
+10. **Presentation is projection.** External Browser/Desktop/GUI clients, CLI, and IM adapters do not own product truth. CLI is the headless ManagementClient/reference projection; the Machine Operations Plane is an external machine/deployment authority, not a second Product Authority projection.
 
 ## 3. Engineering ownership model
 

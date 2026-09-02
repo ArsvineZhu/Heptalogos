@@ -94,10 +94,10 @@ The following are architecture-level ordering constraints and should not be casu
 2. **Canonical truth precedes asynchronous obligation.** External/canonical facts are committed before WorkItem processing becomes authoritative.
 3. **Required Evidence/Lineage identity is established at the authority transition, not reconstructed later.**
 4. **Durable work/effects require explicit version, generation, attempt and uncertainty semantics before real external integration depends on them.**
-5. **Management mutation goes through SystemAction/Policy/Approval/Operation semantics before CLI/HTTP/Operator projections become authoritative.**
+5. **Normal Product Management mutation goes through SystemAction/Policy/Approval/Operation semantics before CLI/HTTP/Management clients become authoritative.**
 6. **Real AI/provider and Driver use requires Configuration/Secret/Network/Capability policy boundaries; raw SDK objects do not become Authority.**
 7. **Basic Subject interaction must work without Persona/Memory/Relationship/Attention implementations.** Advanced cognition cannot become a hidden Subject Base prerequisite.
-8. **Presentation remains a projection.** GUI/Web can be researched in parallel but cannot define backend Authority.
+8. **Presentation remains a projection.** External Browser/Desktop/GUI consumers can be researched and can drive Host contract requirements, but they cannot define backend Authority or be implemented in this repository.
 9. **Adopted dependency routes remain directives until evidence explicitly reopens a role decision.**
 
 ### 3.2 Flexible edges
@@ -410,8 +410,9 @@ finalCrossPlatformCI: NOT_RUN
 merge: PASS
 ```
 
-The merged repository baseline is `master` at
-`51317428a89b5545d3ac614f1012d869a1251203`; the former development branch and
+The current repository locus is master after completed T0 current-authority
+reconciliation. The H3 closure merge baseline is PR #32 at
+51317428a89b5545d3ac614f1012d869a1251203; the former development branch and
 candidate SHAs remain qualification provenance, not the current repository
 locus. H3 closure is a Horizon statement and does not imply macOS, source-less,
 service/headless, service-account ACL, hardware power-loss, ResourceGovernor, or
@@ -550,6 +551,8 @@ The route from closed H3 to the first real Product slice is:
 ```text
 T1 Product Authority convergence
         ↓
+T1C Product/Machine Operations boundary correction
+        ↓
 T2 H4-Min + H6 normative Spec freeze
         ↓
 P1 Product Host + minimum Management spine
@@ -565,13 +568,63 @@ Q H6 real Product L4 slice
 bounded stabilization
 ```
 
-T1, T2, P1–P4, and Q are planning decomposition labels for this route. They
-are not additional permanent architecture layers or new Horizons.
+T1, T1C, T2, P1–P4, and Q are planning decomposition labels for this route.
+They are not additional permanent architecture layers or new Horizons.
+
+T1C establishes the current product boundary before T2:
+
+```yaml
+repositoryProductBoundary: HEADLESS_PRODUCT_HOST
+guiImplementationRepository: EXTERNAL_PRESENTATION_REPOSITORY
+externalPresentationFirstClassConsumer: true
+permanentManagementTarget: COMPLETE_HEADLESS_SURFACE
+referenceCliTarget: COMPLETE_MANAGEMENT_CLIENT
+machineOperationsRoute: INDEPENDENT_OPENCLAW_RUNTIME
+```
+
+This repository owns the headless Product Host, canonical services,
+Management/API/read-model/projection surfaces, Subject Chat backend and
+complete reference CLI. It does not implement Browser, Desktop, Electron or
+other GUI Presentation applications. A real external Presentation requirement
+may drive a new Host-owned contract or read model, but it cannot acquire
+domain Authority.
+
+The Machine Operations workstream is parallel product/operations planning:
+
+```text
+O0  authority correction (T1C)
+        ↓
+O1  OpenClaw integration baseline
+    - exact upstream qualification
+    - independent service/process integration
+    - trust/credential separation
+    - first Heptalogos operational Skill
+    - first typed Management tool where useful
+        ↓
+O2  operational tool/Skill expansion with Management/API growth
+        ↓
+OD  distribution, branding, and license closure before shipping bundle
+```
+
+O1 does not block the first H6 semantic Subject proof unless a concrete
+current dependency requires it. These labels are planning decomposition, not
+permanent architecture layer names.
+
+Current Product Authority status:
+
+```yaml
+T1: COMPLETED
+T1C: COMPLETED
+T2: ELIGIBLE_NOT_AUTHORIZED
+activeProductImplementationPlan: NONE
+```
 
 ### H4-Min — provider prerequisites and minimum Management spine
 
 H4-Min is a bounded prerequisite set for the first Product slice, not a new
-Horizon. It contains only the following:
+Horizon. Its initial implementation slice contains only the consumers needed
+to enter real Product/H6 work; it is not the permanent ceiling for the
+repository Management product.
 
 Provider prerequisites:
 
@@ -587,6 +640,13 @@ Minimum Management spine:
 - minimum SystemAction and System Authority semantics;
 - ManagementClient;
 - loopback Management HTTP/OpenAPI as needed by that contract.
+
+The permanent repository target is a complete headless Management API over
+every administratively meaningful capability that has entered the product,
+together with a complete reference CLI. A later Presentation consumer may
+require additional Host-owned projections or queries; those are legitimate
+contract evolution and do not turn the initial H4-Min slice into the final
+Management scope.
 
 Full H4 remains a broader capability closure. The following are not required by
 H4-Min before H6 unless T2 identifies a hard consumer: the complete CLI
@@ -625,11 +685,13 @@ normative contracts. These are planned Spec targets, not files created by T1:
 
 T2 should split these targets further only when a genuine semantic owner and
 current consumer require it. BehaviorIntent, Review, DecisionCommit,
-CommunicationCommit, Expression, ConversationMailbox, and PresentationIntent
-do not each become separate Specs by noun alone.
+CommunicationCommit, Expression, and ConversationMailbox do not each become
+separate Specs by noun alone. PresentationIntent remains a Presentation
+projection concern and does not create an internal assistant or Host Authority
+contract by itself.
 
-After T1, T2 — H4-Min + H6 Normative Specification Freeze — is eligible for a
-separately authorized Plan. T1 does not create or activate T2, and this route
+After T1C, T2 — H4-Min + H6 Normative Specification Freeze — is eligible for a
+separately authorized Plan. T1C does not create or activate T2, and this route
 does not introduce a temporary direct mutation API.
 
 ### T2 exclusions around the first Product slice
@@ -641,11 +703,13 @@ Dream, external IM, MCP, full CapabilityBroker, full package lifecycle,
 backup/restore, Product Update, or a complete Presentation visual
 specification.
 
-Operator Assistant and Control Plane Presentation remain real Product
-requirements. Their first useful experience can begin with Assistant Explain and
-Navigate, followed by bounded Operate through SystemAction. Presentation
-consumes canonical contracts and never becomes Authority; a frontend is not an
-H6 prerequisite.
+System Assistant and external Control Plane Presentation remain real Product
+requirements. Their first useful experience can begin with Assistant Explain
+and Navigate, followed by bounded Operate through the normal Management
+API/CLI and, where the Host is unavailable, machine repair through the
+independent Machine Operations route. Presentation consumes canonical
+contracts and never becomes Authority; a GUI frontend is not an H6
+prerequisite.
 
 ---
 
@@ -682,7 +746,7 @@ Cedar looks operationally healthy enough that it need not be an early Foundation
 - plan is side-effect-free and execution revalidates preconditions;
 - approval binds plan digest/revisions and becomes stale when material impact changes;
 - protected mutation fails closed when Policy is unavailable;
-- Operator AI absence does not prevent CLI/normal Management;
+- System Assistant absence does not prevent CLI/normal Management;
 - CLI and HTTP/clients project the same machine-readable Problem/SystemAction semantics;
 - no arbitrary shell/SQL/root-filesystem path becomes a management shortcut.
 
@@ -751,8 +815,8 @@ Use the smallest product-relevant vertical slice:
 - minimal context/prompt/reaction contracts only;
 - full H4 is not required before this slice;
 - full H5 is not required before this slice;
-- Operator Assistant and Control Plane Presentation are recognized product
-  requirements, while H6 does not require their full implementation.
+- System Assistant and external Control Plane Presentation are recognized
+  product requirements, while H6 does not require their full implementation.
 
 ### Capability closure
 
@@ -890,11 +954,15 @@ Research findings may refine the relevant Human Architecture, Spec, or project o
 
 ## R-B — Presentation / Interaction Research
 
-Desktop/Web/UI/Apple-design exploration can continue in parallel. Early prototypes may use contract mocks or generated test data. The transition to authoritative UI occurs only through the canonical Management/Subject client contracts. Presentation state never becomes product Authority.
+Desktop/Web/UI/Apple-design exploration can continue in the external
+Presentation workstream. Early prototypes may use contract mocks or generated
+test data. The transition to authoritative UI occurs only through the
+canonical Management/Subject client contracts. Presentation state never
+becomes product Authority.
 
-Electron/Desktop work remains deferred research and qualification. Electron is a
-preferred future shell direction, not H3 implementation scope; no Desktop shell
-package or Electron dependency is introduced by H3.
+Electron/Desktop work remains external Presentation research and qualification.
+Electron is an optional future carrier technology; this repository does not
+implement a Desktop shell or add a GUI dependency.
 
 ## R-C — Evaluation Infrastructure
 
@@ -1123,6 +1191,9 @@ H3  Durable Work + Signal + Effect + Crash Recovery Semantics  [CLOSED]
 T1  Product Authority convergence
   |
   v
+T1C  Product/Machine Operations boundary correction
+  |
+  v
 T2  H4-Min + H6 normative Spec freeze
   |
   +--> P1 Product Host + minimum Management spine
@@ -1142,6 +1213,9 @@ T2  H4-Min + H6 normative Spec freeze
   +--> Full H4 system administration [parallel; not required before H6]
   |
   +--> Full H5 package/data lifecycle [parallel; not required before H6]
+
+  +--> O1/O2/OD independent OpenClaw Machine Operations integration and
+       distribution closure [parallel; O1 not required before first H6 proof]
 ```
 
 The arrows show dependency pressure, not a ban on parallel exploratory work.

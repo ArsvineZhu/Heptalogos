@@ -108,7 +108,9 @@ Driver != Domain Engine
 Subject != Model
 Subject != Reactor
 Subject != Installation
-Subject != Operator Assistant
+Subject != System Assistant
+
+System Authority != Machine/Deployment Authority
 
 Workflow State != Subject State
 WorkQueue Priority != Attention
@@ -133,3 +135,6 @@ Web State != Product Authority
 5. `AuthorityHandoff` 传递 intent/context，不自动传 Authority。
 6. 外部请求发出不等于外部效果已知。
 7. Recovery Authority 是独立、缩小、AI-independent 的本地修复能力。
+8. Machine/Deployment Authority 位于 normal Heptalogos Product Authority
+   之外；Machine Operations Plane 的 OS/deployment action 不自动成为
+   Heptalogos canonical fact 或 SystemAction。

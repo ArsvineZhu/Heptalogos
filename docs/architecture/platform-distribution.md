@@ -135,7 +135,8 @@ bounded RecoveryOperation
 launch Host
 ```
 
-它不依赖 Subject、Operator AI、third-party Extension、normal Configuration/SecretService 或 Web/GUI。
+它不依赖 Subject、System Assistant、Machine Operations integration,
+third-party Extension、normal Configuration/SecretService 或 Web/GUI。
 
 Private PostgreSQL 默认使用 loopback-only TCP、installation-owned persisted port、SCRAM、private PostgreSQL DataRoot subspace。Cluster/bootstrap owner、migration role、runtime role、DBOS role按最小权限分离；normal Host 不使用 cluster superuser。
 

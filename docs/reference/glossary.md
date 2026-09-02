@@ -98,11 +98,19 @@
 
 **Manageability**：配置是否可由管理员编辑、只读、系统管理或产品锁定。
 
-**Management Contract**：Foundation 管理 read models、SystemAction、Operations、Approvals 等的 canonical typed client boundary；CLI/HTTP/Operator/未来 Web 都是其 projection。
+**Management Contract**：Foundation 管理 read models、SystemAction、Operations、Approvals 等的 canonical typed client boundary；ManagementClient、CLI、HTTP、automation、external Presentation 与 authorized Machine Operations tools 都是其 projection。
+
+**System Assistant**：Heptalogos 对机器运维能力的产品标签；正常情况下消费 Management Contract/API/CLI，严重故障时由独立 Machine Operations Plane 支撑。
+
+**Maintenance Assistant**：System Assistant 在高风险或 break-glass 场景中的产品标签，不是另一个 runtime identity。
+
+**Machine Operations Plane**：独立于 Product Host 的高权限机器/deployment 运维 trust/failure domain；其实现路线由外部 OpenClaw runtime 与 Heptalogos integration assets 承担。
+
+**OpenClaw**：Machine Operations Plane 的外部 implementation/dependency route；不是 Heptalogos 普通用户界面的产品身份。
 
 **ManagementClient**：由 canonical Management Contract 机械派生或严格实现的 typed client；不拥有业务 Authority。
 
-**Reference CLI**：Foundation 的完整 reference management client，用于证明所有管理能力在无 Web UI 条件下可操作、可检查、可诊断。
+**Reference CLI**：Foundation 的完整 reference management client，用于证明所有当前 administratively meaningful 管理能力在无 GUI 条件下可操作、可检查、可诊断；它不要求为每个 Presentation-only projection 建立一条独立命令。
 
 **NetworkRequestContext**：描述 outbound network requester、purpose、destination policy、proxy/TLS、budget、sensitivity、causation 等的产品级网络访问上下文。
 

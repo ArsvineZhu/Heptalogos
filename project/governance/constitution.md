@@ -26,7 +26,8 @@ Conversation
 Messaging Account
 Host Process
 Installation
-Operator Assistant
+System Assistant
+Machine Operations Plane
 ```
 
 更换模型、Provider、Prompt、Driver、Host generation，不应自动产生“新的 Subject”。
@@ -57,7 +58,7 @@ Prompt 只是某次 `InvocationSpec` 对当前状态的投影。
 
 ### C3. Proposal ≠ Authority
 
-以下默认都只是 proposal：
+在 Heptalogos Product Authority 内，以下默认都只是 proposal：
 
 ```text
 LLM output
@@ -66,21 +67,26 @@ Tool call
 Extension inference
 AI review
 Counterfactual simulation
-Operator Assistant suggestion
+System Assistant proposal
 ```
 
-只有显式 commit / authoritative operation 才能改变 canonical state。
+在该 Product Authority 内，只有显式 commit / authoritative operation 才能
+改变 canonical state。External machine/deployment operators act outside this
+boundary at the OS/deployment layer.
 
 ---
 
-### C4. Subject Authority ≠ System Authority
+### C4. Subject Authority、System Authority 与 Machine/Deployment Authority 分离
 
 ```text
 Subject Chat
 → Subject Authority
 
-Operator Chat
-→ System Authority
+Direct Management
+→ Heptalogos System Authority
+
+System Assistant / Maintenance Assistant
+→ Machine Operations Plane
 ```
 
 `AuthorityHandoff` 只能转移：
@@ -162,7 +168,7 @@ prepared
 
 ```text
 Subject
-Operator Assistant
+System Assistant / Machine Operations Plane
 third-party Extension
 normal Policy path
 normal Web
@@ -301,7 +307,7 @@ Configuration existence
 
 ### E5. Explicit Authority Before Convenience
 
-任何重要 mutation 都必须先回答：
+在 Heptalogos Product Authority 内，任何重要 mutation 都必须先回答：
 
 ```text
 谁有 Authority？
@@ -313,7 +319,9 @@ Configuration existence
 怎样调用最方便？
 ```
 
-不能因为 CLI、shell、SQL、tool call 更省事，就绕过正式 Authority path。
+不能因为 CLI、shell、SQL、tool call 更省事，就绕过正式 Product Authority
+path。Machine/deployment operators act under their separate OS/deployment
+Authority outside this product boundary.
 
 ---
 
@@ -475,7 +483,11 @@ raw Cedar engine
 
 ### E16. Presentation Is Projection, Not Authority
 
-Web、CLI、Operator Assistant 都只是产品 Authority 的客户端 / projection。
+External Product Presentation clients project Product Authority without owning
+it. CLI is the headless ManagementClient/reference projection; Browser/Desktop
+GUI belongs to an external Presentation repository. The Machine Operations
+Plane is an external machine/deployment authority, not a second Product
+Authority projection.
 
 更换 Presentation 不应改变核心语义。
 

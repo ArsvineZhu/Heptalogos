@@ -169,7 +169,8 @@ extension inspect --activity
 component inspect --calls
 ```
 
-Operator Assistant 首先查询结构化 lineage，再解释原因；正常诊断不依赖 LLM grep 大量文本日志。
+CLI、Management clients 和 authorized Machine Operations agents 可以首先
+查询结构化 lineage，再解释原因；正常诊断不依赖 LLM grep 大量文本日志。
 
 ---
 

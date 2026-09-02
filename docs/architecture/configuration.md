@@ -562,9 +562,10 @@ Configuration Registry
        ├─ Normal Settings projection
        ├─ Advanced Settings projection
        ├─ Expert / Diagnostics projection
+       ├─ Management API projection
        ├─ CLI projection
-       ├─ Operator Assistant readable projection
-       └─ Internal SystemAction projection
+       ├─ external Presentation projection
+       └─ authorized Machine Operations consumer projection
 ```
 
 因此：
@@ -603,9 +604,9 @@ Configuration Registry
 
 ---
 
-## 17. Operator Assistant
+## 17. Management and Machine Operations consumers
 
-Operator Assistant 可以：
+System Assistant and an authorized Machine Operations consumer can:
 
 ```text
 查询 Definition
@@ -615,7 +616,7 @@ Operator Assistant 可以：
 展示 impact
 ```
 
-但 mutation 仍走：
+Normal Product Management mutation 仍走：
 
 ```text
 SystemAction
@@ -625,7 +626,10 @@ SystemAction
 → ConfigurationActivation
 ```
 
-对于：
+EXPERT、INTERNAL、HIDDEN 配置的可见性和可修改性由 Product Management
+Policy 与对应 projection 决定。Machine-level configuration repair belongs
+to the independent Machine Operations Plane and does not add OpenClaw-owned
+configuration to Heptalogos Configuration ownership.
 
 ```text
 EXPERT
@@ -633,7 +637,8 @@ INTERNAL
 HIDDEN
 ```
 
-配置，Operator 是否可看到/修改由 Policy + Presentation projection 决定。
+这些配置的可见性和可修改性由 Policy 与相应的 Management/Presentation
+projection 决定。
 
 ---
 

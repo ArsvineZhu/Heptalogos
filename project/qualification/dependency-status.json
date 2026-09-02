@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "asOf": "2026-08-22",
-  "authority": "Machine-readable source of truth for the current Foundation dependency role decisions. This baseline contains no open Foundation provider selection; product qualification remains a separate dimension.",
+  "authority": "Machine-readable source of truth for the current Foundation and explicitly adopted Product Operations dependency role decisions. This baseline contains no open provider selection; product qualification remains a separate dimension.",
   "roleDecisionValues": [
     "ADOPTED",
     "PRIMARY_CANDIDATE",
@@ -456,12 +456,22 @@
       "reason": "not a malicious-code security boundary"
     },
     {
-      "id": "operator.shell",
-      "role": "Operator Assistant arbitrary shell control plane",
+      "id": "management.arbitrary-shell",
+      "role": "normal Product Management arbitrary shell capability",
       "candidate": "arbitrary shell",
       "roleDecision": "REJECTED_FOR_ROLE",
       "implementationQualification": "NOT_REQUIRED",
-      "reason": "bypasses typed SystemAction/Policy/Approval/Evidence"
+      "reason": "not a normal Product Management capability; generic shell is reserved for the separately governed external Machine Operations Plane"
+    },
+    {
+      "id": "machine-operations.agent-runtime",
+      "role": "external machine/deployment operations agent runtime",
+      "candidate": "OpenClaw",
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "qualification": "exact upstream release/commit, independent process/service, trust/credential separation, and distribution/source-less closure",
+      "decisionBasis": "independent external Machine Operations Plane; exact release and redistribution candidate remain future integration/distribution Plan authority",
+      "boundary": "not a Host package, Product Host child process, or Heptalogos System Service"
     },
     {
       "id": "package.runtime-install",

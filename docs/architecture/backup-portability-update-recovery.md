@@ -318,7 +318,9 @@ stop/quiesce candidate
 
 ## 12. Recovery Core
 
-Recovery Core 必须在正常 Subject、Operator AI、third-party Extension、normal Web/GUI、甚至部分正常 Policy path 不可用时仍能：
+Recovery Core 必须在正常 Subject、System Assistant、Machine Operations
+integration、third-party Extension、normal Web/GUI、甚至部分正常 Policy
+path 不可用时仍能：
 
 ```text
 inspect last failure

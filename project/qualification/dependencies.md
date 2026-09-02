@@ -98,6 +98,24 @@ plaintext fallback → forbidden
 
 三平台、service account、native closure、rotation/lost-key/restore 在 implementation qualification 中关闭。
 
+### Machine Operations runtime — OpenClaw
+
+OpenClaw is the adopted external implementation route for the independent
+Machine Operations Plane. Its role is decided, but exact implementation and
+distribution qualification remain required:
+
+```text
+RoleDecision = ADOPTED
+ImplementationQualification = REQUIRED
+```
+
+T1C does not install, vendor, or qualify OpenClaw. The first integration or
+distribution Plan must select an exact upstream release/commit and verify
+independent process/service behavior, trust and credential separation,
+source-less/distribution closure, and current license/third-party notices.
+This role is not a Product Host child process, normal Host dependency, or
+Heptalogos System Service.
+
 ### Bootstrap lock — `@bybrave/proper-lockfile2`
 
 只覆盖 PostgreSQL Host lease 尚不可取得的短暂 bootstrap window。`proper-lockfile@4.1.2` 的 stale `rmdir`/reacquire 交错在 M5B deterministic #121 probe 中失败；当前 `@bybrave/proper-lockfile2` 5.x package line 的 atomic rename claim 通过 delayed/double-reclaimer、heartbeat、killed-owner reclaim、compromise fence、Unicode/space path 与 Node24/ESM/TS7 boundary qualification，exact selection 由 pnpm Catalog Authority 持有。正常 Host Authority 始终是 dedicated PostgreSQL advisory lease + HostOwnershipFence + HostOwnershipToken。power-loss/cross-platform/source-less 是 implementation qualification。
