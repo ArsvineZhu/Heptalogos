@@ -151,7 +151,7 @@ describe("Management service", () => {
     const claim = await service.ensureFirstAdministratorClaim();
     expect(claim).toBeDefined();
     expect(Object.isFrozen(service)).toBe(true);
-    const password = "P1-management-password-012345";
+    const password = "management-password-012345";
     const claimed = await service.claimFirstAdministrator(
       claim!.claimId,
       claim!.claimSecret,
@@ -193,7 +193,7 @@ describe("Management service", () => {
       service.claimFirstAdministrator(
         first.claimId,
         first.claimSecret,
-        "P1C-management-password-012345",
+        "management-password-replacement-012345",
       ),
     ).rejects.toMatchObject({
       problem: { problemCode: "management.first_claim_invalid" },

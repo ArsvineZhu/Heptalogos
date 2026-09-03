@@ -1,5 +1,5 @@
 /**
- * Implements the P1 Management semantic service over canonical persistence
+ * Implements the Management semantic service over canonical persistence
  * and injected Host/Runtime read projections. HTTP and CLI remain projections.
  * @module service
  */
@@ -80,7 +80,7 @@ export interface ManagementServiceOptions extends ManagementProjectionSource {
   ) => Promise<T>;
 }
 
-/** Exposes the semantic P1 Management operations to transport adapters. */
+/** Exposes the semantic Management operations to transport adapters. */
 export interface ManagementService {
   readonly contractVersion: typeof MANAGEMENT_CONTRACT_VERSION;
   /** Reads the compatibility descriptor. */

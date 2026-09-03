@@ -1,5 +1,5 @@
 /**
- * Composes the existing Bootstrap and Host authorities into the real P1
+ * Composes the existing Bootstrap and Host authorities into the Product Host
  * headless Product Host process.
  * @module host
  */
@@ -122,7 +122,7 @@ function notReadyProblem(): Error {
     retryClass: "after-change",
     title: "Product Host is not ready",
     detail:
-      "The current P1 Host did not prove all required Management readiness conditions",
+      "The current Product Host did not prove all required Management readiness conditions",
   });
 }
 

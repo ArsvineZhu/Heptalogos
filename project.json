@@ -167,8 +167,12 @@
         "check:hygiene",
         "check:dependencies",
         "check:boundaries",
+        "check:duplicates",
         "check:unused",
-        "toolchain:check"
+        "toolchain:check",
+        "docs:api:check",
+        "check:product-artifacts",
+        "tsc6"
       ],
       "executor": "nx:run-commands",
       "options": {
@@ -177,15 +181,14 @@
     },
     "check:static": {
       "dependsOn": [
-        "check:repo",
         "check:duplicates",
         "format:check",
-        "docs:api:check",
         "check:product-artifacts",
         "source-docs:lint",
         "lint",
         "typecheck",
-        "tsc6"
+        "check:boundaries",
+        "check:unused"
       ],
       "executor": "nx:run-commands",
       "options": {

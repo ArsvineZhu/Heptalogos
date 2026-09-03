@@ -1,5 +1,5 @@
 /**
- * Defines stable P1 Management Problem construction and HTTP projection
+ * Defines stable Management Problem construction and HTTP projection
  * semantics without exposing provider or database exception details.
  * @module problems
  */
@@ -28,7 +28,7 @@ export function managementProblem(
   });
 }
 
-/** Raises the invalid request Problem used by all P1 input boundaries. */
+/** Raises the invalid request Problem used by all Management input boundaries. */
 export function invalidInputProblem(
   detail = "The Management request is invalid",
 ): ProblemError {

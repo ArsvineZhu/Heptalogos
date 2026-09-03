@@ -1,18 +1,36 @@
 # Qualification
 
-This area owns current property evidence and qualification records. It does
-not own Architecture decisions or milestone truth.
+This area owns observed property evidence. It does not own product
+Architecture, dependency role decisions, current development order, or
+implementation authorization.
 
-- [Verification system](verification-system.md)
-- [Dependency qualification](dependencies.md)
-- [Dependency matrix](dependency-matrix.md)
-- [Dependency status](dependency-status.json)
-- [Result template](result-template.md)
-- [Qualification results](results/README.md)
-- [Evidence](evidence/)
-- [Deferred and implementation qualification](deferred-and-implementation-qualification.md)
+Evidence states are exactly:
 
-Evidence states are exactly `PASS`, `FAIL`, `NOT_RUN`, and `BLOCKED`.
-`qualificationState` describes the closure of the properties in one record; it
-does not reopen or close a dependency `RoleDecision`. Historical observations
-must remain visibly separate from current-candidate evidence.
+```text
+PASS
+FAIL
+NOT_RUN
+BLOCKED
+```
+
+Use the boundary that matches the claim:
+
+```text
+unit/package
+→ real database or provider
+→ process restart/crash
+→ native operating system/platform
+→ source-less or shipping artifact
+```
+
+A result record states the property, actual environment/provider/artifact,
+executed scenario or command, tested revision when materially relevant, result,
+and any untested boundary needed to interpret it. Adjacent tests, mocks,
+historical records, or one platform do not upgrade an unexecuted claim.
+
+Keep provider/mechanics role decisions in
+[dependency-status.json](dependency-status.json) and implementation routes in
+the [dependency area](../dependencies/README.md). Keep executed records under
+[results](results/README.md) and supporting evidence under [evidence](evidence/).
+Existing Q/C filenames are retained as historical evidence identities; new
+records use semantic property names.

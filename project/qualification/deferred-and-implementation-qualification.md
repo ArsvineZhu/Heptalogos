@@ -52,7 +52,7 @@ TUF/update/backup/restore product behavior
 ```text
 record reproducible blocker
 → establish smallest sufficient evidence
-→ update dependency-status.json + dependency-routing.json + human ledger together
+→ update dependency-status.json + dependency-routing.json + decision-ledger together
 → replace route
 ```
 

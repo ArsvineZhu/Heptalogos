@@ -35,7 +35,9 @@
 | Q-SECRET-01      | SecretBackend contract evidence                                                                       | current route property evidence | no                                          |
 | Q-BOOT-01        | lock/process/recovery evidence                                                                        | current route property evidence | no                                          |
 
-当前 property ledger 见 `results/qualification-status.json`。`NOT_RUN` 可以合法表示 implementation/L3 property 尚未执行；它不自动把 `RoleDecision` 退回候选态。
+Individual property evidence remains in `results/` records. `NOT_RUN` can
+legitimately represent an unexecuted implementation/L3 property; it does not
+return an adopted `RoleDecision` to candidate status.
 
 ## C. Foundation Closed Implementation Routes
 

@@ -13,38 +13,38 @@ import {
   validateRootTopology,
 } from "../src/repository-governance.mjs";
 
-const workflowPrefix = [
-  "name: verify-manual",
-  "",
-  "on:",
-  "  workflow_dispatch:",
-  "    inputs:",
-  "      pr_number:",
-  "        required: true",
-  "      reason:",
-  "        required: true",
-  "",
-  "permissions:",
-  "  contents: read",
-  "",
-  "DISPATCHED_SHA: $" + "{{ github.sha }}",
-  "verification-script: |",
-  "  process.env.DISPATCHED_SHA",
-  "",
-].join("\n");
-const baseOutput = "      base_sha: $" + "{{ steps.resolve.outputs.base_sha }}\n";
-const forbiddenTriggers = [
-  "push",
-  "pull_request",
-  "pull_request_target",
-  "schedule",
-  "repository_dispatch",
-  "merge_group",
-  "workflow_call",
-];
+function workflowFixture(actionRef) {
+  return [
+    "name: verify-manual",
+    "",
+    "on:",
+    "  workflow_dispatch:",
+    "    inputs:",
+    "      revision:",
+    "        required: false",
+    "",
+    "permissions:",
+    "  contents: read",
+    "",
+    "jobs:",
+    "  verify:",
+    "    name: verify ($" + "{{ matrix.os }})",
+    "    runs-on: $" + "{{ matrix.os }}",
+    "    strategy:",
+    "      matrix:",
+    "        os: [ubuntu-latest, macos-latest, windows-latest]",
+    "    steps:",
+    "      - uses: actions/checkout@" + actionRef,
+    "        with:",
+    "          ref: $" + "{{ inputs.revision || github.sha }}",
+    "      - run: pnpm install --frozen-lockfile",
+    "      - run: pnpm verify",
+    "",
+  ].join("\n");
+}
 
-describe("repository workflow governance", () => {
-  it("requires the private root workspace to use the current repository identity", async () => {
+describe("repository governance", () => {
+  it("requires the private root workspace to use the repository identity", async () => {
     const root = await mkdtemp(join(tmpdir(), "heptalogos-root-identity-"));
     try {
       await writeFile(
@@ -92,7 +92,7 @@ describe("repository workflow governance", () => {
     }
   });
 
-  it("discovers responsibility roots and requires only global index coverage", async () => {
+  it("discovers responsibility roots and requires global index coverage", async () => {
     const root = await mkdtemp(join(tmpdir(), "heptalogos-root-topology-"));
     try {
       const roots = [
@@ -109,11 +109,11 @@ describe("repository workflow governance", () => {
       for (const directory of roots) {
         await mkdir(join(root, directory), { recursive: true });
       }
-      expect(discoverResponsibilityRoots({ root })).toEqual(roots);
       await writeFile(
         join(root, "INDEX.md"),
         roots.map((name) => "[" + name + "](./" + name + "/)").join("\n"),
       );
+      expect(discoverResponsibilityRoots({ root })).toEqual(roots);
       await mkdir(join(root, "apps"), { recursive: true });
       expect(validateRootTopology({ root })).toEqual([expect.stringContaining("apps")]);
       await writeFile(
@@ -129,7 +129,7 @@ describe("repository workflow governance", () => {
     }
   });
 
-  it("uses the new typed machine Authority homes", () => {
+  it("uses only current machine Authority homes", () => {
     expect(CURRENT_MACHINE_AUTHORITIES).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -141,59 +141,44 @@ describe("repository workflow governance", () => {
           path: "project/dependencies/dependency-routing.json",
         }),
         expect.objectContaining({
-          id: "qualification-status",
-          kind: "CURRENT_EVIDENCE_PROJECTION",
-          path: "project/qualification/results/qualification-status.json",
+          id: "dependency-status",
+          path: "project/qualification/dependency-status.json",
         }),
       ]),
     );
   });
 
-  it("allows machine-internal base_sha outputs while rejecting no inputs", () => {
-    const errors = validateVerifyWorkflow(
-      workflowPrefix + "jobs:\n  resolve-candidate:\n    outputs:\n" + baseOutput,
-    );
-    expect(errors).toEqual([]);
+  it("accepts a manually dispatched selected-revision workflow", () => {
+    expect(
+      validateVerifyWorkflow(
+        workflowFixture("0123456789abcdef0123456789abcdef01234567"),
+      ),
+    ).toEqual([]);
   });
 
-  it("validates reusable workflow job-level uses pins", () => {
-    const unpinned = validateVerifyWorkflow(
-      workflowPrefix +
-        "jobs:\n  reusable:\n    uses: owner/repo/.github/workflows/verify.yml@main\n",
+  it("rejects an unpinned action", () => {
+    expect(validateVerifyWorkflow(workflowFixture("main"))).toContain(
+      "GitHub Action must be pinned to a full commit SHA: actions/checkout@main",
     );
-    expect(unpinned).toContain(
-      "GitHub Action must be pinned to a full commit SHA: owner/repo/.github/workflows/verify.yml@main",
-    );
-
-    const pinned = validateVerifyWorkflow(
-      workflowPrefix +
-        "jobs:\n  reusable:\n    uses: owner/repo/.github/workflows/verify.yml@0123456789abcdef0123456789abcdef01234567\n",
-    );
-    expect(pinned).toEqual([]);
   });
 
-  it("rejects base_sha and target_sha workflow-dispatch inputs", () => {
-    const errors = validateVerifyWorkflow(
-      workflowPrefix.replace(
-        "      reason:",
-        "      base_sha:\n        required: true\n      target_sha:\n        required: true\n      reason:",
-      ) +
-        "jobs:\n  resolve-candidate:\n    outputs:\n" +
-        baseOutput,
+  it.each([
+    "push",
+    "pull_request",
+    "pull_request_target",
+    "schedule",
+    "repository_dispatch",
+    "merge_group",
+    "workflow_call",
+  ])("rejects a %s trigger", (trigger) => {
+    const workflow = workflowFixture(
+      "0123456789abcdef0123456789abcdef01234567",
+    ).replace(
+      "  workflow_dispatch:\n",
+      "  " + trigger + ": {}\n  workflow_dispatch:\n",
     );
-    expect(errors).toEqual([
-      "verify workflow must not expose revision input: base_sha:",
-      "verify workflow must not expose revision input: target_sha:",
-    ]);
-  });
-
-  it.each(forbiddenTriggers)("rejects a %s trigger beneath on", (trigger) => {
-    const errors = validateVerifyWorkflow(
-      workflowPrefix.replace(
-        "  workflow_dispatch:\n",
-        "  " + trigger + ": {}\n  workflow_dispatch:\n",
-      ) + "jobs:\n  verify:\n    runs-on: ubuntu-latest\n",
+    expect(validateVerifyWorkflow(workflow)).toContain(
+      "verify workflow must not auto-trigger via " + trigger,
     );
-    expect(errors).toContain("verify workflow must not auto-trigger via " + trigger);
   });
 });

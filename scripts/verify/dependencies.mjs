@@ -16,7 +16,6 @@ import {
   readYamlFile,
   readWorkspaceCatalog,
   readWorkspaceSection,
-  repositoryToolingPackages,
   routes,
   validateStandingDependencyDocuments,
   validateVersionAuthority,
@@ -201,18 +200,8 @@ if (!toolingRoute) {
 
 for (const name of externalDependencyNames) {
   const route = packageRoutes.get(name);
-  const isRepositoryTooling = repositoryToolingPackages.has(name);
-  if (!route && !isRepositoryTooling) {
-    fail(`external dependency has no Corpus package identity: ${name}`);
-    continue;
-  }
   if (route && route.directive !== "USE") {
     fail(`dependency route is not adopted for use: ${name} -> ${route.roleId}`);
-  }
-  if (route && isRepositoryTooling) {
-    fail(
-      `package identity is assigned to both a route and repository tooling: ${name}`,
-    );
   }
 }
 
@@ -287,6 +276,6 @@ if (errors.length > 0) {
   process.exitCode = 1;
 } else {
   console.log(
-    "PASS dependency routes; workspace/internal, external npm, Node builtin, and repository tooling categories are valid",
+    "PASS dependency routes; workspace/internal, external npm, Node builtin, and adopted provider rules are valid",
   );
 }

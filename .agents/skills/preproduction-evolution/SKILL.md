@@ -39,8 +39,9 @@ not an obligation. A version field may remain required by the current contract;
 versioning alone does not require a legacy reader.
 
 If an actual retained consumer conflicts with the PRE_PRODUCTION replacement,
-stop with `PLAN_GAP` until the plan and Authority decide the obligation. Do not
-silently invent a bridge.
+stop with `PLAN_GAP` until the Plan and Authority decide the obligation. Do not
+silently invent a bridge. An approved low-cost future-facing semantic seam is
+not obsolete merely because it has no current consumer.
 
 ## Shape replacement checks
 

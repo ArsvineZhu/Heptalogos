@@ -28,7 +28,7 @@ afterEach(async () => {
 });
 
 suite("built Product Host process", () => {
-  it("proves Q1 fresh boot, Q2 client/CLI reads, and Q3 restart identity", async () => {
+  it("starts a fresh Host, exposes client and CLI reads, and preserves restart identity", async () => {
     fixture = await makeFixture(postgresBin!);
     running = await runHost(fixture);
     expect(running.ready.installationId).toBe(fixture.installationId);
@@ -45,7 +45,7 @@ suite("built Product Host process", () => {
     expect(endpoint.origin).toBe(running.ready.origin);
     expect(claim.claimSecret).toHaveLength(43);
 
-    const password = "P1-Administrator-password-012345";
+    const password = "Administrator-password-012345";
     const claimed = await runCli(
       fixture,
       ["admin", "claim", "--password-stdin", "--json"],
@@ -130,7 +130,7 @@ suite("built Product Host process", () => {
     ).rejects.toBeDefined();
   });
 
-  it("proves Q4 stale descriptor replacement and graceful shutdown", async () => {
+  it("replaces a stale descriptor and shuts down gracefully", async () => {
     fixture = await makeFixture(postgresBin!);
     running = await runHost(fixture);
     const stale = await readRunJson(fixture, "management-endpoint.json");
@@ -143,7 +143,7 @@ suite("built Product Host process", () => {
     expect((current as { bootId: string }).bootId).toBe(running.ready.bootId);
   });
 
-  it("proves Q5 fail-closed credential recovery and Q6 Host-fenced ACLs", async () => {
+  it("fails closed on credential recovery and enforces Host-fenced ACLs", async () => {
     fixture = await makeFixture(postgresBin!);
     running = await runHost(fixture);
     const runtimeKey = {
@@ -177,7 +177,7 @@ suite("built Product Host process", () => {
     expect((failed as Error).message).toContain("bootstrap_credential_missing");
   });
 
-  it("proves Q7 generated client discovery and Q8 production boundary", async () => {
+  it("exposes generated-client discovery and the shipping boundary", async () => {
     fixture = await makeFixture(postgresBin!);
     running = await runHost(fixture);
     const local = await openLocalManagementClient({

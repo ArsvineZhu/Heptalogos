@@ -87,6 +87,10 @@ Development history creates no compatibility obligation. A compatibility obligat
 
 Do not preserve old names, old paths, old state shapes, old tests, or previous branch behavior merely because they once existed.
 
+Minimal diff is not a project objective, and dependency count is not a quality
+metric. Prefer a suitable mature dependency when it lowers total maintenance
+burden. Do not add a compatibility bridge without a declared obligation.
+
 ## 6. Future-aware without speculative machinery
 
 A future-facing **semantic seam** may exist before its consumer when it maps to an approved product direction and is cheap to maintain.
@@ -165,6 +169,16 @@ pure semantic test
 ```
 
 Test count is not a quality target. Delete tests whose behavior is deliberately deleted. Split tests by contract/scenario when a file mixes unrelated concerns.
+
+A pre-implementation failing test is useful only when it yields information:
+reproducing an observed defect, characterizing existing behavior, resolving an
+uncertain contract, or probing an external/runtime property. Do not run a
+failing test solely to demonstrate that not-yet-written functionality is
+absent.
+
+Development history does not create permanent negative repository invariants.
+Once an obsolete internal artifact is removed, Git/history preserves that fact
+unless a current standing rule independently forbids the artifact class.
 
 ## 9. Package and code architecture
 

@@ -1,4 +1,8 @@
-# Implementation plans
+# Implementation Plans
+
+Plans are bounded work authorization. They are not permanent semantic
+Authority and do not make their findings, tests, or generated artifacts
+standing repository policy.
 
 Plan states are exactly:
 
@@ -9,46 +13,39 @@ SUPERSEDED
 ABANDONED
 ```
 
-Filename recency is not plan authority. A task should name its governing active
-plan explicitly; if multiple active plans could apply and none is designated,
-surface the ambiguity rather than guessing.
+Filename recency is not authority. Execute only the explicitly designated
+active Plan. If more than one active Plan could apply and none is designated,
+stop with the ambiguity rather than guessing.
 
 ## Decision completeness
 
-An ACTIVE implementation plan is an executable specification, not an option memo.
-Before execution it MUST resolve non-trivial choices affecting Authority,
-semantic ownership, package/dependency boundaries, compatibility, durable
-shape, stable identity, lifecycle/failure semantics, stage scope and required
-evidence.
+An active Plan is an executable specification, not an option memo. Before
+execution it must resolve the non-trivial choices needed to implement the
+approved change, including Authority, semantic ownership, package and provider
+boundaries, compatibility, durable shape, stable identity, lifecycle/failure
+meaning, scope, and required proof.
 
-Every future non-trivial active plan must also state:
+A competent executor should be able to choose only
+semantics-equivalent local implementation details. If a material decision is
+not resolved, report `PLAN_GAP` and stop the affected branch.
 
-```text
-Current Horizon / maturity
-Executable Truth target
-Authorized failure classes
-Explicit deferred failure classes
-Complexity admission for new high-risk mechanics
-Non-goals
-Completion conditions
-Reopen conditions
-```
+Plans should state the current context, authorized change, non-goals, evidence
+boundary, completion conditions, and any explicit reopen boundary when those
+facts matter. They do not require a universal heading template.
 
-A plan that says “make robust”, “handle all edge cases”, “production-grade”, or
-“for safety” without a bounded failure/threat model is not decision-complete.
-Do not create a plan-lint framework or another meta-engine to check these headings.
+Do not create a Plan linter, Plan schema, task/decision/test registry,
+acceptance matrix, hash or manifest system, one-commit rule, review-after-each-
+task rule, or other planning meta-framework.
 
-The executor may choose only semantics-equivalent local implementation details.
-An unresolved non-trivial choice is `PLAN_GAP` and stops execution.
+## Completion
 
-Completion is a separate decision from reopening. A plan is complete when its
-authorized change, acceptance criteria, required executable path, and current
-evidence conditions are satisfied, with no observed/current authorized blocker
-remaining. The default decision at that point is `STOP`.
+A Plan is complete when its authorized change and acceptance conditions are
+satisfied, the required executable or evidence proof is green, and no observed
+authorized blocker remains. The default next action is `STOP`.
 
-Reopen conditions must name current evidence, an accepted current-Horizon
-failure case, a current consumer/invariant, or an explicit active-plan
-requirement. Imagined edge cases, generic future-proofing, and recovery-of-
-recovery do not reopen a completed change by default.
+Reopen only for new current evidence, an accepted current-Horizon failure case,
+a current consumer or invariant, or an explicit active-Plan requirement.
+Imagined edge cases, generic future-proofing, and recovery-of-recovery do not
+reopen completed work by default.
 
-Use the [plan index](INDEX.md) for active and historical plan navigation.
+Use the [plan index](INDEX.md) for active and historical navigation.

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const repositoryRoot = resolve(import.meta.dirname, "../../..");
 const read = (path: string) => readFile(resolve(repositoryRoot, path), "utf8");
 
-describe("P1C public and generation boundaries", () => {
+describe("Product Host public and generation boundaries", () => {
   it("keeps ProductHost Authority and framework internals out of its public handle", async () => {
     const [root, handle] = await Promise.all([
       read("packages/application/product-host/dist/index.d.ts"),

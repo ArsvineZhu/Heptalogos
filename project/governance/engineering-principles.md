@@ -123,24 +123,21 @@ Adapter 用于：
 保留上游 generic mechanics
 ```
 
-只有 adapter 为维持语义而产生大量重复 runtime、双重 lifecycle 或脆弱 glue 时，才构成拒绝候选的证据。
+只有 adapter 为维持语义而产生大量重复 runtime、双重 lifecycle 或脆弱 glue 时，才构成拒绝该 provider route 的证据。
 
 ---
 
-## 4. 自研 generic Foundation mechanics 的批准条件
+## 4. Custom generic mechanics
 
-必须回答：
+Custom generic mechanics are justified only by a current semantic requirement
+and concrete insufficiency evidence for the existing owner, adopted provider,
+Standard/Node/OS facility, or thin adapter. The active Plan or current owner
+must make the owner, boundary, and bounded failure impact clear; no mandatory
+questionnaire or change-rationale form is required.
 
-1. 同类成熟方案有哪些？
-2. 需求与现有抽象的差异是命名差异还是真正语义冲突？
-3. 能否以窄 adapter 隔离？
-4. 采用方案可删除多少 custom code/test/ops burden？
-5. 方案引入多少 runtime、升级、安全、跨平台和认知负担？
-6. 自研后由谁承担并发、泄漏、恢复、升级和安全边界？
-7. 这是否属于产品研究差异化？
-8. 是否已经获得最小充分证据证明成熟方案不合适？
-
-没有证据不得以“更干净”“依赖少”“自己写很简单”为理由自研。
+Do not choose custom code because it looks cleaner, uses fewer dependencies, or
+is small to write. If the route is insufficient but the material replacement
+decision is not authorized, report PLAN_GAP.
 
 ---
 
@@ -473,33 +470,26 @@ L3 process-level executable composition
 L4 product vertical slice
 ```
 
-H3 的目标是 Foundation L3 composition proof；H6 的目标是 real Product L4 Subject
-slice。package/interface/test 数量不能替代相应 proof level。
+The asynchronous Foundation capability targets an L3 composition proof; the
+Subject vertical slice targets a real Product L4 path. Package, interface, and
+test counts cannot substitute for the corresponding proof level.
 
-## 15. Complexity Admission
+## 15. Complexity and maintenance burden
 
-在增加 high-risk complexity 前，当前 active plan 或 change rationale 必须记录：
+An approved low-cost semantic seam may precede its first consumer when it maps
+to current Charter or Architecture meaning. Expensive permanent machinery
+requires an explicit current reason, an owner, and a bounded failure or threat
+model. “No current consumer” is not a universal deletion rule, and a possible
+future consumer is not sufficient justification for a substantial engine.
 
-```text
-Current horizon:
-Current consumer/invariant:
-Failure class:
-Failure/threat:
-Impact if deferred:
-Existing fail-closed behavior:
-Mechanics owner/provider:
-New state/branch/resource cost:
-Why now:
-Decision: IMPLEMENT | DEFER | REJECT
-```
+Minimal diff is not a project objective. Dependency count is not a quality
+metric. Evaluate the total maintenance burden across custom code, adapters,
+tests, operations, upgrades, security, portability, and failure handling.
 
-不要求为每个决定另建 standalone document。
-
-该记录还必须说明当前 variability 或第二个 consumer、为什么 direct route
-不足、以及 operational/test/documentation burden。REUSE_EXISTING、DIRECT_LOCAL、
-ADD_MINIMUM_COMPLEXITY、DEFER、PLAN_GAP 是有效的工程决定；不存在 current
-consumer、invariant、accepted failure model 或 explicit threat 时，不得以未来
-复用或理论完整性为理由永久增加复杂度。
+Permanent repository checks may encode a current standing invariant or a
+genuinely closed semantic set. A one-time migration, deletion, or history fact
+does not qualify. Do not hard-code deleted artifact names or paths merely to
+prevent their return.
 
 ## 15.1 Testing Strategy
 
@@ -516,6 +506,11 @@ Architecture Authority. Testability alone does not authorize a new interface,
 factory, DI layer, wrapper, mock seam, product state, branch, or permanent
 matrix. Exploratory failure injection can be removed after uncertainty is
 resolved unless a current invariant requires the scenario.
+
+A pre-implementation failing test is useful only when it yields information:
+reproducing an observed defect, characterizing existing behavior, resolving an
+uncertain contract, or probing an external/runtime property. Do not run a
+failing test solely to demonstrate that not-yet-written functionality is absent.
 
 ## 16. New State Rule
 

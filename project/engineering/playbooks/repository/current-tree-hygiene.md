@@ -1,112 +1,49 @@
 # Current-Tree Hygiene
 
-This playbook operationalizes the current typed knowledge and governance rules for the canonical/executable
-repository. It keeps development chronology in Git and completed evidence while
-ensuring that the checkout describes the system as it is now.
+This playbook describes the permanent current-tree properties checked by
+check:hygiene. It keeps current executable identities semantic while leaving
+development chronology to Git and historical evidence.
 
-## Purpose
+## Current properties
 
-Use this playbook during every pre-production stabilization and whenever a current
-contract changes during `CompatibilityEpoch = PRE_PRODUCTION`.
+Current source, tests, fixtures, scripts, tooling, configuration, workflow
+definitions, manifests, Skills, and agent instructions must not use a
+milestone, PR, session, or corrective-cycle identity as their executable/test
+identity. A semantic name is preferred; stable problem, schema, protocol,
+durable, public API, and Spec traceability identifiers remain valid.
 
-```text
-current executable identity = semantic role
-development history = Git / completed plans / historical qualification
-no declared compatibility obligation = rewrite/reset/reject/delete
-```
+The compatibility register at
+project/governance/compatibility-obligations.json must be valid JSON with
+schemaVersion 1, compatibilityEpoch PRE_PRODUCTION, and an obligations array.
+The array may contain a real declared obligation. The register is Authority;
+the scanner does not require it to remain empty.
 
-## Surface classification
+## Scope
 
-The hygiene gate scans current source, tests, fixtures, scripts, tooling,
-configuration, workflow definitions, manifests, permanent verification, Skills,
-and current agent instructions. It does not scan `docs/**`, lockfiles,
-dependencies, build output, coverage, temporary caches, or generated artifacts
-excluded by the gate. Standing-document links and moved current-home references
-are owned by `check:knowledge`; root topology and machine-Authority
-consumer ownership are owned by `check:repository`.
+The scanner covers tracked current executable and test paths under the
+repository's maintained source, tooling, workflow, and configuration roots.
+Historical Plans, qualification history, ordinary documentation prose, and
+generated output remain owned by their respective planes. The scanner does not
+decide whether a word such as legacy, obsolete, or deprecated describes a
+compatibility path.
 
-Historical documents may retain exact milestone/PR/session identifiers because
-chronology is their purpose. They must not be copied back into executable
-identity or used as current compatibility Authority.
+## Handling a finding
 
-## Sweep A: stage/provenance residue
+Inspect the identity and semantic owner. Rename a development-only identity to
+the current role and update its callers when the finding is only a path or
+label. If code actually accepts an obsolete internal shape, rewrite the
+current owner and callers under PRE_PRODUCTION; do not add a bridge without a
+declared obligation. A product-domain tombstone remains when its current
+contract requires one.
 
-Scan current file paths and contents for milestone, phase, PR, corrective-cycle,
-session, and temporary-migration identity. Use boundary-aware patterns so
-ordinary semantic words are not false positives. Rename resource names, test
-labels, passwords, database names, temporary paths, and long-lived filenames to
-current semantic roles. Do not retain aliases, duplicate files, symlinks, or
-re-exports under the old identity.
+Do not add a blacklist, baseline, allow-list, manifest, or test that merely
+remembers a deleted repository artifact. Do not reject a current file merely
+because its explanatory prose uses historical vocabulary. Do not treat a
+skipped or blocked check as PASS.
 
-## Sweep B: compatibility-history residue
+## Verification
 
-Search implementation and test surfaces for legacy/obsolete/deprecated readers,
-fallback parsers, upcasters, downcasters, bridge migrations, aliases, dual
-readers/writers, and previous development-shape branches. Inspect behavior, not
-just keywords. Keep current contract-version matching, strict unsupported-input
-rejection, and the adopted compiler compatibility lane when they are current
-semantics rather than historical product compatibility.
-
-The sole current obligation owner is
-`project/governance/compatibility-obligations.json`. With an empty
-PRE_PRODUCTION obligation list, project-history compatibility behavior must be
-removed or rejected.
-
-## Sweep C: dead phase/current-tree artifacts
-
-For every one-time evidence file, phase script, generated acceptance artifact,
-or current-tree archive, prove a current owner, current purpose, current
-consumer, and semantic identity. If any is absent, delete it from the current
-tree. Do not move it to `archive`, `.history`, `legacy`, or another current
-directory; Git and completed plans preserve the history.
-
-## Decision matrix
-
-| Finding                                                                                            | Action                                                             |
-| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Stage/PR/session token only affects name/path/test label                                           | Rename to semantic role; update all references; no alias           |
-| Negative test describes an old dev shape but still proves current required-field/schema strictness | Reframe to current invariant; remove historical wording/data names |
-| Negative test only duplicates generic unsupported-version/unknown-field coverage                   | Delete it                                                          |
-| Reader/parser/writer/fallback actually accepts a previous dev shape                                | Delete old branch and update canonical tests; no shim              |
-| Previous dev DB requires migration                                                                 | Rewrite/squash current baseline and rebuild dev/test DB            |
-| One-time phase artifact has no current consumer                                                    | Delete; keep history in Git/completed plan                         |
-| Artifact appears to have a current consumer but purpose is unclear                                 | `PLAN_GAP`; do not delete or preserve by guess                     |
-| Evidence suggests a real external consumer/retained production state                               | `PLAN_GAP` + architecture review; do not invent an obligation      |
-
-## Migration baseline rule
-
-PRE_PRODUCTION development migrations are rewriteable. Keep one current
-canonical baseline unless a current architecture-owned reason requires more
-mechanics. Do not append migrations to preserve developer database chronology.
-Reset/recreate project-owned development state after a canonical shape rewrite.
-
-## Machine gate behavior
-
-`pnpm check:hygiene` scans the declared current surfaces, rejects provenance and
-high-signal historical compatibility residue, fails on closed phase artifacts,
-and validates the empty PRE_PRODUCTION compatibility register. It has no generic
-allowlist, baseline, inline suppression, or history-ignore mechanism. The three
-gate implementation files are the only exact self-exemptions.
-
-The gate is one permanent repository check and is wired into `pnpm verify` after
-`check:repository`. A symlink or junction in a scanned canonical/executable
-surface is reported as `symbolic-link-residue`; the scanner does not follow it
-and provides no symlink allowlist. A skipped or blocked gate is not `PASS`.
-
-## Pre-production stabilization zero-residue checklist
-
-- [ ] `pnpm check:hygiene` passes on the final candidate.
-- [ ] development provenance residue is zero in current executable surfaces.
-- [ ] undeclared project-history compatibility residue is zero.
-- [ ] closed-phase/current-tree archaeology residue is zero.
-- [ ] the compatibility register is `PRE_PRODUCTION` with `obligations: []`.
-- [ ] exactly one current canonical Foundation migration baseline remains.
-- [ ] current evidence names the actual candidate and environment.
-- [ ] Historical Evidence and Current Evidence remain distinct.
-
-## Examples from Heptalogos
-
-Use names such as `host-maintenance`, `private-postgres`,
-`runtime-kernel-managed-host`, `execution-foundation`, and
-`bootstrap-recovery`. These describe current operational roles; they do not
-encode the milestone that introduced them.
+Run check:hygiene after current identity or compatibility-register changes,
+then run the other scoped repository checks required by the active Plan. A
+passing result proves only the current identity/register properties scanned by
+this check.

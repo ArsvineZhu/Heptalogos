@@ -769,13 +769,13 @@ describe("Host-fenced persistence PostgreSQL 18.6 qualification", () => {
       ).rejects.toThrow();
       await expect(
         runtime.query(
-          `CREATE TABLE "${HOST_OWNERSHIP_CANONICAL_DATABASE}"."p8_forbidden" (value integer)`,
+          `CREATE TABLE "${HOST_OWNERSHIP_CANONICAL_DATABASE}"."restricted_table" (value integer)`,
         ),
       ).rejects.toThrow();
       await expect(
-        runtime.query("CREATE DATABASE p8_forbidden_database"),
+        runtime.query("CREATE DATABASE restricted_database"),
       ).rejects.toThrow();
-      await expect(runtime.query("CREATE ROLE p8_forbidden_role")).rejects.toThrow();
+      await expect(runtime.query("CREATE ROLE restricted_role")).rejects.toThrow();
       await expect(
         runtime.query(`SET ROLE "${HOST_OWNERSHIP_OWNER_ROLE}"`),
       ).rejects.toThrow();

@@ -1,5 +1,5 @@
 /**
- * Public P1 Management contracts and semantic service; HTTP, OpenAPI, client,
+ * Public Management contracts and semantic service; HTTP, OpenAPI, client,
  * and CLI projections remain outside this package.
  * @packageDocumentation
  */

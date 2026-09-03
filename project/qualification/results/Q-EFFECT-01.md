@@ -146,7 +146,7 @@ postMergeReconciliation: PASS
 ```
 
 The exact review candidate pair and squash-merge commit are recorded in
-`qualification-status.json`. `qualificationState` remains `PARTIAL` because
+the result records in this directory. `qualificationState` remains `PARTIAL` because
 the provider, source-less, platform, service/headless, and hardware boundaries
 remain explicitly `NOT_RUN`.
 

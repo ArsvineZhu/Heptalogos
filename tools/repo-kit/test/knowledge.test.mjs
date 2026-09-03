@@ -93,7 +93,6 @@ async function fixtureTree(setup) {
       ["project/plans/INDEX.md", "# Plan index\n"],
       ["project/qualification/README.md", "# Qualification\n"],
       ["project/qualification/dependency-status.json", "{}\n"],
-      ["project/qualification/results/qualification-status.json", "{}\n"],
       ["project/roadmap/README.md", "# Roadmap\n"],
       ["packages/README.md", "# Packages\n"],
       ["packages/INDEX.md", "# Package index\n"],

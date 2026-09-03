@@ -6,7 +6,7 @@ and the current Windows OS credential store. It does not recreate Product Host
 composition in test fixtures.
 
 The built Host is launched with a temporary working directory outside the
-repository. P1C qualification additionally checks both build-carried generation
+repository. Product Host qualification additionally checks both build-carried generation
 identities, Management read envelopes, complete Problem semantics, public API
 containment, and the ProductHost OpenAPI-to-client generation direction. This
 does not claim a source-less release artifact.

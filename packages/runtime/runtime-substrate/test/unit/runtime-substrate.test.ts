@@ -71,7 +71,7 @@ describe("RuntimeSubstrate", () => {
     let disposed = 0;
     const handle = await substrate.activate(
       request(
-        "c1",
+        "single-activation",
         (scope) => {
           scope.defer("resource", () => {
             disposed += 1;
@@ -97,7 +97,7 @@ describe("RuntimeSubstrate", () => {
     await expect(
       substrate.activate(
         request(
-          "c2",
+          "partial-activation",
           (scope) => {
             scope.defer("first", () => {
               order.push("first");
@@ -159,7 +159,7 @@ describe("RuntimeSubstrate", () => {
     let disposed = 0;
     const handle = await substrate.activate(
       request(
-        "c4",
+        "idempotent-disposal",
         (scope) => {
           scope.defer("resource", async () => {
             await Promise.resolve();
@@ -183,7 +183,7 @@ describe("RuntimeSubstrate", () => {
     let disposed = false;
     const activation = substrate.activate(
       request(
-        "c5",
+        "async-cancellation",
         (scope) => {
           scope.defer("resource", () => {
             disposed = true;
@@ -212,7 +212,7 @@ describe("RuntimeSubstrate", () => {
     const background = deferred<void>();
     const handle = await substrate.activate(
       request(
-        "c6",
+        "background-rejection",
         (scope) => {
           scope.track("background", background.promise);
         },
@@ -239,7 +239,7 @@ describe("RuntimeSubstrate", () => {
     const failures: RuntimeSubstrateFailure[] = [];
     const handle = await substrate.activate(
       request(
-        "c7",
+        "disposer-rejection",
         (scope) => {
           scope.defer("bad-disposer", () => {
             throw new Error("dispose failed");
@@ -265,7 +265,7 @@ describe("RuntimeSubstrate", () => {
     const order: string[] = [];
     const handle = await substrate.activate(
       request(
-        "c8",
+        "abort-before-disposal",
         (scope) => {
           scope.signal.addEventListener("abort", () => order.push("aborted"), {
             once: true,
@@ -290,7 +290,7 @@ describe("RuntimeSubstrate", () => {
     const failures: RuntimeSubstrateFailure[] = [];
     const handle = await substrate.activate(
       request(
-        "c9",
+        "settlement-timeout",
         (scope) => {
           scope.track("never", new Promise<void>(() => undefined));
         },
@@ -301,7 +301,9 @@ describe("RuntimeSubstrate", () => {
     await expect(handle.dispose()).rejects.toMatchObject({
       problem: { problemCode: "runtime.substrate.settlement_timeout" },
     });
-    expect(failures).toMatchObject([{ phase: "SETTLEMENT_TIMEOUT", label: "c9" }]);
+    expect(failures).toMatchObject([
+      { phase: "SETTLEMENT_TIMEOUT", label: "settlement-timeout" },
+    ]);
     expect(handle.state).toBe("DISPOSED");
   });
 
@@ -346,7 +348,7 @@ describe("RuntimeSubstrate", () => {
     let capturedScope!: ActivationResourceScope;
     const handle = await substrate.activate(
       request(
-        "c11",
+        "late-disposer",
         (scope) => {
           capturedScope = scope;
           scope.defer("blocking", () => disposalGate.promise);
@@ -379,7 +381,7 @@ describe("RuntimeSubstrate", () => {
     let capturedScope!: ActivationResourceScope;
     const handle = await substrate.activate(
       request(
-        "c12",
+        "late-disposer-failure",
         (scope) => {
           capturedScope = scope;
           scope.defer("blocking", () => disposalGate.promise);
@@ -408,7 +410,7 @@ describe("RuntimeSubstrate", () => {
     let capturedScope!: ActivationResourceScope;
     const handle = await substrate.activate(
       request(
-        "c13",
+        "late-tracked-work",
         (scope) => {
           capturedScope = scope;
         },
@@ -434,7 +436,7 @@ describe("RuntimeSubstrate", () => {
     let capturedHandle!: object;
     const handle = await substrate.activate(
       request(
-        "c14",
+        "settled-tracked-work",
         (scope) => {
           for (let index = 0; index < 100; index += 1) {
             scope.track(`settled-${index}`, Promise.resolve());

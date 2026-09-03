@@ -5,7 +5,8 @@
 `@heptalogos/repo-kit` contains reusable, repository-owned mechanics for
 verification scripts and their tests. It keeps process execution, current-tree
 hygiene scanning, and related test fixtures out of individual gate entrypoints
-while leaving policy decisions visible in the repository scripts and Corpus.
+while leaving policy decisions visible in the repository scripts and current
+knowledge owners.
 This is development tooling, not a Heptalogos product or Foundation runtime
 dependency.
 
@@ -15,7 +16,7 @@ dependency.
 - Current-tree hygiene scanning and finding normalization.
 - Version Authority readers for the package-manager baseline and workspace catalog.
 - Public package declaration-entrypoint and structured TypeDoc reflection checks.
-- Repo-kit tests for process, boundary, Corpus, and hygiene behavior.
+- Repo-kit tests for process, boundary, and hygiene behavior.
 - Small reusable helpers that have a concrete repeated repository need.
 
 ## Does not own
@@ -45,9 +46,9 @@ repository commands, but it must not become a second production execution
 layer. Nx owns project discovery, task graphs, and scheduling; repo-kit only
 composes adopted mechanics with repository policy. API verification consumes
 the product package set discovered by the workspace owner and checks TypeDoc's
-structured reflection before accepting generated Markdown. Gate findings must remain
-actionable and must not silently ignore symlinks, provenance, or compatibility
-residue.
+structured reflection before accepting generated Markdown. Gate findings must
+remain actionable and must not silently ignore current identity or compatibility
+register failures.
 
 ## Verification
 
@@ -59,5 +60,5 @@ consumer of the hygiene scanner.
 
 Read the repository `AGENTS.md`, the mechanics ownership and library-first
 playbook, the repository verification and current-tree hygiene playbooks, and
-the relevant Corpus documents before changing repository mechanics or finding
-codes.
+the relevant current knowledge documents before changing repository mechanics
+or finding codes.

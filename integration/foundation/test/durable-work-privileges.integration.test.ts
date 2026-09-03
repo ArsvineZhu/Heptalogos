@@ -344,7 +344,7 @@ describePostgres.sequential(
       });
       const composition = activeComposition;
       await requireDurable(composition);
-      const dedupKey = "dbos-t12-reject-new-work";
+      const dedupKey = "dbos-reject-new-work";
 
       await expect(
         createWork(composition, composition.target, { dedupKey }),

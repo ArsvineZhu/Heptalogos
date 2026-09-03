@@ -1,5 +1,5 @@
 /**
- * Projects the canonical Management service to the bounded P1 Fastify
+ * Projects the canonical Management service to the bounded Fastify
  * surface. Route schemas come only from @heptalogos/management.
  * @module http
  */
@@ -88,7 +88,7 @@ export interface ManagementHttpOptions {
   readonly onAdministratorClaimed?: () => Promise<void>;
 }
 
-/** Creates the P1 Management HTTP app without starting its listener. */
+/** Creates the Management HTTP app without starting its listener. */
 export async function createManagementHttpApp(
   service: ManagementService,
   options: ManagementHttpOptions = {},

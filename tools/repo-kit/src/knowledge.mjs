@@ -6,7 +6,6 @@
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
-import { containsDevelopmentProvenance } from "./current-tree-hygiene.mjs";
 import { findRepositoryFilesSync } from "./discovery.mjs";
 import { markdownLinks, markdownTargets } from "./markdown.mjs";
 import {
@@ -45,19 +44,6 @@ const currentAuthorityByFilename = new Map(
   CURRENT_MACHINE_AUTHORITIES.map((entry) => [basename(entry.path), entry]),
 );
 
-const provenanceStandingDocumentRoots = Object.freeze([
-  "docs/architecture/",
-  "docs/product/",
-  "docs/reference/",
-  "specs/",
-  "project/governance/",
-  "project/dependencies/",
-  "project/engineering/repository/",
-  "project/engineering/agent-harness/",
-  "project/engineering/playbooks/",
-  "project/engineering/gotchas/repository/",
-]);
-
 const authorityReferencePattern =
   /(?<![A-Za-z0-9_./\\-])(?:\.\.?\/|[A-Za-z0-9_.-]+\/)+[A-Za-z0-9_.-]+\.json\b/gu;
 
@@ -88,15 +74,6 @@ function isAuthorityStandingDocument(relativePath) {
     return false;
   }
   return true;
-}
-
-function isProvenanceStandingDocument(relativePath) {
-  return (
-    relativePath === "project/engineering/README.md" ||
-    relativePath === "project/engineering/playbooks/INDEX.md" ||
-    relativePath === "project/engineering/gotchas/INDEX.md" ||
-    provenanceStandingDocumentRoots.some((root) => relativePath.startsWith(root))
-  );
 }
 
 function authorityForReference(reference) {
@@ -239,22 +216,6 @@ function validateStandingLinks(markdownFiles, repository, errors) {
           "local knowledge link does not resolve: " + target,
         );
       }
-    }
-  }
-}
-
-function validateStandingProvenance(markdownFiles, repository, errors) {
-  for (const path of markdownFiles) {
-    const relativePath = normalize(repository, path);
-    if (!isProvenanceStandingDocument(relativePath)) continue;
-    const source = readFileSync(path, "utf8");
-    if (containsDevelopmentProvenance(source, { ignoreQualificationIds: true })) {
-      addError(
-        errors,
-        "development-provenance",
-        relativePath,
-        "standing knowledge must not contain development milestone, PR, session, or corrective-cycle provenance",
-      );
     }
   }
 }
@@ -486,7 +447,6 @@ export function validateKnowledge({ root = process.cwd() } = {}) {
   validateJson(jsonFiles, repository, errors);
   validateTranslationPolicy(files, repository, errors);
   validateStandingLinks(markdownFiles, repository, errors);
-  validateStandingProvenance(markdownFiles, repository, errors);
   validateRootIndex(repository, errors);
   validatePlaneIndex(
     join(repository, "docs"),

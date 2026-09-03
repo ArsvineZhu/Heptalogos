@@ -154,7 +154,8 @@ never authorizes reclaim.
 | Q-BOOT-01                  | @bybrave/proper-lockfile2                                                                   | current process/stale/recovery property evidence; L3 remains                       |
 | bootstrap.process-liveness | Node `process.kill(pid, 0)` + `pidusage`                                                    | process-generation boundary evidence; platform/L3 remains                          |
 
-Property ledger: `results/qualification-status.json`.
+Individual implementation and product properties are recorded in the relevant
+result document under `results/`; there is no candidate-lifecycle ledger.
 
 ## 5. Platform Rule
 
@@ -183,7 +184,7 @@ Foundation selection、Implementation Plan 与常规本地验收必须保持可�
 exact failure property
 → smallest sufficient evidence
 → explicit role reopening
-→ update dependency-status + dependency-routing + ledger in one change
+→ update dependency-status + dependency-routing + decision-ledger in one change
 ```
 
 不得以“减少依赖”“自己写很容易”“当前预算有限”作为自研 generic mechanics 的理由。

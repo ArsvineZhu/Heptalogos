@@ -1,5 +1,5 @@
 /**
- * Owns P1 password normalization and Node 24 Argon2id mechanics. Plaintext
+ * Owns Management password normalization and Node 24 Argon2id mechanics. Plaintext
  * exists only for the duration of the caller's in-process authentication flow.
  * @module password
  */

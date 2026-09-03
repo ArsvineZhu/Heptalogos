@@ -1,6 +1,6 @@
 /**
- * Runs the current-tree provenance, compatibility, and residue sweep against
- * the repository's executable surfaces and reports only observed findings.
+ * Runs current-tree identity and compatibility-register checks against the
+ * repository's executable surfaces and reports only observed findings.
  * @module current-tree-hygiene
  */
 
@@ -17,7 +17,5 @@ if (result.findings.length > 0) {
   }
   process.exitCode = 1;
 } else {
-  console.log(
-    "PASS current-tree hygiene: zero provenance, compatibility, and closed-phase residue",
-  );
+  console.log("PASS current-tree hygiene: current identities and register valid");
 }

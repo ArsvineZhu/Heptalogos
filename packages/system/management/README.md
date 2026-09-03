@@ -2,7 +2,7 @@
 
 ## Purpose
 
-management owns the canonical P1 Management semantics: the single
+management owns the canonical Management semantics: the single
 Administrator, first-administrator claim, server-side sessions, complete
 Problem projections, SystemAction contract schemas, and enveloped read-only
 Host, Runtime, Capability, and Readiness projections. It is the semantic

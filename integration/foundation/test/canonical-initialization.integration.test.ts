@@ -545,7 +545,7 @@ describeRealPostgres.sequential(
   },
 );
 
-describe("Canonical BootstrapState unsupported development shape", () => {
+describe("Canonical BootstrapState validation", () => {
   it("rejects current V1 bytes without ContinuityEpochId", async () => {
     const directory = await mkdtemp(
       join(tmpdir(), "heptalogos-canonical-unsupported-state-"),

@@ -15,6 +15,12 @@ implementation or product qualification where the current architecture says so.
 Do not add a second provider or custom fallback without an explicit reopening
 decision.
 
+Ordinary mature libraries and tools do not need an Architecture citizenship
+process, qualification ID, or RoleDecision merely because they are external.
+They use normal pnpm catalog and lockfile mechanics. Dependency count is not a
+quality metric; avoiding a suitable mature dependency can transfer maintenance
+burden into Heptalogos.
+
 The Version Authority graph is split by ownership: `package.json` owns the exact
 Node and pnpm baseline, `pnpm-workspace.yaml` owns exact npm catalog selections,
 `dependency-routing.json` owns independent dependency policy values including

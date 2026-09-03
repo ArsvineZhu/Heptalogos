@@ -126,9 +126,9 @@
 
 **CompatibilityEpoch**：project-level declaration of whether historical/external compatibility is currently an obligation。当前值 `PRE_PRODUCTION` 表示 Heptalogos-owned development formats 没有 backward-compatibility obligation：当前最佳 durable shape 保持 canonical V1，obsolete development shape 由 reset/reject 处理而不是 migration。进入 production compatibility epoch 必须经过显式 architecture decision。
 
-**Stage Stabilization (Hn-S)**：功能 milestone 完成后、产品 milestone closure 之前的短期受控稳定化阶段；用于清除具体 Authority、恢复、canonical-state 和证据真值缺陷，不是第二个功能开发阶段。
+**Focused stabilization / cleanup**：由 active Plan 明确授权的、针对当前维护负担或证据问题的有界活动；不是每个开发阶段都必须经过的固定闭环。
 
-**Current Evidence**：证明当前 canonical implementation 或当前 candidate 属性的、带 claim-matched scope 和环境/候选身份的证据；进入 current property ledger 前必须与当前行为一致。
+**Current Evidence**：证明当前 canonical implementation 属性的、带 claim-matched scope 和环境的证据；它不替代未执行边界的 qualification。
 
 **Historical Evidence**：描述过去 candidate、旧实现、旧 qualification 或事件的保留记录；可用于解释 chronology，不能单独作为当前行为、兼容义务或 Authority 的依据。
 

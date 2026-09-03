@@ -73,14 +73,14 @@ async function freePort(): Promise<number> {
 }
 
 export async function makeFixture(postgresBin: string): Promise<ProductHostFixture> {
-  const anchorRoot = await mkdtemp(join(tmpdir(), "heptalogos-p1-anchor-"));
+  const anchorRoot = await mkdtemp(join(tmpdir(), "heptalogos-product-host-anchor-"));
   directories.push(anchorRoot);
   const roots = {} as Record<(typeof LIFECYCLE_ROOT_IDS)[number], string>;
   for (const id of LIFECYCLE_ROOT_IDS) {
     roots[id] =
       id === "PROGRAM"
         ? anchorRoot
-        : await mkdtemp(join(tmpdir(), `heptalogos-p1-${id.toLowerCase()}-`));
+        : await mkdtemp(join(tmpdir(), `heptalogos-product-host-${id.toLowerCase()}-`));
     if (id !== "PROGRAM") directories.push(roots[id]);
   }
   const installationId = createInstallationId();
