@@ -62,6 +62,17 @@
         "command": "node scripts/verify/api-docs.mjs"
       }
     },
+    "check:product-artifacts": {
+      "parallelism": false,
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "pnpm nx run product-host:check:build-identities",
+          "pnpm nx run management-client:generate:check"
+        ],
+        "parallel": false
+      }
+    },
     "check:unused": {
       "executor": "nx:run-commands",
       "options": {
@@ -170,6 +181,7 @@
         "check:duplicates",
         "format:check",
         "docs:api:check",
+        "check:product-artifacts",
         "source-docs:lint",
         "lint",
         "typecheck",

@@ -8,13 +8,13 @@
     "generate": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm nx run product-host:build && node packages/application/management-client/scripts/generate.mjs"
+        "command": "pnpm nx run product-host:generate:openapi && node packages/application/management-client/scripts/generate.mjs"
       }
     },
     "generate:check": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm nx run product-host:build && node packages/application/management-client/scripts/generate.mjs --check"
+        "command": "pnpm nx run product-host:check:openapi && node packages/application/management-client/scripts/generate.mjs --check"
       }
     },
     "lint": {

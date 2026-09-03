@@ -2177,9 +2177,11 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
         onTerminalFailure: (error) => terminalFailures.push(error),
       },
     });
+    expect(supervisor.isActive()).toBe(true);
     await supervisor.reconcile(desired([definition]));
     owner.abort();
     await expect(supervisor.close()).resolves.toBeUndefined();
+    expect(supervisor.isActive()).toBe(false);
     await expect(supervisor.reconcile(desired([definition]))).rejects.toMatchObject({
       problem: { problemCode: "runtime.supervisor.not_active" },
     });

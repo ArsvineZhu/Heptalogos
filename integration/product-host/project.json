@@ -8,7 +8,7 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm nx run product-host:build && pnpm nx run cli:build && vitest run --root integration/product-host"
+        "command": "pnpm nx run product-host:build && pnpm nx run management-client:build && pnpm nx run cli:build && vitest run --root integration/product-host"
       }
     }
   }

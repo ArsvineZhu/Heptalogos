@@ -22,14 +22,25 @@ const commonFlags = {
 export class CliFailure extends Error {
   readonly problemCode: string;
   readonly status?: number;
+  readonly category?: string;
+  readonly retryClass?: string;
   readonly exitCode: number;
 
   /** Creates a classified CLI failure. */
-  constructor(problemCode: string, message: string, exitCode: number, status?: number) {
+  constructor(
+    problemCode: string,
+    message: string,
+    exitCode: number,
+    status?: number,
+    category?: string,
+    retryClass?: string,
+  ) {
     super(message);
     this.name = "CliFailure";
     this.problemCode = problemCode;
     this.status = status;
+    this.category = category;
+    this.retryClass = retryClass;
     this.exitCode = exitCode;
   }
 }
@@ -52,6 +63,8 @@ function toCliFailure(error: unknown): CliFailure {
       error.problem?.detail ?? "The Management Host is unavailable",
       exitCodeFor(error.status),
       error.status,
+      error.problem?.category,
+      error.problem?.retryClass,
     );
   }
   return new CliFailure(

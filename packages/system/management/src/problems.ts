@@ -103,6 +103,8 @@ export function toManagementProblemDetails(
     detail: problem.detail ?? problem.title,
     ...(instance === undefined ? {} : { instance }),
     problemCode: problem.problemCode,
+    category: problem.category,
+    retryClass: problem.retryClass,
     schemaVersion: 1,
   };
 }

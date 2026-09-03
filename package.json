@@ -25,6 +25,7 @@
     "check:boundaries": "node scripts/verify/boundaries.mjs",
     "docs:api": "nx run repository:docs:api",
     "docs:api:check": "nx run repository:docs:api:check",
+    "check:product-artifacts": "nx run repository:check:product-artifacts",
     "check:unused": "knip",
     "check:duplicates": "nx run repository:check:duplicates",
     "toolchain:check": "node scripts/verify/toolchain.mjs",

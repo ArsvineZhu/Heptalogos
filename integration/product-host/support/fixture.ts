@@ -43,6 +43,7 @@ export interface HostReady {
   readonly bootId: string;
   readonly origin: string;
   readonly productGeneration: string;
+  readonly bootstrapRuntimeGeneration: string;
 }
 
 export interface RunningHost {
@@ -140,7 +141,7 @@ export async function runHost(
     args.push("--initial-postgres-port", String(fixture.postgresPort));
   }
   const child = spawn(process.execPath, args, {
-    cwd: repositoryRoot,
+    cwd: fixture.roots.CACHE,
     env: process.env,
     stdio: ["pipe", "pipe", "pipe"],
     windowsHide: true,
@@ -217,7 +218,7 @@ export async function runCli(
     process.execPath,
     [cliBinary, ...args, "--anchor-root", fixture.anchorRoot],
     {
-      cwd: repositoryRoot,
+      cwd: fixture.roots.CACHE,
       env: process.env,
       stdio: ["pipe", "pipe", "pipe"],
       windowsHide: true,

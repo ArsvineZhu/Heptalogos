@@ -1,16 +1,13 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   createBootId,
   createInstallationId,
   createUuidV7Id,
 } from "@heptalogos/foundation-contracts";
-import {
-  deriveProductGenerationDescriptor,
-  deriveProductGenerationId,
-} from "../../src/generation.js";
+import * as productHostPublic from "../../src/index.js";
 import {
   readManagementEndpointDescriptor,
   removeCurrentEndpointDescriptor,
@@ -29,13 +26,11 @@ afterEach(async () => {
 });
 
 describe("Product Host focused contracts", () => {
-  it("derives a stable content generation from the current source tree", async () => {
-    const repositoryRoot = resolve(process.cwd());
-    const first = await deriveProductGenerationDescriptor(repositoryRoot);
-    const second = await deriveProductGenerationDescriptor(repositoryRoot);
-    expect(first).toEqual(second);
-    expect(await deriveProductGenerationId(repositoryRoot)).toMatch(/^[0-9a-f]{64}$/u);
-    expect(JSON.stringify(first)).not.toContain(repositoryRoot);
+  it("exposes only the safe Product Host root operations", () => {
+    expect(Object.keys(productHostPublic).sort()).toEqual([
+      "startProductHost",
+      "startProductHostFromArgv",
+    ]);
   });
 
   it("accepts only the bounded daemon input surface", () => {

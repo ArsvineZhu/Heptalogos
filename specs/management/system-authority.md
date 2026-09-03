@@ -94,7 +94,7 @@ interface ReadModelEnvelope<T> {
   readonly productGeneration: ProductGenerationId;
   readonly continuityEpochId: ContinuityEpochId;
   readonly data: T;
-  readonly lineageContextRef: LineageContextRef;
+  readonly lineageContextRef?: LineageContextRef;
 }
 
 interface CompatibilityDescriptor {
@@ -148,6 +148,12 @@ interface SystemActionExecuteResult<T> {
 Problem is the existing Foundation contract. These types use existing typed
 identities and canonical encoding; they do not define a second error, digest,
 or identity system.
+
+Ordinary stateless Management reads do not create retained Activity or Lineage
+solely to fill the envelope. They include `LineageContextRef` when meaningful
+current lineage already exists. This optional read projection does not weaken
+lineage requirements for mutation, durable work, SystemAction planning, or
+cross-process causal handoff.
 
 ## Authorization and confirmation
 

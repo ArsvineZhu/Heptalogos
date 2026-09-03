@@ -32,6 +32,8 @@ suite("built Product Host process", () => {
     fixture = await makeFixture(postgresBin!);
     running = await runHost(fixture);
     expect(running.ready.installationId).toBe(fixture.installationId);
+    expect(running.ready.productGeneration).toMatch(/^[0-9a-f]{64}$/u);
+    expect(running.ready.bootstrapRuntimeGeneration).toMatch(/^[0-9a-f]{64}$/u);
     const endpoint = (await readRunJson(fixture, "management-endpoint.json")) as {
       origin: string;
       bootId: string;
@@ -73,6 +75,33 @@ suite("built Product Host process", () => {
     const loginJson = JSON.parse(login.stdout) as Record<string, unknown>;
     expect(loginJson.authenticated).toBe(true);
     expect(login.stdout).not.toMatch(/[A-Za-z0-9_-]{43}/u);
+
+    const sessionLocal = await openLocalManagementClient({
+      anchorRoot: fixture.anchorRoot,
+      credentialStore: fixture.credentialStore,
+    });
+    const sessionToken = await sessionLocal.readSessionToken();
+    expect(sessionToken).toBeDefined();
+    const authenticated = await openLocalManagementClient({
+      anchorRoot: fixture.anchorRoot,
+      sessionToken,
+      credentialStore: fixture.credentialStore,
+    });
+    for (const read of [
+      authenticated.client.getSystemStatus(),
+      authenticated.client.getHost(),
+      authenticated.client.getRuntimeGraph(),
+      authenticated.client.getCapabilityGraph(),
+      authenticated.client.getReadiness(),
+    ]) {
+      await expect(read).resolves.toMatchObject({
+        schemaVersion: 1,
+        contractVersion: "management.v1",
+        resource: { schemaVersion: 1 },
+        productGeneration: running.ready.productGeneration,
+        data: { schemaVersion: 1 },
+      });
+    }
 
     for (const command of [
       ["contract"],
@@ -159,5 +188,62 @@ suite("built Product Host process", () => {
     expect(discovery.installationId).toBe(fixture.installationId);
     expect(discovery.compatibility.coreContractVersion).toBe("management.v1");
     expect(local.endpoint.origin).toBe(running.ready.origin);
+  });
+
+  it("preserves canonical Problem semantics across HTTP and generated client", async () => {
+    fixture = await makeFixture(postgresBin!);
+    running = await runHost(fixture);
+    const client = createManagementClient({ origin: running.ready.origin });
+    const assertProblem = (error: unknown, problemCode: string) => {
+      expect(error).toBeInstanceOf(ManagementClientError);
+      expect(error).toMatchObject({
+        problem: {
+          schemaVersion: 1,
+          problemCode,
+          category: expect.any(String),
+          retryClass: expect.any(String),
+          status: expect.any(Number),
+          title: expect.any(String),
+          detail: expect.any(String),
+        },
+      });
+    };
+
+    const invalidInput = await client
+      .claimFirstAdministrator({
+        claimId: "invalid",
+        claimSecret: "invalid",
+        password: "invalid",
+      })
+      .catch((error: unknown) => error);
+    assertProblem(invalidInput, "management.first_claim_invalid");
+
+    const invalidCredentials = await client
+      .login({ password: "invalid-management-password" })
+      .catch((error: unknown) => error);
+    assertProblem(invalidCredentials, "management.invalid_credentials");
+
+    let rateLimited: unknown;
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      rateLimited = await client
+        .claimFirstAdministrator({
+          claimId: "invalid",
+          claimSecret: "invalid",
+          password: "invalid",
+        })
+        .catch((error: unknown) => error);
+    }
+    assertProblem(rateLimited, "management.rate_limited");
+
+    const mismatch = await fetch(running.ready.origin + "/management/v1/readiness", {
+      headers: { "x-heptalogos-contract-version": "management.v0" },
+    });
+    expect(mismatch.status).toBe(426);
+    await expect(mismatch.json()).resolves.toMatchObject({
+      schemaVersion: 1,
+      problemCode: "management.contract_unsupported",
+      category: "conflict",
+      retryClass: "manual",
+    });
   });
 });

@@ -6,12 +6,13 @@
 
 import { createCanonicalSchemaInitializer } from "@heptalogos/canonical-schema";
 import {
-  asContentDigest,
   createMicroSystemId,
   createProviderId,
   createServiceId,
   createProblemError,
-  digestCanonicalJson,
+  type BootId,
+  type InstallationId,
+  type InstanceId,
   type ProductGenerationId,
 } from "@heptalogos/foundation-contracts";
 import {
@@ -25,13 +26,13 @@ import {
   prepareBootstrapPrelude,
   type BootstrapManagedHostContext,
 } from "@heptalogos/bootstrap-runtime";
-import type { BootstrapRuntimeGenerationId } from "@heptalogos/bootstrap-state";
 import { createPersistenceService } from "@heptalogos/persistence";
 import {
   createContractVersion,
   createRuntimeLifecycleLineage,
   MicroSystemSupervisor,
   type MicroSystemDefinition,
+  type RuntimeKernelReadOnlySnapshot,
 } from "@heptalogos/runtime-kernel";
 import { createRuntimeSubstrate } from "@heptalogos/runtime-substrate";
 import { createSystemTimeService } from "@heptalogos/time-service";
@@ -41,10 +42,16 @@ import {
   type ManagementService,
   type RuntimeIntrospectionSnapshot,
 } from "@heptalogos/management";
-import type { OsCredentialStore } from "@heptalogos/os-credential";
 import type { FastifyInstance } from "fastify";
-import { deriveProductGenerationId } from "./generation.js";
+import {
+  BOOTSTRAP_RUNTIME_GENERATION_ID,
+  PRODUCT_GENERATION_ID,
+} from "./generated/build-identities.js";
 import { createProductionBootstrapKeyProvider } from "./credentials.js";
+import {
+  startFirstClaimMaintenance,
+  type FirstClaimMaintenance,
+} from "./claim-maintenance.js";
 import {
   readFirstClaimMaterial,
   removeCurrentEndpointDescriptor,
@@ -86,15 +93,14 @@ const MANAGEMENT_SYSTEM_ID = createMicroSystemId("system.management");
 const MANAGEMENT_SERVICE_ID = createServiceId("service.management");
 const MANAGEMENT_PROVIDER_ID = createProviderId("provider.management");
 
-/** The running headless Product Host and its canonical Management surfaces. */
-export interface ProductHost {
-  readonly host: BootstrapManagedHostContext;
+/** Safe public handle for one running headless Product Host. */
+export interface ProductHostHandle {
+  readonly installationId: InstallationId;
+  readonly instanceId: InstanceId;
+  readonly bootId: BootId;
   readonly productGeneration: ProductGenerationId;
-  readonly management: ManagementService;
-  readonly supervisor: MicroSystemSupervisor;
-  readonly http: FastifyInstance;
-  readonly endpoint: ManagementEndpointDescriptorV1;
   readonly origin: string;
+  readonly signal: AbortSignal;
   /** Performs terminal shutdown exactly once. */
   close(): Promise<void>;
 }
@@ -120,16 +126,6 @@ function notReadyProblem(): Error {
   });
 }
 
-function bootstrapGeneration(): BootstrapRuntimeGenerationId {
-  return asContentDigest(
-    "BootstrapRuntimeGenerationId",
-    digestCanonicalJson("heptalogos.bootstrap-runtime/v1", {
-      package: "@heptalogos/bootstrap-runtime",
-      contract: "bootstrap-runtime.v1",
-    }),
-  );
-}
-
 function emptyRuntimeSnapshot(): RuntimeIntrospectionSnapshot {
   return {
     operatingMode: "NORMAL",
@@ -138,6 +134,76 @@ function emptyRuntimeSnapshot(): RuntimeIntrospectionSnapshot {
     selectedServiceBindings: [],
     selectedCapabilityBindings: [],
   };
+}
+
+function toManagementRuntimeSnapshot(
+  snapshot: RuntimeKernelReadOnlySnapshot,
+): RuntimeIntrospectionSnapshot {
+  return Object.freeze({
+    operatingMode: snapshot.operatingMode,
+    desiredRevision: snapshot.desiredRevision,
+    systems: Object.freeze(
+      snapshot.systems.map((system) =>
+        Object.freeze({
+          microSystemId: system.microSystemId,
+          role: system.role,
+          actualState: system.actualState,
+          generation: Object.freeze({
+            productGenerationId: system.generation.productGenerationId,
+            ...(system.generation.packageGenerationId === undefined
+              ? {}
+              : { packageGenerationId: system.generation.packageGenerationId }),
+          }),
+          serviceRequirements: Object.freeze(
+            system.serviceRequirements.map((requirement) =>
+              Object.freeze({
+                serviceId: requirement.serviceId,
+                contractVersion: requirement.contractVersion,
+              }),
+            ),
+          ),
+          serviceProvisions: Object.freeze(
+            system.serviceProvisions.map((provision) =>
+              Object.freeze({
+                serviceId: provision.serviceId,
+                providerId: provision.providerId,
+                contractVersion: provision.contractVersion,
+              }),
+            ),
+          ),
+          capabilityRequirements: Object.freeze(
+            system.capabilityRequirements.map((requirement) =>
+              Object.freeze({
+                capabilityId: requirement.capabilityId,
+                contractVersion: requirement.contractVersion,
+                required: requirement.required,
+              }),
+            ),
+          ),
+          capabilityProvisions: Object.freeze(
+            system.capabilityProvisions.map((provision) =>
+              Object.freeze({
+                capabilityId: provision.capabilityId,
+                providerId: provision.providerId,
+                contractVersion: provision.contractVersion,
+                priority: provision.priority,
+              }),
+            ),
+          ),
+        }),
+      ),
+    ),
+    selectedServiceBindings: Object.freeze(
+      snapshot.selectedServiceBindings.map((binding) =>
+        Object.freeze({ id: binding.id, providerId: binding.providerId }),
+      ),
+    ),
+    selectedCapabilityBindings: Object.freeze(
+      snapshot.selectedCapabilityBindings.map((binding) =>
+        Object.freeze({ id: binding.id, providerId: binding.providerId }),
+      ),
+    ),
+  });
 }
 
 async function runRetainedManagementMutation<T>(
@@ -244,21 +310,15 @@ function assertDiscovery(discovery: unknown, installationId: string): void {
   }
 }
 
-/** Starts one real headless Product Host from validated bootstrap inputs. */
-export interface ProductHostStartOptions extends ProductHostInputs {
-  /** Overrides the source root used only by tests and local composition. */
-  readonly repositoryRoot?: string;
-  /** Injects a test/local credential adapter; production uses the OS store. */
-  readonly credentialStore?: OsCredentialStore;
-}
+/** Validated options for one real headless Product Host. */
+export type ProductHostStartOptions = ProductHostInputs;
 
 /** Starts one real headless Product Host from validated bootstrap inputs. */
 export async function startProductHost(
   input: ProductHostStartOptions,
-): Promise<ProductHost> {
+): Promise<ProductHostHandle> {
   const options = input;
-  const repositoryRoot = options.repositoryRoot ?? process.cwd();
-  const productGeneration = await deriveProductGenerationId(repositoryRoot);
+  const productGeneration = PRODUCT_GENERATION_ID;
   const prepared = await prepareBootstrapPrelude(options.anchorRoot);
   let owned: Awaited<ReturnType<typeof prepared.acquireOwnership>> | undefined;
   let ready:
@@ -269,6 +329,7 @@ export async function startProductHost(
   let supervisor: MicroSystemSupervisor | undefined;
   let app: FastifyInstance | undefined;
   let endpoint: ManagementEndpointDescriptorV1 | undefined;
+  let claimMaintenance: FirstClaimMaintenance | undefined;
   let closePromise: Promise<void> | undefined;
   let httpState: "STARTING" | "LISTENING" | "CLOSING" | "CLOSED" = "STARTING";
   let endpointPublished = false;
@@ -277,7 +338,7 @@ export async function startProductHost(
   try {
     owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
     const state = await owned.ensureBootstrapStateInitialized({
-      activeBootstrapRuntimeGeneration: bootstrapGeneration(),
+      activeBootstrapRuntimeGeneration: BOOTSTRAP_RUNTIME_GENERATION_ID,
       activeProductGeneration: productGeneration,
     });
     const existingInstallation = state.state.privatePostgres !== undefined;
@@ -285,7 +346,6 @@ export async function startProductHost(
       installationId: owned.installationId,
       instanceId: owned.instanceId,
       existingInstallation,
-      store: options.credentialStore,
     });
     ready = await owned.preparePrivatePostgres({
       toolchainBinDirectory: options.postgresBinDirectory,
@@ -348,13 +408,14 @@ export async function startProductHost(
       time,
       hostState: () => host?.state ?? "CLOSED",
       managementHttpState: () => httpState,
-      endpointDescriptorCurrent: () => endpointPublished,
-      runtimeKernelActive: () =>
+      endpointDescriptorPublished: () => endpointPublished,
+      runtimeKernelActive: () => supervisor?.isActive() ?? false,
+      managementServiceRunning: () =>
         supervisor?.getActualState(MANAGEMENT_SYSTEM_ID) === "RUNNING",
       runtimeSnapshot: () =>
         supervisor === undefined
           ? emptyRuntimeSnapshot()
-          : (supervisor.getReadOnlySnapshot() as unknown as RuntimeIntrospectionSnapshot),
+          : toManagementRuntimeSnapshot(supervisor.getReadOnlySnapshot()),
       runMutationActivity,
     });
     const runtimeLineage = createRuntimeLifecycleLineage({
@@ -386,14 +447,11 @@ export async function startProductHost(
     });
 
     const runDirectory = owned!.paths.resolve("RUN").canonicalPath;
-    const localClaim = await readFirstClaimMaterial(runDirectory);
-    const claimMaterial = await management.ensureFirstAdministratorClaim(localClaim);
-    if (claimMaterial === undefined) {
-      await removeFirstClaimMaterial(runDirectory);
-    }
 
     app = await createManagementHttpApp(management, {
-      onAdministratorClaimed: () => removeFirstClaimMaterial(runDirectory),
+      onAdministratorClaimed: () =>
+        claimMaintenance?.administratorClaimed() ??
+        removeFirstClaimMaterial(runDirectory),
     });
     await app.listen({ host: "127.0.0.1", port: 0 });
     const address = app.server.address();
@@ -412,9 +470,12 @@ export async function startProductHost(
     });
     await writeManagementEndpointDescriptor(runDirectory, endpoint);
     endpointPublished = true;
-    if (claimMaterial !== undefined) {
-      await writeFirstClaimMaterial(runDirectory, claimMaterial);
-    }
+    claimMaintenance = await startFirstClaimMaintenance({
+      readLocalClaim: () => readFirstClaimMaterial(runDirectory),
+      ensureClaim: (localClaim) => management.ensureFirstAdministratorClaim(localClaim),
+      publishClaim: (claim) => writeFirstClaimMaterial(runDirectory, claim),
+      removeClaim: () => removeFirstClaimMaterial(runDirectory),
+    });
 
     const discoveryResponse = await fetch(
       origin + "/.well-known/heptalogos-management",
@@ -423,7 +484,7 @@ export async function startProductHost(
       throw startupProblem("The live Management discovery endpoint was not reachable");
     }
     assertDiscovery(await discoveryResponse.json(), host.installationId);
-    if ((await management.getReadiness()).state !== "READY") {
+    if ((await management.getReadiness()).data.state !== "READY") {
       throw notReadyProblem();
     }
 
@@ -431,10 +492,10 @@ export async function startProductHost(
     const currentPersistence = persistence;
     const currentSupervisor = supervisor;
     const currentApp = app;
-    const currentEndpoint = endpoint;
     requestClose = async () => {
       if (closePromise !== undefined) return closePromise;
       closePromise = (async () => {
+        claimMaintenance?.close();
         httpState = "CLOSING";
         await currentApp.close().catch(() => undefined);
         endpointPublished = false;
@@ -463,16 +524,16 @@ export async function startProductHost(
       { once: true },
     );
     return Object.freeze({
-      host: currentHost,
+      installationId: currentHost.installationId,
+      instanceId: currentHost.instanceId,
+      bootId: currentHost.bootId,
       productGeneration,
-      management,
-      supervisor: currentSupervisor,
-      http: currentApp,
-      endpoint: currentEndpoint,
       origin,
+      signal: currentHost.signal,
       close: requestClose,
     });
   } catch (error) {
+    claimMaintenance?.close();
     if (app !== undefined) await app.close().catch(() => undefined);
     if (supervisor !== undefined) await supervisor.close().catch(() => undefined);
     if (persistence !== undefined) await persistence.close().catch(() => undefined);
@@ -498,6 +559,6 @@ export async function startProductHost(
 /** Parses argv and keeps the built daemon's process entrypoint intentionally small. */
 export async function startProductHostFromArgv(
   argv: readonly string[],
-): Promise<ProductHost> {
+): Promise<ProductHostHandle> {
   return startProductHost(parseProductHostInputs(argv));
 }

@@ -5,6 +5,35 @@
   "tags": ["kind:product", "area:application"],
   "sourceRoot": "packages/application/product-host/src",
   "targets": {
+    "build": {
+      "dependsOn": ["generate:build-identities"]
+    },
+    "generate:build-identities": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node packages/application/product-host/scripts/build-identities.mjs"
+      }
+    },
+    "check:build-identities": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node packages/application/product-host/scripts/build-identities.mjs --check"
+      }
+    },
+    "generate:openapi": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node packages/application/product-host/scripts/generate-openapi.mjs"
+      }
+    },
+    "check:openapi": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node packages/application/product-host/scripts/generate-openapi.mjs --check"
+      }
+    },
     "lint": {
       "executor": "nx:run-commands",
       "options": { "command": "oxlint --type-aware packages/application/product-host" }

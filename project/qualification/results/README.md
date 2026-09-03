@@ -20,6 +20,9 @@ Implementation conformance remaining
   C-SESSION-01
 
 Current Product slice qualification
+  Q-P1C-PRODUCT-HOST-01
+
+Historical P1 implementation evidence
   Q-P1-PRODUCT-HOST-01
 
 Product qualification deferred to later implementation
@@ -62,3 +65,4 @@ evidence; they must not be self-recorded by a post-review repository commit.
 | C-SESSION-01          | [C-SESSION-01.md](C-SESSION-01.md)                   |
 | C-CONFIG-TOML-01      | [C-CONFIG-TOML-01.md](C-CONFIG-TOML-01.md)           |
 | Q-P1-PRODUCT-HOST-01  | [Q-P1-PRODUCT-HOST-01.md](Q-P1-PRODUCT-HOST-01.md)   |
+| Q-P1C-PRODUCT-HOST-01 | [Q-P1C-PRODUCT-HOST-01.md](Q-P1C-PRODUCT-HOST-01.md) |
