@@ -4,98 +4,98 @@ Repository-wide execution contract for Heptalogos.
 
 ## Work authorization
 
-- Execute the explicitly approved active Plan. Do not select another Plan by
-  recency, filename, or convenience.
-- Plans authorize a bounded change; they do not silently become standing
+- Execute only the explicitly designated active Plan.
+- An active Plan authorizes bounded implementation; it is not permanent
   semantic Authority.
-- A material unresolved semantic, ownership, provider, state, failure-model, or
-  evidence decision is PLAN_GAP. Report the smallest blocker and stop that
-  branch of work.
+- A material unresolved product, owner, provider, state, failure, or
+  verification decision is `PLAN_GAP`.
+- A Skill performs an authorized recurring procedure. It cannot supply a
+  decision omitted by the Plan or expand the Plan's scope.
 
-## Current-value engineering restraint
+## Rapid PRE_PRODUCTION
 
-Satisfy the approved current requirement with the smallest semantically correct
-permanent maintenance surface. Future reuse, theoretical completeness,
-symmetry, or adjacent possibility does not independently authorize new
-abstraction, state, branch, recovery, configuration, validator, test matrix,
-dependency role, or meta-tool.
+```text
+DevelopmentMode = RAPID_EVOLUTION
+CompatibilityEpoch = PRE_PRODUCTION
+```
 
-The current executable Product or Foundation spine and its real consumers take
-priority over elegant but unused capability.
+Existing code, tests, docs, gates, abstractions, and development history have
+no preservation privilege. Direct rewrite, deletion, replacement, merging, or
+splitting is allowed when it makes the approved current design simpler.
 
-## Ownership and complexity admission
+- No undeclared compatibility bridges, aliases, shims, fallback readers, or
+  migration paths.
+- Minimal diff is not a project objective, and dependency count is not a
+  quality metric.
+- Prefer a suitable mature dependency when it lowers total maintenance burden.
+- TDD is optional, not a repository workflow.
+- Do not run a Red test merely to prove that not-yet-written code is absent.
+- Do not add speculative recovery, hardening, validators, matrices, or
+  meta-frameworks.
+- A one-time development event does not justify a permanent test or gate.
+- History does not create Authority, and a deleted historical identity is not
+  a permanent negative repository requirement.
 
-- Keep canonical mutation and semantic ownership singular; do not bypass the
-  owning boundary to simplify implementation or tests.
-- New durable or product state requires a current semantic distinction and
-  consumer.
-- Resilience requires a current failure model; security requires a current
-  threat model.
-- A first-order recovery does not authorize recovery-of-recovery. Bounded
-  fencing or fail-stop is a valid outcome when it preserves canonical truth.
-- Tests do not independently justify a public interface, DI layer, factory,
-  wrapper, mock seam, product state, or product branch.
-- A completed fix does not authorize another hardening pass.
+## Normal Coding context
 
-## Mandatory Library / Dependency First
+Read only the context needed for the authorized operation, in this order:
 
-Before writing non-trivial generic mechanics, inspect in this order:
+1. root and affected scoped `AGENTS.md`;
+2. Project Charter;
+3. designated active Plan;
+4. the Plan's Required Context;
+5. affected current Specs and package documentation;
+6. current code, tests, and focused verification;
+7. a retained Skill when its narrow executor procedure applies.
 
-semantic owner → existing repository primitive/adapter → adopted provider role
-→ Standard, language, Node, or OS facility → mature library/framework →
-narrow composition or adapter → custom generic mechanic only with concrete
-insufficiency evidence.
+Completed and superseded Plans, qualification history, broad architecture
+rationale, and engineering procedures are not default implementation context.
+Read them only when the active Plan explicitly requires a historical or
+procedural fact.
 
-This applies to parsing, schema, process, filesystem, concurrency, retry,
-timeouts, lifecycle, queues, state machines, serialization, database, protocol,
-observability, and repository-tooling mechanics. Trivial language operations
-and Heptalogos-specific semantics remain local code.
+## Ownership and mechanics
 
-## Completion and reopen
+Keep canonical semantic mutation behind its owner. For non-trivial mechanics,
+inspect the semantic owner, existing repository primitive, adopted provider,
+Standard/Node/OS facility, and mature library before writing custom code.
+Keep framework and provider objects behind the owning adapter boundary.
 
-Acceptance criteria plus required executable or evidence proof close the
-current change. Reopen only for new current evidence, an accepted
-current-Horizon failure case, a current consumer or invariant, or an explicit
-active-Plan requirement. Imagined edge cases, generic future-proofing,
-failure inside new recovery, and recovery-of-recovery do not reopen it.
-When the accepted path is green, STOP.
+Do not apply `no current consumer -> delete` as a universal rule. A broken
+current executable spine takes priority over unrelated expansion. This does
+not make an approved low-cost future-facing semantic seam disposable. Preserve
+current Architecture/Charter semantic seams; reject unsupported machinery, not
+approved meaning.
 
-## PRE_PRODUCTION and executable truth
+Do not add a public interface, DI layer, test seam, state, worker, recovery
+branch, validator, or abstraction for hypothetical reuse. New durable state,
+security behavior, or recovery requires a current semantic distinction,
+threat, or failure model in the authorized Plan.
 
-CompatibilityEpoch is PRE_PRODUCTION. Only
-project/governance/compatibility-obligations.json declares compatibility
-obligations. Development history does not create compatibility work. Rewrite
-current internal shapes and remove obsolete paths, aliases, shims, fallback
-parsers, and bridge migrations unless a declared obligation exists.
+## Evidence and current truth
 
-Code and tests are executable implementation reality, not Authority for an
-unresolved standing semantic. A component can be locally elegant while the
-required executable path remains broken.
-
-## Evidence and Skills
-
-Use only PASS, FAIL, NOT_RUN, or BLOCKED, and keep every claim within the proof
-boundary that actually ran. Mock evidence does not prove a live provider or
-protocol; one platform does not prove another; source-tree execution does not
-prove a source-less artifact.
-
-Load an applicable procedural Skill when its description matches the
-specialized implementation activity. Skill discovery is open-ended; do not
-enumerate the current Skill set here.
+Use only PASS, FAIL, NOT_RUN, or BLOCKED, and keep each claim within the proof
+boundary that actually ran. A mock is not live-provider evidence; one platform
+is not another; source-tree execution is not source-less packaging.
+Current documents describe current truth. Git, completed Plans, and historical
+Qualification records preserve chronology.
 
 ## Current execution policy
 
-Ordinary GitHub Actions are disabled. Use local verification entrypoints and
-the permanent gates required by the approved Plan. Keep pnpm verify runnable.
-For docs, specs, project, packages, or Skills work, read the applicable local
-README, INDEX, or AGENTS scope before editing.
+Ordinary GitHub Actions are disabled. Use the local entrypoints required by the
+active Plan and keep `pnpm verify` runnable. Do not infer merge, review,
+cross-platform, release, provider, or hardware claims from unrelated checks.
 
-Before substantive product, package-boundary, lifecycle, recovery, or
-architecture work, read `project/governance/project-charter.md`, the active
-Plan, and the affected Specs/package documentation.
+## Completion
+
+When the authorized change is complete, its acceptance conditions and required
+executable proof are green, and no observed authorized blocker remains, STOP.
+Do not begin a second cleanup or hardening pass. Reopen only for new current
+evidence, an accepted current-Horizon failure case, a current consumer or
+invariant, or an explicit active-Plan requirement.
 
 ## Repository knowledge
 
-When editing repository knowledge, write the artifact's owned content directly.
-Keep file-type authoring policy in the applicable scoped AGENTS or
-knowledge-system guidance.
+When editing repository knowledge, update the canonical owner first and only
+the necessary current indexes, README projections, links, and package
+documentation. Keep file-type authoring guidance in the applicable scoped
+guidance rather than duplicating it in every governed artifact.

@@ -7,7 +7,7 @@ import { BaseCommand, type CommonFlags } from "../base-command.js";
 
 /** Reads current Product Host readiness. */
 export default class Readiness extends BaseCommand {
-  static summary = "Read current P1 readiness";
+  static summary = "Read current runtime readiness";
 
   /** Executes the readiness command. */
   async run(): Promise<unknown> {

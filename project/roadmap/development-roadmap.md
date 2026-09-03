@@ -1,9 +1,9 @@
 # Heptalogos Development Roadmap
 
 **Status:** LIVING ROADMAP / planning guidance<br>
-**Date:** 2026-09-02<br>
-**Current repository locus:** master after completed T0 current-authority reconciliation<br>
-**H3 closure merge baseline:** PR #32, merge commit 51317428a89b5545d3ac614f1012d869a1251203; preserved as H3 closure evidence, not a current HEAD pin<br>
+**Date:** 2026-09-03<br>
+**Current repository locus:** master after Foundation closure<br>
+**Foundation closure baseline:** PR #32, merge commit 51317428a89b5545d3ac614f1012d869a1251203; retained as evidence, not a current HEAD pin<br>
 **Architecture baseline:** `docs/architecture/` design state 2026-08-20
 
 > This document owns development sequencing, Horizon truth, and qualification guidance. It does not replace the canonical Human Architecture, current Specs, Governance, Dependencies, Qualification, or active Plan. Update this Roadmap when evidence changes sequencing or eligibility; update the relevant canonical owner when semantics change.
@@ -12,9 +12,16 @@
 
 ## 1. Purpose
 
-M1 established a trustworthy engineering and contract spine: repository/toolchain governance, cross-platform process mechanics, canonical serialization/digest/identity/Problem primitives, BootstrapState, recoverable BootstrapStateStore, per-BootId BootstrapJournal, and controlled review/CI closure. M2 then closed the pre-PostgreSQL bootstrap substrate: strict installation/instance locator and independent roots, per-boot early journaling, no-stale-takeover bootstrap ownership, and ownership-guarded BootstrapState mutation.
+Earlier work established the trustworthy engineering and contract spine:
+repository/toolchain governance, cross-platform process mechanics, canonical
+serialization/digest/identity/Problem primitives, BootstrapState, recoverable
+BootstrapStateStore, per-boot BootstrapJournal, and the pre-PostgreSQL bootstrap
+substrate with strict installation/instance location, independent roots,
+no-stale-takeover ownership, and ownership-guarded state mutation.
 
-M1 and M2 did **not** establish the complete executable Foundation. The next era of development should therefore change the progress metric from “packages/interfaces/tests added” to “system invariants proven by executable scenarios.”
+The earlier engineering and bootstrap work did **not** establish the complete
+executable Foundation. The progress metric is therefore “system invariants
+proven by executable scenarios”, not “packages/interfaces/tests added”.
 
 The roadmap has four jobs:
 
@@ -27,7 +34,8 @@ The roadmap has four jobs:
 
 ## 2. Roadmap model: dependency DAG, not a rigid waterfall
 
-The project should not be driven by one fixed sequence of numbered feature milestones. Use three interacting tracks.
+The project should not be driven by one fixed sequence of feature milestones.
+Use three interacting tracks.
 
 ### 2.1 Capability track
 
@@ -77,10 +85,10 @@ L3 process-level executable composition
 L4 product vertical slice
 ```
 
-Foundation may grow only while its current executable spine remains green. H3
-owns a real Foundation process composition with real PostgreSQL, real DBOS, one
-canonical WorkItem, and boot/work/stop/restart. H6 owns a real Product L4 path:
-message → Subject → model → decision → Effect → response.
+Foundation may grow only while its current executable spine remains green. The
+closed asynchronous Foundation capability owns real PostgreSQL, real DBOS, one
+canonical WorkItem, and boot/work/stop/restart. The Subject vertical slice owns
+a real Product L4 path: message → Subject → model → decision → Effect → response.
 
 ---
 
@@ -115,11 +123,12 @@ The roadmap intentionally leaves these adjustable:
 
 ---
 
-## 4. Development horizons
+## 4. Capability sequence
 
-The horizons describe **system maturity**, not a mandatory one-horizon-one-milestone mapping.
+The capability sections describe system maturity and dependency pressure; they
+are not a mandatory one-section-one-Plan mapping.
 
-## H0 — Trusted Engineering & Contract Spine — DONE (M1)
+## Engineering and Contract Spine — COMPLETE
 
 ### Outcome
 
@@ -133,48 +142,26 @@ The repository can safely evolve Foundation code with truthful gates and stable 
 - per-BootId BootstrapJournal;
 - atomic publication boundary;
 - cross-platform repository process substrate;
-- manual-only CI/review/squash closure process under the current execution policy.
+- an optional manually dispatched verification utility; ordinary GitHub Actions
+  remain disabled under the current execution policy.
 
-### What H0 does not prove
+### What this foundation does not prove
 
 It does not prove private PostgreSQL, runtime supervision, durable work, system management, Subject behavior, extension lifecycle, real packaging, or product recovery.
 
 ---
 
-## H1 — Own the Machine: Installation, Paths, Bootstrap and Host Ownership
+## Installation, Bootstrap, and Host Ownership — COMPLETE
 
 ### Question answered
 
 > Can a Heptalogos installation reliably identify itself, locate its independent lifecycle roots, obtain exclusive bootstrap ownership, start/validate its private PostgreSQL, and hand ownership to exactly one normal Host without an authority gap?
 
-### Current progress (2026-08-27)
+### Current status (2026-09-03)
 
-Current H-stage truth:
-
-```yaml
-M5B: CLOSED
-H1_FUNCTIONAL: COMPLETE
-H1_STABILIZATION: CLOSED
-H1: CLOSED
-H2A_1: CLOSED
-H2A_2: CLOSED
-H2A_3: CLOSED
-H2A: FUNCTIONALLY_COMPLETE
-H2B: CLOSED
-H2_FUNCTIONAL: COMPLETE
-H2_STABILIZATION: CLOSED
-H2: CLOSED
-H3: CLOSED
-```
-
-H2B is closed and H2 is now closed after the H2-S behavior candidate completed
-its externally supplied Independent Review, final manual cross-platform CI with
-candidate revalidation, squash merge, and this post-merge reconciliation.
-The H2-S local qualification and fresh PostgreSQL 18.6 qualification are also
-`PASS`.
-
-H1 functional implementation and stabilization are `CLOSED`. Current product
-qualification is property-scoped:
+Installation, bootstrap, host ownership, canonical truth, runtime composition,
+and asynchronous Foundation semantics are complete/closed at their respective
+semantic boundaries. Product qualification remains property-scoped:
 
 ```yaml
 current_product_qualification:
@@ -187,31 +174,16 @@ current_product_qualification:
   hardware_power_loss: NOT_RUN
 ```
 
-H2A and H2B are functionally complete, H2-S stabilization is `CLOSED`, and H3
-is `CLOSED`. H2 closure is not product-qualification closure. The current
-evidence proves real PostgreSQL on Windows and Ubuntu/Linux; macOS real
-PostgreSQL, source-less execution, installed service/headless execution,
-service-account ACLs, and hardware power-loss behavior remain `NOT_RUN`. Those
-boundaries remain at their recorded states and are not implied by H2 closure.
+The recorded evidence proves real PostgreSQL on Windows and Ubuntu/Linux;
+macOS real PostgreSQL, source-less execution, installed service/headless
+execution, service-account ACLs, and hardware power-loss behavior remain
+`NOT_RUN`. Those boundaries remain at their recorded states and are not
+implied by Foundation closure.
 
-Current H2-S stabilization status:
-
-```yaml
-H2_STABILIZATION: CLOSED
-localQualification: PASS
-freshPostgreSQL18_6: PASS
-independentReview: PASS
-finalCrossPlatformCI: PASS
-finalCandidateRevalidation: PASS
-merge: PASS
-```
-
-The H2-S closure evidence is maintained in
+The Foundation evidence is maintained in
 [`Q-RUNTIME-01`](../qualification/results/Q-RUNTIME-01.md)
 and
 [`Q-PERSISTENCE-01`](../qualification/results/Q-PERSISTENCE-01.md).
-The completed implementation/correction plan is
-[`H2-S context-efficient package governance correction`](../plans/completed/foundation/h2s-review-correction-context-efficient-package-governance.md).
 Historical implementation and qualification detail remains in completed plans
 and historical qualification records rather than in this living roadmap.
 
@@ -253,13 +225,15 @@ A horizon-closing implementation should be able to prove scenarios such as:
 
 ### Explicit non-goals
 
-Do not pull RuntimeReconciler, DBOS, Subject, Messaging, AI or full Management into H1 merely to make the demo impressive.
+Do not pull RuntimeReconciler, DBOS, Subject, Messaging, AI or full Management
+into this installation/ownership capability merely to make the demo impressive.
 
 ---
 
-## H2A — Own Canonical Truth: Persistence, Schema, Time and Minimal Lineage
+## Canonical Truth: Persistence, Schema, Time, and Minimal Lineage — COMPLETE
 
-**Parallel-capable with H2B after H1 semantics are available.**
+This capability was developed alongside runtime composition after host ownership
+semantics became available.
 
 ### Question answered
 
@@ -275,7 +249,9 @@ Do not pull RuntimeReconciler, DBOS, Subject, Messaging, AI or full Management i
 - ExecutionContext / Activity identity core;
 - AsyncLocalStorage + OTel Context propagation boundary;
 - minimum retained Activity/Evidence semantics for authoritative transitions;
-- scoped storage primitives are pulled into H2A only if a concrete H2A Foundation owner requires them; otherwise StorageWorkspace implementation waits for its first real consumer.
+- scoped storage primitives are pulled into canonical truth only if a concrete
+  Foundation owner requires them; otherwise StorageWorkspace implementation
+  waits for its first real consumer.
 
 ### Exit scenarios
 
@@ -289,13 +265,17 @@ Do not pull RuntimeReconciler, DBOS, Subject, Messaging, AI or full Management i
 
 ### Why Lineage starts here
 
-Execution Lineage is cross-cutting. Delaying it until observability work would force every later boundary to be retrofitted. H2A should establish the **identity/context/required-record skeleton**, not the final query UI, exporter fleet or unlimited retention model.
+Execution Lineage is cross-cutting. Delaying it until observability work would
+force every later boundary to be retrofitted. Canonical truth should establish
+the **identity/context/required-record skeleton**, not the final query UI,
+exporter fleet or unlimited retention model.
 
 ---
 
-## H2B — Own Runtime Composition: RuntimeSubstrate and Kernel Semantics
+## Runtime Composition: RuntimeSubstrate and Kernel Semantics — COMPLETE
 
-**Parallel-capable with H2A; H3 requires both to be sufficiently closed.**
+This capability depends on canonical truth and supplies the runtime boundary for
+durable work.
 
 ### Question answered
 
@@ -317,7 +297,7 @@ Execution Lineage is cross-cutting. Delaying it until observability work would f
 
 ### Mandatory risk-retirement gate: Cordis
 
-Cordis is currently an adopted route, but its 4.x line is still release-candidate software and recent upstream reports touch lifecycle/disposal/continuation behavior. Therefore H2B should begin with a narrow conformance boundary covering exactly the Cordis mechanics Heptalogos intends to rely on:
+Cordis is currently an adopted route, but its 4.x line is still release-candidate software and recent upstream reports touch lifecycle/disposal/continuation behavior. Therefore runtime composition should begin with a narrow conformance boundary covering exactly the Cordis mechanics Heptalogos intends to rely on:
 
 - scope ownership;
 - activation/disposal;
@@ -347,11 +327,12 @@ Kernel must not absorb database, workflow engine, package manager, HTTP stack, A
 
 ---
 
-## H3 — Survive Asynchrony: Durable Work, Signal, Effect and Recovery Semantics
+## Durable Work, Signal, Effects, and Recovery Semantics — CLOSED
 
 ### Prerequisites
 
-Requires enough of H2A to own canonical transactions/lineage and enough of H2B to resolve generation-pinned handlers.
+Requires enough canonical truth to own transactions/lineage and enough runtime
+composition to resolve generation-pinned handlers.
 
 ### Question answered
 
@@ -360,21 +341,17 @@ Requires enough of H2A to own canonical transactions/lineage and enough of H2B t
 ### Current progress (2026-09-02)
 
 ```yaml
-H3: CLOSED
-H3A: FUNCTIONALLY_COMPLETE
-H3A_1: CLOSED
-H3A_2: CLOSED
-H3_FOUNDATION_EXECUTABLE_SPINE: PASS
-H3B: CLOSED
-H3_FUNCTIONAL: COMPLETE
-H3_STABILIZATION: CLOSED
+foundationAsyncExecution: CLOSED
+foundationFunctional: COMPLETE
+foundationExecutableSpine: PASS
+foundationClosure: CLOSED
 currentRepositoryWork: NONE
 activeImplementationPlan: NONE
 nextAuthorizedPlan: NONE
 githubActions: DISABLED_CURRENT_EXECUTION_POLICY
 ```
 
-Current H3 stabilization closure truth:
+Current Foundation closure evidence:
 
 ```yaml
 localQualification: PASS
@@ -384,58 +361,45 @@ finalCrossPlatformCI: NOT_RUN
 merge: PASS
 ```
 
-The H3A-1 implementation includes complete creation-request envelope
-snapshotting, the canonical fair-scan projection index, and cross-platform
-bootstrap-runtime test budgets. It is accepted as the current product baseline
-by the completed H3A-1 governance recovery record. Existing implementation and
-draft cross-platform evidence remain preserved. H3A-2 bounded closure is
-complete for the current H3 scope: no observed/current authorized F0-F2 blocker
-remains, the Foundation executable spine passes the real-process boot/work/stop
-and same-Instance restart scenarios, and the terminal-commit restart scenario
-passes. The closure correction additionally proves durable maintenance entry
-before retirement, no execution of abandoned PREPARED intent, one
-package-private Host reacquisition owner, and the split integration ownership
-boundary. This does not close all product qualification boundaries. Windows and
-Ubuntu/Linux evidence is current for the recorded scenarios; macOS, source-less,
-service/headless, and ResourceGovernor qualification remain individually scoped
-and must not be inferred from another platform or candidate. H3B is closed and
-the Foundation Remediation Bundle stabilization result is also complete. The
-current H3 closure is:
+The asynchronous Foundation implementation includes the canonical work request
+snapshot, fair-scan projection, durable DBOS boundary, and the real-process
+boot/work/stop and same-Instance restart scenarios. The terminal-commit
+restart scenario, durable maintenance entry before retirement, prevention of
+abandoned PREPARED intent, one package-private Host reacquisition owner, and
+the split integration ownership boundary are also recorded as completed
+Foundation evidence. This does not close all product qualification boundaries.
+Windows and Ubuntu/Linux evidence is current for the recorded scenarios;
+macOS, source-less, service/headless, and ResourceGovernor qualification remain
+individually scoped and must not be inferred from another platform or
+candidate. The closed capability is the work historically tracked as H3; that
+label is retained only as chronology.
 
-```yaml
-localQualification: PASS
-finalCandidateRevalidation: PASS
-independentReview: PASS
-finalCrossPlatformCI: NOT_RUN
-merge: PASS
-```
-
-The current repository locus is master after completed T0 current-authority
-reconciliation. The H3 closure merge baseline is PR #32 at
+The current repository locus is master. The Foundation closure merge baseline
+is PR #32 at
 51317428a89b5545d3ac614f1012d869a1251203; the former development branch and
 candidate SHAs remain qualification provenance, not the current repository
-locus. H3 closure is a Horizon statement and does not imply macOS, source-less,
-service/headless, service-account ACL, hardware power-loss, ResourceGovernor, or
-release/shipping qualification. Ordinary GitHub Actions are disabled under the
-current execution policy; local repository gates and the recorded external
-closure evidence define the H3 closure route.
+locus. Foundation closure is a Horizon statement and does not imply macOS,
+source-less, service/headless, service-account ACL, hardware power-loss,
+ResourceGovernor, or release/shipping qualification. Ordinary GitHub Actions
+are disabled under the current execution policy; local repository gates and the
+recorded evidence define the closure route.
 
-The completed Foundation Remediation Bundle Plan is
+The completed Foundation remediation Plan is
 [`Foundation Remediation Bundle — Closure Correction — 2026-09-01`](../plans/completed/foundation/foundation-remediation-bundle-2026-09-01.md);
 the current property evidence remains in
-[`Q-BOOT-01`](../qualification/results/Q-BOOT-01.md) and the machine-readable
-qualification ledger.
+[`Q-BOOT-01`](../qualification/results/Q-BOOT-01.md) and the other property
+records under `project/qualification/results/`.
 
 ### Implementation decomposition
 
-- H3A-1 implements canonical work/handler/signal semantics without DBOS.
-- H3A-2 materializes DBOS durable mechanics and crash recovery.
-- H3B, completed after H3A-2 and the Foundation spine close, added the minimal
-  EffectOperation uncertainty boundary.
-- Real `CONFIG_PINNED` ConfigurationRevision resolution remains H4-owned; H3A
-  uses configuration-free handlers and fails closed for pinned binding.
-- Real PressureSnapshot/ResourceGovernor remains H8-owned; H3A establishes
-  explicit WorkAdmissionPort semantics.
+- Canonical work/handler/signal semantics are separated from the DBOS adapter.
+- DBOS supplies durable workflow, queue, and first-order crash mechanics.
+- EffectOperation adds only the bounded external-effect uncertainty boundary.
+- Real `CONFIG_PINNED` ConfigurationRevision resolution remains a system
+  administration concern; configuration-free handlers fail closed for a pinned
+  binding until that owner is present.
+- Real PressureSnapshot/ResourceGovernor remains an operational continuity
+  concern; WorkAdmissionPort exposes only the current queue boundary.
 
 ### Capability closure
 
@@ -451,7 +415,7 @@ qualification ledger.
 - durable LineageContextRef across waits/restarts;
 - minimal Resource/Admission classes required by queue execution.
 
-H3A remains effect-free. H3B is deliberately narrow:
+The external-effect boundary is deliberately narrow:
 
 ```text
 canonical EffectOperation
@@ -461,13 +425,15 @@ no automatic redispatch of uncertain effects
 minimal reconciliation/idempotency seam where the external system supports it
 ```
 
-H3B does not include a full NetworkAccess platform, general retry engine,
+It does not include a full NetworkAccess platform, general retry engine,
 provider fleet, full messaging Driver stack, ResourceGovernor, Backup/Restore
 framework, global effect broker, or automatic multi-step compensation.
 
-### Mandatory risk-retirement gate: DBOS
+### DBOS provider boundary
 
-DBOS 4.x is active and capable, but queue, recovery and application-version behavior continues to evolve. Qualification should therefore use the exact version selected when H3 begins and directly exercise:
+DBOS 4.x is active and capable, but queue, recovery and application-version
+behavior continues to evolve. When this boundary is qualified, use the exact
+selected version and directly exercise:
 
 - real PostgreSQL;
 - queue dispatch/recovery;
@@ -492,86 +458,43 @@ At minimum, kill the process around key boundaries and prove:
 - no generic automatic retry turns uncertainty into duplicate reality;
 - restart preserves causal lineage links.
 
-### H3 — Foundation Remediation / Stabilization
+### Foundation closure history
 
-The current Foundation remediation is a convergence/subtraction track, not
-another hardening expansion. It follows the already-closed H3A-2 and Foundation
-executable spine. Its bounded scope is:
+The earlier Foundation remediation and review history is preserved in the
+completed Plan and property records linked above. This living Roadmap keeps the
+resulting semantic capabilities and provider routes current; it does not create
+a universal stabilization stage, candidate-freeze procedure, or second
+hardening pass. The adopted Cordis, DBOS, PostgreSQL, WorkItem, Signal, and
+Effect boundaries remain current and are governed by their Specs.
 
-```text
-current-tree residue and PRE_PRODUCTION compatibility cleanup
-speculative-resilience audit
-lifecycle mechanics ownership audit
-Bootstrap scope containment check
-current consumer/invariant check for implemented Foundation surfaces
-qualification/current-truth cleanup
-Foundation executable-spine revalidation
-```
+### Product Entry — bounded product route
 
-The lifecycle audit records `SEMANTIC_PROTOCOL`, `ADAPTER_GLUE`,
-`GENERIC_MECHANIC_DELEGATED`, `GENERIC_MECHANIC_CUSTOM_JUSTIFIED`,
-`GENERIC_MECHANIC_CUSTOM_UNJUSTIFIED`, and `SPECULATIVE_RESILIENCE`. It does not
-start a broad refactor, replace Cordis/DBOS/XState, or add product capability.
-
-The current XState consumers are `private-postgres` and `host-ownership`.
-`runtime-kernel` owns runtime lifecycle meaning and reconciliation but is not a
-current XState consumer.
-
-The current bounded audit classification is:
-
-| Owner                                  | Mechanism                                                                            | Classification                                                   | Current action                                                                                                                                           |
-| -------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `runtime-substrate`                    | Cordis Fiber/context/effect/disposal                                                 | `GENERIC_MECHANIC_DELEGATED`                                     | Keep Cordis behind the adapter.                                                                                                                          |
-| `runtime-substrate`                    | task tracking, late disposer handling, settlement timeout                            | `GENERIC_MECHANIC_CUSTOM_JUSTIFIED`                              | Retain the Heptalogos owner policy required to bound process-memory work that Cordis does not own; investigate only if a current consumer exposes a gap. |
-| `runtime-substrate` / `runtime-kernel` | background failure projection, owner/generation failure and readiness effects        | `SEMANTIC_PROTOCOL`                                              | Keep semantic projection in Heptalogos contracts.                                                                                                        |
-| `runtime-kernel`                       | Desired/Actual reconciliation, registries, generation fencing and provider selection | `SEMANTIC_PROTOCOL`                                              | Keep lifecycle meaning and component retirement in the Kernel; runtime-level close is terminal and there is no second supervisor.                        |
-| `runtime-kernel`                       | global reversible Host-maintenance supervisor lifecycle                              | `SPECULATIVE_RESILIENCE`                                         | Removed; retain Desired/Actual reconciliation, registries, readiness, GenerationFence and terminal runtime close.                                        |
-| `private-postgres`                     | PostgreSQL process/tool invocation and local lifecycle statechart                    | `ADAPTER_GLUE` / `GENERIC_MECHANIC_DELEGATED`                    | Use the adopted subprocess and XState routes; no new process manager.                                                                                    |
-| `host-ownership`                       | advisory lease, database fence and token transitions                                 | `SEMANTIC_PROTOCOL`                                              | Preserve one Host Authority and its PostgreSQL mechanics adapter.                                                                                        |
-| `bootstrap-runtime`                    | Bootstrap/Host handoff, maintenance point of no return and recovery journal          | `SEMANTIC_PROTOCOL`                                              | Keep one-way retirement, compact phase witness, and current-truth recovery at this owner.                                                                |
-| `bootstrap-runtime`                    | old-runtime rollback and `resumeAfterAbort`                                          | `SPECULATIVE_RESILIENCE`                                         | Removed; the Authority point of no return is fenced and failed post-entry work is bounded recovery.                                                      |
-| `bootstrap-runtime`                    | historical maintenance-stage replay/recovery workflow                                | `SPECULATIVE_RESILIENCE`                                         | Removed/re-written to current-truth inspection and convergence.                                                                                          |
-| `work-queue`                           | WorkItem Authority, admission, reconciliation and fair scan                          | `SEMANTIC_PROTOCOL`                                              | Preserve canonical WorkItem ownership and bounded scan behavior.                                                                                         |
-| `durable-execution`                    | DBOS client/pool/terminal lifecycle adapter                                          | `ADAPTER_GLUE` / `GENERIC_MECHANIC_DELEGATED`                    | Keep DBOS workflow, queue, drain, and first-order restart mechanics below the Heptalogos lifecycle contract.                                             |
-| `durable-execution`                    | reversible quiesce/resume lifecycle                                                  | `GENERIC_MECHANIC_CUSTOM_UNJUSTIFIED` / `SPECULATIVE_RESILIENCE` | Removed; DBOS retains its adopted terminal lifecycle and first-order recovery mechanics.                                                                 |
-
-The remediation identified and removed the unjustified or speculative
-reversible runtime and maintenance-recovery mechanisms listed above. No such
-mechanism remains in the current Foundation implementation after this
-remediation. The retained Cordis review still classifies task tracking and
-late-disposer handling as Heptalogos owner policy around the adopted Cordis
-scope, settlement timeout as the required bounded contract for process-memory
-tasks, and background failure projection as semantic failure/readiness
-behavior. Provider replacement is not authorized.
-
-### Post-H3 Product Entry — bounded product route
-
-The route from closed H3 to the first real Product slice is:
+The route from closed Foundation semantics to the first real Product slice is:
 
 ```text
-T1 Product Authority convergence
+Product Authority convergence
         ↓
-T1C Product/Machine Operations boundary correction
+Product/Machine Operations boundary correction
         ↓
-T2 H4-Min + H6 normative Spec freeze
+Normative Product contract freeze
         ↓
-P1 Product Host + minimum Management spine
+Product Host + minimum Management spine
         ↓
-P2 provider prerequisites
+Provider prerequisites
         ↓
-P3 Subject Base + Messaging + Subject Chat
+Subject Base + Messaging + Subject Chat
         ↓
-P4 Reaction + Behavior Authority
+Reaction + Behavior Authority
         ↓
-Q H6 real Product L4 slice
+Subject vertical-slice proof
         ↓
-bounded stabilization
+bounded property qualification
 ```
 
-T1, T1C, T2, P1–P4, and Q are planning decomposition labels for this route.
-They are not additional permanent architecture layers or new Horizons.
+These are semantic planning steps, not additional permanent architecture layers
+or mandatory numbered stages.
 
-T1C establishes the current product boundary before T2:
+The current product boundary is:
 
 ```yaml
 repositoryProductBoundary: HEADLESS_PRODUCT_HOST
@@ -592,62 +515,71 @@ domain Authority.
 The Machine Operations workstream is parallel product/operations planning:
 
 ```text
-O0  authority correction (T1C)
+Authority boundary correction
         ↓
-O1  OpenClaw integration baseline
+OpenClaw integration baseline
     - exact upstream qualification
     - independent service/process integration
     - trust/credential separation
     - first Heptalogos operational Skill
     - first typed Management tool where useful
         ↓
-O2  operational tool/Skill expansion with Management/API growth
+Operational tool/Skill expansion with Management/API growth
         ↓
-OD  distribution, branding, and license closure before shipping bundle
+Distribution, branding, and license closure before shipping bundle
 ```
 
-O1 does not block the first H6 semantic Subject proof unless a concrete
-current dependency requires it. These labels are planning decomposition, not
+OpenClaw integration does not block the first Subject semantic proof unless a
+concrete current dependency requires it. These are planning descriptions, not
 permanent architecture layer names.
 
 Current Product Authority and normative-contract status:
 
 ```yaml
-T1: COMPLETED
-T1C: COMPLETED
-T2: COMPLETED
+productAuthorityConvergence: COMPLETED
+machineOperationsBoundary: COMPLETED
+normativeContractFreeze: COMPLETED
 normativeProductContracts: FROZEN_FOR_FIRST_PRODUCT_SLICE
-P1: COMPLETE_HEADLESS_PRODUCT_HOST_AND_INITIAL_MANAGEMENT
-P1_QUALIFICATION: PARTIAL_WINDOWS_PROFILE
-nextEligibleImplementation:
-  P2: provider prerequisites
-  O1: OpenClaw integration baseline
-P2: ELIGIBLE_NOT_AUTHORIZED
-O1: ELIGIBLE_NOT_AUTHORIZED
+productHost:
+  implementation: PRESENT
+  closure: CLOSED_CORRECTED
+productHostQualification: HISTORICAL_PARTIAL_WINDOWS_PROFILE
+releaseFormProductQualification: REQUIRED_FOR_CORRESPONDING_SHIPPING_RUNTIME_CLAIM
+releaseFormQualificationBlocksIndependentSemanticDevelopment: false
+providerPrerequisites: ELIGIBLE_NOT_AUTHORIZED
+machineOperationsIntegration: ELIGIBLE_NOT_AUTHORIZED
 activeProductImplementationPlan: NONE
 currentProductWork: NONE
 ordinaryGitHubActions: DISABLED_CURRENT_EXECUTION_POLICY
 ```
 
-T2 completed the eight current H4-Min/H6 normative Product Specs and the
-S1–S16 cross-Spec paper execution audit. P1 has now materialized the first
+The normative contract work completed the eight current Product Specs and the
+cross-Spec paper execution audit. The Product Host work materialized the first
 headless Product Host, initial Management plane, generated client, and
-reference CLI under its separately authorized Plan. The frozen current-slice
+reference CLI under its separately authorized Plan. The closure correction completed the bounded
+corrections to build-carried generation identity, first-claim continuity,
+Management contract projection, readiness truth, and package public/build
+boundaries. The original Product Host qualification remains historical evidence, while
+the corrected current qualification is recorded separately. The frozen current-slice
 decisions include MANAGED_REVISION-only normal configuration,
 SecretRef-only Product secret references, controllable provider transport
 through NetworkAccess, the two Subject model bindings, one Administrator,
 plan-bound SystemAction execution, deferred-but-adopted Cedar, no generic
 ApprovalService or ManagementOperation, direct text-only Subject Chat, and
-minimal REPLY/SILENCE behavior commit semantics. P2 provider prerequisites and
-O1 OpenClaw integration are eligible for separate authorization but are not
-active. OpenClaw remains an adopted external Machine Operations route and is
-not an H4-Min or Subject readiness dependency.
+minimal REPLY/SILENCE behavior commit semantics. Release-form Product
+qualification is required before making the corresponding source-less,
+service, platform, or shipping/runtime claim. It is not a universal
+prerequisite for later semantic/product development, provider-prerequisite
+implementation, or independent OpenClaw Machine Operations work that does not
+depend on that boundary. Each workstream remains subject to its own plan and
+evidence boundary. OpenClaw remains an adopted external Machine Operations
+route and is not a provider or Subject readiness dependency.
 
-### H4-Min — provider prerequisites and minimum Management spine
+### Product prerequisites — provider foundations and minimum Management spine
 
-H4-Min is a bounded prerequisite set for the first Product slice, not a new
+This is a bounded prerequisite set for the first Product slice, not a new
 Horizon. Its initial implementation slice contains only the consumers needed
-to enter real Product/H6 work; it is not the permanent ceiling for the
+to enter real Product work; it is not the permanent ceiling for the
 repository Management product.
 
 Provider prerequisites:
@@ -669,32 +601,33 @@ The permanent repository target is a complete headless Management API over
 every administratively meaningful capability that has entered the product,
 together with a complete reference CLI. A later Presentation consumer may
 require additional Host-owned projections or queries; those are legitimate
-contract evolution and do not turn the initial H4-Min slice into the final
+contract evolution and do not turn the initial Product prerequisite slice into the final
 Management scope.
 
-Full H4 remains a broader capability closure. The following are not required by
-H4-Min before H6 unless T2 identifies a hard consumer: the complete CLI
+Full system administration remains a broader capability closure. The following
+are not required before the Subject vertical slice unless a hard current
+consumer exists: the complete CLI
 universe, complete Cedar policy surface, generic/full Approval, remote
 administration, every management resource, Extension/package lifecycle,
 backup/restore management, Product Update management, and the remainder of
-full H4.
+full system-administration capability.
 
 The route therefore keeps these decisions explicit:
 
 ```yaml
-fullH4RequiredBeforeH6: false
-fullH5RequiredBeforeH6: false
+fullSystemAdministrationRequiredBeforeSubjectSlice: false
+fullPackageLifecycleRequiredBeforeSubjectSlice: false
 operatorAndPresentationRecognizedAsProductRequirements: true
 ```
 
-Full H5 package and data lifecycle is likewise not a prerequisite for the
-first-party Subject slice. H5 remains responsible for broader replaceable and
+Full package and data lifecycle is likewise not a prerequisite for the
+first-party Subject slice. It remains responsible for broader replaceable and
 third-party generations when a hard product consumer exists.
 
-### T2 normative Spec ownership map
+### Normative Product Contract ownership map
 
-T2 froze the following ownership map before implementation plans write
-implementation code. These are current normative Specs, not package or
+The normative contract work froze the following ownership map before
+implementation plans write implementation code. These are current normative Specs, not package or
 workspace topology:
 
 | Planned Spec target                       | ID    | Owned contract                                                                           |
@@ -708,22 +641,25 @@ workspace topology:
 | specs/messaging/messaging-subject-chat.md | MSG   | Canonical messaging facts and built-in Subject Chat.                                     |
 | specs/subject/reaction-behavior.md        | REACT | Reaction, BehaviorIntent, Review, Commit, Expression, silence, and supersession.         |
 
-T2 should split these targets further only when a genuine semantic owner and
+The contract map should split these targets further only when a genuine semantic owner and
 current consumer require it. BehaviorIntent, Review, DecisionCommit,
 CommunicationCommit, Expression, and ConversationMailbox do not each become
 separate Specs by noun alone. PresentationIntent remains a Presentation
 projection concern and does not create an internal assistant or Host Authority
 contract by itself.
 
-The completed T2 Plan records the contract freeze and the S1–S16 audit. The
-completed P1 Plan records the first real headless Host and initial Management
-implementation. This route does not introduce a temporary direct mutation API;
-P2 and O1 remain separately eligible and unauthorized.
+The completed contract and Product Host Plans record the contract freeze and
+initial implementation. The closure correction is complete. Release-form
+qualification remains required for its corresponding shipping/runtime claim,
+but it is not a universal blocker for provider prerequisites or independent
+OpenClaw integration that does not depend on that boundary. Those workstreams
+remain separately scoped and require their own authorization and evidence.
+This route does not introduce a temporary direct mutation API.
 
-### T2 exclusions around the first Product slice
+### Exclusions around the first Product slice
 
-T2 does not pull the following into the first normative freeze or H6 critical
-path: Persona, Memory, Relationship, Attention, Advanced Observation Window,
+The first normative freeze does not pull the following into the Subject
+vertical-slice critical path: Persona, Memory, Relationship, Attention, Advanced Observation Window,
 Living State, Appraisal, Epistemic State, Commitments, Reflection, Diary,
 Dream, external IM, MCP, full CapabilityBroker, full package lifecycle,
 backup/restore, Product Update, or a complete Presentation visual
@@ -734,12 +670,12 @@ requirements. Their first useful experience can begin with Assistant Explain
 and Navigate, followed by bounded Operate through the normal Management
 API/CLI and, where the Host is unavailable, machine repair through the
 independent Machine Operations route. Presentation consumes canonical
-contracts and never becomes Authority; a GUI frontend is not an H6
+contracts and never becomes Authority; a GUI frontend is not a Subject-slice
 prerequisite.
 
 ---
 
-## H4 — Operate the Machine: Configuration, Secrets, Authentication and System Authority
+## System Administration: Configuration, Secrets, Authentication, and Authority
 
 ### Question answered
 
@@ -778,11 +714,11 @@ Cedar looks operationally healthy enough that it need not be an early Foundation
 
 ---
 
-## H5 — Compose Safely: Storage Governance, Generations, Capabilities and Package Lifecycle
+## Capability and Package Lifecycle: Safe Composition and Storage Governance
 
 ### Important decomposition
 
-Do **not** make the full third-party Extension Package Manager a prerequisite for every first-party feature. The common MicroSystem/Service/Capability/Generation model is already part of H2B. H5 closes the broader package/data lifecycle needed for replaceable and third-party generations.
+Do **not** make the full third-party Extension Package Manager a prerequisite for every first-party feature. The common MicroSystem/Service/Capability/Generation model is already part of the runtime composition capability. This area closes the broader package/data lifecycle needed for replaceable and third-party generations.
 
 ### Question answered
 
@@ -822,7 +758,7 @@ WASM sandbox/runtime selection remains deferred until a real sandbox-required wo
 
 ---
 
-## H6 — Prove Subject Base: Minimal End-to-End Interaction
+## Subject Vertical Slice: Minimal End-to-End Interaction
 
 ### Question answered
 
@@ -839,10 +775,11 @@ Use the smallest product-relevant vertical slice:
 - no Memory implementation;
 - no Relationship/Attention/Living State/etc. implementation;
 - minimal context/prompt/reaction contracts only;
-- full H4 is not required before this slice;
-- full H5 is not required before this slice;
+- full system administration is not required before this slice;
+- full package lifecycle is not required before this slice;
 - System Assistant and external Control Plane Presentation are recognized
-  product requirements, while H6 does not require their full implementation.
+  product requirements, while the Subject slice does not require their full
+  implementation.
 
 ### Capability closure
 
@@ -884,7 +821,7 @@ If this horizon cannot work while every advanced cognition Service is `UNAVAILAB
 
 ---
 
-## H7 — Integrate External Reality: IM, MCP, Media and Provider Diversity
+## Messaging, Protocol, Media, and Provider Integration
 
 ### Question answered
 
@@ -916,7 +853,7 @@ MCP TypeScript SDK v2 is now a stable release line for the 2026-07-28 specificat
 
 ---
 
-## H8 — Make It Survivable and Shippable: Lifecycle, Backup, Restore, Update, Pressure and Product Closure
+## Recovery and Shipping Closure: Lifecycle, Backup, Restore, Update, and Pressure
 
 ### Question answered
 
@@ -940,7 +877,10 @@ MCP TypeScript SDK v2 is now a stable release line for the 2026-07-28 specificat
 
 ### Timing rule
 
-Full H8 product closure is not required before every H6/H7 development experiment. However, **valuable real user state must not be treated as safely supported until backup/restore/update/lifecycle claims have corresponding evidence**.
+Full recovery and shipping closure is not required before every Subject or
+external-integration experiment. However, **valuable real user state must not
+be treated as safely supported until backup/restore/update/lifecycle claims
+have corresponding evidence**.
 
 ### Exit scenarios
 
@@ -956,11 +896,14 @@ Full H8 product closure is not required before every H6/H7 development experimen
 
 ## 5. Parallel research lanes
 
-The Foundation critical path must not force all product research to wait until H8.
+The Foundation critical path must not force all product research to wait until
+recovery and shipping closure.
 
-## R-A — Advanced Cognition Research
+## Advanced Cognition Research
 
-Research may begin earlier in isolated prototypes/fixtures, preferably once H6 integration contracts are sufficiently concrete, but it is **not** a Foundation release dependency.
+Research may begin earlier in isolated prototypes/fixtures, preferably once the
+Subject integration contracts are sufficiently concrete, but it is **not** a
+Foundation release dependency.
 
 Each subsystem (Memory, Persona, Relationship, Attention, Appraisal, Epistemic State, Commitments, Reflection, etc.) should have its own research program:
 
@@ -978,7 +921,7 @@ Each subsystem (Memory, Persona, Relationship, Attention, Appraisal, Epistemic S
 
 Research findings may refine the relevant Human Architecture, Spec, or project owner, but prototype convenience cannot silently introduce a second scheduler, messaging stack, Authority path, secret store, workspace, backup mechanism, or Subject identity.
 
-## R-B — Presentation / Interaction Research
+## Presentation and Interaction Research
 
 Desktop/Web/UI/Apple-design exploration can continue in the external
 Presentation workstream. Early prototypes may use contract mocks or generated
@@ -990,7 +933,7 @@ Electron/Desktop work remains external Presentation research and qualification.
 Electron is an optional future carrier technology; this repository does not
 implement a Desktop shell or add a GUI dependency.
 
-## R-C — Evaluation Infrastructure
+## Evaluation Infrastructure Research
 
 As soon as Basic Subject scenarios stabilize, begin accumulating reproducible interaction episodes and metrics that can later compare advanced cognition interventions. This lane should be designed as research evaluation, distinct from Foundation correctness/product qualification.
 
@@ -998,31 +941,31 @@ As soon as Basic Subject scenarios stabilize, begin accumulating reproducible in
 
 ## 6. Cross-cutting capabilities are progressively realized, not “done once”
 
-### 6.1 Execution Lineage
+### Execution Lineage
 
-- H1: bootstrap activity/journal identity and handoff;
-- H2A: ExecutionContext/Activity core and required causal records;
-- H2B: runtime lifecycle/reconcile/service/capability instrumentation;
-- H3: WorkItem/durable/effect causation;
-- H4: management/policy/approval chains;
-- H6/H7: subject/model/messaging/MCP chains;
-- H8: retention/query/purge/restore/operational completeness.
+- bootstrap activity/journal identity and handoff;
+- ExecutionContext/Activity core and required causal records;
+- runtime lifecycle/reconcile/service/capability instrumentation;
+- WorkItem/durable/effect causation;
+- management/policy/approval chains;
+- Subject/model/messaging/MCP chains;
+- retention/query/purge/restore/operational completeness.
 
-### 6.2 Storage/Data Lifecycle
+### Storage and Data Lifecycle
 
-- H1: PathProfile/root safety;
-- H2A: scoped Foundation storage primitives;
-- H4: configuration backing/secret placement;
-- H5: StorageWorkspace/DataOwner/package ownership;
-- H8: heterogeneous backup/restore/purge/resource accounting.
+- PathProfile/root safety;
+- scoped Foundation storage primitives;
+- configuration backing/secret placement;
+- StorageWorkspace/DataOwner/package ownership;
+- heterogeneous backup/restore/purge/resource accounting.
 
 ### 6.3 Configuration
 
-Configuration governance starts whenever the first behavior-affecting value appears. The full ConfigurationService closes in H4, but no earlier milestone is permitted to create a large uncontrolled literal/config debt pile.
+Configuration governance starts whenever the first behavior-affecting value appears. The full ConfigurationService closes in system administration, but no earlier capability is permitted to create a large uncontrolled literal/config debt pile.
 
 ### 6.4 Resource governance
 
-Start with bounded budgets/timeouts and ownership metadata; add canonical pressure/admission semantics as real queue/database/network/media workloads appear; close full failure-injection/resource behavior in H8.
+Start with bounded budgets/timeouts and ownership metadata; add canonical pressure/admission semantics as real queue/database/network/media workloads appear; close full failure-injection/resource behavior in recovery and shipping closure.
 
 ### 6.5 Product qualification
 
@@ -1034,16 +977,16 @@ Do not wait for one giant final test campaign. Maintain a rolling matrix where e
 
 | Risk                                     | Current interpretation                                                       | Earliest useful retirement point | Roadmap response                                                                                         |
 | ---------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Cordis 4.x lifecycle maturity            | ADOPTED, but current 4.x line is RC and has recent lifecycle/disposal issues | H2B start                        | narrow RuntimeSubstrate conformance first; exact pin from fresh evidence; no parallel production runtime |
-| Private PostgreSQL packaging/ownership   | architecture-critical, cross-platform/native/process behavior                | H1                               | real PG ownership/fence early; source-less/service packaging may close later                             |
-| DBOS queue/recovery/version behavior     | active 4.x, recent queue/recovery/version changes                            | H3                               | exact-version real-PG crash/recovery qualification around static dispatcher                              |
-| Cedar WASM product loading               | healthy upstream, but WASM loading is packaging boundary                     | H4                               | qualify Node/ESM/WASM path at PolicyService integration; L3 source-less later                            |
-| AI SDK framework capture                 | SDK 7 now offers full agent/workflow/approval abstractions                   | H6                               | strict AIRuntime adapter scope; framework leakage gate                                                   |
-| MCP v2 protocol transition               | stable v2 line, modern protocol negotiation explicit                         | H7                               | protocol era/revision as data; modern+legacy conformance as claimed                                      |
-| External IM/provider uncertainty         | protocol/runtime differences                                                 | H7                               | only claim live support after real conformance                                                           |
-| Native/source-less closure               | many future WASM/native/executables                                          | H8                               | ReleaseManifest/SBOM/exact artifact qualification; changed closure invalidates evidence                  |
-| Backup/restore semantic complexity       | cross-owner and external reality cannot be rolled back                       | H8, with contracts earlier       | do not defer ownership metadata; close destructive reconciliation before release-grade state             |
-| Advanced cognition architecture pressure | high temptation to hard-wire Memory/Persona into Subject                     | parallel R-A                     | keep Foundation hooks generic; research hypotheses/evaluation separate                                   |
+| Cordis 4.x lifecycle maturity            | ADOPTED, but current 4.x line is RC and has recent lifecycle/disposal issues | runtime composition              | narrow RuntimeSubstrate conformance first; exact pin from fresh evidence; no parallel production runtime |
+| Private PostgreSQL packaging/ownership   | architecture-critical, cross-platform/native/process behavior                | installation and ownership       | real PG ownership/fence early; source-less/service packaging may close later                             |
+| DBOS queue/recovery/version behavior     | active 4.x, recent queue/recovery/version changes                            | durable work                     | exact-version real-PG crash/recovery qualification around static dispatcher                              |
+| Cedar WASM product loading               | healthy upstream, but WASM loading is packaging boundary                     | system administration            | qualify Node/ESM/WASM path at PolicyService integration; source-less later                               |
+| AI SDK framework capture                 | SDK 7 now offers full agent/workflow/approval abstractions                   | Subject vertical slice           | strict AIRuntime adapter scope; framework leakage gate                                                   |
+| MCP v2 protocol transition               | stable v2 line, modern protocol negotiation explicit                         | messaging/provider integration   | protocol era/revision as data; modern/legacy conformance as claimed                                      |
+| External IM/provider uncertainty         | protocol/runtime differences                                                 | messaging/provider integration   | only claim live support after real conformance                                                           |
+| Native/source-less closure               | many future WASM/native/executables                                          | recovery and shipping closure    | ReleaseManifest/SBOM/exact artifact qualification; changed closure invalidates evidence                  |
+| Backup/restore semantic complexity       | cross-owner and external reality cannot be rolled back                       | recovery and shipping closure    | do not defer ownership metadata; close destructive reconciliation before release-grade state             |
+| Advanced cognition architecture pressure | high temptation to hard-wire Memory/Persona into Subject                     | parallel research                | keep Foundation hooks generic; research hypotheses/evaluation separate                                   |
 
 ---
 
@@ -1051,7 +994,11 @@ Do not wait for one giant final test campaign. Maintain a rolling matrix where e
 
 This snapshot informs risk timing only. Exact versions must be refreshed when a future Implementation Plan freezes its Catalog/artifact closure.
 
-- PostgreSQL 18 remains the current stable major; the M3 qualification snapshot is PostgreSQL 18.6, released 2026-08-13. PostgreSQL 18.5 was not released because of a regression in the release sequence. Staying on the adopted 18 line is consistent with current upstream support reality; exact patch evidence is refreshed by each implementation plan.
+- PostgreSQL 18 remains the current stable major; an earlier qualification
+  snapshot used PostgreSQL 18.6, released 2026-08-13. PostgreSQL 18.5 was not
+  released because of a regression in the release sequence. Staying on the
+  adopted 18 line is consistent with current upstream support reality; exact
+  patch evidence is refreshed by each implementation plan.
 - DBOS TypeScript 4.x remains actively maintained. Recent 4.24/4.25 changes include queue/recovery/version behavior and formal deprecation of its internal admin server. This reinforces both exact-version qualification and Heptalogos-owned Management Authority.
 - Cordis current 4.x package line is still `4.0.0-rc.*`; recent open reports concern async lifecycle/disposal/continuation behavior. This does not automatically reopen the adopted role, but it makes early RuntimeSubstrate conformance a priority.
 - AI SDK 7 is now a broad agent platform with approvals/durable agent workflow capabilities. For Heptalogos, these higher-level abstractions are a framework-leakage hazard unless deliberately excluded from Authority roles.
@@ -1165,7 +1112,7 @@ At completion record:
 Avoid roadmap entries such as:
 
 - “create 12 Foundation packages”;
-- “implement all interfaces from S01”;
+- “implement all interfaces from a numbered Spec”;
 - “add PostgreSQL”;
 - “add DBOS”;
 - “build AI module”;
@@ -1202,46 +1149,46 @@ Do **not** revise the roadmap merely because a package/file layout changes.
 ## 12. Compact dependency map
 
 ```text
-H0  Engineering/Contract Spine  [DONE]
+Engineering and contract spine  [COMPLETE]
   |
   v
-H1  Installation + Bootstrap + Private PG + Host Ownership
+Installation + bootstrap + private PostgreSQL + host ownership  [COMPLETE]
   |
   v
-H2A/H2B  Canonical Truth + Runtime Composition
+Canonical truth + runtime composition  [COMPLETE]
   |
   v
-H3  Durable Work + Signal + Effect + Crash Recovery Semantics  [CLOSED]
+Durable work + Signal + Effect + crash recovery semantics  [CLOSED]
   |
   v
-T1  Product Authority convergence
+Product Authority convergence  [COMPLETE]
   |
   v
-T1C  Product/Machine Operations boundary correction
+Product/Machine Operations boundary correction  [COMPLETE]
   |
   v
-T2  H4-Min + H6 normative Spec freeze
+Normative Product contract freeze  [COMPLETE]
   |
-  +--> P1 Product Host + minimum Management spine
+  +--> Product Host + minimum Management spine  [COMPLETE]
   |        ↓
-  |    P2 provider prerequisites
+  |    Provider prerequisites  [ELIGIBLE; NOT AUTHORIZED]
   |        ↓
-  |    P3 Subject Base + Messaging + Subject Chat
+  |    Subject Base + Messaging + Subject Chat
   |        ↓
-  |    P4 Reaction + Behavior Authority
+  |    Reaction + Behavior Authority
   |        ↓
-  |    Q H6 real Product L4 slice
+  |    Subject vertical-slice proof
   |        ↓
-  |    H7 External IM + MCP + Media + Provider Diversity
+  |    Messaging + MCP + media + provider diversity
   |        ↓
-  |    H8 Backup/Restore/Update/Pressure/Source-less/Cross-platform Product Closure
+  |    Recovery + backup/restore/update/pressure/source-less/shipping closure
   |
-  +--> Full H4 system administration [parallel; not required before H6]
+  +--> Full system administration [parallel; not required before Subject proof]
   |
-  +--> Full H5 package/data lifecycle [parallel; not required before H6]
+  +--> Full package/data lifecycle [parallel; not required before Subject proof]
 
-  +--> O1/O2/OD independent OpenClaw Machine Operations integration and
-       distribution closure [parallel; O1 not required before first H6 proof]
+  +--> Independent OpenClaw Machine Operations integration and distribution
+       closure [parallel; not required before first Subject proof]
 ```
 
 The arrows show dependency pressure, not a ban on parallel exploratory work.

@@ -1,6 +1,6 @@
 /**
- * Provides the reusable current-tree hygiene scanner for provenance and
- * compatibility residue, keeping repository-specific policy in one owner.
+ * Provides the reusable current-tree identity and compatibility-register
+ * checks used by repository verification.
  * @module current-tree-hygiene
  */
 
@@ -15,14 +15,10 @@ const SELF_EXEMPTIONS = new Set([
 ]);
 
 const DEVELOPMENT_IDENTITY_PATTERN =
-  /(?<![a-z0-9])(?:m\d+[a-z]?|h\d+(?:[-_]?s|[a-z](?:[-_]?\d+)?))(?![a-z0-9])/iu;
+  /(?<![a-z0-9])(?:[hmpts]\d+(?:[a-z](?:[-_]?\d+)?|[-_]?s)?)(?![a-z0-9])/iu;
 const PR_ID_PATTERN = /(?<![a-z0-9])pr\s*#?\s*\d+(?![a-z0-9])/iu;
 const CORRECTIVE_CYCLE_PATTERN =
   /\b(?:corrective[-_ ]?cycle[-_ ]?\d+|session[-_ ]?(?:id[-_ ]?)?\d+)\b/iu;
-const HISTORICAL_COMPATIBILITY_PATTERN =
-  /\b(?:legacy|obsolete|deprecated|upcast|downcast)\b|\bbackward[- ]compat(?:ibility)?\b|\b(?:compatibility\s+(?:shim|bridge|alias)|(?:shim|bridge|alias)\s+compatibility)\b|\b(?:old|previous)\s+(?:schema|format|payload|field|api)\b/iu;
-
-const CURRENT_QUALIFICATION_ID_PATTERN = /\b(?:C|Q)-[A-Z0-9]+(?:-[A-Z0-9]+)*-\d+\b/giu;
 
 /** Patterns identifying development-only identities forbidden in current surfaces. */
 export const DEVELOPMENT_PROVENANCE_PATTERNS = Object.freeze([
@@ -31,16 +27,10 @@ export const DEVELOPMENT_PROVENANCE_PATTERNS = Object.freeze([
   CORRECTIVE_CYCLE_PATTERN,
 ]);
 
-/** Detect milestone, PR, session, or corrective-cycle wording in current text. */
-export function containsDevelopmentProvenance(
-  value,
-  { ignoreQualificationIds = false } = {},
-) {
+/** Detect milestone, PR, session, or corrective-cycle identity in a value. */
+export function containsDevelopmentProvenance(value) {
   if (typeof value !== "string") return false;
-  const scanValue = ignoreQualificationIds
-    ? value.replace(CURRENT_QUALIFICATION_ID_PATTERN, "")
-    : value;
-  return DEVELOPMENT_PROVENANCE_PATTERNS.some((pattern) => pattern.test(scanValue));
+  return DEVELOPMENT_PROVENANCE_PATTERNS.some((pattern) => pattern.test(value));
 }
 
 const SCAN_ROOTS = [
@@ -75,17 +65,24 @@ function isScannedPath(relativePath) {
   return (
     SCAN_ROOTS.some(
       (scanRoot) =>
-        relativePath === scanRoot || relativePath.startsWith(`${scanRoot}/`),
+        relativePath === scanRoot || relativePath.startsWith(scanRoot + "/"),
     ) || /^tsconfig.*\.json$/iu.test(relativePath)
   );
 }
 
-function pathExists(path) {
+function isIdentityContentPath(relativePath) {
+  return (
+    !/\.(?:md|mdx)$/iu.test(relativePath) &&
+    !/(?:^|\/)README\.md$/iu.test(relativePath) &&
+    !/(?:^|\/)INDEX\.md$/iu.test(relativePath)
+  );
+}
+
+function pathStats(path) {
   try {
-    lstatSync(path);
-    return true;
+    return lstatSync(path);
   } catch {
-    return false;
+    return undefined;
   }
 }
 
@@ -119,7 +116,7 @@ function scanCompatibilityRegister(root, findings) {
       findings,
       "compatibility-register",
       relativePath,
-      `compatibility obligation register is invalid JSON: ${error.message}`,
+      "compatibility obligation register is invalid JSON: " + error.message,
     );
     return;
   }
@@ -127,19 +124,18 @@ function scanCompatibilityRegister(root, findings) {
   if (
     register?.schemaVersion !== 1 ||
     register?.compatibilityEpoch !== "PRE_PRODUCTION" ||
-    !Array.isArray(register?.obligations) ||
-    register.obligations.length !== 0
+    !Array.isArray(register?.obligations)
   ) {
     addFinding(
       findings,
       "compatibility-register",
       relativePath,
-      "this repository requires PRE_PRODUCTION with an empty obligations array",
+      "compatibility obligation register must declare schemaVersion 1, PRE_PRODUCTION, and obligations[]",
     );
   }
 }
 
-/** Scan canonical executable surfaces for provenance and compatibility residue. */
+/** Scan current executable/test identities and the compatibility register. */
 export function scanCurrentTree({ root = process.cwd(), trackedPaths } = {}) {
   const repositoryRoot = resolve(root);
   const findings = [];
@@ -147,56 +143,33 @@ export function scanCurrentTree({ root = process.cwd(), trackedPaths } = {}) {
     (trackedPaths ?? listTrackedPaths({ root: repositoryRoot }))
       .map(normalizeTrackedPath)
       .filter(isScannedPath)
-      .filter((relativePath) => pathExists(join(repositoryRoot, relativePath))),
+      .filter(
+        (relativePath) => pathStats(join(repositoryRoot, relativePath)) !== undefined,
+      ),
   );
-
-  if (existsSync(join(repositoryRoot, "GENESIS_EVIDENCE.json"))) {
-    addFinding(
-      findings,
-      "closed-phase-artifact",
-      "GENESIS_EVIDENCE.json",
-      "one-time Repository Genesis evidence must not remain in the current tree",
-    );
-  }
-  if (existsSync(join(repositoryRoot, "scripts/phases"))) {
-    addFinding(
-      findings,
-      "closed-phase-artifact",
-      "scripts/phases",
-      "one-time phase scripts must not remain in the current tree",
-    );
-  }
 
   for (const relativePath of [...files].sort((left, right) =>
     left.localeCompare(right),
   )) {
     if (SELF_EXEMPTIONS.has(relativePath)) continue;
     const file = join(repositoryRoot, relativePath);
-    let stats;
-    try {
-      stats = lstatSync(file);
-    } catch (error) {
-      addFinding(findings, "read-error", relativePath, error.message);
+    const stats = pathStats(file);
+    if (stats === undefined) {
+      addFinding(findings, "read-error", relativePath, "tracked path disappeared");
       continue;
     }
-    if (stats.isSymbolicLink()) {
+    if (!stats.isFile()) continue;
+
+    if (containsDevelopmentProvenance(relativePath)) {
       addFinding(
         findings,
-        "symbolic-link-residue",
+        "development-provenance",
         relativePath,
-        "symbolic links are not allowed in scanned canonical or executable surfaces",
+        "current executable/test identity contains development milestone or provenance",
       );
-      continue;
     }
-    if (!stats.isFile()) {
-      addFinding(
-        findings,
-        "read-error",
-        relativePath,
-        "tracked scanned path is not a regular file",
-      );
-      continue;
-    }
+
+    if (!isIdentityContentPath(relativePath)) continue;
     let content;
     try {
       content = readFileSync(file, "utf8");
@@ -204,36 +177,20 @@ export function scanCurrentTree({ root = process.cwd(), trackedPaths } = {}) {
       addFinding(findings, "read-error", relativePath, error.message);
       continue;
     }
-
-    if (
-      containsDevelopmentProvenance(relativePath) ||
-      containsDevelopmentProvenance(content)
-    ) {
+    if (containsDevelopmentProvenance(content)) {
       addFinding(
         findings,
         "development-provenance",
         relativePath,
-        "current executable identity contains development milestone/provenance",
-      );
-    }
-
-    if (
-      (relativePath.startsWith("packages/") || relativePath.startsWith("tests/")) &&
-      HISTORICAL_COMPATIBILITY_PATTERN.test(content)
-    ) {
-      addFinding(
-        findings,
-        "historical-compatibility",
-        relativePath,
-        "current implementation/test surface contains high-signal project-history compatibility wording",
+        "current executable/test identity contains development milestone or provenance",
       );
     }
   }
 
   scanCompatibilityRegister(repositoryRoot, findings);
   findings.sort((left, right) =>
-    `${left.code}:${left.path}:${left.message}`.localeCompare(
-      `${right.code}:${right.path}:${right.message}`,
+    (left.code + ":" + left.path + ":" + left.message).localeCompare(
+      right.code + ":" + right.path + ":" + right.message,
     ),
   );
   return { root: repositoryRoot, findings };

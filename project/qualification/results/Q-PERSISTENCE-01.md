@@ -118,8 +118,9 @@ qualification_state: PARTIAL
 H2A-1 的 Windows PostgreSQL 18.6、Host ownership、bootstrap-runtime、
 least-privilege runtime role、事务生命周期和 leakage gates 保持既有
 `PASS`；Linux/macOS PostgreSQL、source-less persistence、installed
-service/headless runtime 仍为 `NOT_RUN`。机器可读的完整历史 ledger 位于
-`qualification-status.json`，本节不改写其历史字段。
+service/headless runtime 仍为 `NOT_RUN`。Current property navigation is kept
+in the results README; this historical section is not rewritten to change its
+recorded fields.
 
 ## H2B fourth corrective-cycle persistence status (2026-08-25)
 

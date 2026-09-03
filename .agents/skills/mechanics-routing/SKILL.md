@@ -1,100 +1,47 @@
 ---
 name: mechanics-routing
-description: Use when implementation needs generic parsing, schema, process, concurrency, retry, timeout, graph, state-machine, disposal, queue, serialization, database, observability, or protocol mechanics.
+description: Use when an authorized implementation needs generic parsing, schema, process, concurrency, retry, timeout, graph, state-machine, disposal, queue, serialization, database, observability, or protocol mechanics.
 ---
 
 # Mechanics Routing
 
-## Purpose
+This procedure routes generic mechanics through the current semantic owner and
+adopted provider. It does not select a new architecture role.
 
-This Skill separates Heptalogos semantics from generic mechanics and routes the
-mechanics through the adopted owner/provider. It protects Library-First without
-turning the repository into a dependency encyclopedia.
-
-## Routing sequence
+## Route
 
 1. State the semantic requirement and its current consumer.
-2. Separate the project meaning from the generic mechanic.
-3. Locate the existing semantic owner and package boundary.
-4. Search the target package, workspace exports, and package navigation for an
-   existing primitive or adapter.
-5. Read the adopted role/provider decision in
-   [`dependency-routing.json`](../../../project/dependencies/dependency-routing.json)
-   and the [Library-First playbook](../../../project/engineering/playbooks/mechanics-ownership-and-library-first.md).
-6. Reuse or extend the existing owner when it is sufficient.
-7. Otherwise use the adopted Standard/Node/OS or library route behind a
-   Heptalogos-owned contract.
-8. If the route is genuinely insufficient, name the missing primitive and
-   report `PLAN_GAP` before replacing a foundational provider.
+2. Identify the Heptalogos semantic owner and package boundary.
+3. Search for an existing repository primitive or adapter.
+4. Read the adopted provider route in
+   ../../../project/dependencies/dependency-routing.json and the current
+   package/Spec documentation.
+5. Reuse or extend the owner when sufficient.
+6. Otherwise use the adopted Standard/Node/OS or mature library route behind a
+   thin Heptalogos adapter.
 
-Do not add a local generic helper merely because its first call site is small.
-Do not let a provider object, queue, workflow, statechart, parser, or database
-handle become a second semantic Authority.
+Do not create a parallel generic mechanic because the first call site is small,
+because a dependency is inconvenient, or because the dependency has no
+qualification ID. Dependency count is not a quality metric.
 
-## Worked routes
+## Boundary
 
-| Requirement                | First route                                                                      | Boundary to preserve                                                   |
-| -------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Retry/backoff              | Find the owning WorkQueue/provider retry contract and its budget                 | Retry identity and terminal classification remain product-owned.       |
-| State-machine mechanics    | Find the owning Runtime lifecycle contract and adopted state-machine adapter     | Framework states do not become product semantics or public types.      |
-| Schema validation          | Use the repository schema-runtime route and the domain owner's schema            | Generic compilation does not own domain shape or compatibility.        |
-| Process lifecycle          | Use the existing repo-kit/process or package-owned process adapter               | Bounds, redaction, cancellation, and ownership remain explicit.        |
-| Graph traversal            | Use the existing Runtime graph/registry primitive                                | Traversal order must not silently become provider-selection Authority. |
-| Async scheduling           | Use the WorkQueue/durable-execution route for restart obligations                | An in-memory task is not a durable product obligation.                 |
-| Serialization              | Use the owning versioned contract and canonical codec                            | JSON/framework defaults do not create fallback readers.                |
-| PostgreSQL helper behavior | Use Persistence, canonical-schema, Host ownership, or Signal owner as applicable | Raw SQL/pool access does not bypass fence or mutation Authority.       |
+Keep product meaning, identity, retry/terminal classification, authorization,
+fencing, and evidence in the semantic owner. Keep provider objects, workflow
+rows, queues, parsers, statecharts, and database handles behind the owning
+adapter. An in-memory task is not a durable product obligation.
 
-The table is a routing aid, not permission to use every listed package. Confirm
-the current package README and current Spec for the actual consumer.
+If the adopted route is genuinely insufficient, report the exact missing
+primitive, current consumer, route inspected, and why reuse or a thin adapter
+cannot satisfy the authorized contract. Report PLAN_GAP only when the active
+Plan lacks a material provider or ownership decision.
 
-## Reuse versus extension
+## Verify
 
-Extend the existing owner when it owns the missing primitive and the extension
-does not change its semantic contract. Add an adapter when the adopted provider
-must be isolated behind a stable project contract. Stop when the proposal
-requires a new dependency role, duplicate generic framework, new subsystem, or
-unresolved package direction.
+Run the focused proof named by the Plan at the boundary it claims. Do not
+convert static, mock, single-platform, or source-tree evidence into a stronger
+provider, process, platform, or artifact claim.
 
-A real provider blocker must include the exact required primitive, the current
-consumer, the adopted route inspected, and why reuse/extension cannot provide
-it. “Another library seems cleaner” is not blocker evidence.
-
-## Custom mechanics admission
-
-When the existing owner and adopted route appear insufficient, read the
-[custom mechanics admission](references/custom-mechanics-admission.md)
-reference before writing a generic mechanic. Record the current consumer,
-semantic owner, existing primitive, adopted provider capability, Standard or
-Node option, mature library option, narrow adapter feasibility, concrete
-insufficiency, maintenance burden, lifecycle/concurrency/security/platform
-impact, and current authorization.
-
-Use custom code only after concrete insufficiency evidence. A foundational
-provider role that is unresolved and not authorized is PLAN_GAP. Trivial
-transformations and Heptalogos-specific semantics remain local code.
-
-## Interaction with other procedures
-
-Use [`scope-control`](../scope-control/SKILL.md) when adding mechanics expands
-the task. Use [`lifecycle-change`](../lifecycle-change/SKILL.md) for bounded
-resource lifetime and [`durable-state-change`](../durable-state-change/SKILL.md)
-for restart-visible state. Use
-[`semantic-boundary-change`](../semantic-boundary-change/SKILL.md) when ownership
-or package direction changes.
-
-## Output
-
-```text
-Semantic requirement and consumer:
-Generic mechanic:
-Semantic owner:
-Existing primitive/adapter searched:
-Adopted provider route:
-Reuse/extend/adapt decision:
-Concrete blocker, if any:
-Package/API impact:
-Focused verification:
-```
-
-Delete replaced duplicate mechanics under PRE_PRODUCTION after current callers
-and tests use the adopted route.
+Read the Library-First playbook at
+../../../project/engineering/playbooks/mechanics-ownership-and-library-first.md
+and the applicable current Spec.

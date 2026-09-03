@@ -1,79 +1,38 @@
-# Skill authoring guide
+# Skill Authoring Guide
 
-This guide is for human maintainers creating or restructuring a Coding-Agent
-Skill. A Skill is justified when a repeatable implementation-time activity
-needs non-trivial procedure or judgment and progressive disclosure can improve
-behavior.
+A Coding-Agent Skill is justified when a recurring implementation-time job
+needs non-obvious project-specific procedure beyond normal coding competence,
+the active Plan, and existing tools.
 
-## Coherent job and discovery
+## Author the job
 
-State one coherent engineering capability and its boundary. A Skill may have
-several steps when they form one repeated decision workflow, but it should not
-be a topic router or a collection of unrelated disciplines.
+The description is discovery metadata. State what the Skill does and when it
+should load in plain technical English. One Skill should cover one coherent
+executor job, not a topic collection or a step-sized taxonomy.
 
-The frontmatter description is the discovery interface. Say what the Skill
-does and when it should load in plain technical English. Put concrete trigger
-vocabulary early; explain project shorthand if it is necessary.
+SKILL.md should state the entry condition, information to inspect, procedure,
+branches, stop/escalation boundary, and verification boundary. Keep current
+Specs, Governance, Dependency decisions, and evidence in their canonical
+owners; link to them rather than copying them.
 
-## Control plane and resources
+## Keep the boundary
 
-SKILL.md should contain the entry condition, information to inspect,
-classification model, critical workflow, branches, action, stop or escalation,
-and verification boundary. It is a workflow control plane, not an encyclopedia.
+Skills may check implementation facts for an already-authorized Plan. They do
+not decide product architecture, scope, provider roles, failure models, test
+strategy, or permanent gate design. A mature library, tool, or script should
+own deterministic mechanics where suitable.
 
-Use progressive disclosure:
+Use references only for direct branch-specific procedure. Do not recursively
+load another Skill merely because a reference mentions it. Do not create a
+generator, fixed taxonomy, registry, checklist database, or prose validator.
 
-SKILL.md
-→ direct reference, example, or script
+## Evaluate and evolve
 
-References hold branch-specific methods, casebooks, and worked examples.
-Scripts are for deterministic or fragile mechanics and must return useful
-errors. Current Specs, Governance, Dependencies, and evidence remain canonical
-outside the Skill; link them instead of duplicating them.
+Inspect a should-trigger request, a nearby should-not-trigger request, and a
+pressure case. Check owner/provider inspection, avoided overreach, and stop
+behavior. Structural checks do not prove live behavior; without an independent
+runner, behavior is NOT_RUN.
 
-Choose freedom to match task fragility. Judgment-heavy work needs principles
-and examples. A preferred pattern benefits from checkpoints or a decision tree.
-A fragile deterministic operation may need exact steps, a script, and a
-validation check.
-
-## Authoring quality
-
-High semantic density means more decision-relevant meaning per sentence, not
-cryptic shorthand or a minimum line count. State desired behavior first.
-Explicit prohibitions are useful when they counter an observed repeated failure,
-a strong model default, or a high-cost Authority violation.
-
-Use boundary-pair examples: a should-trigger request beside a nearby
-should-not-trigger request, plus a pressure case that tests the hardest
-decision. Do not preserve every hypothetical rule or every investigation.
-Remove unused Skill material.
-
-## Evaluation and evolution
-
-Evaluate discovery, non-trigger behavior, and application behavior. Inspect
-what information the Agent acquired, which owner/provider it checked, what it
-decided, what overreach it avoided, and whether it stopped at the correct
-boundary. If an independent runner is unavailable, live behavior is NOT_RUN;
-structural validation is not behavioral PASS.
-
-Grow a Skill from observed recurring implementation behavior. Do not create a
-Skill generator, fixed taxonomy, qualitative prose validator, or universal
-authoring ritual.
-
-## Relationships
-
-The scoped [Skills contract](../../../.agents/skills/AGENTS.md) persists
-bundle-wide authoring behavior. The [global AGENTS contract](../../../AGENTS.md)
-persists repository-wide restraint and evidence rules. Specs state current
-implementation contracts; project Governance and Plans control policy and
-authorization; these human Harness documents explain how to maintain the
-execution layer.
-
-## Research basis
-
-The authoring model is informed by current OpenAI Codex and Skill guidance,
-current OpenAI plugin Skill examples, the Anthropic Agent Skills overview and
-best practices, the Agent Skills specification, OpenAI Harness Engineering,
-and scoped AGENTS or custom-instruction guidance. These source families inform
-the design but do not become automatic repository invariants without current
-evidence.
+Grow or remove a Skill from observed recurring implementation behavior. Keep
+the scoped [Skills contract](../../../.agents/skills/AGENTS.md) and global
+[AGENTS contract](../../../AGENTS.md) as the standing execution guidance.

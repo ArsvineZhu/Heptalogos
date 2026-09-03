@@ -348,7 +348,7 @@ describePostgres.sequential("Durable WorkItem process recovery", () => {
     const fixture = await makeFixture();
     activeFixtures.push(fixture);
     await keepFixturePostgresRunning(fixture);
-    const counterPath = join(fixture.roots.TEMP, "p1-counter.log");
+    const counterPath = join(fixture.roots.TEMP, "recovery-no-dispatch-counter.log");
     const first = startChild(fixture, "commit-before-dispatch", counterPath);
     const firstReady = await first.waitFor("READY");
     const committed = await first.waitFor("WORK_COMMITTED");
@@ -383,7 +383,7 @@ describePostgres.sequential("Durable WorkItem process recovery", () => {
     const fixture = await makeFixture();
     activeFixtures.push(fixture);
     await keepFixturePostgresRunning(fixture);
-    const counterPath = join(fixture.roots.TEMP, "p2-counter.log");
+    const counterPath = join(fixture.roots.TEMP, "recovery-before-running-counter.log");
     const first = startChild(fixture, "engine-before-execution", counterPath);
     const firstReady = await first.waitFor("READY");
     const projected = await first.waitFor("ENGINE_PROJECTED");
@@ -422,7 +422,10 @@ describePostgres.sequential("Durable WorkItem process recovery", () => {
     const fixture = await makeFixture();
     activeFixtures.push(fixture);
     await keepFixturePostgresRunning(fixture);
-    const counterPath = join(fixture.roots.TEMP, "p3-counter.log");
+    const counterPath = join(
+      fixture.roots.TEMP,
+      "recovery-running-attempt-counter.log",
+    );
     const first = startChild(fixture, "running-before-terminal", counterPath);
     await first.waitFor("READY");
     const running = await first.waitFor("RUNNING_COMMITTED");
@@ -458,7 +461,10 @@ describePostgres.sequential("Durable WorkItem process recovery", () => {
     const fixture = await makeFixture();
     activeFixtures.push(fixture);
     await keepFixturePostgresRunning(fixture);
-    const counterPath = join(fixture.roots.TEMP, "p4-counter.log");
+    const counterPath = join(
+      fixture.roots.TEMP,
+      "recovery-terminal-replay-counter.log",
+    );
     const first = startChild(fixture, "terminal-before-checkpoint", counterPath);
     await first.waitFor("READY");
     const terminal = await first.waitFor("TERMINAL_COMMITTED");
@@ -495,7 +501,7 @@ describePostgres.sequential("Durable WorkItem process recovery", () => {
     const fixture = await makeFixture();
     activeFixtures.push(fixture);
     await keepFixturePostgresRunning(fixture);
-    const counterPath = join(fixture.roots.TEMP, "p5-counter.log");
+    const counterPath = join(fixture.roots.TEMP, "recovery-code-version-counter.log");
     const first = startChild(fixture, "engine-before-execution", counterPath, "A");
     await first.waitFor("READY");
     const projected = await first.waitFor("ENGINE_PROJECTED");
@@ -538,7 +544,7 @@ describePostgres.sequential("Durable WorkItem process recovery", () => {
     const fixture = await makeFixture();
     activeFixtures.push(fixture);
     await keepFixturePostgresRunning(fixture);
-    const counterPath = join(fixture.roots.TEMP, "p6-counter.log");
+    const counterPath = join(fixture.roots.TEMP, "recovery-signal-loss-counter.log");
     const first = startChild(fixture, "signal-loss", counterPath);
     await first.waitFor("READY");
     await first.waitFor("SIGNAL_READY");
@@ -576,7 +582,7 @@ describePostgres.sequential("Durable WorkItem process recovery", () => {
     const fixture = await makeFixture();
     activeFixtures.push(fixture);
     await keepFixturePostgresRunning(fixture);
-    const counterPath = join(fixture.roots.TEMP, "p7-counter.log");
+    const counterPath = join(fixture.roots.TEMP, "recovery-lease-loss-counter.log");
     const first = startChild(fixture, "lease-loss", counterPath);
     await first.waitFor("READY");
     const running = await first.waitFor("RUNNING_COMMITTED");
@@ -614,7 +620,10 @@ describePostgres.sequential("Durable WorkItem process recovery", () => {
     const fixture = await makeFixture();
     activeFixtures.push(fixture);
     await keepFixturePostgresRunning(fixture);
-    const counterPath = join(fixture.roots.TEMP, "p8-counter.log");
+    const counterPath = join(
+      fixture.roots.TEMP,
+      "recovery-engine-exhaustion-counter.log",
+    );
     let child = startChild(fixture, "crash-budget", counterPath);
     await child.waitFor("READY");
     const crash = await child.waitFor("CRASH_POINT");

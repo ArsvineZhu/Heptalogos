@@ -1,5 +1,5 @@
 /**
- * Public P1 Management contracts and semantic service; HTTP, OpenAPI, client,
+ * Public Management contracts and semantic service; HTTP, OpenAPI, client,
  * and CLI projections remain outside this package.
  * @packageDocumentation
  */
@@ -18,8 +18,21 @@ export {
   loginResponseSchema,
   managementDiscoverySchema,
   managementProblemSchema,
+  lineageContextRefSchema,
+  resourceRefSchema,
   readinessSchema,
+  runtimeBindingSnapshotSchema,
+  runtimeCapabilityGraphEntrySchema,
+  runtimeCapabilityProvisionSnapshotSchema,
+  runtimeCapabilityRequirementSnapshotSchema,
+  runtimeGraphEdgeSchema,
   runtimeGraphSchema,
+  runtimeProvisionSnapshotSchema,
+  runtimeRequirementSnapshotSchema,
+  runtimeSystemSnapshotSchema,
+  systemActionDefinitionSchema,
+  systemActionExecuteResultSchema,
+  systemChangePlanSchema,
   systemStatusSchema,
 } from "./contracts.js";
 export type {
@@ -31,30 +44,51 @@ export type {
   ClaimResponse,
   CompatibilityDescriptor,
   ContractRange,
+  EvidenceRef,
   FirstAdministratorClaim,
   FirstAdministratorClaimId,
   FirstClaimMaterial,
   HostReadModel,
+  HostReadModelData,
+  JsonSchemaRef,
+  LineageContextRef,
   LoginRequest,
   LoginResponse,
   ManagementDiscovery,
   ManagementHttpState,
   ManagementHostState,
   ManagementProblemDetails,
+  ManagementDigest,
+  ProductSemanticId,
   Readiness,
+  ReadinessData,
+  ReadModelEnvelope,
+  ResourceRef,
   RuntimeBindingSnapshot,
   RuntimeCapabilityGraphEntry,
   RuntimeCapabilityProvisionSnapshot,
   RuntimeCapabilityRequirementSnapshot,
   RuntimeGraphEdge,
   RuntimeGraphReadModel,
+  RuntimeGraphReadModelData,
   RuntimeIntrospectionSnapshot,
+  RuntimeOperatingMode,
   RuntimeProvisionSnapshot,
   RuntimeRequirementSnapshot,
   RuntimeSystemSnapshot,
+  RuntimeSystemActualState,
+  RuntimeSystemRole,
   ServerSession,
   ServerSessionId,
   SystemStatus,
+  SystemStatusData,
+  SystemActionDefinition,
+  SystemActionExecuteResult,
+  SystemActionId,
+  SystemChangePlan,
+  SystemChangePlanId,
+  TargetPrecondition,
+  CapabilityGraphReadModelData,
 } from "./contracts.js";
 export { createManagementService } from "./service.js";
 export type {
@@ -62,7 +96,6 @@ export type {
   ManagementService,
   ManagementServiceOptions,
 } from "./service.js";
-export { createManagementRepository, type ManagementRepository } from "./repository.js";
 export {
   managementHttpStatus,
   managementProblem,
@@ -70,12 +103,3 @@ export {
   contractUnsupportedProblem,
   invalidInputProblem,
 } from "./problems.js";
-export {
-  ARGON2_PARAMETERS,
-  PASSWORD_NORMALIZATION_ID,
-  digestManagementSecret,
-  hashAdministratorPassword,
-  normalizeAdministratorPassword,
-  randomBase64Url,
-  verifyAdministratorPassword,
-} from "./password.js";

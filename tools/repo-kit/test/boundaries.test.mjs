@@ -43,12 +43,8 @@ describe("repository boundary ownership", () => {
     expect(boundarySource).not.toContain(
       "repository tooling import must not enter source",
     );
-    expect(boundarySource).not.toContain(
-      "external import has no Corpus package identity",
-    );
-    expect(dependencySource).toContain(
-      "external dependency has no Corpus package identity",
-    );
+    expect(dependencySource).toContain("packageRoutes");
+    expect(dependencySource).toContain("dependency route is not adopted for use");
   });
 
   it("encodes the WorkQueue runtime seam as a narrow Nx source tag", () => {

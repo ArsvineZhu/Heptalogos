@@ -43,6 +43,7 @@ export interface HostReady {
   readonly bootId: string;
   readonly origin: string;
   readonly productGeneration: string;
+  readonly bootstrapRuntimeGeneration: string;
 }
 
 export interface RunningHost {
@@ -72,14 +73,14 @@ async function freePort(): Promise<number> {
 }
 
 export async function makeFixture(postgresBin: string): Promise<ProductHostFixture> {
-  const anchorRoot = await mkdtemp(join(tmpdir(), "heptalogos-p1-anchor-"));
+  const anchorRoot = await mkdtemp(join(tmpdir(), "heptalogos-product-host-anchor-"));
   directories.push(anchorRoot);
   const roots = {} as Record<(typeof LIFECYCLE_ROOT_IDS)[number], string>;
   for (const id of LIFECYCLE_ROOT_IDS) {
     roots[id] =
       id === "PROGRAM"
         ? anchorRoot
-        : await mkdtemp(join(tmpdir(), `heptalogos-p1-${id.toLowerCase()}-`));
+        : await mkdtemp(join(tmpdir(), `heptalogos-product-host-${id.toLowerCase()}-`));
     if (id !== "PROGRAM") directories.push(roots[id]);
   }
   const installationId = createInstallationId();
@@ -140,7 +141,7 @@ export async function runHost(
     args.push("--initial-postgres-port", String(fixture.postgresPort));
   }
   const child = spawn(process.execPath, args, {
-    cwd: repositoryRoot,
+    cwd: fixture.roots.CACHE,
     env: process.env,
     stdio: ["pipe", "pipe", "pipe"],
     windowsHide: true,
@@ -217,7 +218,7 @@ export async function runCli(
     process.execPath,
     [cliBinary, ...args, "--anchor-root", fixture.anchorRoot],
     {
-      cwd: repositoryRoot,
+      cwd: fixture.roots.CACHE,
       env: process.env,
       stdio: ["pipe", "pipe", "pipe"],
       windowsHide: true,

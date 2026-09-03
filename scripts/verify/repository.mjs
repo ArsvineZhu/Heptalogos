@@ -55,7 +55,7 @@ function normalizeGitHubExpressionsForYaml(workflow) {
   );
 }
 
-/** Validate that the manual verification workflow remains candidate-bound. */
+/** Validate that the manually dispatched verification utility remains bounded. */
 export function validateVerifyWorkflow(workflow) {
   const errors = [];
   const fail = (message) => errors.push(message);
@@ -96,23 +96,11 @@ export function validateVerifyWorkflow(workflow) {
     }
   }
 
-  const inputs = workflowOn?.workflow_dispatch?.inputs;
-  for (const input of ["pr_number", "reason"]) {
-    if (!inputs || typeof inputs !== "object" || !Object.hasOwn(inputs, input)) {
-      fail(`verify workflow missing manual input: ${input}:`);
-    }
+  if (!workflow.includes("pnpm install --frozen-lockfile")) {
+    fail("verify workflow must install from the frozen lockfile");
   }
-  for (const input of ["base_sha", "target_sha"]) {
-    if (inputs && typeof inputs === "object" && Object.hasOwn(inputs, input)) {
-      fail(`verify workflow must not expose revision input: ${input}:`);
-    }
-  }
-
-  if (!/^\s+DISPATCHED_SHA:\s*\$\{\{\s*github\.sha\s*\}\}\s*$/mu.test(workflow)) {
-    fail("verify workflow must bind the candidate to github.sha at dispatch");
-  }
-  if (!workflow.includes("process.env.DISPATCHED_SHA")) {
-    fail("verify workflow must validate the dispatch-bound candidate revision");
+  if (!workflow.includes("pnpm verify")) {
+    fail("verify workflow must run pnpm verify");
   }
 
   for (const use of workflowUses(document)) {

@@ -15,7 +15,7 @@ suite("native OS credential adapter", () => {
   it("creates, reads, replaces, deletes, and reports absence", async () => {
     const store = createOsCredentialStore();
     const key = {
-      service: "Heptalogos/P1-native-test-" + randomUUID(),
+      service: "Heptalogos/os-credential-test-" + randomUUID(),
       account: "credential",
     };
     keys.push(key);

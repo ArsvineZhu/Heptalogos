@@ -9,10 +9,13 @@ contract over loopback HTTP.
 
 ## Owns
 
-- ProductGeneration derivation and built Host process argument handling.
+- Build-time ProductGeneration and BootstrapRuntimeGeneration materialization;
+  runtime imports the checked identities without repository scanning.
 - The single Bootstrap-to-Host composition and terminal shutdown order.
 - Management HTTP admission, discovery, claim/session routes, OpenAPI
-  projection, endpoint descriptor, and first-claim publication.
+  artifact, endpoint descriptor, and live first-claim publication/rotation.
+- A safe public handle limited to Product identity, loopback origin, abort
+  signal, and terminal close.
 
 ## Does not own
 
@@ -22,9 +25,10 @@ contract over loopback HTTP.
 
 ## Verification
 
-Qualify the built heptalogos-host process with the Q1-Q8 Product Host
-scenarios. Production tests launch this executable rather than reimplementing
-Host composition in fixtures.
+Check build identities and the ProductHost-owned OpenAPI artifact, then qualify
+the built `heptalogos-host` process with the Product Host scenarios. The process
+must run from a repository-external working directory, but that evidence is not
+source-less release-form qualification.
 
 ## Knowledge references
 

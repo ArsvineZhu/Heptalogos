@@ -42,11 +42,6 @@ const CURRENT_MACHINE_AUTHORITIES = Object.freeze([
     kind: "EXECUTABLE_MACHINE_AUTHORITY",
     path: "project/qualification/dependency-status.json",
   },
-  {
-    id: "qualification-status",
-    kind: "CURRENT_EVIDENCE_PROJECTION",
-    path: "project/qualification/results/qualification-status.json",
-  },
 ]);
 
 /** Discover maintained top-level responsibility directories from the tree. */

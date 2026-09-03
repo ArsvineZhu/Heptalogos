@@ -29,6 +29,7 @@ export type GetManagementDiscoveryResponses = {
                 version: 'management.v1';
             };
             problemSchemaVersion: 1;
+            systemActionCatalogRevision?: number;
         };
         apiBasePath: '/management/v1';
     };
@@ -58,6 +59,8 @@ export type ClaimFirstAdministratorErrors = {
         detail: string;
         instance?: string;
         problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
         schemaVersion: 1;
     };
     /**
@@ -70,6 +73,36 @@ export type ClaimFirstAdministratorErrors = {
         detail: string;
         instance?: string;
         problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    426: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    429: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
         schemaVersion: 1;
     };
     /**
@@ -82,6 +115,8 @@ export type ClaimFirstAdministratorErrors = {
         detail: string;
         instance?: string;
         problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
         schemaVersion: 1;
     };
 };
@@ -120,6 +155,36 @@ export type CreateManagementSessionErrors = {
         detail: string;
         instance?: string;
         problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    426: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    429: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
         schemaVersion: 1;
     };
     /**
@@ -132,6 +197,8 @@ export type CreateManagementSessionErrors = {
         detail: string;
         instance?: string;
         problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
         schemaVersion: 1;
     };
 };
@@ -169,6 +236,22 @@ export type RevokeCurrentManagementSessionErrors = {
         detail: string;
         instance?: string;
         problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    426: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
         schemaVersion: 1;
     };
     /**
@@ -181,6 +264,8 @@ export type RevokeCurrentManagementSessionErrors = {
         detail: string;
         instance?: string;
         problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
         schemaVersion: 1;
     };
 };
@@ -214,6 +299,22 @@ export type GetSystemStatusErrors = {
         detail: string;
         instance?: string;
         problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    426: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
         schemaVersion: 1;
     };
     /**
@@ -226,6 +327,8 @@ export type GetSystemStatusErrors = {
         detail: string;
         instance?: string;
         problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
         schemaVersion: 1;
     };
 };
@@ -238,23 +341,44 @@ export type GetSystemStatusResponses = {
      */
     200: {
         schemaVersion: 1;
-        productGeneration: string;
-        hostState: string;
-        managementState: string;
-        administratorBootstrap: 'UNCLAIMED' | 'CLAIM_READY' | 'CLAIMED';
-        readiness: {
+        contractVersion: 'management.v1';
+        resource: {
             schemaVersion: 1;
-            hostActive: boolean;
-            persistenceUsable: boolean;
-            runtimeKernelActive: boolean;
-            managementServiceRunning: boolean;
-            httpListening: boolean;
-            endpointDescriptorCurrent: boolean;
-            administratorBootstrapCoherent: boolean;
-            state: 'READY' | 'NOT_READY';
-            observedAt: string;
+            resourceKind: string;
+            resourceId: string;
+            resourceRevision?: number;
         };
         observedAt: string;
+        productGeneration: string;
+        continuityEpochId: string;
+        data: {
+            schemaVersion: 1;
+            hostState: 'ACTIVE' | 'FENCED' | 'CLOSING' | 'CLOSED';
+            managementState: 'STARTING' | 'LISTENING' | 'CLOSING' | 'CLOSED';
+            administratorBootstrap: 'UNCLAIMED' | 'CLAIM_READY' | 'CLAIMED';
+            readiness: {
+                schemaVersion: 1;
+                hostActive: boolean;
+                persistenceUsable: boolean;
+                runtimeKernelActive: boolean;
+                managementServiceRunning: boolean;
+                httpListening: boolean;
+                endpointDescriptorPublished: boolean;
+                administratorBootstrapCoherent: boolean;
+                state: 'READY' | 'NOT_READY';
+            };
+        };
+        lineageContextRef?: {
+            schemaVersion: 1;
+            sourceActivityId: string;
+            sourceInstanceId: string;
+            sourceContinuityEpochId: string;
+            telemetry?: {
+                traceId: string;
+                spanId: string;
+                traceFlags: number;
+            };
+        };
     };
 };
 
@@ -278,6 +402,22 @@ export type GetHostErrors = {
         detail: string;
         instance?: string;
         problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    426: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
         schemaVersion: 1;
     };
 };
@@ -290,14 +430,35 @@ export type GetHostResponses = {
      */
     200: {
         schemaVersion: 1;
-        installationId: string;
-        instanceId: string;
-        bootId: string;
-        continuityEpochId: string;
-        productGeneration: string;
-        hostState: string;
-        managementHttpState: string;
+        contractVersion: 'management.v1';
+        resource: {
+            schemaVersion: 1;
+            resourceKind: string;
+            resourceId: string;
+            resourceRevision?: number;
+        };
         observedAt: string;
+        productGeneration: string;
+        continuityEpochId: string;
+        data: {
+            schemaVersion: 1;
+            installationId: string;
+            instanceId: string;
+            bootId: string;
+            hostState: 'ACTIVE' | 'FENCED' | 'CLOSING' | 'CLOSED';
+            managementHttpState: 'STARTING' | 'LISTENING' | 'CLOSING' | 'CLOSED';
+        };
+        lineageContextRef?: {
+            schemaVersion: 1;
+            sourceActivityId: string;
+            sourceInstanceId: string;
+            sourceContinuityEpochId: string;
+            telemetry?: {
+                traceId: string;
+                spanId: string;
+                traceFlags: number;
+            };
+        };
     };
 };
 
@@ -321,6 +482,22 @@ export type GetRuntimeGraphErrors = {
         detail: string;
         instance?: string;
         problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    426: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
         schemaVersion: 1;
     };
 };
@@ -333,16 +510,68 @@ export type GetRuntimeGraphResponses = {
      */
     200: {
         schemaVersion: 1;
-        productGeneration: string;
-        operatingMode: string;
-        desiredRevision: number;
-        systems: Array<{
-            [key: string]: unknown;
-        }>;
-        edges: Array<{
-            [key: string]: string;
-        }>;
+        contractVersion: 'management.v1';
+        resource: {
+            schemaVersion: 1;
+            resourceKind: string;
+            resourceId: string;
+            resourceRevision?: number;
+        };
         observedAt: string;
+        productGeneration: string;
+        continuityEpochId: string;
+        data: {
+            schemaVersion: 1;
+            operatingMode: 'NORMAL' | 'SAFE' | 'MAINTENANCE' | 'EMERGENCY_READ_ONLY';
+            desiredRevision: number;
+            systems: Array<{
+                microSystemId: string;
+                role: 'kernel' | 'system-service' | 'domain-engine' | 'feature' | 'driver' | 'provider';
+                actualState: 'STOPPED' | 'BLOCKED' | 'STARTING' | 'RUNNING' | 'QUIESCING' | 'FAILED';
+                generation: {
+                    productGenerationId: string;
+                    packageGenerationId?: string;
+                };
+                serviceRequirements: Array<{
+                    serviceId: string;
+                    contractVersion: string;
+                }>;
+                serviceProvisions: Array<{
+                    serviceId: string;
+                    providerId: string;
+                    contractVersion: string;
+                }>;
+                capabilityRequirements: Array<{
+                    capabilityId: string;
+                    contractVersion: string;
+                    required: boolean;
+                }>;
+                capabilityProvisions: Array<{
+                    capabilityId: string;
+                    providerId: string;
+                    contractVersion: string;
+                    priority: number;
+                }>;
+            }>;
+            edges: Array<{
+                providerMicroSystemId: string;
+                consumerMicroSystemId: string;
+                serviceId: string;
+                providerId: string;
+                contractVersion: string;
+            }>;
+        };
+        lineageContextRef?: {
+            schemaVersion: 1;
+            sourceActivityId: string;
+            sourceInstanceId: string;
+            sourceContinuityEpochId: string;
+            telemetry?: {
+                traceId: string;
+                spanId: string;
+                traceFlags: number;
+            };
+        };
     };
 };
 
@@ -366,6 +595,22 @@ export type GetCapabilityGraphErrors = {
         detail: string;
         instance?: string;
         problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    426: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
         schemaVersion: 1;
     };
 };
@@ -378,15 +623,43 @@ export type GetCapabilityGraphResponses = {
      */
     200: {
         schemaVersion: 1;
-        productGeneration: string;
-        capabilities: Array<{
-            [key: string]: unknown;
-        }>;
-        selectedBindings: Array<{
-            id: string;
-            providerId: string;
-        }>;
+        contractVersion: 'management.v1';
+        resource: {
+            schemaVersion: 1;
+            resourceKind: string;
+            resourceId: string;
+            resourceRevision?: number;
+        };
         observedAt: string;
+        productGeneration: string;
+        continuityEpochId: string;
+        data: {
+            schemaVersion: 1;
+            capabilities: Array<{
+                capabilityId: string;
+                providers: Array<{
+                    capabilityId: string;
+                    providerId: string;
+                    contractVersion: string;
+                    priority: number;
+                }>;
+            }>;
+            selectedBindings: Array<{
+                id: string;
+                providerId: string;
+            }>;
+        };
+        lineageContextRef?: {
+            schemaVersion: 1;
+            sourceActivityId: string;
+            sourceInstanceId: string;
+            sourceContinuityEpochId: string;
+            telemetry?: {
+                traceId: string;
+                spanId: string;
+                traceFlags: number;
+            };
+        };
     };
 };
 
@@ -410,6 +683,22 @@ export type GetReadinessErrors = {
         detail: string;
         instance?: string;
         problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    426: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
         schemaVersion: 1;
     };
     /**
@@ -422,6 +711,8 @@ export type GetReadinessErrors = {
         detail: string;
         instance?: string;
         problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
         schemaVersion: 1;
     };
 };
@@ -434,15 +725,38 @@ export type GetReadinessResponses = {
      */
     200: {
         schemaVersion: 1;
-        hostActive: boolean;
-        persistenceUsable: boolean;
-        runtimeKernelActive: boolean;
-        managementServiceRunning: boolean;
-        httpListening: boolean;
-        endpointDescriptorCurrent: boolean;
-        administratorBootstrapCoherent: boolean;
-        state: 'READY' | 'NOT_READY';
+        contractVersion: 'management.v1';
+        resource: {
+            schemaVersion: 1;
+            resourceKind: string;
+            resourceId: string;
+            resourceRevision?: number;
+        };
         observedAt: string;
+        productGeneration: string;
+        continuityEpochId: string;
+        data: {
+            schemaVersion: 1;
+            hostActive: boolean;
+            persistenceUsable: boolean;
+            runtimeKernelActive: boolean;
+            managementServiceRunning: boolean;
+            httpListening: boolean;
+            endpointDescriptorPublished: boolean;
+            administratorBootstrapCoherent: boolean;
+            state: 'READY' | 'NOT_READY';
+        };
+        lineageContextRef?: {
+            schemaVersion: 1;
+            sourceActivityId: string;
+            sourceInstanceId: string;
+            sourceContinuityEpochId: string;
+            telemetry?: {
+                traceId: string;
+                spanId: string;
+                traceFlags: number;
+            };
+        };
     };
 };
 

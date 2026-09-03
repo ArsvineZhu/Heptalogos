@@ -6,6 +6,7 @@
 
 import { ProblemError } from "@heptalogos/foundation-contracts";
 import { startProductHostFromArgv } from "./host.js";
+import { BOOTSTRAP_RUNTIME_GENERATION_ID } from "./generated/build-identities.js";
 
 function problemCode(error: unknown): string {
   if (error instanceof ProblemError) return error.problem.problemCode;
@@ -31,11 +32,12 @@ const main = async (): Promise<void> => {
   process.stdout.write(
     JSON.stringify({
       type: "READY",
-      installationId: host.endpoint.installationId,
-      instanceId: host.host.instanceId,
-      bootId: host.endpoint.bootId,
+      installationId: host.installationId,
+      instanceId: host.instanceId,
+      bootId: host.bootId,
       origin: host.origin,
       productGeneration: host.productGeneration,
+      bootstrapRuntimeGeneration: BOOTSTRAP_RUNTIME_GENERATION_ID,
     }) + "\n",
   );
 
@@ -52,7 +54,7 @@ const main = async (): Promise<void> => {
   };
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
-  host.host.signal.addEventListener("abort", stop, { once: true });
+  host.signal.addEventListener("abort", stop, { once: true });
   await stopped;
 };
 

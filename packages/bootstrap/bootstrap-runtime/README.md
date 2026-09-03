@@ -62,8 +62,8 @@ separately scoped in the durable-execution qualification record.
 The Foundation process-level composition proof is the explicit
 `pnpm nx run integration-foundation:test:foundation-spine` qualification target. It
 uses real Bootstrap, Host ownership, PostgreSQL, Runtime, WorkQueue, DBOS, and
-canonical WorkItem construction; it is not a claim that the H6 Product Runtime
-or Subject vertical slice exists.
+canonical WorkItem construction; it is not a claim that the Subject vertical
+slice or broader Product Runtime exists.
 
 ## Architecture references
 

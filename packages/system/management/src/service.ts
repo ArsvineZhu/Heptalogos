@@ -1,5 +1,5 @@
 /**
- * Implements the P1 Management semantic service over canonical persistence
+ * Implements the Management semantic service over canonical persistence
  * and injected Host/Runtime read projections. HTTP and CLI remain projections.
  * @module service
  */
@@ -23,6 +23,7 @@ import {
   MANAGEMENT_CONTRACT_VERSION,
   type AdministratorBootstrapState,
   type CapabilityGraphReadModel,
+  type CapabilityGraphReadModelData,
   type CompatibilityDescriptor,
   type ContractRange,
   type FirstClaimMaterial,
@@ -32,6 +33,8 @@ import {
   type ManagementHttpState,
   type ManagementHostState,
   type Readiness,
+  type ReadinessData,
+  type ReadModelEnvelope,
   type RuntimeGraphEdge,
   type RuntimeGraphReadModel,
   type RuntimeIntrospectionSnapshot,
@@ -61,8 +64,9 @@ export interface ManagementProjectionSource {
   readonly productGeneration: ProductGenerationId;
   readonly hostState: () => ManagementHostState;
   readonly managementHttpState: () => ManagementHttpState;
-  readonly endpointDescriptorCurrent: () => boolean;
+  readonly endpointDescriptorPublished: () => boolean;
   readonly runtimeKernelActive: () => boolean;
+  readonly managementServiceRunning: () => boolean;
   readonly runtimeSnapshot: () => RuntimeIntrospectionSnapshot;
 }
 
@@ -76,7 +80,7 @@ export interface ManagementServiceOptions extends ManagementProjectionSource {
   ) => Promise<T>;
 }
 
-/** Exposes the semantic P1 Management operations to transport adapters. */
+/** Exposes the semantic Management operations to transport adapters. */
 export interface ManagementService {
   readonly contractVersion: typeof MANAGEMENT_CONTRACT_VERSION;
   /** Reads the compatibility descriptor. */
@@ -243,7 +247,7 @@ function runtimeEdges(
 
 function capabilityEntries(
   snapshot: RuntimeIntrospectionSnapshot,
-): CapabilityGraphReadModel["capabilities"] {
+): CapabilityGraphReadModelData["capabilities"] {
   const byId = new Map<
     string,
     Array<
@@ -277,10 +281,31 @@ function administratorState(
   return "UNCLAIMED";
 }
 
-/** Creates the current P1 Management service. */
-export function createManagementService(
+function readModelEnvelope<T>(
+  options: ManagementProjectionSource,
+  resourceKind: string,
+  resourceId: string,
+  observedAt: Instant,
+  data: T,
+): ReadModelEnvelope<T> {
+  return Object.freeze({
+    schemaVersion: 1 as const,
+    contractVersion: MANAGEMENT_CONTRACT_VERSION,
+    resource: Object.freeze({
+      schemaVersion: 1 as const,
+      resourceKind,
+      resourceId,
+    }),
+    observedAt,
+    productGeneration: options.productGeneration,
+    continuityEpochId: options.continuityEpochId,
+    data,
+  });
+}
+
+function createManagementServiceWithRepository(
   options: ManagementServiceOptions,
-  repository: ManagementRepository = createManagementRepository(options.persistence),
+  repository: ManagementRepository,
 ): ManagementService {
   const contractRange: ContractRange = Object.freeze({
     kind: "exact",
@@ -315,9 +340,8 @@ export function createManagementService(
         repository.readAdministrator(),
         repository.readCurrentClaim(),
       ]);
-      return Object.freeze({
+      const data = Object.freeze({
         schemaVersion: 1 as const,
-        productGeneration: options.productGeneration,
         hostState: options.hostState(),
         managementState: options.managementHttpState(),
         administratorBootstrap: administratorState(
@@ -325,46 +349,63 @@ export function createManagementService(
           claim,
           readiness.observedAt,
         ),
-        readiness,
-        observedAt: readiness.observedAt,
+        readiness: readiness.data,
       });
+      return readModelEnvelope(
+        options,
+        "system-status",
+        options.installationId,
+        readiness.observedAt,
+        data,
+      );
     },
     getHost() {
-      return Object.freeze({
+      const observedAt = options.time.now();
+      const data = Object.freeze({
         schemaVersion: 1 as const,
         installationId: options.installationId,
         instanceId: options.instanceId,
         bootId: options.bootId,
-        continuityEpochId: options.continuityEpochId,
-        productGeneration: options.productGeneration,
         hostState: options.hostState(),
         managementHttpState: options.managementHttpState(),
-        observedAt: options.time.now(),
       });
+      return readModelEnvelope(options, "host", options.instanceId, observedAt, data);
     },
     getRuntimeGraph() {
       const snapshot = options.runtimeSnapshot();
-      return Object.freeze({
+      const observedAt = options.time.now();
+      const data = Object.freeze({
         schemaVersion: 1 as const,
-        productGeneration: options.productGeneration,
         operatingMode: snapshot.operatingMode,
         desiredRevision: snapshot.desiredRevision,
         systems: Object.freeze(
           snapshot.systems.map((system) => Object.freeze({ ...system })),
         ),
         edges: runtimeEdges(snapshot),
-        observedAt: options.time.now(),
       });
+      return readModelEnvelope(
+        options,
+        "runtime-graph",
+        options.installationId,
+        observedAt,
+        data,
+      );
     },
     getCapabilityGraph() {
       const snapshot = options.runtimeSnapshot();
-      return Object.freeze({
+      const observedAt = options.time.now();
+      const data = Object.freeze({
         schemaVersion: 1 as const,
-        productGeneration: options.productGeneration,
         capabilities: capabilityEntries(snapshot),
         selectedBindings: Object.freeze([...snapshot.selectedCapabilityBindings]),
-        observedAt: options.time.now(),
       });
+      return readModelEnvelope(
+        options,
+        "capability-graph",
+        options.installationId,
+        observedAt,
+        data,
+      );
     },
     async getReadiness() {
       const observedAt = options.time.now();
@@ -375,9 +416,9 @@ export function createManagementService(
       const hostActive = options.hostState() === "ACTIVE";
       const persistenceUsable = options.persistence.state === "OPEN";
       const runtimeKernelActive = options.runtimeKernelActive();
-      const managementServiceRunning = true;
+      const managementServiceRunning = options.managementServiceRunning();
       const httpListening = options.managementHttpState() === "LISTENING";
-      const endpointDescriptorCurrent = options.endpointDescriptorCurrent();
+      const endpointDescriptorPublished = options.endpointDescriptorPublished();
       const administratorBootstrapCoherent =
         administrator !== undefined ||
         (claim !== undefined && claim.expiresAt > observedAt);
@@ -387,22 +428,28 @@ export function createManagementService(
         runtimeKernelActive &&
         managementServiceRunning &&
         httpListening &&
-        endpointDescriptorCurrent &&
+        endpointDescriptorPublished &&
         administratorBootstrapCoherent
           ? "READY"
           : "NOT_READY";
-      return Object.freeze({
+      const data: ReadinessData = Object.freeze({
         schemaVersion: 1 as const,
         hostActive,
         persistenceUsable,
         runtimeKernelActive,
         managementServiceRunning,
         httpListening,
-        endpointDescriptorCurrent,
+        endpointDescriptorPublished,
         administratorBootstrapCoherent,
         state,
-        observedAt,
       });
+      return readModelEnvelope(
+        options,
+        "management-readiness",
+        options.installationId,
+        observedAt,
+        data,
+      );
     },
     async ensureFirstAdministratorClaim(localClaim) {
       const administrator = await repository.readAdministrator();
@@ -598,4 +645,22 @@ export function createManagementService(
     },
   };
   return Object.freeze(service);
+}
+
+/** Creates the current Management semantic service. */
+export function createManagementService(
+  options: ManagementServiceOptions,
+): ManagementService {
+  return createManagementServiceWithRepository(
+    options,
+    createManagementRepository(options.persistence),
+  );
+}
+
+/** Package-private construction seam for semantic service tests. */
+export function createManagementServiceFromRepository(
+  options: ManagementServiceOptions,
+  repository: ManagementRepository,
+): ManagementService {
+  return createManagementServiceWithRepository(options, repository);
 }

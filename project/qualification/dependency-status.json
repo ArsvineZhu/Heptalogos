@@ -546,7 +546,6 @@
     "DEFERRED": "The role/implementation is outside the current Foundation implementation scope."
   },
   "routingAuthority": "project/dependencies/dependency-routing.json",
-  "qualificationResultAuthority": "project/qualification/results/qualification-status.json",
   "toolchainAuthority": "project/engineering/repository/toolchain.md",
   "baselinePolicy": {
     "preImplementationSelection": "CLOSED",

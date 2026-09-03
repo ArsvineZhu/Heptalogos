@@ -62,6 +62,17 @@
         "command": "node scripts/verify/api-docs.mjs"
       }
     },
+    "check:product-artifacts": {
+      "parallelism": false,
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "pnpm nx run product-host:check:build-identities",
+          "pnpm nx run management-client:generate:check"
+        ],
+        "parallel": false
+      }
+    },
     "check:unused": {
       "executor": "nx:run-commands",
       "options": {
@@ -156,8 +167,12 @@
         "check:hygiene",
         "check:dependencies",
         "check:boundaries",
+        "check:duplicates",
         "check:unused",
-        "toolchain:check"
+        "toolchain:check",
+        "docs:api:check",
+        "check:product-artifacts",
+        "tsc6"
       ],
       "executor": "nx:run-commands",
       "options": {
@@ -166,14 +181,14 @@
     },
     "check:static": {
       "dependsOn": [
-        "check:repo",
         "check:duplicates",
         "format:check",
-        "docs:api:check",
+        "check:product-artifacts",
         "source-docs:lint",
         "lint",
         "typecheck",
-        "tsc6"
+        "check:boundaries",
+        "check:unused"
       ],
       "executor": "nx:run-commands",
       "options": {

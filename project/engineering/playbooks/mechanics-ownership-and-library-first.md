@@ -153,5 +153,5 @@ the obligation.
 - [ ] Custom high-risk mechanics have explicit rationale and bounded cleanup.
 - [ ] Focused owner/consumer tests run.
 - [ ] `pnpm check:duplicates` and `pnpm check:unused` run when applicable.
-- [ ] Affected lint, typecheck, repository gates, and `pnpm verify` run before
-      candidate closure.
+- [ ] Affected lint, typecheck, repository checks, and `pnpm verify` run before
+      completion.

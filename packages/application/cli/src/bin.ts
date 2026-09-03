@@ -23,6 +23,12 @@ try {
   const failure = {
     problemCode: errorCode(error),
     detail: errorMessage(error),
+    ...(error instanceof CliFailure && error.category !== undefined
+      ? { category: error.category }
+      : {}),
+    ...(error instanceof CliFailure && error.retryClass !== undefined
+      ? { retryClass: error.retryClass }
+      : {}),
   };
   if (process.argv.includes("--json")) {
     process.stdout.write(JSON.stringify({ error: failure }) + "\n");

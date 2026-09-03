@@ -2167,7 +2167,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
   it("terminalizes the supervisor when its owner signal aborts", async () => {
     const owner = new AbortController();
     const terminalFailures: unknown[] = [];
-    const definition = system("system.q8-owner-abort", async () => undefined);
+    const definition = system("system.owner-abort", async () => undefined);
     const supervisor = new MicroSystemSupervisor({
       substrate: createRuntimeSubstrate({ settleTimeoutMs: 50 }),
       settleTimeoutMs: 50,
@@ -2177,9 +2177,11 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
         onTerminalFailure: (error) => terminalFailures.push(error),
       },
     });
+    expect(supervisor.isActive()).toBe(true);
     await supervisor.reconcile(desired([definition]));
     owner.abort();
     await expect(supervisor.close()).resolves.toBeUndefined();
+    expect(supervisor.isActive()).toBe(false);
     await expect(supervisor.reconcile(desired([definition]))).rejects.toMatchObject({
       problem: { problemCode: "runtime.supervisor.not_active" },
     });
@@ -2191,7 +2193,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     let activationRequest!: Parameters<RuntimeSubstrate["activate"]>[0];
     let disposeCount = 0;
     let closeCount = 0;
-    const definition = system("system.q9-race", async () => undefined);
+    const definition = system("system.owner-background-race", async () => undefined);
     const substrate: RuntimeSubstrate = {
       async activate(request) {
         activationRequest = request;
@@ -2219,8 +2221,8 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
       await supervisor.reconcile(desired([definition]));
       activationRequest.onFailure({
         phase: "BACKGROUND",
-        label: "q9-background",
-        cause: new Error("q9 background failure"),
+        label: "background-failure",
+        cause: new Error("background failure"),
       });
       owner.abort();
       await expect(supervisor.close()).resolves.toBeUndefined();
@@ -2234,7 +2236,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     }
   });
 
-  it("Q-start-owner-abort-cancel aborts STARTING activation and cannot reopen", async () => {
+  it("owner abort cancels STARTING activation and cannot reopen", async () => {
     const owner = new AbortController();
     const activationStarted = deferred<void>();
     const activationAborted = deferred<void>();
@@ -2337,7 +2339,7 @@ describe("MicroSystemSupervisor and RuntimeReconciler", () => {
     owner.abort();
     let activations = 0;
     let closeCount = 0;
-    const definition = system("system.q13-pre-aborted", async () => {
+    const definition = system("system.pre-aborted", async () => {
       activations += 1;
     });
     const supervisor = new MicroSystemSupervisor({

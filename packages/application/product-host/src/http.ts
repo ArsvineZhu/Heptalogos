@@ -1,5 +1,5 @@
 /**
- * Projects the canonical Management service to the bounded P1 Fastify
+ * Projects the canonical Management service to the bounded Fastify
  * surface. Route schemas come only from @heptalogos/management.
  * @module http
  */
@@ -88,7 +88,7 @@ export interface ManagementHttpOptions {
   readonly onAdministratorClaimed?: () => Promise<void>;
 }
 
-/** Creates the P1 Management HTTP app without starting its listener. */
+/** Creates the Management HTTP app without starting its listener. */
 export async function createManagementHttpApp(
   service: ManagementService,
   options: ManagementHttpOptions = {},
@@ -132,9 +132,11 @@ export async function createManagementHttpApp(
     const validation = errorRecord?.validation !== undefined;
     const statusCode =
       typeof errorRecord?.statusCode === "number" ? errorRecord.statusCode : undefined;
+    const rateLimited =
+      statusCode === 429 || errorRecord?.problemCode === "management.rate_limited";
     const projected = validation
       ? toManagementProblemDetails(invalidInputProblem(), request.url)
-      : statusCode === 429
+      : rateLimited
         ? rateLimitResponse()
         : toManagementProblemDetails(error, request.url);
     void reply
@@ -177,6 +179,8 @@ export async function createManagementHttpApp(
           201: claimResponseSchema,
           400: managementProblemSchema,
           409: managementProblemSchema,
+          429: managementProblemSchema,
+          426: managementProblemSchema,
           503: managementProblemSchema,
         },
       },
@@ -213,6 +217,8 @@ export async function createManagementHttpApp(
         response: {
           200: loginResponseSchema,
           401: managementProblemSchema,
+          429: managementProblemSchema,
+          426: managementProblemSchema,
           503: managementProblemSchema,
         },
       },
@@ -233,6 +239,7 @@ export async function createManagementHttpApp(
         response: {
           204: { type: "null" },
           401: managementProblemSchema,
+          426: managementProblemSchema,
           503: managementProblemSchema,
         },
         security: [{ bearerAuth: [] }],
@@ -253,6 +260,7 @@ export async function createManagementHttpApp(
         response: {
           200: systemStatusSchema,
           401: managementProblemSchema,
+          426: managementProblemSchema,
           503: managementProblemSchema,
         },
         security: [{ bearerAuth: [] }],
@@ -267,7 +275,11 @@ export async function createManagementHttpApp(
     {
       schema: {
         operationId: "getHost",
-        response: { 200: hostReadModelSchema, 401: managementProblemSchema },
+        response: {
+          200: hostReadModelSchema,
+          401: managementProblemSchema,
+          426: managementProblemSchema,
+        },
         security: [{ bearerAuth: [] }],
       },
       preHandler: async (request) => authenticate(service, request),
@@ -280,7 +292,11 @@ export async function createManagementHttpApp(
     {
       schema: {
         operationId: "getRuntimeGraph",
-        response: { 200: runtimeGraphSchema, 401: managementProblemSchema },
+        response: {
+          200: runtimeGraphSchema,
+          401: managementProblemSchema,
+          426: managementProblemSchema,
+        },
         security: [{ bearerAuth: [] }],
       },
       preHandler: async (request) => authenticate(service, request),
@@ -293,7 +309,11 @@ export async function createManagementHttpApp(
     {
       schema: {
         operationId: "getCapabilityGraph",
-        response: { 200: capabilityGraphSchema, 401: managementProblemSchema },
+        response: {
+          200: capabilityGraphSchema,
+          401: managementProblemSchema,
+          426: managementProblemSchema,
+        },
         security: [{ bearerAuth: [] }],
       },
       preHandler: async (request) => authenticate(service, request),
@@ -309,6 +329,7 @@ export async function createManagementHttpApp(
         response: {
           200: readinessSchema,
           401: managementProblemSchema,
+          426: managementProblemSchema,
           503: managementProblemSchema,
         },
         security: [{ bearerAuth: [] }],

@@ -40,7 +40,10 @@ function serviceFixture(): ManagementService {
     getCapabilityGraph: () => ({}),
     getReadiness: async () => ({}),
     ensureFirstAdministratorClaim: async () => undefined,
-    claimFirstAdministrator: async () => ({}),
+    claimFirstAdministrator: async () => ({
+      schemaVersion: 1,
+      administratorId: "administrator",
+    }),
     login: async () => ({}),
     authenticate: async () => ({}),
     logout: async () => undefined,
@@ -70,6 +73,27 @@ describe("Management HTTP adapter", () => {
     expect(openapi.openapi).toBe("3.1.0");
     expect(openapi.components?.securitySchemes).toHaveProperty("bearerAuth");
     expect(openapi.paths).toHaveProperty("/management/v1/runtime/graph");
+    expect(openapi.paths).not.toHaveProperty("/management/v1/actions");
+    await app.close();
+  });
+
+  it("preserves the canonical rate-limit Problem through Fastify", async () => {
+    const app = await createManagementHttpApp(serviceFixture());
+    let response;
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      response = await app.inject({
+        method: "POST",
+        url: "/management/v1/bootstrap/claim",
+        payload: { claimId: "a", claimSecret: "b", password: "c" },
+      });
+    }
+    expect(response?.statusCode).toBe(429);
+    expect(response?.json()).toMatchObject({
+      schemaVersion: 1,
+      problemCode: "management.rate_limited",
+      category: "conflict",
+      retryClass: "after-change",
+    });
     await app.close();
   });
 });

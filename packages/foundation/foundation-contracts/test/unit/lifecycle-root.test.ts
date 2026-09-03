@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { LIFECYCLE_ROOT_IDS } from "../../src/lifecycle-root.js";
 
 describe("lifecycle root names", () => {
-  it("contains exactly the stable S17 root family without aliases", () => {
+  it("contains exactly the supported lifecycle root family", () => {
     expect(LIFECYCLE_ROOT_IDS).toEqual([
       "PROGRAM",
       "INSTANCE",

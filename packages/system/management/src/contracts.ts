@@ -1,19 +1,28 @@
 /**
- * Defines the P1 Management wire contracts, read models, and runtime
- * projection inputs. Transport adapters consume these schemas without owning
- * their semantics.
+ * Defines the current Management wire contracts and read projections.
+ * Transport adapters consume these schemas without owning their semantics.
  * @module contracts
  */
 
 import type {
+  ActivityId,
   BootId,
   Branded,
+  CanonicalJsonValue,
   ContinuityEpochId,
+  EvidenceId,
   InstallationId,
   InstanceId,
   Instant,
+  NamespacedId,
   ProductGenerationId,
+  RetryClass,
   UuidV7Id,
+} from "@heptalogos/foundation-contracts";
+import {
+  NAMESPACED_ID_PATTERN,
+  SHA256_HEX_PATTERN,
+  UUID_V7_PATTERN,
 } from "@heptalogos/foundation-contracts";
 import { Type } from "@heptalogos/schema-runtime/typebox";
 
@@ -23,12 +32,18 @@ export type AdministratorId = UuidV7Id<"AdministratorId">;
 export type FirstAdministratorClaimId = UuidV7Id<"FirstAdministratorClaimId">;
 /** Identifies a server-side Management session. */
 export type ServerSessionId = UuidV7Id<"ServerSessionId">;
-/** Identifies an opaque SHA-256 digest stored by Management. */
+/** Identifies an opaque SHA-256 digest stored or carried by Management. */
 export type ManagementDigest = Branded<string, "ManagementDigest">;
+/** Stable semantic identifier for a Management action contract. */
+export type SystemActionId = NamespacedId<"SystemActionId">;
+/** Identifies one generated side-effect-free System change plan. */
+export type SystemChangePlanId = UuidV7Id<"SystemChangePlanId">;
+/** Identifies a Product semantic owner affected by a plan. */
+export type ProductSemanticId = NamespacedId<"ProductSemanticId">;
 
-/** The version of the P1 Management wire contract. */
+/** The version of the current Management wire contract. */
 export const MANAGEMENT_CONTRACT_VERSION = "management.v1" as const;
-/** The fixed API base path exposed by the P1 Host. */
+/** The fixed API base path exposed by the current Host. */
 export const MANAGEMENT_API_BASE_PATH = "/management/v1" as const;
 /** The public well-known Management discovery path. */
 export const MANAGEMENT_DISCOVERY_PATH = "/.well-known/heptalogos-management" as const;
@@ -42,7 +57,6 @@ export interface ContractRange {
   readonly kind: "exact";
   readonly version: typeof MANAGEMENT_CONTRACT_VERSION;
 }
-
 /** Describes the current Management contract and installation generation. */
 export interface CompatibilityDescriptor {
   readonly schemaVersion: 1;
@@ -52,14 +66,99 @@ export interface CompatibilityDescriptor {
   readonly coreContractVersion: typeof MANAGEMENT_CONTRACT_VERSION;
   readonly supportedClientContractRange: ContractRange;
   readonly problemSchemaVersion: 1;
+  readonly systemActionCatalogRevision?: number;
 }
-
 /** Public discovery response for a live Management endpoint. */
 export interface ManagementDiscovery {
   readonly schemaVersion: 1;
   readonly installationId: InstallationId;
   readonly compatibility: CompatibilityDescriptor;
   readonly apiBasePath: typeof MANAGEMENT_API_BASE_PATH;
+}
+
+/** Identifies one canonical resource projection. */
+export interface ResourceRef {
+  readonly schemaVersion: 1;
+  readonly resourceKind: string;
+  readonly resourceId: string;
+  readonly resourceRevision?: number;
+}
+/** Structural current lineage reference used when meaningful lineage exists. */
+export interface LineageContextRef {
+  readonly schemaVersion: 1;
+  readonly sourceActivityId: ActivityId;
+  readonly sourceInstanceId: InstanceId;
+  readonly sourceContinuityEpochId: ContinuityEpochId;
+  readonly telemetry?: {
+    readonly traceId: string;
+    readonly spanId: string;
+    readonly traceFlags: number;
+  };
+}
+/** Common machine-consumable envelope for current Management reads. */
+export interface ReadModelEnvelope<T> {
+  readonly schemaVersion: 1;
+  readonly contractVersion: typeof MANAGEMENT_CONTRACT_VERSION;
+  readonly resource: ResourceRef;
+  readonly observedAt: Instant;
+  readonly productGeneration: ProductGenerationId;
+  readonly continuityEpochId: ContinuityEpochId;
+  readonly data: T;
+  readonly lineageContextRef?: LineageContextRef;
+}
+
+/** Stable reference to one current JSON Schema contract. */
+export interface JsonSchemaRef {
+  readonly schemaVersion: 1;
+  readonly schemaId: string;
+}
+/** Binds a planned action to an observed target state. */
+export interface TargetPrecondition {
+  readonly schemaVersion: 1;
+  readonly resource: ResourceRef;
+  readonly expectedRevision?: number;
+  readonly expectedDigest?: ManagementDigest;
+}
+/** Stable reference to one retained Evidence record. */
+export interface EvidenceRef {
+  readonly schemaVersion: 1;
+  readonly evidenceId: EvidenceId;
+}
+/** Describes one versioned semantic System action. */
+export interface SystemActionDefinition {
+  readonly schemaVersion: 1;
+  readonly actionId: SystemActionId;
+  readonly actionVersion: number;
+  readonly inputSchema: JsonSchemaRef;
+  readonly outputSchema: JsonSchemaRef;
+  readonly targetKind: string;
+  readonly riskClass: "READ_ONLY" | "LOW" | "MATERIAL";
+  readonly applyMode: "IMMEDIATE" | "RECONCILE";
+}
+/** Side-effect-free plan that must be confirmed exactly before execution. */
+export interface SystemChangePlan {
+  readonly schemaVersion: 1;
+  readonly planId: SystemChangePlanId;
+  readonly actionId: SystemActionId;
+  readonly actionVersion: number;
+  readonly normalizedInputDigest: ManagementDigest;
+  readonly targetPreconditions: readonly TargetPrecondition[];
+  readonly affectedSemanticOwners: readonly ProductSemanticId[];
+  readonly configurationReadinessSubjectImpact: CanonicalJsonValue;
+  readonly restartReconcileImpact: CanonicalJsonValue;
+  readonly riskClass: SystemActionDefinition["riskClass"];
+  readonly planDigest: ManagementDigest;
+  readonly createdAt: Instant;
+  readonly lineageContextRef: LineageContextRef;
+}
+/** Result of executing one exactly confirmed System change plan. */
+export interface SystemActionExecuteResult<T> {
+  readonly schemaVersion: 1;
+  readonly actionId: SystemActionId;
+  readonly planDigest: ManagementDigest;
+  readonly result: T;
+  readonly postconditionsVerified: boolean;
+  readonly evidenceRefs: readonly EvidenceRef[];
 }
 
 /** Describes a public Management Problem response. */
@@ -70,90 +169,114 @@ export interface ManagementProblemDetails {
   readonly detail: string;
   readonly instance?: string;
   readonly problemCode: string;
+  readonly category: string;
+  readonly retryClass: RetryClass;
   readonly schemaVersion: 1;
 }
-
 /** Request body for first-administrator claim consumption. */
 export interface ClaimRequest {
   readonly claimId: string;
   readonly claimSecret: string;
   readonly password: string;
 }
-
 /** Successful first-administrator claim response. */
 export interface ClaimResponse {
   readonly schemaVersion: 1;
   readonly administratorId: AdministratorId;
 }
-
-/** The short-lived plaintext claim material published only by the Host. */
+/** Short-lived plaintext claim material published only by the Host. */
 export interface FirstClaimMaterial {
   readonly claimId: FirstAdministratorClaimId;
   readonly claimSecret: string;
   readonly expiresAt: Instant;
 }
-
 /** Request body for Administrator login. */
 export interface LoginRequest {
   readonly password: string;
 }
-
-/** Successful login response; token plaintext is returned once to the client. */
+/** Successful login response with token plaintext returned once. */
 export interface LoginResponse {
   readonly schemaVersion: 1;
   readonly sessionToken: string;
   readonly expiresAt: Instant;
 }
 
-/** Administrator bootstrap state projected by SystemStatus. */
+/** Administrator bootstrap states projected by SystemStatus. */
 export type AdministratorBootstrapState = "UNCLAIMED" | "CLAIM_READY" | "CLAIMED";
-
-/** Current Host state accepted by P1 read models. */
+/** Current Host states accepted by Management read models. */
 export type ManagementHostState = "ACTIVE" | "FENCED" | "CLOSING" | "CLOSED";
-/** Current Management HTTP lifecycle state. */
+/** Current Management HTTP lifecycle states. */
 export type ManagementHttpState = "STARTING" | "LISTENING" | "CLOSING" | "CLOSED";
+/** Runtime operating modes visible through Management. */
+export type RuntimeOperatingMode =
+  "NORMAL" | "SAFE" | "MAINTENANCE" | "EMERGENCY_READ_ONLY";
+/** Runtime semantic roles visible through Management. */
+export type RuntimeSystemRole =
+  "kernel" | "system-service" | "domain-engine" | "feature" | "driver" | "provider";
+/** Runtime actual states visible through Management. */
+export type RuntimeSystemActualState =
+  "STOPPED" | "BLOCKED" | "STARTING" | "RUNNING" | "QUIESCING" | "FAILED";
 
-/** Read-only readiness projection for current P1 dependencies. */
-export interface Readiness {
+/** Read-only readiness data for current Product Host dependencies. */
+export interface ReadinessData {
   readonly schemaVersion: 1;
   readonly hostActive: boolean;
   readonly persistenceUsable: boolean;
   readonly runtimeKernelActive: boolean;
   readonly managementServiceRunning: boolean;
   readonly httpListening: boolean;
-  readonly endpointDescriptorCurrent: boolean;
+  readonly endpointDescriptorPublished: boolean;
   readonly administratorBootstrapCoherent: boolean;
   readonly state: "READY" | "NOT_READY";
-  readonly observedAt: Instant;
 }
-
-/** Safe Host identity/state read model. */
-export interface HostReadModel {
+/** Current readiness envelope. */
+export type Readiness = ReadModelEnvelope<ReadinessData>;
+/** Safe Host identity/state data. */
+export interface HostReadModelData {
   readonly schemaVersion: 1;
   readonly installationId: InstallationId;
   readonly instanceId: InstanceId;
   readonly bootId: BootId;
-  readonly continuityEpochId: ContinuityEpochId;
-  readonly productGeneration: ProductGenerationId;
   readonly hostState: ManagementHostState;
   readonly managementHttpState: ManagementHttpState;
-  readonly observedAt: Instant;
 }
+/** Current Host read envelope. */
+export type HostReadModel = ReadModelEnvelope<HostReadModelData>;
 
-/** Minimal runtime introspection source supplied by Product Host. */
-export interface RuntimeIntrospectionSnapshot {
-  readonly operatingMode: string;
-  readonly desiredRevision: number;
-  readonly systems: readonly RuntimeSystemSnapshot[];
-  readonly selectedServiceBindings: readonly RuntimeBindingSnapshot[];
-  readonly selectedCapabilityBindings: readonly RuntimeBindingSnapshot[];
+/** Read-only Service/Capability binding projection. */
+export interface RuntimeBindingSnapshot {
+  readonly id: string;
+  readonly providerId: string;
 }
-
+/** Read-only Service requirement projection. */
+export interface RuntimeRequirementSnapshot {
+  readonly serviceId: string;
+  readonly contractVersion: string;
+}
+/** Read-only Service provision projection. */
+export interface RuntimeProvisionSnapshot {
+  readonly serviceId: string;
+  readonly providerId: string;
+  readonly contractVersion: string;
+}
+/** Read-only Capability requirement projection. */
+export interface RuntimeCapabilityRequirementSnapshot {
+  readonly capabilityId: string;
+  readonly contractVersion: string;
+  readonly required: boolean;
+}
+/** Read-only Capability provision projection. */
+export interface RuntimeCapabilityProvisionSnapshot {
+  readonly capabilityId: string;
+  readonly providerId: string;
+  readonly contractVersion: string;
+  readonly priority: number;
+}
 /** Safe read-only MicroSystem projection used by RuntimeGraph. */
 export interface RuntimeSystemSnapshot {
   readonly microSystemId: string;
-  readonly role: string;
-  readonly actualState: string;
+  readonly role: RuntimeSystemRole;
+  readonly actualState: RuntimeSystemActualState;
   readonly generation: {
     readonly productGenerationId: ProductGenerationId;
     readonly packageGenerationId?: string;
@@ -163,52 +286,14 @@ export interface RuntimeSystemSnapshot {
   readonly capabilityRequirements: readonly RuntimeCapabilityRequirementSnapshot[];
   readonly capabilityProvisions: readonly RuntimeCapabilityProvisionSnapshot[];
 }
-
-/** Read-only Service/Capability binding projection. */
-export interface RuntimeBindingSnapshot {
-  readonly id: string;
-  readonly providerId: string;
-}
-
-/** Read-only Service requirement projection. */
-export interface RuntimeRequirementSnapshot {
-  readonly serviceId: string;
-  readonly contractVersion: string;
-}
-
-/** Read-only Service provision projection. */
-export interface RuntimeProvisionSnapshot {
-  readonly serviceId: string;
-  readonly providerId: string;
-  readonly contractVersion: string;
-}
-
-/** Read-only Capability requirement projection. */
-export interface RuntimeCapabilityRequirementSnapshot {
-  readonly capabilityId: string;
-  readonly contractVersion: string;
-  readonly required: boolean;
-}
-
-/** Read-only Capability provision projection. */
-export interface RuntimeCapabilityProvisionSnapshot {
-  readonly capabilityId: string;
-  readonly providerId: string;
-  readonly contractVersion: string;
-  readonly priority: number;
-}
-
-/** Runtime graph read model derived from one RuntimeKernel snapshot. */
-export interface RuntimeGraphReadModel {
-  readonly schemaVersion: 1;
-  readonly productGeneration: ProductGenerationId;
-  readonly operatingMode: string;
+/** Minimal runtime introspection source supplied by Product Host. */
+export interface RuntimeIntrospectionSnapshot {
+  readonly operatingMode: RuntimeOperatingMode;
   readonly desiredRevision: number;
   readonly systems: readonly RuntimeSystemSnapshot[];
-  readonly edges: readonly RuntimeGraphEdge[];
-  readonly observedAt: Instant;
+  readonly selectedServiceBindings: readonly RuntimeBindingSnapshot[];
+  readonly selectedCapabilityBindings: readonly RuntimeBindingSnapshot[];
 }
-
 /** One read-only hard Service edge in RuntimeGraph. */
 export interface RuntimeGraphEdge {
   readonly providerMicroSystemId: string;
@@ -217,32 +302,39 @@ export interface RuntimeGraphEdge {
   readonly providerId: string;
   readonly contractVersion: string;
 }
-
-/** Capability graph read model derived from one RuntimeKernel snapshot. */
-export interface CapabilityGraphReadModel {
+/** Runtime graph data derived from one RuntimeKernel snapshot. */
+export interface RuntimeGraphReadModelData {
   readonly schemaVersion: 1;
-  readonly productGeneration: ProductGenerationId;
-  readonly capabilities: readonly RuntimeCapabilityGraphEntry[];
-  readonly selectedBindings: readonly RuntimeBindingSnapshot[];
-  readonly observedAt: Instant;
+  readonly operatingMode: RuntimeOperatingMode;
+  readonly desiredRevision: number;
+  readonly systems: readonly RuntimeSystemSnapshot[];
+  readonly edges: readonly RuntimeGraphEdge[];
 }
-
+/** Current Runtime graph envelope. */
+export type RuntimeGraphReadModel = ReadModelEnvelope<RuntimeGraphReadModelData>;
 /** One capability and its currently visible providers. */
 export interface RuntimeCapabilityGraphEntry {
   readonly capabilityId: string;
   readonly providers: readonly RuntimeCapabilityProvisionSnapshot[];
 }
-
-/** Small aggregate system status read model. */
-export interface SystemStatus {
+/** Capability graph data derived from one RuntimeKernel snapshot. */
+export interface CapabilityGraphReadModelData {
   readonly schemaVersion: 1;
-  readonly productGeneration: ProductGenerationId;
+  readonly capabilities: readonly RuntimeCapabilityGraphEntry[];
+  readonly selectedBindings: readonly RuntimeBindingSnapshot[];
+}
+/** Current Capability graph envelope. */
+export type CapabilityGraphReadModel = ReadModelEnvelope<CapabilityGraphReadModelData>;
+/** Aggregate system status data. */
+export interface SystemStatusData {
+  readonly schemaVersion: 1;
   readonly hostState: ManagementHostState;
   readonly managementState: ManagementHttpState;
   readonly administratorBootstrap: AdministratorBootstrapState;
-  readonly readiness: Readiness;
-  readonly observedAt: Instant;
+  readonly readiness: ReadinessData;
 }
+/** Current aggregate System status envelope. */
+export type SystemStatus = ReadModelEnvelope<SystemStatusData>;
 
 /** Internal current Administrator verifier row. */
 export interface AdministratorVerifier {
@@ -257,7 +349,6 @@ export interface AdministratorVerifier {
   readonly passwordParallelism: number;
   readonly passwordNormalizationId: "NFKC-v1";
 }
-
 /** Internal current claim row. */
 export interface FirstAdministratorClaim {
   readonly claimId: FirstAdministratorClaimId;
@@ -266,7 +357,6 @@ export interface FirstAdministratorClaim {
   readonly expiresAt: Instant;
   readonly consumedAt?: Instant;
 }
-
 /** Internal current session row. */
 export interface ServerSession {
   readonly sessionId: ServerSessionId;
@@ -278,6 +368,142 @@ export interface ServerSession {
   readonly revokedAt?: Instant;
 }
 
+const retryClassSchema = Type.Union([
+  Type.Literal("never"),
+  Type.Literal("immediate"),
+  Type.Literal("backoff"),
+  Type.Literal("after-change"),
+  Type.Literal("manual"),
+]);
+const runtimeOperatingModeSchema = Type.Union([
+  Type.Literal("NORMAL"),
+  Type.Literal("SAFE"),
+  Type.Literal("MAINTENANCE"),
+  Type.Literal("EMERGENCY_READ_ONLY"),
+]);
+const runtimeSystemRoleSchema = Type.Union([
+  Type.Literal("kernel"),
+  Type.Literal("system-service"),
+  Type.Literal("domain-engine"),
+  Type.Literal("feature"),
+  Type.Literal("driver"),
+  Type.Literal("provider"),
+]);
+const runtimeSystemActualStateSchema = Type.Union([
+  Type.Literal("STOPPED"),
+  Type.Literal("BLOCKED"),
+  Type.Literal("STARTING"),
+  Type.Literal("RUNNING"),
+  Type.Literal("QUIESCING"),
+  Type.Literal("FAILED"),
+]);
+const canonicalJsonSchema = Type.Union([
+  Type.Null(),
+  Type.Boolean(),
+  Type.Number(),
+  Type.String(),
+  Type.Array(Type.Unknown()),
+  Type.Record(Type.String(), Type.Unknown()),
+]);
+
+/** Canonical wire schema for a resource projection reference. */
+export const resourceRefSchema = Type.Object({
+  schemaVersion: Type.Literal(1),
+  resourceKind: Type.String({ minLength: 1 }),
+  resourceId: Type.String({ minLength: 1 }),
+  resourceRevision: Type.Optional(Type.Integer({ minimum: 0 })),
+});
+/** Canonical wire schema for an optional read-model lineage reference. */
+export const lineageContextRefSchema = Type.Object(
+  Object.fromEntries([
+    ["schemaVersion", Type.Literal(1)],
+    ["sourceActivityId", Type.String({ pattern: UUID_V7_PATTERN })],
+    ["sourceInstanceId", Type.String({ pattern: UUID_V7_PATTERN })],
+    ["sourceContinuityEpochId", Type.String({ pattern: UUID_V7_PATTERN })],
+    [
+      "telemetry",
+      Type.Optional(
+        Type.Object({
+          traceId: Type.String({ minLength: 1 }),
+          spanId: Type.String({ minLength: 1 }),
+          traceFlags: Type.Integer({ minimum: 0 }),
+        }),
+      ),
+    ],
+  ]),
+);
+
+function readModelEnvelopeSchema(data: ReturnType<typeof Type.Object>) {
+  return Type.Object({
+    schemaVersion: Type.Literal(1),
+    contractVersion: Type.Literal(MANAGEMENT_CONTRACT_VERSION),
+    resource: resourceRefSchema,
+    observedAt: Type.String(),
+    productGeneration: Type.String({ pattern: SHA256_HEX_PATTERN }),
+    continuityEpochId: Type.String({ pattern: UUID_V7_PATTERN }),
+    data,
+    lineageContextRef: Type.Optional(lineageContextRefSchema),
+  });
+}
+
+const jsonSchemaRefSchema = Type.Object({
+  schemaVersion: Type.Literal(1),
+  schemaId: Type.String({ minLength: 1 }),
+});
+const riskClassSchema = Type.Union([
+  Type.Literal("READ_ONLY"),
+  Type.Literal("LOW"),
+  Type.Literal("MATERIAL"),
+]);
+/** Canonical wire schema for a System action definition. */
+export const systemActionDefinitionSchema = Type.Object({
+  schemaVersion: Type.Literal(1),
+  actionId: Type.String({ pattern: NAMESPACED_ID_PATTERN }),
+  actionVersion: Type.Integer({ minimum: 1 }),
+  inputSchema: jsonSchemaRefSchema,
+  outputSchema: jsonSchemaRefSchema,
+  targetKind: Type.String({ minLength: 1 }),
+  riskClass: riskClassSchema,
+  applyMode: Type.Union([Type.Literal("IMMEDIATE"), Type.Literal("RECONCILE")]),
+});
+/** Canonical wire schema for a side-effect-free System change plan. */
+export const systemChangePlanSchema = Type.Object({
+  schemaVersion: Type.Literal(1),
+  planId: Type.String({ pattern: UUID_V7_PATTERN }),
+  actionId: Type.String({ pattern: NAMESPACED_ID_PATTERN }),
+  actionVersion: Type.Integer({ minimum: 1 }),
+  normalizedInputDigest: Type.String({ pattern: SHA256_HEX_PATTERN }),
+  targetPreconditions: Type.Array(
+    Type.Object({
+      schemaVersion: Type.Literal(1),
+      resource: resourceRefSchema,
+      expectedRevision: Type.Optional(Type.Integer({ minimum: 0 })),
+      expectedDigest: Type.Optional(Type.String({ pattern: SHA256_HEX_PATTERN })),
+    }),
+  ),
+  affectedSemanticOwners: Type.Array(Type.String({ pattern: NAMESPACED_ID_PATTERN })),
+  configurationReadinessSubjectImpact: canonicalJsonSchema,
+  restartReconcileImpact: canonicalJsonSchema,
+  riskClass: riskClassSchema,
+  planDigest: Type.String({ pattern: SHA256_HEX_PATTERN }),
+  createdAt: Type.String(),
+  lineageContextRef: lineageContextRefSchema,
+});
+/** Canonical wire schema for an executed System action result. */
+export const systemActionExecuteResultSchema = Type.Object({
+  schemaVersion: Type.Literal(1),
+  actionId: Type.String({ pattern: NAMESPACED_ID_PATTERN }),
+  planDigest: Type.String({ pattern: SHA256_HEX_PATTERN }),
+  result: canonicalJsonSchema,
+  postconditionsVerified: Type.Boolean(),
+  evidenceRefs: Type.Array(
+    Type.Object({
+      schemaVersion: Type.Literal(1),
+      evidenceId: Type.String({ pattern: UUID_V7_PATTERN }),
+    }),
+  ),
+});
+
 /** Canonical wire schema for a Problem Details response. */
 export const managementProblemSchema = Type.Object({
   type: Type.String(),
@@ -286,9 +512,10 @@ export const managementProblemSchema = Type.Object({
   detail: Type.String(),
   instance: Type.Optional(Type.String()),
   problemCode: Type.String(),
+  category: Type.String(),
+  retryClass: retryClassSchema,
   schemaVersion: Type.Literal(1),
 });
-
 /** Canonical wire schema for Management discovery. */
 export const managementDiscoverySchema = Type.Object({
   schemaVersion: Type.Literal(1),
@@ -304,28 +531,25 @@ export const managementDiscoverySchema = Type.Object({
       version: Type.Literal(MANAGEMENT_CONTRACT_VERSION),
     }),
     problemSchemaVersion: Type.Literal(1),
+    systemActionCatalogRevision: Type.Optional(Type.Integer({ minimum: 0 })),
   }),
   apiBasePath: Type.Literal(MANAGEMENT_API_BASE_PATH),
 });
-
 /** Canonical wire schema for the first-claim request. */
 export const claimRequestSchema = Type.Object({
   claimId: Type.String({ minLength: 1 }),
   claimSecret: Type.String({ minLength: 1 }),
   password: Type.String({ minLength: 1 }),
 });
-
 /** Canonical wire schema for the first-claim response. */
 export const claimResponseSchema = Type.Object({
   schemaVersion: Type.Literal(1),
   administratorId: Type.String(),
 });
-
 /** Canonical wire schema for login. */
 export const loginRequestSchema = Type.Object({
   password: Type.String({ minLength: 1 }),
 });
-
 /** Canonical wire schema for a successful login. */
 export const loginResponseSchema = Type.Object({
   schemaVersion: Type.Literal(1),
@@ -333,66 +557,136 @@ export const loginResponseSchema = Type.Object({
   expiresAt: Type.String(),
 });
 
-/** Canonical wire schema for Product Host readiness. */
-export const readinessSchema = Type.Object({
+/** Canonical schema for a runtime binding snapshot. */
+export const runtimeBindingSnapshotSchema = Type.Object({
+  id: Type.String({ minLength: 1 }),
+  providerId: Type.String({ minLength: 1 }),
+});
+/** Canonical schema for a runtime Service requirement. */
+export const runtimeRequirementSnapshotSchema = Type.Object({
+  serviceId: Type.String({ minLength: 1 }),
+  contractVersion: Type.String({ minLength: 1 }),
+});
+/** Canonical schema for a runtime Service provision. */
+export const runtimeProvisionSnapshotSchema = Type.Object({
+  serviceId: Type.String({ minLength: 1 }),
+  providerId: Type.String({ minLength: 1 }),
+  contractVersion: Type.String({ minLength: 1 }),
+});
+/** Canonical schema for a runtime Capability requirement. */
+export const runtimeCapabilityRequirementSnapshotSchema = Type.Object({
+  capabilityId: Type.String({ minLength: 1 }),
+  contractVersion: Type.String({ minLength: 1 }),
+  required: Type.Boolean(),
+});
+/** Canonical schema for a runtime Capability provision. */
+export const runtimeCapabilityProvisionSnapshotSchema = Type.Object({
+  capabilityId: Type.String({ minLength: 1 }),
+  providerId: Type.String({ minLength: 1 }),
+  contractVersion: Type.String({ minLength: 1 }),
+  priority: Type.Number(),
+});
+/** Canonical schema for a Runtime MicroSystem snapshot. */
+export const runtimeSystemSnapshotSchema = Type.Object({
+  microSystemId: Type.String({ minLength: 1 }),
+  role: runtimeSystemRoleSchema,
+  actualState: runtimeSystemActualStateSchema,
+  generation: Type.Object({
+    productGenerationId: Type.String({ pattern: SHA256_HEX_PATTERN }),
+    packageGenerationId: Type.Optional(Type.String({ pattern: SHA256_HEX_PATTERN })),
+  }),
+  serviceRequirements: Type.Array(runtimeRequirementSnapshotSchema),
+  serviceProvisions: Type.Array(runtimeProvisionSnapshotSchema),
+  capabilityRequirements: Type.Array(runtimeCapabilityRequirementSnapshotSchema),
+  capabilityProvisions: Type.Array(runtimeCapabilityProvisionSnapshotSchema),
+});
+/** Canonical schema for one RuntimeGraph Service edge. */
+export const runtimeGraphEdgeSchema = Type.Object({
+  providerMicroSystemId: Type.String({ minLength: 1 }),
+  consumerMicroSystemId: Type.String({ minLength: 1 }),
+  serviceId: Type.String({ minLength: 1 }),
+  providerId: Type.String({ minLength: 1 }),
+  contractVersion: Type.String({ minLength: 1 }),
+});
+/** Canonical schema for one CapabilityGraph entry. */
+export const runtimeCapabilityGraphEntrySchema = Type.Object({
+  capabilityId: Type.String({ minLength: 1 }),
+  providers: Type.Array(runtimeCapabilityProvisionSnapshotSchema),
+});
+
+const readinessDataSchema = Type.Object({
   schemaVersion: Type.Literal(1),
   hostActive: Type.Boolean(),
   persistenceUsable: Type.Boolean(),
   runtimeKernelActive: Type.Boolean(),
   managementServiceRunning: Type.Boolean(),
   httpListening: Type.Boolean(),
-  endpointDescriptorCurrent: Type.Boolean(),
+  endpointDescriptorPublished: Type.Boolean(),
   administratorBootstrapCoherent: Type.Boolean(),
   state: Type.Union([Type.Literal("READY"), Type.Literal("NOT_READY")]),
-  observedAt: Type.String(),
 });
-
+/** Canonical wire schema for Product Host readiness. */
+export const readinessSchema = readModelEnvelopeSchema(readinessDataSchema);
 /** Canonical wire schema for SystemStatus. */
-export const systemStatusSchema = Type.Object({
-  schemaVersion: Type.Literal(1),
-  productGeneration: Type.String(),
-  hostState: Type.String(),
-  managementState: Type.String(),
-  administratorBootstrap: Type.Union([
-    Type.Literal("UNCLAIMED"),
-    Type.Literal("CLAIM_READY"),
-    Type.Literal("CLAIMED"),
-  ]),
-  readiness: readinessSchema,
-  observedAt: Type.String(),
-});
-
+export const systemStatusSchema = readModelEnvelopeSchema(
+  Type.Object({
+    schemaVersion: Type.Literal(1),
+    hostState: Type.Union([
+      Type.Literal("ACTIVE"),
+      Type.Literal("FENCED"),
+      Type.Literal("CLOSING"),
+      Type.Literal("CLOSED"),
+    ]),
+    managementState: Type.Union([
+      Type.Literal("STARTING"),
+      Type.Literal("LISTENING"),
+      Type.Literal("CLOSING"),
+      Type.Literal("CLOSED"),
+    ]),
+    administratorBootstrap: Type.Union([
+      Type.Literal("UNCLAIMED"),
+      Type.Literal("CLAIM_READY"),
+      Type.Literal("CLAIMED"),
+    ]),
+    readiness: readinessDataSchema,
+  }),
+);
 /** Canonical wire schema for the safe Host read model. */
-export const hostReadModelSchema = Type.Object({
-  schemaVersion: Type.Literal(1),
-  installationId: Type.String(),
-  instanceId: Type.String(),
-  bootId: Type.String(),
-  continuityEpochId: Type.String(),
-  productGeneration: Type.String(),
-  hostState: Type.String(),
-  managementHttpState: Type.String(),
-  observedAt: Type.String(),
-});
-
+export const hostReadModelSchema = readModelEnvelopeSchema(
+  Type.Object({
+    schemaVersion: Type.Literal(1),
+    installationId: Type.String({ pattern: UUID_V7_PATTERN }),
+    instanceId: Type.String({ pattern: UUID_V7_PATTERN }),
+    bootId: Type.String({ pattern: UUID_V7_PATTERN }),
+    hostState: Type.Union([
+      Type.Literal("ACTIVE"),
+      Type.Literal("FENCED"),
+      Type.Literal("CLOSING"),
+      Type.Literal("CLOSED"),
+    ]),
+    managementHttpState: Type.Union([
+      Type.Literal("STARTING"),
+      Type.Literal("LISTENING"),
+      Type.Literal("CLOSING"),
+      Type.Literal("CLOSED"),
+    ]),
+  }),
+);
 /** Canonical wire schema for RuntimeGraph. */
-export const runtimeGraphSchema = Type.Object({
-  schemaVersion: Type.Literal(1),
-  productGeneration: Type.String(),
-  operatingMode: Type.String(),
-  desiredRevision: Type.Integer(),
-  systems: Type.Array(Type.Record(Type.String(), Type.Unknown())),
-  edges: Type.Array(Type.Record(Type.String(), Type.String())),
-  observedAt: Type.String(),
-});
-
+export const runtimeGraphSchema = readModelEnvelopeSchema(
+  Type.Object({
+    schemaVersion: Type.Literal(1),
+    operatingMode: runtimeOperatingModeSchema,
+    desiredRevision: Type.Integer({ minimum: 0 }),
+    systems: Type.Array(runtimeSystemSnapshotSchema),
+    edges: Type.Array(runtimeGraphEdgeSchema),
+  }),
+);
 /** Canonical wire schema for CapabilityGraph. */
-export const capabilityGraphSchema = Type.Object({
-  schemaVersion: Type.Literal(1),
-  productGeneration: Type.String(),
-  capabilities: Type.Array(Type.Record(Type.String(), Type.Unknown())),
-  selectedBindings: Type.Array(
-    Type.Object({ id: Type.String(), providerId: Type.String() }),
-  ),
-  observedAt: Type.String(),
-});
+export const capabilityGraphSchema = readModelEnvelopeSchema(
+  Type.Object({
+    schemaVersion: Type.Literal(1),
+    capabilities: Type.Array(runtimeCapabilityGraphEntrySchema),
+    selectedBindings: Type.Array(runtimeBindingSnapshotSchema),
+  }),
+);

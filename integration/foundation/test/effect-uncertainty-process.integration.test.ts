@@ -320,7 +320,7 @@ async function crashAfter(child: EffectChild, event: ChildEvent): Promise<void> 
 describePostgres.sequential(
   "EffectOperation process crash/restart qualification",
   () => {
-    it("EU-01 proves one known successful external write", async () => {
+    it("records one known successful external write", async () => {
       const fixture = await makeFixture();
       activeFixtures.push(fixture);
       const workCounterPath = `${fixture.roots.TEMP}\\effect-success-work.log`;
@@ -341,7 +341,7 @@ describePostgres.sequential(
       activeChildren.delete(child);
     }, 300_000);
 
-    it("EU-02 settles a definitive no-effect failure without an external write", async () => {
+    it("settles a definitive no-effect failure without an external write", async () => {
       const fixture = await makeFixture();
       activeFixtures.push(fixture);
       const workCounterPath = `${fixture.roots.TEMP}\\effect-failure-work.log`;
@@ -362,7 +362,7 @@ describePostgres.sequential(
       activeChildren.delete(child);
     }, 300_000);
 
-    it("EU-03 turns a crash after the external write into UNCERTAIN without redispatch", async () => {
+    it("turns a crash after the external write into UNCERTAIN without redispatch", async () => {
       const fixture = await makeFixture();
       activeFixtures.push(fixture);
       await keepFixturePostgresRunning(fixture);
@@ -412,7 +412,7 @@ describePostgres.sequential(
       activeChildren.delete(restarted);
     }, 360_000);
 
-    it("EU-04 conservatively turns a crash before the external write into UNCERTAIN", async () => {
+    it("conservatively turns a crash before the external write into UNCERTAIN", async () => {
       const fixture = await makeFixture();
       activeFixtures.push(fixture);
       await keepFixturePostgresRunning(fixture);
@@ -454,7 +454,7 @@ describePostgres.sequential(
       activeChildren.delete(restarted);
     }, 360_000);
 
-    it("EU-05 replays a committed effect outcome without a second external write", async () => {
+    it("replays a committed effect outcome without a second external write", async () => {
       const fixture = await makeFixture();
       activeFixtures.push(fixture);
       await keepFixturePostgresRunning(fixture);
@@ -497,7 +497,7 @@ describePostgres.sequential(
       activeChildren.delete(restarted);
     }, 360_000);
 
-    it("EU-06 fences a Host that loses ownership after the external write", async () => {
+    it("fences a Host that loses ownership after the external write", async () => {
       const fixture = await makeFixture();
       activeFixtures.push(fixture);
       await keepFixturePostgresRunning(fixture);

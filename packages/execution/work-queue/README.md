@@ -46,8 +46,8 @@ Run `pnpm nx run work-queue:test`, lint, typecheck, build, and the repository
 gates. Real PostgreSQL, Host-fence, and crash/recovery claims require the
 qualification scenarios rather than in-memory tests alone. Durable-execution qualification covers
 `beforeCreate`/`beforeDispatch` admission, DBOS queue profiles, and canonical
-obligation retention; ResourceGovernor and `PressureSnapshot` remain H8-owned
-and are not implemented here.
+obligation retention; ResourceGovernor and `PressureSnapshot` remain owned by
+the recovery and shipping continuity capability and are not implemented here.
 
 ## Architecture references
 

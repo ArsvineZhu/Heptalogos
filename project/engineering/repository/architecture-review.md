@@ -251,8 +251,6 @@
 
 ## Verification
 
-- Has stage stabilization occurred before Hn closure?
-
 - 这是 dependency selection、code correctness、semantic correctness、product qualification 还是 research evaluation？
 - 当前 claim 需要 L0/L1/L2、unit、real PG、crash、CLI contract、live integration、native platform 还是 exact source-less artifact？
 - 当前是否真的有 matching Evidence？
@@ -270,14 +268,11 @@
 - Extension staging 是否拒绝 path traversal/symlink escape/special-file/case-collision，并有 file/byte/depth limits？
 - ExtensionState destructive migration 是否考虑仍 pin 旧 generation 的 durable refs？
 
-## Current-tree evolution / PRE_PRODUCTION closure
+## Current-tree evolution / PRE_PRODUCTION
 
 - Does any current executable identity encode milestone/PR/session history instead of semantic role?
 - Does any reader/writer/parser/alias/fallback preserve a previous project-development shape?
-- Does current governance ask a human or Agent to transcribe a Git object ID that Git/GitHub could determine internally?
 - Is revision identity being mistaken for semantic Authority?
-- Does the PR state distinguish mutable Draft work from the current Ready review candidate?
-- Does any base movement after the Ready candidate is frozen invalidate the candidate and require Draft, requalification, and new review?
 - For every compatibility-like behavior, which declared obligation requires it?
 - If no obligation exists, was obsolete behavior removed rather than adapted?
 - Is PRE_PRODUCTION migration history a current baseline rather than a chronology of dev corrections?

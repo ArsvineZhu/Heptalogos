@@ -118,20 +118,24 @@ Representative adopted dependencies must be imported/compiled under TS7. A libra
 
 Exact version selection must refresh registry/upstream evidence at Catalog freeze/upgrade. Prerelease labels do not replace maturity/risk qualification.
 
-Detailed plan: `qualification/DEPENDENCY-QUALIFICATION.md` → `C-TOOLCHAIN-01`.
+Detailed dependency guidance: `qualification/dependencies.md` and the
+`C-TOOLCHAIN-01` evidence record.
 
-## 2.3 Stage Closure Is Not Product Qualification Closure
+## 2.3 Repository Verification Is Not Product Qualification
 
 以下结论必须分开记录：
 
 ```text
 repository verification != live integration qualification
-stage closure != product qualification closure
-historical evidence != current property ledger
-final review/CI/merge evidence = external candidate-governance evidence
+historical evidence != current property evidence
+workflow definitions or repository checks != cross-platform/provider/artifact proof
 ```
 
-H-stage stabilization 是功能 milestone 完成后的短、受控稳定化阶段，不是第二个产品开发阶段。H1 可以在 source-less packaging、hardware power-loss、service-account ACL 或平台专属 real-PG case 仍为 `NOT_RUN` 时关闭，前提是当前 ledger 不把这些边界写成已证明；它们必须继续以真实状态保留。`pnpm verify` 只证明仓库定义的 repository gate，不自动包含 live PostgreSQL qualification。
+`pnpm verify` proves only the repository code-health checks it runs. A
+platform, live-provider, process, source-less, or shipping claim remains
+`NOT_RUN` until its matching boundary is executed. Qualification records report
+properties; they do not close a release candidate or manufacture review, merge,
+or revalidation evidence.
 
 ## 3. Product Qualification
 

@@ -171,6 +171,11 @@ export class MicroSystemSupervisor {
     return new Map(this.actual);
   }
 
+  /** Reports whether this supervisor still admits and serves current Runtime work. */
+  isActive(): boolean {
+    return this.lifecycleState === "ACTIVE";
+  }
+
   /** Returns a detached, data-only snapshot for Management read projections. */
   getReadOnlySnapshot(): RuntimeKernelReadOnlySnapshot {
     const systems = [...this.definitions.values()]

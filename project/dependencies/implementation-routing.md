@@ -42,6 +42,11 @@
 
 不能在产品代码中偷偷保留一个未经批准的 custom fallback。
 
+普通成熟库/工具只需使用 pnpm Catalog 和 pnpm-lock.yaml 的正常依赖机制。
+它们不因是外部 package 就自动获得 RoleDecision、qualification ID、probe 或
+matrix。Qualification 用于解决具体不确定性或证明已声明的 provider/platform/
+artifact 边界，不是 npm package 的入场考试；dependency count 也不是质量指标。
+
 ### Mechanics lookup algorithm
 
 Before adding or expanding a generic mechanic:

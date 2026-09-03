@@ -15,7 +15,7 @@ import {
   getSystemStatus,
   revokeCurrentManagementSession,
 } from "./generated/index.js";
-import { createClient, type Client } from "./generated/client/index.js";
+import { createClient } from "./generated/client/index.js";
 import type {
   ClaimFirstAdministratorData,
   ClaimFirstAdministratorErrors,
@@ -33,6 +33,26 @@ import type {
 
 /** The redacted Problem envelope generated from the canonical error schema. */
 export type ManagementProblemDetails = ClaimFirstAdministratorErrors[400];
+/** Stable discovery result exposed by the facade. */
+export type ManagementDiscoveryResult = GetManagementDiscoveryResponses[200];
+/** Stable first-claim request input exposed by the facade. */
+export type ClaimFirstAdministratorInput = ClaimFirstAdministratorData["body"];
+/** Stable first-claim result exposed by the facade. */
+export type ClaimFirstAdministratorResult = ClaimFirstAdministratorResponses[201];
+/** Stable login request input exposed by the facade. */
+export type ManagementLoginInput = CreateManagementSessionData["body"];
+/** Stable login result exposed by the facade. */
+export type ManagementLoginResult = CreateManagementSessionResponses[200];
+/** Stable system status result exposed by the facade. */
+export type SystemStatusResult = GetSystemStatusResponses[200];
+/** Stable Host result exposed by the facade. */
+export type HostReadModelResult = GetHostResponses[200];
+/** Stable Runtime graph result exposed by the facade. */
+export type RuntimeGraphResult = GetRuntimeGraphResponses[200];
+/** Stable Capability graph result exposed by the facade. */
+export type CapabilityGraphResult = GetCapabilityGraphResponses[200];
+/** Stable readiness result exposed by the facade. */
+export type ReadinessResult = GetReadinessResponses[200];
 
 /** A transport or canonical Management failure surfaced by the client. */
 export class ManagementClientError extends Error {
@@ -61,6 +81,8 @@ function problemDetails(value: unknown): ManagementProblemDetails | undefined {
     typeof record.status !== "number" ||
     typeof record.detail !== "string" ||
     typeof record.problemCode !== "string" ||
+    typeof record.category !== "string" ||
+    typeof record.retryClass !== "string" ||
     record.schemaVersion !== 1
   ) {
     return undefined;
@@ -77,29 +99,26 @@ export interface ManagementClientOptions {
 
 /** Canonical generated-client operations used by CLI and later clients. */
 export interface ManagementClient {
-  readonly transport: Client;
   /** Reads the live Management discovery descriptor. */
-  getDiscovery(): Promise<GetManagementDiscoveryResponses[200]>;
+  getDiscovery(): Promise<ManagementDiscoveryResult>;
   /** Claims the first Administrator using the published claim material. */
   claimFirstAdministrator(
-    body: ClaimFirstAdministratorData["body"],
-  ): Promise<ClaimFirstAdministratorResponses[201]>;
+    body: ClaimFirstAdministratorInput,
+  ): Promise<ClaimFirstAdministratorResult>;
   /** Creates an opaque Administrator session. */
-  login(
-    body: CreateManagementSessionData["body"],
-  ): Promise<CreateManagementSessionResponses[200]>;
+  login(body: ManagementLoginInput): Promise<ManagementLoginResult>;
   /** Revokes the current opaque Administrator session. */
   logout(): Promise<RevokeCurrentManagementSessionResponses[204]>;
   /** Reads aggregate system status. */
-  getSystemStatus(): Promise<GetSystemStatusResponses[200]>;
+  getSystemStatus(): Promise<SystemStatusResult>;
   /** Reads the current Host projection. */
-  getHost(): Promise<GetHostResponses[200]>;
+  getHost(): Promise<HostReadModelResult>;
   /** Reads the current Runtime graph projection. */
-  getRuntimeGraph(): Promise<GetRuntimeGraphResponses[200]>;
+  getRuntimeGraph(): Promise<RuntimeGraphResult>;
   /** Reads the current Capability graph projection. */
-  getCapabilityGraph(): Promise<GetCapabilityGraphResponses[200]>;
+  getCapabilityGraph(): Promise<CapabilityGraphResult>;
   /** Reads current Product Host readiness. */
-  getReadiness(): Promise<GetReadinessResponses[200]>;
+  getReadiness(): Promise<ReadinessResult>;
 }
 
 type ClientRequestResult<T> = Promise<T>;
@@ -124,7 +143,6 @@ export function createManagementClient(
     headers: { "x-heptalogos-contract-version": "management.v1" },
   });
   return Object.freeze({
-    transport,
     getDiscovery() {
       return request(
         () =>

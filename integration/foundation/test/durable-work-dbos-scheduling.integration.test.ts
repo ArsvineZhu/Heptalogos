@@ -53,10 +53,10 @@ describePostgres.sequential("DBOS queue and scheduling qualification", () => {
     const composition = activeComposition;
     await requireDurable(composition);
     const delayed = await createWork(composition, composition.target, {
-      dedupKey: "dbos-t12-delay",
+      dedupKey: "dbos-delay",
     });
     const throttled = await createWork(composition, composition.target, {
-      dedupKey: "dbos-t12-throttle",
+      dedupKey: "dbos-throttle",
     });
     decisions.set(String(delayed.item.workItemId), "DELAY");
     decisions.set(String(throttled.item.workItemId), "THROTTLE");
@@ -145,10 +145,10 @@ describePostgres.sequential("DBOS queue and scheduling qualification", () => {
     const composition = activeComposition;
     await requireDurable(composition);
     const first = await createWork(composition, composition.target, {
-      dedupKey: "dbos-t12-global-concurrency-first",
+      dedupKey: "dbos-global-concurrency-first",
     });
     const second = await createWork(composition, composition.target, {
-      dedupKey: "dbos-t12-global-concurrency-second",
+      dedupKey: "dbos-global-concurrency-second",
     });
     await Promise.all([
       composition.durableDispatch.dispatch(durableRequest(first.item)),
@@ -210,10 +210,10 @@ describePostgres.sequential("DBOS queue and scheduling qualification", () => {
     const composition = activeComposition;
     await requireDurable(composition);
     const first = await createWork(composition, composition.target, {
-      dedupKey: "dbos-t12-rate-limit-first",
+      dedupKey: "dbos-rate-limit-first",
     });
     const second = await createWork(composition, composition.target, {
-      dedupKey: "dbos-t12-rate-limit-second",
+      dedupKey: "dbos-rate-limit-second",
     });
     await Promise.all([
       composition.durableDispatch.dispatch(durableRequest(first.item)),
@@ -309,19 +309,19 @@ describePostgres.sequential("DBOS queue and scheduling qualification", () => {
     await requireDurable(composition);
     const items = [
       await createWork(composition, composition.target, {
-        dedupKey: "dbos-t12-partition-a-first",
+        dedupKey: "dbos-partition-a-first",
         partitionKey: "tenant-a",
       }),
       await createWork(composition, composition.target, {
-        dedupKey: "dbos-t12-partition-a-second",
+        dedupKey: "dbos-partition-a-second",
         partitionKey: "tenant-a",
       }),
       await createWork(composition, composition.target, {
-        dedupKey: "dbos-t12-partition-b-first",
+        dedupKey: "dbos-partition-b-first",
         partitionKey: "tenant-b",
       }),
       await createWork(composition, composition.target, {
-        dedupKey: "dbos-t12-partition-b-second",
+        dedupKey: "dbos-partition-b-second",
         partitionKey: "tenant-b",
       }),
     ];
@@ -411,11 +411,11 @@ describePostgres.sequential("DBOS queue and scheduling qualification", () => {
     const composition = activeComposition;
     await requireDurable(composition);
     const lowPriority = await createWork(composition, composition.target, {
-      dedupKey: "dbos-t12-priority-low",
+      dedupKey: "dbos-priority-low",
       priority: 100,
     });
     const highPriority = await createWork(composition, composition.target, {
-      dedupKey: "dbos-t12-priority-high",
+      dedupKey: "dbos-priority-high",
       priority: 1,
     });
     highPriorityWorkItemId = String(highPriority.item.workItemId);

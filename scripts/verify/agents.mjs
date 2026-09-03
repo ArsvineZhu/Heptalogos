@@ -132,7 +132,11 @@ requireFile(path.join(repoRoot, "AGENTS.md"));
 if (requireDirectory(skillsRoot, ".agents/skills")) {
   const skillDirectories = fs
     .readdirSync(skillsRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
+    .filter(
+      (entry) =>
+        entry.isDirectory() &&
+        fs.existsSync(path.join(skillsRoot, entry.name, "SKILL.md")),
+    )
     .map((entry) => path.join(skillsRoot, entry.name))
     .sort((left, right) => left.localeCompare(right));
   const names = new Map();
