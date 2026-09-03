@@ -111,6 +111,70 @@ export interface CanonicalDatabase {
     readonly retention_class: string;
     readonly sensitivity: string;
   };
+  readonly configuration_revision: {
+    readonly revision_id: string;
+    readonly definition_id: string;
+    readonly definition_version: number;
+    readonly scope_ref: unknown;
+    readonly scope_key: string;
+    readonly value: unknown;
+    readonly source: string;
+    readonly status: string;
+    readonly value_digest: string;
+    readonly created_at: Date | string;
+    readonly lineage_context_ref: unknown;
+  };
+  readonly configuration_activation: {
+    readonly activation_id: string;
+    readonly scope_ref: unknown;
+    readonly scope_key: string;
+    readonly active_revision_id: string;
+    readonly previous_revision_id: string | null;
+    readonly impact: string;
+    readonly effective_at: Date | string;
+    readonly lineage_context_ref: unknown;
+  };
+  readonly secret_metadata: {
+    readonly secret_id: string;
+    readonly state: string;
+    readonly purpose: string;
+    readonly scope_ref: unknown;
+    readonly scope_key: string | null;
+    readonly backend_kind: string;
+    readonly backend_service: string;
+    readonly backend_account: string;
+    readonly material_generation: number | string;
+    readonly created_at: Date | string;
+    readonly replaced_at: Date | string | null;
+    readonly revoked_at: Date | string | null;
+    readonly lineage_context_ref: unknown;
+  };
+  readonly provider_profile: {
+    readonly provider_profile_id: string;
+    readonly configuration_revision_ref: string;
+    readonly secret_refs: unknown;
+    readonly network_access_profile_ref: string;
+    readonly enabled: boolean;
+    readonly provider_settings: unknown;
+    readonly lineage_context_ref: unknown;
+  };
+  readonly model_profile: {
+    readonly model_profile_id: string;
+    readonly provider_profile_id: string;
+    readonly provider_model_identifier: string;
+    readonly consumed_capabilities: unknown;
+    readonly generation: number | string;
+    readonly configuration_revision_ref: string;
+    readonly lineage_context_ref: unknown;
+  };
+  readonly model_binding: {
+    readonly model_binding_id: string;
+    readonly role: string;
+    readonly model_profile_id: string;
+    readonly revision: number | string;
+    readonly enabled: boolean;
+    readonly lineage_context_ref: unknown;
+  };
 }
 
 /** Holds the Kysely database and its bounded close operation. */

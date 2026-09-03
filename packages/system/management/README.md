@@ -4,9 +4,10 @@
 
 management owns the canonical Management semantics: the single
 Administrator, first-administrator claim, server-side sessions, complete
-Problem projections, SystemAction contract schemas, and enveloped read-only
-Host, Runtime, Capability, and Readiness projections. It is the semantic
-service behind HTTP, the generated client, and the reference CLI.
+Problem projections, the bounded current SystemAction plan/execute contract,
+and enveloped read-only Host, Runtime, Capability, Product, and Readiness
+projections. It is the semantic service behind HTTP, the generated client, and
+the reference CLI.
 
 ## Owns
 
@@ -18,13 +19,15 @@ service behind HTTP, the generated client, and the reference CLI.
   schema owned by `@heptalogos/execution-lineage`; Management does not define a
   second lineage contract.
 - SystemActionDefinition, SystemChangePlan, and SystemActionExecuteResult
-  contract types/schemas without an action runtime.
+  contracts plus the eight current Product prerequisite action routes.
+- Product prerequisite reads for Configuration, Secret metadata, NetworkAccess,
+  ProviderProfile, ModelProfile, ModelBinding, and AIRuntime readiness.
 - The system.management MicroSystem definition and service contract.
 
 ## Does not own
 
 - Fastify, OpenAPI transport, CLI parsing, native keyring, Bootstrap, or Runtime internals.
-- Generic SystemAction registries, action endpoints, approval engines, Cedar
+- Generic SystemAction registries, durable approval/operation stores, Cedar
   execution, or future domain mutations.
 - A second database, transaction pool, or read-model store.
 - Public repository, password/hash, token, or Argon2 mechanics.

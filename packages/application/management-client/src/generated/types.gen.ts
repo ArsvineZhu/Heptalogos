@@ -761,3 +761,584 @@ export type GetReadinessResponses = {
 };
 
 export type GetReadinessResponse = GetReadinessResponses[keyof GetReadinessResponses];
+
+export type GetSystemActionCatalogData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/management/v1/actions';
+};
+
+export type GetSystemActionCatalogErrors = {
+    /**
+     * Default Response
+     */
+    401: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    426: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+};
+
+export type GetSystemActionCatalogError = GetSystemActionCatalogErrors[keyof GetSystemActionCatalogErrors];
+
+export type GetSystemActionCatalogResponses = {
+    /**
+     * Default Response
+     */
+    200: Array<{
+        schemaVersion: 1;
+        actionId: string;
+        actionVersion: number;
+        inputSchema: {
+            schemaVersion: 1;
+            schemaId: string;
+        };
+        outputSchema: {
+            schemaVersion: 1;
+            schemaId: string;
+        };
+        targetKind: string;
+        riskClass: 'READ_ONLY' | 'LOW' | 'MATERIAL';
+        applyMode: 'IMMEDIATE' | 'RECONCILE';
+    }>;
+};
+
+export type GetSystemActionCatalogResponse = GetSystemActionCatalogResponses[keyof GetSystemActionCatalogResponses];
+
+export type PlanSystemActionData = {
+    body: {
+        actionId: 'configuration.revision.create';
+        input: {
+            definitionId: 'ai.provider.transport.v1';
+            scopeRef: {
+                schemaVersion: 1;
+                resourceKind: string;
+                resourceId: string;
+            };
+            value: {
+                schemaVersion: 1;
+                timeoutMs: number;
+                requestBodyBudgetBytes: number;
+                responseBodyBudgetBytes: number;
+                expandedResponseBodyBudgetBytes: number;
+            };
+        };
+    } | {
+        actionId: 'configuration.activate';
+        input: {
+            revisionId: string;
+            expectedActiveRevisionId?: string;
+        };
+    } | {
+        actionId: 'secret.set';
+        input: {
+            purpose: string;
+            scopeRef?: {
+                schemaVersion: 1;
+                resourceKind: string;
+                resourceId: string;
+            };
+            material: string;
+        };
+    } | {
+        actionId: 'secret.replace';
+        input: {
+            secretRef: string;
+            material: string;
+        };
+    } | {
+        actionId: 'secret.revoke';
+        input: {
+            secretRef: string;
+        };
+    } | {
+        actionId: 'provider-profile.set';
+        input: {
+            providerProfileId?: string;
+            providerKind: 'openai';
+            configurationRevisionRef: string;
+            secretRefs: Array<{
+                schemaVersion: 1;
+                secretId: string;
+            }>;
+            enabled: boolean;
+        };
+    } | {
+        actionId: 'model-profile.set';
+        input: {
+            modelProfileId?: string;
+            providerProfileId: string;
+            providerModelIdentifier: string;
+            consumedCapabilities: Array<'text-generation' | 'structured-output' | 'usage-metadata' | 'abort-timeout'>;
+            configurationRevisionRef: string;
+        };
+    } | {
+        actionId: 'model-binding.set';
+        input: {
+            role: 'subject.primary' | 'subject.expression';
+            modelProfileId: string;
+        };
+    };
+    path?: never;
+    query?: never;
+    url: '/management/v1/actions/plan';
+};
+
+export type PlanSystemActionErrors = {
+    /**
+     * Default Response
+     */
+    400: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    401: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    409: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    426: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    503: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+};
+
+export type PlanSystemActionError = PlanSystemActionErrors[keyof PlanSystemActionErrors];
+
+export type PlanSystemActionResponses = {
+    /**
+     * Default Response
+     */
+    200: {
+        schemaVersion: 1;
+        planId: string;
+        actionId: string;
+        actionVersion: number;
+        normalizedInputDigest: string;
+        targetPreconditions: Array<{
+            schemaVersion: 1;
+            resource: {
+                schemaVersion: 1;
+                resourceKind: string;
+                resourceId: string;
+                resourceRevision?: number;
+            };
+            expectedRevision?: number;
+            expectedDigest?: string;
+        }>;
+        affectedSemanticOwners: Array<string>;
+        configurationReadinessSubjectImpact: null | boolean | number | string | Array<unknown> | {
+            [key: string]: unknown;
+        };
+        restartReconcileImpact: null | boolean | number | string | Array<unknown> | {
+            [key: string]: unknown;
+        };
+        riskClass: 'READ_ONLY' | 'LOW' | 'MATERIAL';
+        planDigest: string;
+        createdAt: string;
+        lineageContextRef: {
+            schemaVersion: 1;
+            sourceActivityId: string;
+            sourceInstanceId: string;
+            sourceContinuityEpochId: string;
+            telemetry?: {
+                traceId: string;
+                spanId: string;
+                traceFlags: number;
+            };
+        };
+    };
+};
+
+export type PlanSystemActionResponse = PlanSystemActionResponses[keyof PlanSystemActionResponses];
+
+export type ExecuteSystemActionData = {
+    body: {
+        plan: {
+            schemaVersion: 1;
+            planId: string;
+            actionId: string;
+            actionVersion: number;
+            normalizedInputDigest: string;
+            targetPreconditions: Array<{
+                schemaVersion: 1;
+                resource: {
+                    schemaVersion: 1;
+                    resourceKind: string;
+                    resourceId: string;
+                    resourceRevision?: number;
+                };
+                expectedRevision?: number;
+                expectedDigest?: string;
+            }>;
+            affectedSemanticOwners: Array<string>;
+            configurationReadinessSubjectImpact: null | boolean | number | string | Array<unknown> | {
+                [key: string]: unknown;
+            };
+            restartReconcileImpact: null | boolean | number | string | Array<unknown> | {
+                [key: string]: unknown;
+            };
+            riskClass: 'READ_ONLY' | 'LOW' | 'MATERIAL';
+            planDigest: string;
+            createdAt: string;
+            lineageContextRef: {
+                schemaVersion: 1;
+                sourceActivityId: string;
+                sourceInstanceId: string;
+                sourceContinuityEpochId: string;
+                telemetry?: {
+                    traceId: string;
+                    spanId: string;
+                    traceFlags: number;
+                };
+            };
+        };
+        action: {
+            actionId: 'configuration.revision.create';
+            input: {
+                definitionId: 'ai.provider.transport.v1';
+                scopeRef: {
+                    schemaVersion: 1;
+                    resourceKind: string;
+                    resourceId: string;
+                };
+                value: {
+                    schemaVersion: 1;
+                    timeoutMs: number;
+                    requestBodyBudgetBytes: number;
+                    responseBodyBudgetBytes: number;
+                    expandedResponseBodyBudgetBytes: number;
+                };
+            };
+        } | {
+            actionId: 'configuration.activate';
+            input: {
+                revisionId: string;
+                expectedActiveRevisionId?: string;
+            };
+        } | {
+            actionId: 'secret.set';
+            input: {
+                purpose: string;
+                scopeRef?: {
+                    schemaVersion: 1;
+                    resourceKind: string;
+                    resourceId: string;
+                };
+                material: string;
+            };
+        } | {
+            actionId: 'secret.replace';
+            input: {
+                secretRef: string;
+                material: string;
+            };
+        } | {
+            actionId: 'secret.revoke';
+            input: {
+                secretRef: string;
+            };
+        } | {
+            actionId: 'provider-profile.set';
+            input: {
+                providerProfileId?: string;
+                providerKind: 'openai';
+                configurationRevisionRef: string;
+                secretRefs: Array<{
+                    schemaVersion: 1;
+                    secretId: string;
+                }>;
+                enabled: boolean;
+            };
+        } | {
+            actionId: 'model-profile.set';
+            input: {
+                modelProfileId?: string;
+                providerProfileId: string;
+                providerModelIdentifier: string;
+                consumedCapabilities: Array<'text-generation' | 'structured-output' | 'usage-metadata' | 'abort-timeout'>;
+                configurationRevisionRef: string;
+            };
+        } | {
+            actionId: 'model-binding.set';
+            input: {
+                role: 'subject.primary' | 'subject.expression';
+                modelProfileId: string;
+            };
+        };
+    };
+    path?: never;
+    query?: never;
+    url: '/management/v1/actions/execute';
+};
+
+export type ExecuteSystemActionErrors = {
+    /**
+     * Default Response
+     */
+    400: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    401: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    409: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    426: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    503: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+};
+
+export type ExecuteSystemActionError = ExecuteSystemActionErrors[keyof ExecuteSystemActionErrors];
+
+export type ExecuteSystemActionResponses = {
+    /**
+     * Default Response
+     */
+    200: {
+        schemaVersion: 1;
+        actionId: string;
+        planDigest: string;
+        result: null | boolean | number | string | Array<unknown> | {
+            [key: string]: unknown;
+        };
+        postconditionsVerified: boolean;
+        evidenceRefs: Array<{
+            schemaVersion: 1;
+            evidenceId: string;
+        }>;
+    };
+};
+
+export type ExecuteSystemActionResponse = ExecuteSystemActionResponses[keyof ExecuteSystemActionResponses];
+
+export type GetProductStateData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/management/v1/product/state';
+};
+
+export type GetProductStateErrors = {
+    /**
+     * Default Response
+     */
+    401: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    426: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+    /**
+     * Default Response
+     */
+    503: {
+        type: string;
+        title: string;
+        status: number;
+        detail: string;
+        instance?: string;
+        problemCode: string;
+        category: string;
+        retryClass: 'never' | 'immediate' | 'backoff' | 'after-change' | 'manual';
+        schemaVersion: 1;
+    };
+};
+
+export type GetProductStateError = GetProductStateErrors[keyof GetProductStateErrors];
+
+export type GetProductStateResponses = {
+    /**
+     * Default Response
+     */
+    200: {
+        schemaVersion: 1;
+        contractVersion: 'management.v1';
+        resource: {
+            schemaVersion: 1;
+            resourceKind: string;
+            resourceId: string;
+            resourceRevision?: number;
+        };
+        observedAt: string;
+        productGeneration: string;
+        continuityEpochId: string;
+        data: {
+            schemaVersion: 1;
+            configuration: {
+                definitions: Array<unknown>;
+                revisions: Array<unknown>;
+                activations: Array<unknown>;
+            };
+            secrets: Array<unknown>;
+            providerProfiles: Array<unknown>;
+            modelProfiles: Array<unknown>;
+            modelBindings: Array<unknown>;
+            networkAccess: unknown;
+            aiReadiness: unknown;
+        };
+        lineageContextRef?: {
+            schemaVersion: 1;
+            sourceActivityId: string;
+            sourceInstanceId: string;
+            sourceContinuityEpochId: string;
+            telemetry?: {
+                traceId: string;
+                spanId: string;
+                traceFlags: number;
+            };
+        };
+    };
+};
+
+export type GetProductStateResponse = GetProductStateResponses[keyof GetProductStateResponses];

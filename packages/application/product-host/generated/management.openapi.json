@@ -3621,6 +3621,3105 @@
           }
         }
       }
+    },
+    "/management/v1/actions": {
+      "get": {
+        "operationId": "getSystemActionCatalog",
+        "summary": "Read the current SystemAction catalog",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "schemaVersion",
+                      "actionId",
+                      "actionVersion",
+                      "inputSchema",
+                      "outputSchema",
+                      "targetKind",
+                      "riskClass",
+                      "applyMode"
+                    ],
+                    "properties": {
+                      "schemaVersion": {
+                        "type": "number",
+                        "enum": [
+                          1
+                        ]
+                      },
+                      "actionId": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$"
+                      },
+                      "actionVersion": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "inputSchema": {
+                        "type": "object",
+                        "required": [
+                          "schemaVersion",
+                          "schemaId"
+                        ],
+                        "properties": {
+                          "schemaVersion": {
+                            "type": "number",
+                            "enum": [
+                              1
+                            ]
+                          },
+                          "schemaId": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        }
+                      },
+                      "outputSchema": {
+                        "type": "object",
+                        "required": [
+                          "schemaVersion",
+                          "schemaId"
+                        ],
+                        "properties": {
+                          "schemaVersion": {
+                            "type": "number",
+                            "enum": [
+                              1
+                            ]
+                          },
+                          "schemaId": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        }
+                      },
+                      "targetKind": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "riskClass": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "READ_ONLY"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "LOW"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "MATERIAL"
+                            ]
+                          }
+                        ]
+                      },
+                      "applyMode": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "IMMEDIATE"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "RECONCILE"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "problemCode",
+                    "category",
+                    "retryClass",
+                    "schemaVersion"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "problemCode": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "retryClass": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "never"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "immediate"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "backoff"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "after-change"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "manual"
+                          ]
+                        }
+                      ]
+                    },
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "problemCode",
+                    "category",
+                    "retryClass",
+                    "schemaVersion"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "problemCode": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "retryClass": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "never"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "immediate"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "backoff"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "after-change"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "manual"
+                          ]
+                        }
+                      ]
+                    },
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/management/v1/actions/plan": {
+      "post": {
+        "operationId": "planSystemAction",
+        "summary": "Create a side-effect-free current SystemAction plan",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "actionId",
+                      "input"
+                    ],
+                    "properties": {
+                      "actionId": {
+                        "type": "string",
+                        "enum": [
+                          "configuration.revision.create"
+                        ]
+                      },
+                      "input": {
+                        "type": "object",
+                        "required": [
+                          "definitionId",
+                          "scopeRef",
+                          "value"
+                        ],
+                        "properties": {
+                          "definitionId": {
+                            "type": "string",
+                            "enum": [
+                              "ai.provider.transport.v1"
+                            ]
+                          },
+                          "scopeRef": {
+                            "type": "object",
+                            "required": [
+                              "schemaVersion",
+                              "resourceKind",
+                              "resourceId"
+                            ],
+                            "properties": {
+                              "schemaVersion": {
+                                "type": "number",
+                                "enum": [
+                                  1
+                                ]
+                              },
+                              "resourceKind": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "resourceId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "value": {
+                            "type": "object",
+                            "required": [
+                              "schemaVersion",
+                              "timeoutMs",
+                              "requestBodyBudgetBytes",
+                              "responseBodyBudgetBytes",
+                              "expandedResponseBodyBudgetBytes"
+                            ],
+                            "properties": {
+                              "schemaVersion": {
+                                "type": "number",
+                                "enum": [
+                                  1
+                                ]
+                              },
+                              "timeoutMs": {
+                                "type": "integer",
+                                "minimum": 1000,
+                                "maximum": 300000
+                              },
+                              "requestBodyBudgetBytes": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 4194304
+                              },
+                              "responseBodyBudgetBytes": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16777216
+                              },
+                              "expandedResponseBodyBudgetBytes": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 33554432
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "actionId",
+                      "input"
+                    ],
+                    "properties": {
+                      "actionId": {
+                        "type": "string",
+                        "enum": [
+                          "configuration.activate"
+                        ]
+                      },
+                      "input": {
+                        "type": "object",
+                        "required": [
+                          "revisionId"
+                        ],
+                        "properties": {
+                          "revisionId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "expectedActiveRevisionId": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "actionId",
+                      "input"
+                    ],
+                    "properties": {
+                      "actionId": {
+                        "type": "string",
+                        "enum": [
+                          "secret.set"
+                        ]
+                      },
+                      "input": {
+                        "type": "object",
+                        "required": [
+                          "purpose",
+                          "material"
+                        ],
+                        "properties": {
+                          "purpose": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          "scopeRef": {
+                            "type": "object",
+                            "required": [
+                              "schemaVersion",
+                              "resourceKind",
+                              "resourceId"
+                            ],
+                            "properties": {
+                              "schemaVersion": {
+                                "type": "number",
+                                "enum": [
+                                  1
+                                ]
+                              },
+                              "resourceKind": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "resourceId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "material": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 4096
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "actionId",
+                      "input"
+                    ],
+                    "properties": {
+                      "actionId": {
+                        "type": "string",
+                        "enum": [
+                          "secret.replace"
+                        ]
+                      },
+                      "input": {
+                        "type": "object",
+                        "required": [
+                          "secretRef",
+                          "material"
+                        ],
+                        "properties": {
+                          "secretRef": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "material": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 4096
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "actionId",
+                      "input"
+                    ],
+                    "properties": {
+                      "actionId": {
+                        "type": "string",
+                        "enum": [
+                          "secret.revoke"
+                        ]
+                      },
+                      "input": {
+                        "type": "object",
+                        "required": [
+                          "secretRef"
+                        ],
+                        "properties": {
+                          "secretRef": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "actionId",
+                      "input"
+                    ],
+                    "properties": {
+                      "actionId": {
+                        "type": "string",
+                        "enum": [
+                          "provider-profile.set"
+                        ]
+                      },
+                      "input": {
+                        "type": "object",
+                        "required": [
+                          "providerKind",
+                          "configurationRevisionRef",
+                          "secretRefs",
+                          "enabled"
+                        ],
+                        "properties": {
+                          "providerProfileId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "providerKind": {
+                            "type": "string",
+                            "enum": [
+                              "openai"
+                            ]
+                          },
+                          "configurationRevisionRef": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "secretRefs": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "schemaVersion",
+                                "secretId"
+                              ],
+                              "properties": {
+                                "schemaVersion": {
+                                  "type": "number",
+                                  "enum": [
+                                    1
+                                  ]
+                                },
+                                "secretId": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "maxItems": 1
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "actionId",
+                      "input"
+                    ],
+                    "properties": {
+                      "actionId": {
+                        "type": "string",
+                        "enum": [
+                          "model-profile.set"
+                        ]
+                      },
+                      "input": {
+                        "type": "object",
+                        "required": [
+                          "providerProfileId",
+                          "providerModelIdentifier",
+                          "consumedCapabilities",
+                          "configurationRevisionRef"
+                        ],
+                        "properties": {
+                          "modelProfileId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "providerProfileId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "providerModelIdentifier": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          "consumedCapabilities": {
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "text-generation"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "structured-output"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "usage-metadata"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "abort-timeout"
+                                  ]
+                                }
+                              ]
+                            },
+                            "minItems": 1,
+                            "maxItems": 4
+                          },
+                          "configurationRevisionRef": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "actionId",
+                      "input"
+                    ],
+                    "properties": {
+                      "actionId": {
+                        "type": "string",
+                        "enum": [
+                          "model-binding.set"
+                        ]
+                      },
+                      "input": {
+                        "type": "object",
+                        "required": [
+                          "role",
+                          "modelProfileId"
+                        ],
+                        "properties": {
+                          "role": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "subject.primary"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "subject.expression"
+                                ]
+                              }
+                            ]
+                          },
+                          "modelProfileId": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "schemaVersion",
+                    "planId",
+                    "actionId",
+                    "actionVersion",
+                    "normalizedInputDigest",
+                    "targetPreconditions",
+                    "affectedSemanticOwners",
+                    "configurationReadinessSubjectImpact",
+                    "restartReconcileImpact",
+                    "riskClass",
+                    "planDigest",
+                    "createdAt",
+                    "lineageContextRef"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "planId": {
+                      "type": "string",
+                      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                    },
+                    "actionId": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$"
+                    },
+                    "actionVersion": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "normalizedInputDigest": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "targetPreconditions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "schemaVersion",
+                          "resource"
+                        ],
+                        "properties": {
+                          "schemaVersion": {
+                            "type": "number",
+                            "enum": [
+                              1
+                            ]
+                          },
+                          "resource": {
+                            "type": "object",
+                            "required": [
+                              "schemaVersion",
+                              "resourceKind",
+                              "resourceId"
+                            ],
+                            "properties": {
+                              "schemaVersion": {
+                                "type": "number",
+                                "enum": [
+                                  1
+                                ]
+                              },
+                              "resourceKind": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "resourceId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "resourceRevision": {
+                                "type": "integer",
+                                "minimum": 0
+                              }
+                            }
+                          },
+                          "expectedRevision": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "expectedDigest": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          }
+                        }
+                      }
+                    },
+                    "affectedSemanticOwners": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$"
+                      }
+                    },
+                    "configurationReadinessSubjectImpact": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      ]
+                    },
+                    "restartReconcileImpact": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      ]
+                    },
+                    "riskClass": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "READ_ONLY"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "LOW"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "MATERIAL"
+                          ]
+                        }
+                      ]
+                    },
+                    "planDigest": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "lineageContextRef": {
+                      "type": "object",
+                      "required": [
+                        "schemaVersion",
+                        "sourceActivityId",
+                        "sourceInstanceId",
+                        "sourceContinuityEpochId"
+                      ],
+                      "properties": {
+                        "schemaVersion": {
+                          "type": "number",
+                          "enum": [
+                            1
+                          ]
+                        },
+                        "sourceActivityId": {
+                          "type": "string",
+                          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                        },
+                        "sourceInstanceId": {
+                          "type": "string",
+                          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                        },
+                        "sourceContinuityEpochId": {
+                          "type": "string",
+                          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                        },
+                        "telemetry": {
+                          "type": "object",
+                          "required": [
+                            "traceId",
+                            "spanId",
+                            "traceFlags"
+                          ],
+                          "properties": {
+                            "traceId": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "spanId": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "traceFlags": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 255
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "problemCode",
+                    "category",
+                    "retryClass",
+                    "schemaVersion"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "problemCode": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "retryClass": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "never"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "immediate"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "backoff"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "after-change"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "manual"
+                          ]
+                        }
+                      ]
+                    },
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "problemCode",
+                    "category",
+                    "retryClass",
+                    "schemaVersion"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "problemCode": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "retryClass": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "never"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "immediate"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "backoff"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "after-change"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "manual"
+                          ]
+                        }
+                      ]
+                    },
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "problemCode",
+                    "category",
+                    "retryClass",
+                    "schemaVersion"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "problemCode": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "retryClass": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "never"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "immediate"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "backoff"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "after-change"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "manual"
+                          ]
+                        }
+                      ]
+                    },
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "problemCode",
+                    "category",
+                    "retryClass",
+                    "schemaVersion"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "problemCode": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "retryClass": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "never"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "immediate"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "backoff"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "after-change"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "manual"
+                          ]
+                        }
+                      ]
+                    },
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "problemCode",
+                    "category",
+                    "retryClass",
+                    "schemaVersion"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "problemCode": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "retryClass": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "never"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "immediate"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "backoff"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "after-change"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "manual"
+                          ]
+                        }
+                      ]
+                    },
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/management/v1/actions/execute": {
+      "post": {
+        "operationId": "executeSystemAction",
+        "summary": "Reauthenticate and execute one exact SystemAction plan",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "plan",
+                  "action"
+                ],
+                "properties": {
+                  "plan": {
+                    "type": "object",
+                    "required": [
+                      "schemaVersion",
+                      "planId",
+                      "actionId",
+                      "actionVersion",
+                      "normalizedInputDigest",
+                      "targetPreconditions",
+                      "affectedSemanticOwners",
+                      "configurationReadinessSubjectImpact",
+                      "restartReconcileImpact",
+                      "riskClass",
+                      "planDigest",
+                      "createdAt",
+                      "lineageContextRef"
+                    ],
+                    "properties": {
+                      "schemaVersion": {
+                        "type": "number",
+                        "enum": [
+                          1
+                        ]
+                      },
+                      "planId": {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                      },
+                      "actionId": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$"
+                      },
+                      "actionVersion": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "normalizedInputDigest": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "targetPreconditions": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "schemaVersion",
+                            "resource"
+                          ],
+                          "properties": {
+                            "schemaVersion": {
+                              "type": "number",
+                              "enum": [
+                                1
+                              ]
+                            },
+                            "resource": {
+                              "type": "object",
+                              "required": [
+                                "schemaVersion",
+                                "resourceKind",
+                                "resourceId"
+                              ],
+                              "properties": {
+                                "schemaVersion": {
+                                  "type": "number",
+                                  "enum": [
+                                    1
+                                  ]
+                                },
+                                "resourceKind": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "resourceId": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "resourceRevision": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                }
+                              }
+                            },
+                            "expectedRevision": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "expectedDigest": {
+                              "type": "string",
+                              "pattern": "^[0-9a-f]{64}$"
+                            }
+                          }
+                        }
+                      },
+                      "affectedSemanticOwners": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$"
+                        }
+                      },
+                      "configurationReadinessSubjectImpact": {
+                        "anyOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "boolean"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "array",
+                            "items": {}
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        ]
+                      },
+                      "restartReconcileImpact": {
+                        "anyOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "boolean"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "array",
+                            "items": {}
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        ]
+                      },
+                      "riskClass": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "READ_ONLY"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "LOW"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "MATERIAL"
+                            ]
+                          }
+                        ]
+                      },
+                      "planDigest": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "lineageContextRef": {
+                        "type": "object",
+                        "required": [
+                          "schemaVersion",
+                          "sourceActivityId",
+                          "sourceInstanceId",
+                          "sourceContinuityEpochId"
+                        ],
+                        "properties": {
+                          "schemaVersion": {
+                            "type": "number",
+                            "enum": [
+                              1
+                            ]
+                          },
+                          "sourceActivityId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                          },
+                          "sourceInstanceId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                          },
+                          "sourceContinuityEpochId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                          },
+                          "telemetry": {
+                            "type": "object",
+                            "required": [
+                              "traceId",
+                              "spanId",
+                              "traceFlags"
+                            ],
+                            "properties": {
+                              "traceId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "spanId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "traceFlags": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 255
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "action": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "required": [
+                          "actionId",
+                          "input"
+                        ],
+                        "properties": {
+                          "actionId": {
+                            "type": "string",
+                            "enum": [
+                              "configuration.revision.create"
+                            ]
+                          },
+                          "input": {
+                            "type": "object",
+                            "required": [
+                              "definitionId",
+                              "scopeRef",
+                              "value"
+                            ],
+                            "properties": {
+                              "definitionId": {
+                                "type": "string",
+                                "enum": [
+                                  "ai.provider.transport.v1"
+                                ]
+                              },
+                              "scopeRef": {
+                                "type": "object",
+                                "required": [
+                                  "schemaVersion",
+                                  "resourceKind",
+                                  "resourceId"
+                                ],
+                                "properties": {
+                                  "schemaVersion": {
+                                    "type": "number",
+                                    "enum": [
+                                      1
+                                    ]
+                                  },
+                                  "resourceKind": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "resourceId": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 256
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "value": {
+                                "type": "object",
+                                "required": [
+                                  "schemaVersion",
+                                  "timeoutMs",
+                                  "requestBodyBudgetBytes",
+                                  "responseBodyBudgetBytes",
+                                  "expandedResponseBodyBudgetBytes"
+                                ],
+                                "properties": {
+                                  "schemaVersion": {
+                                    "type": "number",
+                                    "enum": [
+                                      1
+                                    ]
+                                  },
+                                  "timeoutMs": {
+                                    "type": "integer",
+                                    "minimum": 1000,
+                                    "maximum": 300000
+                                  },
+                                  "requestBodyBudgetBytes": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 4194304
+                                  },
+                                  "responseBodyBudgetBytes": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 16777216
+                                  },
+                                  "expandedResponseBodyBudgetBytes": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 33554432
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "actionId",
+                          "input"
+                        ],
+                        "properties": {
+                          "actionId": {
+                            "type": "string",
+                            "enum": [
+                              "configuration.activate"
+                            ]
+                          },
+                          "input": {
+                            "type": "object",
+                            "required": [
+                              "revisionId"
+                            ],
+                            "properties": {
+                              "revisionId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "expectedActiveRevisionId": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "actionId",
+                          "input"
+                        ],
+                        "properties": {
+                          "actionId": {
+                            "type": "string",
+                            "enum": [
+                              "secret.set"
+                            ]
+                          },
+                          "input": {
+                            "type": "object",
+                            "required": [
+                              "purpose",
+                              "material"
+                            ],
+                            "properties": {
+                              "purpose": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "scopeRef": {
+                                "type": "object",
+                                "required": [
+                                  "schemaVersion",
+                                  "resourceKind",
+                                  "resourceId"
+                                ],
+                                "properties": {
+                                  "schemaVersion": {
+                                    "type": "number",
+                                    "enum": [
+                                      1
+                                    ]
+                                  },
+                                  "resourceKind": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "resourceId": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 256
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "material": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 4096
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "actionId",
+                          "input"
+                        ],
+                        "properties": {
+                          "actionId": {
+                            "type": "string",
+                            "enum": [
+                              "secret.replace"
+                            ]
+                          },
+                          "input": {
+                            "type": "object",
+                            "required": [
+                              "secretRef",
+                              "material"
+                            ],
+                            "properties": {
+                              "secretRef": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "material": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 4096
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "actionId",
+                          "input"
+                        ],
+                        "properties": {
+                          "actionId": {
+                            "type": "string",
+                            "enum": [
+                              "secret.revoke"
+                            ]
+                          },
+                          "input": {
+                            "type": "object",
+                            "required": [
+                              "secretRef"
+                            ],
+                            "properties": {
+                              "secretRef": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "actionId",
+                          "input"
+                        ],
+                        "properties": {
+                          "actionId": {
+                            "type": "string",
+                            "enum": [
+                              "provider-profile.set"
+                            ]
+                          },
+                          "input": {
+                            "type": "object",
+                            "required": [
+                              "providerKind",
+                              "configurationRevisionRef",
+                              "secretRefs",
+                              "enabled"
+                            ],
+                            "properties": {
+                              "providerProfileId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "providerKind": {
+                                "type": "string",
+                                "enum": [
+                                  "openai"
+                                ]
+                              },
+                              "configurationRevisionRef": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "secretRefs": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "schemaVersion",
+                                    "secretId"
+                                  ],
+                                  "properties": {
+                                    "schemaVersion": {
+                                      "type": "number",
+                                      "enum": [
+                                        1
+                                      ]
+                                    },
+                                    "secretId": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                },
+                                "maxItems": 1
+                              },
+                              "enabled": {
+                                "type": "boolean"
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "actionId",
+                          "input"
+                        ],
+                        "properties": {
+                          "actionId": {
+                            "type": "string",
+                            "enum": [
+                              "model-profile.set"
+                            ]
+                          },
+                          "input": {
+                            "type": "object",
+                            "required": [
+                              "providerProfileId",
+                              "providerModelIdentifier",
+                              "consumedCapabilities",
+                              "configurationRevisionRef"
+                            ],
+                            "properties": {
+                              "modelProfileId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "providerProfileId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "providerModelIdentifier": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "consumedCapabilities": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "text-generation"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "structured-output"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "usage-metadata"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "abort-timeout"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "minItems": 1,
+                                "maxItems": 4
+                              },
+                              "configurationRevisionRef": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "actionId",
+                          "input"
+                        ],
+                        "properties": {
+                          "actionId": {
+                            "type": "string",
+                            "enum": [
+                              "model-binding.set"
+                            ]
+                          },
+                          "input": {
+                            "type": "object",
+                            "required": [
+                              "role",
+                              "modelProfileId"
+                            ],
+                            "properties": {
+                              "role": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "subject.primary"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "subject.expression"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "modelProfileId": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "schemaVersion",
+                    "actionId",
+                    "planDigest",
+                    "result",
+                    "postconditionsVerified",
+                    "evidenceRefs"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "actionId": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$"
+                    },
+                    "planDigest": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "result": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      ]
+                    },
+                    "postconditionsVerified": {
+                      "type": "boolean"
+                    },
+                    "evidenceRefs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "schemaVersion",
+                          "evidenceId"
+                        ],
+                        "properties": {
+                          "schemaVersion": {
+                            "type": "number",
+                            "enum": [
+                              1
+                            ]
+                          },
+                          "evidenceId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "problemCode",
+                    "category",
+                    "retryClass",
+                    "schemaVersion"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "problemCode": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "retryClass": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "never"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "immediate"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "backoff"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "after-change"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "manual"
+                          ]
+                        }
+                      ]
+                    },
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "problemCode",
+                    "category",
+                    "retryClass",
+                    "schemaVersion"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "problemCode": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "retryClass": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "never"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "immediate"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "backoff"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "after-change"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "manual"
+                          ]
+                        }
+                      ]
+                    },
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "problemCode",
+                    "category",
+                    "retryClass",
+                    "schemaVersion"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "problemCode": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "retryClass": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "never"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "immediate"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "backoff"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "after-change"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "manual"
+                          ]
+                        }
+                      ]
+                    },
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "problemCode",
+                    "category",
+                    "retryClass",
+                    "schemaVersion"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "problemCode": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "retryClass": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "never"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "immediate"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "backoff"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "after-change"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "manual"
+                          ]
+                        }
+                      ]
+                    },
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "problemCode",
+                    "category",
+                    "retryClass",
+                    "schemaVersion"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "problemCode": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "retryClass": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "never"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "immediate"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "backoff"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "after-change"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "manual"
+                          ]
+                        }
+                      ]
+                    },
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/management/v1/product/state": {
+      "get": {
+        "operationId": "getProductState",
+        "summary": "Read current Product prerequisite state",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "schemaVersion",
+                    "contractVersion",
+                    "resource",
+                    "observedAt",
+                    "productGeneration",
+                    "continuityEpochId",
+                    "data"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "contractVersion": {
+                      "type": "string",
+                      "enum": [
+                        "management.v1"
+                      ]
+                    },
+                    "resource": {
+                      "type": "object",
+                      "required": [
+                        "schemaVersion",
+                        "resourceKind",
+                        "resourceId"
+                      ],
+                      "properties": {
+                        "schemaVersion": {
+                          "type": "number",
+                          "enum": [
+                            1
+                          ]
+                        },
+                        "resourceKind": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "resourceId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "resourceRevision": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
+                    },
+                    "observedAt": {
+                      "type": "string"
+                    },
+                    "productGeneration": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "continuityEpochId": {
+                      "type": "string",
+                      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "schemaVersion",
+                        "configuration",
+                        "secrets",
+                        "providerProfiles",
+                        "modelProfiles",
+                        "modelBindings",
+                        "networkAccess",
+                        "aiReadiness"
+                      ],
+                      "properties": {
+                        "schemaVersion": {
+                          "type": "number",
+                          "enum": [
+                            1
+                          ]
+                        },
+                        "configuration": {
+                          "type": "object",
+                          "required": [
+                            "definitions",
+                            "revisions",
+                            "activations"
+                          ],
+                          "properties": {
+                            "definitions": {
+                              "type": "array",
+                              "items": {}
+                            },
+                            "revisions": {
+                              "type": "array",
+                              "items": {}
+                            },
+                            "activations": {
+                              "type": "array",
+                              "items": {}
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "secrets": {
+                          "type": "array",
+                          "items": {}
+                        },
+                        "providerProfiles": {
+                          "type": "array",
+                          "items": {}
+                        },
+                        "modelProfiles": {
+                          "type": "array",
+                          "items": {}
+                        },
+                        "modelBindings": {
+                          "type": "array",
+                          "items": {}
+                        },
+                        "networkAccess": {},
+                        "aiReadiness": {}
+                      },
+                      "additionalProperties": false
+                    },
+                    "lineageContextRef": {
+                      "type": "object",
+                      "required": [
+                        "schemaVersion",
+                        "sourceActivityId",
+                        "sourceInstanceId",
+                        "sourceContinuityEpochId"
+                      ],
+                      "properties": {
+                        "schemaVersion": {
+                          "type": "number",
+                          "enum": [
+                            1
+                          ]
+                        },
+                        "sourceActivityId": {
+                          "type": "string",
+                          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                        },
+                        "sourceInstanceId": {
+                          "type": "string",
+                          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                        },
+                        "sourceContinuityEpochId": {
+                          "type": "string",
+                          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                        },
+                        "telemetry": {
+                          "type": "object",
+                          "required": [
+                            "traceId",
+                            "spanId",
+                            "traceFlags"
+                          ],
+                          "properties": {
+                            "traceId": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "spanId": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "traceFlags": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 255
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "problemCode",
+                    "category",
+                    "retryClass",
+                    "schemaVersion"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "problemCode": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "retryClass": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "never"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "immediate"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "backoff"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "after-change"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "manual"
+                          ]
+                        }
+                      ]
+                    },
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "problemCode",
+                    "category",
+                    "retryClass",
+                    "schemaVersion"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "problemCode": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "retryClass": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "never"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "immediate"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "backoff"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "after-change"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "manual"
+                          ]
+                        }
+                      ]
+                    },
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "problemCode",
+                    "category",
+                    "retryClass",
+                    "schemaVersion"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "problemCode": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "retryClass": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "never"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "immediate"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "backoff"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "after-change"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "manual"
+                          ]
+                        }
+                      ]
+                    },
+                    "schemaVersion": {
+                      "type": "number",
+                      "enum": [
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "servers": [

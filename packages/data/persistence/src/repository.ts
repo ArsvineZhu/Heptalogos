@@ -7,6 +7,7 @@
 import type {
   PersistenceMutationTransactionContext,
   PersistenceReadTransactionContext,
+  PersistenceService,
 } from "./contracts.js";
 import {
   resolveTransactionContext,
@@ -27,6 +28,19 @@ export async function executeRepositorySql<Row = Record<string, unknown>>(
     CompiledQuery.raw(text, [...parameters]),
   );
   return result.rows;
+}
+
+/** Reads repository rows through one Host-authorized persistence transaction. */
+export function readRepositorySql<Row = Record<string, unknown>>(
+  persistence: PersistenceService,
+  text: string,
+  parameters: readonly unknown[] = [],
+): Promise<readonly Row[]> {
+  return persistence.read((context) =>
+    useRepositoryReadTransaction(context, (transaction) =>
+      executeRepositorySql<Row>(transaction, text, parameters),
+    ),
+  );
 }
 
 /** Runs a repository read operation after validating its transaction mode. */

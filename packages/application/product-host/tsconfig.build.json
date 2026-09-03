@@ -13,6 +13,12 @@
   "exclude": ["test/**/*.ts"],
   "references": [
     {
+      "path": "../../system/ai-runtime/tsconfig.build.json"
+    },
+    {
+      "path": "../../system/configuration/tsconfig.build.json"
+    },
+    {
       "path": "../../bootstrap/bootstrap-state/tsconfig.build.json"
     },
     {
@@ -25,6 +31,9 @@
       "path": "../../runtime/runtime-kernel/tsconfig.build.json"
     },
     {
+      "path": "../../foundation/schema-runtime/tsconfig.build.json"
+    },
+    {
       "path": "../../data/persistence/tsconfig.build.json"
     },
     {
@@ -32,6 +41,12 @@
     },
     {
       "path": "../../system/management/tsconfig.build.json"
+    },
+    {
+      "path": "../../system/network-access/tsconfig.build.json"
+    },
+    {
+      "path": "../../system/secret/tsconfig.build.json"
     },
     {
       "path": "../../foundation/foundation-contracts/tsconfig.build.json"

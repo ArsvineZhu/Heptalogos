@@ -271,10 +271,11 @@
     {
       "id": "ai.sdk",
       "role": "model/provider/tool/structured-output mechanics",
-      "candidate": "AI SDK 7 line",
+      "candidate": "AI SDK 7 line with official @ai-sdk/openai Responses provider",
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
-      "qualification": "provider/product conformance"
+      "qualification": "provider/product conformance",
+      "packages": ["ai", "@ai-sdk/openai"]
     },
     {
       "id": "mcp.client",

@@ -7,12 +7,16 @@
 import {
   claimFirstAdministrator,
   createManagementSession,
+  executeSystemAction,
   getCapabilityGraph,
   getHost,
   getManagementDiscovery,
+  getProductState,
   getReadiness,
   getRuntimeGraph,
+  getSystemActionCatalog,
   getSystemStatus,
+  planSystemAction,
   revokeCurrentManagementSession,
 } from "./generated/index.js";
 import { createClient } from "./generated/client/index.js";
@@ -22,12 +26,18 @@ import type {
   ClaimFirstAdministratorResponses,
   CreateManagementSessionData,
   CreateManagementSessionResponses,
+  ExecuteSystemActionData,
+  ExecuteSystemActionResponses,
   GetCapabilityGraphResponses,
   GetHostResponses,
   GetManagementDiscoveryResponses,
+  GetProductStateResponses,
   GetReadinessResponses,
   GetRuntimeGraphResponses,
+  GetSystemActionCatalogResponses,
   GetSystemStatusResponses,
+  PlanSystemActionData,
+  PlanSystemActionResponses,
   RevokeCurrentManagementSessionResponses,
 } from "./generated/types.gen.js";
 
@@ -53,6 +63,18 @@ export type RuntimeGraphResult = GetRuntimeGraphResponses[200];
 export type CapabilityGraphResult = GetCapabilityGraphResponses[200];
 /** Stable readiness result exposed by the facade. */
 export type ReadinessResult = GetReadinessResponses[200];
+/** Stable current SystemAction catalog result exposed by the facade. */
+export type SystemActionCatalogResult = GetSystemActionCatalogResponses[200];
+/** Stable action-plan input exposed by the facade. */
+export type SystemActionRequestInput = PlanSystemActionData["body"];
+/** Stable action-plan result exposed by the facade. */
+export type SystemActionPlanResult = PlanSystemActionResponses[200];
+/** Stable action-execution input exposed by the facade. */
+export type SystemActionExecuteInput = ExecuteSystemActionData["body"];
+/** Stable action-execution result exposed by the facade. */
+export type SystemActionExecuteResult = ExecuteSystemActionResponses[200];
+/** Stable redacted Product prerequisite state exposed by the facade. */
+export type ProductStateResult = GetProductStateResponses[200];
 
 /** A transport or canonical Management failure surfaced by the client. */
 export class ManagementClientError extends Error {
@@ -119,6 +141,16 @@ export interface ManagementClient {
   getCapabilityGraph(): Promise<CapabilityGraphResult>;
   /** Reads current Product Host readiness. */
   getReadiness(): Promise<ReadinessResult>;
+  /** Reads the current finite SystemAction catalog. */
+  getSystemActionCatalog(): Promise<SystemActionCatalogResult>;
+  /** Creates one side-effect-free current SystemAction plan. */
+  planSystemAction(body: SystemActionRequestInput): Promise<SystemActionPlanResult>;
+  /** Executes one exact action plan and its identical typed input. */
+  executeSystemAction(
+    body: SystemActionExecuteInput,
+  ): Promise<SystemActionExecuteResult>;
+  /** Reads current redacted Product prerequisite state. */
+  getProductState(): Promise<ProductStateResult>;
 }
 
 type ClientFieldsResponse<T> = { readonly data: T };
@@ -222,6 +254,44 @@ export function createManagementClient(
     getReadiness() {
       return request(() =>
         getReadiness({
+          client: transport,
+          throwOnError: true,
+          responseStyle: "fields",
+        }),
+      );
+    },
+    getSystemActionCatalog() {
+      return request(() =>
+        getSystemActionCatalog({
+          client: transport,
+          throwOnError: true,
+          responseStyle: "fields",
+        }),
+      );
+    },
+    planSystemAction(body: SystemActionRequestInput) {
+      return request(() =>
+        planSystemAction({
+          client: transport,
+          body,
+          throwOnError: true,
+          responseStyle: "fields",
+        }),
+      );
+    },
+    executeSystemAction(body: SystemActionExecuteInput) {
+      return request(() =>
+        executeSystemAction({
+          client: transport,
+          body,
+          throwOnError: true,
+          responseStyle: "fields",
+        }),
+      );
+    },
+    getProductState() {
+      return request(() =>
+        getProductState({
           client: transport,
           throwOnError: true,
           responseStyle: "fields",

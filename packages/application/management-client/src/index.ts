@@ -16,7 +16,13 @@ export {
   type ManagementLoginInput,
   type ManagementLoginResult,
   type ManagementProblemDetails,
+  type ProductStateResult,
   type ReadinessResult,
   type RuntimeGraphResult,
+  type SystemActionCatalogResult,
+  type SystemActionExecuteInput,
+  type SystemActionExecuteResult,
+  type SystemActionPlanResult,
+  type SystemActionRequestInput,
   type SystemStatusResult,
 } from "./client.js";

@@ -7,6 +7,7 @@
 import fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
+import { Type } from "@heptalogos/schema-runtime/typebox";
 import {
   MANAGEMENT_API_BASE_PATH,
   MANAGEMENT_CONTRACT_VERSION,
@@ -19,9 +20,17 @@ import {
   loginResponseSchema,
   managementDiscoverySchema,
   managementProblemSchema,
+  productStateSchema,
   readinessSchema,
   runtimeGraphSchema,
   systemStatusSchema,
+  systemActionDefinitionSchema,
+  systemActionExecuteRequestSchema,
+  systemActionExecuteResultSchema,
+  systemActionRequestSchema,
+  systemChangePlanSchema,
+  type SystemActionExecuteRequest,
+  type SystemActionRequest,
   type ClaimRequest,
   type LoginRequest,
   type ManagementProblemDetails,
@@ -337,6 +346,91 @@ export async function createManagementHttpApp(
       preHandler: async (request) => authenticate(service, request),
     },
     async () => service.getReadiness(),
+  );
+
+  app.get(
+    MANAGEMENT_API_BASE_PATH + "/actions",
+    {
+      schema: {
+        operationId: "getSystemActionCatalog",
+        summary: "Read the current SystemAction catalog",
+        response: {
+          200: Type.Array(systemActionDefinitionSchema),
+          401: managementProblemSchema,
+          426: managementProblemSchema,
+        },
+        security: [{ bearerAuth: [] }],
+      },
+      preHandler: async (request) => authenticate(service, request),
+    },
+    async () => service.getSystemActionCatalog(),
+  );
+
+  app.post(
+    MANAGEMENT_API_BASE_PATH + "/actions/plan",
+    {
+      schema: {
+        operationId: "planSystemAction",
+        summary: "Create a side-effect-free current SystemAction plan",
+        body: systemActionRequestSchema,
+        response: {
+          200: systemChangePlanSchema,
+          400: managementProblemSchema,
+          401: managementProblemSchema,
+          409: managementProblemSchema,
+          426: managementProblemSchema,
+          503: managementProblemSchema,
+        },
+        security: [{ bearerAuth: [] }],
+      },
+      preHandler: async (request) => authenticate(service, request),
+    },
+    async (request) => service.planAction(request.body as SystemActionRequest),
+  );
+
+  app.post(
+    MANAGEMENT_API_BASE_PATH + "/actions/execute",
+    {
+      schema: {
+        operationId: "executeSystemAction",
+        summary: "Reauthenticate and execute one exact SystemAction plan",
+        body: systemActionExecuteRequestSchema,
+        response: {
+          200: systemActionExecuteResultSchema,
+          400: managementProblemSchema,
+          401: managementProblemSchema,
+          409: managementProblemSchema,
+          426: managementProblemSchema,
+          503: managementProblemSchema,
+        },
+        security: [{ bearerAuth: [] }],
+      },
+      preHandler: async (request) => authenticate(service, request),
+    },
+    async (request) =>
+      service.executeAction(
+        tokenFromRequest(request),
+        request.body as SystemActionExecuteRequest,
+      ),
+  );
+
+  app.get(
+    MANAGEMENT_API_BASE_PATH + "/product/state",
+    {
+      schema: {
+        operationId: "getProductState",
+        summary: "Read current Product prerequisite state",
+        response: {
+          200: productStateSchema,
+          401: managementProblemSchema,
+          426: managementProblemSchema,
+          503: managementProblemSchema,
+        },
+        security: [{ bearerAuth: [] }],
+      },
+      preHandler: async (request) => authenticate(service, request),
+    },
+    async () => service.getProductState(),
   );
 
   return app;

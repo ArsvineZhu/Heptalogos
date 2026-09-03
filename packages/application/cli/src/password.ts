@@ -23,3 +23,18 @@ export async function readProtectedPassword(
   if (useStdin) return readPasswordFromStdin();
   return password({ message, mask: "*" });
 }
+
+/** Reads one protected JSON action body from stdin without exposing argv input. */
+export async function readProtectedJsonFromStdin(): Promise<unknown> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+  }
+  const text = Buffer.concat(chunks).toString("utf8").trim();
+  if (text.length === 0) throw new Error("Protected JSON input is empty");
+  try {
+    return JSON.parse(text) as unknown;
+  } finally {
+    chunks.forEach((chunk) => chunk.fill(0));
+  }
+}

@@ -12,6 +12,12 @@
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "references": [
     {
+      "path": "../ai-runtime"
+    },
+    {
+      "path": "../configuration"
+    },
+    {
       "path": "../../execution/execution-lineage"
     },
     {
@@ -25,6 +31,12 @@
     },
     {
       "path": "../../foundation/foundation-contracts"
+    },
+    {
+      "path": "../network-access"
+    },
+    {
+      "path": "../secret"
     }
   ]
 }

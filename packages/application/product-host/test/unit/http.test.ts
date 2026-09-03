@@ -39,6 +39,10 @@ function serviceFixture(): ManagementService {
     getRuntimeGraph: () => ({}),
     getCapabilityGraph: () => ({}),
     getReadiness: async () => ({}),
+    getProductState: async () => ({}),
+    getSystemActionCatalog: () => [],
+    planAction: async () => ({}),
+    executeAction: async () => ({}),
     ensureFirstAdministratorClaim: async () => undefined,
     claimFirstAdministrator: async () => ({
       schemaVersion: 1,
@@ -73,7 +77,10 @@ describe("Management HTTP adapter", () => {
     expect(openapi.openapi).toBe("3.1.0");
     expect(openapi.components?.securitySchemes).toHaveProperty("bearerAuth");
     expect(openapi.paths).toHaveProperty("/management/v1/runtime/graph");
-    expect(openapi.paths).not.toHaveProperty("/management/v1/actions");
+    expect(openapi.paths).toHaveProperty("/management/v1/actions");
+    expect(openapi.paths).toHaveProperty("/management/v1/actions/plan");
+    expect(openapi.paths).toHaveProperty("/management/v1/actions/execute");
+    expect(openapi.paths).toHaveProperty("/management/v1/product/state");
     await app.close();
   });
 

@@ -9,8 +9,11 @@ machine-readable reads, and stable exit classes.
 ## Owns
 
 - The oclif command tree: admin claim, auth login/logout, contract, status,
-  host status, runtime graph, capability graph, and readiness.
+  host status, runtime graph, capability graph, readiness, Product prerequisite
+  state, and current SystemAction catalog/plan/execute projections.
 - Protected TTY/stdin password input and CLI diagnostics/JSON projection.
+- Protected JSON stdin for SystemAction plan/execute; secret material is never
+  accepted in argv or emitted to stdout/stderr.
 - The local session token keyring account.
 
 ## Does not own

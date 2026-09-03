@@ -57,6 +57,8 @@ catalog:
   "@nx/eslint-plugin": 23.1.2
   "@dbos-inc/dbos-sdk": 4.27.6
   knip: 6.32.3
+  ai: 7.0.91
+  "@ai-sdk/openai": 4.0.57
 
 allowBuilds:
   esbuild: true

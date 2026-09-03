@@ -1,0 +1,38 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "provider-openai-integration",
+  "projectType": "application",
+  "tags": ["kind:integration", "area:provider"],
+  "implicitDependencies": [
+    "canonical-schema",
+    "persistence",
+    "execution-lineage",
+    "evidence",
+    "configuration",
+    "secret",
+    "network-access",
+    "ai-runtime"
+  ],
+  "targets": {
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p integration/provider-openai/tsconfig.json"
+      }
+    },
+    "qualification": {
+      "dependsOn": ["^build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm nx run product-host:build && vitest run --root integration/provider-openai"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "oxlint --type-aware integration/provider-openai"
+      }
+    }
+  }
+}

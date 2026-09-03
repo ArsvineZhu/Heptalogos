@@ -30,8 +30,13 @@ export {
   runtimeRequirementSnapshotSchema,
   runtimeSystemSnapshotSchema,
   systemActionDefinitionSchema,
+  systemActionExecuteRequestSchema,
   systemActionExecuteResultSchema,
+  systemActionRequestSchema,
   systemChangePlanSchema,
+  productStateSchema,
+  currentSystemActionCatalog,
+  SYSTEM_ACTION_CATALOG_REVISION,
   systemStatusSchema,
 } from "./contracts.js";
 export { lineageContextRefSchema } from "@heptalogos/execution-lineage";
@@ -80,6 +85,11 @@ export type {
   SystemStatusData,
   SystemActionDefinition,
   SystemActionExecuteResult,
+  SystemActionExecuteRequest,
+  SystemActionRequest,
+  ProductSystemActionId,
+  ProductStateData,
+  ProductStateReadModel,
   SystemActionId,
   SystemChangePlan,
   SystemChangePlanId,
@@ -89,6 +99,7 @@ export type {
 export { createManagementService } from "./service.js";
 export type {
   ManagementProjectionSource,
+  ManagementProductOwners,
   ManagementService,
   ManagementServiceOptions,
 } from "./service.js";

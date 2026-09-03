@@ -12,8 +12,8 @@ discovery and session storage are exposed only from the `./node` entry point.
 
 - Closure-private generated client transport/types from the checked OpenAPI
   artifact.
-- Stable aliases for discovery, Problem, authenticated ReadModel, and bootstrap
-  request/result surfaces.
+- Stable aliases for discovery, Problem, authenticated ReadModel, bootstrap,
+  Product prerequisite, and current SystemAction request/result surfaces.
 - A Node-only local adapter for the installation anchor, endpoint descriptor,
   well-known identity, and session token.
 

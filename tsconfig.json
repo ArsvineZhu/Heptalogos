@@ -66,6 +66,18 @@
     },
     {
       "path": "./packages/application/cli"
+    },
+    {
+      "path": "./packages/system/network-access"
+    },
+    {
+      "path": "./packages/system/configuration"
+    },
+    {
+      "path": "./packages/system/ai-runtime"
+    },
+    {
+      "path": "./packages/system/secret"
     }
   ]
 }

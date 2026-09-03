@@ -12,6 +12,12 @@
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "references": [
     {
+      "path": "../../system/ai-runtime"
+    },
+    {
+      "path": "../../system/configuration"
+    },
+    {
       "path": "../../bootstrap/bootstrap-state"
     },
     {
@@ -24,6 +30,9 @@
       "path": "../../runtime/runtime-kernel"
     },
     {
+      "path": "../../foundation/schema-runtime"
+    },
+    {
       "path": "../../data/persistence"
     },
     {
@@ -31,6 +40,12 @@
     },
     {
       "path": "../../system/management"
+    },
+    {
+      "path": "../../system/network-access"
+    },
+    {
+      "path": "../../system/secret"
     },
     {
       "path": "../../foundation/foundation-contracts"

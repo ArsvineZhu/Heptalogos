@@ -11,6 +11,7 @@ import {
 import { compileSchema } from "@heptalogos/schema-runtime";
 import {
   lineageContextRefSchema,
+  currentSystemActionCatalog,
   systemActionDefinitionSchema,
   systemActionExecuteResultSchema,
   systemChangePlanSchema,
@@ -265,6 +266,22 @@ describe("Management service", () => {
   });
 
   it("publishes the frozen SystemAction types and schemas without an action runtime", () => {
+    expect(
+      currentSystemActionCatalog.map(({ actionId, riskClass, applyMode }) => [
+        actionId,
+        riskClass,
+        applyMode,
+      ]),
+    ).toEqual([
+      ["configuration.revision.create", "LOW", "IMMEDIATE"],
+      ["configuration.activate", "MATERIAL", "RECONCILE"],
+      ["secret.set", "MATERIAL", "RECONCILE"],
+      ["secret.replace", "MATERIAL", "RECONCILE"],
+      ["secret.revoke", "MATERIAL", "RECONCILE"],
+      ["provider-profile.set", "MATERIAL", "RECONCILE"],
+      ["model-profile.set", "MATERIAL", "RECONCILE"],
+      ["model-binding.set", "MATERIAL", "RECONCILE"],
+    ]);
     const action: SystemActionDefinition = {
       schemaVersion: 1,
       actionId: "configuration.activate" as SystemActionDefinition["actionId"],

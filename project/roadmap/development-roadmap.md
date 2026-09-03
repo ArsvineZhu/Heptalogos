@@ -546,11 +546,14 @@ productHost:
 productHostQualification: HISTORICAL_PARTIAL_WINDOWS_PROFILE
 releaseFormProductQualification: REQUIRED_FOR_CORRESPONDING_SHIPPING_RUNTIME_CLAIM
 releaseFormQualificationBlocksIndependentSemanticDevelopment: false
-providerPrerequisites: ELIGIBLE_NOT_AUTHORIZED
+releaseFormQualificationBlocksIndependentProviderSemanticDevelopment: false
+releaseFormQualificationBlocksIndependentOpenClawMachineOperations: false
+qualificationRecordAuthority: EVIDENCE_STATUS_ONLY
+providerPrerequisites: IN_PROGRESS
 machineOperationsIntegration: ELIGIBLE_NOT_AUTHORIZED
-activeProductImplementationPlan: NONE
-currentProductWork: NONE
-nextEligibleProductWork: one-real-provider enablement
+activeProductImplementationPlan: one-real-provider-enablement-openai
+currentProductWork: one-real-provider enablement
+nextEligibleProductWork: persistent Subject + built-in Subject Chat
 ordinaryGitHubActions: DISABLED_CURRENT_EXECUTION_POLICY
 ```
 
@@ -575,6 +578,12 @@ implementation, or independent OpenClaw Machine Operations work that does not
 depend on that boundary. Each workstream remains subject to its own plan and
 evidence boundary. OpenClaw remains an adopted external Machine Operations
 route and is not a provider or Subject readiness dependency.
+
+The sole active Product implementation authorization is the OpenAI reference
+route in
+project/plans/active/product/one-real-provider-enablement-openai-2026-09-03.md.
+It covers one real provider vertical slice only; Subject and built-in Subject
+Chat remain the next eligible work after its evidence closure.
 
 ### Product prerequisites — provider foundations and minimum Management spine
 

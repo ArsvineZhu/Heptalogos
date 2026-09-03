@@ -42,6 +42,16 @@ import {
   type ManagementService,
   type RuntimeIntrospectionSnapshot,
 } from "@heptalogos/management";
+import { createAIRuntimeService, type AIRuntimeService } from "@heptalogos/ai-runtime";
+import {
+  createConfigurationService,
+  type ConfigurationService,
+} from "@heptalogos/configuration";
+import {
+  createNetworkAccessService,
+  type NetworkAccessService,
+} from "@heptalogos/network-access";
+import { createSecretService, type SecretService } from "@heptalogos/secret";
 import type { FastifyInstance } from "fastify";
 import {
   BOOTSTRAP_RUNTIME_GENERATION_ID,
@@ -92,6 +102,18 @@ const CANONICAL_OPTIONS = Object.freeze({
 const MANAGEMENT_SYSTEM_ID = createMicroSystemId("system.management");
 const MANAGEMENT_SERVICE_ID = createServiceId("service.management");
 const MANAGEMENT_PROVIDER_ID = createProviderId("provider.management");
+const CONFIGURATION_SYSTEM_ID = createMicroSystemId("system.configuration");
+const CONFIGURATION_SERVICE_ID = createServiceId("service.configuration");
+const CONFIGURATION_PROVIDER_ID = createProviderId("provider.configuration");
+const SECRET_SYSTEM_ID = createMicroSystemId("system.secret");
+const SECRET_SERVICE_ID = createServiceId("service.secret");
+const SECRET_PROVIDER_ID = createProviderId("provider.secret");
+const NETWORK_SYSTEM_ID = createMicroSystemId("system.network-access");
+const NETWORK_SERVICE_ID = createServiceId("service.network-access");
+const NETWORK_PROVIDER_ID = createProviderId("provider.network-access");
+const AI_RUNTIME_SYSTEM_ID = createMicroSystemId("system.ai-runtime");
+const AI_RUNTIME_SERVICE_ID = createServiceId("service.ai-runtime");
+const AI_RUNTIME_PROVIDER_ID = createProviderId("provider.ai-runtime");
 
 /** Safe public handle for one running headless Product Host. */
 export interface ProductHostHandle {
@@ -266,6 +288,66 @@ async function runRetainedManagementMutation<T>(
   );
 }
 
+async function runManagementReadActivity<T>(
+  runtime: ReturnType<typeof createExecutionContextRuntime>,
+  kind: string,
+  operation: () => Promise<T>,
+): Promise<T> {
+  return runtime.runActivity(
+    {
+      kind,
+      importance: "routine",
+      retentionClass: "ephemeral",
+      sensitivity: "operational",
+    },
+    async () => operation(),
+  );
+}
+
+function serviceRequirement(
+  serviceId: ReturnType<typeof createServiceId>,
+  version: string,
+) {
+  return {
+    serviceId,
+    contract: { kind: "exact" as const, version: createContractVersion(version) },
+  };
+}
+
+function productServiceDefinition<T extends object>(input: {
+  readonly productGeneration: ProductGenerationId;
+  readonly microSystemId: ReturnType<typeof createMicroSystemId>;
+  readonly serviceId: ReturnType<typeof createServiceId>;
+  readonly providerId: ReturnType<typeof createProviderId>;
+  readonly contractVersion: string;
+  readonly implementation: T;
+  readonly serviceRequirements: readonly ReturnType<typeof serviceRequirement>[];
+}): MicroSystemDefinition {
+  const provision = {
+    serviceId: input.serviceId,
+    providerId: input.providerId,
+    contractVersion: createContractVersion(input.contractVersion),
+  };
+  const projectedImplementation: Record<string, unknown> = {};
+  for (const [name, member] of Object.entries(input.implementation)) {
+    if (typeof member === "function") projectedImplementation[name] = member;
+  }
+  const runtimeImplementation = Object.freeze(projectedImplementation);
+  return {
+    microSystemId: input.microSystemId,
+    role: "system-service",
+    generation: { productGenerationId: input.productGeneration },
+    operatingModes: ["NORMAL", "SAFE", "MAINTENANCE", "EMERGENCY_READ_ONLY"],
+    serviceRequirements: input.serviceRequirements,
+    capabilityRequirements: [],
+    serviceProvisions: [provision],
+    capabilityProvisions: [],
+    activate: async (context) => {
+      context.publishService(provision, runtimeImplementation);
+    },
+  };
+}
+
 function managementDefinition(
   productGeneration: ProductGenerationId,
   management: ManagementService,
@@ -280,7 +362,12 @@ function managementDefinition(
     role: "system-service",
     generation: { productGenerationId: productGeneration },
     operatingModes: ["NORMAL", "SAFE", "MAINTENANCE", "EMERGENCY_READ_ONLY"],
-    serviceRequirements: [],
+    serviceRequirements: [
+      serviceRequirement(CONFIGURATION_SERVICE_ID, "configuration.v1"),
+      serviceRequirement(SECRET_SERVICE_ID, "secret.v1"),
+      serviceRequirement(NETWORK_SERVICE_ID, "network-access.v1"),
+      serviceRequirement(AI_RUNTIME_SERVICE_ID, "ai-runtime.v1"),
+    ],
     capabilityRequirements: [],
     serviceProvisions: [provision],
     capabilityProvisions: [],
@@ -398,6 +485,34 @@ export async function startProductHost(
         kind,
         operation,
       );
+    const runReadActivity = <T>(kind: string, operation: () => Promise<T>) =>
+      runManagementReadActivity(runtime, kind, operation);
+    const configuration: ConfigurationService = createConfigurationService({
+      persistence,
+      time,
+      execution: runtime,
+      evidence,
+    });
+    const secret: SecretService = createSecretService({
+      persistence,
+      time,
+      execution: runtime,
+      evidence,
+    });
+    const networkAccess: NetworkAccessService = createNetworkAccessService({
+      configuration,
+      execution: runtime,
+      installationId: host.installationId,
+    });
+    const aiRuntime: AIRuntimeService = createAIRuntimeService({
+      persistence,
+      time,
+      execution: runtime,
+      evidence,
+      configuration,
+      secret,
+      networkAccess,
+    });
     const management = createManagementService({
       installationId: host.installationId,
       instanceId: host.instanceId,
@@ -406,6 +521,14 @@ export async function startProductHost(
       productGeneration,
       persistence,
       time,
+      productOwners: {
+        configuration,
+        secret,
+        networkAccess,
+        aiRuntime,
+      },
+      execution: runtime,
+      runReadActivity,
       hostState: () => host?.state ?? "CLOSED",
       managementHttpState: () => httpState,
       endpointDescriptorPublished: () => endpointPublished,
@@ -427,7 +550,51 @@ export async function startProductHost(
     supervisor = new MicroSystemSupervisor({
       substrate: createRuntimeSubstrate({ settleTimeoutMs: 5_000 }),
       settleTimeoutMs: 5_000,
-      definitions: [managementDefinition(productGeneration, management)],
+      definitions: [
+        productServiceDefinition({
+          productGeneration,
+          microSystemId: CONFIGURATION_SYSTEM_ID,
+          serviceId: CONFIGURATION_SERVICE_ID,
+          providerId: CONFIGURATION_PROVIDER_ID,
+          contractVersion: "configuration.v1",
+          implementation: configuration,
+          serviceRequirements: [],
+        }),
+        productServiceDefinition({
+          productGeneration,
+          microSystemId: SECRET_SYSTEM_ID,
+          serviceId: SECRET_SERVICE_ID,
+          providerId: SECRET_PROVIDER_ID,
+          contractVersion: "secret.v1",
+          implementation: secret,
+          serviceRequirements: [],
+        }),
+        productServiceDefinition({
+          productGeneration,
+          microSystemId: NETWORK_SYSTEM_ID,
+          serviceId: NETWORK_SERVICE_ID,
+          providerId: NETWORK_PROVIDER_ID,
+          contractVersion: "network-access.v1",
+          implementation: networkAccess,
+          serviceRequirements: [
+            serviceRequirement(CONFIGURATION_SERVICE_ID, "configuration.v1"),
+          ],
+        }),
+        productServiceDefinition({
+          productGeneration,
+          microSystemId: AI_RUNTIME_SYSTEM_ID,
+          serviceId: AI_RUNTIME_SERVICE_ID,
+          providerId: AI_RUNTIME_PROVIDER_ID,
+          contractVersion: "ai-runtime.v1",
+          implementation: aiRuntime,
+          serviceRequirements: [
+            serviceRequirement(CONFIGURATION_SERVICE_ID, "configuration.v1"),
+            serviceRequirement(SECRET_SERVICE_ID, "secret.v1"),
+            serviceRequirement(NETWORK_SERVICE_ID, "network-access.v1"),
+          ],
+        }),
+        managementDefinition(productGeneration, management),
+      ],
       lifecycleLineage: runtimeLineage,
       rootRuntimeOrigin: { productGenerationId: productGeneration },
       ownerLifecycle: {
@@ -441,8 +608,20 @@ export async function startProductHost(
     await supervisor.reconcile({
       revision: 1,
       operatingMode: "NORMAL",
-      desired: new Map([[MANAGEMENT_SYSTEM_ID, "RUNNING"]]),
-      serviceBindings: new Map(),
+      desired: new Map([
+        [CONFIGURATION_SYSTEM_ID, "RUNNING"],
+        [SECRET_SYSTEM_ID, "RUNNING"],
+        [NETWORK_SYSTEM_ID, "RUNNING"],
+        [AI_RUNTIME_SYSTEM_ID, "RUNNING"],
+        [MANAGEMENT_SYSTEM_ID, "RUNNING"],
+      ]),
+      serviceBindings: new Map([
+        [CONFIGURATION_SERVICE_ID, CONFIGURATION_PROVIDER_ID],
+        [SECRET_SERVICE_ID, SECRET_PROVIDER_ID],
+        [NETWORK_SERVICE_ID, NETWORK_PROVIDER_ID],
+        [AI_RUNTIME_SERVICE_ID, AI_RUNTIME_PROVIDER_ID],
+        [MANAGEMENT_SERVICE_ID, MANAGEMENT_PROVIDER_ID],
+      ]),
       capabilityBindings: new Map(),
     });
 

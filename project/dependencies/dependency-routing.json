@@ -334,10 +334,10 @@
     },
     {
       "roleId": "ai.sdk",
-      "route": "AI SDK 7 line",
+      "route": "AI SDK 7 line with official @ai-sdk/openai Responses provider",
       "boundary": "AIRuntime",
       "directive": "USE",
-      "packages": []
+      "packages": ["ai", "@ai-sdk/openai"]
     },
     {
       "roleId": "mcp.client",

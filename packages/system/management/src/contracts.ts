@@ -25,6 +25,35 @@ import {
 } from "@heptalogos/foundation-contracts";
 import { lineageContextRefSchema } from "@heptalogos/execution-lineage";
 import type { LineageContextRef } from "@heptalogos/execution-lineage";
+import type {
+  ConfigurationActivation,
+  ConfigurationDefinition,
+  ConfigurationRevision,
+  ConfigurationScopeRef,
+} from "@heptalogos/configuration";
+import {
+  configurationActivateInputSchema,
+  configurationRevisionCreateInputSchema,
+} from "@heptalogos/configuration";
+import type {
+  AIRuntimeReadiness,
+  ModelCapability,
+  ModelBinding,
+  ModelProfile,
+  ProviderProfile,
+} from "@heptalogos/ai-runtime";
+import {
+  modelBindingSetInputSchema,
+  modelProfileSetInputSchema,
+  providerProfileSetInputSchema,
+} from "@heptalogos/ai-runtime";
+import type { NetworkAccessDiagnostics } from "@heptalogos/network-access";
+import type { SecretMetadata } from "@heptalogos/secret";
+import {
+  secretReplaceInputSchema,
+  secretRevokeInputSchema,
+  secretSetInputSchema,
+} from "@heptalogos/secret";
 import { Type } from "@heptalogos/schema-runtime/typebox";
 
 /** Identifies the single current Administrator. */
@@ -149,6 +178,249 @@ export interface SystemActionExecuteResult<T> {
   readonly postconditionsVerified: boolean;
   readonly evidenceRefs: readonly EvidenceRef[];
 }
+
+/** The only current Management mutation action identifiers. */
+export type ProductSystemActionId =
+  | "configuration.revision.create"
+  | "configuration.activate"
+  | "secret.set"
+  | "secret.replace"
+  | "secret.revoke"
+  | "provider-profile.set"
+  | "model-profile.set"
+  | "model-binding.set";
+
+/** The normalized configuration revision action input. */
+export interface ConfigurationRevisionCreateActionInput {
+  readonly definitionId: string;
+  readonly scopeRef: ConfigurationScopeRef;
+  readonly value: CanonicalJsonValue;
+}
+/** The normalized configuration activation action input. */
+interface ConfigurationActivateActionInput {
+  readonly revisionId: string;
+  readonly expectedActiveRevisionId?: string;
+}
+/** The protected Secret set action input. */
+interface SecretSetActionInput {
+  readonly purpose: string;
+  readonly scopeRef?: {
+    readonly schemaVersion: 1;
+    readonly resourceKind: string;
+    readonly resourceId: string;
+  };
+  readonly material: string;
+}
+/** The protected Secret replacement action input. */
+interface SecretReplaceActionInput {
+  readonly secretRef: string;
+  readonly material: string;
+}
+/** Input to revoke one SecretRef without exposing its material. */
+interface SecretRevokeActionInput {
+  readonly secretRef: string;
+}
+/** Input to set an OpenAI ProviderProfile and its owned references. */
+interface ProviderProfileSetActionInput {
+  readonly providerProfileId?: string;
+  readonly providerKind: "openai";
+  readonly configurationRevisionRef: string;
+  readonly secretRefs: readonly {
+    readonly schemaVersion: 1;
+    readonly secretId: string;
+  }[];
+  readonly enabled: boolean;
+}
+/** Input to set one model profile consumed by AIRuntime. */
+interface ModelProfileSetActionInput {
+  readonly modelProfileId?: string;
+  readonly providerProfileId: string;
+  readonly providerModelIdentifier: string;
+  readonly consumedCapabilities: readonly ModelCapability[];
+  readonly configurationRevisionRef: string;
+}
+/** The exact model binding action input. */
+interface ModelBindingSetActionInput {
+  readonly role: "subject.primary" | "subject.expression";
+  readonly modelProfileId: string;
+}
+
+/** A typed action request accepted by the current Management slice. */
+export type SystemActionRequest =
+  | {
+      readonly actionId: "configuration.revision.create";
+      readonly input: ConfigurationRevisionCreateActionInput;
+    }
+  | {
+      readonly actionId: "configuration.activate";
+      readonly input: ConfigurationActivateActionInput;
+    }
+  | { readonly actionId: "secret.set"; readonly input: SecretSetActionInput }
+  | {
+      readonly actionId: "secret.replace";
+      readonly input: SecretReplaceActionInput;
+    }
+  | {
+      readonly actionId: "secret.revoke";
+      readonly input: SecretRevokeActionInput;
+    }
+  | {
+      readonly actionId: "provider-profile.set";
+      readonly input: ProviderProfileSetActionInput;
+    }
+  | {
+      readonly actionId: "model-profile.set";
+      readonly input: ModelProfileSetActionInput;
+    }
+  | {
+      readonly actionId: "model-binding.set";
+      readonly input: ModelBindingSetActionInput;
+    };
+
+/** The exact request used to confirm and execute a previously planned action. */
+export interface SystemActionExecuteRequest {
+  readonly plan: SystemChangePlan;
+  readonly action: SystemActionRequest;
+}
+
+/** Current redacted Product prerequisite state exposed by Management reads. */
+export interface ProductStateData {
+  readonly schemaVersion: 1;
+  readonly configuration: {
+    readonly definitions: readonly ConfigurationDefinition[];
+    readonly revisions: readonly ConfigurationRevision[];
+    readonly activations: readonly ConfigurationActivation[];
+  };
+  readonly secrets: readonly SecretMetadata[];
+  readonly providerProfiles: readonly ProviderProfile[];
+  readonly modelProfiles: readonly ModelProfile[];
+  readonly modelBindings: readonly ModelBinding[];
+  readonly networkAccess: NetworkAccessDiagnostics;
+  readonly aiReadiness: AIRuntimeReadiness;
+}
+/** Current Product prerequisite read envelope. */
+export type ProductStateReadModel = ReadModelEnvelope<ProductStateData>;
+
+/** The current Product action catalog revision. */
+export const SYSTEM_ACTION_CATALOG_REVISION = 1 as const;
+
+/** The current Management action catalog, without a generic operation store. */
+export const currentSystemActionCatalog: readonly SystemActionDefinition[] =
+  Object.freeze([
+    Object.freeze({
+      schemaVersion: 1 as const,
+      actionId: "configuration.revision.create" as SystemActionId,
+      actionVersion: 1,
+      inputSchema: {
+        schemaVersion: 1 as const,
+        schemaId: "configuration.revision.create.input",
+      },
+      outputSchema: {
+        schemaVersion: 1 as const,
+        schemaId: "management.system-action.result",
+      },
+      targetKind: "configuration-scope",
+      riskClass: "LOW" as const,
+      applyMode: "IMMEDIATE" as const,
+    }),
+    Object.freeze({
+      schemaVersion: 1 as const,
+      actionId: "configuration.activate" as SystemActionId,
+      actionVersion: 1,
+      inputSchema: {
+        schemaVersion: 1 as const,
+        schemaId: "configuration.activate.input",
+      },
+      outputSchema: {
+        schemaVersion: 1 as const,
+        schemaId: "management.system-action.result",
+      },
+      targetKind: "configuration-scope",
+      riskClass: "MATERIAL" as const,
+      applyMode: "RECONCILE" as const,
+    }),
+    Object.freeze({
+      schemaVersion: 1 as const,
+      actionId: "secret.set" as SystemActionId,
+      actionVersion: 1,
+      inputSchema: { schemaVersion: 1 as const, schemaId: "secret.set.input" },
+      outputSchema: {
+        schemaVersion: 1 as const,
+        schemaId: "management.system-action.result",
+      },
+      targetKind: "secret",
+      riskClass: "MATERIAL" as const,
+      applyMode: "RECONCILE" as const,
+    }),
+    Object.freeze({
+      schemaVersion: 1 as const,
+      actionId: "secret.replace" as SystemActionId,
+      actionVersion: 1,
+      inputSchema: { schemaVersion: 1 as const, schemaId: "secret.replace.input" },
+      outputSchema: {
+        schemaVersion: 1 as const,
+        schemaId: "management.system-action.result",
+      },
+      targetKind: "secret",
+      riskClass: "MATERIAL" as const,
+      applyMode: "RECONCILE" as const,
+    }),
+    Object.freeze({
+      schemaVersion: 1 as const,
+      actionId: "secret.revoke" as SystemActionId,
+      actionVersion: 1,
+      inputSchema: { schemaVersion: 1 as const, schemaId: "secret.revoke.input" },
+      outputSchema: {
+        schemaVersion: 1 as const,
+        schemaId: "management.system-action.result",
+      },
+      targetKind: "secret",
+      riskClass: "MATERIAL" as const,
+      applyMode: "RECONCILE" as const,
+    }),
+    Object.freeze({
+      schemaVersion: 1 as const,
+      actionId: "provider-profile.set" as SystemActionId,
+      actionVersion: 1,
+      inputSchema: {
+        schemaVersion: 1 as const,
+        schemaId: "provider-profile.set.input",
+      },
+      outputSchema: {
+        schemaVersion: 1 as const,
+        schemaId: "management.system-action.result",
+      },
+      targetKind: "provider-profile",
+      riskClass: "MATERIAL" as const,
+      applyMode: "RECONCILE" as const,
+    }),
+    Object.freeze({
+      schemaVersion: 1 as const,
+      actionId: "model-profile.set" as SystemActionId,
+      actionVersion: 1,
+      inputSchema: { schemaVersion: 1 as const, schemaId: "model-profile.set.input" },
+      outputSchema: {
+        schemaVersion: 1 as const,
+        schemaId: "management.system-action.result",
+      },
+      targetKind: "model-profile",
+      riskClass: "MATERIAL" as const,
+      applyMode: "RECONCILE" as const,
+    }),
+    Object.freeze({
+      schemaVersion: 1 as const,
+      actionId: "model-binding.set" as SystemActionId,
+      actionVersion: 1,
+      inputSchema: { schemaVersion: 1 as const, schemaId: "model-binding.set.input" },
+      outputSchema: {
+        schemaVersion: 1 as const,
+        schemaId: "management.system-action.result",
+      },
+      targetKind: "model-binding",
+      riskClass: "MATERIAL" as const,
+      applyMode: "RECONCILE" as const,
+    }),
+  ]);
 
 /** Describes a public Management Problem response. */
 export interface ManagementProblemDetails {
@@ -472,6 +744,89 @@ export const systemActionExecuteResultSchema = Type.Object({
     }),
   ),
 });
+
+/** Canonical wire schema for one typed Product action request. */
+export const systemActionRequestSchema = Type.Union([
+  Type.Object(
+    {
+      actionId: Type.Literal("configuration.revision.create"),
+      input: configurationRevisionCreateInputSchema,
+    },
+    { additionalProperties: false },
+  ),
+  Type.Object(
+    {
+      actionId: Type.Literal("configuration.activate"),
+      input: configurationActivateInputSchema,
+    },
+    { additionalProperties: false },
+  ),
+  Type.Object(
+    { actionId: Type.Literal("secret.set"), input: secretSetInputSchema },
+    { additionalProperties: false },
+  ),
+  Type.Object(
+    { actionId: Type.Literal("secret.replace"), input: secretReplaceInputSchema },
+    { additionalProperties: false },
+  ),
+  Type.Object(
+    { actionId: Type.Literal("secret.revoke"), input: secretRevokeInputSchema },
+    { additionalProperties: false },
+  ),
+  Type.Object(
+    {
+      actionId: Type.Literal("provider-profile.set"),
+      input: providerProfileSetInputSchema,
+    },
+    { additionalProperties: false },
+  ),
+  Type.Object(
+    {
+      actionId: Type.Literal("model-profile.set"),
+      input: modelProfileSetInputSchema,
+    },
+    { additionalProperties: false },
+  ),
+  Type.Object(
+    {
+      actionId: Type.Literal("model-binding.set"),
+      input: modelBindingSetInputSchema,
+    },
+    { additionalProperties: false },
+  ),
+]);
+/** Canonical wire schema for exact action-plan confirmation and execution. */
+export const systemActionExecuteRequestSchema = Type.Object(
+  {
+    plan: systemChangePlanSchema,
+    action: systemActionRequestSchema,
+  },
+  { additionalProperties: false },
+);
+
+/** Canonical wire schema for the redacted Product prerequisite projection. */
+export const productStateSchema = readModelEnvelopeSchema(
+  Type.Object(
+    {
+      schemaVersion: Type.Literal(1),
+      configuration: Type.Object(
+        {
+          definitions: Type.Array(Type.Unknown()),
+          revisions: Type.Array(Type.Unknown()),
+          activations: Type.Array(Type.Unknown()),
+        },
+        { additionalProperties: false },
+      ),
+      secrets: Type.Array(Type.Unknown()),
+      providerProfiles: Type.Array(Type.Unknown()),
+      modelProfiles: Type.Array(Type.Unknown()),
+      modelBindings: Type.Array(Type.Unknown()),
+      networkAccess: Type.Unknown(),
+      aiReadiness: Type.Unknown(),
+    },
+    { additionalProperties: false },
+  ),
+);
 
 /** Canonical wire schema for a Problem Details response. */
 export const managementProblemSchema = Type.Object({

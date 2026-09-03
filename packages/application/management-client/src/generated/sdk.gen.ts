@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client/index.js';
-import type { ClaimFirstAdministratorData, ClaimFirstAdministratorErrors, ClaimFirstAdministratorResponses, CreateManagementSessionData, CreateManagementSessionErrors, CreateManagementSessionResponses, GetCapabilityGraphData, GetCapabilityGraphErrors, GetCapabilityGraphResponses, GetHostData, GetHostErrors, GetHostResponses, GetManagementDiscoveryData, GetManagementDiscoveryResponses, GetReadinessData, GetReadinessErrors, GetReadinessResponses, GetRuntimeGraphData, GetRuntimeGraphErrors, GetRuntimeGraphResponses, GetSystemStatusData, GetSystemStatusErrors, GetSystemStatusResponses, RevokeCurrentManagementSessionData, RevokeCurrentManagementSessionErrors, RevokeCurrentManagementSessionResponses } from './types.gen.js';
+import type { ClaimFirstAdministratorData, ClaimFirstAdministratorErrors, ClaimFirstAdministratorResponses, CreateManagementSessionData, CreateManagementSessionErrors, CreateManagementSessionResponses, ExecuteSystemActionData, ExecuteSystemActionErrors, ExecuteSystemActionResponses, GetCapabilityGraphData, GetCapabilityGraphErrors, GetCapabilityGraphResponses, GetHostData, GetHostErrors, GetHostResponses, GetManagementDiscoveryData, GetManagementDiscoveryResponses, GetProductStateData, GetProductStateErrors, GetProductStateResponses, GetReadinessData, GetReadinessErrors, GetReadinessResponses, GetRuntimeGraphData, GetRuntimeGraphErrors, GetRuntimeGraphResponses, GetSystemActionCatalogData, GetSystemActionCatalogErrors, GetSystemActionCatalogResponses, GetSystemStatusData, GetSystemStatusErrors, GetSystemStatusResponses, PlanSystemActionData, PlanSystemActionErrors, PlanSystemActionResponses, RevokeCurrentManagementSessionData, RevokeCurrentManagementSessionErrors, RevokeCurrentManagementSessionResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -83,5 +83,49 @@ export const getCapabilityGraph = <ThrowOnError extends boolean = false>(options
 export const getReadiness = <ThrowOnError extends boolean = false>(options?: Options<GetReadinessData, ThrowOnError>): RequestResult<GetReadinessResponses, GetReadinessErrors, ThrowOnError> => (options?.client ?? client).get<GetReadinessResponses, GetReadinessErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/management/v1/readiness',
+    ...options
+});
+
+/**
+ * Read the current SystemAction catalog
+ */
+export const getSystemActionCatalog = <ThrowOnError extends boolean = false>(options?: Options<GetSystemActionCatalogData, ThrowOnError>): RequestResult<GetSystemActionCatalogResponses, GetSystemActionCatalogErrors, ThrowOnError> => (options?.client ?? client).get<GetSystemActionCatalogResponses, GetSystemActionCatalogErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/management/v1/actions',
+    ...options
+});
+
+/**
+ * Create a side-effect-free current SystemAction plan
+ */
+export const planSystemAction = <ThrowOnError extends boolean = false>(options: Options<PlanSystemActionData, ThrowOnError>): RequestResult<PlanSystemActionResponses, PlanSystemActionErrors, ThrowOnError> => (options.client ?? client).post<PlanSystemActionResponses, PlanSystemActionErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/management/v1/actions/plan',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Reauthenticate and execute one exact SystemAction plan
+ */
+export const executeSystemAction = <ThrowOnError extends boolean = false>(options: Options<ExecuteSystemActionData, ThrowOnError>): RequestResult<ExecuteSystemActionResponses, ExecuteSystemActionErrors, ThrowOnError> => (options.client ?? client).post<ExecuteSystemActionResponses, ExecuteSystemActionErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/management/v1/actions/execute',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Read current Product prerequisite state
+ */
+export const getProductState = <ThrowOnError extends boolean = false>(options?: Options<GetProductStateData, ThrowOnError>): RequestResult<GetProductStateResponses, GetProductStateErrors, ThrowOnError> => (options?.client ?? client).get<GetProductStateResponses, GetProductStateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/management/v1/product/state',
     ...options
 });
