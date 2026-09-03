@@ -101,7 +101,7 @@ interface GenerationResult {
 }
 ```
 
-ModelCapability for the H6 path is limited to text generation, structured
+ModelCapability for the current Subject slice is limited to text generation, structured
 output, usage metadata when supplied, and abort/timeout. GenerationResult is a
 proposal/evidence record until the consuming semantic owner accepts it.
 
@@ -170,7 +170,7 @@ Lineage and Evidence whenever the Product consumes them.
 - AIR-008 Controllable provider HTTP traffic uses NetworkAccess.
 - AIR-009 Provider failure before DecisionCommit cannot fabricate canonical behavior.
 - AIR-010 Consumed provider, model, binding revision, generation, and usage metadata remain attributable through Lineage/Evidence.
-- AIR-011 H6 has no tool authority or tool-loop mechanics.
+- AIR-011 The current Subject slice has no tool authority or tool-loop mechanics.
 - AIR-012 AIRuntime defines no internal System Assistant/OpenClaw model binding.
 
 ## Management projection and lifecycle

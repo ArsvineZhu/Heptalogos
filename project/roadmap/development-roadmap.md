@@ -102,7 +102,7 @@ The following are architecture-level ordering constraints and should not be casu
 2. **Canonical truth precedes asynchronous obligation.** External/canonical facts are committed before WorkItem processing becomes authoritative.
 3. **Required Evidence/Lineage identity is established at the authority transition, not reconstructed later.**
 4. **Durable work/effects require explicit version, generation, attempt and uncertainty semantics before real external integration depends on them.**
-5. **Normal Product Management mutation goes through SystemAction/Policy/Approval/Operation semantics before CLI/HTTP/Management clients become authoritative.**
+5. **Normal Product Management mutation follows the current SystemAction plan/execute path and owning Service before CLI/HTTP/Management clients project it. Policy authorization, Approval, and durable operation semantics enter only when a real current consumer or requirement needs them.**
 6. **Real AI/provider and Driver use requires Configuration/Secret/Network/Capability policy boundaries; raw SDK objects do not become Authority.**
 7. **Basic Subject interaction must work without Persona/Memory/Relationship/Attention implementations.** Advanced cognition cannot become a hidden Subject Base prerequisite.
 8. **Presentation remains a projection.** External Browser/Desktop/GUI consumers can be researched and can drive Host contract requirements, but they cannot define backend Authority or be implemented in this repository.
@@ -371,8 +371,8 @@ Foundation evidence. This does not close all product qualification boundaries.
 Windows and Ubuntu/Linux evidence is current for the recorded scenarios;
 macOS, source-less, service/headless, and ResourceGovernor qualification remain
 individually scoped and must not be inferred from another platform or
-candidate. The closed capability is the work historically tracked as H3; that
-label is retained only as chronology.
+candidate. The closed capability is retained as chronology in the completed
+records; historical stage labels are not current Product identity.
 
 The current repository locus is master. The Foundation closure merge baseline
 is PR #32 at
@@ -550,6 +550,7 @@ providerPrerequisites: ELIGIBLE_NOT_AUTHORIZED
 machineOperationsIntegration: ELIGIBLE_NOT_AUTHORIZED
 activeProductImplementationPlan: NONE
 currentProductWork: NONE
+nextEligibleProductWork: one-real-provider enablement
 ordinaryGitHubActions: DISABLED_CURRENT_EXECUTION_POLICY
 ```
 
@@ -675,39 +676,53 @@ prerequisite.
 
 ---
 
-## System Administration: Configuration, Secrets, Authentication, and Authority
+## Broader System Administration — conditional future capability
 
-### Question answered
+### Boundary
 
-> Can an administrator inspect and change the system through one canonical authority path, with explicit planning, policy, approval, durability and verification?
+The current Product slice already has one canonical Management path: an
+authenticated Administrator requests a side-effect-free SystemAction plan,
+confirms its exact digest, and the owning Service performs and verifies the
+mutation. This broader capability is not a prerequisite for entering Provider
+or Subject work.
 
-### Capability closure
+Policy authorization, durable Approval, and durable operation state are
+conditional product capabilities. They enter only when a real current
+consumer/requirement needs a distinction that the current one-Administrator
+plan/execute path does not own. Cedar remains the adopted policy-evaluation
+mechanics route for that future boundary; this roadmap does not instantiate it.
 
-- ConfigurationDefinition/Source/Revision/Activation model;
-- SchemaRuntime-backed typed Configuration Surface;
-- BootstrapKeyProvider remains separate from normal SecretService;
-- SecretService + platform-composed SecretBackend;
-- first-administrator one-shot local claim;
-- opaque PostgreSQL-backed normal sessions;
-- PolicyService with Cedar adapter;
-- ApprovalService;
-- SystemAction registry, side-effect-free plan and governed execute/verify;
-- ManagementOperation durable lifecycle;
-- canonical Management Contract;
-- complete reference CLI projection;
-- minimal HTTP/OpenAPI/client projection where needed by the contract, not as a separate business layer.
+### Capability when a current consumer exists
+
+- Configuration, Secret, NetworkAccess, and AIRuntime ownership as their
+  current consumers enter Product;
+- one-Administrator authentication/session and current SystemAction
+  plan/execute semantics;
+- policy authorization through the adopted Cedar adapter only when current
+  policy rules require it;
+- durable approval requests only for a current cross-session or multi-approver
+  requirement;
+- durable operation state only when the target owner does not already own
+  progress and a current long-running operation requires it;
+- the canonical Management Contract, generated client, and reference CLI
+  projections for the capabilities that have entered Product.
 
 ### Qualification timing
 
-Cedar looks operationally healthy enough that it need not be an early Foundation blocker. Qualify `@cedar-policy/cedar-wasm` when PolicyService first enters this horizon, especially Node/ESM/WASM/source-less loading behavior. Cedar remains ALLOW/DENY mechanics; Heptalogos owns principal/action/resource/context and cannot outsource Approval or SystemAction semantics.
+Cedar looks operationally healthy enough that it need not be an early
+Foundation blocker. Qualify `@cedar-policy/cedar-wasm` when a current policy
+consumer first enters this capability, especially Node/ESM/WASM/source-less
+loading behavior. Cedar remains ALLOW/DENY mechanics; Heptalogos owns
+principal/action/resource/context and cannot outsource SystemAction semantics
+or any approval decision.
 
 ### Exit scenarios
 
-- every behavior-affecting value introduced by this stage is classified;
+- every behavior-affecting value introduced by this capability is classified;
 - proposed config source != active config, and invalid source preserves LKG active revision;
 - plan is side-effect-free and execution revalidates preconditions;
-- approval binds plan digest/revisions and becomes stale when material impact changes;
-- protected mutation fails closed when Policy is unavailable;
+- when approval is required, it binds plan digest/revisions and becomes stale when material impact changes;
+- when policy is required, protected mutation fails closed when Policy is unavailable;
 - System Assistant absence does not prevent CLI/normal Management;
 - CLI and HTTP/clients project the same machine-readable Problem/SystemAction semantics;
 - no arbitrary shell/SQL/root-filesystem path becomes a management shortcut.

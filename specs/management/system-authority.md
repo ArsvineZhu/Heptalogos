@@ -54,7 +54,7 @@ claim digest, expiry/state check, Administrator identity, Argon2id password
 verifier, authEpoch, and consumed state. Password and claim plaintext never
 enter logs, Evidence, Activity attributes, Lineage attributes, or response
 bodies. Node crypto Argon2id is the adopted implementation mechanics at
-implementation time; T2 does not select a different hashing provider.
+implementation time; the current slice does not select a different hashing provider.
 
 Normal sessions use an opaque bearer token:
 
@@ -147,7 +147,9 @@ interface SystemActionExecuteResult<T> {
 
 Problem is the existing Foundation contract. These types use existing typed
 identities and canonical encoding; they do not define a second error, digest,
-or identity system.
+identity, or lineage-reference system. `LineageContextRef` is the canonical
+contract owned by Execution Lineage and is embedded here without a Management
+variant.
 
 Ordinary stateless Management reads do not create retained Activity or Lineage
 solely to fill the envelope. They include `LineageContextRef` when meaningful
@@ -157,7 +159,7 @@ cross-process causal handoff.
 
 ## Authorization and confirmation
 
-H4-Min authorization is intentionally small:
+Current one-Administrator authorization is intentionally small:
 
 ```text
 authenticated current Administrator
@@ -170,9 +172,9 @@ Subject/model/Extension
 → cannot invoke Administrator mutations
 ```
 
-Cedar remains the adopted future/full-H4 policy mechanics route but is not
-instantiated solely for the one-Administrator H4-Min slice. Do not build a
-custom policy language.
+Cedar remains the adopted future/full-management policy mechanics route but is
+not instantiated solely for the current one-Administrator slice. Do not build
+a custom policy language.
 
 A mutating action follows:
 
@@ -215,10 +217,10 @@ subject.stop
 The action catalog is stable/versioned. HTTP paths and ergonomic CLI command
 names are projections, not semantic identities.
 
-## Staged Read Models and projections
+## Read-model scope and projections
 
 ```text
-P1
+current slice
 → system status
 → Host identity/ownership status
 → RuntimeGraph
@@ -226,14 +228,14 @@ P1
 → Readiness
 → CompatibilityDescriptor
 
-P2
+when the owning capability enters Product
 → ConfigurationDefinition/Revision/Activation
 → SecretMetadata
 → ProviderProfile/ModelProfile/ModelBinding
 → AIRuntime readiness
 → owned NetworkAccess diagnostics
 
-P3
+when the Subject slice enters Product
 → Subject Desired/Actual/readiness
 → Subject Chat conversation/message query
 ```
@@ -247,7 +249,7 @@ cannot become domain Authority.
 
 HTTP/OpenAPI is the canonical network projection. Fastify supplies HTTP
 mechanics and Hey API supplies generated ManagementClient mechanics behind the
-semantic contract. P1 is loopback by default. Remote Internet exposure, TLS
+semantic contract. The current endpoint is loopback by default. Remote Internet exposure, TLS
 termination architecture, browser transport, SSE, WebSocket, and cookie-only
 authentication are not required for the first slice.
 
@@ -313,9 +315,9 @@ PRE_PRODUCTION coordinated breaking changes remain allowed.
 - MGMT-007 A mutating SystemAction first produces a side-effect-free SystemChangePlan.
 - MGMT-008 Execute binds the exact plan digest and revalidates preconditions.
 - MGMT-009 A stale plan cannot execute under old confirmation.
-- MGMT-010 H4-Min does not instantiate Cedar solely for one Administrator rule; Cedar is not rejected as a future route.
-- MGMT-011 H4-Min has no generic durable ApprovalService without a current durable approval consumer.
-- MGMT-012 H4-Min has no generic ManagementOperation when target lifecycle already owns the truth.
+- MGMT-010 The current one-Administrator slice does not instantiate Cedar solely for one Administrator rule; Cedar is not rejected as a future route.
+- MGMT-011 The current slice has no generic durable ApprovalService without a current durable approval consumer.
+- MGMT-012 The current slice has no generic ManagementOperation when target lifecycle already owns the truth.
 - MGMT-013 CLI, HTTP, ManagementClient, automation, and Presentation project the same Problem/action/read semantics.
 - MGMT-014 External Presentation may drive new Host-owned reads/projections but never domain Authority.
 - MGMT-015 Normal Product Management never becomes arbitrary shell, filesystem, DBOS, package, or root-database authority.
@@ -328,7 +330,7 @@ PRE_PRODUCTION coordinated breaking changes remain allowed.
 This Spec does not define:
 
 ```text
-Cedar implementation in H4-Min
+Cedar implementation in the current one-Administrator slice
 generic policy language
 generic durable ApprovalService
 generic ManagementOperation framework

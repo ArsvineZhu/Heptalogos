@@ -11,7 +11,7 @@ the owner of durable work.
 
 ## Owns
 
-- ExecutionContext and lineage context reference contracts.
+- ExecutionContext and the canonical lineage context reference type/schema.
 - Runtime creation and propagation helpers.
 - Persistence execution-context provider integration.
 - Execution-lineage service and Bootstrap handoff projection.
@@ -25,8 +25,8 @@ the owner of durable work.
 
 ## Public surface
 
-The package exports Activity and ExecutionContext types, runtime creation,
-lineage reference encode/decode, persistence provider and service factories,
+The package exports Activity and ExecutionContext types, the canonical lineage
+reference schema and encode/decode operations, persistence provider and service factories,
 and the Bootstrap handoff projection. It also exposes the runtime-kernel
 subpath for the explicitly routed integration surface.
 

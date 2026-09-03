@@ -2,7 +2,7 @@
 
 ## Scope
 
-This Spec owns the minimal H6 cognition and behavior commit spine:
+This Spec owns the minimal Subject cognition and behavior commit spine:
 
 ```text
 ConversationMailbox
@@ -122,7 +122,7 @@ WorkItem and Problem semantics.
 
 ## ContextProjection
 
-H6 ContextProjection includes only:
+The current ContextProjection includes only:
 
 ```text
 current selected/pending conversation MessageFacts
@@ -155,7 +155,7 @@ type BehaviorIntent =
     };
 ```
 
-For H6, semanticContent uses the versioned BehaviorSemanticContentV1 JSON
+For the current Subject slice, semanticContent uses the versioned BehaviorSemanticContentV1 JSON
 Schema:
 
 ```json
@@ -324,7 +324,7 @@ primary decision is not replaced
 ```
 
 A new accepted inbound advances mailboxRevision. A pre-commit Reaction holding
-an old revision becomes SUPERSEDED and cannot commit. This strict H6 rule does
+an old revision becomes SUPERSEDED and cannot commit. This strict current-slice rule does
 not add a scheduler or Advanced Observation Window.
 
 The canonical Problem projection distinguishes at least:
@@ -358,7 +358,7 @@ reaction.commit_conflict
 - REACT-013 Accepted expression materializes exactly one outbound MessageFact.
 - REACT-014 Crash after outbound commit does not produce a second reply.
 - REACT-015 Primary failure before DecisionCommit produces no fake canonical behavior.
-- REACT-016 H6 has no tools, MCP, Persona, Memory, Relationship, Attention, or proactive behavior.
+- REACT-016 The current Subject slice has no tools, MCP, Persona, Memory, Relationship, Attention, or proactive behavior.
 - REACT-017 New-message supersession uses mailbox revision; no new scheduler.
 - REACT-018 Local Subject Chat outbound creates no EffectOperation.
 - REACT-019 Later external effects remain fenced by existing EffectOperation.

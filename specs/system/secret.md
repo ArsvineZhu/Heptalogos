@@ -122,8 +122,8 @@ secret becomes dependent BLOCKED through its owning readiness contract.
 - SEC-006 Revoked or unavailable material yields a structured dependent readiness failure; there is no plaintext fallback.
 - SEC-007 BootstrapKeyProvider remains separate from normal SecretService state and ceremony.
 - SEC-008 OpenClaw and Machine Operations credentials are not normal Host SecretService state by default.
-- SEC-009 Backend mechanics are platform-composed behind this contract; T2 does not select one universal secret library.
-- SEC-010 Exact native/source-less backend behavior is an implementation qualification claim, not a T2 claim.
+- SEC-009 Backend mechanics are platform-composed behind this contract; the current slice does not select one universal secret library.
+- SEC-010 Exact native/source-less backend behavior is an implementation qualification claim, not a current-slice claim.
 
 ## Failure semantics and Management projection
 

@@ -3,14 +3,14 @@
 ## Scope
 
 This Spec owns the minimal persistent Subject identity, lifecycle, readiness,
-and Subject authority revision required by the first H6 slice. It does not own
+and Subject authority revision required by the minimal Subject slice. It does not own
 Persona, Memory, Relationship, Attention, Living State, Diary, Dream, or
 advanced cognition.
 
 ## Ownership
 
 Subject Core owns SubjectId continuity, Subject Desired/Actual state,
-authorityRevision, hard H6 readiness interpretation, and lifecycle admission.
+authorityRevision, hard minimal Subject-slice readiness interpretation, and lifecycle admission.
 System Authority owns the management action that requests DesiredState.
 Runtime supervision and reconciliation own process-local convergence and actual
 runtime observation. Configuration, Secret, NetworkAccess, and AIRuntime own
@@ -89,9 +89,9 @@ The canonical meanings are:
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | STOPPED     | DesiredState is STOPPED; new Subject cognition is not admitted and no current activation is active.                                           |
 | STARTING    | DesiredState is RUNNING; hard prerequisites are being resolved or activated and usable cognition readiness has not been reached.              |
-| READY       | DesiredState is RUNNING; all hard H6 prerequisites are ready and no current Reaction is executing.                                            |
+| READY       | DesiredState is RUNNING; all hard Subject-slice prerequisites are ready and no current Reaction is executing.                                 |
 | ACTIVE      | DesiredState is RUNNING; hard prerequisites remain acceptable and at least one current Reaction is active.                                    |
-| DEGRADED    | DesiredState is RUNNING; the H6 reply/silence path remains usable while an optional or non-hard current capability is degraded.               |
+| DEGRADED    | DesiredState is RUNNING; the current reply/silence path remains usable while an optional or non-hard current capability is degraded.          |
 | BLOCKED     | DesiredState is RUNNING; a hard prerequisite is absent/unready and the Subject has not entered an intrinsic unrecoverable failure.            |
 | STOPPING    | DesiredState is STOPPED; new cognition admission is closed and current process-memory work is quiescing or cancelling. Durable truth remains. |
 | FAILED      | Subject-owned runtime/control logic itself cannot safely continue and the failure is not truthfully a dependency BLOCKED condition.           |
@@ -116,7 +116,7 @@ DesiredState = RUNNING
 ```
 
 Optional capability degradation may project READY or ACTIVE to DEGRADED while
-the H6 reply/silence path remains usable. A missing hard prerequisite projects
+the current reply/silence path remains usable. A missing hard prerequisite projects
 the running desired state to BLOCKED. Setting DesiredState to STOPPED closes new
 cognition admission and converges through:
 
@@ -130,7 +130,7 @@ A Subject-owned unrecoverable control failure may converge to FAILED. Recovery
 re-evaluates dependencies and owner control; it does not fabricate READY or
 silently rewrite DesiredState.
 
-Hard H6 prerequisites are:
+Hard prerequisites for the minimal Subject slice are:
 
 ```text
 current Host Authority
@@ -143,7 +143,7 @@ usable AIRuntime route
 ```
 
 The same ModelProfile may serve both binding roles. OpenClaw, System
-Assistant, GUI, external IM, MCP, and advanced cognition are not hard H6
+Assistant, GUI, external IM, MCP, and advanced cognition are not hard
 readiness dependencies.
 
 authorityRevision is monotonic. DesiredState changes and other later-authorized
@@ -205,7 +205,7 @@ subject.host_fence_lost
 - SUBJ-007 Readiness derives from explicit prerequisites, not SDK object existence.
 - SUBJ-008 authorityRevision fences pre-commit decisions and later Subject governance.
 - SUBJ-009 OpenClaw/System Assistant availability is not Subject readiness.
-- SUBJ-010 Advanced cognition is not an H6 prerequisite.
+- SUBJ-010 Advanced cognition is not a minimal Subject-slice prerequisite.
 - SUBJ-011 STOPPED, STARTING, BLOCKED, STOPPING, and FAILED reject new built-in Subject Chat cognition admission.
 - SUBJ-012 READY, ACTIVE, and DEGRADED are canonical states, not local UI inference.
 

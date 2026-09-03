@@ -260,6 +260,6 @@ Linux local desktop visuals 可以接受合理 degradation，Windows/macOS 是 h
 visual targets。Linux Server 使用同一 capability model，默认不携带或获取 Desktop
 Presentation。
 
-以下仍是 provisional/qualification work，而不是当前 H3 implementation：generation-
+以下仍是 provisional/qualification work，而不是当前 Foundation implementation：generation-
 coupled Core/Web/Desktop manifest，signing/notarization/update mechanics，remote Web
 TLS/auth，Electron cold-start/RSS/GPU，以及详细 installer behavior。

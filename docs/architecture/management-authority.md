@@ -41,8 +41,9 @@ database handle.
 A plan records normalized input, target and revision assumptions, affected
 owners, capability/readiness impact, Subject impact, resource impact,
 data/secret/network impact, restart or maintenance requirements, preconditions,
-risk, and approval requirements. If the world changes, the plan is stale and
-must be recomputed; an old approval cannot authorize a changed plan.
+risk, and approval requirements when the current action requires them. If the
+world changes, the plan is stale and must be recomputed; an old approval cannot
+authorize a changed plan.
 
 ## 3. Authentication、Authorization、Risk、Approval 与 Execution
 
@@ -61,7 +62,8 @@ approval mechanisms belong to the current Management Specs and implementation
 Plans.
 
 The existence of a System Assistant or another automated client does not by
-itself justify a universal AI-specific approval framework. T2 must choose
+itself justify a universal AI-specific approval framework. The current
+Management contract must choose
 normal management authentication, authorization, risk, and approval semantics
 from actual product consumers and invariants.
 
@@ -116,6 +118,11 @@ normal SystemAction records.
 
 ## 6. Approval
 
+The current one-Administrator slice uses exact SystemChangePlan confirmation;
+it does not instantiate a generic durable approval service. A durable approval
+request enters only when a current policy and consumer require cross-session,
+multi-approver, or equivalent approval state.
+
 Approval is a product risk/control decision, not an automatic consequence of
 the word assistant:
 
@@ -132,10 +139,11 @@ SystemAction and target, normalized input digest, SystemChangePlan digest,
 policy generation, risk, authentication freshness, expiry, and state. It
 authorizes that exact plan; a material input or plan change invalidates it.
 
-## 7. ManagementOperation
+## 7. Durable operation state when required
 
-Long-running normal product actions are owned by System Authority and are
-independent of any browser, CLI process, or assistant session:
+When a current long-running product action needs progress state not already
+owned by its target, System Authority may own a durable operation independent
+of any browser, CLI process, or assistant session:
 
 ```
 planned
@@ -150,7 +158,9 @@ recovery-required
 ```
 
 Durable operation state, owning-service execution, verification, Lineage, and
-Evidence remain separate from the client that requested the operation.
+Evidence remain separate from the client that requested the operation. A
+target Desired/Actual reconciliation or bounded synchronous result remains the
+current owner when it already expresses progress.
 
 ## 8. Clients and projections
 

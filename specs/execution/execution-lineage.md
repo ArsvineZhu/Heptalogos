@@ -10,6 +10,9 @@ of truth.
 
 `execution-lineage` owns Activity/ExecutionContext propagation and the lineage
 service. Domain owners retain Authority over their own objects and outcomes.
+The `LineageContextRef` type and its canonical wire schema are owned here;
+consumers such as Management embed and reuse this contract rather than defining
+another lineage reference.
 
 ## Invariants
 

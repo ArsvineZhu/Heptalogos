@@ -30,7 +30,7 @@ abort/timeout
 middleware
 ```
 
-AI SDK may expose broader mechanics, but the current H6 Product path consumes
+AI SDK may expose broader mechanics, but the current Subject Product path consumes
 only text generation, structured output, usage when supplied, and
 abort/timeout. Tool and autonomous-step mechanics remain future integration
 choices and do not create current AIRuntime Authority.

@@ -14,7 +14,7 @@ idempotent send
 canonical query and reconnect catch-up
 ```
 
-The current H6 channel is not an external IM Driver. OneBot, Milky, external
+The current built-in Subject Chat channel is not an external IM Driver. OneBot, Milky, external
 accounts, media breadth, and remote messaging effects remain separate future
 Integration work.
 
@@ -72,7 +72,7 @@ interface MessageFact {
 }
 ```
 
-MessageFact is immutable canonical Messaging truth. H6 text must be non-empty
+MessageFact is immutable canonical Messaging truth. Current Subject Chat text must be non-empty
 after protocol canonical input validation. Empty text is not Subject silence;
 silence is a Behavior decision with no outbound MessageFact.
 
@@ -103,7 +103,7 @@ FAILED
 Rejected input creates no MessageFact, mailbox revision, or cognition WorkItem.
 This admission rule is local Subject Chat policy. A future external Driver may
 durably ingest a message while cognition is unavailable, but that is not this
-H6 path.
+built-in Subject Chat path.
 
 ## Inbound transaction
 
@@ -176,7 +176,7 @@ canonical sequence or turn a projection into mutation Authority.
 
 ## External messaging boundary
 
-Future external Messaging remains outside H6 implementation:
+Future external Messaging remains outside the current built-in Subject Chat implementation:
 
 ```text
 CommunicationCommit
@@ -225,7 +225,7 @@ CommunicationCommit path.
 - MSG-010 Reconnect catches up from canonical MessageFact truth.
 - MSG-011 Silence is not an empty outbound MessageFact.
 - MSG-012 External Driver uncertainty remains EffectOperation-owned when external Messaging later enters.
-- MSG-013 H6 is text-only; broader segments and media are not implemented by implication.
+- MSG-013 The current built-in Subject Chat is text-only; broader segments and media are not implemented by implication.
 
 ## Persistence and current-slice exclusions
 

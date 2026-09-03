@@ -121,11 +121,13 @@ export interface ManagementClient {
   getReadiness(): Promise<ReadinessResult>;
 }
 
-type ClientRequestResult<T> = Promise<T>;
+type ClientFieldsResponse<T> = { readonly data: T };
 
-async function request<T>(operation: () => ClientRequestResult<T>): Promise<T> {
+async function request<T>(
+  operation: () => Promise<ClientFieldsResponse<T>>,
+): Promise<T> {
   try {
-    return await operation();
+    return (await operation()).data;
   } catch (error) {
     if (error instanceof ManagementClientError) throw error;
     throw new ManagementClientError(error);
@@ -144,95 +146,86 @@ export function createManagementClient(
   });
   return Object.freeze({
     getDiscovery() {
-      return request(
-        () =>
-          getManagementDiscovery({
-            client: transport,
-            throwOnError: true,
-            responseStyle: "data",
-          }) as unknown as Promise<GetManagementDiscoveryResponses[200]>,
+      return request(() =>
+        getManagementDiscovery({
+          client: transport,
+          throwOnError: true,
+          responseStyle: "fields",
+        }),
       );
     },
     claimFirstAdministrator(body: ClaimFirstAdministratorData["body"]) {
-      return request(
-        () =>
-          claimFirstAdministrator({
-            client: transport,
-            body,
-            throwOnError: true,
-            responseStyle: "data",
-          }) as unknown as Promise<ClaimFirstAdministratorResponses[201]>,
+      return request(() =>
+        claimFirstAdministrator({
+          client: transport,
+          body,
+          throwOnError: true,
+          responseStyle: "fields",
+        }),
       );
     },
     login(body: CreateManagementSessionData["body"]) {
-      return request(
-        () =>
-          createManagementSession({
-            client: transport,
-            body,
-            throwOnError: true,
-            responseStyle: "data",
-          }) as unknown as Promise<CreateManagementSessionResponses[200]>,
+      return request(() =>
+        createManagementSession({
+          client: transport,
+          body,
+          throwOnError: true,
+          responseStyle: "fields",
+        }),
       );
     },
     logout() {
-      return request(
-        () =>
-          revokeCurrentManagementSession({
-            client: transport,
-            throwOnError: true,
-            responseStyle: "data",
-          }) as unknown as Promise<RevokeCurrentManagementSessionResponses[204]>,
+      return request(() =>
+        revokeCurrentManagementSession({
+          client: transport,
+          throwOnError: true,
+          responseStyle: "fields",
+        }),
       );
     },
     getSystemStatus() {
-      return request(
-        () =>
-          getSystemStatus({
-            client: transport,
-            throwOnError: true,
-            responseStyle: "data",
-          }) as unknown as Promise<GetSystemStatusResponses[200]>,
+      return request(() =>
+        getSystemStatus({
+          client: transport,
+          throwOnError: true,
+          responseStyle: "fields",
+        }),
       );
     },
     getHost() {
-      return request(
-        () =>
-          getHost({
-            client: transport,
-            throwOnError: true,
-            responseStyle: "data",
-          }) as unknown as Promise<GetHostResponses[200]>,
+      return request(() =>
+        getHost({
+          client: transport,
+          throwOnError: true,
+          responseStyle: "fields",
+        }),
       );
     },
     getRuntimeGraph() {
-      return request(
-        () =>
-          getRuntimeGraph({
-            client: transport,
-            throwOnError: true,
-            responseStyle: "data",
-          }) as unknown as Promise<GetRuntimeGraphResponses[200]>,
+      return request(() =>
+        getRuntimeGraph({
+          client: transport,
+          throwOnError: true,
+          responseStyle: "fields",
+        }),
       );
     },
     getCapabilityGraph() {
-      return request(
-        () =>
-          getCapabilityGraph({
-            client: transport,
-            throwOnError: true,
-            responseStyle: "data",
-          }) as unknown as Promise<GetCapabilityGraphResponses[200]>,
+      return request(() =>
+        getCapabilityGraph({
+          client: transport,
+          throwOnError: true,
+          responseStyle: "fields",
+        }),
       );
     },
     getReadiness() {
-      return request(
-        () =>
-          getReadiness({
-            client: transport,
-            throwOnError: true,
-            responseStyle: "data",
-          }) as unknown as Promise<GetReadinessResponses[200]>,
+      return request(() =>
+        getReadiness({
+          client: transport,
+          throwOnError: true,
+          responseStyle: "fields",
+        }),
       );
     },
   });

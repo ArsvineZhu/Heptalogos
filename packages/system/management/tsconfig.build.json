@@ -12,6 +12,7 @@
   "include": ["src/**/*.ts"],
   "exclude": ["test/**/*.ts"],
   "references": [
+    { "path": "../../execution/execution-lineage/tsconfig.build.json" },
     { "path": "../../foundation/foundation-contracts/tsconfig.build.json" },
     { "path": "../../foundation/schema-runtime/tsconfig.build.json" },
     { "path": "../../foundation/time-service/tsconfig.build.json" },

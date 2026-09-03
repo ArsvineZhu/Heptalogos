@@ -24,7 +24,8 @@ const telemetrySchema = Type.Object(
   { additionalProperties: false },
 );
 
-const lineageContextRefSchema = Type.Object(
+/** Canonical wire schema for a versioned lineage context reference. */
+export const lineageContextRefSchema = Type.Object(
   {
     schemaVersion: Type.Literal(1),
     sourceActivityId: Type.String({ pattern: UUID_V7_PATTERN }),

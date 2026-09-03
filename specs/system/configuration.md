@@ -42,11 +42,11 @@ BOOTSTRAP_FILE
 → bounded pre-PostgreSQL/bootstrap input; not normal Product state
 
 MANAGED_REVISION
-→ PostgreSQL-backed managed revision; the only normal H4-Min write source
+→ PostgreSQL-backed managed revision; the only normal current-slice write source
 ```
 
 DECLARATIVE_FILE, OWNER_NATIVE, and generic derived-source frameworks are
-deferred. T2 does not define a source registry, configuration codec system,
+deferred. The current slice does not define a source registry, configuration codec system,
 file watcher, reload daemon, or Extension-native configuration projection.
 The adopted js-toml route is not used merely because it exists in dependency
 Authority.
@@ -165,7 +165,7 @@ apply it; accepting a revision that no consumer uses is a conformance failure.
 - CFG-008 Every mutable configuration definition names real runtime consumers; accepted-but-unused configuration is invalid.
 - CFG-009 Materialized behavior defaults are pinned and do not drift silently after dependency or ProductGeneration changes.
 - CFG-010 An unsupported current schema or unknown required field fails explicitly; no legacy reader or fallback parser exists.
-- CFG-011 H4-Min normal write Authority is MANAGED_REVISION; there is no second editable source.
+- CFG-011 Current-slice normal write Authority is MANAGED_REVISION; there is no second editable source.
 - CFG-012 Activation impact is explicit. Clients do not infer restart/reload behavior from a key name.
 
 ## Failure semantics and Management projection

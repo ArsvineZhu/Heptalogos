@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { lineageContextRefSchema as canonicalLineageContextRefSchema } from "@heptalogos/execution-lineage";
 import {
   createInstallationId,
   createInstanceId,
@@ -9,16 +10,16 @@ import {
 } from "@heptalogos/foundation-contracts";
 import { compileSchema } from "@heptalogos/schema-runtime";
 import {
+  lineageContextRefSchema,
   systemActionDefinitionSchema,
   systemActionExecuteResultSchema,
   systemChangePlanSchema,
-  type FirstAdministratorClaim,
-  type ServerSession,
   type SystemActionDefinition,
   type SystemActionExecuteResult,
   type SystemChangePlan,
 } from "../../src/index.js";
 import * as managementPublic from "../../src/index.js";
+import type { FirstAdministratorClaim, ServerSession } from "../../src/contracts.js";
 import { digestManagementSecret } from "../../src/password.js";
 import type { ManagementRepository } from "../../src/repository.js";
 import { createManagementServiceFromRepository } from "../../src/service.js";
@@ -144,6 +145,29 @@ describe("Management service", () => {
     expect(managementPublic).not.toHaveProperty("digestManagementSecret");
     expect(managementPublic).not.toHaveProperty("hashAdministratorPassword");
     expect(managementPublic).toHaveProperty("systemActionDefinitionSchema");
+  });
+
+  it("reuses the canonical LineageContextRef type schema and validation bounds", () => {
+    expect(lineageContextRefSchema).toBe(canonicalLineageContextRefSchema);
+    const validate = compileSchema(lineageContextRefSchema);
+    const base = {
+      schemaVersion: 1,
+      sourceActivityId: createUuidV7Id("ActivityId"),
+      sourceInstanceId: createInstanceId(),
+      sourceContinuityEpochId: createContinuityEpochId(),
+    };
+    expect(
+      validate.validate({
+        ...base,
+        telemetry: { traceId: "trace", spanId: "span", traceFlags: 255 },
+      }).ok,
+    ).toBe(true);
+    expect(
+      validate.validate({
+        ...base,
+        telemetry: { traceId: "trace", spanId: "span", traceFlags: 256 },
+      }).ok,
+    ).toBe(false);
   });
 
   it("supports claim, replay rejection, Argon2 login, session auth, and logout", async () => {

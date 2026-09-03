@@ -31,6 +31,36 @@ describe("ManagementClient public facade", () => {
     expect(capabilityConsumer).toBeTypeOf("function");
   });
 
+  it("unwraps Hey API's typed fields response at the facade boundary", async () => {
+    const discovery = {
+      schemaVersion: 1,
+      installationId: "installation",
+      compatibility: {
+        schemaVersion: 1,
+        instanceId: "instance",
+        continuityEpochId: "epoch",
+        productGeneration: "generation",
+        coreContractVersion: "management.v1",
+        supportedClientContractRange: {
+          kind: "exact",
+          version: "management.v1",
+        },
+        problemSchemaVersion: 1,
+      },
+      apiBasePath: "/management/v1",
+    };
+    const client = createManagementClient({
+      origin: "http://127.0.0.1",
+      fetch: async () =>
+        new Response(JSON.stringify(discovery), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    });
+
+    await expect(client.getDiscovery()).resolves.toEqual(discovery);
+  });
+
   it("generates only from the ProductHost-owned OpenAPI artifact", async () => {
     const source = await readFile(
       resolve("packages/application/management-client/scripts/generate.mjs"),

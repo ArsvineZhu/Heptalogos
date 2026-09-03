@@ -33,7 +33,7 @@ normal-management surface。这个目标不要求预先预测所有未来 UI 查
 Product Host
   └─ Canonical Management Server
        ├─ Read Models
-       ├─ SystemAction / ManagementOperation
+       ├─ SystemAction plan/execute and target-owned progress where needed
        ├─ Management Contract
        ├─ Subject Chat protocol endpoint
        ├─ query / projection / diagnostic surfaces
@@ -59,8 +59,7 @@ Configuration Surface
 Secret metadata and governed operations
 provider/model binding
 Extension/package inventory
-ManagementOperations
-Approvals
+operation/approval projections when a current capability requires them
 Evidence / Execution Lineage
 Network / endpoint diagnostics
 backup / restore / update state
@@ -81,7 +80,7 @@ request
 → SystemChangePlan
 → Authentication / Authorization / Risk
 → Approval when required
-→ durable / owned operation semantics
+→ target-owned or explicitly required durable operation semantics
 → owning Service
 → verify postconditions
 → Evidence
@@ -285,7 +284,7 @@ ManagementClient / HTTP contract
 Subject Chat protocol
 canonical Read Models
 SystemAction metadata
-operation / approval / activity projections
+operation / approval / activity projections when the current capability owns them
 PresentationIntent where the Presentation contract defines it
 ```
 

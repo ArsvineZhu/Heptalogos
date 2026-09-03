@@ -148,7 +148,7 @@ Subject Authority、System Authority 和 Machine/Deployment Authority 是三个
 Product Host
   └─ Canonical Management Server
        ├─ Read Models
-       ├─ SystemAction / ManagementOperation
+       ├─ SystemAction plan/execute and target-owned progress where needed
        ├─ complete Management Contract
        ├─ Subject Chat protocol endpoint
        ├─ query / projection / diagnostic surfaces
@@ -176,8 +176,7 @@ request
 → SystemChangePlan
 → Authentication / Authorization / Risk
 → Approval when required
-→ durable / owned operation semantics
-→ owning Service
+→ owning Service or explicitly required durable operation semantics
 → verify
 → Evidence
 ```

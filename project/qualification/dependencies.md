@@ -109,7 +109,7 @@ RoleDecision = ADOPTED
 ImplementationQualification = REQUIRED
 ```
 
-T1C does not install, vendor, or qualify OpenClaw. The first integration or
+The current dependency record does not install, vendor, or qualify OpenClaw. The first integration or
 distribution Plan must select an exact upstream release/commit and verify
 independent process/service behavior, trust and credential separation,
 source-less/distribution closure, and current license/third-party notices.

@@ -36,7 +36,7 @@ target, payload, dispatch revision, outcome, and reconciliation semantics.
   An ordinary process crash after `RUNNING` MUST use the adopted durable engine
   to re-enter the same deterministic attempt. Arbitrary loss, corruption, or
   absence of the durable-engine projection after `RUNNING` is not an automatic
-  H3 recovery claim: the canonical WorkItem remains authoritative, no outcome
+  recovery claim: the canonical WorkItem remains authoritative, no outcome
   may be inferred, and the system MUST NOT heuristic-redispatch it.
 
 ## Lifecycle

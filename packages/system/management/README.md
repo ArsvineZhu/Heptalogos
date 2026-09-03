@@ -14,6 +14,9 @@ service behind HTTP, the generated client, and the reference CLI.
 - Password normalization/hash policy and authentication decisions.
 - Current Management wire schemas, CompatibilityDescriptor, Problems,
   ReadModelEnvelope, and strongly typed Runtime/Capability projections.
+- The Management wire schemas reuse the canonical `LineageContextRef` type and
+  schema owned by `@heptalogos/execution-lineage`; Management does not define a
+  second lineage contract.
 - SystemActionDefinition, SystemChangePlan, and SystemActionExecuteResult
   contract types/schemas without an action runtime.
 - The system.management MicroSystem definition and service contract.

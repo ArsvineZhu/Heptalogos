@@ -66,8 +66,8 @@ not explicitly permitted is a structured failure, not an automatic follow.
 
 ## Lifecycle and failure semantics
 
-NetworkAccess requests are ephemeral transport activities by default; T2 does
-not create a durable NetworkOperation state machine. Required Activity,
+NetworkAccess requests are ephemeral transport activities by default; the
+current slice does not create a durable NetworkOperation state machine. Required Activity,
 Lineage, Evidence, and telemetry projections are recorded according to their
 own contracts.
 

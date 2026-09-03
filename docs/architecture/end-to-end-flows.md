@@ -56,7 +56,7 @@ CLI / local HTTP / external Presentation client
 → Management Contract
 → authentication and policy
 → SystemChangePlan / approval when required
-→ owning Service or ManagementOperation
+→ owning Service or explicitly required durable operation state
 → postcondition verification / Evidence
 ```
 

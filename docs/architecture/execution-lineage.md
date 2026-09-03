@@ -138,7 +138,7 @@ Service call
 CapabilityBroker invocation
 Contribution invocation
 WorkItem/Workflow
-SystemAction/Policy/Approval
+SystemAction and any current policy/approval control
 Network/Model/MCP
 Messaging/Effect
 Extension lifecycle

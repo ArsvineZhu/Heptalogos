@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "asOf": "2026-09-03",
-  "authority": "Machine-readable source of truth for the current Foundation and explicitly adopted Product dependency role decisions. This baseline contains no open provider selection; product qualification remains a separate dimension. Exact P1 package materialization is owned by the pnpm Catalog and lockfile.",
+  "authority": "Machine-readable source of truth for the current Foundation and explicitly adopted Product dependency role decisions. This baseline contains no open provider selection; product qualification remains a separate dimension. Exact Product package materialization is owned by the pnpm Catalog and lockfile.",
   "roleDecisionValues": [
     "ADOPTED",
     "PRIMARY_CANDIDATE",
@@ -200,7 +200,7 @@
     {
       "id": "storage.atomic-file",
       "role": "atomic file replacement mechanics",
-      "candidate": "write-file-atomic 8.x behind AtomicFileStore/config-file adapter; Bootstrap layers stricter crash-durability/ownership semantics from S01",
+      "candidate": "write-file-atomic 8.x behind AtomicFileStore/config-file adapter; Bootstrap layers stricter crash-durability/ownership semantics from its current ownership contract",
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
       "qualification": "C-STORAGE-FS-01 adapter conformance + bootstrap implementation/product crash qualification"

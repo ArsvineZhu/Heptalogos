@@ -20,6 +20,7 @@ export { createExecutionContextRuntime } from "./execution-context-runtime.js";
 export {
   decodeLineageContextRef,
   encodeLineageContextRef,
+  lineageContextRefSchema,
 } from "./lineage-context-ref.js";
 export { createPersistenceExecutionContextProvider } from "./persistence-adapter.js";
 export { createExecutionLineageService } from "./activity-repository.js";

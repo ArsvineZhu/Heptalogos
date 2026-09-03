@@ -12,6 +12,9 @@
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "references": [
     {
+      "path": "../../execution/execution-lineage"
+    },
+    {
       "path": "../../foundation/time-service"
     },
     {

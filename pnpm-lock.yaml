@@ -652,6 +652,9 @@ importers:
 
   packages/system/management:
     dependencies:
+      '@heptalogos/execution-lineage':
+        specifier: workspace:*
+        version: link:../../execution/execution-lineage
       '@heptalogos/foundation-contracts':
         specifier: workspace:*
         version: link:../../foundation/foundation-contracts

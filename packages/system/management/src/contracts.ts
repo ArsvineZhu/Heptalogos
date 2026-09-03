@@ -5,7 +5,6 @@
  */
 
 import type {
-  ActivityId,
   BootId,
   Branded,
   CanonicalJsonValue,
@@ -24,6 +23,8 @@ import {
   SHA256_HEX_PATTERN,
   UUID_V7_PATTERN,
 } from "@heptalogos/foundation-contracts";
+import { lineageContextRefSchema } from "@heptalogos/execution-lineage";
+import type { LineageContextRef } from "@heptalogos/execution-lineage";
 import { Type } from "@heptalogos/schema-runtime/typebox";
 
 /** Identifies the single current Administrator. */
@@ -82,18 +83,6 @@ export interface ResourceRef {
   readonly resourceKind: string;
   readonly resourceId: string;
   readonly resourceRevision?: number;
-}
-/** Structural current lineage reference used when meaningful lineage exists. */
-export interface LineageContextRef {
-  readonly schemaVersion: 1;
-  readonly sourceActivityId: ActivityId;
-  readonly sourceInstanceId: InstanceId;
-  readonly sourceContinuityEpochId: ContinuityEpochId;
-  readonly telemetry?: {
-    readonly traceId: string;
-    readonly spanId: string;
-    readonly traceFlags: number;
-  };
 }
 /** Common machine-consumable envelope for current Management reads. */
 export interface ReadModelEnvelope<T> {
@@ -413,26 +402,6 @@ export const resourceRefSchema = Type.Object({
   resourceId: Type.String({ minLength: 1 }),
   resourceRevision: Type.Optional(Type.Integer({ minimum: 0 })),
 });
-/** Canonical wire schema for an optional read-model lineage reference. */
-export const lineageContextRefSchema = Type.Object(
-  Object.fromEntries([
-    ["schemaVersion", Type.Literal(1)],
-    ["sourceActivityId", Type.String({ pattern: UUID_V7_PATTERN })],
-    ["sourceInstanceId", Type.String({ pattern: UUID_V7_PATTERN })],
-    ["sourceContinuityEpochId", Type.String({ pattern: UUID_V7_PATTERN })],
-    [
-      "telemetry",
-      Type.Optional(
-        Type.Object({
-          traceId: Type.String({ minLength: 1 }),
-          spanId: Type.String({ minLength: 1 }),
-          traceFlags: Type.Integer({ minimum: 0 }),
-        }),
-      ),
-    ],
-  ]),
-);
-
 function readModelEnvelopeSchema(data: ReturnType<typeof Type.Object>) {
   return Type.Object({
     schemaVersion: Type.Literal(1),

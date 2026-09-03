@@ -182,9 +182,11 @@ clock-jump aware scheduling inputs
 
 ---
 
-## 4. `DurableExecutionService`
+## 4. `DurableExecutionService` when a current consumer requires it
 
-Heptalogos-owned durable operation facade。
+Heptalogos-owned durable operation facade when a current product consumer
+requires durable operation state. Current target Desired/Actual reconciliation
+and bounded synchronous results remain with their owning target.
 
 角色包括：
 
@@ -348,7 +350,7 @@ OpenTelemetry Span/Pino log 是其 telemetry projection；required Evidence/Audi
 
 ---
 
-## 12. `PolicyService`
+## 12. `PolicyService` when a current policy consumer exists
 
 拥有 authorization contract：
 
@@ -366,7 +368,7 @@ Cedar policy model 承担 evaluation mechanics。
 
 ---
 
-## 13. `ApprovalService`
+## 13. `ApprovalService` when a current durable approval consumer exists
 
 根据：
 
@@ -378,7 +380,8 @@ origin
 auth freshness
 ```
 
-生成和管理 durable `ApprovalRequest`。
+生成和管理 durable `ApprovalRequest`。当前 one-Administrator slice 的 exact
+SystemChangePlan confirmation 不创建这个通用服务。
 
 ---
 

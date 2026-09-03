@@ -1,9 +1,10 @@
 # Heptalogos
 
-Heptalogos is a research and prototype repository for an AI-native system
-whose Foundation is being developed around explicit ownership, durable
-contracts, and executable evidence. The current repository work focuses on
-truthful engineering and a reliable Coding-Agent Harness.
+Heptalogos is a research and prototype system for a persistent AI Subject in
+real instant messaging. Foundation is closed, and the headless Product Host
+with its initial Management surface is present; current development is
+entering the Product/Subject path. The Coding-Agent Harness supports that
+engineering work but is not the project's subject or product center.
 
 Current implementation contracts are in the Specs; the Roadmap records the
 current development Horizon and sequencing.

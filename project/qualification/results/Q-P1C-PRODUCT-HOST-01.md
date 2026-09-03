@@ -118,5 +118,10 @@ OpenClawIntegration: NOT_RUN
 hardwarePowerLoss: NOT_RUN
 ```
 
-P1R is the mandatory next qualification gate for the release-shaped artifact.
-P2 and O1 remain eligible only after P1R and are not authorized by P1C.
+The intentionally unexecuted release-form, source-less, service, platform,
+and live-provider properties remain `NOT_RUN`. Release-form qualification is
+required before making the corresponding shipping/runtime claim; it does not
+block independent Provider prerequisite semantic development or independent
+OpenClaw Machine Operations work. This record owns only the observed P1C
+properties and does not define long-term development sequencing or authorize
+later work; the current Roadmap owns that sequence.

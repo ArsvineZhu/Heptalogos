@@ -35,5 +35,14 @@ describe("LineageContextRef V1", () => {
         unexpectedBootId: "x",
       }),
     ).toThrow();
+    expect(() =>
+      decodeLineageContextRef({
+        schemaVersion: 1,
+        sourceActivityId: createActivityId(),
+        sourceInstanceId: createInstanceId(),
+        sourceContinuityEpochId: createContinuityEpochId(),
+        telemetry: { traceId: "trace", spanId: "span", traceFlags: 256 },
+      }),
+    ).toThrow();
   });
 });

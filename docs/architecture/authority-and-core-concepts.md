@@ -68,8 +68,8 @@
 | Communication semantics             | CommunicationCommit                                                  |
 | Subject execution intent            | ActionPlan                                                           |
 | External effect truth               | EffectOperation                                                      |
-| System authorization                | PolicyService                                                        |
-| Human approval                      | ApprovalService                                                      |
+| System authorization when required  | PolicyService with Cedar mechanics                                   |
+| Human confirmation when required    | System Authority and the owning product control                      |
 | Execution Activity / causal lineage | ExecutionLineageService；领域对象自身仍由各 owner 持有 Authority     |
 | Durable causal evidence             | Domain facts + EvidenceService                                       |
 | Operational telemetry               | Pino / OpenTelemetry / OpenInference                                 |
