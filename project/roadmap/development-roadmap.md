@@ -544,7 +544,8 @@ productHost:
   implementation: PRESENT
   closure: CLOSED_CORRECTED
 productHostQualification: HISTORICAL_PARTIAL_WINDOWS_PROFILE
-releaseFormProductQualification: REQUIRED
+releaseFormProductQualification: REQUIRED_FOR_CORRESPONDING_SHIPPING_RUNTIME_CLAIM
+releaseFormQualificationBlocksIndependentSemanticDevelopment: false
 providerPrerequisites: ELIGIBLE_NOT_AUTHORIZED
 machineOperationsIntegration: ELIGIBLE_NOT_AUTHORIZED
 activeProductImplementationPlan: NONE
@@ -566,10 +567,13 @@ through NetworkAccess, the two Subject model bindings, one Administrator,
 plan-bound SystemAction execution, deferred-but-adopted Cedar, no generic
 ApprovalService or ManagementOperation, direct text-only Subject Chat, and
 minimal REPLY/SILENCE behavior commit semantics. Release-form Product
-qualification remains the required next gate before provider prerequisites or
-OpenClaw integration implementation. Those workstreams are eligible for
-separate planning but remain unauthorized. OpenClaw remains an adopted external
-Machine Operations route and is not a provider or Subject readiness dependency.
+qualification is required before making the corresponding source-less,
+service, platform, or shipping/runtime claim. It is not a universal
+prerequisite for later semantic/product development, provider-prerequisite
+implementation, or independent OpenClaw Machine Operations work that does not
+depend on that boundary. Each workstream remains subject to its own plan and
+evidence boundary. OpenClaw remains an adopted external Machine Operations
+route and is not a provider or Subject readiness dependency.
 
 ### Product prerequisites — provider foundations and minimum Management spine
 
@@ -645,10 +649,12 @@ projection concern and does not create an internal assistant or Host Authority
 contract by itself.
 
 The completed contract and Product Host Plans record the contract freeze and
-initial implementation. The closure correction is complete, followed by the
-required release-form qualification gate. This route does not introduce
-a temporary direct mutation API; provider prerequisites and OpenClaw integration
-remain blocked and unauthorized.
+initial implementation. The closure correction is complete. Release-form
+qualification remains required for its corresponding shipping/runtime claim,
+but it is not a universal blocker for provider prerequisites or independent
+OpenClaw integration that does not depend on that boundary. Those workstreams
+remain separately scoped and require their own authorization and evidence.
+This route does not introduce a temporary direct mutation API.
 
 ### Exclusions around the first Product slice
 
