@@ -133,7 +133,7 @@
       "candidate": "FFmpeg",
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
-      "qualification": "vendored executable/license/source-less/platform qualification"
+      "qualification": "operator-managed executable/license/platform qualification when an AV capability is implemented"
     },
     {
       "id": "update.tuf",
@@ -270,12 +270,22 @@
     },
     {
       "id": "ai.sdk",
-      "role": "model/provider/tool/structured-output mechanics",
-      "candidate": "AI SDK 7 line with official @ai-sdk/openai Responses provider",
+      "role": "gateway/model/protocol/structured-output mechanics",
+      "candidate": "AI SDK 7 line with @ai-sdk/openai-compatible Chat and @ai-sdk/open-responses protocol adapters",
       "roleDecision": "ADOPTED",
       "implementationQualification": "REQUIRED",
-      "qualification": "provider/product conformance",
-      "packages": ["ai", "@ai-sdk/openai"]
+      "qualification": "gateway/product conformance",
+      "packages": ["ai", "@ai-sdk/openai-compatible", "@ai-sdk/open-responses"]
+    },
+    {
+      "id": "ai.gateway.newapi",
+      "role": "recommended external model gateway / provider aggregation implementation",
+      "candidate": "NewAPI",
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "qualification": "one current live gateway route may prove compatibility",
+      "decisionBasis": "recommended external integration; upstream credentials, channels, routing, database, process, and update lifecycle remain outside Heptalogos",
+      "boundary": "outside Product Authority and Product Host lifecycle"
     },
     {
       "id": "mcp.client",

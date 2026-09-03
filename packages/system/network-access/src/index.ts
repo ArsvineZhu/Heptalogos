@@ -1,15 +1,15 @@
 /**
- * Public current NetworkAccess profile and controlled provider transport.
+ * Public current NetworkAccess policy and controlled gateway transport.
  * @packageDocumentation
  */
 
 export {
   networkAccessDiagnosticsSchema,
-  networkAccessProfileSchema,
-  OPENAI_NETWORK_ACCESS_PROFILE_ID,
+  networkAccessPolicySchema,
+  type GatewayNetworkProtocol,
+  type GatewayNetworkTarget,
   type NetworkAccessDiagnostics,
-  type NetworkAccessProfile,
-  type NetworkAccessProfileId,
+  type NetworkAccessPolicy,
   type NetworkAccessService,
   type NetworkAccessServiceOptions,
   type NetworkResponseKnowledge,

@@ -461,11 +461,11 @@ async function normalizeAction(
       return action;
     case "secret.set":
       if (
-        action.input.purpose !== "provider.openai.api-key" ||
-        action.input.scopeRef?.resourceKind !== "provider-profile"
+        action.input.purpose !== "ai.gateway.bearer-token" ||
+        action.input.scopeRef?.resourceKind !== "gateway-profile"
       ) {
         throw invalidInputProblem(
-          "The current Secret route only accepts a provider.openai.api-key scoped to a provider-profile",
+          "The current Secret route only accepts an ai.gateway.bearer-token scoped to a gateway-profile",
         );
       }
       return action;
@@ -475,29 +475,25 @@ async function normalizeAction(
     case "secret.revoke":
       requiredUuid("SecretId", action.input.secretRef, "secretRef");
       return action;
-    case "provider-profile.set":
-      if (action.input.providerProfileId !== undefined) {
+    case "gateway-profile.set":
+      if (action.input.gatewayProfileId !== undefined) {
         requiredUuid(
-          "ProviderProfileId",
-          action.input.providerProfileId,
-          "providerProfileId",
+          "GatewayProfileId",
+          action.input.gatewayProfileId,
+          "gatewayProfileId",
         );
       }
-      requiredUuid(
-        "ConfigurationRevisionId",
-        action.input.configurationRevisionRef,
-        "configurationRevisionRef",
-      );
-      if (
-        action.input.secretRefs.length > 0 &&
-        action.input.providerProfileId === undefined
-      ) {
-        throw invalidInputProblem(
-          "A scoped provider SecretRef requires an explicit providerProfileId",
+      if (action.input.apiTokenSecretRef !== undefined) {
+        if (action.input.gatewayProfileId === undefined) {
+          throw invalidInputProblem(
+            "A gateway token SecretRef requires an explicit gatewayProfileId",
+          );
+        }
+        requiredUuid(
+          "SecretId",
+          action.input.apiTokenSecretRef.secretId,
+          "apiTokenSecretRef.secretId",
         );
-      }
-      for (const secret of action.input.secretRefs) {
-        requiredUuid("SecretId", secret.secretId, "secretRefs.secretId");
       }
       return action;
     case "model-profile.set":
@@ -505,14 +501,9 @@ async function normalizeAction(
         requiredUuid("ModelProfileId", action.input.modelProfileId, "modelProfileId");
       }
       requiredUuid(
-        "ProviderProfileId",
-        action.input.providerProfileId,
-        "providerProfileId",
-      );
-      requiredUuid(
-        "ConfigurationRevisionId",
-        action.input.configurationRevisionRef,
-        "configurationRevisionRef",
+        "GatewayProfileId",
+        action.input.gatewayProfileId,
+        "gatewayProfileId",
       );
       if (!exactModelCapabilities(action.input.consumedCapabilities)) {
         throw invalidInputProblem(
@@ -603,17 +594,17 @@ async function actionPreconditions(
       }
       return Object.freeze([precondition("secret", metadata.secretId, metadata)]);
     }
-    case "provider-profile.set": {
-      if (action.input.providerProfileId === undefined) return Object.freeze([]);
-      const profile = await owners.aiRuntime.getProviderProfile(
-        action.input.providerProfileId,
+    case "gateway-profile.set": {
+      if (action.input.gatewayProfileId === undefined) return Object.freeze([]);
+      const profile = await owners.aiRuntime.getGatewayProfile(
+        action.input.gatewayProfileId,
       );
       return Object.freeze([
         precondition(
-          "provider-profile",
-          action.input.providerProfileId,
+          "gateway-profile",
+          action.input.gatewayProfileId,
           profile,
-          "ai.provider-profile.v1",
+          "ai.gateway-profile.v1",
         ),
       ]);
     }
@@ -657,7 +648,7 @@ function actionOwners(action: SystemActionRequest): readonly ProductSemanticId[]
     case "secret.replace":
     case "secret.revoke":
       return Object.freeze(["system.secret" as ProductSemanticId]);
-    case "provider-profile.set":
+    case "gateway-profile.set":
     case "model-profile.set":
     case "model-binding.set":
       return Object.freeze(["system.ai-runtime" as ProductSemanticId]);
@@ -669,7 +660,7 @@ function actionImpact(action: SystemActionRequest): {
   readonly restart: CanonicalJsonValue;
 } {
   const readiness = Object.freeze({
-    providerPrerequisiteReadiness: "re-evaluate",
+    gatewayPrerequisiteReadiness: "re-evaluate",
     subjectDispatch: "not-currently-implemented",
   });
   const restart = Object.freeze({
@@ -803,16 +794,21 @@ async function dispatchAction(
     case "secret.revoke":
       await owners.secret.revoke(action.input.secretRef);
       return null;
-    case "provider-profile.set":
+    case "gateway-profile.set":
       return canonicalObject(
-        await owners.aiRuntime.setProviderProfile(
+        await owners.aiRuntime.setGatewayProfile(
           {
-            ...(action.input.providerProfileId === undefined
+            ...(action.input.gatewayProfileId === undefined
               ? {}
-              : { providerProfileId: action.input.providerProfileId }),
-            providerKind: "openai",
-            configurationRevisionRef: action.input.configurationRevisionRef,
-            secretRefs: action.input.secretRefs.map(secretRefFromAction),
+              : { gatewayProfileId: action.input.gatewayProfileId }),
+            baseUrl: action.input.baseUrl,
+            ...(action.input.apiTokenSecretRef === undefined
+              ? {}
+              : {
+                  apiTokenSecretRef: secretRefFromAction(
+                    action.input.apiTokenSecretRef,
+                  ),
+                }),
             enabled: action.input.enabled,
           },
           expectedDigest,
@@ -825,10 +821,10 @@ async function dispatchAction(
             ...(action.input.modelProfileId === undefined
               ? {}
               : { modelProfileId: action.input.modelProfileId }),
-            providerProfileId: action.input.providerProfileId,
-            providerModelIdentifier: action.input.providerModelIdentifier,
+            gatewayProfileId: action.input.gatewayProfileId,
+            modelIdentifier: action.input.modelIdentifier,
+            protocol: action.input.protocol,
             consumedCapabilities: action.input.consumedCapabilities,
-            configurationRevisionRef: action.input.configurationRevisionRef,
           },
           expectedDigest,
         ),
@@ -878,11 +874,11 @@ async function verifyPostcondition(
       return (
         (await owners.secret.getMetadata(action.input.secretRef))?.state === "REVOKED"
       );
-    case "provider-profile.set":
+    case "gateway-profile.set":
       return (
-        resultField(result, "providerProfileId") !== undefined &&
-        (await owners.aiRuntime.getProviderProfile(
-          resultField(result, "providerProfileId")!,
+        resultField(result, "gatewayProfileId") !== undefined &&
+        (await owners.aiRuntime.getGatewayProfile(
+          resultField(result, "gatewayProfileId")!,
         )) !== undefined
       );
     case "model-profile.set":
@@ -1056,7 +1052,7 @@ function createManagementServiceWithRepository(
           revisions,
           activations,
           secrets,
-          providerProfiles,
+          gatewayProfiles,
           modelProfiles,
           modelBindings,
           networkAccess,
@@ -1065,7 +1061,7 @@ function createManagementServiceWithRepository(
           owners.configuration.listRevisions(),
           owners.configuration.listActivations(),
           owners.secret.listMetadata(),
-          owners.aiRuntime.listProviderProfiles(),
+          owners.aiRuntime.listGatewayProfiles(),
           owners.aiRuntime.listModelProfiles(),
           owners.aiRuntime.listModelBindings(),
           owners.networkAccess.getDiagnostics(),
@@ -1080,7 +1076,7 @@ function createManagementServiceWithRepository(
             activations: Object.freeze([...activations]),
           }),
           secrets: Object.freeze([...secrets]),
-          providerProfiles: Object.freeze([...providerProfiles]),
+          gatewayProfiles: Object.freeze([...gatewayProfiles]),
           modelProfiles: Object.freeze([...modelProfiles]),
           modelBindings: Object.freeze([...modelBindings]),
           networkAccess,
@@ -1201,8 +1197,8 @@ function createManagementServiceWithRepository(
             );
           }
           const expectedDigest = request.plan.targetPreconditions.find((candidate) => {
-            if (action.actionId === "provider-profile.set") {
-              return candidate.resource.resourceKind === "provider-profile";
+            if (action.actionId === "gateway-profile.set") {
+              return candidate.resource.resourceKind === "gateway-profile";
             }
             if (action.actionId === "model-profile.set") {
               return candidate.resource.resourceKind === "model-profile";

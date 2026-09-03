@@ -1,6 +1,6 @@
 # One Real Provider Enablement — OpenAI Reference Route
 
-state: ACTIVE
+state: SUPERSEDED
 mode: RAPID_EVOLUTION / PRE_PRODUCTION
 task_class: PRODUCT_IMPLEMENTATION
 primary_outcome: one real OpenAI structured generation through current Product owners

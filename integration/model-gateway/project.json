@@ -1,8 +1,8 @@
 {
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "name": "provider-openai-integration",
+  "name": "model-gateway-integration",
   "projectType": "application",
-  "tags": ["kind:integration", "area:provider"],
+  "tags": ["kind:integration", "area:model-gateway"],
   "implicitDependencies": [
     "canonical-schema",
     "persistence",
@@ -18,20 +18,27 @@
       "dependsOn": ["^build"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "tsc --noEmit -p integration/provider-openai/tsconfig.json"
+        "command": "tsc --noEmit -p integration/model-gateway/tsconfig.json"
+      }
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run --root integration/model-gateway test/model-gateway.integration.test.ts"
       }
     },
     "qualification": {
       "dependsOn": ["^build"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm nx run product-host:build && vitest run --root integration/provider-openai"
+        "command": "pnpm nx run product-host:build && vitest run --root integration/model-gateway"
       }
     },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "oxlint --type-aware integration/provider-openai"
+        "command": "oxlint --type-aware integration/model-gateway"
       }
     }
   }

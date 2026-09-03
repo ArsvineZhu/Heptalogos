@@ -1,6 +1,6 @@
 /**
- * Defines the current OpenAI Product AI runtime contracts, persistent profile
- * shapes, exact Subject bindings, and structured invocation boundary.
+ * Defines the current gateway-first Product AI runtime contracts, persistent
+ * profile shapes, exact Subject bindings, and structured invocation boundary.
  * @module contracts
  */
 
@@ -19,17 +19,14 @@ import type {
   ConfigurationRevisionId,
   ConfigurationService,
 } from "@heptalogos/configuration";
-import type {
-  NetworkAccessProfileId,
-  NetworkAccessService,
-} from "@heptalogos/network-access";
+import type { NetworkAccessService } from "@heptalogos/network-access";
 import type { PersistenceService } from "@heptalogos/persistence";
 import type { SecretRef, SecretService } from "@heptalogos/secret";
 import type { TimeService } from "@heptalogos/time-service";
 import { Type } from "@heptalogos/schema-runtime/typebox";
 
-/** Identifies one persisted ProviderProfile. */
-export type ProviderProfileId = UuidV7Id<"ProviderProfileId">;
+/** Identifies one persisted GatewayProfile. */
+export type GatewayProfileId = UuidV7Id<"GatewayProfileId">;
 /** Identifies one persisted ModelProfile. */
 export type ModelProfileId = UuidV7Id<"ModelProfileId">;
 /** Identifies one persisted ModelBinding. */
@@ -49,33 +46,27 @@ export const CURRENT_MODEL_CAPABILITIES: readonly ModelCapability[] = Object.fre
   "abort-timeout",
 ]);
 
-/** The fixed OpenAI provider settings owned by AIRuntime. */
-export interface OpenAIProviderSettings {
-  readonly api: "responses";
-  readonly store: false;
-}
+/** The current OpenAI-family invocation protocols. */
+export type ModelInvocationProtocol = "openai-chat" | "openai-responses";
 
-/** Persistent OpenAI provider configuration. */
-export interface ProviderProfile {
+/** Persistent configured model gateway endpoint. */
+export interface GatewayProfile {
   readonly schemaVersion: 1;
-  readonly providerProfileId: ProviderProfileId;
-  readonly providerKind: "openai";
-  readonly configurationRevisionRef: ConfigurationRevisionId;
-  readonly secretRefs: readonly SecretRef[];
-  readonly networkAccessProfileRef: NetworkAccessProfileId;
+  readonly gatewayProfileId: GatewayProfileId;
+  readonly baseUrl: string;
+  readonly apiTokenSecretRef?: SecretRef;
   readonly enabled: boolean;
-  readonly providerSettings: OpenAIProviderSettings;
 }
 
-/** Persistent provider model configuration and replacement generation. */
+/** Persistent gateway/model/protocol configuration and replacement generation. */
 export interface ModelProfile {
   readonly schemaVersion: 1;
   readonly modelProfileId: ModelProfileId;
-  readonly providerProfileId: ProviderProfileId;
-  readonly providerModelIdentifier: string;
+  readonly gatewayProfileId: GatewayProfileId;
+  readonly modelIdentifier: string;
+  readonly protocol: ModelInvocationProtocol;
   readonly consumedCapabilities: readonly ModelCapability[];
   readonly generation: number;
-  readonly configurationRevisionRef: ConfigurationRevisionId;
 }
 
 /** Persistent exact Subject model binding and its revision. */
@@ -127,9 +118,12 @@ export interface GenerationResult {
   readonly schemaVersion: 1;
   readonly invocationId: InvocationId;
   readonly bindingRevision: number;
-  readonly providerProfileId: ProviderProfileId;
+  readonly gatewayProfileId: GatewayProfileId;
   readonly modelProfileId: ModelProfileId;
-  readonly providerModelIdentifier: string;
+  readonly modelProfileGeneration: number;
+  readonly modelIdentifier: string;
+  readonly protocol: ModelInvocationProtocol;
+  readonly configurationRevisionId: ConfigurationRevisionId;
   readonly candidate: CanonicalJsonValue;
   readonly usage?: UsageMetadata;
   readonly lineageContextRef: LineageContextRef;
@@ -143,22 +137,21 @@ export interface AIRuntimeReadiness {
   readonly blockers: readonly string[];
 }
 
-/** Input to the current ProviderProfile action. */
-export interface SetProviderProfileInput {
-  readonly providerProfileId?: ProviderProfileId | string;
-  readonly providerKind: "openai";
-  readonly configurationRevisionRef: ConfigurationRevisionId | string;
-  readonly secretRefs: readonly SecretRef[];
+/** Input to the current GatewayProfile action. */
+export interface SetGatewayProfileInput {
+  readonly gatewayProfileId?: GatewayProfileId | string;
+  readonly baseUrl: string;
+  readonly apiTokenSecretRef?: SecretRef;
   readonly enabled: boolean;
 }
 
 /** Input to the current ModelProfile action. */
 export interface SetModelProfileInput {
   readonly modelProfileId?: ModelProfileId | string;
-  readonly providerProfileId: ProviderProfileId | string;
-  readonly providerModelIdentifier: string;
+  readonly gatewayProfileId: GatewayProfileId | string;
+  readonly modelIdentifier: string;
+  readonly protocol: ModelInvocationProtocol;
   readonly consumedCapabilities: readonly ModelCapability[];
-  readonly configurationRevisionRef: ConfigurationRevisionId | string;
 }
 
 /** Input to the current ModelBinding action. */
@@ -180,25 +173,23 @@ export interface AIRuntimeServiceOptions {
 
 /** Current AIRuntime semantic service. */
 export interface AIRuntimeService {
-  /** Lists persisted provider profiles. */
-  listProviderProfiles(): Promise<readonly ProviderProfile[]>;
+  /** Lists persisted gateway profiles. */
+  listGatewayProfiles(): Promise<readonly GatewayProfile[]>;
   /** Lists persisted model profiles. */
   listModelProfiles(): Promise<readonly ModelProfile[]>;
   /** Lists the exact current model bindings. */
   listModelBindings(): Promise<readonly ModelBinding[]>;
-  /** Reads one provider profile. */
-  getProviderProfile(
-    id: ProviderProfileId | string,
-  ): Promise<ProviderProfile | undefined>;
+  /** Reads one gateway profile. */
+  getGatewayProfile(id: GatewayProfileId | string): Promise<GatewayProfile | undefined>;
   /** Reads one model profile. */
   getModelProfile(id: ModelProfileId | string): Promise<ModelProfile | undefined>;
   /** Reads one binding by role or identifier. */
   getModelBinding(roleOrId: ModelBindingId | string): Promise<ModelBinding | undefined>;
-  /** Creates or replaces one OpenAI provider profile. */
-  setProviderProfile(
-    input: SetProviderProfileInput,
+  /** Creates or replaces one configured gateway endpoint. */
+  setGatewayProfile(
+    input: SetGatewayProfileInput,
     expectedDigest?: string,
-  ): Promise<ProviderProfile>;
+  ): Promise<GatewayProfile>;
   /** Creates or replaces one model profile. */
   setModelProfile(
     input: SetModelProfileInput,
@@ -221,45 +212,36 @@ const capabilitySchema = Type.Union([
   Type.Literal("usage-metadata"),
   Type.Literal("abort-timeout"),
 ]);
-const secretRefsSchema = Type.Array(
-  Type.Object(
-    {
-      schemaVersion: Type.Literal(1),
-      secretId: Type.String({ minLength: 1 }),
-    },
-    { additionalProperties: false },
-  ),
-  { maxItems: 1 },
-);
-
-/** JSON Schema for ProviderProfile reads and action input. */
-export const providerProfileSchema = Type.Object(
+const secretRefSchema = Type.Object(
   {
     schemaVersion: Type.Literal(1),
-    providerProfileId: Type.String({ minLength: 1 }),
-    providerKind: Type.Literal("openai"),
-    configurationRevisionRef: Type.String({ minLength: 1 }),
-    secretRefs: secretRefsSchema,
-    networkAccessProfileRef: Type.Literal("network-access.openai-api.v1"),
+    secretId: Type.String({ minLength: 1 }),
+  },
+  { additionalProperties: false },
+);
+const modelInvocationProtocolSchema = Type.Union([
+  Type.Literal("openai-chat"),
+  Type.Literal("openai-responses"),
+]);
+
+/** JSON Schema for GatewayProfile reads. */
+export const gatewayProfileSchema = Type.Object(
+  {
+    schemaVersion: Type.Literal(1),
+    gatewayProfileId: Type.String({ minLength: 1 }),
+    baseUrl: Type.String({ minLength: 1, maxLength: 2048 }),
+    apiTokenSecretRef: Type.Optional(secretRefSchema),
     enabled: Type.Boolean(),
-    providerSettings: Type.Object(
-      {
-        api: Type.Literal("responses"),
-        store: Type.Literal(false),
-      },
-      { additionalProperties: false },
-    ),
   },
   { additionalProperties: false },
 );
 
-/** JSON Schema for ProviderProfile action input. */
-export const providerProfileSetInputSchema = Type.Object(
+/** JSON Schema for GatewayProfile action input. */
+export const gatewayProfileSetInputSchema = Type.Object(
   {
-    providerProfileId: Type.Optional(Type.String({ minLength: 1 })),
-    providerKind: Type.Literal("openai"),
-    configurationRevisionRef: Type.String({ minLength: 1 }),
-    secretRefs: secretRefsSchema,
+    gatewayProfileId: Type.Optional(Type.String({ minLength: 1 })),
+    baseUrl: Type.String({ minLength: 1, maxLength: 2048 }),
+    apiTokenSecretRef: Type.Optional(secretRefSchema),
     enabled: Type.Boolean(),
   },
   { additionalProperties: false },
@@ -270,11 +252,11 @@ export const modelProfileSchema = Type.Object(
   {
     schemaVersion: Type.Literal(1),
     modelProfileId: Type.String({ minLength: 1 }),
-    providerProfileId: Type.String({ minLength: 1 }),
-    providerModelIdentifier: Type.String({ minLength: 1, maxLength: 256 }),
+    gatewayProfileId: Type.String({ minLength: 1 }),
+    modelIdentifier: Type.String({ minLength: 1, maxLength: 256 }),
+    protocol: modelInvocationProtocolSchema,
     consumedCapabilities: Type.Array(capabilitySchema, { minItems: 1, maxItems: 4 }),
     generation: Type.Integer({ minimum: 1 }),
-    configurationRevisionRef: Type.String({ minLength: 1 }),
   },
   { additionalProperties: false },
 );
@@ -283,13 +265,13 @@ export const modelProfileSchema = Type.Object(
 export const modelProfileSetInputSchema = Type.Object(
   {
     modelProfileId: Type.Optional(Type.String({ minLength: 1 })),
-    providerProfileId: Type.String({ minLength: 1 }),
-    providerModelIdentifier: Type.String({ minLength: 1, maxLength: 256 }),
+    gatewayProfileId: Type.String({ minLength: 1 }),
+    modelIdentifier: Type.String({ minLength: 1, maxLength: 256 }),
+    protocol: modelInvocationProtocolSchema,
     consumedCapabilities: Type.Array(capabilitySchema, {
       minItems: 1,
       maxItems: 4,
     }),
-    configurationRevisionRef: Type.String({ minLength: 1 }),
   },
   { additionalProperties: false },
 );

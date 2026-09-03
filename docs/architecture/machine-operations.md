@@ -200,11 +200,10 @@ not a second runtime identity. OpenClaw is the implementation/dependency name,
 not the ordinary Heptalogos navigation label, assistant title, or product
 identity.
 
-Current dependency Authority records the upstream OpenClaw license observation
-and the fact that exact distribution qualification has not been performed.
-When an exact OpenClaw release or commit is first bundled, downloaded,
-modified, patched, or redistributed, the implementation/distribution Plan
-must re-verify:
+OpenClaw is currently an external independently operated runtime; it is not
+bundled, downloaded, started, or updated by Product Host. If a future exact
+release or commit is bundled, downloaded, modified, patched, or redistributed,
+the implementation/distribution Plan must re-verify:
 
 ```
 exact upstream release/commit

@@ -9,7 +9,12 @@ and maintained reference material.
 - product/ explains product purpose, experience, and research intent.
 - architecture/ explains conceptual system shape, rationale, and boundaries.
 - reference/ provides human and developer lookup material, including generated
-  API reference.
+  API reference and external integration guidance.
+
+The current external integration posture is documented in
+[product/external-integrations.md](product/external-integrations.md), with
+operator links and setup guidance in
+[reference/external-integrations.md](reference/external-integrations.md).
 
 Current implementation contracts live in specs/. Governance, dependencies,
 roadmap, Plans, qualification, engineering procedures, and Harness-maintainer

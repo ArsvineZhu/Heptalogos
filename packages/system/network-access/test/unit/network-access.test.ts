@@ -13,6 +13,7 @@ import type {
 import {
   createNetworkAccessService,
   networkAccessDiagnosticsSchema,
+  type GatewayNetworkTarget,
   type NetworkAccessService,
 } from "../../src/index.js";
 
@@ -50,12 +51,24 @@ function serviceFixture(
   });
 }
 
-describe("NetworkAccess current OpenAI profile", () => {
-  it("admits the Responses destination and exposes bounded diagnostics", async () => {
+const responsesTarget: GatewayNetworkTarget = {
+  schemaVersion: 1,
+  gatewayProfileId: "01j00000000000000000000000",
+  baseUrl: "https://gateway.example.com/v1",
+  protocol: "openai-responses",
+};
+const chatTarget: GatewayNetworkTarget = {
+  ...responsesTarget,
+  protocol: "openai-chat",
+};
+
+describe("NetworkAccess current GatewayProfile policy", () => {
+  it("admits the selected Responses destination and exposes bounded diagnostics", async () => {
     const service = serviceFixture();
     const response = await service.request(
       "system.ai-runtime",
-      "https://api.openai.com/v1/responses",
+      responsesTarget,
+      "https://gateway.example.com/v1/responses",
       { method: "POST", body: "{}" },
     );
     expect(response.statusCode).toBe(200);
@@ -67,41 +80,85 @@ describe("NetworkAccess current OpenAI profile", () => {
     ).toBe(true);
   });
 
+  it("admits Chat and literal loopback HTTP while denying remote plain HTTP", async () => {
+    const service = serviceFixture();
+    await expect(
+      service.request(
+        "system.ai-runtime",
+        chatTarget,
+        "https://gateway.example.com/v1/chat/completions",
+        { method: "POST" },
+      ),
+    ).resolves.toMatchObject({ statusCode: 200 });
+    expect(() =>
+      service.authorizeGatewayTarget({
+        ...chatTarget,
+        baseUrl: "http://127.0.0.1:3000/v1",
+      }),
+    ).not.toThrow();
+    expect(() =>
+      service.authorizeGatewayTarget({
+        ...chatTarget,
+        baseUrl: "http://gateway.example.com/v1",
+      }),
+    ).toThrowError(/loopback/u);
+    expect(() =>
+      service.authorizeGatewayTarget({
+        ...chatTarget,
+        baseUrl: "https://user:password@gateway.example.com/v1",
+      }),
+    ).toThrowError(/credential-free/u);
+  });
+
   it("denies wrong requester, origin, path, method, and cookies", async () => {
     const service = serviceFixture();
     await expect(
-      service.request("other-service", "https://api.openai.com/v1/responses", {
-        method: "POST",
-      }),
+      service.request(
+        "other-service",
+        responsesTarget,
+        "https://gateway.example.com/v1/responses",
+        { method: "POST" },
+      ),
     ).rejects.toMatchObject({
       problem: { problemCode: "network.unauthorized_requester" },
     });
     await expect(
-      service.request("system.ai-runtime", "https://example.com/v1/responses", {
-        method: "POST",
-      }),
+      service.request(
+        "system.ai-runtime",
+        responsesTarget,
+        "https://example.com/v1/responses",
+        { method: "POST" },
+      ),
     ).rejects.toMatchObject({
       problem: { problemCode: "network.unauthorized_destination" },
     });
     await expect(
-      service.request("system.ai-runtime", "https://api.openai.com/other", {
-        method: "POST",
-      }),
+      service.request(
+        "system.ai-runtime",
+        responsesTarget,
+        "https://gateway.example.com/v1/other",
+        { method: "POST" },
+      ),
     ).rejects.toMatchObject({
       problem: { problemCode: "network.unauthorized_destination" },
     });
     await expect(
-      service.request("system.ai-runtime", "https://api.openai.com/v1/responses", {
-        method: "GET",
-      }),
+      service.request(
+        "system.ai-runtime",
+        responsesTarget,
+        "https://gateway.example.com/v1/responses",
+        { method: "GET" },
+      ),
     ).rejects.toMatchObject({
       problem: { problemCode: "network.unauthorized_method" },
     });
     await expect(
-      service.request("system.ai-runtime", "https://api.openai.com/v1/responses", {
-        method: "POST",
-        headers: { Cookie: "private" },
-      }),
+      service.request(
+        "system.ai-runtime",
+        responsesTarget,
+        "https://gateway.example.com/v1/responses",
+        { method: "POST", headers: { Cookie: "private" } },
+      ),
     ).rejects.toMatchObject({
       problem: { problemCode: "network.sensitive_header_denied" },
     });
@@ -112,13 +169,16 @@ describe("NetworkAccess current OpenAI profile", () => {
       async () =>
         new Response(null, {
           status: 302,
-          headers: { location: "https://example.com" },
+          headers: { location: "https://other.example.com" },
         }),
     );
     await expect(
-      redirect.request("system.ai-runtime", "https://api.openai.com/v1/responses", {
-        method: "POST",
-      }),
+      redirect.request(
+        "system.ai-runtime",
+        responsesTarget,
+        "https://gateway.example.com/v1/responses",
+        { method: "POST" },
+      ),
     ).rejects.toMatchObject({ problem: { problemCode: "network.redirect_denied" } });
 
     const budget = serviceFixture(
@@ -126,9 +186,12 @@ describe("NetworkAccess current OpenAI profile", () => {
       { ...configurationValue, responseBodyBudgetBytes: 1 },
     );
     await expect(
-      budget.request("system.ai-runtime", "https://api.openai.com/v1/responses", {
-        method: "POST",
-      }),
+      budget.request(
+        "system.ai-runtime",
+        responsesTarget,
+        "https://gateway.example.com/v1/responses",
+        { method: "POST" },
+      ),
     ).rejects.toMatchObject({
       problem: { problemCode: "network.response_budget_exceeded" },
     });
@@ -139,12 +202,34 @@ describe("NetworkAccess current OpenAI profile", () => {
       throw new Error("transport failed");
     });
     await expect(
-      unavailable.request("system.ai-runtime", "https://api.openai.com/v1/responses", {
-        method: "POST",
-      }),
+      unavailable.request(
+        "system.ai-runtime",
+        responsesTarget,
+        "https://gateway.example.com/v1/responses",
+        { method: "POST" },
+      ),
     ).rejects.toMatchObject({
       problem: { problemCode: "network.transport_unavailable" },
     });
     expect(calls).toBe(1);
+  });
+
+  it("does not send a bearer request to an unauthorized origin through the SDK fetch", async () => {
+    let calls = 0;
+    const service = serviceFixture(async () => {
+      calls += 1;
+      return new Response("{}", { status: 200 });
+    });
+    const providerFetch = service.createProviderFetch("system.ai-runtime", chatTarget);
+    await expect(
+      providerFetch("https://other.example.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: "Bearer protected" },
+        body: "{}",
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "network.unauthorized_destination" },
+    });
+    expect(calls).toBe(0);
   });
 });

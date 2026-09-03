@@ -82,12 +82,15 @@ Shipping product 自带并 pin 必要 runtime/toolchain，例如：
 ```text
 Node
 PostgreSQL
-FFmpeg/ffprobe
 platform service helper when used
 other required native/WASM payloads
 ```
 
 正常运行不依赖 global installation 或 developer PATH。
+
+FFmpeg/ffprobe is an external executable prerequisite for an implemented
+audio/video capability. It is installed and configured by the operator or
+deployment profile and is not part of the default Heptalogos payload.
 
 ---
 
@@ -159,7 +162,7 @@ Release candidate 必须是不可变、可哈希、可复验的 closure：
 ```text
 Host JS/assets
 bundled web/static protocol assets when present
-private Node/PostgreSQL/FFmpeg
+private Node/PostgreSQL
 native/WASM transitive dependencies
 platform helpers
 built-in Extension generations
@@ -196,7 +199,7 @@ Windows SCM wrapper 在当前 Foundation baseline 中 DEFERRED。Windows service
 monorepo/src
 workspace symlink
 Git
-global Node/PostgreSQL/FFmpeg
+global Node/PostgreSQL
 online npm registry
 pnpm/npm install at runtime
 dev server
@@ -240,7 +243,7 @@ OSV/vulnerability scan evidence
 native/WASM dependency inventory
 platform qualification results
 source-less acceptance
-live protocol/provider results for claimed support
+live gateway/protocol results for claimed support
 ```
 
 ## 12. Desktop Presentation 与平台 preset

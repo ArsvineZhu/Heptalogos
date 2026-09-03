@@ -30,7 +30,7 @@ afterEach(async () => {
 });
 
 suite("built Product Host process", () => {
-  it("configures one OpenAI provider route through plan/execute and preserves it on restart", async () => {
+  it("configures Chat and Responses gateway routes through plan/execute and preserves them on restart", async () => {
     fixture = await makeFixture(postgresBin!);
     running = await runHost(fixture);
 
@@ -83,7 +83,7 @@ suite("built Product Host process", () => {
     const configurationAction = {
       actionId: "configuration.revision.create" as const,
       input: {
-        definitionId: "ai.provider.transport.v1" as const,
+        definitionId: "ai.gateway.transport.v1" as const,
         scopeRef: {
           schemaVersion: 1 as const,
           resourceKind: "installation",
@@ -119,30 +119,51 @@ suite("built Product Host process", () => {
       input: { revisionId: revision.revisionId },
     });
 
-    const providerProfileId = createUuidV7Id("ProviderProfileId");
+    const gatewayProfileId = createUuidV7Id("GatewayProfileId");
     await applyAction({
-      actionId: "provider-profile.set",
+      actionId: "gateway-profile.set",
       input: {
-        providerProfileId,
-        providerKind: "openai",
-        configurationRevisionRef: revision.revisionId,
-        secretRefs: [],
+        gatewayProfileId,
+        baseUrl: "https://gateway.example.com/v1/",
         enabled: false,
       },
     });
     const disabled = await client.getProductState();
+    expect(disabled.data.gatewayProfiles[0]).toMatchObject({
+      gatewayProfileId,
+      baseUrl: "https://gateway.example.com/v1",
+      enabled: false,
+    });
     expect(disabled.data.aiReadiness).toMatchObject({ state: "BLOCKED" });
+
+    const immutableGatewayAction = {
+      actionId: "gateway-profile.set" as const,
+      input: {
+        gatewayProfileId,
+        baseUrl: "https://another-gateway.example.com/v1",
+        enabled: false,
+      },
+    };
+    const immutableGatewayPlan = await client.planSystemAction(immutableGatewayAction);
+    await expect(
+      client.executeSystemAction({
+        plan: immutableGatewayPlan,
+        action: immutableGatewayAction,
+      }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "ai.gateway_destination_immutable" },
+    });
 
     const secretAction = {
       actionId: "secret.set" as const,
       input: {
-        purpose: "provider.openai.api-key",
+        purpose: "ai.gateway.bearer-token",
         scopeRef: {
           schemaVersion: 1 as const,
-          resourceKind: "provider-profile",
-          resourceId: providerProfileId,
+          resourceKind: "gateway-profile",
+          resourceId: gatewayProfileId,
         },
-        material: "not-a-real-openai-key",
+        material: "not-a-real-gateway-token",
       },
     };
     const secretPlan = await client.planSystemAction(secretAction);
@@ -152,58 +173,72 @@ suite("built Product Host process", () => {
     const secret = withSecret.data.secrets[0] as { secretId: string };
 
     await applyAction({
-      actionId: "provider-profile.set",
+      actionId: "gateway-profile.set",
       input: {
-        providerProfileId,
-        providerKind: "openai",
-        configurationRevisionRef: revision.revisionId,
-        secretRefs: [{ schemaVersion: 1, secretId: secret.secretId }],
+        gatewayProfileId,
+        baseUrl: "https://gateway.example.com/v1",
+        apiTokenSecretRef: { schemaVersion: 1, secretId: secret.secretId },
         enabled: true,
       },
     });
 
-    const modelProfileId = createUuidV7Id("ModelProfileId");
-    const modelInput = {
-      modelProfileId,
-      providerProfileId,
-      providerModelIdentifier: "gpt-5.6-luna",
-      consumedCapabilities: [
-        "text-generation",
-        "structured-output",
-        "usage-metadata",
-        "abort-timeout",
-      ] as Array<
-        "text-generation" | "structured-output" | "usage-metadata" | "abort-timeout"
-      >,
-      configurationRevisionRef: revision.revisionId,
+    const chatModelProfileId = createUuidV7Id("ModelProfileId");
+    const modelCapabilities = [
+      "text-generation",
+      "structured-output",
+      "usage-metadata",
+      "abort-timeout",
+    ] as Array<
+      "text-generation" | "structured-output" | "usage-metadata" | "abort-timeout"
+    >;
+    const chatModelInput = {
+      modelProfileId: chatModelProfileId,
+      gatewayProfileId,
+      modelIdentifier: "deepseek-chat",
+      protocol: "openai-chat" as const,
+      consumedCapabilities: modelCapabilities,
     };
-    await applyAction({ actionId: "model-profile.set", input: modelInput });
+    await applyAction({ actionId: "model-profile.set", input: chatModelInput });
+
+    const responsesModelProfileId = createUuidV7Id("ModelProfileId");
+    const responsesModelInput = {
+      modelProfileId: responsesModelProfileId,
+      gatewayProfileId,
+      modelIdentifier: "deepseek-responses",
+      protocol: "openai-responses" as const,
+      consumedCapabilities: modelCapabilities,
+    };
     await applyAction({
-      actionId: "model-binding.set",
-      input: { role: "subject.primary", modelProfileId },
+      actionId: "model-profile.set",
+      input: responsesModelInput,
     });
     await applyAction({
       actionId: "model-binding.set",
-      input: { role: "subject.expression", modelProfileId },
+      input: { role: "subject.primary", modelProfileId: chatModelProfileId },
+    });
+    await applyAction({
+      actionId: "model-binding.set",
+      input: {
+        role: "subject.expression",
+        modelProfileId: responsesModelProfileId,
+      },
     });
     const ready = await client.getProductState();
     expect(ready.data.aiReadiness).toMatchObject({ state: "READY", blockers: [] });
 
     const staleAction = {
       actionId: "model-binding.set" as const,
-      input: { role: "subject.primary" as const, modelProfileId },
+      input: {
+        role: "subject.primary" as const,
+        modelProfileId: chatModelProfileId,
+      },
     };
     const stalePlan = await client.planSystemAction(staleAction);
-    const secondModelProfileId = createUuidV7Id("ModelProfileId");
-    await applyAction({
-      actionId: "model-profile.set",
-      input: { ...modelInput, modelProfileId: secondModelProfileId },
-    });
     await applyAction({
       actionId: "model-binding.set",
       input: {
         role: "subject.primary",
-        modelProfileId: secondModelProfileId,
+        modelProfileId: responsesModelProfileId,
       },
     });
     await expect(
@@ -228,8 +263,9 @@ suite("built Product Host process", () => {
     const restarted = await restartedAuthenticated.client.getProductState();
     expect(restarted.data.configuration.revisions).toHaveLength(1);
     expect(restarted.data.configuration.activations).toHaveLength(1);
-    expect(restarted.data.providerProfiles).toHaveLength(1);
+    expect(restarted.data.gatewayProfiles).toHaveLength(1);
     expect(restarted.data.secrets).toHaveLength(1);
+    expect(restarted.data.modelProfiles).toHaveLength(2);
     expect(restarted.data.modelBindings).toHaveLength(2);
     expect(restarted.data.aiReadiness).toMatchObject({ state: "READY" });
   });

@@ -40,12 +40,12 @@ import type {
   ModelCapability,
   ModelBinding,
   ModelProfile,
-  ProviderProfile,
+  GatewayProfile,
 } from "@heptalogos/ai-runtime";
 import {
   modelBindingSetInputSchema,
   modelProfileSetInputSchema,
-  providerProfileSetInputSchema,
+  gatewayProfileSetInputSchema,
 } from "@heptalogos/ai-runtime";
 import type { NetworkAccessDiagnostics } from "@heptalogos/network-access";
 import type { SecretMetadata } from "@heptalogos/secret";
@@ -186,7 +186,7 @@ export type ProductSystemActionId =
   | "secret.set"
   | "secret.replace"
   | "secret.revoke"
-  | "provider-profile.set"
+  | "gateway-profile.set"
   | "model-profile.set"
   | "model-binding.set";
 
@@ -220,24 +220,23 @@ interface SecretReplaceActionInput {
 interface SecretRevokeActionInput {
   readonly secretRef: string;
 }
-/** Input to set an OpenAI ProviderProfile and its owned references. */
-interface ProviderProfileSetActionInput {
-  readonly providerProfileId?: string;
-  readonly providerKind: "openai";
-  readonly configurationRevisionRef: string;
-  readonly secretRefs: readonly {
+/** Input to set one configured GatewayProfile. */
+interface GatewayProfileSetActionInput {
+  readonly gatewayProfileId?: string;
+  readonly baseUrl: string;
+  readonly apiTokenSecretRef?: {
     readonly schemaVersion: 1;
     readonly secretId: string;
-  }[];
+  };
   readonly enabled: boolean;
 }
 /** Input to set one model profile consumed by AIRuntime. */
 interface ModelProfileSetActionInput {
   readonly modelProfileId?: string;
-  readonly providerProfileId: string;
-  readonly providerModelIdentifier: string;
+  readonly gatewayProfileId: string;
+  readonly modelIdentifier: string;
+  readonly protocol: "openai-chat" | "openai-responses";
   readonly consumedCapabilities: readonly ModelCapability[];
-  readonly configurationRevisionRef: string;
 }
 /** The exact model binding action input. */
 interface ModelBindingSetActionInput {
@@ -265,8 +264,8 @@ export type SystemActionRequest =
       readonly input: SecretRevokeActionInput;
     }
   | {
-      readonly actionId: "provider-profile.set";
-      readonly input: ProviderProfileSetActionInput;
+      readonly actionId: "gateway-profile.set";
+      readonly input: GatewayProfileSetActionInput;
     }
   | {
       readonly actionId: "model-profile.set";
@@ -292,7 +291,7 @@ export interface ProductStateData {
     readonly activations: readonly ConfigurationActivation[];
   };
   readonly secrets: readonly SecretMetadata[];
-  readonly providerProfiles: readonly ProviderProfile[];
+  readonly gatewayProfiles: readonly GatewayProfile[];
   readonly modelProfiles: readonly ModelProfile[];
   readonly modelBindings: readonly ModelBinding[];
   readonly networkAccess: NetworkAccessDiagnostics;
@@ -380,17 +379,17 @@ export const currentSystemActionCatalog: readonly SystemActionDefinition[] =
     }),
     Object.freeze({
       schemaVersion: 1 as const,
-      actionId: "provider-profile.set" as SystemActionId,
+      actionId: "gateway-profile.set" as SystemActionId,
       actionVersion: 1,
       inputSchema: {
         schemaVersion: 1 as const,
-        schemaId: "provider-profile.set.input",
+        schemaId: "gateway-profile.set.input",
       },
       outputSchema: {
         schemaVersion: 1 as const,
         schemaId: "management.system-action.result",
       },
-      targetKind: "provider-profile",
+      targetKind: "gateway-profile",
       riskClass: "MATERIAL" as const,
       applyMode: "RECONCILE" as const,
     }),
@@ -775,8 +774,8 @@ export const systemActionRequestSchema = Type.Union([
   ),
   Type.Object(
     {
-      actionId: Type.Literal("provider-profile.set"),
-      input: providerProfileSetInputSchema,
+      actionId: Type.Literal("gateway-profile.set"),
+      input: gatewayProfileSetInputSchema,
     },
     { additionalProperties: false },
   ),
@@ -818,7 +817,7 @@ export const productStateSchema = readModelEnvelopeSchema(
         { additionalProperties: false },
       ),
       secrets: Type.Array(Type.Unknown()),
-      providerProfiles: Type.Array(Type.Unknown()),
+      gatewayProfiles: Type.Array(Type.Unknown()),
       modelProfiles: Type.Array(Type.Unknown()),
       modelBindings: Type.Array(Type.Unknown()),
       networkAccess: Type.Unknown(),

@@ -5,13 +5,13 @@
 This Spec owns the Product AI runtime semantic boundary:
 
 ```
-ProviderProfile
+GatewayProfile
 ModelProfile
 ModelBinding
 InvocationSpec
-provider/model runtime materialization
+gateway/protocol runtime materialization
 structured generation result
-usage and provider provenance
+usage and gateway/model provenance
 abort/timeout boundary
 ```
 
@@ -22,11 +22,11 @@ runtime materializations and never canonical Product state.
 
 ## Ownership and current roles
 
-AIRuntime owns ProviderProfile, ModelProfile, ModelBinding, InvocationSpec, and
-their runtime provenance. ConfigurationService owns referenced configuration
-revisions; SecretService owns SecretRef resolution; NetworkAccess owns
-controllable Host-originated provider transport; Subject and Reaction owners
-decide whether a result can be consumed.
+AIRuntime owns GatewayProfile, ModelProfile, ModelBinding, InvocationSpec, and
+their runtime provenance. ConfigurationService owns the active gateway
+transport revision; SecretService owns SecretRef resolution; NetworkAccess
+owns controllable Host-originated gateway transport; Subject and Reaction
+owners decide whether a result can be consumed.
 
 The current Heptalogos ModelBinding role set is exactly:
 
@@ -43,25 +43,22 @@ is OpenClaw-owned and is not a Host AIRuntime binding.
 ## Normative types
 
 ```ts
-interface ProviderProfile {
+interface GatewayProfile {
   readonly schemaVersion: 1;
-  readonly providerProfileId: ProviderProfileId;
-  readonly providerKind: string;
-  readonly configurationRevisionRef: ConfigurationRevisionRef;
-  readonly secretRefs: readonly SecretRef[];
-  readonly networkAccessProfileRef: NetworkAccessProfileRef;
+  readonly gatewayProfileId: GatewayProfileId;
+  readonly baseUrl: string;
+  readonly apiTokenSecretRef?: SecretRef;
   readonly enabled: boolean;
-  readonly providerSettings: CanonicalJsonValue;
 }
 
 interface ModelProfile {
   readonly schemaVersion: 1;
   readonly modelProfileId: ModelProfileId;
-  readonly providerProfileId: ProviderProfileId;
-  readonly providerModelIdentifier: string;
+  readonly gatewayProfileId: GatewayProfileId;
+  readonly modelIdentifier: string;
+  readonly protocol: "openai-chat" | "openai-responses";
   readonly consumedCapabilities: readonly ModelCapability[];
   readonly generation: number;
-  readonly configurationRevisionRef: ConfigurationRevisionRef;
 }
 
 interface ModelBinding {
@@ -91,9 +88,12 @@ interface GenerationResult {
   readonly schemaVersion: 1;
   readonly invocationId: InvocationId;
   readonly bindingRevision: number;
-  readonly providerProfileId: ProviderProfileId;
+  readonly gatewayProfileId: GatewayProfileId;
   readonly modelProfileId: ModelProfileId;
-  readonly providerModelIdentifier: string;
+  readonly modelProfileGeneration: number;
+  readonly modelIdentifier: string;
+  readonly protocol: "openai-chat" | "openai-responses";
+  readonly configurationRevisionId: ConfigurationRevisionId;
   readonly candidate: CanonicalJsonValue;
   readonly usage?: UsageMetadata;
   readonly lineageContextRef: LineageContextRef;
@@ -113,16 +113,18 @@ The invocation boundary is:
 ContextProjection
 → InvocationSpec bound to exact ModelBinding revision
 → authorized Secret resolution
-→ controllable NetworkAccess transport
-→ AI SDK structured generation mechanics
+→ selected ModelProfile and GatewayProfile
+→ authorized Secret resolution
+→ exact NetworkAccess target
+→ AI SDK openai-chat or openai-responses mechanics
 → JSON Schema validation through SchemaRuntime/Ajv
 → consuming owner proposal/review/commit
 ```
 
 AIRuntime does not become Context Authority. ContextProjection is invocation
-input, not long-lived Subject state. Provider and model SDK instances may be
-created or closed as runtime resources; their existence is not readiness or
-Product identity.
+input, not long-lived Subject state. Protocol SDK instances may be created or
+closed as runtime resources; their existence is not readiness or Product
+identity.
 
 An invocation may be observed as ADMITTED, RUNNING, SUCCEEDED, FAILED,
 ABORTED, or TIMED_OUT in Activity/diagnostic projections. These are not a
@@ -131,18 +133,18 @@ result is inadmissible even if the provider call succeeded.
 
 ## Readiness and failure semantics
 
-Provider readiness requires an enabled ProviderProfile, valid active
-configuration, authorized SecretRef resolution, usable NetworkAccess policy,
-and a provider route that has demonstrated the required transport control.
-ModelBinding readiness additionally requires a current ModelProfile and exact
-binding revision. A missing or stale binding is a structured dependency
-failure, not a fabricated model or fallback provider.
+Readiness is binding-driven. For each enabled current binding, AIRuntime
+requires a current configuration revision, an enabled selected GatewayProfile,
+an implemented selected protocol, an optional active/resolvable scoped token,
+and an exact NetworkAccess target. An unused gateway or model does not block
+the Product route. A missing or stale binding is a structured dependency
+failure, not a fabricated model or fallback.
 
 The canonical Problem projection distinguishes at least:
 
 ```
-ai.provider_unavailable
-ai.provider_configuration_invalid
+ai.gateway_unavailable
+ai.gateway_configuration_invalid
 ai.secret_unavailable
 ai.network_unavailable
 ai.model_binding_unavailable
@@ -153,34 +155,35 @@ ai.invocation_timed_out
 ai.generation_mismatch
 ```
 
-Provider failure before a consuming DecisionCommit cannot fabricate a
+Gateway failure before a consuming DecisionCommit cannot fabricate a
 decision or response. Timeout/abort is not a successful structured result.
-Usage and actual provider/model/binding revision remain attributable through
-Lineage and Evidence whenever the Product consumes them.
+Usage and the actual gateway, model, protocol, binding revision, model
+generation, and configuration revision remain attributable through Lineage and
+Evidence whenever the Product consumes them.
 
 ## Invariants
 
-- AIR-001 Subject identity and Authority never belong to an SDK, provider, model, or prompt object.
-- AIR-002 ProviderProfile, ModelProfile, and ModelBinding are Product state; SDK instances are runtime materialization only.
+- AIR-001 Subject identity and Authority never belong to an SDK, gateway, model, or prompt object.
+- AIR-002 GatewayProfile, ModelProfile, and ModelBinding are Product state; SDK instances are runtime materialization only.
 - AIR-003 InvocationSpec binds an exact ModelBinding revision and carries its own lineage context.
-- AIR-004 A stale binding, generation, or configuration result cannot commit as current.
+- AIR-004 A stale binding, model generation, or configuration result cannot commit as current.
 - AIR-005 Every model result is proposal/evidence until its consuming owner accepts it.
 - AIR-006 Structured output passes canonical schema and domain validation before Behavior commit.
 - AIR-007 Secret material is resolved only for an authorized invocation and is not copied into durable InvocationSpec plaintext.
-- AIR-008 Controllable provider HTTP traffic uses NetworkAccess.
-- AIR-009 Provider failure before DecisionCommit cannot fabricate canonical behavior.
-- AIR-010 Consumed provider, model, binding revision, generation, and usage metadata remain attributable through Lineage/Evidence.
+- AIR-008 Controllable gateway HTTP traffic uses NetworkAccess and the selected exact destination.
+- AIR-009 Gateway failure before DecisionCommit cannot fabricate canonical behavior.
+- AIR-010 Consumed gateway, model, protocol, binding revision, model generation, configuration revision, and usage metadata remain attributable through Lineage/Evidence.
 - AIR-011 The current Subject slice has no tool authority or tool-loop mechanics.
 - AIR-012 AIRuntime defines no internal System Assistant/OpenClaw model binding.
 
 ## Management projection and lifecycle
 
-Normal Management may inspect and govern ProviderProfile, ModelProfile,
-ModelBinding, active configuration references, and readiness diagnostics. It
+Normal Management may inspect and govern GatewayProfile, ModelProfile,
+ModelBinding, active gateway transport configuration, and readiness diagnostics. It
 must not expose Secret plaintext or SDK instances. A binding change is a
 canonical Product mutation with a new binding revision; it does not create a
-new Subject. Runtime reconciliation materializes or retires provider/model
-resources after canonical state is committed.
+new Subject. Runtime protocol objects are request-scoped materializations and
+have no independent durable lifecycle.
 
 ## Current-slice exclusions
 
@@ -190,7 +193,8 @@ This Spec does not define:
 AI SDK Agent or WorkflowAgent
 tool calls or autonomous multi-step loops
 MCP invocation
-provider fleet/failover
+provider fleet/failover/registry/health
+direct vendor adapters
 reviewer agent
 embedding
 vision/files without a hard current consumer

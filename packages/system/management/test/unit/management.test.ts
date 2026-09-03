@@ -278,7 +278,7 @@ describe("Management service", () => {
       ["secret.set", "MATERIAL", "RECONCILE"],
       ["secret.replace", "MATERIAL", "RECONCILE"],
       ["secret.revoke", "MATERIAL", "RECONCILE"],
-      ["provider-profile.set", "MATERIAL", "RECONCILE"],
+      ["gateway-profile.set", "MATERIAL", "RECONCILE"],
       ["model-profile.set", "MATERIAL", "RECONCILE"],
       ["model-binding.set", "MATERIAL", "RECONCILE"],
     ]);

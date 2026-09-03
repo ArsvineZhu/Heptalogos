@@ -12,3 +12,5 @@ packages/application/product-host/src/generated/build-identities.ts
 /tmp/
 pnpm-lock.yaml
 .codegraph/
+# The active Product Plan is installed byte-for-byte from its external source.
+/project/plans/active/product/gateway-first-airuntime-external-integration-posture-2026-09-03.md

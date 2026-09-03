@@ -28,7 +28,9 @@ import {
 } from "../../foundation/support/canonical-postgres.js";
 
 const suite = describeRealPostgres === undefined ? describe.skip : describe;
-const qualificationModel = "gpt-5.6-luna";
+const qualificationBaseUrl = process.env.HEPTALOGOS_GATEWAY_BASE_URL?.trim();
+const qualificationModel = process.env.HEPTALOGOS_GATEWAY_MODEL?.trim();
+const qualificationProtocol = process.env.HEPTALOGOS_GATEWAY_PROTOCOL ?? "openai-chat";
 const outputSchema: CanonicalJsonValue = {
   type: "object",
   required: ["schemaVersion", "ok", "marker"],
@@ -53,8 +55,8 @@ const PERSISTENCE_OPTIONS = {
 function productGeneration(): ProductGenerationId {
   return asContentDigest(
     "ProductGenerationId",
-    digestCanonicalJson("provider-openai-qualification/product/v1", {
-      route: "openai-responses",
+    digestCanonicalJson("model-gateway-qualification/product/v1", {
+      route: "openai-chat",
     }),
   );
 }
@@ -77,7 +79,7 @@ async function readProtectedKey(): Promise<Uint8Array> {
         chunks.forEach((chunk) => chunk.fill(0));
         if (key.byteLength === 0) {
           key.fill(0);
-          rejectKey(new Error("A protected OpenAI API key is required on stdin"));
+          rejectKey(new Error("A protected gateway token is required on stdin"));
           return;
         }
         resolveKey(Uint8Array.from(key));
@@ -88,7 +90,7 @@ async function readProtectedKey(): Promise<Uint8Array> {
         for (let index = 0; index < chunk.byteLength; index += 1) {
           const byte = chunk[index];
           if (byte === 3) {
-            finish(new Error("Protected OpenAI key input was cancelled"));
+            finish(new Error("Protected gateway token input was cancelled"));
             return;
           }
           if (byte === 10 || byte === 13) {
@@ -100,7 +102,7 @@ async function readProtectedKey(): Promise<Uint8Array> {
         }
         if (contentEnd > 0) chunks.push(Buffer.from(chunk));
       };
-      process.stderr.write("OpenAI API key (protected stdin): ");
+      process.stderr.write("Gateway token (protected stdin): ");
       process.stdin.setRawMode(true);
       process.stdin.resume();
       process.stdin.on("data", onData);
@@ -117,7 +119,7 @@ async function readProtectedKey(): Promise<Uint8Array> {
   value.fill(0);
   const key = new TextEncoder().encode(trimmed);
   if (key.byteLength === 0)
-    throw new Error("A protected OpenAI API key is required on stdin");
+    throw new Error("A protected gateway token is required on stdin");
   return key;
 }
 
@@ -145,8 +147,8 @@ async function runRetainedActivity<T>(
         const result = await operation(context);
         await persistence.mutate((transaction) =>
           evidence.recordRequired(transaction, {
-            evidenceKind: "provider-openai.qualification",
-            evidenceContractVersion: "provider-openai.v1",
+            evidenceKind: "model-gateway.qualification",
+            evidenceContractVersion: "model-gateway.v1",
             subjectRef: context.activityId,
             retentionClass: "retained",
             sensitivity: "operational",
@@ -191,9 +193,17 @@ afterEach(async () => {
   fixture = undefined;
 });
 
-suite("manual OpenAI provider qualification", () => {
-  it("performs one real Responses structured generation through current owners", async () => {
-    const apiKey = await readProtectedKey();
+suite("manual model gateway qualification", () => {
+  it("performs one real NewAPI Chat structured generation through current owners", async () => {
+    if (qualificationBaseUrl === undefined || qualificationModel === undefined) {
+      throw new Error(
+        "HEPTALOGOS_GATEWAY_BASE_URL and HEPTALOGOS_GATEWAY_MODEL are required",
+      );
+    }
+    if (qualificationProtocol !== "openai-chat") {
+      throw new Error("The required live qualification protocol is openai-chat");
+    }
+    const gatewayToken = await readProtectedKey();
     let secretRef: import("@heptalogos/secret").SecretRef | undefined;
     try {
       fixture = await makeFixture();
@@ -251,10 +261,10 @@ suite("manual OpenAI provider qualification", () => {
         lineage,
         evidence,
         time,
-        "provider-openai.qualification.configuration",
+        "model-gateway.qualification.configuration",
         async () =>
           configuration.createRevision({
-            definitionId: "ai.provider.transport.v1",
+            definitionId: "ai.gateway.transport.v1",
             scopeRef: {
               schemaVersion: 1,
               resourceKind: "installation",
@@ -275,30 +285,28 @@ suite("manual OpenAI provider qualification", () => {
         lineage,
         evidence,
         time,
-        "provider-openai.qualification.activation",
+        "model-gateway.qualification.activation",
         async () =>
           configuration.activate({ revisionId: transportRevision.revisionId }),
       );
 
-      const providerProfileId = createUuidV7Id("ProviderProfileId");
+      const gatewayProfileId = createUuidV7Id("GatewayProfileId");
       await runRetainedActivity(
         runtime,
         persistence,
         lineage,
         evidence,
         time,
-        "provider-openai.qualification.provider",
+        "model-gateway.qualification.gateway",
         async () =>
-          aiRuntime.setProviderProfile({
-            providerProfileId,
-            providerKind: "openai",
-            configurationRevisionRef: transportRevision.revisionId,
-            secretRefs: [],
+          aiRuntime.setGatewayProfile({
+            gatewayProfileId,
+            baseUrl: qualificationBaseUrl,
             enabled: false,
           }),
       );
 
-      const protectedMaterial = Uint8Array.from(apiKey);
+      const protectedMaterial = Uint8Array.from(gatewayToken);
       try {
         secretRef = await runRetainedActivity(
           runtime,
@@ -306,21 +314,21 @@ suite("manual OpenAI provider qualification", () => {
           lineage,
           evidence,
           time,
-          "provider-openai.qualification.secret",
+          "model-gateway.qualification.secret",
           async () =>
             secret.createOrSet({
-              purpose: "provider.openai.api-key",
+              purpose: "ai.gateway.bearer-token",
               scopeRef: {
                 schemaVersion: 1,
-                resourceKind: "provider-profile",
-                resourceId: providerProfileId,
+                resourceKind: "gateway-profile",
+                resourceId: gatewayProfileId,
               },
               material: protectedMaterial,
             }),
         );
       } finally {
         protectedMaterial.fill(0);
-        apiKey.fill(0);
+        gatewayToken.fill(0);
       }
       cleanupSecret = async () => {
         if (secretRef === undefined) return;
@@ -330,7 +338,7 @@ suite("manual OpenAI provider qualification", () => {
           lineage,
           evidence,
           time,
-          "provider-openai.qualification.revoke",
+          "model-gateway.qualification.revoke",
           async () => secret.revoke(secretRef!),
         );
       };
@@ -340,13 +348,12 @@ suite("manual OpenAI provider qualification", () => {
         lineage,
         evidence,
         time,
-        "provider-openai.qualification.enable",
+        "model-gateway.qualification.enable",
         async () =>
-          aiRuntime.setProviderProfile({
-            providerProfileId,
-            providerKind: "openai",
-            configurationRevisionRef: transportRevision.revisionId,
-            secretRefs: [secretRef!],
+          aiRuntime.setGatewayProfile({
+            gatewayProfileId,
+            baseUrl: qualificationBaseUrl,
+            apiTokenSecretRef: secretRef!,
             enabled: true,
           }),
       );
@@ -357,18 +364,18 @@ suite("manual OpenAI provider qualification", () => {
         lineage,
         evidence,
         time,
-        "provider-openai.qualification.model",
+        "model-gateway.qualification.model",
         async () =>
           aiRuntime.setModelProfile({
-            providerProfileId,
-            providerModelIdentifier: qualificationModel,
+            gatewayProfileId,
+            modelIdentifier: qualificationModel,
+            protocol: "openai-chat",
             consumedCapabilities: [
               "text-generation",
               "structured-output",
               "usage-metadata",
               "abort-timeout",
             ],
-            configurationRevisionRef: transportRevision.revisionId,
           }),
       );
       const binding = await runRetainedActivity(
@@ -377,7 +384,7 @@ suite("manual OpenAI provider qualification", () => {
         lineage,
         evidence,
         time,
-        "provider-openai.qualification.binding",
+        "model-gateway.qualification.binding",
         async () =>
           aiRuntime.setModelBinding({
             role: "subject.primary",
@@ -391,7 +398,7 @@ suite("manual OpenAI provider qualification", () => {
         lineage,
         evidence,
         time,
-        "provider-openai.qualification.invoke",
+        "model-gateway.qualification.invoke",
         async (context) =>
           aiRuntime.invoke({
             schemaVersion: 1,
@@ -414,9 +421,10 @@ suite("manual OpenAI provider qualification", () => {
           }),
       );
 
-      expect(generationResult.providerProfileId).toBe(providerProfileId);
+      expect(generationResult.gatewayProfileId).toBe(gatewayProfileId);
       expect(generationResult.modelProfileId).toBe(modelProfile.modelProfileId);
-      expect(generationResult.providerModelIdentifier).toBe(qualificationModel);
+      expect(generationResult.modelIdentifier).toBe(qualificationModel);
+      expect(generationResult.protocol).toBe("openai-chat");
       expect(generationResult.bindingRevision).toBe(binding.revision);
       expect(generationResult.candidate).toMatchObject({
         schemaVersion: 1,
@@ -426,7 +434,7 @@ suite("manual OpenAI provider qualification", () => {
       expect(generationResult.evidenceRefs.length).toBeGreaterThan(0);
     } finally {
       await cleanupSecret?.().catch(() => undefined);
-      apiKey.fill(0);
+      gatewayToken.fill(0);
     }
   });
 });

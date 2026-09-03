@@ -5,7 +5,7 @@
 configuration owns the current Product ConfigurationDefinition,
 ConfigurationRevision, ConfigurationActivation, and effective-value semantics.
 It provides the bounded managed-revision route consumed by NetworkAccess and
-later Product services.
+AIRuntime gateway transport.
 
 ## Owns
 

@@ -5,15 +5,15 @@
 Canonical configuration/domain state 保存：
 
 ```text
-ProviderProfile
+GatewayProfile
 ModelProfile
 ModelBinding
 SecretRef
 ```
 
-运行时才 materialize SDK/provider/model objects。
+运行时才 materialize SDK/protocol/model objects。
 
-模型、Provider、SDK generation 的变化不会自动创建新 Subject。
+模型、Gateway、protocol、SDK generation 的变化不会自动创建新 Subject。
 
 ---
 
@@ -22,7 +22,7 @@ SecretRef
 AI SDK 承担 generic mechanics：
 
 ```text
-provider/model interface
+gateway/protocol/model interface
 text/stream
 structured output
 usage
@@ -32,8 +32,10 @@ middleware
 
 AI SDK may expose broader mechanics, but the current Subject Product path consumes
 only text generation, structured output, usage when supplied, and
-abort/timeout. Tool and autonomous-step mechanics remain future integration
-choices and do not create current AIRuntime Authority.
+abort/timeout. The current AIRuntime selects an external gateway and exactly
+one of the openai-chat or openai-responses protocol boundaries. Tool and
+autonomous-step mechanics remain future integration choices and do not create
+current AIRuntime Authority.
 
 Heptalogos 拥有：
 
@@ -82,12 +84,19 @@ available capabilities
 output schema
 budget
 timeout/cancel
-protocol/provider provenance
+gateway/model/protocol provenance
 ```
 
 高级 cognition subsystem 若存在，可以通过 Context/Activity contract 贡献数据；Foundation 不固定 Persona/Memory 等内部表示。
 
 AI SDK messages/tools 只是 `InvocationSpec` 的编译结果。
+
+GatewayProfile.baseUrl is the external gateway destination. It is
+canonicalized, credential-free, and exact-target checked by NetworkAccess;
+remote HTTP is rejected while literal loopback HTTP is allowed for local
+fixtures/development. The gateway may be NewAPI or another OpenAI-compatible
+external service, but its process, administration, upstream credentials, and
+upgrade lifecycle remain outside Heptalogos.
 
 ---
 
@@ -125,7 +134,7 @@ scope
 Secret requirements
 network requirements
 idempotency/reconciliation
-provider generation
+gateway/model generation
 availability
 ```
 
@@ -140,7 +149,7 @@ Capability 可被 Reactor、deterministic code、Operator support code 或其他
 负责：
 
 ```text
-availability/provider selection
+availability/model-gateway selection
 scope
 policy
 Secret resolution
@@ -316,11 +325,12 @@ network-policy enforcement
 
 ---
 
-## 15. Failover
+## 15. Failover and fallback
 
-只有在 Authority commit 前且 policy 允许时才可 fallback。
+当前 AIRuntime 不实现 provider fleet、failover 或 global fallback。未来若有
+明确的 current policy，fallback 也只能发生在 Authority commit 前。
 
-实际 provider/model/protocol revision/generation 必须进入 Evidence。
+实际 gateway/model/protocol revision/generation 必须进入 Evidence。
 
 不同模型输出不能复用同一 committed artifact identity。
 

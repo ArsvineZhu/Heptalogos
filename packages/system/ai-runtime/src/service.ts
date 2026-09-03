@@ -1,6 +1,6 @@
 /**
- * Implements current OpenAI profile/binding persistence and structured
- * generation through AI SDK 7 and the NetworkAccess custom-fetch boundary.
+ * Implements current gateway/profile/binding persistence and structured
+ * generation through AI SDK 7 protocol adapters and NetworkAccess.
  * @module service
  */
 
@@ -14,9 +14,8 @@ import {
   type CanonicalJsonValue,
 } from "@heptalogos/foundation-contracts";
 import { decodeLineageContextRef } from "@heptalogos/execution-lineage";
-import type { ConfigurationRevisionId } from "@heptalogos/configuration";
-import { PROVIDER_TRANSPORT_DEFINITION_ID } from "@heptalogos/configuration";
-import { OPENAI_NETWORK_ACCESS_PROFILE_ID } from "@heptalogos/network-access";
+import { GATEWAY_TRANSPORT_DEFINITION_ID } from "@heptalogos/configuration";
+import type { GatewayNetworkTarget } from "@heptalogos/network-access";
 import {
   executeRepositorySql,
   readRepositorySql,
@@ -24,7 +23,8 @@ import {
 } from "@heptalogos/persistence/repository";
 import { compileSchema } from "@heptalogos/schema-runtime";
 import type { SecretRef } from "@heptalogos/secret";
-import { createOpenAI } from "@ai-sdk/openai";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { createOpenResponses } from "@ai-sdk/open-responses";
 import { generateText, jsonSchema, Output, type ModelMessage } from "ai";
 import {
   CURRENT_MODEL_CAPABILITIES,
@@ -38,31 +38,30 @@ import {
   type ModelCapability,
   type ModelProfile,
   type ModelProfileId,
-  type ProviderProfile,
-  type ProviderProfileId,
+  type GatewayProfile,
+  type GatewayProfileId,
+  type ModelInvocationProtocol,
   type SetModelBindingInput,
   type SetModelProfileInput,
-  type SetProviderProfileInput,
+  type SetGatewayProfileInput,
   type UsageMetadata,
 } from "./contracts.js";
 import { aiRuntimeProblem } from "./problems.js";
 
-interface ProviderRow {
-  readonly provider_profile_id: unknown;
-  readonly configuration_revision_ref: unknown;
-  readonly secret_refs: unknown;
-  readonly network_access_profile_ref: unknown;
+interface GatewayRow {
+  readonly gateway_profile_id: unknown;
+  readonly base_url: unknown;
+  readonly api_token_secret_ref: unknown;
   readonly enabled: unknown;
-  readonly provider_settings: unknown;
 }
 
 interface ModelRow {
   readonly model_profile_id: unknown;
-  readonly provider_profile_id: unknown;
-  readonly provider_model_identifier: unknown;
+  readonly gateway_profile_id: unknown;
+  readonly model_identifier: unknown;
+  readonly protocol: unknown;
   readonly consumed_capabilities: unknown;
   readonly generation: unknown;
-  readonly configuration_revision_ref: unknown;
 }
 
 interface BindingRow {
@@ -148,61 +147,82 @@ function ref(value: unknown, field: string): SecretRef {
   return Object.freeze({ schemaVersion: 1, secretId });
 }
 
-function secretRefs(value: unknown): readonly SecretRef[] {
-  const parsed = jsonValue(value);
-  if (!Array.isArray(parsed) || parsed.length > 1) {
-    throw aiRuntimeProblem(
-      "ai.repository_invalid",
-      "AIRuntime repository data is invalid",
-      "secret_refs is not the current bounded SecretRef list",
-      "integrity",
-    );
-  }
-  return Object.freeze(parsed.map((item) => ref(item, "secret_refs")));
+function optionalSecretRef(value: unknown, field: string): SecretRef | undefined {
+  if (value === null || value === undefined) return undefined;
+  return ref({ schemaVersion: 1, secretId: value }, field);
 }
 
-function providerFromRow(row: ProviderRow): ProviderProfile {
-  const settings = jsonValue(row.provider_settings);
+function canonicalBaseUrl(value: string): string {
+  assertInputText(value, "baseUrl", 2048);
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw aiRuntimeProblem(
+      "ai.gateway_configuration_invalid",
+      "GatewayProfile base URL is invalid",
+      "baseUrl must be an absolute HTTP or HTTPS URL",
+      "validation",
+    );
+  }
   if (
-    typeof settings !== "object" ||
-    settings === null ||
-    Array.isArray(settings) ||
-    (settings as Record<string, unknown>).api !== "responses" ||
-    (settings as Record<string, unknown>).store !== false
+    (url.protocol !== "http:" && url.protocol !== "https:") ||
+    url.username !== "" ||
+    url.password !== "" ||
+    url.search !== "" ||
+    url.hash !== ""
   ) {
     throw aiRuntimeProblem(
-      "ai.provider_configuration_invalid",
-      "ProviderProfile settings are invalid",
-      "Only OpenAI Responses with store=false is supported",
-      "integrity",
+      "ai.gateway_configuration_invalid",
+      "GatewayProfile base URL is invalid",
+      "baseUrl must be credential-free and must not contain a query or fragment",
+      "validation",
     );
   }
-  if (row.network_access_profile_ref !== OPENAI_NETWORK_ACCESS_PROFILE_ID) {
+  const host = url.hostname.toLowerCase();
+  const loopback =
+    host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "::1";
+  if (url.protocol === "http:" && !loopback) {
     throw aiRuntimeProblem(
-      "ai.provider_configuration_invalid",
-      "ProviderProfile network profile is invalid",
-      "The current ProviderProfile must use the OpenAI NetworkAccess profile",
-      "integrity",
+      "ai.gateway_configuration_invalid",
+      "GatewayProfile base URL is invalid",
+      "Plain HTTP is permitted only for literal loopback hosts",
+      "validation",
     );
   }
-  const providerProfileId = uuid(
-    "ProviderProfileId",
-    row.provider_profile_id,
-    "provider_profile_id",
-  ) as ProviderProfileId;
+  const path = url.pathname === "/" ? "" : url.pathname.replace(/\/+$/u, "");
+  const canonical = url.origin + path;
+  if (canonical.length > 2048) {
+    throw aiRuntimeProblem(
+      "ai.gateway_configuration_invalid",
+      "GatewayProfile base URL is invalid",
+      "baseUrl is longer than the current bounded URL limit",
+      "validation",
+    );
+  }
+  return canonical;
+}
+
+function gatewayFromRow(row: GatewayRow): GatewayProfile {
+  const gatewayProfileId = uuid(
+    "GatewayProfileId",
+    row.gateway_profile_id,
+    "gateway_profile_id",
+  ) as GatewayProfileId;
   return Object.freeze({
     schemaVersion: 1,
-    providerProfileId,
-    providerKind: "openai",
-    configurationRevisionRef: uuid(
-      "ConfigurationRevisionId",
-      row.configuration_revision_ref,
-      "configuration_revision_ref",
-    ) as ConfigurationRevisionId,
-    secretRefs: secretRefs(row.secret_refs),
-    networkAccessProfileRef: OPENAI_NETWORK_ACCESS_PROFILE_ID,
+    gatewayProfileId,
+    baseUrl: canonicalBaseUrl(text(row.base_url, "base_url")),
+    ...(optionalSecretRef(row.api_token_secret_ref, "api_token_secret_ref") ===
+    undefined
+      ? {}
+      : {
+          apiTokenSecretRef: optionalSecretRef(
+            row.api_token_secret_ref,
+            "api_token_secret_ref",
+          ),
+        }),
     enabled: row.enabled === true,
-    providerSettings: Object.freeze({ api: "responses", store: false }),
   });
 }
 
@@ -233,6 +253,19 @@ function capabilities(value: unknown): readonly ModelCapability[] {
   return Object.freeze([...CURRENT_MODEL_CAPABILITIES] as ModelCapability[]);
 }
 
+function protocol(value: unknown, field: string): ModelInvocationProtocol {
+  const parsed = text(value, field);
+  if (parsed !== "openai-chat" && parsed !== "openai-responses") {
+    throw aiRuntimeProblem(
+      "ai.model_configuration_invalid",
+      "ModelProfile protocol is invalid",
+      "Only openai-chat and openai-responses are current invocation protocols",
+      "integrity",
+    );
+  }
+  return parsed;
+}
+
 function modelFromRow(row: ModelRow): ModelProfile {
   return Object.freeze({
     schemaVersion: 1,
@@ -241,22 +274,15 @@ function modelFromRow(row: ModelRow): ModelProfile {
       row.model_profile_id,
       "model_profile_id",
     ) as ModelProfileId,
-    providerProfileId: uuid(
-      "ProviderProfileId",
-      row.provider_profile_id,
-      "provider_profile_id",
-    ) as ProviderProfileId,
-    providerModelIdentifier: text(
-      row.provider_model_identifier,
-      "provider_model_identifier",
-    ),
+    gatewayProfileId: uuid(
+      "GatewayProfileId",
+      row.gateway_profile_id,
+      "gateway_profile_id",
+    ) as GatewayProfileId,
+    modelIdentifier: text(row.model_identifier, "model_identifier"),
+    protocol: protocol(row.protocol, "protocol"),
     consumedCapabilities: capabilities(row.consumed_capabilities),
     generation: integer(row.generation, "generation", 1),
-    configurationRevisionRef: uuid(
-      "ConfigurationRevisionId",
-      row.configuration_revision_ref,
-      "configuration_revision_ref",
-    ) as ConfigurationRevisionId,
   });
 }
 
@@ -288,11 +314,11 @@ function bindingFromRow(row: BindingRow): ModelBinding {
   });
 }
 
-function providerId(
-  value: ProviderProfileId | string | undefined,
-): ProviderProfileId | undefined {
+function gatewayId(
+  value: GatewayProfileId | string | undefined,
+): GatewayProfileId | undefined {
   if (value === undefined) return undefined;
-  return uuid("ProviderProfileId", value, "providerProfileId") as ProviderProfileId;
+  return uuid("GatewayProfileId", value, "gatewayProfileId") as GatewayProfileId;
 }
 
 function modelId(
@@ -306,17 +332,9 @@ function bindingId(value: ModelBindingId | string): ModelBindingId {
   return uuid("ModelBindingId", value, "modelBindingId") as ModelBindingId;
 }
 
-function configId(value: ConfigurationRevisionId | string): ConfigurationRevisionId {
-  return uuid(
-    "ConfigurationRevisionId",
-    value,
-    "configurationRevisionRef",
-  ) as ConfigurationRevisionId;
-}
-
-function profileDigest(profile: ProviderProfile): string {
+function gatewayDigest(profile: GatewayProfile): string {
   return digestCanonicalJson(
-    "ai.provider-profile.v1",
+    "ai.gateway-profile.v1",
     profile as unknown as CanonicalJsonValue,
   ).hex;
 }
@@ -373,11 +391,23 @@ function installationScope(options: AIRuntimeServiceOptions) {
   });
 }
 
-function providerScope(id: ProviderProfileId) {
+function gatewayScope(id: GatewayProfileId) {
   return Object.freeze({
     schemaVersion: 1 as const,
-    resourceKind: "provider-profile",
+    resourceKind: "gateway-profile",
     resourceId: id,
+  });
+}
+
+function networkTarget(
+  gateway: GatewayProfile,
+  invocationProtocol: ModelInvocationProtocol,
+): GatewayNetworkTarget {
+  return Object.freeze({
+    schemaVersion: 1 as const,
+    gatewayProfileId: gateway.gatewayProfileId,
+    baseUrl: gateway.baseUrl,
+    protocol: invocationProtocol,
   });
 }
 
@@ -484,35 +514,46 @@ function normalizeUsage(value: {
   return Object.keys(usage).length === 0 ? undefined : Object.freeze(usage);
 }
 
-function modelMessages(messages: InvocationSpec["messages"]): ModelMessage[] {
-  return messages.map((message) => ({
-    role: message.role,
-    content: message.text,
-  }));
+function modelPrompt(messages: InvocationSpec["messages"]): {
+  readonly system?: string;
+  readonly messages: ModelMessage[];
+} {
+  const system = messages
+    .filter((message) => message.role === "system")
+    .map((message) => message.text)
+    .join("\n");
+  return {
+    ...(system.length === 0 ? {} : { system }),
+    messages: messages
+      .filter((message) => message.role !== "system")
+      .map((message) => ({
+        role: message.role,
+        content: message.text,
+      })),
+  };
 }
 
 /** Creates the current AIRuntime service over its semantic owner boundaries. */
 export function createAIRuntimeService(
   options: AIRuntimeServiceOptions,
 ): AIRuntimeService {
-  const readProvider = async (
-    id: ProviderProfileId,
-  ): Promise<ProviderProfile | undefined> => {
-    const result = await readRepositorySql<ProviderRow>(
+  const readGateway = async (
+    id: GatewayProfileId,
+  ): Promise<GatewayProfile | undefined> => {
+    const result = await readRepositorySql<GatewayRow>(
       options.persistence,
-      "SELECT provider_profile_id, configuration_revision_ref, secret_refs, " +
-        "network_access_profile_ref, enabled, provider_settings " +
-        'FROM "heptalogos"."provider_profile" WHERE provider_profile_id = $1',
+      "SELECT gateway_profile_id, base_url, api_token_secret_ref, enabled " +
+        'FROM "heptalogos"."gateway_profile" WHERE gateway_profile_id = $1',
       [id],
     );
     const row = result[0];
-    return row === undefined ? undefined : providerFromRow(row);
+    return row === undefined ? undefined : gatewayFromRow(row);
   };
   const readModel = async (id: ModelProfileId): Promise<ModelProfile | undefined> => {
     const result = await readRepositorySql<ModelRow>(
       options.persistence,
-      "SELECT model_profile_id, provider_profile_id, provider_model_identifier, " +
-        "consumed_capabilities, generation, configuration_revision_ref " +
+      "SELECT model_profile_id, gateway_profile_id, model_identifier, protocol, " +
+        "consumed_capabilities, generation " +
         'FROM "heptalogos"."model_profile" WHERE model_profile_id = $1',
       [id],
     );
@@ -538,22 +579,21 @@ export function createAIRuntimeService(
   };
 
   const service: AIRuntimeService = {
-    async listProviderProfiles() {
-      const result = await readRepositorySql<ProviderRow>(
+    async listGatewayProfiles() {
+      const result = await readRepositorySql<GatewayRow>(
         options.persistence,
-        "SELECT provider_profile_id, configuration_revision_ref, secret_refs, " +
-          "network_access_profile_ref, enabled, provider_settings " +
-          'FROM "heptalogos"."provider_profile" ' +
-          "ORDER BY provider_profile_id",
+        "SELECT gateway_profile_id, base_url, api_token_secret_ref, enabled " +
+          'FROM "heptalogos"."gateway_profile" ' +
+          "ORDER BY gateway_profile_id",
         [],
       );
-      return Object.freeze(result.map(providerFromRow));
+      return Object.freeze(result.map(gatewayFromRow));
     },
     async listModelProfiles() {
       const result = await readRepositorySql<ModelRow>(
         options.persistence,
-        "SELECT model_profile_id, provider_profile_id, provider_model_identifier, " +
-          "consumed_capabilities, generation, configuration_revision_ref " +
+        "SELECT model_profile_id, gateway_profile_id, model_identifier, protocol, " +
+          "consumed_capabilities, generation " +
           'FROM "heptalogos"."model_profile" ORDER BY model_profile_id',
         [],
       );
@@ -568,10 +608,10 @@ export function createAIRuntimeService(
       );
       return Object.freeze(result.map(bindingFromRow));
     },
-    async getProviderProfile(value) {
-      const id = providerId(value);
+    async getGatewayProfile(value) {
+      const id = gatewayId(value);
       if (id === undefined) return undefined;
-      return readProvider(id);
+      return readGateway(id);
     },
     async getModelProfile(value) {
       const id = modelId(value);
@@ -579,147 +619,119 @@ export function createAIRuntimeService(
       return readModel(id);
     },
     getModelBinding: readBinding,
-    async setProviderProfile(input: SetProviderProfileInput, expectedDigest) {
-      const existingId = providerId(input.providerProfileId);
-      const providerProfileId =
-        existingId ?? (createUuidV7Id("ProviderProfileId") as ProviderProfileId);
-      const configurationRevisionRef = configId(input.configurationRevisionRef);
-      const revision = await options.configuration.getRevision(
-        configurationRevisionRef,
-      );
-      if (revision === undefined) {
+    async setGatewayProfile(input: SetGatewayProfileInput, expectedDigest) {
+      const existingId = gatewayId(input.gatewayProfileId);
+      if (input.apiTokenSecretRef !== undefined && existingId === undefined) {
         throw aiRuntimeProblem(
-          "ai.provider_configuration_invalid",
-          "Provider configuration revision was not found",
-          "ProviderProfile must reference an existing ConfigurationRevision",
-          "conflict",
-          "after-change",
-        );
-      }
-      if (
-        input.secretRefs.length > 1 ||
-        input.secretRefs.some(
-          (secret) =>
-            secret.schemaVersion !== 1 ||
-            parseUuidV7Id("SecretId", secret.secretId) === undefined,
-        )
-      ) {
-        throw aiRuntimeProblem(
-          "ai.provider_configuration_invalid",
-          "ProviderProfile SecretRefs are invalid",
-          "The current provider route accepts zero or one valid SecretRef",
+          "ai.invalid_input",
+          "GatewayProfile input is invalid",
+          "A gateway token SecretRef requires an explicit GatewayProfileId",
           "validation",
         );
       }
-      for (const secretRef of input.secretRefs) {
-        const secret = await options.secret.getMetadata(secretRef);
+      const gatewayProfileId =
+        existingId ?? (createUuidV7Id("GatewayProfileId") as GatewayProfileId);
+      const baseUrl = canonicalBaseUrl(input.baseUrl);
+      const apiTokenSecretRef =
+        input.apiTokenSecretRef === undefined
+          ? undefined
+          : ref(input.apiTokenSecretRef, "apiTokenSecretRef");
+      const existing = await readGateway(gatewayProfileId);
+      if (existing !== undefined) {
+        if (existing.baseUrl !== baseUrl) {
+          throw aiRuntimeProblem(
+            "ai.gateway_destination_immutable",
+            "GatewayProfile base URL is immutable",
+            "Create a new GatewayProfile when the configured destination changes",
+            "conflict",
+            "after-change",
+          );
+        }
+        assertExpected(gatewayDigest(existing), expectedDigest, "GatewayProfile");
+      }
+      if (apiTokenSecretRef !== undefined) {
+        const secret = await options.secret.getMetadata(apiTokenSecretRef);
         if (
           secret === undefined ||
           secret.state !== "ACTIVE" ||
-          secret.purpose !== "provider.openai.api-key" ||
-          secret.scopeRef?.resourceKind !== "provider-profile" ||
-          secret.scopeRef.resourceId !== providerProfileId
+          secret.purpose !== "ai.gateway.bearer-token" ||
+          secret.scopeRef?.resourceKind !== "gateway-profile" ||
+          secret.scopeRef.resourceId !== gatewayProfileId
         ) {
           throw aiRuntimeProblem(
             "ai.secret_unavailable",
-            "ProviderProfile SecretRef is not usable",
-            "The attached SecretRef must be an active scoped OpenAI API key",
+            "GatewayProfile SecretRef is not usable",
+            "The attached SecretRef must be an active bearer token scoped to this GatewayProfile",
             "conflict",
             "after-change",
           );
         }
       }
-      if (input.enabled && input.secretRefs.length !== 1) {
-        throw aiRuntimeProblem(
-          "ai.secret_unavailable",
-          "Enabled ProviderProfile has no API key",
-          "An enabled OpenAI ProviderProfile requires exactly one scoped SecretRef",
-          "conflict",
-          "after-change",
-        );
-      }
-      const profile: ProviderProfile = Object.freeze({
+      const profile: GatewayProfile = Object.freeze({
         schemaVersion: 1,
-        providerProfileId,
-        providerKind: "openai",
-        configurationRevisionRef,
-        secretRefs: Object.freeze([...input.secretRefs]),
-        networkAccessProfileRef: OPENAI_NETWORK_ACCESS_PROFILE_ID,
+        gatewayProfileId,
+        baseUrl,
+        ...(apiTokenSecretRef === undefined ? {} : { apiTokenSecretRef }),
         enabled: input.enabled,
-        providerSettings: Object.freeze({ api: "responses", store: false }),
       });
-      const existing = await readProvider(providerProfileId);
-      if (existing !== undefined)
-        assertExpected(profileDigest(existing), expectedDigest, "ProviderProfile");
-      const lineage = currentActivity(options);
       await options.persistence.mutate((context) =>
         useRepositoryMutationTransaction(context, async (transaction) => {
           await executeRepositorySql(
             transaction,
-            'INSERT INTO "heptalogos"."provider_profile" (' +
-              "provider_profile_id, configuration_revision_ref, secret_refs, " +
-              "network_access_profile_ref, enabled, provider_settings, lineage_context_ref) " +
-              "VALUES ($1, $2, $3, $4, $5, $6, $7) " +
-              "ON CONFLICT (provider_profile_id) DO UPDATE SET " +
-              "configuration_revision_ref = EXCLUDED.configuration_revision_ref, " +
-              "secret_refs = EXCLUDED.secret_refs, " +
-              "network_access_profile_ref = EXCLUDED.network_access_profile_ref, " +
-              "enabled = EXCLUDED.enabled, provider_settings = EXCLUDED.provider_settings, " +
+            'INSERT INTO "heptalogos"."gateway_profile" (' +
+              "gateway_profile_id, base_url, api_token_secret_ref, enabled, lineage_context_ref) " +
+              "VALUES ($1, $2, $3, $4, $5) " +
+              "ON CONFLICT (gateway_profile_id) DO UPDATE SET " +
+              "base_url = EXCLUDED.base_url, " +
+              "api_token_secret_ref = EXCLUDED.api_token_secret_ref, " +
+              "enabled = EXCLUDED.enabled, " +
               "lineage_context_ref = EXCLUDED.lineage_context_ref",
             [
-              providerProfileId,
-              configurationRevisionRef,
-              JSON.stringify(profile.secretRefs),
-              OPENAI_NETWORK_ACCESS_PROFILE_ID,
+              gatewayProfileId,
+              profile.baseUrl,
+              profile.apiTokenSecretRef?.secretId ?? null,
               profile.enabled,
-              JSON.stringify(profile.providerSettings),
               options.execution.createLineageContextRef(),
             ],
           );
           await options.evidence.recordRequired(context, {
-            evidenceKind: "ai.provider-profile.changed",
+            evidenceKind: "ai.gateway-profile.changed",
             evidenceContractVersion: "ai-runtime.v1",
-            objectRef: providerProfileId,
+            objectRef: gatewayProfileId,
             retentionClass: "retained",
             sensitivity: "operational",
           });
         }),
       );
-      void lineage;
       return profile;
     },
     async setModelProfile(input: SetModelProfileInput, expectedDigest) {
       const existingId = modelId(input.modelProfileId);
       const modelProfileId =
         existingId ?? (createUuidV7Id("ModelProfileId") as ModelProfileId);
-      const providerProfileId = uuid(
-        "ProviderProfileId",
-        input.providerProfileId,
-        "providerProfileId",
-      ) as ProviderProfileId;
-      if ((await readProvider(providerProfileId)) === undefined) {
+      const gatewayProfileId = uuid(
+        "GatewayProfileId",
+        input.gatewayProfileId,
+        "gatewayProfileId",
+      ) as GatewayProfileId;
+      if ((await readGateway(gatewayProfileId)) === undefined) {
         throw aiRuntimeProblem(
-          "ai.provider_unavailable",
-          "ProviderProfile was not found",
-          "ModelProfile must reference an existing ProviderProfile",
+          "ai.gateway_unavailable",
+          "GatewayProfile was not found",
+          "ModelProfile must reference an existing GatewayProfile",
           "conflict",
           "after-change",
         );
       }
-      const configurationRevisionRef = configId(input.configurationRevisionRef);
-      if (
-        (await options.configuration.getRevision(configurationRevisionRef)) ===
-        undefined
-      ) {
+      if (input.protocol !== "openai-chat" && input.protocol !== "openai-responses") {
         throw aiRuntimeProblem(
-          "ai.provider_configuration_invalid",
-          "Model configuration revision was not found",
-          "ModelProfile must reference an existing ConfigurationRevision",
-          "conflict",
-          "after-change",
+          "ai.model_configuration_invalid",
+          "ModelProfile protocol is invalid",
+          "Only openai-chat and openai-responses are current invocation protocols",
+          "validation",
         );
       }
-      assertInputText(input.providerModelIdentifier, "providerModelIdentifier", 256);
+      assertInputText(input.modelIdentifier, "modelIdentifier", 256);
       const normalizedCapabilities = capabilities(input.consumedCapabilities);
       const existing = await readModel(modelProfileId);
       if (existing !== undefined)
@@ -727,34 +739,33 @@ export function createAIRuntimeService(
       const profile: ModelProfile = Object.freeze({
         schemaVersion: 1,
         modelProfileId,
-        providerProfileId,
-        providerModelIdentifier: input.providerModelIdentifier,
+        gatewayProfileId,
+        modelIdentifier: input.modelIdentifier,
+        protocol: input.protocol,
         consumedCapabilities: normalizedCapabilities,
         generation: existing === undefined ? 1 : existing.generation + 1,
-        configurationRevisionRef,
       });
       await options.persistence.mutate((context) =>
         useRepositoryMutationTransaction(context, async (transaction) => {
           await executeRepositorySql(
             transaction,
             'INSERT INTO "heptalogos"."model_profile" (' +
-              "model_profile_id, provider_profile_id, provider_model_identifier, " +
-              "consumed_capabilities, generation, configuration_revision_ref, " +
-              "lineage_context_ref) VALUES ($1, $2, $3, $4, $5, $6, $7) " +
+              "model_profile_id, gateway_profile_id, model_identifier, protocol, " +
+              "consumed_capabilities, generation, lineage_context_ref) VALUES ($1, $2, $3, $4, $5, $6, $7) " +
               "ON CONFLICT (model_profile_id) DO UPDATE SET " +
-              "provider_profile_id = EXCLUDED.provider_profile_id, " +
-              "provider_model_identifier = EXCLUDED.provider_model_identifier, " +
+              "gateway_profile_id = EXCLUDED.gateway_profile_id, " +
+              "model_identifier = EXCLUDED.model_identifier, " +
+              "protocol = EXCLUDED.protocol, " +
               "consumed_capabilities = EXCLUDED.consumed_capabilities, " +
               "generation = EXCLUDED.generation, " +
-              "configuration_revision_ref = EXCLUDED.configuration_revision_ref, " +
               "lineage_context_ref = EXCLUDED.lineage_context_ref",
             [
               modelProfileId,
-              providerProfileId,
-              profile.providerModelIdentifier,
+              gatewayProfileId,
+              profile.modelIdentifier,
+              profile.protocol,
               JSON.stringify(profile.consumedCapabilities),
               profile.generation,
-              configurationRevisionRef,
               options.execution.createLineageContextRef(),
             ],
           );
@@ -831,60 +842,58 @@ export function createAIRuntimeService(
     },
     async getReadiness() {
       const blockers: string[] = [];
-      const providers = (await service.listProviderProfiles()).filter(
-        (profile) => profile.enabled,
-      );
-      if (providers.length === 0) blockers.push("provider-profile");
-      if (providers.length > 1) blockers.push("provider-profile.ambiguous");
-      const provider = providers[0];
-      if (provider !== undefined) {
-        const activeConfig = await options.configuration.getEffectiveRevision(
-          PROVIDER_TRANSPORT_DEFINITION_ID,
+      const [activeConfig, gateways, models, bindings] = await Promise.all([
+        options.configuration.getEffectiveRevision(
+          GATEWAY_TRANSPORT_DEFINITION_ID,
           installationScope(options),
-        );
-        if (
-          activeConfig === undefined ||
-          activeConfig.revisionId !== provider.configurationRevisionRef
-        ) {
-          blockers.push("configuration");
+        ),
+        service.listGatewayProfiles(),
+        service.listModelProfiles(),
+        service.listModelBindings(),
+      ]);
+      if (activeConfig === undefined) blockers.push("configuration");
+      for (const role of ["subject.primary", "subject.expression"] as const) {
+        const binding = bindings.find((item) => item.role === role);
+        if (binding === undefined || !binding.enabled) {
+          blockers.push("binding." + role);
+          continue;
         }
-        if (provider.secretRefs.length !== 1) {
-          blockers.push("secret");
-        } else {
-          const secret = await options.secret.getMetadata(provider.secretRefs[0]);
-          if (secret?.state !== "ACTIVE") blockers.push("secret");
-          else {
+        const model = models.find(
+          (item) => item.modelProfileId === binding.modelProfileId,
+        );
+        if (model === undefined) {
+          blockers.push("model." + role);
+          continue;
+        }
+        const gateway = gateways.find(
+          (item) => item.gatewayProfileId === model.gatewayProfileId,
+        );
+        if (gateway === undefined || !gateway.enabled) {
+          blockers.push("gateway." + role);
+          continue;
+        }
+        try {
+          options.networkAccess.authorizeGatewayTarget(
+            networkTarget(gateway, model.protocol),
+          );
+        } catch {
+          blockers.push("network." + role);
+        }
+        if (gateway.apiTokenSecretRef !== undefined) {
+          const secret = await options.secret.getMetadata(gateway.apiTokenSecretRef);
+          if (secret?.state !== "ACTIVE") {
+            blockers.push("secret." + role);
+          } else {
             try {
-              const material = await options.secret.resolve(provider.secretRefs[0], {
+              const material = await options.secret.resolve(gateway.apiTokenSecretRef, {
                 consumer: "system.ai-runtime",
-                purpose: "provider.openai.api-key",
-                resourceRef: providerScope(provider.providerProfileId),
+                purpose: "ai.gateway.bearer-token",
+                resourceRef: gatewayScope(gateway.gatewayProfileId),
               });
               material.bytes.fill(0);
             } catch {
-              blockers.push("secret");
+              blockers.push("secret." + role);
             }
-          }
-        }
-        const network = await options.networkAccess.getDiagnostics();
-        if (!network.configured) blockers.push("network");
-        const models = (await service.listModelProfiles()).filter(
-          (model) => model.providerProfileId === provider.providerProfileId,
-        );
-        const bindings = await service.listModelBindings();
-        for (const role of ["subject.primary", "subject.expression"] as const) {
-          const binding = bindings.find((item) => item.role === role);
-          const model =
-            binding === undefined
-              ? undefined
-              : models.find((item) => item.modelProfileId === binding.modelProfileId);
-          if (
-            binding === undefined ||
-            !binding.enabled ||
-            model === undefined ||
-            model.configurationRevisionRef !== provider.configurationRevisionRef
-          ) {
-            blockers.push("binding." + role);
           }
         }
       }
@@ -937,78 +946,79 @@ export function createAIRuntimeService(
           "after-change",
         );
       }
-      const provider = await readProvider(model.providerProfileId);
-      if (provider === undefined || !provider.enabled) {
+      const gateway = await readGateway(model.gatewayProfileId);
+      if (gateway === undefined || !gateway.enabled) {
         throw aiRuntimeProblem(
-          "ai.provider_unavailable",
-          "ProviderProfile is unavailable",
-          "The current ModelProfile does not resolve to an enabled provider",
+          "ai.gateway_unavailable",
+          "GatewayProfile is unavailable",
+          "The current ModelProfile does not resolve to an enabled gateway",
           "unavailable",
           "after-change",
         );
       }
       const activeConfig = await options.configuration.getEffectiveRevision(
-        PROVIDER_TRANSPORT_DEFINITION_ID,
+        GATEWAY_TRANSPORT_DEFINITION_ID,
         installationScope(options),
       );
-      if (
-        activeConfig === undefined ||
-        activeConfig.revisionId !== provider.configurationRevisionRef ||
-        activeConfig.revisionId !== model.configurationRevisionRef
-      ) {
+      if (activeConfig === undefined) {
         throw aiRuntimeProblem(
-          "ai.provider_configuration_invalid",
-          "Provider configuration is stale",
-          "The invocation does not reference the current active transport revision",
+          "ai.gateway_configuration_invalid",
+          "Gateway transport configuration is unavailable",
+          "An active gateway transport ConfigurationRevision is required",
           "conflict",
           "after-change",
         );
       }
-      if (provider.secretRefs.length !== 1) {
+      const target = networkTarget(gateway, model.protocol);
+      try {
+        options.networkAccess.authorizeGatewayTarget(target);
+      } catch {
         throw aiRuntimeProblem(
-          "ai.secret_unavailable",
-          "Provider SecretRef is unavailable",
-          "The enabled provider has no exact scoped API key",
-          "unavailable",
+          "ai.network_unavailable",
+          "Gateway network route is unavailable",
+          "NetworkAccess cannot authorize the selected GatewayProfile protocol endpoint",
+          "conflict",
           "after-change",
         );
       }
-      let material;
-      try {
-        material = await options.secret.resolve(provider.secretRefs[0], {
-          consumer: "system.ai-runtime",
-          purpose: "provider.openai.api-key",
-          resourceRef: providerScope(provider.providerProfileId),
-        });
-      } catch {
-        throw aiRuntimeProblem(
-          "ai.secret_unavailable",
-          "Provider SecretRef is unavailable",
-          "The current scoped API key could not be resolved",
-          "unavailable",
-          "after-change",
-        );
-      }
-      let apiKey: string;
-      try {
-        apiKey = new TextDecoder("utf-8", { fatal: true }).decode(material.bytes);
-      } catch {
+      let apiKey: string | undefined;
+      if (gateway.apiTokenSecretRef !== undefined) {
+        let material;
+        try {
+          material = await options.secret.resolve(gateway.apiTokenSecretRef, {
+            consumer: "system.ai-runtime",
+            purpose: "ai.gateway.bearer-token",
+            resourceRef: gatewayScope(gateway.gatewayProfileId),
+          });
+        } catch {
+          throw aiRuntimeProblem(
+            "ai.secret_unavailable",
+            "Gateway SecretRef is unavailable",
+            "The configured gateway bearer token could not be resolved",
+            "unavailable",
+            "after-change",
+          );
+        }
+        try {
+          apiKey = new TextDecoder("utf-8", { fatal: true }).decode(material.bytes);
+        } catch {
+          material.bytes.fill(0);
+          throw aiRuntimeProblem(
+            "ai.secret_unavailable",
+            "Gateway SecretRef is invalid",
+            "The configured gateway token is not valid UTF-8",
+            "integrity",
+          );
+        }
         material.bytes.fill(0);
-        throw aiRuntimeProblem(
-          "ai.secret_unavailable",
-          "Provider SecretRef is invalid",
-          "The current API key material is not valid UTF-8",
-          "integrity",
-        );
-      }
-      material.bytes.fill(0);
-      if (apiKey.length === 0) {
-        throw aiRuntimeProblem(
-          "ai.secret_unavailable",
-          "Provider SecretRef is empty",
-          "The current API key material is empty",
-          "integrity",
-        );
+        if (apiKey.length === 0) {
+          throw aiRuntimeProblem(
+            "ai.secret_unavailable",
+            "Gateway SecretRef is empty",
+            "The configured gateway token is empty",
+            "integrity",
+          );
+        }
       }
       const remainingMs =
         spec.deadline === undefined
@@ -1029,24 +1039,40 @@ export function createAIRuntimeService(
           ? undefined
           : setTimeout(() => controller.abort(), remainingMs);
       try {
-        const openai = createOpenAI({
-          apiKey,
-          fetch: options.networkAccess.createProviderFetch("system.ai-runtime"),
-        });
+        const prompt = modelPrompt(spec.messages);
+        const providerFetch = options.networkAccess.createProviderFetch(
+          "system.ai-runtime",
+          target,
+        );
+        const selectedModel =
+          model.protocol === "openai-chat"
+            ? createOpenAICompatible<string, string, string, string>({
+                name: "heptalogos-chat",
+                baseURL: gateway.baseUrl,
+                supportsStructuredOutputs: true,
+                ...(apiKey === undefined ? {} : { apiKey }),
+                fetch: providerFetch,
+              }).chatModel(model.modelIdentifier)
+            : createOpenResponses({
+                name: "heptalogos-responses",
+                url: gateway.baseUrl + "/responses",
+                ...(apiKey === undefined ? {} : { apiKey }),
+                fetch: providerFetch,
+              })(model.modelIdentifier);
         const output = Output.object({
           schema: jsonSchema<Record<string, unknown>>(
             spec.outputSchema as Record<string, unknown>,
           ),
         });
         const generated = await generateText({
-          model: openai.responses(model.providerModelIdentifier),
-          messages: modelMessages(spec.messages),
+          model: selectedModel,
+          messages: prompt.messages,
+          ...(prompt.system === undefined ? {} : { system: prompt.system }),
           output,
           maxOutputTokens: spec.budget.maxOutputTokens,
           maxRetries: 0,
           abortSignal: controller.signal,
           ...(remainingMs === undefined ? {} : { timeout: remainingMs }),
-          providerOptions: { openai: { store: false } },
         });
         if (generated.output === undefined) {
           throw aiRuntimeProblem(
@@ -1077,7 +1103,7 @@ export function createAIRuntimeService(
               evidenceContractVersion: "ai-runtime.v1",
               subjectRef: spec.invocationId,
               objectRef: model.modelProfileId,
-              factRef: provider.providerProfileId,
+              factRef: gateway.gatewayProfileId,
               retentionClass: "retained",
               sensitivity: "operational",
             });
@@ -1088,9 +1114,12 @@ export function createAIRuntimeService(
           schemaVersion: 1 as const,
           invocationId: spec.invocationId,
           bindingRevision: binding.revision,
-          providerProfileId: provider.providerProfileId,
+          gatewayProfileId: gateway.gatewayProfileId,
           modelProfileId: model.modelProfileId,
-          providerModelIdentifier: model.providerModelIdentifier,
+          modelProfileGeneration: model.generation,
+          modelIdentifier: model.modelIdentifier,
+          protocol: model.protocol,
+          configurationRevisionId: activeConfig.revisionId,
           candidate,
           ...(normalizeUsage(generated.usage) === undefined
             ? {}
@@ -1104,15 +1133,15 @@ export function createAIRuntimeService(
           throw aiRuntimeProblem(
             "ai.invocation_timed_out",
             "AIRuntime invocation timed out",
-            "The provider invocation exceeded its effective deadline",
+            "The gateway invocation exceeded its effective deadline",
             "unavailable",
             "after-change",
           );
         }
         throw aiRuntimeProblem(
-          "ai.provider_unavailable",
-          "OpenAI provider invocation failed",
-          "The selected OpenAI Responses invocation did not complete",
+          "ai.gateway_unavailable",
+          "Gateway invocation failed",
+          "The selected OpenAI-family gateway invocation did not complete",
           "unavailable",
           "manual",
         );

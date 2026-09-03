@@ -58,7 +58,8 @@ catalog:
   "@dbos-inc/dbos-sdk": 4.27.6
   knip: 6.32.3
   ai: 7.0.91
-  "@ai-sdk/openai": 4.0.57
+  "@ai-sdk/openai-compatible": 3.0.43
+  "@ai-sdk/open-responses": 2.0.38
 
 allowBuilds:
   esbuild: true

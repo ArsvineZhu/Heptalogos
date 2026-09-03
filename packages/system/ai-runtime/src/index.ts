@@ -1,5 +1,5 @@
 /**
- * Public current AIRuntime contracts and the official OpenAI route.
+ * Public current AIRuntime contracts and OpenAI-family gateway routes.
  * @packageDocumentation
  */
 
@@ -10,8 +10,8 @@ export {
   modelBindingSetInputSchema,
   modelProfileSchema,
   modelProfileSetInputSchema,
-  providerProfileSchema,
-  providerProfileSetInputSchema,
+  gatewayProfileSchema,
+  gatewayProfileSetInputSchema,
   type AIRuntimeMessage,
   type AIRuntimeReadiness,
   type AIRuntimeService,
@@ -25,12 +25,12 @@ export {
   type ModelCapability,
   type ModelProfile,
   type ModelProfileId,
-  type OpenAIProviderSettings,
-  type ProviderProfile,
-  type ProviderProfileId,
+  type GatewayProfile,
+  type GatewayProfileId,
+  type ModelInvocationProtocol,
   type SetModelBindingInput,
   type SetModelProfileInput,
-  type SetProviderProfileInput,
+  type SetGatewayProfileInput,
   type UsageMetadata,
 } from "./contracts.js";
 export { createAIRuntimeService } from "./service.js";

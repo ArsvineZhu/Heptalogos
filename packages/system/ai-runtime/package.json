@@ -11,7 +11,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai": "catalog:",
+    "@ai-sdk/openai-compatible": "catalog:",
+    "@ai-sdk/open-responses": "catalog:",
     "@heptalogos/configuration": "workspace:*",
     "@heptalogos/evidence": "workspace:*",
     "@heptalogos/execution-lineage": "workspace:*",

@@ -3954,7 +3954,7 @@
                           "definitionId": {
                             "type": "string",
                             "enum": [
-                              "ai.provider.transport.v1"
+                              "ai.gateway.transport.v1"
                             ]
                           },
                           "scopeRef": {
@@ -4199,55 +4199,44 @@
                       "actionId": {
                         "type": "string",
                         "enum": [
-                          "provider-profile.set"
+                          "gateway-profile.set"
                         ]
                       },
                       "input": {
                         "type": "object",
                         "required": [
-                          "providerKind",
-                          "configurationRevisionRef",
-                          "secretRefs",
+                          "baseUrl",
                           "enabled"
                         ],
                         "properties": {
-                          "providerProfileId": {
+                          "gatewayProfileId": {
                             "type": "string",
                             "minLength": 1
                           },
-                          "providerKind": {
+                          "baseUrl": {
                             "type": "string",
-                            "enum": [
-                              "openai"
-                            ]
+                            "minLength": 1,
+                            "maxLength": 2048
                           },
-                          "configurationRevisionRef": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "secretRefs": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "required": [
-                                "schemaVersion",
-                                "secretId"
-                              ],
-                              "properties": {
-                                "schemaVersion": {
-                                  "type": "number",
-                                  "enum": [
-                                    1
-                                  ]
-                                },
-                                "secretId": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
+                          "apiTokenSecretRef": {
+                            "type": "object",
+                            "required": [
+                              "schemaVersion",
+                              "secretId"
+                            ],
+                            "properties": {
+                              "schemaVersion": {
+                                "type": "number",
+                                "enum": [
+                                  1
+                                ]
                               },
-                              "additionalProperties": false
+                              "secretId": {
+                                "type": "string",
+                                "minLength": 1
+                              }
                             },
-                            "maxItems": 1
+                            "additionalProperties": false
                           },
                           "enabled": {
                             "type": "boolean"
@@ -4274,24 +4263,40 @@
                       "input": {
                         "type": "object",
                         "required": [
-                          "providerProfileId",
-                          "providerModelIdentifier",
-                          "consumedCapabilities",
-                          "configurationRevisionRef"
+                          "gatewayProfileId",
+                          "modelIdentifier",
+                          "protocol",
+                          "consumedCapabilities"
                         ],
                         "properties": {
                           "modelProfileId": {
                             "type": "string",
                             "minLength": 1
                           },
-                          "providerProfileId": {
+                          "gatewayProfileId": {
                             "type": "string",
                             "minLength": 1
                           },
-                          "providerModelIdentifier": {
+                          "modelIdentifier": {
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 256
+                          },
+                          "protocol": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "openai-chat"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "openai-responses"
+                                ]
+                              }
+                            ]
                           },
                           "consumedCapabilities": {
                             "type": "array",
@@ -4325,10 +4330,6 @@
                             },
                             "minItems": 1,
                             "maxItems": 4
-                          },
-                          "configurationRevisionRef": {
-                            "type": "string",
-                            "minLength": 1
                           }
                         },
                         "additionalProperties": false
@@ -5327,7 +5328,7 @@
                               "definitionId": {
                                 "type": "string",
                                 "enum": [
-                                  "ai.provider.transport.v1"
+                                  "ai.gateway.transport.v1"
                                 ]
                               },
                               "scopeRef": {
@@ -5572,55 +5573,44 @@
                           "actionId": {
                             "type": "string",
                             "enum": [
-                              "provider-profile.set"
+                              "gateway-profile.set"
                             ]
                           },
                           "input": {
                             "type": "object",
                             "required": [
-                              "providerKind",
-                              "configurationRevisionRef",
-                              "secretRefs",
+                              "baseUrl",
                               "enabled"
                             ],
                             "properties": {
-                              "providerProfileId": {
+                              "gatewayProfileId": {
                                 "type": "string",
                                 "minLength": 1
                               },
-                              "providerKind": {
+                              "baseUrl": {
                                 "type": "string",
-                                "enum": [
-                                  "openai"
-                                ]
+                                "minLength": 1,
+                                "maxLength": 2048
                               },
-                              "configurationRevisionRef": {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              "secretRefs": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "required": [
-                                    "schemaVersion",
-                                    "secretId"
-                                  ],
-                                  "properties": {
-                                    "schemaVersion": {
-                                      "type": "number",
-                                      "enum": [
-                                        1
-                                      ]
-                                    },
-                                    "secretId": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    }
+                              "apiTokenSecretRef": {
+                                "type": "object",
+                                "required": [
+                                  "schemaVersion",
+                                  "secretId"
+                                ],
+                                "properties": {
+                                  "schemaVersion": {
+                                    "type": "number",
+                                    "enum": [
+                                      1
+                                    ]
                                   },
-                                  "additionalProperties": false
+                                  "secretId": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
                                 },
-                                "maxItems": 1
+                                "additionalProperties": false
                               },
                               "enabled": {
                                 "type": "boolean"
@@ -5647,24 +5637,40 @@
                           "input": {
                             "type": "object",
                             "required": [
-                              "providerProfileId",
-                              "providerModelIdentifier",
-                              "consumedCapabilities",
-                              "configurationRevisionRef"
+                              "gatewayProfileId",
+                              "modelIdentifier",
+                              "protocol",
+                              "consumedCapabilities"
                             ],
                             "properties": {
                               "modelProfileId": {
                                 "type": "string",
                                 "minLength": 1
                               },
-                              "providerProfileId": {
+                              "gatewayProfileId": {
                                 "type": "string",
                                 "minLength": 1
                               },
-                              "providerModelIdentifier": {
+                              "modelIdentifier": {
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": 256
+                              },
+                              "protocol": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "openai-chat"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "openai-responses"
+                                    ]
+                                  }
+                                ]
                               },
                               "consumedCapabilities": {
                                 "type": "array",
@@ -5698,10 +5704,6 @@
                                 },
                                 "minItems": 1,
                                 "maxItems": 4
-                              },
-                              "configurationRevisionRef": {
-                                "type": "string",
-                                "minLength": 1
                               }
                             },
                             "additionalProperties": false
@@ -6353,7 +6355,7 @@
                         "schemaVersion",
                         "configuration",
                         "secrets",
-                        "providerProfiles",
+                        "gatewayProfiles",
                         "modelProfiles",
                         "modelBindings",
                         "networkAccess",
@@ -6393,7 +6395,7 @@
                           "type": "array",
                           "items": {}
                         },
-                        "providerProfiles": {
+                        "gatewayProfiles": {
                           "type": "array",
                           "items": {}
                         },

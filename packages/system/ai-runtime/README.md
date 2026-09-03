@@ -2,13 +2,13 @@
 
 ## Purpose
 
-ai-runtime owns the current ProviderProfile, ModelProfile, ModelBinding, and
-structured InvocationSpec semantics. It materializes AI SDK 7 and the official
-OpenAI Responses provider only inside the runtime boundary.
+ai-runtime owns the current GatewayProfile, ModelProfile, ModelBinding, and
+structured InvocationSpec semantics. It materializes AI SDK 7 Chat-compatible
+and Open Responses-compatible protocol mechanics only inside the runtime boundary.
 
 ## Owns
 
-- The current OpenAI provider/profile/model/binding identities and generations.
+- The current gateway/profile/model/binding identities and generations.
 - Exact binding/configuration/Secret/NetworkAccess readiness.
 - Provider-neutral ephemeral messages and structured generation results.
 - SchemaRuntime validation and Lineage/Evidence attribution.
@@ -21,8 +21,8 @@ OpenAI Responses provider only inside the runtime boundary.
 
 ## Verification
 
-Run AIRuntime unit tests through the custom-fetch seam and the protected live
-OpenAI qualification for the real Responses route.
+Run AIRuntime unit tests through the custom-fetch seam, the local real-SDK
+Chat/Responses fixture, and the protected live NewAPI Chat qualification.
 
 ## Knowledge references
 

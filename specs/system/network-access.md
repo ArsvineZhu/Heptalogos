@@ -3,7 +3,7 @@
 ## Scope
 
 This Spec owns managed outbound network access originating in the Heptalogos
-Product Host. It is needed by Product services such as AIRuntime provider
+Product Host. It is needed by Product services such as AIRuntime gateway
 calls. It does not claim control over networking performed inside OpenClaw,
 opaque spawned processes, MCP stdio servers, or another external execution
 domain unless a real enforcement boundary controls that traffic.
@@ -12,7 +12,7 @@ domain unless a real enforcement boundary controls that traffic.
 
 NetworkAccessService owns requester identity, destination policy, request
 budgets, redirect authorization, transport cancellation, and transport-level
-diagnostics. Provider/model semantics remain AIRuntime-owned; consequential
+diagnostics. Gateway/model semantics remain AIRuntime-owned; consequential
 external-effect truth remains EffectOperation-owned. Node/Undici supplies
 transport mechanics behind this semantic boundary. NetworkAccess does not
 become a general proxy fleet, VPN manager, service mesh, retry engine, or
@@ -28,7 +28,7 @@ interface NetworkRequestSpec {
   readonly method: string;
   readonly headers: readonly RequestHeader[];
   readonly credentialHeaderClass:
-    "NONE" | "PRODUCT_SECRET" | "PROVIDER_SECRET" | "COOKIE" | "OTHER_SENSITIVE";
+    "NONE" | "PRODUCT_SECRET" | "COOKIE" | "OTHER_SENSITIVE";
   readonly timeout: Duration;
   readonly deadline?: Instant;
   readonly requestBodyBudget: ByteBudget;
@@ -81,7 +81,7 @@ validate requester/policy/budget
 Timeout, abort, connection reset, or transport exception is knowledge about
 transport. It is not proof that a consequential external effect failed; an
 EffectOperation caller must preserve UNCERTAIN when the effect outcome is
-ambiguous. A definitive HTTP response may still be a provider or domain
+ambiguous. A definitive HTTP response may still be a gateway or domain
 failure and is not automatically a Product success.
 
 The canonical Problem projection distinguishes at least:
@@ -103,16 +103,16 @@ consuming owner and existing Foundation WorkItem/EffectOperation contracts.
 
 ## Invariants
 
-- NET-001 Provider HTTP traffic claiming NetworkAccess control must actually use this boundary.
+- NET-001 Gateway HTTP traffic claiming NetworkAccess control must actually use this boundary.
 - NET-002 Every redirect re-evaluates destination policy before follow.
 - NET-003 Sensitive authorization and cookie headers are not forwarded across unauthorized destination/origin transitions.
 - NET-004 Timeout or abort is transport knowledge, not proof that a consequential external effect failed.
 - NET-005 Request and response budgets are enforced while streaming.
 - NET-006 Compressed responses are bounded by expanded-body limits as well as transfer limits.
 - NET-007 Connection reset and transport exceptions become structured Problem/knowledge, not hidden unsafe retry.
-- NET-008 NetworkAccess owns transport policy, not provider, model, Subject, or external-effect semantics.
+- NET-008 NetworkAccess owns transport policy, not gateway, model, Subject, or external-effect semantics.
 - NET-009 A spawned external process is OPAQUE_EXTERNAL for internal networking unless separately controlled.
-- NET-010 Provider SDK transport injection/control must be demonstrated before a provider route is implementation-READY.
+- NET-010 Gateway SDK transport injection/control must be demonstrated before a gateway route is implementation-READY.
 
 ## Management and consumer projection
 
@@ -120,7 +120,7 @@ Normal Management may expose owned policy metadata and bounded diagnostics:
 requester, policy decision, destination classification, budget outcome, and
 Lineage reference. It must redact credential-bearing headers, body content, and
 sensitive response data. AIRuntime consumes this contract for controllable
-provider traffic; Subject readiness may consume its availability result.
+gateway traffic; Subject readiness may consume its availability result.
 OpenClaw/Machine Operations network activity is not represented as controlled
 Host NetworkAccess merely because the Host initiated or observed a tool call.
 
@@ -134,7 +134,7 @@ VPN/service-mesh manager
 generic retry engine
 network broker or effect broker
 control over opaque external process networking
-provider/model capability semantics
+gateway/model capability semantics
 consequential external-effect outcome state
 physical network policy deployment
 ```

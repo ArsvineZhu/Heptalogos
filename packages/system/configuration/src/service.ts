@@ -28,8 +28,8 @@ import {
 import type { PersistenceService } from "@heptalogos/persistence";
 import { compileSchema } from "@heptalogos/schema-runtime";
 import {
-  PROVIDER_TRANSPORT_DEFINITION_ID,
-  providerTransportConfigSchema,
+  GATEWAY_TRANSPORT_DEFINITION_ID,
+  gatewayTransportConfigSchema,
   type ActivateConfigurationInput,
   type ConfigurationActivation,
   type ConfigurationDefinition,
@@ -40,22 +40,22 @@ import {
   type ConfigurationService,
   type ConfigurationServiceOptions,
   type CreateConfigurationRevisionInput,
-  type ProviderTransportConfigV1,
+  type GatewayTransportConfigV1,
 } from "./contracts.js";
 import { configurationProblem } from "./problems.js";
 
-const providerTransportValidator = compileSchema<ProviderTransportConfigV1>(
-  providerTransportConfigSchema,
+const gatewayTransportValidator = compileSchema<GatewayTransportConfigV1>(
+  gatewayTransportConfigSchema,
 );
 
 const definitions: readonly ConfigurationDefinition[] = Object.freeze([
   Object.freeze({
     schemaVersion: 1 as const,
-    definitionId: PROVIDER_TRANSPORT_DEFINITION_ID,
+    definitionId: GATEWAY_TRANSPORT_DEFINITION_ID,
     owner: "system.network-access",
     version: 1,
     scopeKind: "INSTALLATION" as const,
-    valueSchema: providerTransportConfigSchema as unknown as CanonicalJsonValue,
+    valueSchema: gatewayTransportConfigSchema as unknown as CanonicalJsonValue,
     classification: "INSTALLATION_CONFIG" as const,
     visibility: "EXPERT" as const,
     manageability: "EDITABLE" as const,
@@ -291,8 +291,8 @@ function activityRef(execution: ExecutionContextRuntime): LineageContextRef {
   return execution.createLineageContextRef();
 }
 
-function validateTransport(value: CanonicalJsonValue): ProviderTransportConfigV1 {
-  const result = providerTransportValidator.validate(value);
+function validateGatewayTransport(value: CanonicalJsonValue): GatewayTransportConfigV1 {
+  const result = gatewayTransportValidator.validate(value);
   if (!result.ok) {
     throw configurationProblem(
       "configuration.invalid_input",
@@ -413,8 +413,8 @@ export function createConfigurationService(
     },
     validateValue(definitionId, value) {
       const definition = definitionFor(definitionId);
-      if (definition.definitionId === PROVIDER_TRANSPORT_DEFINITION_ID) {
-        return Object.freeze({ ...validateTransport(value) });
+      if (definition.definitionId === GATEWAY_TRANSPORT_DEFINITION_ID) {
+        return Object.freeze({ ...validateGatewayTransport(value) });
       }
       throw configurationProblem(
         "configuration.unsupported_definition",

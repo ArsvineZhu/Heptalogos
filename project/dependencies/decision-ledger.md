@@ -46,7 +46,7 @@ ImplementationQualification
 | Static ManagementClient generation    | Hey API                                                                                                                                                                          |      ADOPTED |                    REQUIRED | build-time Core OpenAPI client；dynamic SystemActions 走 catalog                                                                                                                                            |
 | CLI framework                         | oclif                                                                                                                                                                            |      ADOPTED |                    REQUIRED | complete reference CLI mechanics；不使用其 plugin authority 管理 Extension                                                                                                                                  |
 | HTTP session architecture             | opaque token + PostgreSQL server-side session state                                                                                                                              |      ADOPTED |                    REQUIRED | authEpoch/expiry/revocation/recentAuth；无 client-side auth authority                                                                                                                                       |
-| AI SDK                                | AI SDK 7: `ai` 7.0.91 + official `@ai-sdk/openai` 4.0.57                                                                                                                         |      ADOPTED |                    REQUIRED | AIRuntime provider/model/structured-output mechanics; OpenAI Responses route only in the current Product slice                                                                                              |
+| AI SDK                                | AI SDK 7: `ai` 7.0.91 + `@ai-sdk/openai-compatible` 3.0.43 + `@ai-sdk/open-responses` 2.0.38                                                                                     |      ADOPTED |                    REQUIRED | AIRuntime gateway/model/structured-output mechanics for the explicit Chat and Responses protocol boundaries                                                                                                 |
 | MCP protocol mechanics                | official MCP TypeScript v2 SDK                                                                                                                                                   |      ADOPTED |                    REQUIRED | transport/protocol revision/discovery mechanics；无产品 Authority                                                                                                                                           |
 | Messaging interop                     | direct thin OneBot/Milky anti-corruption adapters                                                                                                                                |      ADOPTED |                    REQUIRED | 复用既定 transport/schema/runtime mechanics；不引入 mandatory Satori runtime                                                                                                                                |
 | Authorization model                   | Cedar                                                                                                                                                                            |      ADOPTED |                NOT_REQUIRED | principal/action/resource/context policy model                                                                                                                                                              |
@@ -187,6 +187,22 @@ advanced Presentation runtime
 
 ## 5. Adopted external product-operation roles
 
+### Model gateway integration
+
+```text
+candidate: NewAPI
+RoleDecision: ADOPTED
+ImplementationQualification: REQUIRED
+ownership: external independent model gateway
+```
+
+NewAPI 是当前推荐的 external model gateway/provider aggregation route，不是
+Host package、Product Host child process 或 Heptalogos System Service。它的
+upstream credentials、channels、routing、database、process 和 update lifecycle
+由 operator/外部 service 拥有；Heptalogos 只保存 GatewayProfile 与需要调用该
+gateway 的 scoped bearer token。当前资格要求是一条真实 gateway route，且不
+固定 NewAPI 版本或把它列为 npm/runtime package dependency。
+
 ### Machine Operations agent runtime
 
 ```text
@@ -199,9 +215,9 @@ ownership: external independent operational runtime
 OpenClaw 是 Machine Operations Plane 的外部实现路线，不是 Host package、
 Product Host child process 或 Heptalogos System Service。它可以按自身及
 OS/deployment policy 使用机器级 host execution；Product Host 不因此获得
-OpenClaw privileged control credential。Exact release/commit、独立进程/
-service 集成、信任与凭据隔离、许可证和分发闭包必须在首个集成/分发 Plan
-中重新验证。
+OpenClaw privileged control credential。当前不随 Heptalogos 下载、打包、
+启动或更新。Exact release/commit、独立进程/service 集成、信任与凭据
+隔离、许可证和分发闭包必须在首个集成/分发 Plan 中重新验证。
 
 ## 6. Rejected for Current Role
 
@@ -230,7 +246,7 @@ REJECTED_FOR_ROLE
 REJECTED_FOR_ROLE
 ```
 
-Heptalogos shipping payload 包含 PostgreSQL、FFmpeg、Extension generations、assets 和 native helpers；SEA 不构成完整产品 closure。
+Heptalogos shipping payload 包含 PostgreSQL、Extension generations、assets 和 native helpers；FFmpeg 是按能力需要由 operator 配置的外部 executable；SEA 不构成完整产品 closure。
 
 ### Mandatory Redis/RabbitMQ/NATS/Kafka Foundation broker
 

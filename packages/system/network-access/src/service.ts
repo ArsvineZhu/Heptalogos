@@ -1,28 +1,25 @@
 /**
- * Implements the bounded OpenAI NetworkAccess profile over Node global fetch,
- * enforcing active transport configuration before provider dispatch.
+ * Implements bounded gateway NetworkAccess over Node global fetch, enforcing
+ * active transport configuration before AI protocol dispatch.
  * @module service
  */
 
 import { parseInstant, type Instant } from "@heptalogos/foundation-contracts";
 import {
-  PROVIDER_TRANSPORT_DEFINITION_ID,
+  GATEWAY_TRANSPORT_DEFINITION_ID,
   type ConfigurationService,
-  type ProviderTransportConfigV1,
+  type GatewayTransportConfigV1,
 } from "@heptalogos/configuration";
 import {
-  OPENAI_NETWORK_ACCESS_PROFILE_ID,
-  type NetworkAccessProfile,
+  type GatewayNetworkTarget,
+  type NetworkAccessPolicy,
   type NetworkAccessService,
   type NetworkAccessServiceOptions,
 } from "./contracts.js";
 import { networkProblem } from "./problems.js";
 
-const PROFILE: NetworkAccessProfile = Object.freeze({
+const POLICY: NetworkAccessPolicy = Object.freeze({
   schemaVersion: 1,
-  profileId: OPENAI_NETWORK_ACCESS_PROFILE_ID,
-  origin: "https://api.openai.com",
-  path: "/v1/**",
   method: "POST",
   redirects: "DENY",
 });
@@ -38,16 +35,16 @@ function configurationScope(installationId: string) {
 function configValue(
   configuration: ConfigurationService,
   installationId: string,
-): Promise<ProviderTransportConfigV1 | undefined> {
+): Promise<GatewayTransportConfigV1 | undefined> {
   return configuration
     .getEffectiveRevision(
-      PROVIDER_TRANSPORT_DEFINITION_ID,
+      GATEWAY_TRANSPORT_DEFINITION_ID,
       configurationScope(installationId),
     )
     .then((revision) =>
       revision === undefined
         ? undefined
-        : (revision.value as unknown as ProviderTransportConfigV1),
+        : (revision.value as unknown as GatewayTransportConfigV1),
     );
 }
 
@@ -66,16 +63,74 @@ function requestUrl(input: Parameters<typeof fetch>[0] | URL): URL {
   }
 }
 
-function assertDestination(url: URL): void {
+function targetBaseUrl(target: GatewayNetworkTarget): URL {
   if (
-    url.protocol !== "https:" ||
-    url.origin !== PROFILE.origin ||
-    !url.pathname.startsWith("/v1/")
+    target.schemaVersion !== 1 ||
+    typeof target.gatewayProfileId !== "string" ||
+    target.gatewayProfileId.trim().length === 0
   ) {
     throw networkProblem(
       "network.unauthorized_destination",
       "Network destination is not allowed",
-      "Only the current OpenAI HTTPS origin and /v1/** path are admitted",
+      "The selected GatewayProfile destination is invalid",
+      "validation",
+    );
+  }
+  let base: URL;
+  try {
+    base = new URL(target.baseUrl);
+  } catch {
+    throw networkProblem(
+      "network.unauthorized_destination",
+      "Network destination is not allowed",
+      "The selected GatewayProfile base URL is invalid",
+      "validation",
+    );
+  }
+  if (
+    (base.protocol !== "https:" && base.protocol !== "http:") ||
+    base.username !== "" ||
+    base.password !== "" ||
+    base.search !== "" ||
+    base.hash !== ""
+  ) {
+    throw networkProblem(
+      "network.unauthorized_destination",
+      "Network destination is not allowed",
+      "The selected GatewayProfile base URL must be an absolute credential-free HTTP URL",
+      "validation",
+    );
+  }
+  const host = base.hostname.toLowerCase();
+  const loopback = host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+  if (base.protocol === "http:" && !loopback) {
+    throw networkProblem(
+      "network.unauthorized_destination",
+      "Network destination is not allowed",
+      "Plain HTTP is permitted only for literal loopback GatewayProfiles",
+      "conflict",
+      "after-change",
+    );
+  }
+  if (base.pathname !== "/" && base.pathname.endsWith("/")) {
+    base.pathname = base.pathname.replace(/\/+$/u, "");
+  }
+  if (base.pathname === "/") base.pathname = "";
+  return base;
+}
+
+function endpointPath(target: GatewayNetworkTarget, base: URL): string {
+  const suffix = target.protocol === "openai-chat" ? "/chat/completions" : "/responses";
+  return (base.pathname === "" ? "" : base.pathname) + suffix;
+}
+
+function assertDestination(target: GatewayNetworkTarget, url: URL): void {
+  const base = targetBaseUrl(target);
+  if (url.origin !== base.origin || url.pathname !== endpointPath(target, base)) {
+    throw networkProblem(
+      "network.unauthorized_destination",
+      "Network destination is not allowed",
+      "The request must target the selected GatewayProfile origin and protocol endpoint",
       "conflict",
       "after-change",
     );
@@ -87,7 +142,7 @@ function assertRequester(requester: string): void {
     throw networkProblem(
       "network.unauthorized_requester",
       "Network requester is not allowed",
-      "Only the current AIRuntime requester may use the OpenAI profile",
+      "Only the current AIRuntime requester may use a GatewayProfile route",
       "conflict",
       "after-change",
     );
@@ -169,12 +224,11 @@ export function createNetworkAccessService(
 ): NetworkAccessService {
   const transport = options.transport ?? fetch;
   const service: NetworkAccessService = {
-    profile: PROFILE,
     async getDiagnostics() {
       const config = await configValue(options.configuration, options.installationId);
       return Object.freeze({
         schemaVersion: 1 as const,
-        profile: PROFILE,
+        policy: POLICY,
         configured: config !== undefined,
         ...(config === undefined
           ? { blocker: "configuration" as const }
@@ -186,14 +240,26 @@ export function createNetworkAccessService(
             }),
       });
     },
-    async request(requester, input, init, deadline) {
+    authorizeGatewayTarget(target) {
+      targetBaseUrl(target);
+      if (target.protocol !== "openai-chat" && target.protocol !== "openai-responses") {
+        throw networkProblem(
+          "network.unauthorized_destination",
+          "Network protocol is not allowed",
+          "Only the current OpenAI-family Chat and Responses protocol routes are admitted",
+          "validation",
+        );
+      }
+    },
+    async request(requester, target, input, init, deadline) {
       assertRequester(requester);
+      service.authorizeGatewayTarget(target);
       const current = options.execution.current();
       if (current === undefined) {
         throw networkProblem(
           "network.activity_required",
           "Network request requires an Activity",
-          "Controlled provider traffic must carry current execution lineage",
+          "Controlled gateway traffic must carry current execution lineage",
           "conflict",
           "after-change",
         );
@@ -204,19 +270,19 @@ export function createNetworkAccessService(
         throw networkProblem(
           "network.configuration_unavailable",
           "Network transport is not configured",
-          "An active provider transport ConfigurationRevision is required",
+          "An active gateway transport ConfigurationRevision is required",
           "conflict",
           "after-change",
         );
       }
       const request = new Request(input, init);
       const url = requestUrl(request);
-      assertDestination(url);
-      if (request.method.toUpperCase() !== PROFILE.method) {
+      assertDestination(target, url);
+      if (request.method.toUpperCase() !== POLICY.method) {
         throw networkProblem(
           "network.unauthorized_method",
           "Network method is not allowed",
-          "The current OpenAI profile admits POST only",
+          "The current gateway transport policy admits POST only",
           "conflict",
           "after-change",
         );
@@ -238,7 +304,7 @@ export function createNetworkAccessService(
         throw networkProblem(
           "network.sensitive_header_denied",
           "Sensitive header is not allowed",
-          "Cookie headers are not admitted on the current provider route",
+          "Cookie headers are not admitted on the current gateway route",
           "conflict",
           "after-change",
         );
@@ -269,7 +335,7 @@ export function createNetworkAccessService(
           throw networkProblem(
             "network.redirect_denied",
             "Network redirect is denied",
-            "The current OpenAI NetworkAccess profile does not follow redirects",
+            "The current NetworkAccess policy does not follow redirects",
             "conflict",
             "after-change",
           );
@@ -282,7 +348,7 @@ export function createNetworkAccessService(
           throw networkProblem(
             "network.response_budget_exceeded",
             "Network response exceeds its budget",
-            "The provider response exceeded the active response budget",
+            "The gateway response exceeded the active response budget",
             "conflict",
             "after-change",
           );
@@ -332,9 +398,9 @@ export function createNetworkAccessService(
         clearTimeout(timer);
       }
     },
-    createProviderFetch(requester) {
+    createProviderFetch(requester, target) {
       return async (input, init) => {
-        const response = await service.request(requester, input, init);
+        const response = await service.request(requester, target, input, init);
         return new Response(response.body, {
           status: response.statusCode,
           headers: Object.fromEntries(

@@ -3,12 +3,12 @@ import { compileSchema } from "@heptalogos/schema-runtime";
 import {
   configurationActivateInputSchema,
   configurationRevisionCreateInputSchema,
-  providerTransportConfigSchema,
+  gatewayTransportConfigSchema,
 } from "../../src/index.js";
 
 describe("Configuration current contracts", () => {
-  it("accepts the bounded provider transport value and rejects out-of-range values", () => {
-    const validator = compileSchema(providerTransportConfigSchema);
+  it("accepts the bounded gateway transport value and rejects out-of-range values", () => {
+    const validator = compileSchema(gatewayTransportConfigSchema);
     expect(
       validator.validate({
         schemaVersion: 1,
@@ -32,7 +32,7 @@ describe("Configuration current contracts", () => {
   it("keeps revision and activation inputs strict", () => {
     expect(
       compileSchema(configurationRevisionCreateInputSchema).validate({
-        definitionId: "ai.provider.transport.v1",
+        definitionId: "ai.gateway.transport.v1",
         scopeRef: {
           schemaVersion: 1,
           resourceKind: "installation",

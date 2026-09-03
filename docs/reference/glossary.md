@@ -18,6 +18,23 @@
 
 **Provider**：Service/Capability 的实现来源。
 
+**GatewayProfile**：Heptalogos-owned external model gateway destination、可选
+bearer-token SecretRef 与 enabled state；不包含 upstream provider/channel
+credentials。
+
+**ModelProfile**：一个 GatewayProfile、model identifier、OpenAI-family
+protocol、current capability set 与 replacement generation 的持久选择。
+
+**ModelBinding**：把 current Subject role 精确绑定到 ModelProfile 的持久
+Product state；当前 role 只有 subject.primary 和 subject.expression。
+
+**Model Gateway**：独立运行、拥有 upstream provider adaptation/channel
+configuration 的外部 AI HTTP service；不属于 Product Host Authority。
+
+**External Integration**：Heptalogos 通过明确 owner boundary 使用的外部软件
+或服务；其安装、凭据、process lifecycle 与 upgrade lifecycle 仍由外部
+owner 管理。
+
 **Desired State**：用户/系统期望长期保持的状态。
 
 **Actual State**：当前 runtime 实际状态。

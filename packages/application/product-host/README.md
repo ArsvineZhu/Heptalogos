@@ -20,7 +20,8 @@ contract over loopback HTTP.
 ## Does not own
 
 - Bootstrap, PostgreSQL, Host fence, Persistence, or Runtime semantics.
-- GUI/Presentation, OpenClaw/Machine Operations, providers, Subject, Messaging,
+- GUI/Presentation, OpenClaw/Machine Operations, gateway/model semantics,
+  Subject, Messaging,
   or future SystemAction execution.
 
 ## Verification

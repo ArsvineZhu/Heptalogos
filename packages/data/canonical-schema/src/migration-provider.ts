@@ -6,11 +6,11 @@
 
 import type { Migration, MigrationProvider } from "kysely/migration";
 import { foundationBaselineMigration } from "./migrations/0001-foundation-baseline.js";
-import { productProviderPrerequisitesMigration } from "./migrations/0002-product-provider-prerequisites.js";
+import { productGatewayPrerequisitesMigration } from "./migrations/0002-product-provider-prerequisites.js";
 
 const migrations: Readonly<Record<string, Migration>> = Object.freeze({
   "0001_foundation_baseline": foundationBaselineMigration,
-  "0002_product_provider_prerequisites": productProviderPrerequisitesMigration,
+  "0002_product_provider_prerequisites": productGatewayPrerequisitesMigration,
 });
 
 /** Provides the current canonical migration set to Kysely's Migrator. */

@@ -1,9 +1,14 @@
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import {
+  execFile,
+  spawn,
+  type ChildProcessWithoutNullStreams,
+} from "node:child_process";
 import { createServer } from "node:net";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { createInterface } from "node:readline";
+import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import {
   createInstallationId,
@@ -22,6 +27,22 @@ const hostBinary = resolve(
 );
 const cliBinary = resolve(repositoryRoot, "packages/application/cli/dist/bin.js");
 const directories: string[] = [];
+const execFileAsync = promisify(execFile);
+
+async function stopFixturePrivatePostgres(
+  postgresBin: string,
+  dataDirectory: string,
+): Promise<void> {
+  const pgCtl = resolve(
+    postgresBin,
+    process.platform === "win32" ? "pg_ctl.exe" : "pg_ctl",
+  );
+  await execFileAsync(
+    pgCtl,
+    ["stop", "--pgdata", dataDirectory, "--mode=fast", "--wait", "--timeout", "60"],
+    { windowsHide: true, timeout: 120_000 },
+  ).catch(() => undefined);
+}
 
 /** Test-only isolated installation roots; Product Host still owns composition. */
 export interface ProductHostFixture {
@@ -115,6 +136,10 @@ export async function makeFixture(postgresBin: string): Promise<ProductHostFixtu
             .delete({ service: "Heptalogos/" + installationId, account })
             .catch(() => false),
         ),
+      );
+      await stopFixturePrivatePostgres(
+        postgresBin,
+        join(roots.DATA, "private-postgres"),
       );
       await Promise.all(
         directories

@@ -3,11 +3,11 @@
 ## Purpose
 
 network-access owns the current Host-originated outbound transport policy and
-the narrow custom fetch route required by the OpenAI provider.
+the narrow custom fetch route required by configured AI gateways.
 
 ## Owns
 
-- The stable network-access.openai-api.v1 profile.
+- GatewayProfile-derived origin/path/method policy for AI protocol requests.
 - Requester, HTTPS origin/path/method, redirect, header, deadline, and byte
   budget enforcement.
 - Abort/timeout and redacted transport diagnostics.
@@ -23,7 +23,7 @@ the narrow custom fetch route required by the OpenAI provider.
 ## Verification
 
 Run NetworkAccess unit tests with a controlled transport seam and the live
-OpenAI qualification for the real AI SDK fetch boundary.
+model-gateway qualification for the real AI SDK fetch boundary.
 
 ## Knowledge references
 

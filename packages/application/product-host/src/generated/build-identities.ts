@@ -6,6 +6,6 @@ import type { ProductGenerationId } from "@heptalogos/foundation-contracts";
 import type { BootstrapRuntimeGenerationId } from "@heptalogos/bootstrap-state";
 
 /** Product content identity materialized by the build. */
-export const PRODUCT_GENERATION_ID = "75a0089ca7de8dff87dbd4db39b7bd7ccaac470aa2399415ebaf765b7d310b78" as ProductGenerationId;
+export const PRODUCT_GENERATION_ID = "fd896fe7b3c1a3e4fd072bd73d53e62353323822dff9fd7f64ea1629e42a92bc" as ProductGenerationId;
 /** Bootstrap runtime content identity materialized by the build. */
 export const BOOTSTRAP_RUNTIME_GENERATION_ID = "717b3ab130bfcc5a85a8aff330436ca1027e4790e7fafac91502063e96115ca6" as BootstrapRuntimeGenerationId;

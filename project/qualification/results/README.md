@@ -18,5 +18,8 @@ BLOCKED. Include a tested revision when it is needed to identify the
 observed artifact. Do not carry candidate branch, freeze, review, merge, or
 revalidation ceremony into a property record.
 
+The current gateway-first AI evidence is recorded in
+[Q-AI-GATEWAY-CHAT-01](Q-AI-GATEWAY-CHAT-01.md).
+
 The [result template](../result-template.md) is optional guidance. Historical
 records may retain their original Q/C names and chronology.

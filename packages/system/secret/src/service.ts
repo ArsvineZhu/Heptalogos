@@ -592,12 +592,13 @@ export function createSecretService(options: SecretServiceOptions): SecretServic
       }
       if (
         context.consumer !== "system.ai-runtime" ||
-        context.purpose !== "provider.openai.api-key"
+        context.purpose !== "ai.gateway.bearer-token" ||
+        context.resourceRef?.resourceKind !== "gateway-profile"
       ) {
         throw secretProblem(
           "secret.unauthorized",
           "Secret consumer is not authorized",
-          "The current Product route only authorizes the OpenAI AIRuntime consumer",
+          "The current Product route only authorizes gateway bearer tokens for AIRuntime",
           "conflict",
           "after-change",
         );

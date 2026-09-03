@@ -830,7 +830,7 @@ export type PlanSystemActionData = {
     body: {
         actionId: 'configuration.revision.create';
         input: {
-            definitionId: 'ai.provider.transport.v1';
+            definitionId: 'ai.gateway.transport.v1';
             scopeRef: {
                 schemaVersion: 1;
                 resourceKind: string;
@@ -873,25 +873,24 @@ export type PlanSystemActionData = {
             secretRef: string;
         };
     } | {
-        actionId: 'provider-profile.set';
+        actionId: 'gateway-profile.set';
         input: {
-            providerProfileId?: string;
-            providerKind: 'openai';
-            configurationRevisionRef: string;
-            secretRefs: Array<{
+            gatewayProfileId?: string;
+            baseUrl: string;
+            apiTokenSecretRef?: {
                 schemaVersion: 1;
                 secretId: string;
-            }>;
+            };
             enabled: boolean;
         };
     } | {
         actionId: 'model-profile.set';
         input: {
             modelProfileId?: string;
-            providerProfileId: string;
-            providerModelIdentifier: string;
+            gatewayProfileId: string;
+            modelIdentifier: string;
+            protocol: 'openai-chat' | 'openai-responses';
             consumedCapabilities: Array<'text-generation' | 'structured-output' | 'usage-metadata' | 'abort-timeout'>;
-            configurationRevisionRef: string;
         };
     } | {
         actionId: 'model-binding.set';
@@ -1071,7 +1070,7 @@ export type ExecuteSystemActionData = {
         action: {
             actionId: 'configuration.revision.create';
             input: {
-                definitionId: 'ai.provider.transport.v1';
+                definitionId: 'ai.gateway.transport.v1';
                 scopeRef: {
                     schemaVersion: 1;
                     resourceKind: string;
@@ -1114,25 +1113,24 @@ export type ExecuteSystemActionData = {
                 secretRef: string;
             };
         } | {
-            actionId: 'provider-profile.set';
+            actionId: 'gateway-profile.set';
             input: {
-                providerProfileId?: string;
-                providerKind: 'openai';
-                configurationRevisionRef: string;
-                secretRefs: Array<{
+                gatewayProfileId?: string;
+                baseUrl: string;
+                apiTokenSecretRef?: {
                     schemaVersion: 1;
                     secretId: string;
-                }>;
+                };
                 enabled: boolean;
             };
         } | {
             actionId: 'model-profile.set';
             input: {
                 modelProfileId?: string;
-                providerProfileId: string;
-                providerModelIdentifier: string;
+                gatewayProfileId: string;
+                modelIdentifier: string;
+                protocol: 'openai-chat' | 'openai-responses';
                 consumedCapabilities: Array<'text-generation' | 'structured-output' | 'usage-metadata' | 'abort-timeout'>;
-                configurationRevisionRef: string;
             };
         } | {
             actionId: 'model-binding.set';
@@ -1321,7 +1319,7 @@ export type GetProductStateResponses = {
                 activations: Array<unknown>;
             };
             secrets: Array<unknown>;
-            providerProfiles: Array<unknown>;
+            gatewayProfiles: Array<unknown>;
             modelProfiles: Array<unknown>;
             modelBindings: Array<unknown>;
             networkAccess: unknown;

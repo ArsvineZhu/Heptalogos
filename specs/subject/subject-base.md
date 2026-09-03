@@ -50,7 +50,7 @@ interface SubjectRecord {
 ```
 
 SubjectId is a stable semantic identity. It is not derived from a ModelProfile,
-ProviderProfile, ModelBinding, SessionId, ReactionId, or Host generation.
+GatewayProfile, ModelBinding, SessionId, ReactionId, or Host generation.
 Host startup does not create a new Subject because an in-process object is
 absent.
 

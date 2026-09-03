@@ -3,7 +3,7 @@ import { Kysely, PostgresDialect } from "kysely";
 import type { Pool, PoolClient } from "pg";
 import { createCanonicalSchemaInitializer } from "../../src/initializer.js";
 import { foundationBaselineMigration } from "../../src/migrations/0001-foundation-baseline.js";
-import { productProviderPrerequisitesMigration } from "../../src/migrations/0002-product-provider-prerequisites.js";
+import { productGatewayPrerequisitesMigration } from "../../src/migrations/0002-product-provider-prerequisites.js";
 import type { CanonicalDatabase } from "../../src/migration-pool.js";
 import {
   canonicalMigrationNames,
@@ -90,7 +90,7 @@ describe("canonical schema adapter", () => {
     );
   });
 
-  it("materializes the current Product provider-prerequisite schema", async () => {
+  it("materializes the current Product gateway-prerequisite schema", async () => {
     const statements: string[] = [];
     const client = {
       query: async (query: unknown) => {
@@ -111,7 +111,7 @@ describe("canonical schema adapter", () => {
     });
 
     try {
-      await productProviderPrerequisitesMigration.up(database);
+      await productGatewayPrerequisitesMigration.up(database);
     } finally {
       await database.destroy();
     }
@@ -120,12 +120,10 @@ describe("canonical schema adapter", () => {
     expect(sql).toContain('CREATE TABLE "heptalogos"."configuration_revision"');
     expect(sql).toContain('CREATE TABLE "heptalogos"."configuration_activation"');
     expect(sql).toContain('CREATE TABLE "heptalogos"."secret_metadata"');
-    expect(sql).toContain('CREATE TABLE "heptalogos"."provider_profile"');
+    expect(sql).toContain('CREATE TABLE "heptalogos"."gateway_profile"');
     expect(sql).toContain('CREATE TABLE "heptalogos"."model_profile"');
     expect(sql).toContain('CREATE TABLE "heptalogos"."model_binding"');
-    expect(sql).toContain(
-      'provider_settings = \'{"api":"responses","store":false}\'::jsonb',
-    );
+    expect(sql).toContain("protocol IN ('openai-chat', 'openai-responses')");
     expect(sql).toContain(
       'REVOKE ALL ON TABLE "heptalogos"."secret_metadata" FROM PUBLIC',
     );

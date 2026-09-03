@@ -66,8 +66,8 @@ export interface ConfigurationDefinition {
   readonly consumerRefs: readonly string[];
 }
 
-/** The only current mutable transport configuration value. */
-export interface ProviderTransportConfigV1 {
+/** The only current mutable gateway transport configuration value. */
+export interface GatewayTransportConfigV1 {
   readonly schemaVersion: 1;
   readonly timeoutMs: number;
   readonly requestBodyBudgetBytes: number;
@@ -161,9 +161,9 @@ export interface ConfigurationService {
   ): CanonicalJsonValue;
 }
 
-/** Stable current transport-definition identity. */
-export const PROVIDER_TRANSPORT_DEFINITION_ID =
-  "ai.provider.transport.v1" as ConfigurationDefinitionId;
+/** Stable current gateway transport-definition identity. */
+export const GATEWAY_TRANSPORT_DEFINITION_ID =
+  "ai.gateway.transport.v1" as ConfigurationDefinitionId;
 
 const scopeRefSchema = Type.Object(
   {
@@ -174,8 +174,8 @@ const scopeRefSchema = Type.Object(
   { additionalProperties: false },
 );
 
-/** JSON Schema for the current provider transport value. */
-export const providerTransportConfigSchema = Type.Object(
+/** JSON Schema for the current gateway transport value. */
+export const gatewayTransportConfigSchema = Type.Object(
   {
     schemaVersion: Type.Literal(1),
     timeoutMs: Type.Integer({ minimum: 1_000, maximum: 300_000 }),
@@ -198,9 +198,9 @@ export const providerTransportConfigSchema = Type.Object(
 /** JSON Schema for the normalized revision-create action input. */
 export const configurationRevisionCreateInputSchema = Type.Object(
   {
-    definitionId: Type.Literal(PROVIDER_TRANSPORT_DEFINITION_ID),
+    definitionId: Type.Literal(GATEWAY_TRANSPORT_DEFINITION_ID),
     scopeRef: scopeRefSchema,
-    value: providerTransportConfigSchema,
+    value: gatewayTransportConfigSchema,
   },
   { additionalProperties: false },
 );

@@ -1,15 +1,15 @@
 /**
- * Materializes the current Product provider-prerequisite state owned by
+ * Materializes the current Product gateway-prerequisite state owned by
  * Configuration, Secret, NetworkAccess, and AIRuntime.
- * @module product-provider-prerequisites-migration
+ * @module product-gateway-prerequisites-migration
  */
 
 import { sql, type Kysely } from "kysely";
 import type { Migration } from "kysely/migration";
 import type { CanonicalDatabase } from "../migration-pool.js";
 
-/** Creates the bounded current provider-prerequisite tables. */
-export const productProviderPrerequisitesMigration: Migration = {
+/** Creates the bounded current gateway-prerequisite tables. */
+export const productGatewayPrerequisitesMigration: Migration = {
   async up(db: Kysely<CanonicalDatabase>): Promise<void> {
     await sql
       .raw(
@@ -30,7 +30,7 @@ export const productProviderPrerequisitesMigration: Migration = {
           `    revision_id::text ~ '^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'`,
           `  ),`,
           `  CONSTRAINT configuration_revision_definition_check CHECK (`,
-          `    definition_id = 'ai.provider.transport.v1' AND definition_version = 1`,
+          `    definition_id = 'ai.gateway.transport.v1' AND definition_version = 1`,
           `  ),`,
           `  CONSTRAINT configuration_revision_scope_check CHECK (`,
           `    jsonb_typeof(scope_ref) = 'object' AND`,
@@ -117,47 +117,44 @@ export const productProviderPrerequisitesMigration: Migration = {
           `CREATE INDEX secret_metadata_scope_index`,
           `  ON "heptalogos"."secret_metadata" (purpose, scope_key, state, secret_id);`,
 
-          `CREATE TABLE "heptalogos"."provider_profile" (`,
-          `  provider_profile_id uuid NOT NULL PRIMARY KEY,`,
-          `  configuration_revision_ref uuid NOT NULL REFERENCES "heptalogos"."configuration_revision" (revision_id),`,
-          `  secret_refs jsonb NOT NULL,`,
-          `  network_access_profile_ref text NOT NULL,`,
+          `CREATE TABLE "heptalogos"."gateway_profile" (`,
+          `  gateway_profile_id uuid NOT NULL PRIMARY KEY,`,
+          `  base_url text NOT NULL,`,
+          `  api_token_secret_ref uuid REFERENCES "heptalogos"."secret_metadata" (secret_id),`,
           `  enabled boolean NOT NULL,`,
-          `  provider_settings jsonb NOT NULL,`,
           `  lineage_context_ref jsonb NOT NULL,`,
-          `  CONSTRAINT provider_profile_id_shape_check CHECK (`,
-          `    provider_profile_id::text ~ '^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'`,
+          `  CONSTRAINT gateway_profile_id_shape_check CHECK (`,
+          `    gateway_profile_id::text ~ '^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'`,
           `  ),`,
-          `  CONSTRAINT provider_profile_secret_refs_check CHECK (`,
-          `    jsonb_typeof(secret_refs) = 'array' AND jsonb_array_length(secret_refs) BETWEEN 0 AND 1`,
-          `  ),`,
-          `  CONSTRAINT provider_profile_network_check CHECK (network_access_profile_ref = 'network-access.openai-api.v1'),`,
-          `  CONSTRAINT provider_profile_settings_check CHECK (`,
-          `    provider_settings = '{"api":"responses","store":false}'::jsonb`,
+          `  CONSTRAINT gateway_profile_base_url_check CHECK (`,
+          `    btrim(base_url) <> '' AND octet_length(base_url) BETWEEN 1 AND 2048`,
           `  )`,
           `);`,
+          `CREATE INDEX gateway_profile_id_index`,
+          `  ON "heptalogos"."gateway_profile" (gateway_profile_id);`,
 
           `CREATE TABLE "heptalogos"."model_profile" (`,
           `  model_profile_id uuid NOT NULL PRIMARY KEY,`,
-          `  provider_profile_id uuid NOT NULL REFERENCES "heptalogos"."provider_profile" (provider_profile_id),`,
-          `  provider_model_identifier text NOT NULL,`,
+          `  gateway_profile_id uuid NOT NULL REFERENCES "heptalogos"."gateway_profile" (gateway_profile_id),`,
+          `  model_identifier text NOT NULL,`,
+          `  protocol text NOT NULL,`,
           `  consumed_capabilities jsonb NOT NULL,`,
           `  generation bigint NOT NULL,`,
-          `  configuration_revision_ref uuid NOT NULL REFERENCES "heptalogos"."configuration_revision" (revision_id),`,
           `  lineage_context_ref jsonb NOT NULL,`,
           `  CONSTRAINT model_profile_id_shape_check CHECK (`,
           `    model_profile_id::text ~ '^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'`,
           `  ),`,
           `  CONSTRAINT model_profile_identifier_check CHECK (`,
-          `    btrim(provider_model_identifier) <> '' AND octet_length(provider_model_identifier) BETWEEN 1 AND 256`,
+          `    btrim(model_identifier) <> '' AND octet_length(model_identifier) BETWEEN 1 AND 256`,
           `  ),`,
+          `  CONSTRAINT model_profile_protocol_check CHECK (protocol IN ('openai-chat', 'openai-responses')),`,
           `  CONSTRAINT model_profile_capabilities_check CHECK (`,
           `    consumed_capabilities = '["text-generation","structured-output","usage-metadata","abort-timeout"]'::jsonb`,
           `  ),`,
           `  CONSTRAINT model_profile_generation_check CHECK (generation BETWEEN 1 AND 2147483647)`,
           `);`,
-          `CREATE INDEX model_profile_provider_index`,
-          `  ON "heptalogos"."model_profile" (provider_profile_id, model_profile_id);`,
+          `CREATE INDEX model_profile_gateway_index`,
+          `  ON "heptalogos"."model_profile" (gateway_profile_id, model_profile_id);`,
 
           `CREATE TABLE "heptalogos"."model_binding" (`,
           `  model_binding_id uuid NOT NULL PRIMARY KEY,`,
@@ -176,13 +173,13 @@ export const productProviderPrerequisitesMigration: Migration = {
           `REVOKE ALL ON TABLE "heptalogos"."configuration_revision" FROM PUBLIC;`,
           `REVOKE ALL ON TABLE "heptalogos"."configuration_activation" FROM PUBLIC;`,
           `REVOKE ALL ON TABLE "heptalogos"."secret_metadata" FROM PUBLIC;`,
-          `REVOKE ALL ON TABLE "heptalogos"."provider_profile" FROM PUBLIC;`,
+          `REVOKE ALL ON TABLE "heptalogos"."gateway_profile" FROM PUBLIC;`,
           `REVOKE ALL ON TABLE "heptalogos"."model_profile" FROM PUBLIC;`,
           `REVOKE ALL ON TABLE "heptalogos"."model_binding" FROM PUBLIC;`,
           `GRANT SELECT, INSERT ON TABLE "heptalogos"."configuration_revision" TO "heptalogos_runtime";`,
           `GRANT SELECT, INSERT, UPDATE ON TABLE "heptalogos"."configuration_activation" TO "heptalogos_runtime";`,
           `GRANT SELECT, INSERT, UPDATE ON TABLE "heptalogos"."secret_metadata" TO "heptalogos_runtime";`,
-          `GRANT SELECT, INSERT, UPDATE ON TABLE "heptalogos"."provider_profile" TO "heptalogos_runtime";`,
+          `GRANT SELECT, INSERT, UPDATE ON TABLE "heptalogos"."gateway_profile" TO "heptalogos_runtime";`,
           `GRANT SELECT, INSERT, UPDATE ON TABLE "heptalogos"."model_profile" TO "heptalogos_runtime";`,
           `GRANT SELECT, INSERT, UPDATE ON TABLE "heptalogos"."model_binding" TO "heptalogos_runtime";`,
         ].join("\n"),

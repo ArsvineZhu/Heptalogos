@@ -334,10 +334,17 @@
     },
     {
       "roleId": "ai.sdk",
-      "route": "AI SDK 7 line with official @ai-sdk/openai Responses provider",
+      "route": "AI SDK 7 line with @ai-sdk/openai-compatible Chat and @ai-sdk/open-responses protocol adapters",
       "boundary": "AIRuntime",
       "directive": "USE",
-      "packages": ["ai", "@ai-sdk/openai"]
+      "packages": ["ai", "@ai-sdk/openai-compatible", "@ai-sdk/open-responses"]
+    },
+    {
+      "roleId": "ai.gateway.newapi",
+      "route": "NewAPI recommended external independent model gateway; exact deployment release is operator-selected",
+      "boundary": "AIRuntime GatewayProfile; outside Product Host lifecycle and Authority",
+      "directive": "USE",
+      "packages": []
     },
     {
       "roleId": "mcp.client",
@@ -390,7 +397,7 @@
     },
     {
       "roleId": "media.ffmpeg",
-      "route": "vendored FFmpeg",
+      "route": "external operator-managed FFmpeg executable",
       "boundary": "AV adapter",
       "directive": "USE",
       "packages": []

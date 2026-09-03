@@ -7,8 +7,8 @@ export {
   configurationActivateInputSchema,
   configurationRevisionCreateInputSchema,
   configurationScopeRefSchema,
-  PROVIDER_TRANSPORT_DEFINITION_ID,
-  providerTransportConfigSchema,
+  GATEWAY_TRANSPORT_DEFINITION_ID,
+  gatewayTransportConfigSchema,
   type ActivateConfigurationInput,
   type ConfigurationActivation,
   type ConfigurationDefinition,
@@ -19,6 +19,6 @@ export {
   type ConfigurationService,
   type ConfigurationServiceOptions,
   type CreateConfigurationRevisionInput,
-  type ProviderTransportConfigV1,
+  type GatewayTransportConfigV1,
 } from "./contracts.js";
 export { createConfigurationService } from "./service.js";

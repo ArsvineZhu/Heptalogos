@@ -1,10 +1,10 @@
 /**
- * Defines the current outbound NetworkAccess profile, request/response
- * knowledge, and provider custom-fetch boundary.
+ * Defines the current outbound NetworkAccess policy, gateway target
+ * authorization, request/response knowledge, and AI custom-fetch boundary.
  * @module contracts
  */
 
-import type { Branded, Instant } from "@heptalogos/foundation-contracts";
+import type { Instant } from "@heptalogos/foundation-contracts";
 import type {
   ExecutionContextRuntime,
   LineageContextRef,
@@ -12,19 +12,20 @@ import type {
 import type { ConfigurationService } from "@heptalogos/configuration";
 import { Type } from "@heptalogos/schema-runtime/typebox";
 
-/** Identifies a stable NetworkAccess profile. */
-export type NetworkAccessProfileId = Branded<string, "NetworkAccessProfileId">;
+/** The current AI invocation protocols understood by NetworkAccess routing. */
+export type GatewayNetworkProtocol = "openai-chat" | "openai-responses";
 
-/** The current OpenAI NetworkAccess profile identity. */
-export const OPENAI_NETWORK_ACCESS_PROFILE_ID =
-  "network-access.openai-api.v1" as NetworkAccessProfileId;
-
-/** Describes one admitted outbound network profile. */
-export interface NetworkAccessProfile {
+/** Identifies the exact gateway destination authorized for one invocation. */
+export interface GatewayNetworkTarget {
   readonly schemaVersion: 1;
-  readonly profileId: NetworkAccessProfileId;
-  readonly origin: "https://api.openai.com";
-  readonly path: "/v1/**";
+  readonly gatewayProfileId: string;
+  readonly baseUrl: string;
+  readonly protocol: GatewayNetworkProtocol;
+}
+
+/** Describes the fixed transport rules applied to every gateway target. */
+export interface NetworkAccessPolicy {
+  readonly schemaVersion: 1;
   readonly method: "POST";
   readonly redirects: "DENY";
 }
@@ -32,7 +33,7 @@ export interface NetworkAccessProfile {
 /** Redacted NetworkAccess diagnostics safe for Management projection. */
 export interface NetworkAccessDiagnostics {
   readonly schemaVersion: 1;
-  readonly profile: NetworkAccessProfile;
+  readonly policy: NetworkAccessPolicy;
   readonly configured: boolean;
   readonly timeoutMs?: number;
   readonly requestBodyBudgetBytes?: number;
@@ -62,28 +63,26 @@ export interface NetworkAccessServiceOptions {
 
 /** Current controlled outbound transport service. */
 export interface NetworkAccessService {
-  /** The fixed current OpenAI transport profile. */
-  readonly profile: NetworkAccessProfile;
   /** Returns redacted transport diagnostics. */
   getDiagnostics(): Promise<NetworkAccessDiagnostics>;
+  /** Validates that a selected GatewayProfile/protocol has a permitted route. */
+  authorizeGatewayTarget(target: GatewayNetworkTarget): void;
   /** Performs one bounded, policy-checked outbound request. */
   request(
     requester: string,
+    target: GatewayNetworkTarget,
     input: Parameters<typeof fetch>[0] | URL,
     init?: RequestInit,
     deadline?: Instant,
   ): Promise<NetworkResponseKnowledge>;
-  /** Creates the policy-enforcing fetch passed to the provider SDK. */
-  createProviderFetch(requester: string): typeof fetch;
+  /** Creates the policy-enforcing fetch passed to one AI SDK protocol adapter. */
+  createProviderFetch(requester: string, target: GatewayNetworkTarget): typeof fetch;
 }
 
-/** JSON Schema for the current NetworkAccess profile. */
-export const networkAccessProfileSchema = Type.Object(
+/** JSON Schema for the fixed NetworkAccess policy. */
+export const networkAccessPolicySchema = Type.Object(
   {
     schemaVersion: Type.Literal(1),
-    profileId: Type.Literal(OPENAI_NETWORK_ACCESS_PROFILE_ID),
-    origin: Type.Literal("https://api.openai.com"),
-    path: Type.Literal("/v1/**"),
     method: Type.Literal("POST"),
     redirects: Type.Literal("DENY"),
   },
@@ -94,7 +93,7 @@ export const networkAccessProfileSchema = Type.Object(
 export const networkAccessDiagnosticsSchema = Type.Object(
   {
     schemaVersion: Type.Literal(1),
-    profile: networkAccessProfileSchema,
+    policy: networkAccessPolicySchema,
     configured: Type.Boolean(),
     timeoutMs: Type.Optional(Type.Integer({ minimum: 1 })),
     requestBodyBudgetBytes: Type.Optional(Type.Integer({ minimum: 1 })),

@@ -18,7 +18,7 @@ Heptalogos 是由 Product Host 长期承载的 persistent Subject 产品：
 
 当前产品模型面向一个 Installation、一个 Product Host 和一个 active
 logical Subject。它不是 generic multi-tenant 或 generic multi-Subject
-管理平台。Subject 的连续性跨越模型、Provider、会话、Presentation、
+管理平台。Subject 的连续性跨越模型、Gateway、会话、Presentation、
 组件 generation 和 Host 重启；Subject 不等于 Model、Prompt、Reactor、
 Conversation、Host、Installation 或 System Assistant。
 
@@ -33,6 +33,7 @@ Installation
 ├─ headless Management API / CLI
 ├─ external Presentation clients
 ├─ Machine Operations integration
+├─ external model gateways
 └─ Bootstrap / Recovery entry
 ```
 
@@ -45,6 +46,7 @@ Installation
 | Management API / reference CLI | 本仓库拥有的机器可消费管理产品面；CLI 是完整的 reference client。                                                 |
 | external Presentation clients  | Browser、Desktop 以及其他 Presentation consumers；它们消费正式 Host/Subject contracts，不拥有 Product Authority。 |
 | Machine Operations integration | 独立 Machine Operations Plane 的集成入口，用于系统级诊断、修复和部署维护。                                        |
+| external model gateways        | 由管理员独立运行和维护的模型网关；Heptalogos 只保存受控 GatewayProfile 与可选令牌引用。                           |
 | Bootstrap / Recovery entry     | 在正常 Management path 不可用时提供 bounded、local、AI-independent 的启动与恢复入口。                             |
 
 Product Host 是持久产品运行时。关闭 Browser 或 Desktop Presentation
@@ -95,7 +97,7 @@ Administrator
 
 Direct Management 是不依赖智能助手的确定性管理入口，覆盖当前进入产品
 的 administratively meaningful resources、Read Models、readiness、Subject
-生命周期、Configuration、Provider、Operations、Evidence 以及受治理的
+生命周期、Configuration、Gateway/Model、Operations、Evidence 以及受治理的
 actions。它不能直接写 repository、DBOS、filesystem、package directory
 或 Secret backend。
 

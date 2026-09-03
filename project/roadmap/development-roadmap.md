@@ -551,9 +551,9 @@ releaseFormQualificationBlocksIndependentOpenClawMachineOperations: false
 qualificationRecordAuthority: EVIDENCE_STATUS_ONLY
 providerPrerequisites: IN_PROGRESS
 machineOperationsIntegration: ELIGIBLE_NOT_AUTHORIZED
-activeProductImplementationPlan: one-real-provider-enablement-openai
-currentProductWork: one-real-provider enablement
-nextEligibleProductWork: persistent Subject + built-in Subject Chat
+activeProductImplementationPlan: gateway-first-airuntime
+currentProductWork: gateway-first AIRuntime + OpenAI Chat/Responses + live gateway proof
+nextEligibleProductWork: Persistent Subject L4 Vertical Slice
 ordinaryGitHubActions: DISABLED_CURRENT_EXECUTION_POLICY
 ```
 
@@ -579,11 +579,12 @@ depend on that boundary. Each workstream remains subject to its own plan and
 evidence boundary. OpenClaw remains an adopted external Machine Operations
 route and is not a provider or Subject readiness dependency.
 
-The sole active Product implementation authorization is the OpenAI reference
-route in
-project/plans/active/product/one-real-provider-enablement-openai-2026-09-03.md.
-It covers one real provider vertical slice only; Subject and built-in Subject
-Chat remain the next eligible work after its evidence closure.
+The sole active Product implementation authorization is the gateway-first
+AIRuntime and external-integration Plan in
+project/plans/active/product/gateway-first-airuntime-external-integration-posture-2026-09-03.md.
+It covers the current gateway/protocol semantic correction and one real
+operator-managed gateway route; the Persistent Subject L4 Vertical Slice
+remains the next eligible work after its evidence closure.
 
 ### Product prerequisites — provider foundations and minimum Management spine
 
@@ -597,7 +598,7 @@ Provider prerequisites:
 - minimal Configuration ownership;
 - minimal Secret ownership;
 - minimal NetworkAccess policy boundary;
-- AIRuntime/provider binding boundary.
+- AIRuntime gateway/model binding boundary.
 
 Minimum Management spine:
 
@@ -645,7 +646,7 @@ workspace topology:
 | specs/system/configuration.md             | CFG   | Configuration source, revision, and activation.                                          |
 | specs/system/secret.md                    | SEC   | SecretRef, SecretService, backend boundary, and no-plaintext handling.                   |
 | specs/system/network-access.md            | NET   | Managed outbound network policy.                                                         |
-| specs/system/ai-runtime.md                | AIR   | Provider, model, profile, binding, and invocation boundary.                              |
+| specs/system/ai-runtime.md                | AIR   | Gateway, model, protocol, binding, and invocation boundary.                              |
 | specs/management/system-authority.md      | MGMT  | Management Contract, Read Models, minimum SystemAction, and System Authority.            |
 | specs/subject/subject-base.md             | SUBJ  | Subject identity, Desired/Actual state, authority revision, and readiness prerequisites. |
 | specs/messaging/messaging-subject-chat.md | MSG   | Canonical messaging facts and built-in Subject Chat.                                     |

@@ -207,7 +207,7 @@ configuration.activate
 secret.set
 secret.replace
 secret.revoke
-provider-profile.set
+gateway-profile.set
 model-profile.set
 model-binding.set
 subject.start
@@ -231,7 +231,7 @@ current slice
 when the owning capability enters Product
 → ConfigurationDefinition/Revision/Activation
 → SecretMetadata
-→ ProviderProfile/ModelProfile/ModelBinding
+→ GatewayProfile/ModelProfile/ModelBinding
 → AIRuntime readiness
 → owned NetworkAccess diagnostics
 

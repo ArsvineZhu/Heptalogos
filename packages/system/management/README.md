@@ -21,7 +21,7 @@ the reference CLI.
 - SystemActionDefinition, SystemChangePlan, and SystemActionExecuteResult
   contracts plus the eight current Product prerequisite action routes.
 - Product prerequisite reads for Configuration, Secret metadata, NetworkAccess,
-  ProviderProfile, ModelProfile, ModelBinding, and AIRuntime readiness.
+  GatewayProfile, ModelProfile, ModelBinding, and AIRuntime readiness.
 - The system.management MicroSystem definition and service contract.
 
 ## Does not own

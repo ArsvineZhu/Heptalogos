@@ -431,11 +431,11 @@ delivery outcomes
 拥有：
 
 ```text
-ProviderProfile
+GatewayProfile
 ModelProfile
 ModelBinding
 AI SDK runtime materialization
-provider conformance
+gateway/protocol conformance
 ```
 
 不拥有 Subject。
