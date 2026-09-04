@@ -225,7 +225,7 @@ Subject identity or Subject communication Authority ownership
 
 - [AI Runtime architecture](../../docs/architecture/ai-runtime.md)
 - [Subject Base Spec](../subject/subject-base.md)
-- [Reaction and Behavior Authority](../subject/reaction-behavior.md)
+- [Reaction and Communication Authority](../subject/reaction-behavior.md)
 - [Configuration Spec](./configuration.md)
 - [Secret Spec](./secret.md)
 - [NetworkAccess Spec](./network-access.md)

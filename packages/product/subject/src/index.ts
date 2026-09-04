@@ -10,15 +10,15 @@ export {
   SUBJECT_SYSTEM_ID,
 } from "./contracts.js";
 export {
-  behaviorIntentSchema,
+  conversationReactionProposalSchema,
   expressionOutputSchema,
   createSubjectReactionDefinition,
   createSubjectService,
 } from "./service.js";
 export type {
-  BehaviorIntent,
   CommunicationCommit,
-  DecisionCommit,
+  ConversationReactionProposal,
+  ConversationSemanticContent,
   PreparedSubjectInbound,
   Reaction,
   SubjectAuthorityRecord,

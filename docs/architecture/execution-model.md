@@ -357,9 +357,10 @@ IM/Subject Chat Driver
 
 高级 Persona/Memory/Relationship/Attention 等只通过正式 Context/Activity/Service hooks 插入；Foundation Basic Chat 不依赖其实现，也不改变 Authority spine。
 
-当前分支实现仍使用 `BehaviorIntent`、`DecisionCommit` 和 `REPLY/SILENCE` 作为
-过渡形状；这属于 P1 implementation lag。它不应被当成 Subject 的总行为
-空间，也不改变 `CommunicationCommit → Expression` 的语义接缝。
+当前聊天执行路径是 bounded conversation cognition slice：proposal 经过
+deterministic Review 后，只有已接受的 communication 才进入
+`CommunicationCommit → Expression`；no-communication 是局部成功结果。该
+路径不定义 Subject 的总行为空间，也不创建通用 ActionPlan/Decision framework。
 
 ## 12. Ownership Handoff Is Bidirectional
 

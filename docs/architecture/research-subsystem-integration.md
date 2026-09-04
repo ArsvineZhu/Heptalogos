@@ -31,7 +31,7 @@ suppress
 priority explanation
 ```
 
-不拥有 WorkQueue、DecisionCommit。
+不拥有 WorkQueue 或 Subject/communication commit Authority。
 
 ---
 
@@ -142,15 +142,17 @@ cancel/supersede
 
 ## Proactive Behavior
 
-生成未来 CognitiveOpportunity / BehaviorIntent。
+生成未来 CognitiveOpportunity 或其他 domain-scoped proposal。其最终行动或
+沟通语义必须经过届时由 Subject/domain owner 定义的 Authority 与 Effect
+fence；本页不预先冻结通用的 proposal-to-action pipeline。
 
-仍然必须经过：
+仍然必须经过相应 owner 定义的：
 
 ```text
 Review
-DecisionCommit
-InteractionPlan
-EffectOperation
+owning domain commit
+InteractionPlan when defined
+EffectOperation when an external effect is involved
 ```
 
 ---
@@ -251,7 +253,8 @@ Opportunity → Reaction → ActionPlan → Capability / Effect
 
 ## Voice / Multimodal
 
-必须保持同一 Subject、Memory、Persona、DecisionCommit。
+必须保持同一 Subject、Memory、Persona，并复用相同的 communication/action
+semantic owners；不能因为输入模态不同而创建另一套行为 Authority。
 
 不能创建独立“Voice Agent”。
 

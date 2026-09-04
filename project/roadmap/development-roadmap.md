@@ -88,7 +88,8 @@ L4 product vertical slice
 Foundation may grow only while its current executable spine remains green. The
 closed asynchronous Foundation capability owns real PostgreSQL, real DBOS, one
 canonical WorkItem, and boot/work/stop/restart. The Subject vertical slice owns
-a real Product L4 path: message → Subject → model → decision → local response.
+a real Product L4 path: accepted MessageFact → bounded conversation proposal →
+optional CommunicationCommit → independent Expression → local outbound fact.
 
 ---
 
@@ -484,7 +485,7 @@ Provider prerequisites
         ↓
 Subject Base + Messaging + Subject Chat
         ↓
-Reaction + Behavior Authority
+Reaction + communication Authority
         ↓
 Subject vertical-slice proof
         ↓
@@ -553,8 +554,8 @@ providerPrerequisites: COMPLETED
 liveGatewayQualification: BLOCKED
 machineOperationsIntegration: ELIGIBLE_NOT_AUTHORIZED
 activeProductImplementationPlan: NONE
-currentProductWork: NONE
-nextEligibleProductWork: NONE
+currentProductWork: P1_SUBJECT_COMMUNICATION_SPINE_CORRECTION_COMPLETED
+nextEligibleProductWork: P2_CONFIGURATION_SURFACE_CATCH_UP
 ordinaryGitHubActions: DISABLED_CURRENT_EXECUTION_POLICY
 ```
 
@@ -572,9 +573,8 @@ through NetworkAccess, the two Subject model bindings, one Administrator,
 plan-bound SystemAction execution, deferred-but-adopted Cedar, no generic
 ApprovalService or ManagementOperation, direct text-only Subject Chat, and a
 bounded conversation-triggered cognition slice with optional communication and
-independent Expression. The current implementation still carries the older
-REPLY/SILENCE and conversation-specific DecisionCommit shape; P0 documents that
-as implementation lag and P1 is the separately activated rewrite. Release-form Product
+independent Expression. The current implementation uses bounded optional
+communication and direct CommunicationCommit Authority; release-form Product
 qualification is required before making the corresponding source-less,
 service, platform, or shipping/runtime claim. It is not a universal
 prerequisite for later semantic/product development, provider-prerequisite
@@ -587,12 +587,15 @@ The gateway-first AIRuntime and external-integration Plan is completed in
 project/plans/completed/product/gateway-first-airuntime-external-integration-posture-2026-09-03.md.
 Its local implementation qualification is PASS; the protected live gateway
 qualification remains BLOCKED and is not inferred from the local fixture. The
-Persistent Subject L4 Vertical Slice is now completed in
-project/plans/completed/product/persistent-subject-l4-vertical-slice-2026-09-04.md.
-Its local full-stack qualification is PASS; live external qualification remains
-BLOCKED. The current explicitly authorized Product sequence is the following
-bounded Product Reality Convergence, with only one successor Plan active at a
-time:
+Persistent Subject L4 Vertical Slice remains a completed historical baseline in
+project/plans/completed/product/persistent-subject-l4-vertical-slice-2026-09-04.md;
+its pre-P1 REPLY/SILENCE qualification is not the current conversation shape.
+The P1 Subject communication-spine correction is completed in
+project/plans/completed/product/p1-subject-communication-spine-correction-2026-09-04.md.
+Its current local communication-spine qualification is PASS for the executed
+Windows boundary, while unexecuted external and shipping boundaries remain
+NOT_RUN. The Product Reality Convergence sequence is the following bounded
+planning guidance, with only one implementation Plan active at a time:
 
 ```text
 documentation semantic correction
@@ -603,10 +606,11 @@ documentation semantic correction
 → first real IM / Observation Window research
 ```
 
-This is sequencing guidance, not a rigid waterfall. P0 corrects current-truth
-documentation only and is now complete; P1–P4 require separate activation and
-stop at their own completion boundaries. No Product implementation Plan is
-active after P0.
+This is sequencing guidance, not a rigid waterfall. P0 corrected current-truth
+documentation and P1 corrected the current communication spine; both are
+complete. P2–P4 are successor specs and require separate activation, each
+stopping at its own completion boundary. No Product implementation Plan is
+currently active.
 
 ### Product prerequisites — provider foundations and minimum Management spine
 
@@ -809,7 +813,7 @@ WASM sandbox/runtime selection remains deferred until a real sandbox-required wo
 
 ### Question answered
 
-> Can one persistent Subject receive a message, deliberate, commit a behavior decision and deliver a response while preserving Authority, durability, provenance and explicit uncertainty — with all advanced cognition unavailable?
+> Can one persistent Subject receive a message, produce a bounded conversation proposal, optionally commit communication, and deliver a response while preserving Authority, durability, provenance and explicit uncertainty — with all advanced cognition unavailable?
 
 ### Intentional scope
 
@@ -828,11 +832,12 @@ Use the smallest product-relevant vertical slice:
   product requirements, while the Subject slice does not require their full
   implementation.
 
-The initial implementation proved a narrower REPLY/SILENCE conversation path.
-That implementation remains useful local evidence, but its names and durable
-shape must not be treated as the total Subject behavior ontology. The current
-Product Reality Convergence sequence corrects that drift before adding more
-runtime scope.
+The current Subject L4 implementation proves a bounded conversation cognition
+path with optional communication, direct CommunicationCommit Authority,
+independent Expression, mailbox/authority fencing, and local exactly-once
+outbound materialization. This remains a bounded slice rather than the total
+Subject behavior ontology; broader runtime scope follows the Product Reality
+Convergence sequence.
 
 ### Capability closure
 
@@ -1228,7 +1233,7 @@ Normative Product contract freeze  [COMPLETE]
   |        ↓
   |    Subject Base + Messaging + Subject Chat
   |        ↓
-  |    Reaction + Behavior Authority
+  |    Reaction + communication Authority
   |        ↓
   |    Subject vertical-slice proof
   |        ↓

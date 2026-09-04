@@ -100,11 +100,12 @@ initiating principal
 
 不能自动转移权限。
 
-共享实现技术不会合并这些 Authority domain。Subject OpenClaw Runtime 是低权限、由
-Product Host 监督的 Subject cognition mechanics；System Assistant / Machine
-Operations OpenClaw 是独立生命周期、独立信任域、刻意拥有更高机器权限的运维
-runtime。即使两者使用相同 OpenClaw 软件，也必须保持不同的 Gateway process、
-profile/state/config/workspace、credentials、tool allowlist 和 Authority。
+共享实现技术不会合并这些 Authority domain。Subject cognition runtime 与
+System Assistant / Machine Operations runtime 必须保持独立的 Authority、信任、
+凭据、生命周期、故障和机器权限边界；实现技术或软件版本相同不改变这些不变量。
+具体的 process、Gateway、profile/state/config/workspace 与 tool allowlist 隔离
+由当前 Architecture 和各自的集成合同决定，而不是由 Constitution 冻结某一种
+实现方式。
 
 ---
 

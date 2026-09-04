@@ -85,7 +85,7 @@
 
 - 谁拥有 canonical truth？
 - Model/tool/client 是否仍只是 proposal/request？
-- 是否绕过 DecisionCommit/SystemAction？
+- 是否绕过 owning domain/Subject commit 或 SystemAction？
 - Subject/System 是否发生隐式越权？
 - Handoff 是否在 target Authority 重新 authorize？
 

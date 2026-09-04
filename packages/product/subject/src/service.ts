@@ -5,7 +5,6 @@
 import {
   UUID_V7_PATTERN,
   createCommunicationCommitId,
-  createDecisionCommitId,
   createReactionId,
   createUuidV7Id,
   digestCanonicalJson,
@@ -51,9 +50,8 @@ import {
   SUBJECT_REACTION_QUEUE_PROFILE_ID,
   SUBJECT_REACTION_RESOURCE_CLASS,
   SUBJECT_SYSTEM_ID,
-  type BehaviorIntent,
   type CommunicationCommit,
-  type DecisionCommit,
+  type ConversationReactionProposal,
   type PreparedSubjectInbound,
   type Reaction,
   type SubjectAuthorityRecord,
@@ -67,27 +65,34 @@ import {
 } from "./contracts.js";
 import { subjectProblem } from "./problems.js";
 
-/** Current primary output schema; the model proposes behavior, it does not commit it. */
-export const behaviorIntentSchema: CanonicalJsonValue = Object.freeze({
+/** Current bounded conversation proposal schema; the model does not commit it. */
+export const conversationReactionProposalSchema: CanonicalJsonValue = Object.freeze({
   oneOf: [
     {
       type: "object",
       properties: {
         schemaVersion: { const: 1 },
-        kind: { const: "REPLY" },
-        text: { type: "string", minLength: 1, maxLength: 65_536 },
+        kind: { const: "COMMUNICATE" },
+        semanticContent: {
+          type: "object",
+          properties: {
+            schemaVersion: { const: 1 },
+            content: { type: "string", minLength: 1, maxLength: 65_536 },
+          },
+          required: ["schemaVersion", "content"],
+          additionalProperties: false,
+        },
       },
-      required: ["schemaVersion", "kind", "text"],
+      required: ["schemaVersion", "kind", "semanticContent"],
       additionalProperties: false,
     },
     {
       type: "object",
       properties: {
         schemaVersion: { const: 1 },
-        kind: { const: "SILENCE" },
-        reason: { type: "string", minLength: 1, maxLength: 256 },
+        kind: { const: "NO_COMMUNICATION" },
       },
-      required: ["schemaVersion", "kind", "reason"],
+      required: ["schemaVersion", "kind"],
       additionalProperties: false,
     },
   ],
@@ -122,7 +127,7 @@ const SUBJECT_REACTION_OUTCOME_SCHEMA = Object.freeze({
   type: "object",
   properties: {
     accepted: { const: true },
-    status: { enum: ["NOOP", "SUPERSEDED", "SILENCE", "REPLIED"] },
+    status: { enum: ["NOOP", "SUPERSEDED", "NO_COMMUNICATION", "REPLIED"] },
   },
   required: ["accepted", "status"],
   additionalProperties: false,
@@ -161,15 +166,16 @@ interface ReactionRow {
   readonly lineage_context_ref: unknown;
 }
 
-interface DecisionRow {
-  readonly decision_commit_id: unknown;
+interface CommunicationRow {
+  readonly communication_commit_id: unknown;
   readonly reaction_id: unknown;
   readonly subject_id: unknown;
   readonly subject_authority_revision: unknown;
   readonly mailbox_revision: unknown;
-  readonly decision_kind: unknown;
-  readonly behavior_intent: unknown;
-  readonly behavior_intent_digest: unknown;
+  readonly conversation_id: unknown;
+  readonly purpose: unknown;
+  readonly semantic_content: unknown;
+  readonly semantic_content_digest: unknown;
   readonly primary_invocation_id: unknown;
   readonly primary_model_binding_id: unknown;
   readonly primary_binding_revision: unknown;
@@ -179,18 +185,6 @@ interface DecisionRow {
   readonly primary_configuration_revision_id: unknown;
   readonly primary_protocol: unknown;
   readonly committed_at: unknown;
-  readonly lineage_context_ref: unknown;
-}
-
-interface CommunicationRow {
-  readonly communication_commit_id: unknown;
-  readonly decision_commit_id: unknown;
-  readonly conversation_id: unknown;
-  readonly subject_authority_revision: unknown;
-  readonly purpose: unknown;
-  readonly semantic_content: unknown;
-  readonly semantic_content_digest: unknown;
-  readonly created_at: unknown;
   readonly lineage_context_ref: unknown;
 }
 
@@ -205,17 +199,14 @@ const REACTION_COLUMNS = `
   observed_through_sequence, observed_subject_authority_revision, state,
   owner_work_item_id, owner_activity_ref, created_at, updated_at,
   lineage_context_ref`;
-const DECISION_COLUMNS = `
-  decision_commit_id, reaction_id, subject_id, subject_authority_revision,
-  mailbox_revision, decision_kind, behavior_intent, behavior_intent_digest,
-  primary_invocation_id, primary_model_binding_id, primary_binding_revision,
-  primary_model_profile_id, primary_model_profile_generation,
-  primary_gateway_profile_id, primary_configuration_revision_id,
-  primary_protocol, committed_at, lineage_context_ref`;
 const COMMUNICATION_COLUMNS = `
-  communication_commit_id, decision_commit_id, conversation_id,
-  subject_authority_revision, purpose, semantic_content,
-  semantic_content_digest, created_at, lineage_context_ref`;
+  communication_commit_id, reaction_id, subject_id, subject_authority_revision,
+  mailbox_revision, conversation_id, purpose, semantic_content,
+  semantic_content_digest, primary_invocation_id, primary_model_binding_id,
+  primary_binding_revision, primary_model_profile_id,
+  primary_model_profile_generation, primary_gateway_profile_id,
+  primary_configuration_revision_id, primary_protocol, committed_at,
+  lineage_context_ref`;
 
 function parseJson(value: unknown, field: string): unknown {
   if (typeof value !== "string") return value;
@@ -364,8 +355,8 @@ function reactionFromRow(row: ReactionRow): Reaction {
   if (
     state !== "OPEN" &&
     state !== "SUPERSEDED" &&
-    state !== "DECIDED" &&
-    state !== "DELIBERATED_SILENT" &&
+    state !== "NO_COMMUNICATION" &&
+    state !== "COMMUNICATION_COMMITTED" &&
     state !== "REPLIED" &&
     state !== "FAILED"
   ) {
@@ -423,66 +414,88 @@ function reactionFromRow(row: ReactionRow): Reaction {
   });
 }
 
-function behaviorIntent(value: unknown): BehaviorIntent {
-  const parsed = record(value, "behavior_intent");
-  if (parsed.schemaVersion !== 1) {
-    throw subjectProblem(
-      "subject.behavior_invalid",
-      "Subject behavior proposal is invalid",
-      "BehaviorIntent schemaVersion is not current",
-      "integrity",
-    );
-  }
-  if (
-    parsed.kind === "REPLY" &&
-    typeof parsed.text === "string" &&
-    parsed.text.trim() !== ""
-  ) {
-    return Object.freeze({
-      schemaVersion: 1 as const,
-      kind: "REPLY" as const,
-      text: parsed.text,
-    });
-  }
-  if (
-    parsed.kind === "SILENCE" &&
-    typeof parsed.reason === "string" &&
-    parsed.reason.trim() !== ""
-  ) {
-    return Object.freeze({
-      schemaVersion: 1 as const,
-      kind: "SILENCE" as const,
-      reason: parsed.reason,
-    });
-  }
+function invalidConversationProposal(detail: string): never {
   throw subjectProblem(
-    "subject.behavior_invalid",
-    "Subject behavior proposal is invalid",
-    "BehaviorIntent must be the current REPLY or SILENCE shape",
+    "subject.reaction_proposal_invalid",
+    "Subject conversation proposal is invalid",
+    detail,
     "validation",
   );
 }
 
-function decisionFromRow(row: DecisionRow): DecisionCommit {
-  const decisionKind = row.decision_kind;
+function conversationReactionProposal(value: unknown): ConversationReactionProposal {
+  const parsed = record(value, "conversation_reaction_proposal");
+  if (parsed.schemaVersion !== 1) {
+    return invalidConversationProposal(
+      "ConversationReactionProposal schemaVersion is not current",
+    );
+  }
+  if (parsed.kind === "NO_COMMUNICATION" && Object.keys(parsed).length === 2) {
+    return Object.freeze({
+      schemaVersion: 1 as const,
+      kind: "NO_COMMUNICATION" as const,
+    });
+  }
+  if (parsed.kind === "COMMUNICATE") {
+    if (
+      typeof parsed.semanticContent !== "object" ||
+      parsed.semanticContent === null ||
+      Array.isArray(parsed.semanticContent)
+    ) {
+      return invalidConversationProposal("COMMUNICATE requires semanticContent object");
+    }
+    const content = parsed.semanticContent as Record<string, unknown>;
+    if (
+      content.schemaVersion !== 1 ||
+      typeof content.content !== "string" ||
+      content.content.trim() === "" ||
+      new TextEncoder().encode(content.content).byteLength > 65_536 ||
+      Object.keys(content).length !== 2 ||
+      Object.keys(parsed).length !== 3
+    ) {
+      return invalidConversationProposal(
+        "COMMUNICATE semanticContent is not the current bounded shape",
+      );
+    }
+    return Object.freeze({
+      schemaVersion: 1 as const,
+      kind: "COMMUNICATE" as const,
+      semanticContent: Object.freeze({
+        schemaVersion: 1 as const,
+        content: content.content,
+      }),
+    });
+  }
+  return invalidConversationProposal(
+    "ConversationReactionProposal must be COMMUNICATE or NO_COMMUNICATION",
+  );
+}
+
+function communicationFromRow(row: CommunicationRow): CommunicationCommit {
+  const purpose = row.purpose;
   const protocol = row.primary_protocol;
+  const content = record(row.semantic_content, "semantic_content");
   if (
-    (decisionKind !== "REPLY" && decisionKind !== "SILENCE") ||
-    (protocol !== "openai-chat" && protocol !== "openai-responses")
+    purpose !== "reply" ||
+    (protocol !== "openai-chat" && protocol !== "openai-responses") ||
+    content.schemaVersion !== 1 ||
+    typeof content.content !== "string" ||
+    content.content.trim() === "" ||
+    Object.keys(content).length !== 2
   ) {
     throw subjectProblem(
       "subject.repository_invalid",
       "Subject repository data is invalid",
-      "DecisionCommit domain values are invalid",
+      "CommunicationCommit domain values are invalid",
       "integrity",
     );
   }
   return Object.freeze({
     schemaVersion: 1 as const,
-    decisionCommitId: asUuid(
-      "DecisionCommitId",
-      row.decision_commit_id,
-      "decision_commit_id",
+    communicationCommitId: asUuid(
+      "CommunicationCommitId",
+      row.communication_commit_id,
+      "communication_commit_id",
     ),
     reactionId: asUuid("ReactionId", row.reaction_id, "reaction_id"),
     subjectId: asUuid("SubjectId", row.subject_id, "subject_id"),
@@ -492,9 +505,17 @@ function decisionFromRow(row: DecisionRow): DecisionCommit {
       1,
     ),
     mailboxRevision: asInteger(row.mailbox_revision, "mailbox_revision", 0),
-    decisionKind,
-    behaviorIntent: behaviorIntent(row.behavior_intent),
-    behaviorIntentDigest: String(row.behavior_intent_digest),
+    conversationId: asUuid(
+      "CanonicalConversationId",
+      row.conversation_id,
+      "conversation_id",
+    ),
+    purpose: "reply" as const,
+    semanticContent: Object.freeze({
+      schemaVersion: 1 as const,
+      content: content.content,
+    }),
+    semanticContentDigest: String(row.semantic_content_digest),
     primaryInvocationId: asUuid(
       "InvocationId",
       row.primary_invocation_id,
@@ -532,50 +553,6 @@ function decisionFromRow(row: DecisionRow): DecisionCommit {
     ),
     primaryProtocol: protocol,
     committedAt: asInstant(row.committed_at, "committed_at"),
-    lineageContextRef: asLineage(row.lineage_context_ref, "lineage_context_ref"),
-  });
-}
-
-function communicationFromRow(row: CommunicationRow): CommunicationCommit {
-  const content = record(row.semantic_content, "semantic_content");
-  if (
-    content.schemaVersion !== 1 ||
-    typeof content.text !== "string" ||
-    content.text.trim() === ""
-  ) {
-    throw subjectProblem(
-      "subject.repository_invalid",
-      "Subject repository data is invalid",
-      "CommunicationCommit semantic content is invalid",
-      "integrity",
-    );
-  }
-  return Object.freeze({
-    schemaVersion: 1 as const,
-    communicationCommitId: asUuid(
-      "CommunicationCommitId",
-      row.communication_commit_id,
-      "communication_commit_id",
-    ),
-    decisionCommitId: asUuid(
-      "DecisionCommitId",
-      row.decision_commit_id,
-      "decision_commit_id",
-    ),
-    conversationId: asUuid(
-      "CanonicalConversationId",
-      row.conversation_id,
-      "conversation_id",
-    ),
-    subjectAuthorityRevision: asInteger(
-      row.subject_authority_revision,
-      "subject_authority_revision",
-      1,
-    ),
-    purpose: String(row.purpose),
-    semanticContent: Object.freeze({ schemaVersion: 1 as const, text: content.text }),
-    semanticContentDigest: String(row.semantic_content_digest),
-    createdAt: asInstant(row.created_at, "created_at"),
     lineageContextRef: asLineage(row.lineage_context_ref, "lineage_context_ref"),
   });
 }
@@ -646,30 +623,16 @@ async function readReaction(
   return rows[0] === undefined ? undefined : reactionFromRow(rows[0]);
 }
 
-async function readDecision(
-  transaction: PersistenceInternalTransaction,
-  reactionId: string,
-): Promise<DecisionCommit | undefined> {
-  const rows = await executeRepositorySql<DecisionRow>(
-    transaction,
-    `SELECT ${DECISION_COLUMNS}
-       FROM "heptalogos"."decision_commit"
-      WHERE reaction_id = $1`,
-    [reactionId],
-  );
-  return rows[0] === undefined ? undefined : decisionFromRow(rows[0]);
-}
-
 async function readCommunication(
   transaction: PersistenceInternalTransaction,
-  decisionCommitId: string,
+  reactionId: string,
 ): Promise<CommunicationCommit | undefined> {
   const rows = await executeRepositorySql<CommunicationRow>(
     transaction,
     `SELECT ${COMMUNICATION_COLUMNS}
        FROM "heptalogos"."communication_commit"
-      WHERE decision_commit_id = $1`,
-    [decisionCommitId],
+      WHERE reaction_id = $1`,
+    [reactionId],
   );
   return rows[0] === undefined ? undefined : communicationFromRow(rows[0]);
 }
@@ -950,7 +913,11 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
         "after-change",
       );
     }
-    if (status.actualState === "READY" || status.actualState === "ACTIVE") {
+    if (
+      status.actualState === "READY" ||
+      status.actualState === "ACTIVE" ||
+      status.actualState === "DEGRADED"
+    ) {
       const work = await options.workQueue.prepareCreate({
         target: options.reactionTarget,
         payload: Object.freeze({
@@ -999,6 +966,15 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
           "subject.authority_missing",
           "Subject authority changed",
           "The accepted inbound fact no longer has the prepared Subject authority",
+          "conflict",
+          "after-change",
+        );
+      }
+      if (authority.authorityRevision !== input.preparation.authorityRevision) {
+        throw subjectProblem(
+          "subject.stale_authority_revision",
+          "Subject authority is stale",
+          "The accepted inbound preparation was made under an older authorityRevision",
           "conflict",
           "after-change",
         );
@@ -1060,13 +1036,59 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
           options.installationId,
           true,
         );
-        if (authority === undefined || authority.desiredState !== "RUNNING")
-          return undefined;
+        if (authority === undefined) return undefined;
+        const ownedRows = await executeRepositorySql<ReactionRow>(
+          transaction,
+          `SELECT ${REACTION_COLUMNS}
+             FROM "heptalogos"."reaction"
+            WHERE owner_work_item_id = $1
+            FOR UPDATE`,
+          [workItemId],
+        );
+        const owned =
+          ownedRows[0] === undefined ? undefined : reactionFromRow(ownedRows[0]);
+        if (owned !== undefined) {
+          if (
+            owned.state === "OPEN" &&
+            (authority.desiredState !== "RUNNING" ||
+              authority.authorityRevision !== owned.observedSubjectAuthorityRevision)
+          ) {
+            const now = options.time.now();
+            await executeRepositorySql(
+              transaction,
+              `UPDATE "heptalogos"."reaction"
+                  SET state = 'SUPERSEDED', updated_at = $2,
+                      lineage_context_ref = $3
+                WHERE reaction_id = $1 AND state = 'OPEN'`,
+              [owned.reactionId, now, lineageJson(options.execution)],
+            );
+            await executeRepositorySql(
+              transaction,
+              `UPDATE "heptalogos"."conversation_mailbox"
+                  SET open_reaction_id = NULL, updated_at = $2,
+                      lineage_context_ref = $3
+                WHERE conversation_id = $1 AND open_reaction_id = $4`,
+              [
+                owned.conversationId,
+                now,
+                lineageJson(options.execution),
+                owned.reactionId,
+              ],
+            );
+            return readReaction(transaction, owned.reactionId);
+          }
+          return owned;
+        }
+        if (authority.desiredState !== "RUNNING") return undefined;
         const mailbox = await readMailbox(transaction, conversationId, true);
         if (mailbox === undefined) return undefined;
         if (mailbox.openReactionId !== undefined) {
           const current = await readReaction(transaction, mailbox.openReactionId);
-          if (current !== undefined && current.state === "OPEN") return current;
+          if (
+            current !== undefined &&
+            (current.state === "OPEN" || current.state === "COMMUNICATION_COMMITTED")
+          )
+            return current;
           await executeRepositorySql(
             transaction,
             `UPDATE "heptalogos"."conversation_mailbox"
@@ -1132,7 +1154,6 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
 
   interface ReactionProgress {
     readonly reaction: Reaction;
-    readonly decision?: DecisionCommit;
     readonly communication?: CommunicationCommit;
     readonly outbound: boolean;
   }
@@ -1140,18 +1161,13 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
   const readProgress = async (reaction: Reaction): Promise<ReactionProgress> =>
     options.persistence.read((context) =>
       useRepositoryReadTransaction(context, async (transaction) => {
-        const decision = await readDecision(transaction, reaction.reactionId);
-        const communication =
-          decision?.decisionKind === "REPLY"
-            ? await readCommunication(transaction, decision.decisionCommitId)
-            : undefined;
+        const communication = await readCommunication(transaction, reaction.reactionId);
         const outbound =
           communication === undefined
             ? false
             : await outboundExists(transaction, communication.communicationCommitId);
         return Object.freeze({
           reaction,
-          ...(decision === undefined ? {} : { decision }),
           ...(communication === undefined ? {} : { communication }),
           outbound,
         });
@@ -1162,7 +1178,7 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
     return Object.freeze([
       Object.freeze({
         role: "system" as const,
-        text: "You are the current Heptalogos Subject. Return only the requested structured behavior proposal.",
+        text: "You are the current Heptalogos Subject. Return only the requested bounded conversation proposal.",
       }),
       ...messages.map((message) =>
         Object.freeze({ role: "user" as const, text: message.text }),
@@ -1177,14 +1193,28 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
     readonly messages: readonly MessageFact[];
   }> => {
     const authority = await getAuthority();
+    const mailbox = await options.persistence.read((context) =>
+      useRepositoryReadTransaction(context, (transaction) =>
+        readMailbox(transaction, reaction.conversationId),
+      ),
+    );
+    if (mailbox === undefined) {
+      throw subjectProblem(
+        "subject.mailbox_missing",
+        "Subject mailbox is unavailable",
+        "The current Reaction has no ConversationMailbox",
+        "integrity",
+      );
+    }
     const messages = await options.messaging.listInboundMessages({
       conversationId: reaction.conversationId,
-      afterSequence: 0,
+      afterSequence: mailbox.consumedThroughSequence,
       throughSequence: reaction.observedThroughSequence,
     });
     const selected = messages.filter(
       (message) =>
-        message.sequence > 0 && message.sequence <= reaction.observedThroughSequence,
+        message.sequence > mailbox.consumedThroughSequence &&
+        message.sequence <= reaction.observedThroughSequence,
     );
     const value = snapshotCanonicalJson({
       schemaVersion: 1,
@@ -1223,8 +1253,9 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
       expectedBindingRevision: binding.revision,
       contextProjection: context.value,
       messages: subjectContextMessages(context.messages),
-      objective: "Choose exactly one current BehaviorIntent: REPLY or SILENCE.",
-      outputSchema: behaviorIntentSchema,
+      objective:
+        "Return exactly one current conversation proposal: NO_COMMUNICATION or COMMUNICATE with semantic content.",
+      outputSchema: conversationReactionProposalSchema,
       budget: { maxOutputTokens: 256 },
       lineageContextRef: options.execution.createLineageContextRef(),
     };
@@ -1249,7 +1280,7 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
       schemaVersion: 1,
       communicationCommitId: communication.communicationCommitId,
       conversationId: communication.conversationId,
-      semanticContent: communication.semanticContent,
+      semanticContent: communication.semanticContent as unknown as CanonicalJsonValue,
     }).value;
     const spec: InvocationSpec = {
       schemaVersion: 1,
@@ -1265,7 +1296,7 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
         }),
         Object.freeze({
           role: "user" as const,
-          text: communication.semanticContent.text,
+          text: communication.semanticContent.content,
         }),
       ]),
       objective: "Express the already committed semantic reply.",
@@ -1276,11 +1307,19 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
     return options.aiRuntime.invoke(spec);
   };
 
-  const commitDecision = async (
+  type AcceptedProposalCommitResult =
+    | { readonly kind: "SUPERSEDED" }
+    | { readonly kind: "NO_COMMUNICATION" }
+    | {
+        readonly kind: "COMMUNICATION_COMMITTED";
+        readonly communication: CommunicationCommit;
+      };
+
+  const commitAcceptedProposal = async (
     reaction: Reaction,
     generation: GenerationResult,
-    intent: BehaviorIntent,
-  ): Promise<"COMMITTED" | "EXISTING" | "SUPERSEDED"> =>
+    proposal: ConversationReactionProposal,
+  ): Promise<AcceptedProposalCommitResult> =>
     options.persistence.mutate((context) =>
       useRepositoryMutationTransaction(context, async (transaction) => {
         const currentReaction = await readReaction(
@@ -1306,7 +1345,24 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
             "integrity",
           );
         }
-        if (currentReaction.state !== "OPEN") return "EXISTING";
+        if (currentReaction.state !== "OPEN") {
+          if (currentReaction.state === "SUPERSEDED")
+            return { kind: "SUPERSEDED" as const };
+          if (currentReaction.state === "NO_COMMUNICATION")
+            return { kind: "NO_COMMUNICATION" as const };
+          const existing = await readCommunication(transaction, reaction.reactionId);
+          if (existing !== undefined)
+            return {
+              kind: "COMMUNICATION_COMMITTED" as const,
+              communication: existing,
+            };
+          throw subjectProblem(
+            "subject.communication_missing",
+            "Subject communication commit is unavailable",
+            "The current Reaction state has no CommunicationCommit",
+            "integrity",
+          );
+        }
         if (
           authority.desiredState !== "RUNNING" ||
           authority.authorityRevision !== reaction.observedSubjectAuthorityRevision ||
@@ -1335,40 +1391,86 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
               reaction.reactionId,
             ],
           );
-          return "SUPERSEDED";
+          await options.evidence.recordRequired(context, {
+            evidenceKind: "subject.reaction.superseded",
+            evidenceContractVersion: "subject.v1",
+            subjectRef: authority.subjectId,
+            objectRef: reaction.reactionId,
+            factRef: generation.invocationId,
+            retentionClass: "retained",
+            sensitivity: "operational",
+          });
+          return { kind: "SUPERSEDED" as const };
         }
         await options.aiRuntime.assertGenerationAdmissibleForCommit(
           context,
           generation,
         );
-        const decisionCommitId = createDecisionCommitId();
-        const behaviorIntentDigest = digestCanonicalJson(
-          "subject.behavior-intent.v1",
-          snapshotCanonicalJson(intent).value,
-        ).hex;
         const now = options.time.now();
+        if (proposal.kind === "NO_COMMUNICATION") {
+          await executeRepositorySql(
+            transaction,
+            `UPDATE "heptalogos"."conversation_mailbox"
+                SET consumed_through_sequence = GREATEST(consumed_through_sequence, $2),
+                    open_reaction_id = CASE WHEN open_reaction_id = $3 THEN NULL ELSE open_reaction_id END,
+                    updated_at = $4, lineage_context_ref = $5
+              WHERE conversation_id = $1`,
+            [
+              reaction.conversationId,
+              reaction.observedThroughSequence,
+              reaction.reactionId,
+              now,
+              lineageJson(options.execution),
+            ],
+          );
+          await executeRepositorySql(
+            transaction,
+            `UPDATE "heptalogos"."reaction"
+                SET state = 'NO_COMMUNICATION', updated_at = $2,
+                    lineage_context_ref = $3
+              WHERE reaction_id = $1 AND state = 'OPEN'`,
+            [reaction.reactionId, now, lineageJson(options.execution)],
+          );
+          await options.evidence.recordRequired(context, {
+            evidenceKind: "subject.reaction.no-communication.accepted",
+            evidenceContractVersion: "subject.v1",
+            subjectRef: authority.subjectId,
+            objectRef: reaction.reactionId,
+            factRef: generation.invocationId,
+            retentionClass: "retained",
+            sensitivity: "operational",
+          });
+          return { kind: "NO_COMMUNICATION" as const };
+        }
+
+        const semanticContent = proposal.semanticContent;
+        const semanticContentDigest = digestCanonicalJson(
+          "subject.semantic-content.v1",
+          snapshotCanonicalJson(semanticContent as unknown as CanonicalJsonValue).value,
+        ).hex;
+        const communicationCommitId = createCommunicationCommitId();
         await executeRepositorySql(
           transaction,
-          `INSERT INTO "heptalogos"."decision_commit" (
-             decision_commit_id, reaction_id, subject_id,
-             subject_authority_revision, mailbox_revision, decision_kind,
-             behavior_intent, behavior_intent_digest, primary_invocation_id,
-             primary_model_binding_id, primary_binding_revision,
+          `INSERT INTO "heptalogos"."communication_commit" (
+             communication_commit_id, reaction_id, subject_id,
+             subject_authority_revision, mailbox_revision, conversation_id,
+             purpose, semantic_content, semantic_content_digest,
+             primary_invocation_id, primary_model_binding_id, primary_binding_revision,
              primary_model_profile_id, primary_model_profile_generation,
              primary_gateway_profile_id, primary_configuration_revision_id,
              primary_protocol, committed_at, lineage_context_ref
-           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-                     $12, $13, $14, $15, $16, $17, $18)
+           ) VALUES ($1, $2, $3, $4, $5, $6, 'reply', $7, $8, $9, $10,
+                     $11, $12, $13, $14, $15, $16, $17, $18)
            ON CONFLICT (reaction_id) DO NOTHING`,
           [
-            decisionCommitId,
+            communicationCommitId,
             reaction.reactionId,
             authority.subjectId,
             authority.authorityRevision,
             mailbox.mailboxRevision,
-            intent.kind,
-            JSON.stringify(intent),
-            behaviorIntentDigest,
+            reaction.conversationId,
+            JSON.stringify(semanticContent),
+            semanticContentDigest,
             generation.invocationId,
             generation.modelBindingId,
             generation.bindingRevision,
@@ -1381,231 +1483,147 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
             lineageJson(options.execution),
           ],
         );
+        const written = await readCommunication(transaction, reaction.reactionId);
+        if (written === undefined) {
+          throw subjectProblem(
+            "subject.communication_missing",
+            "CommunicationCommit was not materialized",
+            "The current communication acceptance could not be read after insertion",
+            "integrity",
+          );
+        }
         await executeRepositorySql(
           transaction,
           `UPDATE "heptalogos"."reaction"
-              SET state = 'DECIDED', updated_at = $2,
+              SET state = 'COMMUNICATION_COMMITTED', updated_at = $2,
                   lineage_context_ref = $3
             WHERE reaction_id = $1 AND state = 'OPEN'`,
           [reaction.reactionId, now, lineageJson(options.execution)],
         );
         await options.evidence.recordRequired(context, {
-          evidenceKind: "subject.decision.commit",
+          evidenceKind: "subject.communication.commit",
           evidenceContractVersion: "subject.v1",
           subjectRef: authority.subjectId,
           objectRef: reaction.reactionId,
-          factRef: generation.invocationId,
-          retentionClass: "retained",
-          sensitivity: "operational",
-        });
-        return "COMMITTED";
-      }),
-    );
-
-  const ensureCommunication = async (
-    reaction: Reaction,
-    decision: DecisionCommit,
-  ): Promise<CommunicationCommit> =>
-    options.persistence.mutate((context) =>
-      useRepositoryMutationTransaction(context, async (transaction) => {
-        const existing = await readCommunication(
-          transaction,
-          decision.decisionCommitId,
-        );
-        if (existing !== undefined) return existing;
-        if (
-          decision.decisionKind !== "REPLY" ||
-          decision.behaviorIntent.kind !== "REPLY"
-        ) {
-          throw subjectProblem(
-            "subject.communication_invalid",
-            "CommunicationCommit is not admissible",
-            "Only a REPLY DecisionCommit may create a CommunicationCommit",
-            "integrity",
-          );
-        }
-        const authority = await readAuthority(
-          transaction,
-          options.installationId,
-          true,
-        );
-        if (authority === undefined || authority.subjectId !== decision.subjectId) {
-          throw subjectProblem(
-            "subject.authority_missing",
-            "Subject authority is unavailable",
-            "The CommunicationCommit could not resolve its Subject",
-            "integrity",
-          );
-        }
-        const semanticContent = {
-          schemaVersion: 1 as const,
-          text: decision.behaviorIntent.text,
-        };
-        const semanticContentDigest = digestCanonicalJson(
-          "subject.semantic-content.v1",
-          snapshotCanonicalJson(semanticContent).value,
-        ).hex;
-        const communicationCommitId = createCommunicationCommitId();
-        const now = options.time.now();
-        await executeRepositorySql(
-          transaction,
-          `INSERT INTO "heptalogos"."communication_commit" (
-             communication_commit_id, decision_commit_id, conversation_id,
-             subject_authority_revision, purpose, semantic_content,
-             semantic_content_digest, created_at, lineage_context_ref
-           ) VALUES ($1, $2, $3, $4, 'subject.reply', $5, $6, $7, $8)
-           ON CONFLICT (decision_commit_id) DO NOTHING`,
-          [
-            communicationCommitId,
-            decision.decisionCommitId,
-            reaction.conversationId,
-            decision.subjectAuthorityRevision,
-            JSON.stringify(semanticContent),
-            semanticContentDigest,
-            now,
-            lineageJson(options.execution),
-          ],
-        );
-        const written = await readCommunication(transaction, decision.decisionCommitId);
-        if (written === undefined) {
-          throw subjectProblem(
-            "subject.communication_missing",
-            "CommunicationCommit was not materialized",
-            "The current reply authorization could not be read after insertion",
-            "integrity",
-          );
-        }
-        await options.evidence.recordRequired(context, {
-          evidenceKind: "subject.communication.commit",
-          evidenceContractVersion: "subject.v1",
-          subjectRef: decision.subjectId,
-          objectRef: decision.decisionCommitId,
           factRef: written.communicationCommitId,
           retentionClass: "retained",
           sensitivity: "operational",
         });
-        return written;
+        return {
+          kind: "COMMUNICATION_COMMITTED" as const,
+          communication: written,
+        };
       }),
     );
 
-  const advanceMailboxAndFinalize = async (
+  const finalizeCommittedReaction = async (
+    transaction: PersistenceInternalTransaction,
+    context: PersistenceMutationTransactionContext,
     reaction: Reaction,
-    state: "DELIBERATED_SILENT" | "REPLIED",
+    communication: CommunicationCommit,
   ): Promise<void> => {
-    await options.persistence.mutate((context) =>
+    const now = options.time.now();
+    await executeRepositorySql(
+      transaction,
+      `UPDATE "heptalogos"."conversation_mailbox"
+          SET consumed_through_sequence = GREATEST(consumed_through_sequence, $2),
+              open_reaction_id = CASE WHEN open_reaction_id = $3 THEN NULL ELSE open_reaction_id END,
+              updated_at = $4, lineage_context_ref = $5
+        WHERE conversation_id = $1`,
+      [
+        reaction.conversationId,
+        reaction.observedThroughSequence,
+        reaction.reactionId,
+        now,
+        lineageJson(options.execution),
+      ],
+    );
+    await executeRepositorySql(
+      transaction,
+      `UPDATE "heptalogos"."reaction"
+          SET state = 'REPLIED', updated_at = $2,
+              lineage_context_ref = $3
+        WHERE reaction_id = $1 AND state = 'COMMUNICATION_COMMITTED'`,
+      [reaction.reactionId, now, lineageJson(options.execution)],
+    );
+    await options.evidence.recordRequired(context, {
+      evidenceKind: "subject.outbound.materialized",
+      evidenceContractVersion: "subject.v1",
+      subjectRef: reaction.reactionId,
+      objectRef: communication.communicationCommitId,
+      retentionClass: "retained",
+      sensitivity: "operational",
+    });
+  };
+
+  const finalizeReplied = async (reaction: Reaction): Promise<void> =>
+    options.persistence.mutate((context) =>
       useRepositoryMutationTransaction(context, async (transaction) => {
         const current = await readReaction(transaction, reaction.reactionId, true);
         if (current === undefined) return;
-        const now = options.time.now();
-        await executeRepositorySql(
-          transaction,
-          `UPDATE "heptalogos"."conversation_mailbox"
-              SET consumed_through_sequence = GREATEST(consumed_through_sequence, $2),
-                  open_reaction_id = CASE WHEN open_reaction_id = $3 THEN NULL ELSE open_reaction_id END,
-                  updated_at = $4, lineage_context_ref = $5
-            WHERE conversation_id = $1`,
-          [
-            reaction.conversationId,
-            reaction.observedThroughSequence,
-            reaction.reactionId,
-            now,
-            lineageJson(options.execution),
-          ],
-        );
-        await executeRepositorySql(
-          transaction,
-          `UPDATE "heptalogos"."reaction"
-              SET state = $2, updated_at = $3, lineage_context_ref = $4
-            WHERE reaction_id = $1 AND state IN ('DECIDED', 'OPEN')`,
-          [reaction.reactionId, state, now, lineageJson(options.execution)],
-        );
-        await options.evidence.recordRequired(context, {
-          evidenceKind:
-            state === "REPLIED"
-              ? "subject.reply.finalized"
-              : "subject.silence.finalized",
-          evidenceContractVersion: "subject.v1",
-          subjectRef: reaction.reactionId,
-          objectRef: reaction.conversationId,
-          retentionClass: "retained",
-          sensitivity: "operational",
-        });
+        if (current.state === "REPLIED") return;
+        if (current.state !== "COMMUNICATION_COMMITTED") {
+          throw subjectProblem(
+            "subject.reaction_state_invalid",
+            "Subject Reaction cannot be finalized as replied",
+            "Only a CommunicationCommit-backed Reaction can become REPLIED",
+            "integrity",
+          );
+        }
+        const communication = await readCommunication(transaction, reaction.reactionId);
+        if (communication === undefined) {
+          throw subjectProblem(
+            "subject.communication_missing",
+            "Subject communication commit is unavailable",
+            "A COMMUNICATION_COMMITTED Reaction has no CommunicationCommit",
+            "integrity",
+          );
+        }
+        await finalizeCommittedReaction(transaction, context, reaction, communication);
       }),
     );
-  };
 
   const materializeExpression = async (
     reaction: Reaction,
     communication: CommunicationCommit,
     generation: GenerationResult,
-  ): Promise<"REPLIED" | "SUPERSEDED"> =>
+  ): Promise<"REPLIED"> =>
     options.persistence.mutate((context) =>
       useRepositoryMutationTransaction(context, async (transaction) => {
-        if (await outboundExists(transaction, communication.communicationCommitId)) {
-          return "REPLIED";
-        }
-        const authority = await readAuthority(
+        const hasOutbound = await outboundExists(
           transaction,
-          options.installationId,
-          true,
+          communication.communicationCommitId,
         );
-        if (
-          authority === undefined ||
-          authority.desiredState !== "RUNNING" ||
-          authority.authorityRevision !== communication.subjectAuthorityRevision
-        ) {
-          const now = options.time.now();
-          await executeRepositorySql(
-            transaction,
-            `UPDATE "heptalogos"."reaction"
-                SET state = 'SUPERSEDED', updated_at = $2,
-                    lineage_context_ref = $3
-              WHERE reaction_id = $1 AND state IN ('DECIDED', 'OPEN')`,
-            [reaction.reactionId, now, lineageJson(options.execution)],
+        const current = await readReaction(transaction, reaction.reactionId, true);
+        if (current === undefined) {
+          throw subjectProblem(
+            "subject.reaction_missing",
+            "Subject Reaction is unavailable",
+            "The committed communication Reaction could not be read",
+            "integrity",
           );
-          return "SUPERSEDED";
         }
-        await options.aiRuntime.assertGenerationAdmissibleForCommit(
-          context,
-          generation,
-        );
-        await options.messaging.materializeOutboundWithinTransaction(context, {
-          communicationCommitId: communication.communicationCommitId,
-          text: parseExpressionText(generation.candidate),
-        });
-        const now = options.time.now();
-        await executeRepositorySql(
-          transaction,
-          `UPDATE "heptalogos"."conversation_mailbox"
-              SET consumed_through_sequence = GREATEST(consumed_through_sequence, $2),
-                  open_reaction_id = CASE WHEN open_reaction_id = $3 THEN NULL ELSE open_reaction_id END,
-                  updated_at = $4, lineage_context_ref = $5
-            WHERE conversation_id = $1`,
-          [
-            reaction.conversationId,
-            reaction.observedThroughSequence,
-            reaction.reactionId,
-            now,
-            lineageJson(options.execution),
-          ],
-        );
-        await executeRepositorySql(
-          transaction,
-          `UPDATE "heptalogos"."reaction"
-              SET state = 'REPLIED', updated_at = $2,
-                  lineage_context_ref = $3
-            WHERE reaction_id = $1 AND state IN ('DECIDED', 'OPEN')`,
-          [reaction.reactionId, now, lineageJson(options.execution)],
-        );
-        await options.evidence.recordRequired(context, {
-          evidenceKind: "subject.outbound.materialized",
-          evidenceContractVersion: "subject.v1",
-          subjectRef: reaction.reactionId,
-          objectRef: communication.communicationCommitId,
-          retentionClass: "retained",
-          sensitivity: "operational",
-        });
-        return "REPLIED";
+        if (current.state === "REPLIED") return "REPLIED";
+        if (current.state !== "COMMUNICATION_COMMITTED") {
+          throw subjectProblem(
+            "subject.reaction_state_invalid",
+            "Subject Reaction cannot materialize communication",
+            "Only a COMMUNICATION_COMMITTED Reaction may materialize outbound text",
+            "integrity",
+          );
+        }
+        if (!hasOutbound) {
+          await options.aiRuntime.assertGenerationAdmissibleForCommit(
+            context,
+            generation,
+          );
+          await options.messaging.materializeOutboundWithinTransaction(context, {
+            communicationCommitId: communication.communicationCommitId,
+            text: parseExpressionText(generation.candidate),
+          });
+        }
+        await finalizeCommittedReaction(transaction, context, reaction, communication);
+        return "REPLIED" as const;
       }),
     );
 
@@ -1626,19 +1644,13 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
     return parsed.text;
   }
 
-  const completeReply = async (
+  const completeCommunication = async (
     reaction: Reaction,
-    decision: DecisionCommit,
-    existingCommunication?: CommunicationCommit,
+    communication: CommunicationCommit,
   ): Promise<SubjectReactionOutcome> => {
-    const communication =
-      existingCommunication ?? (await ensureCommunication(reaction, decision));
     const expression = await expressionGeneration(communication);
-    const result = await materializeExpression(reaction, communication, expression);
-    return Object.freeze({
-      accepted: true,
-      status: result === "REPLIED" ? "REPLIED" : "SUPERSEDED",
-    });
+    await materializeExpression(reaction, communication, expression);
+    return Object.freeze({ accepted: true, status: "REPLIED" });
   };
 
   const processReaction = async (
@@ -1667,38 +1679,35 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
     );
     if (reaction === undefined)
       return Object.freeze({ accepted: true, status: "NOOP" });
-    let progress = await readProgress(reaction);
+
+    const progress = await readProgress(reaction);
     if (progress.outbound) {
-      await advanceMailboxAndFinalize(reaction, "REPLIED");
+      await finalizeReplied(reaction);
       return Object.freeze({ accepted: true, status: "REPLIED" });
     }
-    if (progress.decision?.decisionKind === "SILENCE") {
-      await advanceMailboxAndFinalize(reaction, "DELIBERATED_SILENT");
-      return Object.freeze({ accepted: true, status: "SILENCE" });
-    }
-    if (progress.decision?.decisionKind === "REPLY") {
-      return completeReply(reaction, progress.decision, progress.communication);
-    }
-    const primary = await primaryGeneration(reaction);
-    const intent = behaviorIntent(primary.candidate);
-    const decisionStatus = await commitDecision(reaction, primary, intent);
-    if (decisionStatus === "SUPERSEDED") {
+    if (reaction.state === "NO_COMMUNICATION")
+      return Object.freeze({ accepted: true, status: "NO_COMMUNICATION" });
+    if (reaction.state === "SUPERSEDED")
       return Object.freeze({ accepted: true, status: "SUPERSEDED" });
-    }
-    progress = await readProgress(reaction);
-    if (progress.decision?.decisionKind === "SILENCE") {
-      await advanceMailboxAndFinalize(reaction, "DELIBERATED_SILENT");
-      return Object.freeze({ accepted: true, status: "SILENCE" });
-    }
-    if (progress.decision?.decisionKind !== "REPLY") {
+    if (progress.communication !== undefined)
+      return completeCommunication(reaction, progress.communication);
+    if (reaction.state !== "OPEN") {
       throw subjectProblem(
-        "subject.decision_missing",
-        "Subject DecisionCommit is unavailable",
-        "The primary proposal did not produce a current DecisionCommit",
+        "subject.reaction_state_invalid",
+        "Subject Reaction cannot progress",
+        "The current Reaction has no admissible open or committed communication state",
         "integrity",
       );
     }
-    return completeReply(reaction, progress.decision, progress.communication);
+
+    const primary = await primaryGeneration(reaction);
+    const proposal = conversationReactionProposal(primary.candidate);
+    const accepted = await commitAcceptedProposal(reaction, primary, proposal);
+    if (accepted.kind === "SUPERSEDED")
+      return Object.freeze({ accepted: true, status: "SUPERSEDED" });
+    if (accepted.kind === "NO_COMMUNICATION")
+      return Object.freeze({ accepted: true, status: "NO_COMMUNICATION" });
+    return completeCommunication(reaction, accepted.communication);
   };
 
   const executeReaction = async (input: {
@@ -1762,7 +1771,7 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
         kind: "TERMINAL",
         retryClass:
           reasonCode === "subject.expression_invalid" ||
-          reasonCode === "subject.behavior_invalid"
+          reasonCode === "subject.reaction_proposal_invalid"
             ? "invalid"
             : "permanent",
         reasonCode,

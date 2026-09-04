@@ -50,9 +50,9 @@ protocol Driver
 
 Subject Chat and external IM use separate transport/projection boundaries while
 remaining on Subject Authority. A model, tool, or Driver proposal does not
-become canonical state by itself. The current branch still contains the
-pre-P1 `DecisionCommit`/`REPLY|SILENCE` implementation shape; it is bounded
-implementation lag, not the total Subject behavior ontology.
+become canonical state by itself. The bounded conversation slice does not define
+the total Subject behavior ontology; accepted communication is committed through
+CommunicationCommit before Expression and outbound materialization.
 
 ## Management
 

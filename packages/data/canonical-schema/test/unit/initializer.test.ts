@@ -168,12 +168,19 @@ describe("canonical schema adapter", () => {
     expect(sql).toContain('CREATE TABLE "heptalogos"."messaging_conversation"');
     expect(sql).toContain('CREATE TABLE "heptalogos"."conversation_mailbox"');
     expect(sql).toContain('CREATE TABLE "heptalogos"."reaction"');
-    expect(sql).toContain('CREATE TABLE "heptalogos"."decision_commit"');
     expect(sql).toContain('CREATE TABLE "heptalogos"."communication_commit"');
     expect(sql).toContain('CREATE TABLE "heptalogos"."message_fact"');
     expect(sql).toContain("message_fact_inbound_idempotency_unique");
     expect(sql).toContain(
-      'GRANT SELECT, INSERT ON TABLE "heptalogos"."decision_commit"',
+      "state IN ('OPEN', 'SUPERSEDED', 'NO_COMMUNICATION', 'COMMUNICATION_COMMITTED', 'REPLIED', 'FAILED')",
+    );
+    expect(sql).toContain(
+      'reaction_id uuid NOT NULL UNIQUE REFERENCES "heptalogos"."reaction"',
+    );
+    expect(sql).toContain("primary_invocation_id uuid NOT NULL");
+    expect(sql).not.toContain("decision_commit");
+    expect(sql).toContain(
+      'GRANT SELECT, INSERT ON TABLE "heptalogos"."communication_commit"',
     );
     expect(sql).not.toContain("actual_state");
   });

@@ -32,15 +32,20 @@ supervisor, downloader, or updater to Heptalogos under the current Plan.
 
 ## OpenClaw Machine Operations
 
-OpenClaw remains independently operated. Use the [OpenClaw project](https://github.com/openclaw/openclaw)
-and its [upstream documentation](https://github.com/openclaw/openclaw/tree/main/docs)
-for deployment and administration. The Heptalogos boundary
-does not require OpenClaw to boot Product Host and does not store OpenClaw
-privileged credentials by default. A future distribution may carry an
-independent Subject OpenClaw Runtime and this Machine Operations runtime
-together, but they must remain separate processes/profiles/state roots,
-credentials, ports, and trust domains; the current Product Host has not yet
-implemented that Subject runtime.
+OpenClaw remains independently operated for Machine Operations. Use the
+[OpenClaw project](https://github.com/openclaw/openclaw) and its
+[upstream documentation](https://github.com/openclaw/openclaw/tree/main/docs)
+for deployment and administration. The Heptalogos boundary does not require
+this privileged runtime to boot Product Host and does not store its credentials
+by default. A Product distribution may carry an independent Subject OpenClaw
+Runtime and this Machine Operations runtime together, but they must remain
+separate processes/profiles/state roots, credentials, ports, and trust domains.
+
+The Subject OpenClaw Runtime is a Product-managed low-privilege runtime when
+that cognition route is enabled; its lifecycle and generated configuration are
+owned by Product composition, while its provider-private state is not Subject
+canonical state. The current bounded AIRuntime Subject Chat path does not
+require it.
 
 ## FFmpeg
 

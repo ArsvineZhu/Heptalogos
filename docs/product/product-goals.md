@@ -191,15 +191,17 @@ MessageFact
         → Effect only when a later external channel requires it
 ```
 
-Communication decision owns whether to communicate, recipient, purpose and
-semantic content. `CommunicationCommit → Expression` remains the valuable
-seam: Expression may realize wording and social presentation, but cannot
-change recipient, material facts/commitments, Authority, or consequential action.
+For this bounded slice, Reaction fixes the conversation and derived recipient;
+deterministic Review accepts whether to communicate and the semantic content,
+with purpose fixed to `reply`. `CommunicationCommit → Expression` remains the
+valuable seam: Expression may realize wording and social presentation, but
+cannot change recipient, material facts/commitments, Authority, or
+consequential action.
 
-The current implementation still contains the pre-P1 `BehaviorIntent`,
-conversation-specific `DecisionCommit`, and `REPLY/SILENCE` shape. That is a
-bounded implementation lag, not the total Subject behavior ontology; P1 will
-remove it without inventing a generic ActionPlan/Decision framework.
+The bounded conversation slice is not the total Subject behavior ontology. It
+uses a current conversation proposal with optional communication, deterministic
+Review, direct CommunicationCommit Authority, and independent Expression; it
+does not invent a generic ActionPlan/Decision framework.
 
 ---
 

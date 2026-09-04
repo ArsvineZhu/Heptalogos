@@ -164,11 +164,11 @@ It creates no EffectOperation. A local Presentation disconnect, missed live
 event, or closed browser/Desktop client does not create external-effect
 uncertainty. The MessageFact remains queryable and is recovered by catch-up.
 
-A REPLY CommunicationCommit is the semantic cause of the outbound MessageFact.
+A CommunicationCommit with `purpose = "reply"` is the semantic cause of the outbound MessageFact.
 A `NO_COMMUNICATION` Reaction creates neither CommunicationCommit nor outbound
-MessageFact. The current branch still reaches this outcome through its
-pre-P1 SILENCE/DecisionCommit implementation; that implementation detail is
-being removed by the current communication-spine correction.
+MessageFact. The accepted CommunicationCommit is the direct semantic cause of
+the outbound MessageFact; no separate generic decision record is required in
+this current slice.
 
 ## Query and reconnect catch-up
 
@@ -262,7 +262,7 @@ generic messaging broker
 
 - [Messaging architecture](../../docs/architecture/messaging.md)
 - [Subject Base Spec](../subject/subject-base.md)
-- [Reaction and Behavior Authority](../subject/reaction-behavior.md)
+- [Reaction and Communication Authority](../subject/reaction-behavior.md)
 - [System Authority Spec](../management/system-authority.md)
 - [Work Item](../execution/work-item.md)
 - [Effect Operation](../execution/effect-operation.md)

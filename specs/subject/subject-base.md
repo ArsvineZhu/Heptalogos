@@ -130,7 +130,7 @@ DesiredState = RUNNING
 ```
 
 Optional capability degradation may project READY or ACTIVE to DEGRADED while
-the current reply/silence path remains usable. A missing hard prerequisite projects
+the current conversation cognition/communication slice remains usable. A missing hard prerequisite projects
 the running desired state to BLOCKED. Setting DesiredState to STOPPED closes new
 cognition admission and converges through:
 
@@ -254,7 +254,7 @@ physical SQL schema or migrations
 - [System Authority Spec](../management/system-authority.md)
 - [AI Runtime Spec](../system/ai-runtime.md)
 - [Messaging and Subject Chat](../messaging/messaging-subject-chat.md)
-- [Reaction and Behavior Authority](./reaction-behavior.md)
+- [Reaction and Communication Authority](./reaction-behavior.md)
 - [Service, Capability, and Readiness](../core/service-capability-readiness.md)
 - [Host Ownership](../runtime/host-ownership.md)
 - [Persistence Transactions](../data/persistence-transactions.md)

@@ -49,8 +49,6 @@ export type CanonicalConversationId = UuidV7Id<"CanonicalConversationId">;
 export type CanonicalMessageId = UuidV7Id<"CanonicalMessageId">;
 /** Identifies one durable Subject Reaction. */
 export type ReactionId = UuidV7Id<"ReactionId">;
-/** Identifies one immutable Subject DecisionCommit. */
-export type DecisionCommitId = UuidV7Id<"DecisionCommitId">;
 /** Identifies one immutable Subject CommunicationCommit. */
 export type CommunicationCommitId = UuidV7Id<"CommunicationCommitId">;
 /** Represents a normalized UTC instant with millisecond precision. */
@@ -94,9 +92,6 @@ export const createCanonicalMessageId = (): CanonicalMessageId =>
   createUuidV7Id("CanonicalMessageId");
 /** Creates a durable Subject Reaction identity. */
 export const createReactionId = (): ReactionId => createUuidV7Id("ReactionId");
-/** Creates an immutable Subject DecisionCommit identity. */
-export const createDecisionCommitId = (): DecisionCommitId =>
-  createUuidV7Id("DecisionCommitId");
 /** Creates an immutable Subject CommunicationCommit identity. */
 export const createCommunicationCommitId = (): CommunicationCommitId =>
   createUuidV7Id("CommunicationCommitId");
@@ -161,9 +156,6 @@ export const parseCanonicalMessageId = (
 /** Parses a durable Subject Reaction identity. */
 export const parseReactionId = (value: unknown): ReactionId | undefined =>
   parseUuidV7Id("ReactionId", value);
-/** Parses an immutable Subject DecisionCommit identity. */
-export const parseDecisionCommitId = (value: unknown): DecisionCommitId | undefined =>
-  parseUuidV7Id("DecisionCommitId", value);
 /** Parses an immutable Subject CommunicationCommit identity. */
 export const parseCommunicationCommitId = (
   value: unknown,

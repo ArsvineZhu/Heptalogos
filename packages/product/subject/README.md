@@ -14,12 +14,12 @@ there is no second durable `actualState` authority.
 ## Current scope
 
 The package registers one generation-pinned `work.subject-reaction` handler.
-The corrected target is an optional `NO_COMMUNICATION` or `COMMUNICATE` proposal;
-the latter is reviewed into one CommunicationCommit before Expression and the
-outbound MessageFact. The current branch implementation still invokes the
-configured `subject.primary` and `subject.expression` AIRuntime bindings and
-retains the pre-P1 BehaviorIntent/DecisionCommit/REPLY/SILENCE shape. That is
-implementation lag, not the package's total Subject behavior contract.
+The current path accepts an optional `NO_COMMUNICATION` or `COMMUNICATE`
+proposal; the latter is reviewed into one CommunicationCommit before
+Expression and the outbound MessageFact. `CommunicationCommit` owns the
+accepted communication semantics, while Expression only realizes its bounded
+human-facing text. This package does not define the total Subject behavior
+space or a generic ActionPlan/Decision framework.
 
 Persona, Memory, external IM, tools, proactive behavior, and advanced
 observation/recovery machinery are outside this package's current plan.
@@ -28,4 +28,4 @@ observation/recovery machinery are outside this package's current plan.
 
 - [Subject Base Spec](../../../specs/subject/subject-base.md)
 - [Reaction and Communication Spec](../../../specs/subject/reaction-behavior.md)
-- [Persistent Subject L4 Plan](../../../project/plans/completed/product/persistent-subject-l4-vertical-slice-2026-09-04.md)
+- [Subject Communication Spine Plan](../../../project/plans/completed/product/p1-subject-communication-spine-correction-2026-09-04.md)

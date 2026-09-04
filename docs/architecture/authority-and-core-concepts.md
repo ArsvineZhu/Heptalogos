@@ -95,16 +95,15 @@ MessageFact
 ```
 
 一个 communication opportunity 可以合法地以 `NO_COMMUNICATION` 完成，不产生
-`CommunicationCommit` 或 outbound message。Communication decision 决定是否
-沟通、沟通对象和要传达的语义内容；`CommunicationCommit` 是已经接受的
-communication obligation；`Expression` 只负责其人类可读的语言/社交实现，
-不能改变 recipient、material facts、Authority 或 consequential action。
+`CommunicationCommit` 或 outbound message。Reaction 固定 conversation 及其
+派生 recipient；deterministic Review 接受是否沟通和要传达的 semantic content，
+purpose 固定为 `reply`。`CommunicationCommit` 是已经接受的 communication
+obligation；`Expression` 只负责其人类可读的语言/社交实现，不能改变 recipient、
+material facts、Authority 或 consequential action。
 
-当前分支的实现仍保留旧的 `BehaviorIntent`、conversation-specific
-`DecisionCommit` 和 `REPLY/SILENCE` 数据/代码形状；这是 P1 要删除和替换的
-implementation lag，不是新的通用 Subject Authority。P1 会把 accepted
-communication provenance 直接收束到 `CommunicationCommit`，但本页不提前定义
-通用 ActionPlan/Decision framework。
+当前切片没有位于 cognition proposal 与 accepted communication 之间的通用
+Subject decision state。accepted communication 的 provenance 直接保留在
+`CommunicationCommit`；当前切片也不创建通用 ActionPlan/Decision framework。
 
 `CognitiveOpportunity`、`ReactionWorkspace`、`Yield`、`PromptProgram`、
 `ActionPlan` 与高级 Observation Window 目前只是保留的未来研究/语义接缝，
@@ -147,8 +146,9 @@ System Assistant / Machine Operations OpenClaw
 相同软件版本不表示共享 Gateway、agent fleet、state root、credentials、workspace
 或 trust domain。角色表、启动/分发和凭据边界由
 [Machine Operations Plane](machine-operations.md) 作为当前 canonical owner 维护；
-Subject 页面记录其 Product-side target。当前实现只保留外部 Machine Operations
-路线，Subject runtime integration 属于后续 P3。
+Subject 页面记录其 Product-side runtime boundary。Machine Operations 仍是独立的
+高权限运行域，Subject cognition runtime 则是低权限、由 Product Host 管理的另一
+个运行域。
 
 ## 不可混淆关系
 

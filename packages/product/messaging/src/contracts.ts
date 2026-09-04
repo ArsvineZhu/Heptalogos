@@ -6,6 +6,7 @@ import {
   createMessagingPlatformId,
   type CanonicalConversationId,
   type CanonicalMessageId,
+  type CommunicationCommitId,
   type InstallationId,
   type Instant,
   type MessagingAccountId,
@@ -62,7 +63,7 @@ export interface MessageFact {
   readonly text: string;
   readonly clientMessageId?: string;
   readonly acceptedInputDigest?: string;
-  readonly causedByCommunicationCommitId?: string;
+  readonly causedByCommunicationCommitId?: CommunicationCommitId;
   readonly createdAt: Instant;
   readonly lineageContextRef: LineageContextRef;
 }

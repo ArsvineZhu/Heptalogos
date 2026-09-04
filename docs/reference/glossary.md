@@ -63,17 +63,9 @@ proposal；只有 `NO_COMMUNICATION` 或 `COMMUNICATE(semantic content)` 两种
 
 **Review**：Authority commit 前的 deterministic/policy-assisted review。
 
-**BehaviorIntent**：P1 前当前实现使用的旧 conversation proposal 名称；它不是
-总 Subject behavior ontology，P1 会在 PRE_PRODUCTION 中移除该 current-slice
-形状。
-
-**DecisionCommit**：P1 前 current conversation slice 的旧 behavior commit
-形状；不是 timeless global Subject Authority，P1 会将 accepted communication
-provenance 收束到 CommunicationCommit。
-
 **CommunicationCommit**：Subject 已接受的 communication obligation，包含
-recipient/purpose/semantic content 的 canonical 语义；它不等于已经产生
-outbound MessageFact。
+由 Reaction 固定的 conversation、确定性的 purpose 和 semantic content；recipient
+由该 conversation 派生。它不等于已经产生 outbound MessageFact。
 
 **Expression**：对已提交 CommunicationCommit 做人类可读语言/社交实现的
 阶段；不能改变是否沟通、recipient、material facts/commitments、Authority 或
@@ -86,8 +78,8 @@ consequential action。
 
 **Semantic Fidelity**：确认表达没有改变 CommunicationCommit 的检查。
 
-**ActionPlan**：未来的 durable Subject execution intent；当前 P0/P1 不创建
-通用 ActionPlan/Decision framework。
+**ActionPlan**：未来的 durable Subject execution intent；当前 bounded
+conversation slice 不创建通用 ActionPlan/Decision framework。
 
 **EffectOperation**：外部副作用 truth fence，支持 `uncertain`。
 
@@ -143,9 +135,9 @@ consequential action。
 implementation/dependency route；软件名称不是 Heptalogos 普通用户界面的产品
 身份，也不意味着不同角色共享 runtime。
 
-**Subject OpenClaw Runtime**：P3 目标中的低权限、由 Product Host 监督的
-Subject cognition mechanics；其 output 仍是 proposal，canonical Subject state
-和 Authority 留在 Heptalogos。
+**Subject OpenClaw Runtime**：低权限、由 Product Host 监督的 Subject cognition
+mechanics；其 output 仍是 proposal，canonical Subject state 和 Authority 留在
+Heptalogos。
 
 **Machine Operations OpenClaw Runtime**：独立的、高权限 machine/deployment
 operations runtime；其 process、state、credentials、workspace 和 Authority

@@ -44,7 +44,7 @@ InvocationSpec
 ModelBinding
 ContextProjection
 Capability policy
-Behavior Authority
+Subject/domain Authority boundaries
 Effect fences
 Evidence
 ```
@@ -85,11 +85,11 @@ future.embedding
 `subject.expression` 两个 ModelBinding 角色；它们可以绑定同一个
 ModelProfile。`future.*` 只表示未来可扩展的命名空间，不表示当前存在
 Operator 或 System Assistant 的内部模型绑定。当前 AIRuntime 不拥有
-OpenClaw 的 provider-private 模型配置。P3 的 Subject OpenClaw Runtime 若被
-实现，Heptalogos 控制的 runtime generation、tool policy、budgets 和
-model/provider intent 应来自 typed Product Configuration 与 SecretRef，再
-由 Subject adapter 投影给 OpenClaw；生成的 provider config 不是第二个可编辑
-Authority。Machine Operations OpenClaw 的配置仍由独立 operations plane 拥有。
+OpenClaw 的 provider-private 模型配置。Subject OpenClaw Runtime 使用时，
+Heptalogos 控制的 runtime generation、tool policy、budgets 和 model/provider
+intent 应来自 typed Product Configuration 与 SecretRef，再由 Subject adapter
+投影给 OpenClaw；生成的 provider config 不是第二个可编辑 Authority。Machine
+Operations OpenClaw 的配置仍由独立 operations plane 拥有。
 
 ---
 
@@ -188,7 +188,7 @@ Evidence
 generation fence
 ```
 
-不负责 Subject behavior decision，也不负责 SystemAction approval。
+不负责 Subject conversation/action Authority，也不负责 SystemAction approval。
 当前 AIRuntime 不拥有 provider/gateway selection、retry、failover 或 fallback。
 
 ---

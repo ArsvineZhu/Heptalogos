@@ -22,21 +22,16 @@ It does not define the total Subject behavior space, Persona, Memory,
 Relationship, Attention, Living State, advanced Observation Window, proactive
 behavior, tools, MCP, external Messaging, or a second scheduler.
 
-The current branch still contains the pre-P1 `BehaviorIntent`,
-conversation-specific `DecisionCommit`, and `REPLY/SILENCE` implementation.
-Those are explicitly implementation lag; they are not the current conceptual
-Subject ontology and are not to be extended as a generic decision framework.
-
 ## Ownership and current flow
 
-Reaction and Behavior Authority owns the semantic cognition episode and
-committed behavior records. MessagingService owns MessageFact. Subject Core
-owns Subject identity, state, and authorityRevision. AIRuntime owns model
-invocation and provider provenance. WorkItem/DBOS own durable processing
+Reaction and Communication Authority owns the semantic cognition episode and
+current-slice communication records. MessagingService owns MessageFact.
+Subject Core owns Subject identity, state, and authorityRevision. AIRuntime owns
+model invocation and provider provenance. WorkItem/DBOS own durable processing
 mechanics and obligation projection. Persistence owns Host-fenced transactions;
 Lineage and Evidence own causal proof.
 
-The corrected current-slice target for P1 is:
+The current-slice flow is:
 
 ```text
 accepted MessageFact
@@ -57,8 +52,8 @@ accepted MessageFact
 
 `NO_COMMUNICATION` creates no CommunicationCommit or outbound MessageFact. It
 is a legitimate local completion result, not a global durable Silence entity.
-No AI tool call occurs in the current AIRuntime target; OpenClaw proposal tools
-belong to the later P3 integration.
+The current AIRuntime path uses structured output; OpenClaw proposal tools are
+outside this bounded slice.
 
 ## ConversationMailbox
 
@@ -231,7 +226,7 @@ Reaction → NO_COMMUNICATION
 + required Lineage/Evidence
 ```
 
-There is no intermediate durable DecisionCommit state in the corrected slice.
+There is no intermediate durable generic decision state in the current slice.
 
 The transaction revalidates the Subject authority revision, mailbox revision,
 open-Reaction fence, and provider provenance at the point of commit. A
@@ -247,9 +242,6 @@ CommunicationCommit exists and outbound does not → expression/materialization 
 Reaction is SUPERSEDED → complete superseded outcome
 Reaction is OPEN → primary proposal, Review, and accepted result
 ```
-
-The current implementation still has the old DecisionCommit re-entry path;
-that is P1 implementation lag and is not a reason to preserve the old contract.
 
 ## CommunicationCommit
 

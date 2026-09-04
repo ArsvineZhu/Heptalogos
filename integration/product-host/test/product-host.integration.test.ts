@@ -39,43 +39,74 @@ async function createSubjectGatewayFixture(): Promise<{
   readonly releaseSlowPrimary: () => void;
   readonly waitForSlowExpression: () => Promise<void>;
   readonly releaseSlowExpression: () => void;
+  readonly primaryInvocationCount: () => number;
+  readonly expressionInvocationCount: () => number;
+  readonly primaryRequestMessages: () => readonly (readonly string[])[];
 }> {
-  let resolveSlowPrimaryStarted = () => {};
-  let resolveSlowPrimary = () => {};
-  let resolveSlowExpressionStarted = () => {};
-  let resolveSlowExpression = () => {};
-  const slowPrimaryStarted = new Promise<void>((resolve) => {
-    resolveSlowPrimaryStarted = resolve;
-  });
-  const slowPrimaryReleased = new Promise<void>((resolve) => {
-    resolveSlowPrimary = resolve;
-  });
-  const slowExpressionStarted = new Promise<void>((resolve) => {
-    resolveSlowExpressionStarted = resolve;
-  });
-  const slowExpressionReleased = new Promise<void>((resolve) => {
-    resolveSlowExpression = resolve;
-  });
+  const createGate = () => {
+    let resolveStarted = () => {};
+    let resolveReleased = () => {};
+    const started = new Promise<void>((resolve) => {
+      resolveStarted = resolve;
+    });
+    const released = new Promise<void>((resolve) => {
+      resolveReleased = resolve;
+    });
+    return {
+      started,
+      released,
+      resolveStarted,
+      resolveReleased,
+    };
+  };
+  let slowPrimaryGate = createGate();
+  let slowExpressionGate = createGate();
+  let primaryInvocations = 0;
+  let expressionInvocations = 0;
+  const primaryRequests: Array<readonly string[]> = [];
   const server = createServer((request, response) => {
     void (async () => {
       try {
         const body = await readJsonBody(request);
         const model = typeof body.model === "string" ? body.model : "";
         const isExpression = model.includes("expression");
-        const isSilence = model.includes("silence");
+        if (isExpression) expressionInvocations += 1;
+        else {
+          primaryInvocations += 1;
+          primaryRequests.push(
+            Array.isArray(body.messages)
+              ? body.messages.map((message) => {
+                  if (typeof message !== "object" || message === null) return "";
+                  const value = message as Record<string, unknown>;
+                  if (typeof value.content === "string") return value.content;
+                  if (typeof value.text === "string") return value.text;
+                  return JSON.stringify(message);
+                })
+              : [],
+          );
+        }
         if (!isExpression && model.includes("slow")) {
-          resolveSlowPrimaryStarted();
-          await slowPrimaryReleased;
+          const gate = slowPrimaryGate;
+          gate.resolveStarted();
+          await gate.released;
         }
         if (isExpression && model.includes("slow")) {
-          resolveSlowExpressionStarted();
-          await slowExpressionReleased;
+          const gate = slowExpressionGate;
+          gate.resolveStarted();
+          await gate.released;
         }
         const candidate = isExpression
           ? { schemaVersion: 1, text: "local expressed reply" }
-          : isSilence
-            ? { schemaVersion: 1, kind: "SILENCE", reason: "local test silence" }
-            : { schemaVersion: 1, kind: "REPLY", text: "local semantic reply" };
+          : model.includes("no-communication")
+            ? { schemaVersion: 1, kind: "NO_COMMUNICATION" }
+            : {
+                schemaVersion: 1,
+                kind: "COMMUNICATE",
+                semanticContent: {
+                  schemaVersion: 1,
+                  content: "local semantic content",
+                },
+              };
         const path = request.url ?? "";
         const payload = path.endsWith("/chat/completions")
           ? {
@@ -148,10 +179,22 @@ async function createSubjectGatewayFixture(): Promise<{
   return {
     server,
     baseUrl: `http://127.0.0.1:${address.port}/v1`,
-    waitForSlowPrimary: () => slowPrimaryStarted,
-    releaseSlowPrimary: () => resolveSlowPrimary(),
-    waitForSlowExpression: () => slowExpressionStarted,
-    releaseSlowExpression: () => resolveSlowExpression(),
+    waitForSlowPrimary: () => slowPrimaryGate.started,
+    releaseSlowPrimary: () => {
+      const gate = slowPrimaryGate;
+      slowPrimaryGate = createGate();
+      gate.resolveReleased();
+    },
+    waitForSlowExpression: () => slowExpressionGate.started,
+    releaseSlowExpression: () => {
+      const gate = slowExpressionGate;
+      slowExpressionGate = createGate();
+      gate.resolveReleased();
+    },
+    primaryInvocationCount: () => primaryInvocations,
+    expressionInvocationCount: () => expressionInvocations,
+    primaryRequestMessages: () =>
+      Object.freeze(primaryRequests.map((messages) => Object.freeze([...messages]))),
   };
 }
 
@@ -159,7 +202,6 @@ interface SubjectFactSnapshot {
   readonly reactions: readonly {
     readonly reactionId: string;
     readonly state: string;
-    readonly decisionKind: string | null;
     readonly communicationCommitId: string | null;
   }[];
   readonly outboundCount: number;
@@ -189,15 +231,12 @@ async function readSubjectFactSnapshot(
     const reactions = await database.query<{
       readonly reaction_id: string;
       readonly state: string;
-      readonly decision_kind: string | null;
       readonly communication_commit_id: string | null;
     }>(
-      `SELECT r.reaction_id, r.state, d.decision_kind, c.communication_commit_id
-         FROM "heptalogos"."reaction" r
-         LEFT JOIN "heptalogos"."decision_commit" d
-           ON d.reaction_id = r.reaction_id
+      `SELECT r.reaction_id, r.state, c.communication_commit_id
+          FROM "heptalogos"."reaction" r
          LEFT JOIN "heptalogos"."communication_commit" c
-           ON c.decision_commit_id = d.decision_commit_id
+           ON c.reaction_id = r.reaction_id
         WHERE r.conversation_id = $1
         ORDER BY r.created_at, r.reaction_id`,
       [conversationId],
@@ -214,7 +253,6 @@ async function readSubjectFactSnapshot(
           Object.freeze({
             reactionId: row.reaction_id,
             state: row.state,
-            decisionKind: row.decision_kind,
             communicationCommitId: row.communication_commit_id,
           }),
         ),
@@ -728,12 +766,12 @@ suite("built Product Host process", () => {
       sessionToken,
       credentialStore: fixture.credentialStore,
     });
-    const client = authenticated.client;
+    let client = authenticated.client;
     const applyAction = async (action: SystemActionRequestInput) => {
       const plan = await client.planSystemAction(action);
-      const result = await client.executeSystemAction({ plan, action });
-      expect(result.postconditionsVerified).toBe(true);
-      return result;
+      const executed = await client.executeSystemAction({ plan, action });
+      expect(executed.postconditionsVerified).toBe(true);
+      return executed;
     };
     const scopeRef = {
       schemaVersion: 1 as const,
@@ -883,6 +921,20 @@ suite("built Product Host process", () => {
         }),
       ]),
     );
+    const firstFacts = await readSubjectFactSnapshot(
+      fixture,
+      first.body.message.conversationId,
+    );
+    expect(firstFacts.reactions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          state: "REPLIED",
+          communicationCommitId: expect.any(String),
+        }),
+      ]),
+    );
+    expect(subjectGateway.primaryInvocationCount()).toBe(1);
+    expect(subjectGateway.expressionInvocationCount()).toBe(1);
 
     const replay = await send("subject-l4-message-1", "Hello Subject");
     expect(replay.body).toMatchObject({
@@ -894,18 +946,26 @@ suite("built Product Host process", () => {
     expect(conflict.body.problemCode).toBe("messaging.idempotency_conflict");
 
     const conversationId = first.body.message.conversationId as string;
-    const silenceModelProfileId = createUuidV7Id("ModelProfileId");
+    const noCommunicationModelProfileId = createUuidV7Id("ModelProfileId");
     await setModelProfile(
-      silenceModelProfileId,
-      "subject-primary-silence",
+      noCommunicationModelProfileId,
+      "subject-primary-no-communication",
       "openai-chat",
     );
     await applyAction({
       actionId: "model-binding.set",
-      input: { role: "subject.primary", modelProfileId: silenceModelProfileId },
+      input: {
+        role: "subject.primary",
+        modelProfileId: noCommunicationModelProfileId,
+      },
     });
-    const silence = await send("subject-l4-message-silence", "Please stay quiet");
-    expect(silence.response.status, JSON.stringify(silence.body)).toBe(200);
+    const noCommunication = await send(
+      "subject-l4-message-no-communication",
+      "Please consider this quietly",
+    );
+    expect(noCommunication.response.status, JSON.stringify(noCommunication.body)).toBe(
+      200,
+    );
     await expect
       .poll(
         async () => {
@@ -914,25 +974,24 @@ suite("built Product Host process", () => {
             snapshot.outboundCount === 1 &&
             snapshot.reactions.some(
               (reaction) =>
-                reaction.decisionKind === "SILENCE" &&
-                reaction.state === "DELIBERATED_SILENT",
+                reaction.communicationCommitId === null &&
+                reaction.state === "NO_COMMUNICATION",
             )
           );
         },
         { timeout: 20_000, interval: 250 },
       )
       .toBe(true);
-    const silenceFacts = await readSubjectFactSnapshot(fixture, conversationId);
-    expect(silenceFacts.reactions).toEqual(
+    const noCommunicationFacts = await readSubjectFactSnapshot(fixture, conversationId);
+    expect(noCommunicationFacts.reactions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          decisionKind: "SILENCE",
-          state: "DELIBERATED_SILENT",
+          state: "NO_COMMUNICATION",
           communicationCommitId: null,
         }),
       ]),
     );
-    expect(silenceFacts.outboundCount).toBe(1);
+    expect(noCommunicationFacts.outboundCount).toBe(1);
 
     const beforeStop = await client.getProductState();
     await applyAction({
@@ -987,7 +1046,7 @@ suite("built Product Host process", () => {
       "subject.dependencies_unavailable",
     );
     const blockedFacts = await readSubjectFactSnapshot(fixture, conversationId);
-    expect(blockedFacts.reactions).toHaveLength(silenceFacts.reactions.length);
+    expect(blockedFacts.reactions).toHaveLength(noCommunicationFacts.reactions.length);
     await applyAction({
       actionId: "gateway-profile.set",
       input: {
@@ -1013,11 +1072,63 @@ suite("built Product Host process", () => {
       actionId: "model-binding.set",
       input: { role: "subject.primary", modelProfileId: slowPrimaryModelProfileId },
     });
+    const beforePreCommitStop = await client.getProductState();
+    const preCommitStop = await send(
+      "subject-l4-message-stop-before-commit",
+      "Stop before communication commit",
+    );
+    expect(preCommitStop.response.status).toBe(200);
+    await subjectGateway.waitForSlowPrimary();
+    await applyAction({
+      actionId: "subject.stop",
+      input: {
+        subjectId: subjectBeforeStart.subjectId,
+        expectedAuthorityRevision: beforePreCommitStop.data.subject.authorityRevision,
+      },
+    });
+    subjectGateway.releaseSlowPrimary();
+    await expect
+      .poll(
+        async () => {
+          const snapshot = await readSubjectFactSnapshot(fixture!, conversationId);
+          return (
+            snapshot.outboundCount === 1 &&
+            snapshot.reactions.some((reaction) => reaction.state === "SUPERSEDED")
+          );
+        },
+        { timeout: 30_000, interval: 250 },
+      )
+      .toBe(true);
+    const preCommitStopFacts = await readSubjectFactSnapshot(fixture, conversationId);
+    expect(preCommitStopFacts.reactions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ state: "SUPERSEDED", communicationCommitId: null }),
+      ]),
+    );
+
+    const restartedAfterPreCommitStop = await client.getProductState();
+    await applyAction({
+      actionId: "subject.start",
+      input: {
+        subjectId: subjectBeforeStart.subjectId,
+        expectedAuthorityRevision:
+          restartedAfterPreCommitStop.data.subject.authorityRevision,
+      },
+    });
+    await expect
+      .poll(async () => (await client.getProductState()).data.subject.actualState, {
+        timeout: 10_000,
+        interval: 100,
+      })
+      .toBe("READY");
+
     const supersededA = await send("subject-l4-message-a", "Message A");
     expect(supersededA.response.status).toBe(200);
     await subjectGateway.waitForSlowPrimary();
     const supersededB = await send("subject-l4-message-b", "Message B");
     expect(supersededB.response.status).toBe(200);
+    subjectGateway.releaseSlowPrimary();
+    await subjectGateway.waitForSlowPrimary();
     subjectGateway.releaseSlowPrimary();
     await expect
       .poll(
@@ -1028,7 +1139,7 @@ suite("built Product Host process", () => {
             snapshot.reactions.some((reaction) => reaction.state === "SUPERSEDED") &&
             snapshot.reactions.some(
               (reaction) =>
-                reaction.state === "REPLIED" && reaction.decisionKind === "REPLY",
+                reaction.state === "REPLIED" && reaction.communicationCommitId !== null,
             )
           );
         },
@@ -1038,9 +1149,21 @@ suite("built Product Host process", () => {
     const supersessionFacts = await readSubjectFactSnapshot(fixture, conversationId);
     expect(supersessionFacts.reactions).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ state: "SUPERSEDED", decisionKind: null }),
+        expect.objectContaining({ state: "SUPERSEDED", communicationCommitId: null }),
       ]),
     );
+    expect(
+      subjectGateway
+        .primaryRequestMessages()
+        .some(
+          (messages) =>
+            messages.some((message) => message.includes("Message A")) &&
+            messages.every((message) => !message.includes("Hello Subject")) &&
+            messages.every(
+              (message) => !message.includes("Please consider this quietly"),
+            ),
+        ),
+    ).toBe(true);
 
     await applyAction({
       actionId: "model-binding.set",
@@ -1059,8 +1182,11 @@ suite("built Product Host process", () => {
         modelProfileId: slowExpressionModelProfileId,
       },
     });
-    const crashMessage = await send("subject-l4-message-crash", "Crash boundary");
-    expect(crashMessage.response.status).toBe(200);
+    const postCommitStopMessage = await send(
+      "subject-l4-message-stop-after-commit",
+      "Stop after communication commit",
+    );
+    expect(postCommitStopMessage.response.status).toBe(200);
     await subjectGateway.waitForSlowExpression();
     await expect
       .poll(
@@ -1069,17 +1195,21 @@ suite("built Product Host process", () => {
           const latest = snapshot.reactions[snapshot.reactions.length - 1];
           return (
             snapshot.outboundCount === 2 &&
-            latest?.state === "DECIDED" &&
-            latest.decisionKind === "REPLY" &&
+            latest?.state === "COMMUNICATION_COMMITTED" &&
             latest.communicationCommitId !== null
           );
         },
         { timeout: 20_000, interval: 250 },
       )
       .toBe(true);
-    await running.crash();
-    running = undefined;
-    running = await runHost(fixture, { includeInitialPort: false });
+    const beforePostCommitStop = await client.getProductState();
+    await applyAction({
+      actionId: "subject.stop",
+      input: {
+        subjectId: subjectBeforeStart.subjectId,
+        expectedAuthorityRevision: beforePostCommitStop.data.subject.authorityRevision,
+      },
+    });
     subjectGateway.releaseSlowExpression();
     await expect
       .poll(
@@ -1091,6 +1221,67 @@ suite("built Product Host process", () => {
         { timeout: 45_000, interval: 250 },
       )
       .toBe(true);
+    await expect
+      .poll(async () => (await client.getProductState()).data.subject.actualState, {
+        timeout: 10_000,
+        interval: 100,
+      })
+      .toBe("STOPPED");
+
+    const beforeRestart = await client.getProductState();
+    await applyAction({
+      actionId: "subject.start",
+      input: {
+        subjectId: subjectBeforeStart.subjectId,
+        expectedAuthorityRevision: beforeRestart.data.subject.authorityRevision,
+      },
+    });
+    await expect
+      .poll(async () => (await client.getProductState()).data.subject.actualState, {
+        timeout: 10_000,
+        interval: 100,
+      })
+      .toBe("READY");
+
+    const primaryBeforeCrash = subjectGateway.primaryInvocationCount();
+    const expressionBeforeCrash = subjectGateway.expressionInvocationCount();
+    const crashMessage = await send("subject-l4-message-crash", "Crash boundary");
+    expect(crashMessage.response.status).toBe(200);
+    await subjectGateway.waitForSlowExpression();
+    await expect
+      .poll(
+        async () => {
+          const snapshot = await readSubjectFactSnapshot(fixture!, conversationId);
+          const latest = snapshot.reactions[snapshot.reactions.length - 1];
+          return (
+            snapshot.outboundCount === 3 &&
+            latest?.state === "COMMUNICATION_COMMITTED" &&
+            latest.communicationCommitId !== null
+          );
+        },
+        { timeout: 20_000, interval: 250 },
+      )
+      .toBe(true);
+    await running!.crash();
+    running = undefined;
+    subjectGateway.releaseSlowExpression();
+    await runHost(fixture, { includeInitialPort: false }).then((host) => {
+      running = host;
+    });
+    await subjectGateway.waitForSlowExpression();
+    subjectGateway.releaseSlowExpression();
+    await expect
+      .poll(
+        async () => {
+          const snapshot = await readSubjectFactSnapshot(fixture!, conversationId);
+          const latest = snapshot.reactions[snapshot.reactions.length - 1];
+          return snapshot.outboundCount === 4 && latest?.state === "REPLIED";
+        },
+        { timeout: 45_000, interval: 250 },
+      )
+      .toBe(true);
+    expect(subjectGateway.primaryInvocationCount()).toBe(primaryBeforeCrash + 1);
+    expect(subjectGateway.expressionInvocationCount()).toBe(expressionBeforeCrash + 2);
     const restartedLocal = await openLocalManagementClient({
       anchorRoot: fixture.anchorRoot,
       credentialStore: fixture.credentialStore,
@@ -1108,5 +1299,41 @@ suite("built Product Host process", () => {
       desiredState: "RUNNING",
       actualState: "READY",
     });
+    client = restartedAuthenticated.client;
+
+    await applyAction({
+      actionId: "model-binding.set",
+      input: { role: "subject.primary", modelProfileId: slowPrimaryModelProfileId },
+    });
+    const primaryBeforePreProposalCrash = subjectGateway.primaryInvocationCount();
+    const preProposalCrash = await send(
+      "subject-l4-message-crash-before-proposal",
+      "Crash before proposal acceptance",
+    );
+    expect(preProposalCrash.response.status).toBe(200);
+    await subjectGateway.waitForSlowPrimary();
+    await running!.crash();
+    running = undefined;
+    subjectGateway.releaseSlowPrimary();
+    await runHost(fixture, { includeInitialPort: false }).then((host) => {
+      running = host;
+    });
+    await subjectGateway.waitForSlowPrimary();
+    subjectGateway.releaseSlowPrimary();
+    await subjectGateway.waitForSlowExpression();
+    subjectGateway.releaseSlowExpression();
+    await expect
+      .poll(
+        async () => {
+          const snapshot = await readSubjectFactSnapshot(fixture!, conversationId);
+          const latest = snapshot.reactions[snapshot.reactions.length - 1];
+          return snapshot.outboundCount === 5 && latest?.state === "REPLIED";
+        },
+        { timeout: 45_000, interval: 250 },
+      )
+      .toBe(true);
+    expect(subjectGateway.primaryInvocationCount()).toBe(
+      primaryBeforePreProposalCrash + 2,
+    );
   });
 });

@@ -9,7 +9,6 @@ import {
   type CanonicalConversationId,
   type CanonicalMessageId,
   type CommunicationCommitId,
-  type DecisionCommitId,
   type InstallationId,
   type Instant,
   type PackageGenerationId,
@@ -97,10 +96,23 @@ export interface SubjectStatus {
   readonly blockers: readonly SubjectBlocker[];
 }
 
-/** Canonical Subject behavior proposal accepted by deterministic Review. */
-export type BehaviorIntent =
-  | { readonly schemaVersion: 1; readonly kind: "REPLY"; readonly text: string }
-  | { readonly schemaVersion: 1; readonly kind: "SILENCE"; readonly reason: string };
+/** Semantic content accepted for a bounded conversation communication. */
+export interface ConversationSemanticContent {
+  readonly schemaVersion: 1;
+  readonly content: string;
+}
+
+/** Bounded current-slice cognition proposal; not the total Subject behavior contract. */
+export type ConversationReactionProposal =
+  | {
+      readonly schemaVersion: 1;
+      readonly kind: "COMMUNICATE";
+      readonly semanticContent: ConversationSemanticContent;
+    }
+  | {
+      readonly schemaVersion: 1;
+      readonly kind: "NO_COMMUNICATION";
+    };
 
 /** One current durable Reaction workspace owned by Subject. */
 export interface Reaction {
@@ -111,7 +123,12 @@ export interface Reaction {
   readonly observedThroughSequence: number;
   readonly observedSubjectAuthorityRevision: number;
   readonly state:
-    "OPEN" | "SUPERSEDED" | "DECIDED" | "DELIBERATED_SILENT" | "REPLIED" | "FAILED";
+    | "OPEN"
+    | "SUPERSEDED"
+    | "NO_COMMUNICATION"
+    | "COMMUNICATION_COMMITTED"
+    | "REPLIED"
+    | "FAILED";
   readonly ownerWorkItemId: WorkItemId;
   readonly ownerActivityRef: { readonly schemaVersion: 1; readonly activityId: string };
   readonly createdAt: Instant;
@@ -119,17 +136,18 @@ export interface Reaction {
   readonly lineageContextRef: LineageContextRef;
 }
 
-/** Immutable accepted primary decision and its generation provenance. */
-export interface DecisionCommit {
+/** Immutable accepted communication Authority and primary generation provenance. */
+export interface CommunicationCommit {
   readonly schemaVersion: 1;
-  readonly decisionCommitId: DecisionCommitId;
+  readonly communicationCommitId: CommunicationCommitId;
   readonly reactionId: ReactionId;
   readonly subjectId: SubjectId;
   readonly subjectAuthorityRevision: number;
   readonly mailboxRevision: number;
-  readonly decisionKind: "REPLY" | "SILENCE";
-  readonly behaviorIntent: BehaviorIntent;
-  readonly behaviorIntentDigest: string;
+  readonly conversationId: CanonicalConversationId;
+  readonly purpose: "reply";
+  readonly semanticContent: ConversationSemanticContent;
+  readonly semanticContentDigest: string;
   readonly primaryInvocationId: string;
   readonly primaryModelBindingId: string;
   readonly primaryBindingRevision: number;
@@ -139,20 +157,6 @@ export interface DecisionCommit {
   readonly primaryConfigurationRevisionId: string;
   readonly primaryProtocol: "openai-chat" | "openai-responses";
   readonly committedAt: Instant;
-  readonly lineageContextRef: LineageContextRef;
-}
-
-/** Immutable current reply authorization derived from one REPLY DecisionCommit. */
-export interface CommunicationCommit {
-  readonly schemaVersion: 1;
-  readonly communicationCommitId: CommunicationCommitId;
-  readonly decisionCommitId: DecisionCommitId;
-  readonly conversationId: CanonicalConversationId;
-  readonly subjectAuthorityRevision: number;
-  readonly purpose: string;
-  readonly semanticContent: { readonly schemaVersion: 1; readonly text: string };
-  readonly semanticContentDigest: string;
-  readonly createdAt: Instant;
   readonly lineageContextRef: LineageContextRef;
 }
 
@@ -178,7 +182,7 @@ export interface SubjectStateActionInput {
 /** Bounded result returned by the Reaction WorkHandler. */
 export interface SubjectReactionOutcome {
   readonly accepted: true;
-  readonly status: "NOOP" | "SUPERSEDED" | "SILENCE" | "REPLIED";
+  readonly status: "NOOP" | "SUPERSEDED" | "NO_COMMUNICATION" | "REPLIED";
 }
 
 /** Current Subject service surface consumed by ProductHost and Management. */

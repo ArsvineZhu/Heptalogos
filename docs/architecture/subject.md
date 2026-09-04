@@ -142,10 +142,9 @@ canonical MessageFact range
 只实现已提交语义的语言/社交表达。它不能改变是否沟通、recipient、material
 facts、purpose、SystemAction、consequential external action 或 permission。
 
-当前分支的代码仍使用 `BehaviorIntent`、conversation-specific
-`DecisionCommit` 以及 `REPLY/SILENCE` state vocabulary；这些是 P1 将直接重写
-的 implementation lag，不应被解释为最终 Subject ontology。P1 之前这里不
-新增 OpenClaw、ActionPlan 或通用 Decision machinery。
+当前切片没有位于 cognition proposal 与 accepted communication 之间的通用
+Subject decision state，也不创建 OpenClaw、ActionPlan 或通用 Decision
+machinery。accepted communication 的 provenance 由 CommunicationCommit 持有。
 
 `Reaction` 状态不是 DBOS workflow state；WorkQueue/DBOS 只承载可恢复的
 obligation。
@@ -334,7 +333,7 @@ Reflection/Diary/Dream algorithms
 
 ## 15. Subject OpenClaw Runtime role
 
-Subject OpenClaw Runtime 是 P3 计划中的 Product-side cognition mechanics，
+Subject OpenClaw Runtime 是 Product-side cognition mechanics，
 不是 Subject、Subject Authority 或 canonical state owner：
 
 ```text
@@ -350,8 +349,8 @@ CommunicationCommit 和 Review/Authority。OpenClaw session/workspace state 只�
 SubjectId。Subject role 必须与高权限 Machine Operations OpenClaw 使用不同的
 process、profile、state/config/workspace、credentials、ports 和 tool policy。
 
-当前分支尚未实现这个 Subject runtime；现行 `subject.primary` AIRuntime
-调用是 P3 前的实现形状。P3 将使用公开协议和受控 Proposal tools，把运行时
+当前内建 Subject Chat 使用 AIRuntime 的 bounded cognition 路径；Subject
+OpenClaw Runtime 若被接入，必须使用公开协议和受控 proposal 边界，把运行时
 输出交回 Heptalogos 的 deterministic Review，而不会把 OpenClaw agent-loop
 升级为 Authority。
 
@@ -379,9 +378,9 @@ ContextProjection
 不能改变 recipient、material facts/commitments、permission、Authority 或
 consequential action。
 
-当前代码中的 `BehaviorIntent`、`DecisionCommit`、`DELIBERATED_SILENT` 和
-`REPLY/SILENCE` 是待 P1 删除的 implementation lag。它们不定义总 Subject
-行为空间；P1 不会用另一个泛化的 ActionPlan/Decision framework 替代它们。
+当前 L4 只定义 bounded conversation proposal、optional communication、
+CommunicationCommit 与 Expression；它不定义总 Subject 行为空间，也不创建
+泛化的 ActionPlan/Decision framework。
 
 `CognitiveOpportunity`、`ReactionWorkspace`、`Yield`、`PromptProgram`、
 `ActionPlan` 与高级 Observation Window 是保留的未来研究/语义接缝，不是
