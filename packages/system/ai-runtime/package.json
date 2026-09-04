@@ -13,6 +13,7 @@
   "dependencies": {
     "@ai-sdk/openai-compatible": "catalog:",
     "@ai-sdk/open-responses": "catalog:",
+    "@ai-sdk/provider-utils": "catalog:",
     "@heptalogos/configuration": "workspace:*",
     "@heptalogos/evidence": "workspace:*",
     "@heptalogos/execution-lineage": "workspace:*",

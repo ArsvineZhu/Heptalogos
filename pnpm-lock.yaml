@@ -12,6 +12,9 @@ catalogs:
     '@ai-sdk/openai-compatible':
       specifier: 3.0.43
       version: 3.0.43
+    '@ai-sdk/provider-utils':
+      specifier: 5.0.36
+      version: 5.0.36
     '@bybrave/proper-lockfile2':
       specifier: 5.0.0
       version: 5.0.0
@@ -682,6 +685,9 @@ importers:
       '@ai-sdk/openai-compatible':
         specifier: 'catalog:'
         version: 3.0.43(zod@4.4.3)
+      '@ai-sdk/provider-utils':
+        specifier: 'catalog:'
+        version: 5.0.36(zod@4.4.3)
       '@heptalogos/configuration':
         specifier: workspace:*
         version: link:../configuration

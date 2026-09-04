@@ -25,6 +25,7 @@ import { compileSchema } from "@heptalogos/schema-runtime";
 import type { SecretRef } from "@heptalogos/secret";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createOpenResponses } from "@ai-sdk/open-responses";
+import { injectJsonInstructionIntoMessages } from "@ai-sdk/provider-utils";
 import { generateText, jsonSchema, Output, type ModelMessage } from "ai";
 import {
   CURRENT_MODEL_CAPABILITIES,
@@ -353,20 +354,28 @@ function bindingDigest(binding: ModelBinding): string {
   ).hex;
 }
 
-function assertExpected(
-  actual: string,
-  expected: string | undefined,
+function staleResource(name: string): never {
+  throw aiRuntimeProblem(
+    "ai.stale_revision",
+    name + " is stale",
+    "The current resource changed after the action was planned",
+    "conflict",
+    "after-change",
+  );
+}
+
+function assertExpected<T extends object>(
+  actual: T | undefined,
+  expected: string | null | undefined,
+  digest: (value: T) => string,
   name: string,
 ): void {
-  if (expected !== undefined && expected !== actual) {
-    throw aiRuntimeProblem(
-      "ai.stale_revision",
-      name + " is stale",
-      "The current resource changed after the action was planned",
-      "conflict",
-      "after-change",
-    );
+  if (expected === undefined) return;
+  if (expected === null) {
+    if (actual !== undefined) staleResource(name);
+    return;
   }
+  if (actual === undefined || digest(actual) !== expected) staleResource(name);
 }
 
 function currentActivity(options: AIRuntimeServiceOptions) {
@@ -533,6 +542,30 @@ function modelPrompt(messages: InvocationSpec["messages"]): {
   };
 }
 
+function chatSystemPrompt(
+  prompt: string | undefined,
+  schema: InvocationSpec["outputSchema"],
+): string {
+  const instructed = injectJsonInstructionIntoMessages({
+    messages: (prompt === undefined
+      ? []
+      : [{ role: "system" as const, content: prompt }]) as Parameters<
+      typeof injectJsonInstructionIntoMessages
+    >[0]["messages"],
+    schema: schema as Parameters<typeof injectJsonInstructionIntoMessages>[0]["schema"],
+  });
+  const system = instructed[0];
+  if (system?.role !== "system" || typeof system.content !== "string") {
+    throw aiRuntimeProblem(
+      "ai.output_schema_invalid",
+      "AIRuntime could not prepare the Chat schema instruction",
+      "The installed AI SDK helper did not produce a system instruction",
+      "integrity",
+    );
+  }
+  return system.content;
+}
+
 /** Creates the current AIRuntime service over its semantic owner boundaries. */
 export function createAIRuntimeService(
   options: AIRuntimeServiceOptions,
@@ -636,19 +669,6 @@ export function createAIRuntimeService(
         input.apiTokenSecretRef === undefined
           ? undefined
           : ref(input.apiTokenSecretRef, "apiTokenSecretRef");
-      const existing = await readGateway(gatewayProfileId);
-      if (existing !== undefined) {
-        if (existing.baseUrl !== baseUrl) {
-          throw aiRuntimeProblem(
-            "ai.gateway_destination_immutable",
-            "GatewayProfile base URL is immutable",
-            "Create a new GatewayProfile when the configured destination changes",
-            "conflict",
-            "after-change",
-          );
-        }
-        assertExpected(gatewayDigest(existing), expectedDigest, "GatewayProfile");
-      }
       if (apiTokenSecretRef !== undefined) {
         const secret = await options.secret.getMetadata(apiTokenSecretRef);
         if (
@@ -667,33 +687,63 @@ export function createAIRuntimeService(
           );
         }
       }
-      const profile: GatewayProfile = Object.freeze({
-        schemaVersion: 1,
-        gatewayProfileId,
-        baseUrl,
-        ...(apiTokenSecretRef === undefined ? {} : { apiTokenSecretRef }),
-        enabled: input.enabled,
-      });
+      let written: GatewayProfile | undefined;
       await options.persistence.mutate((context) =>
         useRepositoryMutationTransaction(context, async (transaction) => {
-          await executeRepositorySql(
+          const currentRows = await executeRepositorySql<GatewayRow>(
             transaction,
-            'INSERT INTO "heptalogos"."gateway_profile" (' +
-              "gateway_profile_id, base_url, api_token_secret_ref, enabled, lineage_context_ref) " +
-              "VALUES ($1, $2, $3, $4, $5) " +
-              "ON CONFLICT (gateway_profile_id) DO UPDATE SET " +
-              "base_url = EXCLUDED.base_url, " +
-              "api_token_secret_ref = EXCLUDED.api_token_secret_ref, " +
-              "enabled = EXCLUDED.enabled, " +
-              "lineage_context_ref = EXCLUDED.lineage_context_ref",
-            [
-              gatewayProfileId,
-              profile.baseUrl,
-              profile.apiTokenSecretRef?.secretId ?? null,
-              profile.enabled,
-              options.execution.createLineageContextRef(),
-            ],
+            "SELECT gateway_profile_id, base_url, api_token_secret_ref, enabled " +
+              'FROM "heptalogos"."gateway_profile" ' +
+              "WHERE gateway_profile_id = $1 FOR UPDATE",
+            [gatewayProfileId],
           );
+          const currentRow = currentRows[0];
+          const current =
+            currentRow === undefined ? undefined : gatewayFromRow(currentRow);
+          assertExpected(current, expectedDigest, gatewayDigest, "GatewayProfile");
+          if (current !== undefined && current.baseUrl !== baseUrl) {
+            throw aiRuntimeProblem(
+              "ai.gateway_destination_immutable",
+              "GatewayProfile base URL is immutable",
+              "Create a new GatewayProfile when the configured destination changes",
+              "conflict",
+              "after-change",
+            );
+          }
+          const lineageContextRef = options.execution.createLineageContextRef();
+          const writtenRows =
+            current === undefined
+              ? await executeRepositorySql<GatewayRow>(
+                  transaction,
+                  'INSERT INTO "heptalogos"."gateway_profile" (' +
+                    "gateway_profile_id, base_url, api_token_secret_ref, enabled, lineage_context_ref) " +
+                    "VALUES ($1, $2, $3, $4, $5) " +
+                    "ON CONFLICT (gateway_profile_id) DO NOTHING " +
+                    "RETURNING gateway_profile_id, base_url, api_token_secret_ref, enabled",
+                  [
+                    gatewayProfileId,
+                    baseUrl,
+                    apiTokenSecretRef?.secretId ?? null,
+                    input.enabled,
+                    lineageContextRef,
+                  ],
+                )
+              : await executeRepositorySql<GatewayRow>(
+                  transaction,
+                  'UPDATE "heptalogos"."gateway_profile" SET ' +
+                    "api_token_secret_ref = $1, enabled = $2, lineage_context_ref = $3 " +
+                    "WHERE gateway_profile_id = $4 " +
+                    "RETURNING gateway_profile_id, base_url, api_token_secret_ref, enabled",
+                  [
+                    apiTokenSecretRef?.secretId ?? null,
+                    input.enabled,
+                    lineageContextRef,
+                    gatewayProfileId,
+                  ],
+                );
+          const writtenRow = writtenRows[0];
+          if (writtenRow === undefined) staleResource("GatewayProfile");
+          written = gatewayFromRow(writtenRow);
           await options.evidence.recordRequired(context, {
             evidenceKind: "ai.gateway-profile.changed",
             evidenceContractVersion: "ai-runtime.v1",
@@ -703,7 +753,7 @@ export function createAIRuntimeService(
           });
         }),
       );
-      return profile;
+      return written!;
     },
     async setModelProfile(input: SetModelProfileInput, expectedDigest) {
       const existingId = modelId(input.modelProfileId);
@@ -733,42 +783,65 @@ export function createAIRuntimeService(
       }
       assertInputText(input.modelIdentifier, "modelIdentifier", 256);
       const normalizedCapabilities = capabilities(input.consumedCapabilities);
-      const existing = await readModel(modelProfileId);
-      if (existing !== undefined)
-        assertExpected(modelDigest(existing), expectedDigest, "ModelProfile");
-      const profile: ModelProfile = Object.freeze({
-        schemaVersion: 1,
-        modelProfileId,
-        gatewayProfileId,
-        modelIdentifier: input.modelIdentifier,
-        protocol: input.protocol,
-        consumedCapabilities: normalizedCapabilities,
-        generation: existing === undefined ? 1 : existing.generation + 1,
-      });
+      let written: ModelProfile | undefined;
       await options.persistence.mutate((context) =>
         useRepositoryMutationTransaction(context, async (transaction) => {
-          await executeRepositorySql(
+          const currentRows = await executeRepositorySql<ModelRow>(
             transaction,
-            'INSERT INTO "heptalogos"."model_profile" (' +
-              "model_profile_id, gateway_profile_id, model_identifier, protocol, " +
-              "consumed_capabilities, generation, lineage_context_ref) VALUES ($1, $2, $3, $4, $5, $6, $7) " +
-              "ON CONFLICT (model_profile_id) DO UPDATE SET " +
-              "gateway_profile_id = EXCLUDED.gateway_profile_id, " +
-              "model_identifier = EXCLUDED.model_identifier, " +
-              "protocol = EXCLUDED.protocol, " +
-              "consumed_capabilities = EXCLUDED.consumed_capabilities, " +
-              "generation = EXCLUDED.generation, " +
-              "lineage_context_ref = EXCLUDED.lineage_context_ref",
-            [
-              modelProfileId,
-              gatewayProfileId,
-              profile.modelIdentifier,
-              profile.protocol,
-              JSON.stringify(profile.consumedCapabilities),
-              profile.generation,
-              options.execution.createLineageContextRef(),
-            ],
+            "SELECT model_profile_id, gateway_profile_id, model_identifier, protocol, " +
+              "consumed_capabilities, generation FROM " +
+              '"heptalogos"."model_profile" ' +
+              "WHERE model_profile_id = $1 FOR UPDATE",
+            [modelProfileId],
           );
+          const currentRow = currentRows[0];
+          const current =
+            currentRow === undefined ? undefined : modelFromRow(currentRow);
+          assertExpected(current, expectedDigest, modelDigest, "ModelProfile");
+          const generation = current === undefined ? 1 : current.generation + 1;
+          const lineageContextRef = options.execution.createLineageContextRef();
+          const writtenRows =
+            current === undefined
+              ? await executeRepositorySql<ModelRow>(
+                  transaction,
+                  'INSERT INTO "heptalogos"."model_profile" (' +
+                    "model_profile_id, gateway_profile_id, model_identifier, protocol, " +
+                    "consumed_capabilities, generation, lineage_context_ref) " +
+                    "VALUES ($1, $2, $3, $4, $5, $6, $7) " +
+                    "ON CONFLICT (model_profile_id) DO NOTHING " +
+                    "RETURNING model_profile_id, gateway_profile_id, model_identifier, " +
+                    "protocol, consumed_capabilities, generation",
+                  [
+                    modelProfileId,
+                    gatewayProfileId,
+                    input.modelIdentifier,
+                    input.protocol,
+                    JSON.stringify(normalizedCapabilities),
+                    generation,
+                    lineageContextRef,
+                  ],
+                )
+              : await executeRepositorySql<ModelRow>(
+                  transaction,
+                  'UPDATE "heptalogos"."model_profile" SET ' +
+                    "gateway_profile_id = $1, model_identifier = $2, protocol = $3, " +
+                    "consumed_capabilities = $4, generation = $5, lineage_context_ref = $6 " +
+                    "WHERE model_profile_id = $7 " +
+                    "RETURNING model_profile_id, gateway_profile_id, model_identifier, " +
+                    "protocol, consumed_capabilities, generation",
+                  [
+                    gatewayProfileId,
+                    input.modelIdentifier,
+                    input.protocol,
+                    JSON.stringify(normalizedCapabilities),
+                    generation,
+                    lineageContextRef,
+                    modelProfileId,
+                  ],
+                );
+          const writtenRow = writtenRows[0];
+          if (writtenRow === undefined) staleResource("ModelProfile");
+          written = modelFromRow(writtenRow);
           await options.evidence.recordRequired(context, {
             evidenceKind: "ai.model-profile.changed",
             evidenceContractVersion: "ai-runtime.v1",
@@ -778,7 +851,7 @@ export function createAIRuntimeService(
           });
         }),
       );
-      return profile;
+      return written!;
     },
     async setModelBinding(input: SetModelBindingInput, expectedDigest) {
       const modelProfileId = uuid(
@@ -795,50 +868,62 @@ export function createAIRuntimeService(
           "after-change",
         );
       }
-      const existing = await readBinding(input.role);
-      if (existing !== undefined)
-        assertExpected(bindingDigest(existing), expectedDigest, "ModelBinding");
-      const binding: ModelBinding = Object.freeze({
-        schemaVersion: 1,
-        modelBindingId:
-          existing?.modelBindingId ??
-          (createUuidV7Id("ModelBindingId") as ModelBindingId),
-        role: input.role,
-        modelProfileId,
-        revision: existing === undefined ? 1 : existing.revision + 1,
-        enabled: true,
-      });
+      const newModelBindingId = createUuidV7Id("ModelBindingId") as ModelBindingId;
+      let written: ModelBinding | undefined;
       await options.persistence.mutate((context) =>
         useRepositoryMutationTransaction(context, async (transaction) => {
-          await executeRepositorySql(
+          const currentRows = await executeRepositorySql<BindingRow>(
             transaction,
-            'INSERT INTO "heptalogos"."model_binding" (' +
-              "model_binding_id, role, model_profile_id, revision, enabled, " +
-              "lineage_context_ref) VALUES ($1, $2, $3, $4, $5, $6) " +
-              "ON CONFLICT (role) DO UPDATE SET " +
-              "model_binding_id = EXCLUDED.model_binding_id, " +
-              "model_profile_id = EXCLUDED.model_profile_id, " +
-              "revision = EXCLUDED.revision, enabled = EXCLUDED.enabled, " +
-              "lineage_context_ref = EXCLUDED.lineage_context_ref",
-            [
-              binding.modelBindingId,
-              binding.role,
-              binding.modelProfileId,
-              binding.revision,
-              binding.enabled,
-              options.execution.createLineageContextRef(),
-            ],
+            "SELECT model_binding_id, role, model_profile_id, revision, enabled " +
+              'FROM "heptalogos"."model_binding" WHERE role = $1 FOR UPDATE',
+            [input.role],
           );
+          const currentRow = currentRows[0];
+          const current =
+            currentRow === undefined ? undefined : bindingFromRow(currentRow);
+          assertExpected(current, expectedDigest, bindingDigest, "ModelBinding");
+          const modelBindingId = current?.modelBindingId ?? newModelBindingId;
+          const revision = current === undefined ? 1 : current.revision + 1;
+          const lineageContextRef = options.execution.createLineageContextRef();
+          const writtenRows =
+            current === undefined
+              ? await executeRepositorySql<BindingRow>(
+                  transaction,
+                  'INSERT INTO "heptalogos"."model_binding" (' +
+                    "model_binding_id, role, model_profile_id, revision, enabled, " +
+                    "lineage_context_ref) VALUES ($1, $2, $3, $4, $5, $6) " +
+                    "ON CONFLICT (role) DO NOTHING " +
+                    "RETURNING model_binding_id, role, model_profile_id, revision, enabled",
+                  [
+                    modelBindingId,
+                    input.role,
+                    modelProfileId,
+                    revision,
+                    true,
+                    lineageContextRef,
+                  ],
+                )
+              : await executeRepositorySql<BindingRow>(
+                  transaction,
+                  'UPDATE "heptalogos"."model_binding" SET ' +
+                    "model_profile_id = $1, revision = $2, enabled = $3, " +
+                    "lineage_context_ref = $4 WHERE role = $5 " +
+                    "RETURNING model_binding_id, role, model_profile_id, revision, enabled",
+                  [modelProfileId, revision, true, lineageContextRef, input.role],
+                );
+          const writtenRow = writtenRows[0];
+          if (writtenRow === undefined) staleResource("ModelBinding");
+          written = bindingFromRow(writtenRow);
           await options.evidence.recordRequired(context, {
             evidenceKind: "ai.model-binding.changed",
             evidenceContractVersion: "ai-runtime.v1",
-            objectRef: binding.modelBindingId,
+            objectRef: written.modelBindingId,
             retentionClass: "retained",
             sensitivity: "operational",
           });
         }),
       );
-      return binding;
+      return written!;
     },
     async getReadiness() {
       const blockers: string[] = [];
@@ -1043,13 +1128,13 @@ export function createAIRuntimeService(
         const providerFetch = options.networkAccess.createProviderFetch(
           "system.ai-runtime",
           target,
+          activeConfig.revisionId,
         );
         const selectedModel =
           model.protocol === "openai-chat"
             ? createOpenAICompatible<string, string, string, string>({
                 name: "heptalogos-chat",
                 baseURL: gateway.baseUrl,
-                supportsStructuredOutputs: true,
                 ...(apiKey === undefined ? {} : { apiKey }),
                 fetch: providerFetch,
               }).chatModel(model.modelIdentifier)
@@ -1064,10 +1149,14 @@ export function createAIRuntimeService(
             spec.outputSchema as Record<string, unknown>,
           ),
         });
+        const system =
+          model.protocol === "openai-chat"
+            ? chatSystemPrompt(prompt.system, spec.outputSchema)
+            : prompt.system;
         const generated = await generateText({
           model: selectedModel,
           messages: prompt.messages,
-          ...(prompt.system === undefined ? {} : { system: prompt.system }),
+          ...(system === undefined ? {} : { system }),
           output,
           maxOutputTokens: spec.budget.maxOutputTokens,
           maxRetries: 0,

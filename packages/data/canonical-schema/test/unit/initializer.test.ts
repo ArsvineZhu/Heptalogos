@@ -3,7 +3,7 @@ import { Kysely, PostgresDialect } from "kysely";
 import type { Pool, PoolClient } from "pg";
 import { createCanonicalSchemaInitializer } from "../../src/initializer.js";
 import { foundationBaselineMigration } from "../../src/migrations/0001-foundation-baseline.js";
-import { productGatewayPrerequisitesMigration } from "../../src/migrations/0002-product-provider-prerequisites.js";
+import { productGatewayPrerequisitesMigration } from "../../src/migrations/0002-product-gateway-prerequisites.js";
 import type { CanonicalDatabase } from "../../src/migration-pool.js";
 import {
   canonicalMigrationNames,
@@ -76,14 +76,14 @@ describe("canonical schema adapter", () => {
   it("publishes the current static migrations without a filesystem provider", async () => {
     expect(canonicalMigrationNames).toEqual([
       "0001_foundation_baseline",
-      "0002_product_provider_prerequisites",
+      "0002_product_gateway_prerequisites",
     ]);
     await expect(canonicalMigrationProvider.getMigrations()).resolves.toEqual(
       expect.objectContaining({
         "0001_foundation_baseline": expect.objectContaining({
           up: expect.any(Function),
         }),
-        "0002_product_provider_prerequisites": expect.objectContaining({
+        "0002_product_gateway_prerequisites": expect.objectContaining({
           up: expect.any(Function),
         }),
       }),

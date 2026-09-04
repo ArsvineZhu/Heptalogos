@@ -2,7 +2,7 @@
 
 qualificationId: Q-AI-GATEWAY-CHAT-01
 plan: project/plans/active/product/gateway-first-airuntime-external-integration-posture-2026-09-03.md
-date: 2026-09-03
+date: 2026-09-04
 evidenceStatus: BLOCKED
 implementationQualification: PASS
 liveGatewayQualification: BLOCKED
@@ -17,17 +17,40 @@ pnpm: 11.24.0
 postgres: PostgreSQL 18.6
 postgresToolchain: tmp/pg/extracted/pgsql/bin
 preChangeGitRevision: a5287a01b42e3d09f445e96982caf6842ed74674
-productGeneration: fd896fe7b3c1a3e4fd072bd73d53e62353323822dff9fd7f64ea1629e42a92bc
+productGeneration: d93dcd2afdf651f7dd873a5cb99affe65417dd314b3f377625332e37275bcda5
 bootstrapRuntimeGeneration: 717b3ab130bfcc5a85a8aff330436ca1027e4790e7fafac91502063e96115ca6
 aiSdk: ai 7.0.91
 chatAdapter: @ai-sdk/openai-compatible 3.0.43
 responsesAdapter: @ai-sdk/open-responses 2.0.38
+jsonInstructionHelper: @ai-sdk/provider-utils 5.0.36
 configurationDefinition: ai.gateway.transport.v1
 secretPurpose: ai.gateway.bearer-token
 secretConsumer: system.ai-runtime
 secretScope: gateway-profile
 protocols: [openai-chat, openai-responses]
 bindings: [subject.primary, subject.expression]
+
+The bounded review correction was executed against base revision
+`b4631251d99e2983472a1bf4ae664e042d7d8e17` in the uncommitted working tree.
+The generated Product Host identity was regenerated from the current source
+inputs; it is not a live-provider or release qualification.
+
+The post-correction local implementation evidence is PASS:
+
+    pnpm nx run ai-runtime:test --skip-nx-cache
+    pnpm nx run network-access:test --skip-nx-cache
+    pnpm nx run management:test --skip-nx-cache
+    pnpm nx run canonical-schema:test --skip-nx-cache
+    pnpm nx run ai-runtime:typecheck --skip-nx-cache
+    pnpm nx run model-gateway-integration:test --skip-nx-cache
+    pnpm nx run product-host-integration:test --skip-nx-cache
+
+The focused correction assertions cover Chat broad-compatible `json_object`
+output plus schema instruction and final validation, exact active transport
+ConfigurationRevision fencing, expected-absent and stale resource semantics,
+transactional generation/revision increments with stable binding identity,
+full management postconditions, gateway-named migration identity, the actual
+protected-token redaction assertion, and byte-preserving non-TTY token trim.
 
 The local real-SDK fixture is PASS:
 

@@ -73,12 +73,13 @@ interface ModelBinding {
 interface InvocationSpec {
   readonly schemaVersion: 1;
   readonly invocationId: InvocationId;
-  readonly ownerActivityRef: ActivityRef;
+  readonly ownerActivityRef: ActivityId;
   readonly modelBindingId: ModelBindingId;
   readonly expectedBindingRevision: number;
-  readonly contextProjection: ContextProjectionRef | CanonicalJsonValue;
+  readonly contextProjection: CanonicalJsonValue;
+  readonly messages: readonly AIRuntimeMessage[];
   readonly objective: string;
-  readonly outputSchema: JsonSchemaRef;
+  readonly outputSchema: CanonicalJsonValue;
   readonly budget: InvocationBudget;
   readonly deadline?: Instant;
   readonly lineageContextRef: LineageContextRef;
@@ -112,8 +113,8 @@ The invocation boundary is:
 ```
 ContextProjection
 → InvocationSpec bound to exact ModelBinding revision
-→ authorized Secret resolution
 → selected ModelProfile and GatewayProfile
+→ exact active ConfigurationRevision selected for this invocation
 → authorized Secret resolution
 → exact NetworkAccess target
 → AI SDK openai-chat or openai-responses mechanics
@@ -125,6 +126,16 @@ AIRuntime does not become Context Authority. ContextProjection is invocation
 input, not long-lived Subject state. Protocol SDK instances may be created or
 closed as runtime resources; their existence is not readiness or Product
 identity.
+
+For `openai-chat`, AIRuntime uses the broad-compatible JSON-object response
+format and adds the InvocationSpec schema requirement to the system text using
+the adopted AI SDK JSON-instruction helper. It does not claim universal native
+`json_schema` support. For `openai-responses`, AIRuntime uses the adopted
+Responses mechanics. Both routes use SchemaRuntime/Ajv as the final canonical
+validator. AIRuntime and NetworkAccess preserve the one exact
+ConfigurationRevision selected for the invocation, and GenerationResult records
+that revision. GenerationResult remains proposal/evidence until the consuming
+owner commits it.
 
 An invocation may be observed as ADMITTED, RUNNING, SUCCEEDED, FAILED,
 ABORTED, or TIMED_OUT in Activity/diagnostic projections. These are not a

@@ -46,8 +46,13 @@ Installation
 | Management API / reference CLI | 本仓库拥有的机器可消费管理产品面；CLI 是完整的 reference client。                                                 |
 | external Presentation clients  | Browser、Desktop 以及其他 Presentation consumers；它们消费正式 Host/Subject contracts，不拥有 Product Authority。 |
 | Machine Operations integration | 独立 Machine Operations Plane 的集成入口，用于系统级诊断、修复和部署维护。                                        |
-| external model gateways        | 由管理员独立运行和维护的模型网关；Heptalogos 只保存受控 GatewayProfile 与可选令牌引用。                           |
+| model gateway integration      | Product-owned GatewayProfile/ModelProfile/ModelBinding 与调用合同；第三方模型网关由管理员独立运行和维护。         |
 | Bootstrap / Recovery entry     | 在正常 Management path 不可用时提供 bounded、local、AI-independent 的启动与恢复入口。                             |
+
+Model gateway integration 是 Heptalogos 的 Product role/boundary，不是把
+第三方网关进程或其 provider/channel 生命周期纳入 Product Host 的持久状态。
+Heptalogos 配置并调用一个兼容端点；外部实现独立拥有自己的进程、数据库、
+upstream credentials、路由和升级生命周期。
 
 Product Host 是持久产品运行时。关闭 Browser 或 Desktop Presentation
 不会停止 Host，也不会删除 Subject identity、canonical state、durable work

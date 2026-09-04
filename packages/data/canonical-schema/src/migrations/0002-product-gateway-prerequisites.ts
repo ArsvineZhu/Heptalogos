@@ -130,9 +130,6 @@ export const productGatewayPrerequisitesMigration: Migration = {
           `    btrim(base_url) <> '' AND octet_length(base_url) BETWEEN 1 AND 2048`,
           `  )`,
           `);`,
-          `CREATE INDEX gateway_profile_id_index`,
-          `  ON "heptalogos"."gateway_profile" (gateway_profile_id);`,
-
           `CREATE TABLE "heptalogos"."model_profile" (`,
           `  model_profile_id uuid NOT NULL PRIMARY KEY,`,
           `  gateway_profile_id uuid NOT NULL REFERENCES "heptalogos"."gateway_profile" (gateway_profile_id),`,

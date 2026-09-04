@@ -26,6 +26,20 @@ references and readiness consequences; they do not read a backend directly.
 Resolved material is an ephemeral process-memory value. It is deliberately not
 a serializable Product DTO and is never a general-purpose repository value.
 
+For the model gateway boundary, SecretService owns only the Heptalogos caller
+token:
+
+```text
+purpose = ai.gateway.bearer-token
+consumer = system.ai-runtime
+scope = gateway-profile / GatewayProfileId
+```
+
+SecretService does not own NewAPI administrator credentials, NewAPI upstream
+provider/channel keys, upstream DeepSeek/OpenAI/etc. keys when NewAPI is the
+gateway, or OpenClaw/Machine Operations credentials. No vendor-specific Secret
+type is defined.
+
 ## Normative types
 
 ```ts

@@ -51,7 +51,26 @@ Evidence
 
 ---
 
-## 3. ModelBinding
+## 3. Gateway、Model 与 Binding
+
+当前 Product 的模型集成边界是：
+
+```text
+GatewayProfile
+→ 已配置的 inference endpoint、enabled state、可选 gateway bearer-token SecretRef
+
+ModelProfile
+→ GatewayProfile + modelIdentifier + ModelInvocationProtocol + capability set + generation
+
+ModelBinding
+→ Subject role 到 ModelProfile 的精确选择
+```
+
+`ModelInvocationProtocol` 当前只有 `openai-chat` 和 `openai-responses`。
+GatewayProfile 不编码 OpenAI、DeepSeek、NewAPI 或其他 upstream vendor 身份；
+gateway 的 upstream credentials、channels、routing 和生命周期由外部实现拥有。
+
+## 3.1 ModelBinding
 
 逻辑角色可包括：
 
@@ -97,6 +116,13 @@ remote HTTP is rejected while literal loopback HTTP is allowed for local
 fixtures/development. The gateway may be NewAPI or another OpenAI-compatible
 external service, but its process, administration, upstream credentials, and
 upgrade lifecycle remain outside Heptalogos.
+
+For `openai-chat`, the runtime requests broad-compatible JSON-object output,
+adds the output schema requirement to the system text through the adopted AI
+SDK helper, and keeps SchemaRuntime/Ajv as the final validator. It makes no
+universal native `json_schema` claim. Responses uses the adopted
+`openai-responses` mechanics. Both paths retain the exact ConfigurationRevision
+selected for the invocation.
 
 ---
 
@@ -149,18 +175,17 @@ Capability 可被 Reactor、deterministic code、Operator support code 或其他
 负责：
 
 ```text
-availability/model-gateway selection
-scope
+availability and scope
 policy
 Secret resolution
 NetworkAccess policy integration
-invoke
-retry/idempotency handling
+invoke admission
 Evidence
 generation fence
 ```
 
 不负责 Subject behavior decision，也不负责 SystemAction approval。
+当前 AIRuntime 不拥有 provider/gateway selection、retry、failover 或 fallback。
 
 ---
 
@@ -325,10 +350,12 @@ network-policy enforcement
 
 ---
 
-## 15. Failover and fallback
+## 15. Gateway routing boundary
 
-当前 AIRuntime 不实现 provider fleet、failover 或 global fallback。未来若有
-明确的 current policy，fallback 也只能发生在 Authority commit 前。
+当前 AIRuntime 不实现 provider fleet、gateway selection、failover 或 global
+fallback。ModelBinding → ModelProfile → GatewayProfile 是单一路由；没有
+fallback chain。外部 gateway 返回响应前进行的 retry/failover 属于外部
+gateway 行为，不是 Heptalogos 的 Product Authority。
 
 实际 gateway/model/protocol revision/generation 必须进入 Evidence。
 

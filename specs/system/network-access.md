@@ -113,6 +113,7 @@ consuming owner and existing Foundation WorkItem/EffectOperation contracts.
 - NET-008 NetworkAccess owns transport policy, not gateway, model, Subject, or external-effect semantics.
 - NET-009 A spawned external process is OPAQUE_EXTERNAL for internal networking unless separately controlled.
 - NET-010 Gateway SDK transport injection/control must be demonstrated before a gateway route is implementation-READY.
+- NET-011 AIRuntime gateway transport must use the exact active ConfigurationRevision selected for the invocation; NetworkAccess MUST NOT silently switch to a newer revision before dispatch.
 
 ## Management and consumer projection
 

@@ -125,6 +125,17 @@ Defaults are Authority-labelled inputs. A materialized behavior default is
 stored in the resulting revision or activation context so a dependency or
 ProductGeneration change cannot silently change current behavior.
 
+The current gateway transport definition is:
+
+```text
+ai.gateway.transport.v1
+scope = INSTALLATION
+owner = system.network-access
+consumers = system.network-access, system.ai-runtime
+activation = LIVE
+defaultAuthority = NO_DEFAULT_REQUIRED
+```
+
 ## Lifecycle and transactions
 
 The semantic flow is:

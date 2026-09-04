@@ -31,13 +31,15 @@ const configurationValue = {
   responseBodyBudgetBytes: 1_048_576,
   expandedResponseBodyBudgetBytes: 4_194_304,
 };
+const configurationRevisionId = createUuidV7Id("ConfigurationRevisionId");
 
 function serviceFixture(
   transport: typeof fetch = async () => new Response("{}"),
   value = configurationValue,
+  revisionId = configurationRevisionId,
 ): NetworkAccessService {
   const configuration = {
-    getEffectiveRevision: async () => ({ value }),
+    getEffectiveRevision: async () => ({ revisionId, value }),
   } as unknown as ConfigurationService;
   const execution = {
     current: () => ({}) as never,
@@ -68,6 +70,7 @@ describe("NetworkAccess current GatewayProfile policy", () => {
     const response = await service.request(
       "system.ai-runtime",
       responsesTarget,
+      configurationRevisionId,
       "https://gateway.example.com/v1/responses",
       { method: "POST", body: "{}" },
     );
@@ -86,6 +89,7 @@ describe("NetworkAccess current GatewayProfile policy", () => {
       service.request(
         "system.ai-runtime",
         chatTarget,
+        configurationRevisionId,
         "https://gateway.example.com/v1/chat/completions",
         { method: "POST" },
       ),
@@ -116,6 +120,7 @@ describe("NetworkAccess current GatewayProfile policy", () => {
       service.request(
         "other-service",
         responsesTarget,
+        configurationRevisionId,
         "https://gateway.example.com/v1/responses",
         { method: "POST" },
       ),
@@ -126,6 +131,7 @@ describe("NetworkAccess current GatewayProfile policy", () => {
       service.request(
         "system.ai-runtime",
         responsesTarget,
+        configurationRevisionId,
         "https://example.com/v1/responses",
         { method: "POST" },
       ),
@@ -136,6 +142,7 @@ describe("NetworkAccess current GatewayProfile policy", () => {
       service.request(
         "system.ai-runtime",
         responsesTarget,
+        configurationRevisionId,
         "https://gateway.example.com/v1/other",
         { method: "POST" },
       ),
@@ -146,6 +153,7 @@ describe("NetworkAccess current GatewayProfile policy", () => {
       service.request(
         "system.ai-runtime",
         responsesTarget,
+        configurationRevisionId,
         "https://gateway.example.com/v1/responses",
         { method: "GET" },
       ),
@@ -156,6 +164,7 @@ describe("NetworkAccess current GatewayProfile policy", () => {
       service.request(
         "system.ai-runtime",
         responsesTarget,
+        configurationRevisionId,
         "https://gateway.example.com/v1/responses",
         { method: "POST", headers: { Cookie: "private" } },
       ),
@@ -176,6 +185,7 @@ describe("NetworkAccess current GatewayProfile policy", () => {
       redirect.request(
         "system.ai-runtime",
         responsesTarget,
+        configurationRevisionId,
         "https://gateway.example.com/v1/responses",
         { method: "POST" },
       ),
@@ -189,6 +199,7 @@ describe("NetworkAccess current GatewayProfile policy", () => {
       budget.request(
         "system.ai-runtime",
         responsesTarget,
+        configurationRevisionId,
         "https://gateway.example.com/v1/responses",
         { method: "POST" },
       ),
@@ -205,6 +216,7 @@ describe("NetworkAccess current GatewayProfile policy", () => {
       unavailable.request(
         "system.ai-runtime",
         responsesTarget,
+        configurationRevisionId,
         "https://gateway.example.com/v1/responses",
         { method: "POST" },
       ),
@@ -220,7 +232,11 @@ describe("NetworkAccess current GatewayProfile policy", () => {
       calls += 1;
       return new Response("{}", { status: 200 });
     });
-    const providerFetch = service.createProviderFetch("system.ai-runtime", chatTarget);
+    const providerFetch = service.createProviderFetch(
+      "system.ai-runtime",
+      chatTarget,
+      configurationRevisionId,
+    );
     await expect(
       providerFetch("https://other.example.com/v1/chat/completions", {
         method: "POST",
@@ -229,6 +245,26 @@ describe("NetworkAccess current GatewayProfile policy", () => {
       }),
     ).rejects.toMatchObject({
       problem: { problemCode: "network.unauthorized_destination" },
+    });
+    expect(calls).toBe(0);
+  });
+
+  it("rejects a stale configuration revision before transport", async () => {
+    let calls = 0;
+    const service = serviceFixture(async () => {
+      calls += 1;
+      return new Response("{}", { status: 200 });
+    });
+    await expect(
+      service.request(
+        "system.ai-runtime",
+        responsesTarget,
+        createUuidV7Id("ConfigurationRevisionId"),
+        "https://gateway.example.com/v1/responses",
+        { method: "POST" },
+      ),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "network.configuration_unavailable" },
     });
     expect(calls).toBe(0);
   });

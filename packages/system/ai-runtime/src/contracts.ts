@@ -188,17 +188,17 @@ export interface AIRuntimeService {
   /** Creates or replaces one configured gateway endpoint. */
   setGatewayProfile(
     input: SetGatewayProfileInput,
-    expectedDigest?: string,
+    expectedDigest?: string | null,
   ): Promise<GatewayProfile>;
   /** Creates or replaces one model profile. */
   setModelProfile(
     input: SetModelProfileInput,
-    expectedDigest?: string,
+    expectedDigest?: string | null,
   ): Promise<ModelProfile>;
   /** Creates or replaces one exact Subject binding. */
   setModelBinding(
     input: SetModelBindingInput,
-    expectedDigest?: string,
+    expectedDigest?: string | null,
   ): Promise<ModelBinding>;
   /** Reports whether the current binding route is invokable. */
   getReadiness(): Promise<AIRuntimeReadiness>;

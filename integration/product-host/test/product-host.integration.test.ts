@@ -154,6 +154,7 @@ suite("built Product Host process", () => {
       problem: { problemCode: "ai.gateway_destination_immutable" },
     });
 
+    const submittedGatewayToken = "not-a-real-gateway-token";
     const secretAction = {
       actionId: "secret.set" as const,
       input: {
@@ -163,11 +164,11 @@ suite("built Product Host process", () => {
           resourceKind: "gateway-profile",
           resourceId: gatewayProfileId,
         },
-        material: "not-a-real-gateway-token",
+        material: submittedGatewayToken,
       },
     };
     const secretPlan = await client.planSystemAction(secretAction);
-    expect(JSON.stringify(secretPlan)).not.toContain("not-a-real-openai-key");
+    expect(JSON.stringify(secretPlan)).not.toContain(submittedGatewayToken);
     await client.executeSystemAction({ plan: secretPlan, action: secretAction });
     const withSecret = await client.getProductState();
     const secret = withSecret.data.secrets[0] as { secretId: string };

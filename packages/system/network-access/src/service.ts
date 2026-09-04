@@ -7,6 +7,7 @@
 import { parseInstant, type Instant } from "@heptalogos/foundation-contracts";
 import {
   GATEWAY_TRANSPORT_DEFINITION_ID,
+  type ConfigurationRevision,
   type ConfigurationService,
   type GatewayTransportConfigV1,
 } from "@heptalogos/configuration";
@@ -35,17 +36,15 @@ function configurationScope(installationId: string) {
 function configValue(
   configuration: ConfigurationService,
   installationId: string,
-): Promise<GatewayTransportConfigV1 | undefined> {
-  return configuration
-    .getEffectiveRevision(
-      GATEWAY_TRANSPORT_DEFINITION_ID,
-      configurationScope(installationId),
-    )
-    .then((revision) =>
-      revision === undefined
-        ? undefined
-        : (revision.value as unknown as GatewayTransportConfigV1),
-    );
+): Promise<ConfigurationRevision | undefined> {
+  return configuration.getEffectiveRevision(
+    GATEWAY_TRANSPORT_DEFINITION_ID,
+    configurationScope(installationId),
+  );
+}
+
+function transportConfig(revision: ConfigurationRevision): GatewayTransportConfigV1 {
+  return revision.value as unknown as GatewayTransportConfigV1;
 }
 
 function requestUrl(input: Parameters<typeof fetch>[0] | URL): URL {
@@ -225,18 +224,15 @@ export function createNetworkAccessService(
   const transport = options.transport ?? fetch;
   const service: NetworkAccessService = {
     async getDiagnostics() {
-      const config = await configValue(options.configuration, options.installationId);
+      const revision = await configValue(options.configuration, options.installationId);
       return Object.freeze({
         schemaVersion: 1 as const,
         policy: POLICY,
-        configured: config !== undefined,
-        ...(config === undefined
+        configured: revision !== undefined,
+        ...(revision === undefined
           ? { blocker: "configuration" as const }
           : {
-              timeoutMs: config.timeoutMs,
-              requestBodyBudgetBytes: config.requestBodyBudgetBytes,
-              responseBodyBudgetBytes: config.responseBodyBudgetBytes,
-              expandedResponseBodyBudgetBytes: config.expandedResponseBodyBudgetBytes,
+              ...transportConfig(revision),
             }),
       });
     },
@@ -251,7 +247,14 @@ export function createNetworkAccessService(
         );
       }
     },
-    async request(requester, target, input, init, deadline) {
+    async request(
+      requester,
+      target,
+      expectedConfigurationRevisionId,
+      input,
+      init,
+      deadline,
+    ) {
       assertRequester(requester);
       service.authorizeGatewayTarget(target);
       const current = options.execution.current();
@@ -265,8 +268,8 @@ export function createNetworkAccessService(
         );
       }
       const lineageContextRef = options.execution.createLineageContextRef();
-      const config = await configValue(options.configuration, options.installationId);
-      if (config === undefined) {
+      const revision = await configValue(options.configuration, options.installationId);
+      if (revision === undefined) {
         throw networkProblem(
           "network.configuration_unavailable",
           "Network transport is not configured",
@@ -275,6 +278,16 @@ export function createNetworkAccessService(
           "after-change",
         );
       }
+      if (revision.revisionId !== expectedConfigurationRevisionId) {
+        throw networkProblem(
+          "network.configuration_unavailable",
+          "Network transport configuration is stale",
+          "The active gateway transport ConfigurationRevision changed before dispatch",
+          "conflict",
+          "after-change",
+        );
+      }
+      const config = transportConfig(revision);
       const request = new Request(input, init);
       const url = requestUrl(request);
       assertDestination(target, url);
@@ -398,9 +411,15 @@ export function createNetworkAccessService(
         clearTimeout(timer);
       }
     },
-    createProviderFetch(requester, target) {
+    createProviderFetch(requester, target, expectedConfigurationRevisionId) {
       return async (input, init) => {
-        const response = await service.request(requester, target, input, init);
+        const response = await service.request(
+          requester,
+          target,
+          expectedConfigurationRevisionId,
+          input,
+          init,
+        );
         return new Response(response.body, {
           status: response.statusCode,
           headers: Object.fromEntries(

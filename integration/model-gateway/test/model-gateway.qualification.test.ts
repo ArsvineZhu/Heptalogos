@@ -115,11 +115,19 @@ async function readProtectedKey(): Promise<Uint8Array> {
   }
   const value = Buffer.concat(chunks);
   chunks.forEach((chunk) => chunk.fill(0));
-  const trimmed = value.toString("utf8").replace(/(?:\r\n|\n|\r)$/u, "");
+  let contentEnd = value.byteLength;
+  if (contentEnd > 0 && value[contentEnd - 1] === 10) {
+    contentEnd -= 1;
+    if (contentEnd > 0 && value[contentEnd - 1] === 13) contentEnd -= 1;
+  } else if (contentEnd > 0 && value[contentEnd - 1] === 13) {
+    contentEnd -= 1;
+  }
+  const key = Uint8Array.from(value.subarray(0, contentEnd));
   value.fill(0);
-  const key = new TextEncoder().encode(trimmed);
-  if (key.byteLength === 0)
+  if (key.byteLength === 0) {
+    key.fill(0);
     throw new Error("A protected gateway token is required on stdin");
+  }
   return key;
 }
 

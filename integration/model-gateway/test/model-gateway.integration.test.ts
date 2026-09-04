@@ -381,6 +381,27 @@ suite("installed model gateway protocol adapters", () => {
           enabled: false,
         }),
     );
+    await expect(
+      runActivity(
+        runtime,
+        persistence,
+        lineage,
+        evidence,
+        time,
+        "model-gateway.fixture.gateway-expected-absent",
+        async () =>
+          aiRuntime.setGatewayProfile(
+            {
+              gatewayProfileId,
+              baseUrl: gateway!.baseUrl,
+              enabled: false,
+            },
+            null,
+          ),
+      ),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "ai.stale_revision" },
+    });
     const token = new TextEncoder().encode("local-gateway-token");
     let secretRef: import("@heptalogos/secret").SecretRef | undefined;
     try {
@@ -493,6 +514,23 @@ suite("installed model gateway protocol adapters", () => {
           consumedCapabilities: capabilities,
         }),
     );
+    const replacedChatModel = await runActivity(
+      runtime,
+      persistence,
+      lineage,
+      evidence,
+      time,
+      "model-gateway.fixture.chat-model-replacement",
+      async () =>
+        aiRuntime.setModelProfile({
+          modelProfileId: chatModel.modelProfileId,
+          gatewayProfileId,
+          modelIdentifier: "fixture-chat",
+          protocol: "openai-chat",
+          consumedCapabilities: capabilities,
+        }),
+    );
+    expect(replacedChatModel.generation).toBe(chatModel.generation + 1);
     const responsesModel = await runActivity(
       runtime,
       persistence,
@@ -518,9 +556,24 @@ suite("installed model gateway protocol adapters", () => {
       async () =>
         aiRuntime.setModelBinding({
           role: "subject.primary",
-          modelProfileId: chatModel.modelProfileId,
+          modelProfileId: replacedChatModel.modelProfileId,
         }),
     );
+    const replacedChatBinding = await runActivity(
+      runtime,
+      persistence,
+      lineage,
+      evidence,
+      time,
+      "model-gateway.fixture.chat-binding-replacement",
+      async () =>
+        aiRuntime.setModelBinding({
+          role: "subject.primary",
+          modelProfileId: replacedChatModel.modelProfileId,
+        }),
+    );
+    expect(replacedChatBinding.revision).toBe(chatBinding.revision + 1);
+    expect(replacedChatBinding.modelBindingId).toBe(chatBinding.modelBindingId);
     const responsesBinding = await runActivity(
       runtime,
       persistence,
@@ -572,7 +625,7 @@ suite("installed model gateway protocol adapters", () => {
             lineageContextRef: runtime.createLineageContextRef(),
           }),
       );
-    const chatResult = await invoke(chatBinding, "fixture-chat");
+    const chatResult = await invoke(replacedChatBinding, "fixture-chat");
     const responsesResult = await invoke(responsesBinding, "fixture-responses");
 
     expect(chatResult.protocol).toBe("openai-chat");
@@ -597,6 +650,17 @@ suite("installed model gateway protocol adapters", () => {
       authorization: "Bearer replaced-gateway-token",
       body: { model: "fixture-chat" },
     });
+    expect(gateway!.requests[0].body).toMatchObject({
+      response_format: { type: "json_object" },
+    });
+    expect(JSON.stringify(gateway!.requests[0].body.messages)).toContain(
+      "schemaVersion",
+    );
+    expect(JSON.stringify(gateway!.requests[0].body.messages)).toContain("ok");
+    expect(JSON.stringify(gateway!.requests[0].body.messages)).toContain("marker");
+    expect(JSON.stringify(gateway!.requests[0].body.response_format)).not.toContain(
+      "json_schema",
+    );
     expect(gateway!.requests[1]).toMatchObject({
       path: "/v1/responses",
       authorization: "Bearer replaced-gateway-token",

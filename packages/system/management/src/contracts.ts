@@ -301,7 +301,7 @@ export interface ProductStateData {
 export type ProductStateReadModel = ReadModelEnvelope<ProductStateData>;
 
 /** The current Product action catalog revision. */
-export const SYSTEM_ACTION_CATALOG_REVISION = 1 as const;
+export const SYSTEM_ACTION_CATALOG_REVISION = 2 as const;
 
 /** The current Management action catalog, without a generic operation store. */
 export const currentSystemActionCatalog: readonly SystemActionDefinition[] =

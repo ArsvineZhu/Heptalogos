@@ -6,10 +6,13 @@
 
 import type { Instant } from "@heptalogos/foundation-contracts";
 import type {
+  ConfigurationRevisionId,
+  ConfigurationService,
+} from "@heptalogos/configuration";
+import type {
   ExecutionContextRuntime,
   LineageContextRef,
 } from "@heptalogos/execution-lineage";
-import type { ConfigurationService } from "@heptalogos/configuration";
 import { Type } from "@heptalogos/schema-runtime/typebox";
 
 /** The current AI invocation protocols understood by NetworkAccess routing. */
@@ -71,12 +74,17 @@ export interface NetworkAccessService {
   request(
     requester: string,
     target: GatewayNetworkTarget,
+    expectedConfigurationRevisionId: ConfigurationRevisionId,
     input: Parameters<typeof fetch>[0] | URL,
     init?: RequestInit,
     deadline?: Instant,
   ): Promise<NetworkResponseKnowledge>;
   /** Creates the policy-enforcing fetch passed to one AI SDK protocol adapter. */
-  createProviderFetch(requester: string, target: GatewayNetworkTarget): typeof fetch;
+  createProviderFetch(
+    requester: string,
+    target: GatewayNetworkTarget,
+    expectedConfigurationRevisionId: ConfigurationRevisionId,
+  ): typeof fetch;
 }
 
 /** JSON Schema for the fixed NetworkAccess policy. */

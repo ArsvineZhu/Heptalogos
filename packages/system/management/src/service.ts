@@ -372,6 +372,10 @@ function canonicalObject(value: object): {
   return Object.freeze({ value: snapshot.value, canonical: snapshot.canonical });
 }
 
+function canonicalValue(value: CanonicalJsonValue): string {
+  return snapshotCanonicalJson(value).canonical;
+}
+
 function managementDigest(domain: string, value: object): ManagementDigest {
   return digestCanonicalJson(domain, canonicalObject(value).value)
     .hex as ManagementDigest;
@@ -734,7 +738,7 @@ function resultField(value: CanonicalJsonValue, field: string): string | undefin
 async function dispatchAction(
   action: SystemActionRequest,
   owners: ManagementProductOwners,
-  expectedDigest: string | undefined,
+  expectedDigest: string | null | undefined,
 ): Promise<CanonicalJsonValue> {
   switch (action.actionId) {
     case "configuration.revision.create":
@@ -874,25 +878,35 @@ async function verifyPostcondition(
       return (
         (await owners.secret.getMetadata(action.input.secretRef))?.state === "REVOKED"
       );
-    case "gateway-profile.set":
+    case "gateway-profile.set": {
+      const gatewayProfileId = resultField(result, "gatewayProfileId");
+      const current =
+        gatewayProfileId === undefined
+          ? undefined
+          : await owners.aiRuntime.getGatewayProfile(gatewayProfileId);
       return (
-        resultField(result, "gatewayProfileId") !== undefined &&
-        (await owners.aiRuntime.getGatewayProfile(
-          resultField(result, "gatewayProfileId")!,
-        )) !== undefined
+        current !== undefined &&
+        canonicalObject(current).canonical === canonicalValue(result)
       );
-    case "model-profile.set":
+    }
+    case "model-profile.set": {
+      const modelProfileId = resultField(result, "modelProfileId");
+      const current =
+        modelProfileId === undefined
+          ? undefined
+          : await owners.aiRuntime.getModelProfile(modelProfileId);
       return (
-        resultField(result, "modelProfileId") !== undefined &&
-        (await owners.aiRuntime.getModelProfile(
-          resultField(result, "modelProfileId")!,
-        )) !== undefined
+        current !== undefined &&
+        canonicalObject(current).canonical === canonicalValue(result)
       );
-    case "model-binding.set":
+    }
+    case "model-binding.set": {
+      const current = await owners.aiRuntime.getModelBinding(action.input.role);
       return (
-        (await owners.aiRuntime.getModelBinding(action.input.role))?.modelProfileId ===
-        action.input.modelProfileId
+        current !== undefined &&
+        canonicalObject(current).canonical === canonicalValue(result)
       );
+    }
   }
 }
 
@@ -1196,18 +1210,26 @@ function createManagementServiceWithRepository(
               "after-change",
             );
           }
-          const expectedDigest = request.plan.targetPreconditions.find((candidate) => {
-            if (action.actionId === "gateway-profile.set") {
-              return candidate.resource.resourceKind === "gateway-profile";
-            }
-            if (action.actionId === "model-profile.set") {
-              return candidate.resource.resourceKind === "model-profile";
-            }
-            if (action.actionId === "model-binding.set") {
-              return candidate.resource.resourceKind === "model-binding";
-            }
-            return false;
-          })?.expectedDigest;
+          const targetPrecondition = request.plan.targetPreconditions.find(
+            (candidate) => {
+              if (action.actionId === "gateway-profile.set") {
+                return candidate.resource.resourceKind === "gateway-profile";
+              }
+              if (action.actionId === "model-profile.set") {
+                return candidate.resource.resourceKind === "model-profile";
+              }
+              if (action.actionId === "model-binding.set") {
+                return candidate.resource.resourceKind === "model-binding";
+              }
+              return false;
+            },
+          );
+          const expectedDigest =
+            targetPrecondition === undefined
+              ? undefined
+              : targetPrecondition.expectedDigest === undefined
+                ? null
+                : targetPrecondition.expectedDigest;
           const result = await dispatchAction(action, owners, expectedDigest);
           const postconditionsVerified = await verifyPostcondition(
             action,
