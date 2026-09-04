@@ -36,7 +36,11 @@ OpenClaw remains independently operated. Use the [OpenClaw project](https://gith
 and its [upstream documentation](https://github.com/openclaw/openclaw/tree/main/docs)
 for deployment and administration. The Heptalogos boundary
 does not require OpenClaw to boot Product Host and does not store OpenClaw
-privileged credentials by default.
+privileged credentials by default. A future distribution may carry an
+independent Subject OpenClaw Runtime and this Machine Operations runtime
+together, but they must remain separate processes/profiles/state roots,
+credentials, ports, and trust domains; the current Product Host has not yet
+implemented that Subject runtime.
 
 ## FFmpeg
 

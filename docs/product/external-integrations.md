@@ -38,8 +38,11 @@ OpenClaw is the adopted external implementation route for the independent
 Machine Operations Plane. It remains a separate process/service and trust
 domain. Its privileged credentials, workspace, model configuration, process
 lifecycle, and upgrade/distribution lifecycle are not Product Host state.
-Heptalogos may expose Management/CLI/tool integration contracts, but this Plan
-does not implement or bundle OpenClaw.
+Heptalogos may expose Management/CLI/tool integration contracts. A future
+Product distribution may carry this runtime alongside a separately configured
+Subject OpenClaw Runtime, but colocation does not imply shared Gateway, state,
+credentials, privilege, or lifecycle. The current Product Host does not
+implement or bundle either OpenClaw role.
 
 ## FFmpeg
 

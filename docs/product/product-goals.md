@@ -25,6 +25,13 @@ Heptalogos 研究的是：
 如何让系统自身可管理、可解释、可修复？
 ```
 
+Subject 是面向世界的认知/社会主体；即时通信只是一个 Observation source
+和 communication channel，不等于整个世界、Conversation 或 Messaging。
+
+```text
+Observation source != Conversation != Messaging
+```
+
 ---
 
 ## 2. 与普通 Chatbot 的区别
@@ -68,11 +75,11 @@ CognitiveOpportunity
 Reaction
 Yield
 Supersession
-DeliberatedAndSilent
-BehaviorIntent
+ConversationReactionProposal
 Review
-DecisionCommit
+NO_COMMUNICATION / COMMUNICATE
 CommunicationCommit
+Expression
 InteractionPlan
 EffectOperation
 AuthorityHandoff
@@ -133,7 +140,7 @@ Extension proposal
 
 ```text
 Subject canonical state
-DecisionCommit
+CommunicationCommit
 System mutation
 External effect truth
 ```
@@ -142,11 +149,14 @@ Authority 集中在显式的 commit/fence 上。
 
 ---
 
-## 6. Silence 是合法行为
+## 6. Communication 是可选结果
 
-持续 Subject 不等于持续输出。
+持续 Subject 不等于持续输出。每个 Observation 都可能产生 cognition
+opportunity，但 Subject 不欠下每个 opportunity 一条消息。一个被考虑的
+communication opportunity 可以合法地以 `NO_COMMUNICATION` 完成，不产生
+CommunicationCommit 或 outbound message。
 
-系统需要区分：
+系统仍可在分析上区分：
 
 ```text
 NotObserved
@@ -157,26 +167,39 @@ UnableToRespond
 ReplyPlanned
 ```
 
-沉默不是空字符串，也不是失败。
+这些不是当前必须全部持久化的全局 Subject behavior entities；no-communication
+也不是空字符串、timeout、provider error 或要求模型生成的自由文本 reason。
 
 ---
 
 ## 7. 行为与表达分离
 
-认知链至少保留：
+当前 conversation-triggered L4 只证明一个 bounded cognition/communication
+slice：
 
 ```text
-BehaviorIntent
-→ Review
-→ DecisionCommit
-→ CommunicationCommit
-→ InteractionPlan
-→ Expression
-→ Semantic Fidelity
-→ Effect
+MessageFact
+→ ConversationMailbox
+→ Reaction
+→ ConversationReactionProposal
+   ├─ NO_COMMUNICATION → complete
+   └─ COMMUNICATE(semantic content)
+        → deterministic Review
+        → CommunicationCommit
+        → Expression
+        → local outbound MessageFact
+        → Effect only when a later external channel requires it
 ```
 
-这样“怎样说”不能偷偷修改“决定说什么”。
+Communication decision owns whether to communicate, recipient, purpose and
+semantic content. `CommunicationCommit → Expression` remains the valuable
+seam: Expression may realize wording and social presentation, but cannot
+change recipient, material facts/commitments, Authority, or consequential action.
+
+The current implementation still contains the pre-P1 `BehaviorIntent`,
+conversation-specific `DecisionCommit`, and `REPLY/SILENCE` shape. That is a
+bounded implementation lag, not the total Subject behavior ontology; P1 will
+remove it without inventing a generic ActionPlan/Decision framework.
 
 ---
 
@@ -242,6 +265,15 @@ Management surface 不接收该运行域的凭据。
 
 System Assistant 的产品身份是 Heptalogos；其外部实现与分发归属由
 Architecture、Dependencies 和后续集成资格记录维护。
+
+Subject cognition 若采用 OpenClaw，使用的是另一个低权限、由 Product Host
+监督的 Subject runtime。它与高权限 Machine Operations runtime 必须保持
+不同 process、Gateway、profile/state/config/workspace、credentials、ports
+和 tool policy：
+
+```text
+same OpenClaw software != same runtime != same trust domain
+```
 
 ---
 

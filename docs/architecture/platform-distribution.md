@@ -92,6 +92,12 @@ FFmpeg/ffprobe is an external executable prerequisite for an implemented
 audio/video capability. It is installed and configured by the operator or
 deployment profile and is not part of the default Heptalogos payload.
 
+OpenClaw 的分发必须按角色区分：未来 Product distribution 可以同时携带
+Subject OpenClaw Runtime 与独立的 Machine Operations OpenClaw，但这不表示
+两者共享 Gateway、state/config/workspace、credentials、ports、权限或启动
+生命周期。当前 Product Host 尚未携带或监督 Subject OpenClaw；该集成属于
+后续 P3/P4 计划。详见 [Machine Operations Plane](machine-operations.md)。
+
 ---
 
 ## 4. Native Transitive Closure

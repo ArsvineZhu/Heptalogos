@@ -6,7 +6,8 @@ Foundation mechanics:
 - [`@heptalogos/messaging`](./messaging/README.md) owns the built-in
   Administrator to Subject Chat conversation and canonical MessageFact path.
 - [`@heptalogos/subject`](./subject/README.md) owns persistent Subject
-  authority and the bounded L4 Reaction to DecisionCommit to local reply path.
+  authority and the bounded L4 conversation communication path from Reaction
+  through optional CommunicationCommit, Expression, and local reply.
 
 Messaging remains independent of Subject implementation. ProductHost supplies
 the narrow composition callback needed for an accepted inbound fact and joins

@@ -46,54 +46,65 @@
 
 ## Authority 映射
 
-| 对象/事实                           | Authority                                                            |
-| ----------------------------------- | -------------------------------------------------------------------- |
-| Active ProductGeneration            | Bootstrap / Recovery                                                 |
-| Current ContinuityEpochId           | Bootstrap / Recovery handoff + canonical instance state              |
-| Current HostOwnershipToken          | PostgreSQL HostOwnershipFence under active Host lease                |
-| 组件 Desired State                  | PostgreSQL System Authority                                          |
-| 组件 Actual State                   | Runtime Supervisor / Reconciler                                      |
-| Service provider binding            | Runtime Reconciler                                                   |
-| Capability availability             | Capability Registry                                                  |
-| Config Revision/Activation          | ConfigurationService                                                 |
-| Secret plaintext                    | SecretService backend                                                |
-| Package generation inventory        | Extension Package Manager                                            |
-| SubjectId / Subject revision        | Subject Core                                                         |
-| Canonical MessageFact               | MessagingService                                                     |
-| WorkItem                            | WorkQueueService                                                     |
-| Durable workflow checkpoint         | DBOS                                                                 |
-| 高级认知领域状态                    | 对应已安装高级子系统的声明 Authority；未安装时不存在该状态 Authority |
-| Model invocation                    | AI Runtime artifact                                                  |
-| Subject accepted behavior           | DecisionCommit                                                       |
-| Communication semantics             | CommunicationCommit                                                  |
-| Subject execution intent            | ActionPlan                                                           |
-| External effect truth               | EffectOperation                                                      |
-| System authorization when required  | PolicyService with Cedar mechanics                                   |
-| Human confirmation when required    | System Authority and the owning product control                      |
-| Execution Activity / causal lineage | ExecutionLineageService；领域对象自身仍由各 owner 持有 Authority     |
-| Durable causal evidence             | Domain facts + EvidenceService                                       |
-| Operational telemetry               | Pino / OpenTelemetry / OpenInference                                 |
-| Portable Subject boundary           | Subject Bundle                                                       |
-| Installation recovery               | Backup / Restore                                                     |
+| 对象/事实                               | Authority                                                            |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| Active ProductGeneration                | Bootstrap / Recovery                                                 |
+| Current ContinuityEpochId               | Bootstrap / Recovery handoff + canonical instance state              |
+| Current HostOwnershipToken              | PostgreSQL HostOwnershipFence under active Host lease                |
+| 组件 Desired State                      | PostgreSQL System Authority                                          |
+| 组件 Actual State                       | Runtime Supervisor / Reconciler                                      |
+| Service provider binding                | Runtime Reconciler                                                   |
+| Capability availability                 | Capability Registry                                                  |
+| Config Revision/Activation              | ConfigurationService                                                 |
+| Secret plaintext                        | SecretService backend                                                |
+| Package generation inventory            | Extension Package Manager                                            |
+| SubjectId / Subject revision            | Subject Core                                                         |
+| Canonical MessageFact                   | MessagingService                                                     |
+| WorkItem                                | WorkQueueService                                                     |
+| Durable workflow checkpoint             | DBOS                                                                 |
+| 高级认知领域状态                        | 对应已安装高级子系统的声明 Authority；未安装时不存在该状态 Authority |
+| Model invocation                        | AI Runtime artifact                                                  |
+| Current conversation cognition proposal | Reaction-scoped proposal; it has no Authority by itself              |
+| Accepted communication semantics        | CommunicationCommit                                                  |
+| Future Subject execution intent         | ActionPlan, when a future semantic owner and consumer justify it     |
+| External effect truth                   | EffectOperation                                                      |
+| System authorization when required      | PolicyService with Cedar mechanics                                   |
+| Human confirmation when required        | System Authority and the owning product control                      |
+| Execution Activity / causal lineage     | ExecutionLineageService；领域对象自身仍由各 owner 持有 Authority     |
+| Durable causal evidence                 | Domain facts + EvidenceService                                       |
+| Operational telemetry                   | Pino / OpenTelemetry / OpenInference                                 |
+| Portable Subject boundary               | Subject Bundle                                                       |
+| Installation recovery                   | Backup / Restore                                                     |
 
-## Current L4 Product spine
+## Current L4 conversation slice
 
-当前持久 Subject vertical slice 的 Authority 顺序是：
+当前 L4 是一个由消息触发的 bounded cognition proof，不是 Subject 的完整行为
+本体：
 
 ```text
 MessageFact
 → ConversationMailbox
 → Reaction
-→ BehaviorIntent proposal
-→ deterministic Review
-→ DecisionCommit
-→ CommunicationCommit
-→ Expression
-→ local outbound MessageFact
+→ bounded conversation cognition proposal
+   ├─ NO_COMMUNICATION → local episode completes
+   └─ COMMUNICATE(semantic content)
+        → deterministic Review
+        → CommunicationCommit
+        → Expression
+        → local outbound MessageFact
 ```
 
-其中 `DecisionCommit` 与 `CommunicationCommit` 是不可变语义提交；模型输出
-仍是 proposal，不能直接取得 Subject 或 System Authority。
+一个 communication opportunity 可以合法地以 `NO_COMMUNICATION` 完成，不产生
+`CommunicationCommit` 或 outbound message。Communication decision 决定是否
+沟通、沟通对象和要传达的语义内容；`CommunicationCommit` 是已经接受的
+communication obligation；`Expression` 只负责其人类可读的语言/社交实现，
+不能改变 recipient、material facts、Authority 或 consequential action。
+
+当前分支的实现仍保留旧的 `BehaviorIntent`、conversation-specific
+`DecisionCommit` 和 `REPLY/SILENCE` 数据/代码形状；这是 P1 要删除和替换的
+implementation lag，不是新的通用 Subject Authority。P1 会把 accepted
+communication provenance 直接收束到 `CommunicationCommit`，但本页不提前定义
+通用 ActionPlan/Decision framework。
 
 `CognitiveOpportunity`、`ReactionWorkspace`、`Yield`、`PromptProgram`、
 `ActionPlan` 与高级 Observation Window 目前只是保留的未来研究/语义接缝，
@@ -119,6 +130,26 @@ ActivityId != TraceId != SpanId
 
 同步调用可使用 parent-child；durable/asynchronous flow 必须能表达 causation/link/resume/fan-out/fan-in。
 
+## OpenClaw runtime non-equivalence
+
+Heptalogos 使用 OpenClaw 时必须区分两个不可互换的角色：
+
+```text
+Subject OpenClaw Runtime
+→ Product-supervised, low-privilege cognition mechanics
+→ proposals remain behind Subject/Product Authority
+
+System Assistant / Machine Operations OpenClaw
+→ independently operated, higher-privilege machine/deployment maintenance
+→ remains usable while Product Host is unhealthy
+```
+
+相同软件版本不表示共享 Gateway、agent fleet、state root、credentials、workspace
+或 trust domain。角色表、启动/分发和凭据边界由
+[Machine Operations Plane](machine-operations.md) 作为当前 canonical owner 维护；
+Subject 页面记录其 Product-side target。当前实现只保留外部 Machine Operations
+路线，Subject runtime integration 属于后续 P3。
+
 ## 不可混淆关系
 
 ```text
@@ -132,6 +163,7 @@ Subject != Model
 Subject != Reactor
 Subject != Installation
 Subject != System Assistant
+Subject != Subject OpenClaw Runtime
 
 System Authority != Machine/Deployment Authority
 

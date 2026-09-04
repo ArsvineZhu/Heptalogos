@@ -6,6 +6,19 @@ Subject 是：
 
 > 一个持久、单一的认知与社会身份，其连续性跨越模型调用、会话、平台、组件 generation 与 Host 重启。
 
+Subject 是面向世界的认知/社会主体，不是一个只响应聊天请求的 Chatbot。它
+可以在被授权的边界内观察或行动于多个 world interface；Messaging 只是其中
+一个观察与沟通渠道。
+
+```text
+Observation source != Conversation != Messaging
+```
+
+可能的 interface 包括 Messaging、web/network information services、外部应用与
+capability、被授权的文件/资源、适当的 Machine Operations handoff、未来
+sensor/provider，以及 Subject-owned state。这里保留语义方向，不提前创建
+`World` mega-object、universal event bus 或 generic Observation store。
+
 ```text
 one logical instance
 → one active Subject identity
@@ -26,6 +39,7 @@ MessagingAccount
 Host
 Administrator
 System Assistant
+Subject OpenClaw Runtime
 ```
 
 ---
@@ -110,17 +124,28 @@ Foundation Basic Reaction 使用简单、可验证的 admission policy。未来 
 ## 7. CURRENT L4: Reaction
 
 当前 L4 的 `Reaction` 是一个有明确 mailbox/Subject revision 观测值的
-bounded cognition episode。它最多走：
+bounded conversation cognition episode。它证明的是“消息触发认知并可选择
+沟通”，不是 Subject 的完整行为空间：
 
 ```text
 canonical MessageFact range
-→ subject.primary BehaviorIntent
-→ deterministic Review
-→ DecisionCommit
-→ optional CommunicationCommit
-→ subject.expression
-→ local MessageFact
+→ bounded conversation cognition proposal
+   ├─ NO_COMMUNICATION → deterministic acceptance → Reaction completes
+   └─ COMMUNICATE(semantic content)
+        → deterministic Review
+        → CommunicationCommit
+        → subject.expression
+        → local outbound MessageFact
 ```
+
+`CommunicationCommit` 是已经接受的 communication obligation；`Expression`
+只实现已提交语义的语言/社交表达。它不能改变是否沟通、recipient、material
+facts、purpose、SystemAction、consequential external action 或 permission。
+
+当前分支的代码仍使用 `BehaviorIntent`、conversation-specific
+`DecisionCommit` 以及 `REPLY/SILENCE` state vocabulary；这些是 P1 将直接重写
+的 implementation lag，不应被解释为最终 Subject ontology。P1 之前这里不
+新增 OpenClaw、ActionPlan 或通用 Decision machinery。
 
 `Reaction` 状态不是 DBOS workflow state；WorkQueue/DBOS 只承载可恢复的
 obligation。
@@ -287,7 +312,7 @@ authority ceiling
 
 ```text
 Context / Selection / Proposal may be contributed
-DecisionCommit may not be self-granted
+CommunicationCommit may not be self-granted
 System Authority may not be self-granted
 External Effect may not bypass plan/effect fence
 canonical state of another owner may not be mutated directly
@@ -307,21 +332,56 @@ Reflection/Diary/Dream algorithms
 
 ---
 
-## 15. CURRENT L4: Behavior Authority Spine
+## 15. Subject OpenClaw Runtime role
 
-Foundation 保留行为 commit spine：
+Subject OpenClaw Runtime 是 P3 计划中的 Product-side cognition mechanics，
+不是 Subject、Subject Authority 或 canonical state owner：
+
+```text
+Product Host
+→ supervises one replaceable, low-privilege Subject Gateway child
+→ communicates through the documented public Gateway protocol/client
+→ never reads OpenClaw private SQLite/state formats
+```
+
+Heptalogos 继续拥有 SubjectId、Subject-owned state、MessageFact、
+CommunicationCommit 和 Review/Authority。OpenClaw session/workspace state 只能
+帮助 runtime continuity；丢失或重建 provider-private state 不会产生新的
+SubjectId。Subject role 必须与高权限 Machine Operations OpenClaw 使用不同的
+process、profile、state/config/workspace、credentials、ports 和 tool policy。
+
+当前分支尚未实现这个 Subject runtime；现行 `subject.primary` AIRuntime
+调用是 P3 前的实现形状。P3 将使用公开协议和受控 Proposal tools，把运行时
+输出交回 Heptalogos 的 deterministic Review，而不会把 OpenClaw agent-loop
+升级为 Authority。
+
+---
+
+## 16. CURRENT L4 communication Authority slice
+
+Foundation 保留的是 communication decision 与 Expression 的语义接缝：
 
 ```text
 ContextProjection
-→ BehaviorIntent
-→ deterministic Review
-→ DecisionCommit
-→ CommunicationCommit
-→ Expression
-→ local MessageFact
+→ bounded conversation cognition proposal
+   ├─ NO_COMMUNICATION → local episode completes
+   └─ COMMUNICATE(semantic content)
+        → deterministic Review
+        → CommunicationCommit
+        → Expression
+        → local outbound MessageFact
 ```
 
-模型文本不能直接成为 canonical decision 或外部 effect。
+`NO_COMMUNICATION` 是一次被考虑的 communication opportunity 的合法局部
+结果，不是全局 Subject behavior entity，也不需要 free-text reason。
+`CommunicationCommit → Expression` 必须保持清晰：前者决定已接受的语义
+沟通义务，后者只改变措辞、register、语气、简洁度、组织、标点和平台表达，
+不能改变 recipient、material facts/commitments、permission、Authority 或
+consequential action。
+
+当前代码中的 `BehaviorIntent`、`DecisionCommit`、`DELIBERATED_SILENT` 和
+`REPLY/SILENCE` 是待 P1 删除的 implementation lag。它们不定义总 Subject
+行为空间；P1 不会用另一个泛化的 ActionPlan/Decision framework 替代它们。
 
 `CognitiveOpportunity`、`ReactionWorkspace`、`Yield`、`PromptProgram`、
 `ActionPlan` 与高级 Observation Window 是保留的未来研究/语义接缝，不是
@@ -329,9 +389,9 @@ ContextProjection
 
 ---
 
-## 16. Silence
+## 17. Optional communication and no-communication
 
-正式语义包括：
+Subject 不需要对每个 Observation 产生消息。分析上仍可区分：
 
 ```text
 NotObserved
@@ -342,4 +402,6 @@ UnableToRespond
 ReplyPlanned
 ```
 
-沉默不是空字符串，也不是系统故障。
+这些标签有助于解释 cognition episode，但当前实现不要求把它们全部变成
+durable state。No-communication 不是空字符串、timeout、provider error 或
+系统故障；也不要求模型生成解释文字。

@@ -100,6 +100,12 @@ initiating principal
 
 不能自动转移权限。
 
+共享实现技术不会合并这些 Authority domain。Subject OpenClaw Runtime 是低权限、由
+Product Host 监督的 Subject cognition mechanics；System Assistant / Machine
+Operations OpenClaw 是独立生命周期、独立信任域、刻意拥有更高机器权限的运维
+runtime。即使两者使用相同 OpenClaw 软件，也必须保持不同的 Gateway process、
+profile/state/config/workspace、credentials、tool allowlist 和 Authority。
+
 ---
 
 ### C5. Single Subject, Distributed Inference, Centralized Commit
@@ -119,22 +125,17 @@ initiating principal
 
 ---
 
-### C6. Silence 是合法行为
+### C6. Communication 是可选结果
 
-Subject 不需要对每个 Observation 产生消息。
+Subject 不需要为每个 Observation 产生消息。一个被考虑的 communication
+opportunity 可以在不产生 `CommunicationCommit` 或 outbound message 的情况下
+合法完成。
 
-系统必须能够表达：
-
-```text
-NotObserved
-ObservedButDeferred
-DeliberatedAndSilent
-SuppressedByPolicy
-UnableToRespond
-ReplyPlanned
-```
-
-沉默不是空字符串，也不是失败。
+No-communication 是局部 cognition episode 的成功结果，不是全局 Subject 行为
+实体，也不是空字符串、超时或失败。`NotObserved`、`ObservedButDeferred`、
+`DeliberatedAndSilent`、`SuppressedByPolicy`、`UnableToRespond` 和
+`ReplyPlanned` 等区分可以用于分析和 Evidence，但不要求当前实现把它们全部
+建模为 canonical durable state，也不要求模型生成自由文本的 silence reason。
 
 ---
 

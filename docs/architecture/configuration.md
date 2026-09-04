@@ -627,9 +627,13 @@ SystemAction
 ```
 
 EXPERT、INTERNAL、HIDDEN 配置的可见性和可修改性由 Product Management
-Policy 与对应 projection 决定。Machine-level configuration repair belongs
-to the independent Machine Operations Plane and does not add OpenClaw-owned
-configuration to Heptalogos Configuration ownership.
+Policy 与对应 projection 决定。Subject OpenClaw Runtime 若进入 Product，
+Heptalogos 有意控制的 runtime generation/profile、tool policy、预算、超时和
+model/provider intent 属于 typed Product Configuration 或 SecretService；
+adapter 生成的 OpenClaw config/env 只是 provider projection，不是第二个可编辑
+Authority。Machine-level configuration repair belongs to the independent
+Machine Operations Plane and does not silently import its OpenClaw configuration
+into Heptalogos Configuration ownership。
 
 ```text
 EXPERT

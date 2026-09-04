@@ -57,21 +57,37 @@ owner 管理。
 
 **YieldDirective**：Reaction 主动等待某时间/事实/能力的语义指令。
 
-**BehaviorIntent**：行为提议。
+**ConversationReactionProposal**：当前 bounded conversation slice 的 cognition
+proposal；只有 `NO_COMMUNICATION` 或 `COMMUNICATE(semantic content)` 两种
+结果，不是总 Subject behavior contract。
 
 **Review**：Authority commit 前的 deterministic/policy-assisted review。
 
-**DecisionCommit**：Subject 行为 Authority 的中心 commit。
+**BehaviorIntent**：P1 前当前实现使用的旧 conversation proposal 名称；它不是
+总 Subject behavior ontology，P1 会在 PRE_PRODUCTION 中移除该 current-slice
+形状。
 
-**CommunicationCommit**：Subject 承诺向外表达的语义内容/社会行为。
+**DecisionCommit**：P1 前 current conversation slice 的旧 behavior commit
+形状；不是 timeless global Subject Authority，P1 会将 accepted communication
+provenance 收束到 CommunicationCommit。
 
-**InteractionPlan**：消息数量、时序、模态等交互实现计划。
+**CommunicationCommit**：Subject 已接受的 communication obligation，包含
+recipient/purpose/semantic content 的 canonical 语义；它不等于已经产生
+outbound MessageFact。
+
+**Expression**：对已提交 CommunicationCommit 做人类可读语言/社交实现的
+阶段；不能改变是否沟通、recipient、material facts/commitments、Authority 或
+consequential action。
+
+**InteractionPlan**：未来交互实现语义，用于描述消息数量、时序、模态等；不
+属于当前 bounded Subject conversation slice 的 canonical Authority。
 
 **ExpressionArtifact**：表达层生成的具体语言/媒体草稿。
 
 **Semantic Fidelity**：确认表达没有改变 CommunicationCommit 的检查。
 
-**ActionPlan**：durable Subject execution intent。
+**ActionPlan**：未来的 durable Subject execution intent；当前 P0/P1 不创建
+通用 ActionPlan/Decision framework。
 
 **EffectOperation**：外部副作用 truth fence，支持 `uncertain`。
 
@@ -123,7 +139,17 @@ owner 管理。
 
 **Machine Operations Plane**：独立于 Product Host 的高权限机器/deployment 运维 trust/failure domain；其实现路线由外部 OpenClaw runtime 与 Heptalogos integration assets 承担。
 
-**OpenClaw**：Machine Operations Plane 的外部 implementation/dependency route；不是 Heptalogos 普通用户界面的产品身份。
+**OpenClaw**：可被 Heptalogos 在不同信任/生命周期角色中使用的外部
+implementation/dependency route；软件名称不是 Heptalogos 普通用户界面的产品
+身份，也不意味着不同角色共享 runtime。
+
+**Subject OpenClaw Runtime**：P3 目标中的低权限、由 Product Host 监督的
+Subject cognition mechanics；其 output 仍是 proposal，canonical Subject state
+和 Authority 留在 Heptalogos。
+
+**Machine Operations OpenClaw Runtime**：独立的、高权限 machine/deployment
+operations runtime；其 process、state、credentials、workspace 和 Authority
+与 Subject OpenClaw Runtime 分离。
 
 **ManagementClient**：由 canonical Management Contract 机械派生或严格实现的 typed client；不拥有业务 Authority。
 

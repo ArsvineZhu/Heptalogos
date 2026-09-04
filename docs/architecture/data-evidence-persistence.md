@@ -300,7 +300,7 @@ raw integration refs
 canonical derivation
 Context/Reaction provenance
 model/capability invocation provenance
-Review / DecisionCommit
+Review / accepted communication commit
 Effect attempt/outcome
 SystemAction plan/auth/approval/outcome
 runtime/readiness/pressure changes

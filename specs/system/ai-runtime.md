@@ -142,7 +142,7 @@ assertion. The assertion runs inside that caller-owned Host-fenced transaction
 and fails unless the binding identity/revision, model identity/generation,
 gateway identity, and exact active transport ConfigurationRevision still match
 the GenerationResult. It performs no model or network I/O and does not own
-DecisionCommit.
+Subject communication Authority.
 
 An invocation may be observed as ADMITTED, RUNNING, SUCCEEDED, FAILED,
 ABORTED, or TIMED_OUT in Activity/diagnostic projections. These are not a
@@ -173,8 +173,9 @@ ai.invocation_timed_out
 ai.generation_mismatch
 ```
 
-Gateway failure before a consuming DecisionCommit cannot fabricate a
-decision or response. Timeout/abort is not a successful structured result.
+Gateway failure before a consuming communication commit cannot fabricate an
+accepted communication or response. Timeout/abort is not a successful
+structured result.
 Usage and the actual gateway, model, protocol, binding revision, model
 generation, and configuration revision remain attributable through Lineage and
 Evidence whenever the Product consumes them.
@@ -186,10 +187,10 @@ Evidence whenever the Product consumes them.
 - AIR-003 InvocationSpec binds an exact ModelBinding revision and carries its own lineage context.
 - AIR-004 A stale binding, model generation, or configuration result cannot commit as current.
 - AIR-005 Every model result is proposal/evidence until its consuming owner accepts it.
-- AIR-006 Structured output passes canonical schema and domain validation before Behavior commit.
+- AIR-006 Structured output passes canonical schema and domain validation before Subject communication commit.
 - AIR-007 Secret material is resolved only for an authorized invocation and is not copied into durable InvocationSpec plaintext.
 - AIR-008 Controllable gateway HTTP traffic uses NetworkAccess and the selected exact destination.
-- AIR-009 Gateway failure before DecisionCommit cannot fabricate canonical behavior.
+- AIR-009 Gateway failure before an accepted communication commit cannot fabricate canonical communication.
 - AIR-010 Consumed gateway, model, protocol, binding revision, model generation, configuration revision, and usage metadata remain attributable through Lineage/Evidence.
 - AIR-011 The current Subject slice has no tool authority or tool-loop mechanics.
 - AIR-012 AIRuntime defines no internal System Assistant/OpenClaw model binding.
@@ -217,7 +218,7 @@ reviewer agent
 embedding
 vision/files without a hard current consumer
 System Assistant/OpenClaw runtime
-Subject identity or DecisionCommit ownership
+Subject identity or Subject communication Authority ownership
 ```
 
 ## References

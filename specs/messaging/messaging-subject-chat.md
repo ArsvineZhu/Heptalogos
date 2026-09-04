@@ -73,8 +73,9 @@ interface MessageFact {
 ```
 
 MessageFact is immutable canonical Messaging truth. Current Subject Chat text must be non-empty
-after protocol canonical input validation. Empty text is not Subject silence;
-silence is a Behavior decision with no outbound MessageFact.
+after protocol canonical input validation. Empty text is not a no-communication
+result; a considered cognition opportunity can complete without creating an
+outbound MessageFact.
 
 ParticipantRef distinguishes canonical Administrator and Subject participants.
 Administrator participation in Subject Chat grants no automatic System
@@ -164,8 +165,10 @@ event, or closed browser/Desktop client does not create external-effect
 uncertainty. The MessageFact remains queryable and is recovered by catch-up.
 
 A REPLY CommunicationCommit is the semantic cause of the outbound MessageFact.
-A SILENCE DecisionCommit creates neither CommunicationCommit nor outbound
-MessageFact.
+A `NO_COMMUNICATION` Reaction creates neither CommunicationCommit nor outbound
+MessageFact. The current branch still reaches this outcome through its
+pre-P1 SILENCE/DecisionCommit implementation; that implementation detail is
+being removed by the current communication-spine correction.
 
 ## Query and reconnect catch-up
 
@@ -230,7 +233,8 @@ CommunicationCommit path.
 - MSG-008 Local outbound MessageFact does not use EffectOperation.
 - MSG-009 Presentation disconnect does not make local outbound UNCERTAIN.
 - MSG-010 Reconnect catches up from canonical MessageFact truth.
-- MSG-011 Silence is not an empty outbound MessageFact.
+- MSG-011 No-communication is not an empty outbound MessageFact; it is a local
+  Reaction outcome owned by the Subject/Reaction boundary.
 - MSG-012 External Driver uncertainty remains EffectOperation-owned when external Messaging later enters.
 - MSG-013 The current built-in Subject Chat is text-only; broader segments and media are not implemented by implication.
 

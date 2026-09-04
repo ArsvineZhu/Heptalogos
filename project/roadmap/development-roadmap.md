@@ -570,8 +570,11 @@ decisions include MANAGED_REVISION-only normal configuration,
 SecretRef-only Product secret references, controllable provider transport
 through NetworkAccess, the two Subject model bindings, one Administrator,
 plan-bound SystemAction execution, deferred-but-adopted Cedar, no generic
-ApprovalService or ManagementOperation, direct text-only Subject Chat, and
-minimal REPLY/SILENCE behavior commit semantics. Release-form Product
+ApprovalService or ManagementOperation, direct text-only Subject Chat, and a
+bounded conversation-triggered cognition slice with optional communication and
+independent Expression. The current implementation still carries the older
+REPLY/SILENCE and conversation-specific DecisionCommit shape; P0 documents that
+as implementation lag and P1 is the separately activated rewrite. Release-form Product
 qualification is required before making the corresponding source-less,
 service, platform, or shipping/runtime claim. It is not a universal
 prerequisite for later semantic/product development, provider-prerequisite
@@ -587,8 +590,23 @@ qualification remains BLOCKED and is not inferred from the local fixture. The
 Persistent Subject L4 Vertical Slice is now completed in
 project/plans/completed/product/persistent-subject-l4-vertical-slice-2026-09-04.md.
 Its local full-stack qualification is PASS; live external qualification remains
-BLOCKED. No Product implementation Plan is active until a new Plan is
-explicitly authorized.
+BLOCKED. The current explicitly authorized Product sequence is the following
+bounded Product Reality Convergence, with only one successor Plan active at a
+time:
+
+```text
+documentation semantic correction
+→ current communication-spine correction
+→ configuration catch-up
+→ Subject OpenClaw runtime integration
+→ source-less portable product reality
+→ first real IM / Observation Window research
+```
+
+This is sequencing guidance, not a rigid waterfall. P0 corrects current-truth
+documentation only and is now complete; P1–P4 require separate activation and
+stop at their own completion boundaries. No Product implementation Plan is
+active after P0.
 
 ### Product prerequisites — provider foundations and minimum Management spine
 
@@ -645,19 +663,19 @@ The normative contract work froze the following ownership map before
 implementation plans write implementation code. These are current normative Specs, not package or
 workspace topology:
 
-| Planned Spec target                       | ID    | Owned contract                                                                           |
-| ----------------------------------------- | ----- | ---------------------------------------------------------------------------------------- |
-| specs/system/configuration.md             | CFG   | Configuration source, revision, and activation.                                          |
-| specs/system/secret.md                    | SEC   | SecretRef, SecretService, backend boundary, and no-plaintext handling.                   |
-| specs/system/network-access.md            | NET   | Managed outbound network policy.                                                         |
-| specs/system/ai-runtime.md                | AIR   | Gateway, model, protocol, binding, and invocation boundary.                              |
-| specs/management/system-authority.md      | MGMT  | Management Contract, Read Models, minimum SystemAction, and System Authority.            |
-| specs/subject/subject-base.md             | SUBJ  | Subject identity, Desired/Actual state, authority revision, and readiness prerequisites. |
-| specs/messaging/messaging-subject-chat.md | MSG   | Canonical messaging facts and built-in Subject Chat.                                     |
-| specs/subject/reaction-behavior.md        | REACT | Reaction, BehaviorIntent, Review, Commit, Expression, silence, and supersession.         |
+| Planned Spec target                       | ID    | Owned contract                                                                                                         |
+| ----------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------- |
+| specs/system/configuration.md             | CFG   | Configuration source, revision, and activation.                                                                        |
+| specs/system/secret.md                    | SEC   | SecretRef, SecretService, backend boundary, and no-plaintext handling.                                                 |
+| specs/system/network-access.md            | NET   | Managed outbound network policy.                                                                                       |
+| specs/system/ai-runtime.md                | AIR   | Gateway, model, protocol, binding, and invocation boundary.                                                            |
+| specs/management/system-authority.md      | MGMT  | Management Contract, Read Models, minimum SystemAction, and System Authority.                                          |
+| specs/subject/subject-base.md             | SUBJ  | Subject identity, Desired/Actual state, authority revision, and readiness prerequisites.                               |
+| specs/messaging/messaging-subject-chat.md | MSG   | Canonical messaging facts and built-in Subject Chat.                                                                   |
+| specs/subject/reaction-behavior.md        | REACT | Reaction, bounded conversation proposals, Review, CommunicationCommit, Expression, no-communication, and supersession. |
 
 The contract map should split these targets further only when a genuine semantic owner and
-current consumer require it. BehaviorIntent, Review, DecisionCommit,
+current consumer require it. ConversationReactionProposal, Review,
 CommunicationCommit, Expression, and ConversationMailbox do not each become
 separate Specs by noun alone. PresentationIntent remains a Presentation
 projection concern and does not create an internal assistant or Host Authority
@@ -810,6 +828,12 @@ Use the smallest product-relevant vertical slice:
   product requirements, while the Subject slice does not require their full
   implementation.
 
+The initial implementation proved a narrower REPLY/SILENCE conversation path.
+That implementation remains useful local evidence, but its names and durable
+shape must not be treated as the total Subject behavior ontology. The current
+Product Reality Convergence sequence corrects that drift before adding more
+runtime scope.
+
 ### Capability closure
 
 - SubjectService persistent identity, desired state, status projection, and
@@ -819,8 +843,8 @@ Use the smallest product-relevant vertical slice:
 - AIRuntimeService over AI SDK provider/model mechanics;
 - ModelProfile/Binding conformance and commit-time provenance fencing;
 - bounded ContextProjection;
-- BehaviorIntent, deterministic Review, DecisionCommit, CommunicationCommit, and
-  Expression boundaries;
+- ConversationReactionProposal, deterministic Review, optional
+  CommunicationCommit, and independent Expression boundaries;
 - durable WorkQueue/DBOS Reaction execution with required lineage/evidence;
 - exactly-once local outbound MessageFact materialization.
 
@@ -832,17 +856,17 @@ AI SDK 7 now offers broad agent-platform features, including approvals, durable 
 
 Prove one complete path:
 
-`Subject Chat ingress → durable MessageFact → WorkItem → Reaction → ContextProjection → model Activity → Behavior/Review → DecisionCommit → CommunicationCommit → Expression → local outbound MessageFact`.
+`Subject Chat ingress → durable MessageFact → WorkItem → Reaction → ContextProjection → model Activity → conversation proposal → Review → optional CommunicationCommit → Expression → local outbound MessageFact`.
 
 Then prove non-happy cases:
 
 - no usable model → Subject Desired remains RUNNING but Actual is BLOCKED;
 - model failure before commit follows existing AIRuntime/WorkQueue Problem
   classification; no provider fleet or fallback is added;
-- crash before DecisionCommit does not invent a committed response;
-- crash after DecisionCommit but before delivery recovers obligation;
+- crash before accepted communication does not invent a committed response;
+- crash after CommunicationCommit but before delivery recovers the communication obligation;
 - live external gateway qualification remains a separate evidence boundary;
-- silence is a valid terminal Subject decision where applicable.
+- no-communication is a valid local terminal Reaction outcome where applicable.
 
 ### Key architectural test
 

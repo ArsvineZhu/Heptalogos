@@ -28,7 +28,41 @@ Normal Heptalogos System Authority still owns canonical product state.
 Machine-level authority does not make filesystem, database, service-manager,
 or deployment state into Heptalogos domain facts automatically.
 
-## 2. Independent lifecycle and failure domain
+## 2. OpenClaw runtime role separation
+
+Heptalogos may use the same OpenClaw software in two distinct roles, but the
+roles are not interchangeable and are never represented as two agents inside
+one shared Gateway:
+
+| Dimension                | Subject OpenClaw Runtime                                                        | System Assistant / Machine Operations OpenClaw          |
+| ------------------------ | ------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Purpose                  | Subject cognition and agent-loop mechanics                                      | Machine/deployment inspection, repair, and maintenance  |
+| Authority                | None by itself; proposals and tools remain bounded by Subject/Product Authority | External Machine/Deployment Authority                   |
+| Machine privilege        | Low/minimum                                                                     | Deliberately higher                                     |
+| Lifecycle                | Product-supervised, replaceable runtime                                         | Independent of Product Host                             |
+| Host health prerequisite | Normally integrated with Product runtime                                        | Must remain usable while Host is unhealthy              |
+| State/config/workspace   | Subject-runtime-specific                                                        | Operations-specific                                     |
+| Credentials              | Subject/model/tool credentials only                                             | Operator/machine credentials                            |
+| Messaging channels       | Heptalogos Messaging remains the Product channel owner                          | Operator channels only when independently configured    |
+| Product identity         | Implementation detail, not Subject identity                                     | Implementation detail behind the System Assistant label |
+
+The hard separation is:
+
+```text
+same OpenClaw software
+!= same Gateway
+!= same agent fleet
+!= same state root
+!= same credentials
+!= same authority
+```
+
+The current repository implementation has only the independently operated
+Machine Operations route. The Subject role is a later Product integration
+target; its implementation must use separate process/profile/state/config/
+workspace/credential/port roots and a narrower tool policy.
+
+## 3. Independent lifecycle and failure domain
 
 OpenClaw must be deployable as an independent process or service with
 independent:
@@ -64,7 +98,7 @@ credentials, operator sessions, host-execution credentials, or OpenClaw state
 directories by default. A future Host-to-OpenClaw privileged invocation would
 be a separate security and product decision.
 
-## 3. Operation hierarchy
+## 4. Operation hierarchy
 
 Machine operations use the smallest available semantic boundary.
 
@@ -120,7 +154,7 @@ example subject.inspect, runtime.graph, readiness.inspect,
 configuration.inspect, operation.inspect, or lineage.query. Exact tool
 schemas are future integration work, not this Architecture page.
 
-## 4. Trust and credential separation
+## 5. Trust and credential separation
 
 The deployment target has two distinct privilege profiles:
 
@@ -149,7 +183,7 @@ low-privilege Presentation must not receive Machine Operations credentials;
 visual embedding, iframe, preload, or hidden route shortcuts do not relax
 this rule.
 
-## 5. Skills and typed tools
+## 6. Skills and typed tools
 
 Heptalogos operational knowledge is delivered through small, composable
 OpenClaw Skills rather than one omniscient Skill. Future families may include
@@ -180,7 +214,7 @@ normative integration Spec or demonstrate that the external OpenClaw
 contracts and repository operational documentation are sufficient. It must
 not recreate an internal assistant runtime.
 
-## 6. Recovery relationship
+## 7. Recovery relationship
 
 Internal Heptalogos Bootstrap/Recovery remains the bounded first-order
 recovery path for normal product failures and substrate transitions. The
@@ -192,7 +226,7 @@ The existence of the external plane is a reason to avoid speculative
 recursive self-healing. It is not a reason to remove the internal Recovery
 Authority or to make normal recovery depend on OpenClaw.
 
-## 7. Product identity and distribution
+## 8. Product identity and distribution
 
 The user-facing product capability is named **System Assistant**. **Maintenance
 Assistant** is a product label for higher-risk or break-glass contexts; it is
@@ -200,10 +234,13 @@ not a second runtime identity. OpenClaw is the implementation/dependency name,
 not the ordinary Heptalogos navigation label, assistant title, or product
 identity.
 
-OpenClaw is currently an external independently operated runtime; it is not
-bundled, downloaded, started, or updated by Product Host. If a future exact
-release or commit is bundled, downloaded, modified, patched, or redistributed,
-the implementation/distribution Plan must re-verify:
+The current Machine Operations OpenClaw runtime is an external independently
+operated runtime; it is not bundled, downloaded, started, or updated by Product
+Host. A future distribution may carry the Subject runtime and the independent
+Machine Operations runtime together, but physical colocation does not merge
+their lifecycle, trust, credentials, or state. If an exact release or commit is
+bundled, downloaded, modified, patched, or redistributed, the relevant
+implementation/distribution Plan must re-verify:
 
 ```
 exact upstream release/commit
@@ -221,3 +258,10 @@ third-party license pages, distribution manifests, SBOM, and license bundles.
 No distribution may imply that OpenClaw Foundation endorses Heptalogos or that
 Heptalogos owns the OpenClaw project. A current upstream observation is not a
 permanent future licensing guarantee.
+
+```text
+may be distributed together
+!= launched together
+!= same trust domain
+!= Product Host child
+```

@@ -99,16 +99,16 @@ FAILED
 
 The canonical meanings are:
 
-| ActualState | Meaning                                                                                                                                       |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| STOPPED     | DesiredState is STOPPED; new Subject cognition is not admitted and no current activation is active.                                           |
-| STARTING    | DesiredState is RUNNING; hard prerequisites are being resolved or activated and usable cognition readiness has not been reached.              |
-| READY       | DesiredState is RUNNING; all hard Subject-slice prerequisites are ready and no current Reaction is executing.                                 |
-| ACTIVE      | DesiredState is RUNNING; hard prerequisites remain acceptable and at least one current Reaction is active.                                    |
-| DEGRADED    | DesiredState is RUNNING; the current reply/silence path remains usable while an optional or non-hard current capability is degraded.          |
-| BLOCKED     | DesiredState is RUNNING; a hard prerequisite is absent/unready and the Subject has not entered an intrinsic unrecoverable failure.            |
-| STOPPING    | DesiredState is STOPPED; new cognition admission is closed and current process-memory work is quiescing or cancelling. Durable truth remains. |
-| FAILED      | Subject-owned runtime/control logic itself cannot safely continue and the failure is not truthfully a dependency BLOCKED condition.           |
+| ActualState | Meaning                                                                                                                                                   |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| STOPPED     | DesiredState is STOPPED; new Subject cognition is not admitted and no current activation is active.                                                       |
+| STARTING    | DesiredState is RUNNING; hard prerequisites are being resolved or activated and usable cognition readiness has not been reached.                          |
+| READY       | DesiredState is RUNNING; all hard Subject-slice prerequisites are ready and no current Reaction is executing.                                             |
+| ACTIVE      | DesiredState is RUNNING; hard prerequisites remain acceptable and at least one current Reaction is active.                                                |
+| DEGRADED    | DesiredState is RUNNING; the current bounded conversation communication path remains usable while an optional or non-hard current capability is degraded. |
+| BLOCKED     | DesiredState is RUNNING; a hard prerequisite is absent/unready and the Subject has not entered an intrinsic unrecoverable failure.                        |
+| STOPPING    | DesiredState is STOPPED; new cognition admission is closed and current process-memory work is quiescing or cancelling. Durable truth remains.             |
+| FAILED      | Subject-owned runtime/control logic itself cannot safely continue and the failure is not truthfully a dependency BLOCKED condition.                       |
 
 Missing dependency is not automatically FAILED. A runtime control defect may be
 FAILED even when dependencies are otherwise ready.
@@ -156,9 +156,12 @@ required provider NetworkAccess
 usable AIRuntime route
 ```
 
-The same ModelProfile may serve both binding roles. OpenClaw, System
-Assistant, GUI, external IM, MCP, and advanced cognition are not hard
-readiness dependencies.
+The same ModelProfile may serve both binding roles. The current AIRuntime-based
+Subject path remains a bounded implementation slice; a future Product-supervised
+Subject OpenClaw Runtime is a separate integration and is not silently merged
+with the independent Machine Operations OpenClaw role. OpenClaw, System
+Assistant, GUI, external IM, MCP, and advanced cognition are not hard readiness
+dependencies for this current Subject Base contract.
 
 authorityRevision is monotonic. DesiredState changes and other later-authorized
 Subject governance mutations increment it. Incoming messages advance

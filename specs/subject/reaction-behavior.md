@@ -1,26 +1,31 @@
-# Reaction and Behavior Authority Contract
+# Reaction and Communication Authority Contract
 
 ## Scope
 
-This Spec owns the minimal Subject cognition and behavior commit spine:
+This Spec owns the minimal Subject conversation cognition and communication
+commit spine:
 
 ```text
 ConversationMailbox
 Reaction
 ContextProjection
-BehaviorIntent
+ConversationReactionProposal
 deterministic Review
-DecisionCommit
 CommunicationCommit
 expression
-silence
+no-communication
 mailbox supersession
 exactly-once local outbound materialization
 ```
 
-It does not define Persona, Memory, Relationship, Attention, Living State,
-advanced Observation Window, proactive behavior, tools, MCP, external
-Messaging, or a second scheduler.
+It does not define the total Subject behavior space, Persona, Memory,
+Relationship, Attention, Living State, advanced Observation Window, proactive
+behavior, tools, MCP, external Messaging, or a second scheduler.
+
+The current branch still contains the pre-P1 `BehaviorIntent`,
+conversation-specific `DecisionCommit`, and `REPLY/SILENCE` implementation.
+Those are explicitly implementation lag; they are not the current conceptual
+Subject ontology and are not to be extended as a generic decision framework.
 
 ## Ownership and current flow
 
@@ -31,7 +36,7 @@ invocation and provider provenance. WorkItem/DBOS own durable processing
 mechanics and obligation projection. Persistence owns Host-fenced transactions;
 Lineage and Evidence own causal proof.
 
-The current flow is:
+The corrected current-slice target for P1 is:
 
 ```text
 accepted MessageFact
@@ -39,19 +44,21 @@ accepted MessageFact
 → Reaction acquisition
 → ContextProjection
 → AIRuntime invocation: subject.primary
-→ BehaviorIntent proposal
-→ deterministic Review
-→ DecisionCommit
-        ├─ SILENCE → terminal Reaction
-        └─ REPLY
-             → CommunicationCommit
-             → AIRuntime invocation: subject.expression
-             → structural acceptance
-             → canonical outbound MessageFact
-             → terminal Reaction
+→ ConversationReactionProposal
+   ├─ NO_COMMUNICATION → successful terminal Reaction
+   └─ COMMUNICATE(semantic content)
+        → deterministic Review
+        → CommunicationCommit
+        → AIRuntime invocation: subject.expression
+        → structural acceptance
+        → canonical outbound MessageFact
+        → terminal Reaction
 ```
 
-No AI tool call occurs.
+`NO_COMMUNICATION` creates no CommunicationCommit or outbound MessageFact. It
+is a legitimate local completion result, not a global durable Silence entity.
+No AI tool call occurs in the current AIRuntime target; OpenClaw proposal tools
+belong to the later P3 integration.
 
 ## ConversationMailbox
 
@@ -87,7 +94,12 @@ interface Reaction {
   readonly observedThroughSequence: number;
   readonly observedSubjectAuthorityRevision: number;
   readonly state:
-    "OPEN" | "SUPERSEDED" | "DECIDED" | "DELIBERATED_SILENT" | "REPLIED" | "FAILED";
+    | "OPEN"
+    | "SUPERSEDED"
+    | "NO_COMMUNICATION"
+    | "COMMUNICATION_COMMITTED"
+    | "REPLIED"
+    | "FAILED";
   readonly ownerWorkItemRef: WorkItemRef;
   readonly ownerActivityRef: ActivityRef;
   readonly createdAt: Instant;
@@ -105,22 +117,22 @@ OPEN
 OPEN → SUPERSEDED
 → mailbox or another current fence invalidates pre-commit work
 
-OPEN → DECIDED
-→ DecisionCommit exists; downstream reply work may remain
+OPEN → NO_COMMUNICATION
+→ the considered communication opportunity completed without communication
 
-DECIDED → DELIBERATED_SILENT
-→ committed SILENCE completed
+OPEN → COMMUNICATION_COMMITTED
+→ one CommunicationCommit exists; Expression/outbound may remain
 
-DECIDED → REPLIED
-→ committed REPLY produced the one outbound MessageFact
+COMMUNICATION_COMMITTED → REPLIED
+→ the committed communication produced the one outbound MessageFact
 
 OPEN → FAILED
 → owner cannot safely continue and the failure is not a dependency BLOCKED result
 ```
 
-A retry that discovers an existing DecisionCommit continues from it and does
-not create another decision. Failure classification uses existing Foundation
-WorkItem and Problem semantics.
+A retry reconciles from the existing canonical Reaction/CommunicationCommit/
+outbound facts and does not re-run a completed communication decision. Failure
+classification uses existing Foundation WorkItem and Problem semantics.
 
 ## ContextProjection
 
@@ -136,39 +148,43 @@ current model/capability facts required for invocation
 It is invocation input, not long-lived Subject state. It does not include
 Persona, Memory, Relationship, Attention, or other advanced cognition state.
 
-## BehaviorIntent
+## ConversationReactionProposal
 
-There are exactly two current proposal classes:
+The current bounded conversation proposal has exactly two classes:
 
 ```ts
-type BehaviorIntent =
+type ConversationReactionProposal =
   | {
       readonly schemaVersion: 1;
-      readonly kind: "REPLY";
-      readonly conversationId: CanonicalConversationId;
-      readonly purpose: string;
-      readonly semanticContent: CanonicalJsonValue;
+      readonly kind: "COMMUNICATE";
+      readonly semanticContent: {
+        readonly schemaVersion: 1;
+        readonly content: string;
+      };
     }
   | {
       readonly schemaVersion: 1;
-      readonly kind: "SILENCE";
-      readonly reasonClass:
-        "DELIBERATED_AND_SILENT" | "UNABLE_TO_RESPOND" | "SUPPRESSED_BY_POLICY";
+      readonly kind: "NO_COMMUNICATION";
     };
 ```
 
-For the current Subject slice, semanticContent uses the versioned BehaviorSemanticContentV1 JSON
-Schema:
+`semanticContent` is material to convey, not final chat wording. The target
+conversation is fixed by the Reaction; the proposal does not select or echo a
+recipient. The current purpose is deterministically a conversation response,
+not a model-selected action. `NO_COMMUNICATION` has no mandatory free-text
+explanation.
+
+For the current Subject slice, semantic content uses this versioned JSON Schema:
 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "heptalogos://schema/behavior-semantic-content/1",
+  "$id": "heptalogos://schema/conversation-semantic-content/1",
   "type": "object",
-  "required": ["schemaVersion", "text"],
+  "required": ["schemaVersion", "content"],
   "properties": {
     "schemaVersion": { "const": 1 },
-    "text": { "type": "string", "minLength": 1 }
+    "content": { "type": "string", "minLength": 1 }
   },
   "additionalProperties": false
 }
@@ -180,93 +196,78 @@ Relationship, or proactive-message fields.
 
 ## Deterministic Review
 
-Review is Product code, not another model. Before DecisionCommit, it verifies:
+Review is Product code, not another model. Before either accepted result commits,
+it verifies:
 
 ```text
-BehaviorIntent schema and domain validity
+ConversationReactionProposal schema and domain validity
 Reaction still OPEN
 Subject state still permits commit
 Subject authorityRevision unchanged
 mailboxRevision unchanged
 Reaction still owns the open-reaction fence
-target conversation is current
-AIRuntime binding/generation result remains admissible
+primary invocation provenance remains admissible
 current Product constraints permit the outcome
 ```
 
 If mailboxRevision changed, the Reaction is atomically marked SUPERSEDED. It
-does not create DecisionCommit, CommunicationCommit, or outbound MessageFact.
+does not create CommunicationCommit or outbound MessageFact.
 The newer accepted MessageFact already owns a WorkItem; no timer or debounce
 subsystem is added.
 
-The commit transaction must call the AIRuntime transaction-aware provenance
-assertion inside the same Host-fenced transaction. It validates the exact
-primary `modelBindingId`/revision, ModelProfile generation, GatewayProfile, and
-active transport ConfigurationRevision recorded by GenerationResult. Expression
-uses the same assertion before outbound MessageFact materialization.
+For `COMMUNICATE`, the same Host-fenced transaction writes:
+
+```text
+CommunicationCommit
++ Reaction → COMMUNICATION_COMMITTED
++ required Lineage/Evidence
+```
+
+For `NO_COMMUNICATION`, the same transaction writes:
+
+```text
+Reaction → NO_COMMUNICATION
++ mailbox consumed cursor/fence release
++ required Lineage/Evidence
+```
+
+There is no intermediate durable DecisionCommit state in the corrected slice.
+
+The transaction revalidates the Subject authority revision, mailbox revision,
+open-Reaction fence, and provider provenance at the point of commit. A
+post-commit Subject stop does not erase a CommunicationCommit; Expression and
+local outbound materialization may finish without re-decision.
 
 Re-entry is reconciliation-style and follows canonical state in this order:
 
 ```text
 outbound MessageFact exists → finalize without expression
-DecisionCommit SILENCE exists → finalize silence
-DecisionCommit REPLY + CommunicationCommit exists → expression/materialization only
-DecisionCommit REPLY exists without CommunicationCommit → create/reuse CommunicationCommit
-no DecisionCommit → primary, Review, and commit
+Reaction is NO_COMMUNICATION → complete without model invocation
+CommunicationCommit exists and outbound does not → expression/materialization only
+Reaction is SUPERSEDED → complete superseded outcome
+Reaction is OPEN → primary proposal, Review, and accepted result
 ```
 
-An existing DecisionCommit never causes `subject.primary` to decide again.
+The current implementation still has the old DecisionCommit re-entry path;
+that is P1 implementation lag and is not a reason to preserve the old contract.
 
-## DecisionCommit
+## CommunicationCommit
 
-DecisionCommit is immutable canonical Subject behavior Authority:
+For `COMMUNICATE`, deterministic Review creates exactly one immutable
+CommunicationCommit directly:
 
 ```text
-DecisionCommitId
+CommunicationCommitId
 ReactionId
 SubjectId
 subjectAuthorityRevision
 mailboxRevision
-decision kind = REPLY | SILENCE
-accepted BehaviorIntent payload/digest
-model invocation/proposal provenance
-committedAt
-Lineage/Evidence
-```
-
-The DecisionCommit transaction revalidates all review fences and commits the
-decision, reaction state, and required causal records together. A crash or
-retry that finds DecisionCommit continues downstream work and never invokes
-subject.primary to decide again.
-
-## Silence
-
-The successful silence path is:
-
-```text
-BehaviorIntent(SILENCE)
-→ DecisionCommit(kind=SILENCE)
-→ Reaction DELIBERATED_SILENT
-→ WorkItem completes
-→ no CommunicationCommit
-→ no outbound MessageFact
-```
-
-Silence is not an empty string, timeout, provider error, or missing result.
-
-## CommunicationCommit
-
-For REPLY, create exactly one immutable CommunicationCommit after
-DecisionCommit:
-
-```text
-CommunicationCommitId
-DecisionCommitId
 conversationId
-semantic content and purpose to express
-reply target semantics
-Subject authority revision/digest
-createdAt
+purpose = reply
+semanticContent = { schemaVersion: 1, content: string }
+semanticContentDigest
+accepted primary invocation provenance
+committedAt
 Lineage/Evidence
 ```
 
@@ -280,23 +281,25 @@ Expression uses the current subject.expression ModelBinding. Its input is the
 committed CommunicationCommit semantic payload plus only allowed language or
 presentation context.
 
-Expression cannot change:
+Expression may vary wording, register, politeness, interpersonal tone, brevity,
+organization, punctuation, or emoji/platform style. It cannot change:
 
 ```text
-REPLY versus SILENCE
+whether communication occurs
 target conversation
-whether a SystemAction occurs
-whether an external consequential action occurs
-DecisionCommit identity
-CommunicationCommit identity
+recipient
+material facts or commitments
+purpose in a materially different sense
+SystemAction
+consequential external action
+permission/authority
 ```
 
 Structural acceptance requires:
 
 ```text
 valid output schema
-non-empty text for REPLY
-bound CommunicationCommit identity and revision
+non-empty text for COMMUNICATE
 no extra authority-bearing action or tool fields
 current binding and generation remain admissible
 ```
@@ -322,10 +325,9 @@ obligation.
 
 ## Failure, recovery, and supersession
 
-If subject.primary fails before DecisionCommit:
+If subject.primary fails before an accepted terminal proposal:
 
 ```text
-no DecisionCommit
 no CommunicationCommit
 no outbound MessageFact
 ```
@@ -333,14 +335,13 @@ no outbound MessageFact
 Use existing Foundation retry classification only when legitimately retryable.
 There is no fake fallback response or provider fleet.
 
-If expression fails after DecisionCommit and CommunicationCommit:
+If expression fails after CommunicationCommit:
 
 ```text
-DecisionCommit survives
 CommunicationCommit survives
 no fake outbound MessageFact
 retry resumes expression
-primary decision is not replaced
+the accepted communication decision is not replaced
 ```
 
 A new accepted inbound advances mailboxRevision. A pre-commit Reaction holding
@@ -366,18 +367,18 @@ reaction.commit_conflict
 - REACT-001 Mailbox organizes MessageFact references; it does not re-own Messaging truth.
 - REACT-002 One current open Reaction owns a mailbox revision at a time.
 - REACT-003 Reaction state is semantic cognition state, not DBOS workflow state.
-- REACT-004 Primary model output is a BehaviorIntent proposal only.
+- REACT-004 Primary model output is a ConversationReactionProposal only.
 - REACT-005 Deterministic Review fences Subject authorityRevision and mailboxRevision.
-- REACT-006 A stale or superseded Reaction cannot create DecisionCommit.
-- REACT-007 DecisionCommit is immutable canonical behavior Authority.
-- REACT-008 Existing DecisionCommit prevents re-decision after crash or retry.
-- REACT-009 SILENCE is successful terminal outcome and creates no outbound MessageFact.
-- REACT-010 REPLY DecisionCommit leads to exactly one current CommunicationCommit.
-- REACT-011 Expression cannot alter reply/silence choice, target, or authorize System/external action.
-- REACT-012 Expression failure does not erase or replace committed decision.
+- REACT-006 A stale or superseded Reaction cannot create CommunicationCommit.
+- REACT-007 NO_COMMUNICATION is a successful local terminal outcome and creates no outbound MessageFact.
+- REACT-008 A CommunicationCommit is immutable accepted communication Authority.
+- REACT-009 Re-entry after CommunicationCommit never re-runs primary cognition.
+- REACT-010 COMMUNICATE leads to exactly one current CommunicationCommit.
+- REACT-011 Expression cannot alter communication choice, target, or authorize System/external action.
+- REACT-012 Expression failure does not erase or replace CommunicationCommit.
 - REACT-013 Accepted expression materializes exactly one outbound MessageFact.
 - REACT-014 Crash after outbound commit does not produce a second reply.
-- REACT-015 Primary failure before DecisionCommit produces no fake canonical behavior.
+- REACT-015 Primary failure before accepted proposal produces no fake canonical behavior.
 - REACT-016 The current Subject slice has no tools, MCP, Persona, Memory, Relationship, Attention, or proactive behavior.
 - REACT-017 New-message supersession uses mailbox revision; no new scheduler.
 - REACT-018 Local Subject Chat outbound creates no EffectOperation.
@@ -387,11 +388,12 @@ reaction.commit_conflict
 ## Persistence and current-slice exclusions
 
 Model I/O and expression I/O occur outside canonical PostgreSQL mutation
-transactions. Review and DecisionCommit use a Host-fenced compare-and-set
-transaction with required Lineage/Evidence. CommunicationCommit is canonical
-after DecisionCommit. MessageFact materialization is idempotent at the
-Messaging owner boundary. Physical SQL schema and migrations are not defined
-here.
+transactions. Review and accepted-result commit use a Host-fenced
+compare-and-set transaction with required Lineage/Evidence. For COMMUNICATE,
+CommunicationCommit is the canonical accepted communication record; for
+NO_COMMUNICATION, Reaction is finalized without one. MessageFact
+materialization is idempotent at the Messaging owner boundary. Physical SQL
+schema and migrations are not defined here.
 
 This Spec does not define:
 

@@ -344,20 +344,22 @@ IM/Subject Chat Driver
 → Reaction
 → Foundation ContextProjection
 → optional advanced ContextFacet contributions when available
-→ model/tool Activities
-→ BehaviorIntent
-→ Review
-→ DecisionCommit
-→ CommunicationCommit
-→ InteractionPlan
-→ Expression
-→ Semantic Fidelity
-→ EffectOperation
-→ Messaging Driver
-→ DeliveryOutcome
+→ bounded conversation cognition proposal
+   ├─ NO_COMMUNICATION → local Reaction completes
+   └─ COMMUNICATE(semantic content)
+        → deterministic Review
+        → CommunicationCommit
+        → Expression
+        → local outbound MessageFact
+        → external EffectOperation / Messaging Driver when an external channel is used
+        → DeliveryOutcome
 ```
 
 高级 Persona/Memory/Relationship/Attention 等只通过正式 Context/Activity/Service hooks 插入；Foundation Basic Chat 不依赖其实现，也不改变 Authority spine。
+
+当前分支实现仍使用 `BehaviorIntent`、`DecisionCommit` 和 `REPLY/SILENCE` 作为
+过渡形状；这属于 P1 implementation lag。它不应被当成 Subject 的总行为
+空间，也不改变 `CommunicationCommit → Expression` 的语义接缝。
 
 ## 12. Ownership Handoff Is Bidirectional
 
