@@ -1,7 +1,7 @@
 # Heptalogos Development Roadmap
 
 **Status:** LIVING ROADMAP / planning guidance<br>
-**Date:** 2026-09-03<br>
+**Date:** 2026-09-04<br>
 **Current repository locus:** master after Foundation closure<br>
 **Foundation closure baseline:** PR #32, merge commit 51317428a89b5545d3ac614f1012d869a1251203; retained as evidence, not a current HEAD pin<br>
 **Architecture baseline:** `docs/architecture/` design state 2026-08-20
@@ -88,7 +88,7 @@ L4 product vertical slice
 Foundation may grow only while its current executable spine remains green. The
 closed asynchronous Foundation capability owns real PostgreSQL, real DBOS, one
 canonical WorkItem, and boot/work/stop/restart. The Subject vertical slice owns
-a real Product L4 path: message → Subject → model → decision → Effect → response.
+a real Product L4 path: message → Subject → model → decision → local response.
 
 ---
 
@@ -549,11 +549,12 @@ releaseFormQualificationBlocksIndependentSemanticDevelopment: false
 releaseFormQualificationBlocksIndependentProviderSemanticDevelopment: false
 releaseFormQualificationBlocksIndependentOpenClawMachineOperations: false
 qualificationRecordAuthority: EVIDENCE_STATUS_ONLY
-providerPrerequisites: IN_PROGRESS
+providerPrerequisites: COMPLETED
+liveGatewayQualification: BLOCKED
 machineOperationsIntegration: ELIGIBLE_NOT_AUTHORIZED
-activeProductImplementationPlan: gateway-first-airuntime
-currentProductWork: gateway-first AIRuntime + OpenAI Chat/Responses + live gateway proof
-nextEligibleProductWork: Persistent Subject L4 Vertical Slice
+activeProductImplementationPlan: NONE
+currentProductWork: NONE
+nextEligibleProductWork: NONE
 ordinaryGitHubActions: DISABLED_CURRENT_EXECUTION_POLICY
 ```
 
@@ -579,12 +580,15 @@ depend on that boundary. Each workstream remains subject to its own plan and
 evidence boundary. OpenClaw remains an adopted external Machine Operations
 route and is not a provider or Subject readiness dependency.
 
-The sole active Product implementation authorization is the gateway-first
-AIRuntime and external-integration Plan in
-project/plans/active/product/gateway-first-airuntime-external-integration-posture-2026-09-03.md.
-It covers the current gateway/protocol semantic correction and one real
-operator-managed gateway route; the Persistent Subject L4 Vertical Slice
-remains the next eligible work after its evidence closure.
+The gateway-first AIRuntime and external-integration Plan is completed in
+project/plans/completed/product/gateway-first-airuntime-external-integration-posture-2026-09-03.md.
+Its local implementation qualification is PASS; the protected live gateway
+qualification remains BLOCKED and is not inferred from the local fixture. The
+Persistent Subject L4 Vertical Slice is now completed in
+project/plans/completed/product/persistent-subject-l4-vertical-slice-2026-09-04.md.
+Its local full-stack qualification is PASS; live external qualification remains
+BLOCKED. No Product implementation Plan is active until a new Plan is
+explicitly authorized.
 
 ### Product prerequisites — provider foundations and minimum Management spine
 
@@ -808,18 +812,17 @@ Use the smallest product-relevant vertical slice:
 
 ### Capability closure
 
-- SubjectService identity/Desired/Actual/authority revision;
-- canonical MessagingService facts;
-- Subject Chat ingress;
-- ConversationMailbox minimum domain ordering/supersession semantics;
+- SubjectService persistent identity, desired state, status projection, and
+  authority revision;
+- canonical MessagingService facts and Subject Chat ingress;
+- ConversationMailbox ordering and supersession semantics;
 - AIRuntimeService over AI SDK provider/model mechanics;
-- ModelProfile/Binding conformance;
-- ContextProjection core facets;
-- typed PromptProgram/PromptManifest;
-- ReactorCoordinator basic lifecycle;
-- BehaviorIntent/Review/DecisionCommit/CommunicationCommit/Expression boundary;
-- EffectOperation-backed outbound delivery;
-- required lineage/evidence through the whole path.
+- ModelProfile/Binding conformance and commit-time provenance fencing;
+- bounded ContextProjection;
+- BehaviorIntent, deterministic Review, DecisionCommit, CommunicationCommit, and
+  Expression boundaries;
+- durable WorkQueue/DBOS Reaction execution with required lineage/evidence;
+- exactly-once local outbound MessageFact materialization.
 
 ### Mandatory framework-leakage guard: AI SDK 7
 
@@ -829,15 +832,16 @@ AI SDK 7 now offers broad agent-platform features, including approvals, durable 
 
 Prove one complete path:
 
-`Subject Chat ingress → durable MessageFact → WorkItem → Reaction → ContextProjection → model Activity → Behavior/Review → DecisionCommit → CommunicationCommit → EffectOperation → delivery outcome`.
+`Subject Chat ingress → durable MessageFact → WorkItem → Reaction → ContextProjection → model Activity → Behavior/Review → DecisionCommit → CommunicationCommit → Expression → local outbound MessageFact`.
 
 Then prove non-happy cases:
 
 - no usable model → Subject Desired remains RUNNING but Actual is BLOCKED;
-- model failure before commit can retry/fail over according to inference policy;
+- model failure before commit follows existing AIRuntime/WorkQueue Problem
+  classification; no provider fleet or fallback is added;
 - crash before DecisionCommit does not invent a committed response;
 - crash after DecisionCommit but before delivery recovers obligation;
-- delivery timeout after dispatch can remain uncertain;
+- live external gateway qualification remains a separate evidence boundary;
 - silence is a valid terminal Subject decision where applicable.
 
 ### Key architectural test

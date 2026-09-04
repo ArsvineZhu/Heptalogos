@@ -15,7 +15,7 @@ import type {
   ExecutionContextRuntime,
   LineageContextRef,
 } from "@heptalogos/execution-lineage";
-import type { EvidenceService } from "@heptalogos/evidence";
+import type { EvidenceRef, EvidenceService } from "@heptalogos/evidence";
 import type { PersistenceService } from "@heptalogos/persistence";
 import type { TimeService } from "@heptalogos/time-service";
 import { Type } from "@heptalogos/schema-runtime/typebox";
@@ -72,7 +72,6 @@ export interface GatewayTransportConfigV1 {
   readonly timeoutMs: number;
   readonly requestBodyBudgetBytes: number;
   readonly responseBodyBudgetBytes: number;
-  readonly expandedResponseBodyBudgetBytes: number;
 }
 
 /** A committed immutable managed Configuration revision. */
@@ -100,6 +99,7 @@ export interface ConfigurationActivation {
   readonly impact: ConfigurationDefinition["activation"];
   readonly effectiveAt: Instant;
   readonly lineageContextRef: LineageContextRef;
+  readonly evidenceRefs: readonly EvidenceRef[];
 }
 
 /** Input accepted by the Configuration owner after Management normalization. */
@@ -186,10 +186,6 @@ export const gatewayTransportConfigSchema = Type.Object(
     responseBodyBudgetBytes: Type.Integer({
       minimum: 1,
       maximum: 16 * 1024 * 1024,
-    }),
-    expandedResponseBodyBudgetBytes: Type.Integer({
-      minimum: 1,
-      maximum: 32 * 1024 * 1024,
     }),
   },
   { additionalProperties: false },

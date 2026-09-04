@@ -240,6 +240,12 @@ when the Subject slice enters Product
 → Subject Chat conversation/message query
 ```
 
+The current Subject slice materializes `subject.start` and `subject.stop` as
+normal plan/execute SystemActions. Their target precondition binds the stable
+SubjectId and current authorityRevision; the owning Subject service mutates
+DesiredState and exposes the derived SubjectStatus. Subject Chat send remains
+Messaging Authority and is not a SystemAction.
+
 The permanent target is complete normal Management coverage relative to every
 administratively meaningful capability that has entered Product. A new
 Presentation may require a new Host-owned ReadModel or aggregate query; it

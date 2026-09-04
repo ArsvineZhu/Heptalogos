@@ -37,12 +37,16 @@ import {
   type ManagementService,
 } from "@heptalogos/management";
 import {
-  contractUnsupportedProblem,
+  registerSubjectChatRoutes,
+  type SubjectChatHttpOptions,
+} from "./subject-chat-http.js";
+import {
   invalidInputProblem,
   managementHttpStatus,
   managementProblem,
   toManagementProblemDetails,
 } from "@heptalogos/management";
+import { assertContractHeader, tokenFromRequest } from "./http-auth.js";
 
 /** Creates a canonical Problem response for the adopted rate-limit plugin. */
 function rateLimitResponse(): ManagementProblemDetails {
@@ -57,33 +61,6 @@ function rateLimitResponse(): ManagementProblemDetails {
   );
 }
 
-function tokenFromRequest(request: FastifyRequest): string {
-  const authorization = request.headers.authorization;
-  if (
-    typeof authorization !== "string" ||
-    !authorization.startsWith("Bearer ") ||
-    authorization.length <= "Bearer ".length
-  ) {
-    throw managementProblem(
-      "management.session_invalid",
-      "Management session is invalid",
-      "A Bearer session token is required",
-      "conflict",
-    );
-  }
-  return authorization.slice("Bearer ".length);
-}
-
-function assertContractHeader(request: FastifyRequest): void {
-  const version = request.headers["x-heptalogos-contract-version"];
-  if (
-    version !== undefined &&
-    (Array.isArray(version) || version !== MANAGEMENT_CONTRACT_VERSION)
-  ) {
-    throw contractUnsupportedProblem();
-  }
-}
-
 async function authenticate(
   service: ManagementService,
   request: FastifyRequest,
@@ -95,6 +72,8 @@ async function authenticate(
 /** Supplies Product Host-local publication cleanup for successful claim use. */
 export interface ManagementHttpOptions {
   readonly onAdministratorClaimed?: () => Promise<void>;
+  /** Optional current Messaging/Subject protocol routes on the same listener. */
+  readonly subjectChat?: SubjectChatHttpOptions;
 }
 
 /** Creates the Management HTTP app without starting its listener. */
@@ -432,6 +411,10 @@ export async function createManagementHttpApp(
     },
     async () => service.getProductState(),
   );
+
+  if (options.subjectChat !== undefined) {
+    registerSubjectChatRoutes(app, options.subjectChat);
+  }
 
   return app;
 }

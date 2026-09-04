@@ -6,6 +6,12 @@
 
 import { createCanonicalSchemaInitializer } from "@heptalogos/canonical-schema";
 import {
+  createDurableExecutionRuntime,
+  createDurableExecutionSchemaProvisioner,
+  createDurableDispatchPort,
+  type DurableExecutionRuntime,
+} from "@heptalogos/durable-execution";
+import {
   createMicroSystemId,
   createProviderId,
   createServiceId,
@@ -52,10 +58,41 @@ import {
   type NetworkAccessService,
 } from "@heptalogos/network-access";
 import { createSecretService, type SecretService } from "@heptalogos/secret";
+import {
+  createPostgresSignalService,
+  postgresSignalPublisher,
+  type SignalService,
+} from "@heptalogos/signal";
+import {
+  createWorkQueueRuntimeComposition,
+  createWorkQueueProfileCatalog,
+  type WorkAdmissionPort,
+  type WorkErrorClassifier,
+  type WorkQueueProfileCatalog,
+  type WorkQueueRuntimeOptions,
+  type WorkQueueReconciler,
+  type WorkQueueService,
+} from "@heptalogos/work-queue";
+import {
+  createMessagingService,
+  type MessagingInboundConsumer,
+  type MessagingService,
+} from "@heptalogos/messaging";
+import {
+  createSubjectReactionDefinition,
+  createSubjectService,
+  SUBJECT_REACTION_CONTRIBUTION_ID,
+  SUBJECT_REACTION_QUEUE_PROFILE_ID,
+  SUBJECT_SYSTEM_ID,
+  type PreparedSubjectInbound,
+  type SubjectService,
+} from "@heptalogos/subject";
 import type { FastifyInstance } from "fastify";
 import {
   BOOTSTRAP_RUNTIME_GENERATION_ID,
+  DURABLE_CODE_VERSION,
   PRODUCT_GENERATION_ID,
+  SUBJECT_PACKAGE_GENERATION_ID,
 } from "./generated/build-identities.js";
 import { createProductionBootstrapKeyProvider } from "./credentials.js";
 import {
@@ -94,6 +131,58 @@ const CANONICAL_OPTIONS = Object.freeze({
   statementTimeoutMs: 10_000,
   lockTimeoutMs: 10_000,
   idleInTransactionSessionTimeoutMs: 30_000,
+  onBackgroundError(error: unknown) {
+    void error;
+  },
+});
+
+const DURABLE_SCHEMA_PROVISIONER = createDurableExecutionSchemaProvisioner({
+  processTimeoutMs: 120_000,
+  connectionTimeoutMs: 10_000,
+  statementTimeoutMs: 10_000,
+});
+
+const SIGNAL_OPTIONS = Object.freeze({
+  connectionTimeoutMs: 10_000,
+  reconnectBaseDelayMs: 25,
+  reconnectMaxDelayMs: 500,
+  onBackgroundError(error: unknown) {
+    void error;
+  },
+});
+
+const SUBJECT_WORK_PROFILES: WorkQueueProfileCatalog = createWorkQueueProfileCatalog([
+  {
+    profileId: SUBJECT_REACTION_QUEUE_PROFILE_ID,
+    globalConcurrency: 2,
+    workerConcurrency: 2,
+    partition: { concurrency: 1 },
+    minPollingIntervalMs: 100,
+  },
+]);
+
+const WORK_OPTIONS: WorkQueueRuntimeOptions = Object.freeze({
+  maxInlinePayloadBytes: 4_096,
+  maxOutcomeBytes: 4_096,
+  reconciliationBatchSize: 32,
+  antiEntropyIntervalMs: 500,
+});
+
+const DURABLE_OPTIONS = Object.freeze({
+  durableCodeVersion: DURABLE_CODE_VERSION,
+  systemPool: Object.freeze({
+    maxConnections: 4,
+    idleTimeoutMs: 5_000,
+    connectionTimeoutMs: 10_000,
+    statementTimeoutMs: 10_000,
+    idleInTransactionSessionTimeoutMs: 30_000,
+  }),
+  systemDatabasePollingConcurrency: 2,
+  maxConcurrentQueueDispatches: 2,
+  workflowMaxRecoveryAttempts: 4,
+  shutdownDrainTimeoutMs: 10_000,
+  profiles: SUBJECT_WORK_PROFILES,
+  onTerminalFailure() {},
   onBackgroundError(error: unknown) {
     void error;
   },
@@ -414,6 +503,12 @@ export async function startProductHost(
   let host: BootstrapManagedHostContext | undefined;
   let persistence: ReturnType<typeof createPersistenceService> | undefined;
   let supervisor: MicroSystemSupervisor | undefined;
+  let signal: SignalService | undefined;
+  let workQueue: WorkQueueService | undefined;
+  let durable: DurableExecutionRuntime | undefined;
+  let reconciler: WorkQueueReconciler | undefined;
+  let subject: SubjectService | undefined;
+  let messaging: MessagingService | undefined;
   let app: FastifyInstance | undefined;
   let endpoint: ManagementEndpointDescriptorV1 | undefined;
   let claimMaintenance: FirstClaimMaintenance | undefined;
@@ -441,7 +536,10 @@ export async function startProductHost(
       keyProvider,
     });
     host = await owned.handoffPrivatePostgresToHost(ready, {
-      initializeCanonicalHost: createCanonicalSchemaInitializer(CANONICAL_OPTIONS),
+      initializeCanonicalHost: async (context) => {
+        await createCanonicalSchemaInitializer(CANONICAL_OPTIONS)(context);
+        await DURABLE_SCHEMA_PROVISIONER.ensureCurrent(context.authority);
+      },
       keyProvider,
       timing: HOST_TIMING,
     });
@@ -513,6 +611,108 @@ export async function startProductHost(
       secret,
       networkAccess,
     });
+    const reactionTarget = {
+      productGenerationId: productGeneration,
+      microSystemId: SUBJECT_SYSTEM_ID,
+      contributionId: SUBJECT_REACTION_CONTRIBUTION_ID,
+      packageGenerationId: SUBJECT_PACKAGE_GENERATION_ID,
+      payloadVersion: 1,
+    } as const;
+    const inboundConsumer: MessagingInboundConsumer<PreparedSubjectInbound> = {
+      prepare: (input) => {
+        if (subject === undefined) {
+          throw startupProblem(
+            "Subject service was not composed before Messaging admission",
+          );
+        }
+        return subject.prepareAcceptedInbound(input);
+      },
+      commit: (transaction, input) => {
+        if (subject === undefined) {
+          throw startupProblem(
+            "Subject service was not composed before Messaging commit",
+          );
+        }
+        return subject.commitAcceptedInbound(transaction, input);
+      },
+    };
+    messaging = createMessagingService({
+      installationId: host.installationId,
+      persistence,
+      execution: runtime,
+      lineage,
+      evidence,
+      time,
+      inboundConsumer,
+    });
+    const workQueueForSubject = {
+      prepareCreate: (
+        ...args: Parameters<NonNullable<typeof workQueue>["prepareCreate"]>
+      ) => {
+        if (workQueue === undefined) {
+          throw startupProblem("WorkQueue was not composed before Subject admission");
+        }
+        return workQueue.prepareCreate(...args);
+      },
+      commitPrepared: (
+        ...args: Parameters<NonNullable<typeof workQueue>["commitPrepared"]>
+      ) => {
+        if (workQueue === undefined) {
+          throw startupProblem("WorkQueue was not composed before Subject commit");
+        }
+        return workQueue.commitPrepared(...args);
+      },
+    };
+    subject = createSubjectService({
+      installationId: host.installationId,
+      persistence,
+      execution: runtime,
+      lineage,
+      evidence,
+      time,
+      messaging,
+      workQueue: workQueueForSubject,
+      aiRuntime,
+      reactionTarget,
+      async getHardPrerequisites() {
+        const blockers: Array<{ readonly code: string; readonly detail: string }> = [];
+        if (!supervisor?.isActive()) {
+          blockers.push({
+            code: "subject.host_unavailable",
+            detail: "The current RuntimeKernel supervisor is not active",
+          });
+        }
+        const readiness = await aiRuntime.getReadiness();
+        for (const blocker of readiness.blockers) {
+          blockers.push({
+            code: blocker,
+            detail: "AIRuntime is not ready for Subject cognition",
+          });
+        }
+        const primary = await aiRuntime.getModelBinding("subject.primary");
+        const expression = await aiRuntime.getModelBinding("subject.expression");
+        if (primary === undefined || !primary.enabled) {
+          blockers.push({
+            code: "subject.primary_unavailable",
+            detail: "The current subject.primary ModelBinding is not usable",
+          });
+        }
+        if (expression === undefined || !expression.enabled) {
+          blockers.push({
+            code: "subject.expression_unavailable",
+            detail: "The current subject.expression ModelBinding is not usable",
+          });
+        }
+        return {
+          usable: blockers.length === 0,
+          blockers: Object.freeze(blockers),
+        };
+      },
+    });
+    const subjectAuthority = await subject.ensureCurrent();
+    await messaging.ensureCurrentConversation({
+      subjectId: subjectAuthority.subjectId,
+    });
     const management = createManagementService({
       installationId: host.installationId,
       instanceId: host.instanceId,
@@ -526,6 +726,7 @@ export async function startProductHost(
         secret,
         networkAccess,
         aiRuntime,
+        subject,
       },
       execution: runtime,
       runReadActivity,
@@ -593,6 +794,11 @@ export async function startProductHost(
             serviceRequirement(NETWORK_SERVICE_ID, "network-access.v1"),
           ],
         }),
+        createSubjectReactionDefinition({
+          productGenerationId: productGeneration,
+          packageGenerationId: SUBJECT_PACKAGE_GENERATION_ID,
+          service: subject,
+        }),
         managementDefinition(productGeneration, management),
       ],
       lifecycleLineage: runtimeLineage,
@@ -613,6 +819,7 @@ export async function startProductHost(
         [SECRET_SYSTEM_ID, "RUNNING"],
         [NETWORK_SYSTEM_ID, "RUNNING"],
         [AI_RUNTIME_SYSTEM_ID, "RUNNING"],
+        [SUBJECT_SYSTEM_ID, "RUNNING"],
         [MANAGEMENT_SYSTEM_ID, "RUNNING"],
       ]),
       serviceBindings: new Map([
@@ -625,12 +832,81 @@ export async function startProductHost(
       capabilityBindings: new Map(),
     });
 
+    signal = createPostgresSignalService(host.persistence, SIGNAL_OPTIONS);
+    const admission: WorkAdmissionPort = {
+      beforeCreate: async () => ({ decision: "ALLOW" }),
+      beforeDispatch: async () => ({ decision: "ALLOW" }),
+    };
+    const currentSubject = subject;
+    if (
+      currentSubject === undefined ||
+      messaging === undefined ||
+      signal === undefined
+    ) {
+      throw startupProblem(
+        "Product Subject, Messaging, or Signal composition is incomplete",
+      );
+    }
+    const classifier: WorkErrorClassifier = currentSubject.createWorkErrorClassifier();
+    const workQueueComposition = createWorkQueueRuntimeComposition({
+      persistence,
+      handlerRegistry: supervisor.workHandlers,
+      execution: runtime,
+      lineage,
+      time,
+      signalPublisher: postgresSignalPublisher,
+      signal,
+      admission,
+      profiles: SUBJECT_WORK_PROFILES,
+      runtimeOptions: WORK_OPTIONS,
+      classifier,
+      onBackgroundError(error) {
+        void error;
+      },
+    });
+    workQueue = workQueueComposition.service;
+    const executor = workQueueComposition.executor;
+    durable = createDurableExecutionRuntime(
+      host.durableExecution,
+      {
+        ...DURABLE_OPTIONS,
+        onTerminalFailure(error) {
+          void error;
+          void requestClose().catch(() => undefined);
+        },
+        onBackgroundError(error) {
+          void error;
+        },
+      },
+      executor,
+    );
+    const durableRuntime = durable;
+    const durableDispatch = createDurableDispatchPort({
+      authority: host.durableExecution,
+      lifecycle: durableRuntime,
+      durableCodeVersion: DURABLE_CODE_VERSION,
+      profiles: SUBJECT_WORK_PROFILES,
+      now: () => time.now(),
+    });
+    reconciler = workQueueComposition.createReconciler(durableDispatch);
+    await durableRuntime.start();
+    await reconciler.start();
+
     const runDirectory = owned!.paths.resolve("RUN").canonicalPath;
 
     app = await createManagementHttpApp(management, {
-      onAdministratorClaimed: () =>
-        claimMaintenance?.administratorClaimed() ??
-        removeFirstClaimMaterial(runDirectory),
+      onAdministratorClaimed: async () => {
+        await messaging?.ensureCurrentConversation({
+          subjectId: subjectAuthority.subjectId,
+        });
+        await (claimMaintenance?.administratorClaimed() ??
+          removeFirstClaimMaterial(runDirectory));
+      },
+      subjectChat: {
+        service: messaging,
+        authenticate: async (sessionToken) =>
+          (await management.authenticate(sessionToken)).administratorId,
+      },
     });
     await app.listen({ host: "127.0.0.1", port: 0 });
     const address = app.server.address();
@@ -670,6 +946,8 @@ export async function startProductHost(
     const currentHost = host;
     const currentPersistence = persistence;
     const currentSupervisor = supervisor;
+    const currentReconciler = reconciler;
+    const currentDurable = durable;
     const currentApp = app;
     requestClose = async () => {
       if (closePromise !== undefined) return closePromise;
@@ -679,6 +957,8 @@ export async function startProductHost(
         await currentApp.close().catch(() => undefined);
         endpointPublished = false;
         await removeCurrentEndpointDescriptor(runDirectory, currentHost.bootId);
+        await currentReconciler?.stop().catch(() => undefined);
+        await currentDurable?.close().catch(() => undefined);
         await currentSupervisor.close().catch(() => undefined);
         await currentPersistence.close().catch(() => undefined);
         if (currentHost.state === "ACTIVE") {
@@ -714,6 +994,8 @@ export async function startProductHost(
   } catch (error) {
     claimMaintenance?.close();
     if (app !== undefined) await app.close().catch(() => undefined);
+    await reconciler?.stop().catch(() => undefined);
+    await durable?.close().catch(() => undefined);
     if (supervisor !== undefined) await supervisor.close().catch(() => undefined);
     if (persistence !== undefined) await persistence.close().catch(() => undefined);
     if (host !== undefined && host.state === "ACTIVE") {

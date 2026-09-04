@@ -4,6 +4,7 @@ import type { Pool, PoolClient } from "pg";
 import { createCanonicalSchemaInitializer } from "../../src/initializer.js";
 import { foundationBaselineMigration } from "../../src/migrations/0001-foundation-baseline.js";
 import { productGatewayPrerequisitesMigration } from "../../src/migrations/0002-product-gateway-prerequisites.js";
+import { productSubjectL4Migration } from "../../src/migrations/0003-product-subject-l4.js";
 import type { CanonicalDatabase } from "../../src/migration-pool.js";
 import {
   canonicalMigrationNames,
@@ -77,6 +78,7 @@ describe("canonical schema adapter", () => {
     expect(canonicalMigrationNames).toEqual([
       "0001_foundation_baseline",
       "0002_product_gateway_prerequisites",
+      "0003_product_subject_l4",
     ]);
     await expect(canonicalMigrationProvider.getMigrations()).resolves.toEqual(
       expect.objectContaining({
@@ -84,6 +86,9 @@ describe("canonical schema adapter", () => {
           up: expect.any(Function),
         }),
         "0002_product_gateway_prerequisites": expect.objectContaining({
+          up: expect.any(Function),
+        }),
+        "0003_product_subject_l4": expect.objectContaining({
           up: expect.any(Function),
         }),
       }),
@@ -130,6 +135,47 @@ describe("canonical schema adapter", () => {
     expect(sql).toContain(
       'GRANT SELECT, INSERT, UPDATE ON TABLE "heptalogos"."model_binding" TO "heptalogos_runtime"',
     );
+  });
+
+  it("materializes the current Subject L4 schema", async () => {
+    const statements: string[] = [];
+    const client = {
+      query: async (query: unknown) => {
+        if (typeof query === "string") statements.push(query);
+        else if (typeof query === "object" && query !== null && "text" in query) {
+          statements.push(String(query.text));
+        }
+        return { rows: [], rowCount: 0 };
+      },
+      release() {},
+    } as unknown as PoolClient;
+    const pool = {
+      connect: async () => client,
+      end: async () => undefined,
+    } as unknown as Pool;
+    const database = new Kysely<CanonicalDatabase>({
+      dialect: new PostgresDialect({ pool }),
+    });
+
+    try {
+      await productSubjectL4Migration.up(database);
+    } finally {
+      await database.destroy();
+    }
+
+    const sql = statements.join("\n");
+    expect(sql).toContain('CREATE TABLE "heptalogos"."subject_authority"');
+    expect(sql).toContain('CREATE TABLE "heptalogos"."messaging_conversation"');
+    expect(sql).toContain('CREATE TABLE "heptalogos"."conversation_mailbox"');
+    expect(sql).toContain('CREATE TABLE "heptalogos"."reaction"');
+    expect(sql).toContain('CREATE TABLE "heptalogos"."decision_commit"');
+    expect(sql).toContain('CREATE TABLE "heptalogos"."communication_commit"');
+    expect(sql).toContain('CREATE TABLE "heptalogos"."message_fact"');
+    expect(sql).toContain("message_fact_inbound_idempotency_unique");
+    expect(sql).toContain(
+      'GRANT SELECT, INSERT ON TABLE "heptalogos"."decision_commit"',
+    );
+    expect(sql).not.toContain("actual_state");
   });
 
   it("exposes only the injected initializer seam during scaffolding", () => {

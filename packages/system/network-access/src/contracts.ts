@@ -41,7 +41,6 @@ export interface NetworkAccessDiagnostics {
   readonly timeoutMs?: number;
   readonly requestBodyBudgetBytes?: number;
   readonly responseBodyBudgetBytes?: number;
-  readonly expandedResponseBodyBudgetBytes?: number;
   readonly blocker?: "configuration";
 }
 
@@ -52,7 +51,6 @@ export interface NetworkResponseKnowledge {
   readonly headers: readonly { readonly name: string; readonly value: string }[];
   readonly body: Uint8Array;
   readonly bytesRead: number;
-  readonly expandedBytesRead: number;
   readonly lineageContextRef: LineageContextRef;
 }
 
@@ -106,7 +104,6 @@ export const networkAccessDiagnosticsSchema = Type.Object(
     timeoutMs: Type.Optional(Type.Integer({ minimum: 1 })),
     requestBodyBudgetBytes: Type.Optional(Type.Integer({ minimum: 1 })),
     responseBodyBudgetBytes: Type.Optional(Type.Integer({ minimum: 1 })),
-    expandedResponseBodyBudgetBytes: Type.Optional(Type.Integer({ minimum: 1 })),
     blocker: Type.Optional(Type.Literal("configuration")),
   },
   { additionalProperties: false },

@@ -281,6 +281,8 @@ describe("Management service", () => {
       ["gateway-profile.set", "MATERIAL", "RECONCILE"],
       ["model-profile.set", "MATERIAL", "RECONCILE"],
       ["model-binding.set", "MATERIAL", "RECONCILE"],
+      ["subject.start", "MATERIAL", "RECONCILE"],
+      ["subject.stop", "MATERIAL", "RECONCILE"],
     ]);
     const action: SystemActionDefinition = {
       schemaVersion: 1,

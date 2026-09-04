@@ -76,6 +76,29 @@
 | Portable Subject boundary           | Subject Bundle                                                       |
 | Installation recovery               | Backup / Restore                                                     |
 
+## Current L4 Product spine
+
+当前持久 Subject vertical slice 的 Authority 顺序是：
+
+```text
+MessageFact
+→ ConversationMailbox
+→ Reaction
+→ BehaviorIntent proposal
+→ deterministic Review
+→ DecisionCommit
+→ CommunicationCommit
+→ Expression
+→ local outbound MessageFact
+```
+
+其中 `DecisionCommit` 与 `CommunicationCommit` 是不可变语义提交；模型输出
+仍是 proposal，不能直接取得 Subject 或 System Authority。
+
+`CognitiveOpportunity`、`ReactionWorkspace`、`Yield`、`PromptProgram`、
+`ActionPlan` 与高级 Observation Window 目前只是保留的未来研究/语义接缝，
+不构成当前 L4 的持久状态或运行框架。
+
 ---
 
 ## Execution Lineage 核心对象

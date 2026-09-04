@@ -29,7 +29,6 @@ const configurationValue = {
   timeoutMs: 60_000,
   requestBodyBudgetBytes: 60_000,
   responseBodyBudgetBytes: 1_048_576,
-  expandedResponseBodyBudgetBytes: 4_194_304,
 };
 const configurationRevisionId = createUuidV7Id("ConfigurationRevisionId");
 

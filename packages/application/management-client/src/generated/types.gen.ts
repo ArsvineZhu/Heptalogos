@@ -841,7 +841,6 @@ export type PlanSystemActionData = {
                 timeoutMs: number;
                 requestBodyBudgetBytes: number;
                 responseBodyBudgetBytes: number;
-                expandedResponseBodyBudgetBytes: number;
             };
         };
     } | {
@@ -897,6 +896,18 @@ export type PlanSystemActionData = {
         input: {
             role: 'subject.primary' | 'subject.expression';
             modelProfileId: string;
+        };
+    } | {
+        actionId: 'subject.start';
+        input: {
+            subjectId: string;
+            expectedAuthorityRevision: number;
+        };
+    } | {
+        actionId: 'subject.stop';
+        input: {
+            subjectId: string;
+            expectedAuthorityRevision: number;
         };
     };
     path?: never;
@@ -1081,7 +1092,6 @@ export type ExecuteSystemActionData = {
                     timeoutMs: number;
                     requestBodyBudgetBytes: number;
                     responseBodyBudgetBytes: number;
-                    expandedResponseBodyBudgetBytes: number;
                 };
             };
         } | {
@@ -1137,6 +1147,18 @@ export type ExecuteSystemActionData = {
             input: {
                 role: 'subject.primary' | 'subject.expression';
                 modelProfileId: string;
+            };
+        } | {
+            actionId: 'subject.start';
+            input: {
+                subjectId: string;
+                expectedAuthorityRevision: number;
+            };
+        } | {
+            actionId: 'subject.stop';
+            input: {
+                subjectId: string;
+                expectedAuthorityRevision: number;
             };
         };
     };
@@ -1324,6 +1346,17 @@ export type GetProductStateResponses = {
             modelBindings: Array<unknown>;
             networkAccess: unknown;
             aiReadiness: unknown;
+            subject: {
+                schemaVersion: 1;
+                subjectId: string;
+                desiredState: 'STOPPED' | 'RUNNING';
+                actualState: string;
+                authorityRevision: number;
+                blockers: Array<{
+                    code: string;
+                    detail: string;
+                }>;
+            };
         };
         lineageContextRef?: {
             schemaVersion: 1;

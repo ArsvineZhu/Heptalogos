@@ -28,7 +28,23 @@
       "project": ["src/**/*.ts"]
     },
     "packages/application/product-host": {
-      "entry": ["src/index.ts", "src/bin.ts"],
+      "entry": ["src/index.ts", "src/bin.ts", "scripts/**/*.mjs"],
+      "project": ["src/**/*.ts", "scripts/**/*.mjs"],
+      "ignoreIssues": {
+        "src/subject-chat-http.ts": ["exports"]
+      }
+    },
+    "packages/application/subject-chat-client": {
+      "entry": ["src/index.ts", "scripts/generate.mjs"],
+      "project": ["src/**/*.ts", "scripts/**/*.mjs"],
+      "ignore": ["src/generated/**"]
+    },
+    "packages/product/messaging": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/product/subject": {
+      "entry": ["src/index.ts"],
       "project": ["src/**/*.ts"]
     },
     "packages/system/management": {

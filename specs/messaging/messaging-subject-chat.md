@@ -139,6 +139,12 @@ same key + different canonical content or scope
 → idempotency/identity conflict
 ```
 
+For the built-in Subject Chat path, Messaging owns the canonical transaction
+and invokes one narrow current-consumer Subject obligation port after inserting
+the inbound MessageFact. That port advances ConversationMailbox and commits a
+prepared WorkItem in the same transaction. This is a concrete atomic
+cross-owner seam, not a generic domain-event bus or IdempotencyService.
+
 A client that loses the response may retry the same key and content and obtain
 the already committed result. Idempotency does not accept a changed message
 under an old key.
@@ -164,8 +170,9 @@ MessageFact.
 ## Query and reconnect catch-up
 
 Message query uses an opaque versioned cursor derived from canonical ordering.
-The order is stable by canonical conversation sequence, with createdAt and
-CanonicalMessageId as deterministic tie-break data when required. A query
+The order is the canonical per-conversation sequence, with createdAt and
+CanonicalMessageId retained only as deterministic tie-break data when required
+by a projection. A query
 returns messages after the cursor in that order and a next cursor based on the
 last returned fact. Reconnect always re-queries canonical MessageFact state;
 live projection is optional and never replaces catch-up.

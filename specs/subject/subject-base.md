@@ -28,10 +28,20 @@ ModelBinding changes, Presentation disconnect, Reaction completion, and
 Product process restart.
 
 ```ts
-interface SubjectRecord {
+interface SubjectAuthorityRecord {
   readonly schemaVersion: 1;
   readonly subjectId: SubjectId;
   readonly installationId: InstallationId;
+  readonly desiredState: "STOPPED" | "RUNNING";
+  readonly authorityRevision: number;
+  readonly createdAt: Instant;
+  readonly updatedAt: Instant;
+  readonly lineageContextRef: LineageContextRef;
+}
+
+interface SubjectStatus {
+  readonly schemaVersion: 1;
+  readonly subjectId: SubjectId;
   readonly desiredState: "STOPPED" | "RUNNING";
   readonly actualState:
     | "STOPPED"
@@ -43,9 +53,7 @@ interface SubjectRecord {
     | "STOPPING"
     | "FAILED";
   readonly authorityRevision: number;
-  readonly createdAt: Instant;
-  readonly updatedAt: Instant;
-  readonly lineageContextRef: LineageContextRef;
+  readonly blockers: readonly SubjectBlocker[];
 }
 ```
 
@@ -53,6 +61,12 @@ SubjectId is a stable semantic identity. It is not derived from a ModelProfile,
 GatewayProfile, ModelBinding, SessionId, ReactionId, or Host generation.
 Host startup does not create a new Subject because an in-process object is
 absent.
+
+DesiredState and authorityRevision are durable Subject Authority. ActualState
+is a Subject-owned current projection derived from durable intent and current
+runtime/dependency facts; it is not a second durable column. Host restart
+recomputes ActualState without resetting DesiredState. Presentation cannot
+infer or assign ActualState.
 
 ## Desired State
 

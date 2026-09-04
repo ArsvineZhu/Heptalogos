@@ -50,6 +50,12 @@
       "path": "./packages/execution/durable-execution"
     },
     {
+      "path": "./packages/product/messaging"
+    },
+    {
+      "path": "./packages/product/subject"
+    },
+    {
       "path": "./packages/execution/effect-operation"
     },
     {
@@ -60,6 +66,9 @@
     },
     {
       "path": "./packages/application/management-client"
+    },
+    {
+      "path": "./packages/application/subject-chat-client"
     },
     {
       "path": "./packages/application/product-host"

@@ -352,7 +352,6 @@ suite("installed model gateway protocol adapters", () => {
             timeoutMs: 30_000,
             requestBodyBudgetBytes: 60_000,
             responseBodyBudgetBytes: 1_048_576,
-            expandedResponseBodyBudgetBytes: 4_194_304,
           },
         }),
     );

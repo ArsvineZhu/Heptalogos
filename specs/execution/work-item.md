@@ -39,6 +39,21 @@ target, payload, dispatch revision, outcome, and reconciliation semantics.
   recovery claim: the canonical WorkItem remains authoritative, no outcome
   may be inferred, and the system MUST NOT heuristic-redispatch it.
 
+When another canonical owner must commit a fact and its derived WorkItem in one
+transaction, WorkQueue exposes two creation phases:
+
+```text
+prepareCreate
+→ validate the exact handler, payload, profile, admission, and lineage inputs
+
+commitPrepared(existing canonical transaction)
+→ insert or deduplicate the WorkItem and publish only its transactional Signal hint
+```
+
+The normal `create` operation composes these phases. Prepared creation is
+ephemeral implementation data; it is not durable WorkItem Authority and cannot
+survive a process restart by itself.
+
 ## Lifecycle
 
 ```text

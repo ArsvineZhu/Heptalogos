@@ -3990,8 +3990,7 @@
                               "schemaVersion",
                               "timeoutMs",
                               "requestBodyBudgetBytes",
-                              "responseBodyBudgetBytes",
-                              "expandedResponseBodyBudgetBytes"
+                              "responseBodyBudgetBytes"
                             ],
                             "properties": {
                               "schemaVersion": {
@@ -4014,11 +4013,6 @@
                                 "type": "integer",
                                 "minimum": 1,
                                 "maximum": 16777216
-                              },
-                              "expandedResponseBodyBudgetBytes": {
-                                "type": "integer",
-                                "minimum": 1,
-                                "maximum": 33554432
                               }
                             },
                             "additionalProperties": false
@@ -4376,6 +4370,74 @@
                           "modelProfileId": {
                             "type": "string",
                             "minLength": 1
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "actionId",
+                      "input"
+                    ],
+                    "properties": {
+                      "actionId": {
+                        "type": "string",
+                        "enum": [
+                          "subject.start"
+                        ]
+                      },
+                      "input": {
+                        "type": "object",
+                        "required": [
+                          "subjectId",
+                          "expectedAuthorityRevision"
+                        ],
+                        "properties": {
+                          "subjectId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                          },
+                          "expectedAuthorityRevision": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "actionId",
+                      "input"
+                    ],
+                    "properties": {
+                      "actionId": {
+                        "type": "string",
+                        "enum": [
+                          "subject.stop"
+                        ]
+                      },
+                      "input": {
+                        "type": "object",
+                        "required": [
+                          "subjectId",
+                          "expectedAuthorityRevision"
+                        ],
+                        "properties": {
+                          "subjectId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                          },
+                          "expectedAuthorityRevision": {
+                            "type": "integer",
+                            "minimum": 1
                           }
                         },
                         "additionalProperties": false
@@ -5364,8 +5426,7 @@
                                   "schemaVersion",
                                   "timeoutMs",
                                   "requestBodyBudgetBytes",
-                                  "responseBodyBudgetBytes",
-                                  "expandedResponseBodyBudgetBytes"
+                                  "responseBodyBudgetBytes"
                                 ],
                                 "properties": {
                                   "schemaVersion": {
@@ -5388,11 +5449,6 @@
                                     "type": "integer",
                                     "minimum": 1,
                                     "maximum": 16777216
-                                  },
-                                  "expandedResponseBodyBudgetBytes": {
-                                    "type": "integer",
-                                    "minimum": 1,
-                                    "maximum": 33554432
                                   }
                                 },
                                 "additionalProperties": false
@@ -5750,6 +5806,74 @@
                               "modelProfileId": {
                                 "type": "string",
                                 "minLength": 1
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "actionId",
+                          "input"
+                        ],
+                        "properties": {
+                          "actionId": {
+                            "type": "string",
+                            "enum": [
+                              "subject.start"
+                            ]
+                          },
+                          "input": {
+                            "type": "object",
+                            "required": [
+                              "subjectId",
+                              "expectedAuthorityRevision"
+                            ],
+                            "properties": {
+                              "subjectId": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                              },
+                              "expectedAuthorityRevision": {
+                                "type": "integer",
+                                "minimum": 1
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "actionId",
+                          "input"
+                        ],
+                        "properties": {
+                          "actionId": {
+                            "type": "string",
+                            "enum": [
+                              "subject.stop"
+                            ]
+                          },
+                          "input": {
+                            "type": "object",
+                            "required": [
+                              "subjectId",
+                              "expectedAuthorityRevision"
+                            ],
+                            "properties": {
+                              "subjectId": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                              },
+                              "expectedAuthorityRevision": {
+                                "type": "integer",
+                                "minimum": 1
                               }
                             },
                             "additionalProperties": false
@@ -6359,7 +6483,8 @@
                         "modelProfiles",
                         "modelBindings",
                         "networkAccess",
-                        "aiReadiness"
+                        "aiReadiness",
+                        "subject"
                       ],
                       "properties": {
                         "schemaVersion": {
@@ -6408,7 +6533,76 @@
                           "items": {}
                         },
                         "networkAccess": {},
-                        "aiReadiness": {}
+                        "aiReadiness": {},
+                        "subject": {
+                          "type": "object",
+                          "required": [
+                            "schemaVersion",
+                            "subjectId",
+                            "desiredState",
+                            "actualState",
+                            "authorityRevision",
+                            "blockers"
+                          ],
+                          "properties": {
+                            "schemaVersion": {
+                              "type": "number",
+                              "enum": [
+                                1
+                              ]
+                            },
+                            "subjectId": {
+                              "type": "string",
+                              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                            },
+                            "desiredState": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "STOPPED"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "RUNNING"
+                                  ]
+                                }
+                              ]
+                            },
+                            "actualState": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "authorityRevision": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "blockers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "code",
+                                  "detail"
+                                ],
+                                "properties": {
+                                  "code": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "detail": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "additionalProperties": false
+                        }
                       },
                       "additionalProperties": false
                     },

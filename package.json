@@ -10,11 +10,11 @@
   "scripts": {
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "nx run repository:lint",
-    "typecheck": "nx run repository:typecheck",
+    "lint": "node scripts/verify/run-nx.mjs run repository:lint",
+    "typecheck": "node scripts/verify/run-nx.mjs run repository:typecheck",
     "tsc6": "tsc6 --noEmit -p tsconfig.ts6.json",
-    "test": "nx run repository:test",
-    "build": "nx run repository:build",
+    "test": "node scripts/verify/run-nx.mjs run repository:test",
+    "build": "node scripts/verify/run-nx.mjs run repository:build",
     "nx:check": "nx --version",
     "check:agents": "node scripts/verify/agents.mjs",
     "check:knowledge": "node scripts/verify/knowledge.mjs",
@@ -29,9 +29,9 @@
     "check:unused": "knip",
     "check:duplicates": "nx run repository:check:duplicates",
     "toolchain:check": "node scripts/verify/toolchain.mjs",
-    "verify": "nx run repository:verify",
-    "check:static": "nx run repository:check:static",
-    "check:repo": "nx run repository:check:repo",
+    "verify": "node scripts/verify/run-nx.mjs run repository:verify",
+    "check:static": "node scripts/verify/run-nx.mjs run repository:check:static",
+    "check:repo": "node scripts/verify/run-nx.mjs run repository:check:repo",
     "clean": "node scripts/maintenance/clean.mjs"
   },
   "nx": {

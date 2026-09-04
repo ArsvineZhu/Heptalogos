@@ -12,6 +12,21 @@
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "references": [
     {
+      "path": "../../product/subject"
+    },
+    {
+      "path": "../../product/messaging"
+    },
+    {
+      "path": "../../execution/durable-execution"
+    },
+    {
+      "path": "../../execution/work-queue"
+    },
+    {
+      "path": "../../execution/signal"
+    },
+    {
       "path": "../../system/ai-runtime"
     },
     {

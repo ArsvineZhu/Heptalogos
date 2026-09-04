@@ -14,7 +14,7 @@ import type {
   ExecutionContextRuntime,
   LineageContextRef,
 } from "@heptalogos/execution-lineage";
-import type { EvidenceService } from "@heptalogos/evidence";
+import type { EvidenceRef, EvidenceService } from "@heptalogos/evidence";
 import type {
   ConfigurationRevisionId,
   ConfigurationService,
@@ -117,6 +117,7 @@ export interface UsageMetadata {
 export interface GenerationResult {
   readonly schemaVersion: 1;
   readonly invocationId: InvocationId;
+  readonly modelBindingId: ModelBindingId;
   readonly bindingRevision: number;
   readonly gatewayProfileId: GatewayProfileId;
   readonly modelProfileId: ModelProfileId;
@@ -127,7 +128,7 @@ export interface GenerationResult {
   readonly candidate: CanonicalJsonValue;
   readonly usage?: UsageMetadata;
   readonly lineageContextRef: LineageContextRef;
-  readonly evidenceRefs: readonly { readonly evidenceId: string }[];
+  readonly evidenceRefs: readonly EvidenceRef[];
 }
 
 /** Read-only reasoned provider readiness projection. */
@@ -202,6 +203,11 @@ export interface AIRuntimeService {
   ): Promise<ModelBinding>;
   /** Reports whether the current binding route is invokable. */
   getReadiness(): Promise<AIRuntimeReadiness>;
+  /** Validates generation provenance inside a caller-owned canonical transaction. */
+  assertGenerationAdmissibleForCommit(
+    transaction: import("@heptalogos/persistence").PersistenceMutationTransactionContext,
+    provenance: GenerationResult,
+  ): Promise<void>;
   /** Invokes one ephemeral structured generation. */
   invoke(spec: InvocationSpec): Promise<GenerationResult>;
 }

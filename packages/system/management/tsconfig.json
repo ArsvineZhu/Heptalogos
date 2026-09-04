@@ -12,16 +12,10 @@
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "references": [
     {
-      "path": "../ai-runtime"
-    },
-    {
-      "path": "../configuration"
-    },
-    {
-      "path": "../../execution/execution-lineage"
-    },
-    {
       "path": "../../foundation/time-service"
+    },
+    {
+      "path": "../secret"
     },
     {
       "path": "../../foundation/schema-runtime"
@@ -30,13 +24,22 @@
       "path": "../../data/persistence"
     },
     {
-      "path": "../../foundation/foundation-contracts"
-    },
-    {
       "path": "../network-access"
     },
     {
-      "path": "../secret"
+      "path": "../../foundation/foundation-contracts"
+    },
+    {
+      "path": "../../execution/execution-lineage"
+    },
+    {
+      "path": "../../execution/evidence"
+    },
+    {
+      "path": "../configuration"
+    },
+    {
+      "path": "../ai-runtime"
     }
   ]
 }

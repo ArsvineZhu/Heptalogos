@@ -1,16 +1,16 @@
 # Gateway-First AIRuntime + External Integration Posture
 
-**State:** `ACTIVE`  
+**State:** `COMPLETED`  
 **Mode:** `RAPID_EVOLUTION / PRE_PRODUCTION`  
 **Task class:** `PRODUCT_IMPLEMENTATION + CURRENT-AUTHORITY_CORRECTION`  
 **Date:** `2026-09-03`  
-**Primary outcome:** replace the accidental OpenAI-vendor-specific AIRuntime implementation with a gateway-first OpenAI-protocol boundary, complete both Chat Completions and Responses mechanics, document the external-integration product posture, and prove one real NewAPI → DeepSeek model path  
+**Primary outcome:** replace the accidental OpenAI-vendor-specific AIRuntime implementation with a gateway-first OpenAI-protocol boundary, complete both Chat Completions and Responses mechanics, document the external-integration product posture, and close the local Gateway implementation while preserving the unrun live NewAPI claim  
 **Recommended model gateway:** NewAPI  
 **Default distribution posture:** external software is not bundled, downloaded, installed, updated, or lifecycle-managed by Heptalogos unless a future Plan explicitly authorizes that responsibility  
 **Next eligible Product work after PASS:** Persistent Subject L4 Vertical Slice
 
-This file is the complete executable Plan. Install this file itself as the active
-Plan. Do not replace it with an Agent-authored summary or a pointer back to `tmp/`.
+This file records the completed executable Plan. It is historical evidence and
+does not authorize follow-up work.
 
 ---
 
@@ -323,11 +323,11 @@ External software
 
 Current examples:
 
-| Capability | Recommended external implementation | Heptalogos owns | External software owns |
-|---|---|---|---|
-| Model gateway | NewAPI | GatewayProfile, ModelProfile, ModelBinding, gateway token SecretRef, invocation semantics | provider credentials, channels, routing, provider adaptation, upstream model management |
-| Machine Operations | OpenClaw | Management/CLI/tools/skills integration contracts | privileged runtime, machine credentials, workspace, model config, process/lifecycle |
-| Audio/video mechanics | FFmpeg | bounded AV invocation adapter/capability semantics when implemented | executable installation and its own release lifecycle |
+| Capability            | Recommended external implementation | Heptalogos owns                                                                           | External software owns                                                                  |
+| --------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Model gateway         | NewAPI                              | GatewayProfile, ModelProfile, ModelBinding, gateway token SecretRef, invocation semantics | provider credentials, channels, routing, provider adaptation, upstream model management |
+| Machine Operations    | OpenClaw                            | Management/CLI/tools/skills integration contracts                                         | privileged runtime, machine credentials, workspace, model config, process/lifecycle     |
+| Audio/video mechanics | FFmpeg                              | bounded AV invocation adapter/capability semantics when implemented                       | executable installation and its own release lifecycle                                   |
 
 Default Product distribution therefore does NOT imply:
 
@@ -496,9 +496,7 @@ one internally. When NewAPI is the gateway, those credentials are NewAPI-owned.
 Replace current provider-vendor fields with:
 
 ```ts
-type ModelInvocationProtocol =
-  | "openai-chat"
-  | "openai-responses";
+type ModelInvocationProtocol = "openai-chat" | "openai-responses";
 
 interface ModelProfile {
   readonly schemaVersion: 1;
@@ -2302,22 +2300,24 @@ pnpm check:repo PASS
 pnpm verify PASS
 
 Q-AI-GATEWAY-CHAT-01:
-  NewAPI → DeepSeek real invocation PASS
+  local gateway implementation PASS
+  live NewAPI → upstream invocation BLOCKED
 ```
 
-A live Responses gateway claim may remain NOT_RUN without blocking this Plan, because
-the actual current DeepSeek-through-NewAPI route is the required real gateway proof
-and the Responses protocol implementation is separately proven through the adopted
-real AI SDK package and controlled HTTP boundary.
+The live NewAPI → upstream claim remains BLOCKED because no protected operator
+credential or live gateway endpoint was supplied. Chat and Responses protocol
+mechanics are proven through the adopted AI SDK packages and the controlled local
+HTTP boundary; that local evidence does not qualify NewAPI or a remote upstream.
 
 The strongest justified completed claim is:
 
 ```text
 Heptalogos has a gateway-first AIRuntime with explicit OpenAI Chat and Open Responses
-protocol semantics. Model/provider aggregation is outside Product Authority. One real
-operator-managed NewAPI gateway path to DeepSeek has been proven through canonical
-Configuration, Secret, NetworkAccess, GatewayProfile, ModelProfile, ModelBinding,
-AIRuntime, SchemaRuntime, Lineage, and Evidence boundaries.
+protocol semantics. Model/provider aggregation is outside Product Authority. The
+local Gateway path has been proven through canonical Configuration, Secret,
+NetworkAccess, GatewayProfile, ModelProfile, ModelBinding, AIRuntime, SchemaRuntime,
+Lineage, and Evidence boundaries; live NewAPI/upstream qualification remains
+BLOCKED.
 ```
 
 ---

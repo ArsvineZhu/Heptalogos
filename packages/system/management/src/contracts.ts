@@ -9,7 +9,6 @@ import type {
   Branded,
   CanonicalJsonValue,
   ContinuityEpochId,
-  EvidenceId,
   InstallationId,
   InstanceId,
   Instant,
@@ -25,6 +24,7 @@ import {
 } from "@heptalogos/foundation-contracts";
 import { lineageContextRefSchema } from "@heptalogos/execution-lineage";
 import type { LineageContextRef } from "@heptalogos/execution-lineage";
+import type { EvidenceRef } from "@heptalogos/evidence";
 import type {
   ConfigurationActivation,
   ConfigurationDefinition,
@@ -137,11 +137,6 @@ export interface TargetPrecondition {
   readonly expectedRevision?: number;
   readonly expectedDigest?: ManagementDigest;
 }
-/** Stable reference to one retained Evidence record. */
-export interface EvidenceRef {
-  readonly schemaVersion: 1;
-  readonly evidenceId: EvidenceId;
-}
 /** Describes one versioned semantic System action. */
 export interface SystemActionDefinition {
   readonly schemaVersion: 1;
@@ -188,7 +183,9 @@ export type ProductSystemActionId =
   | "secret.revoke"
   | "gateway-profile.set"
   | "model-profile.set"
-  | "model-binding.set";
+  | "model-binding.set"
+  | "subject.start"
+  | "subject.stop";
 
 /** The normalized configuration revision action input. */
 export interface ConfigurationRevisionCreateActionInput {
@@ -244,6 +241,12 @@ interface ModelBindingSetActionInput {
   readonly modelProfileId: string;
 }
 
+/** Input to the current Subject desired-state actions. */
+export interface SubjectStateActionInput {
+  readonly subjectId: string;
+  readonly expectedAuthorityRevision: number;
+}
+
 /** A typed action request accepted by the current Management slice. */
 export type SystemActionRequest =
   | {
@@ -274,12 +277,35 @@ export type SystemActionRequest =
   | {
       readonly actionId: "model-binding.set";
       readonly input: ModelBindingSetActionInput;
-    };
+    }
+  | { readonly actionId: "subject.start"; readonly input: SubjectStateActionInput }
+  | { readonly actionId: "subject.stop"; readonly input: SubjectStateActionInput };
 
 /** The exact request used to confirm and execute a previously planned action. */
 export interface SystemActionExecuteRequest {
   readonly plan: SystemChangePlan;
   readonly action: SystemActionRequest;
+}
+
+/** Current Subject status shape projected by Management without owning Subject state. */
+export interface SubjectStatusProjection {
+  readonly schemaVersion: 1;
+  readonly subjectId: string;
+  readonly desiredState: "STOPPED" | "RUNNING";
+  readonly actualState:
+    | "STOPPED"
+    | "STARTING"
+    | "READY"
+    | "ACTIVE"
+    | "DEGRADED"
+    | "BLOCKED"
+    | "STOPPING"
+    | "FAILED";
+  readonly authorityRevision: number;
+  readonly blockers: readonly {
+    readonly code: string;
+    readonly detail: string;
+  }[];
 }
 
 /** Current redacted Product prerequisite state exposed by Management reads. */
@@ -296,12 +322,13 @@ export interface ProductStateData {
   readonly modelBindings: readonly ModelBinding[];
   readonly networkAccess: NetworkAccessDiagnostics;
   readonly aiReadiness: AIRuntimeReadiness;
+  readonly subject: SubjectStatusProjection;
 }
 /** Current Product prerequisite read envelope. */
 export type ProductStateReadModel = ReadModelEnvelope<ProductStateData>;
 
 /** The current Product action catalog revision. */
-export const SYSTEM_ACTION_CATALOG_REVISION = 2 as const;
+export const SYSTEM_ACTION_CATALOG_REVISION = 3 as const;
 
 /** The current Management action catalog, without a generic operation store. */
 export const currentSystemActionCatalog: readonly SystemActionDefinition[] =
@@ -416,6 +443,32 @@ export const currentSystemActionCatalog: readonly SystemActionDefinition[] =
         schemaId: "management.system-action.result",
       },
       targetKind: "model-binding",
+      riskClass: "MATERIAL" as const,
+      applyMode: "RECONCILE" as const,
+    }),
+    Object.freeze({
+      schemaVersion: 1 as const,
+      actionId: "subject.start" as SystemActionId,
+      actionVersion: 1,
+      inputSchema: { schemaVersion: 1 as const, schemaId: "subject.start.input" },
+      outputSchema: {
+        schemaVersion: 1 as const,
+        schemaId: "management.system-action.result",
+      },
+      targetKind: "subject",
+      riskClass: "MATERIAL" as const,
+      applyMode: "RECONCILE" as const,
+    }),
+    Object.freeze({
+      schemaVersion: 1 as const,
+      actionId: "subject.stop" as SystemActionId,
+      actionVersion: 1,
+      inputSchema: { schemaVersion: 1 as const, schemaId: "subject.stop.input" },
+      outputSchema: {
+        schemaVersion: 1 as const,
+        schemaId: "management.system-action.result",
+      },
+      targetKind: "subject",
       riskClass: "MATERIAL" as const,
       applyMode: "RECONCILE" as const,
     }),
@@ -793,6 +846,32 @@ export const systemActionRequestSchema = Type.Union([
     },
     { additionalProperties: false },
   ),
+  Type.Object(
+    {
+      actionId: Type.Literal("subject.start"),
+      input: Type.Object(
+        {
+          subjectId: Type.String({ pattern: UUID_V7_PATTERN }),
+          expectedAuthorityRevision: Type.Integer({ minimum: 1 }),
+        },
+        { additionalProperties: false },
+      ),
+    },
+    { additionalProperties: false },
+  ),
+  Type.Object(
+    {
+      actionId: Type.Literal("subject.stop"),
+      input: Type.Object(
+        {
+          subjectId: Type.String({ pattern: UUID_V7_PATTERN }),
+          expectedAuthorityRevision: Type.Integer({ minimum: 1 }),
+        },
+        { additionalProperties: false },
+      ),
+    },
+    { additionalProperties: false },
+  ),
 ]);
 /** Canonical wire schema for exact action-plan confirmation and execution. */
 export const systemActionExecuteRequestSchema = Type.Object(
@@ -822,6 +901,25 @@ export const productStateSchema = readModelEnvelopeSchema(
       modelBindings: Type.Array(Type.Unknown()),
       networkAccess: Type.Unknown(),
       aiReadiness: Type.Unknown(),
+      subject: Type.Object(
+        {
+          schemaVersion: Type.Literal(1),
+          subjectId: Type.String({ pattern: UUID_V7_PATTERN }),
+          desiredState: Type.Union([Type.Literal("STOPPED"), Type.Literal("RUNNING")]),
+          actualState: Type.String({ minLength: 1 }),
+          authorityRevision: Type.Integer({ minimum: 1 }),
+          blockers: Type.Array(
+            Type.Object(
+              {
+                code: Type.String({ minLength: 1 }),
+                detail: Type.String({ minLength: 1 }),
+              },
+              { additionalProperties: false },
+            ),
+          ),
+        },
+        { additionalProperties: false },
+      ),
     },
     { additionalProperties: false },
   ),

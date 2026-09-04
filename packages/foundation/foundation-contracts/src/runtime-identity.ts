@@ -37,6 +37,8 @@ export type CapabilityId = NamespacedId<"CapabilityId">;
 export type ProviderId = NamespacedId<"ProviderId">;
 /** Identifies an Extension contribution. */
 export type ContributionId = NamespacedId<"ContributionId">;
+/** Identifies a canonical messaging platform. */
+export type MessagingPlatformId = NamespacedId<"MessagingPlatformId">;
 /** Identifies a durable WorkItem. */
 export type WorkItemId = UuidV7Id<"WorkItemId">;
 /** Identifies one canonical consequential external effect operation. */
@@ -90,6 +92,10 @@ export const parseProviderId = (value: unknown): ProviderId | undefined =>
 /** Parses a Contribution identity and rejects malformed namespace syntax. */
 export const parseContributionId = (value: unknown): ContributionId | undefined =>
   parseNamespacedId("ContributionId", value);
+/** Parses a canonical messaging platform identity. */
+export const parseMessagingPlatformId = (
+  value: unknown,
+): MessagingPlatformId | undefined => parseNamespacedId("MessagingPlatformId", value);
 /** Parses a WorkItem UUID-v7 identity. */
 export const parseWorkItemId = (value: unknown): WorkItemId | undefined =>
   parseUuidV7Id("WorkItemId", value);
@@ -124,6 +130,9 @@ export const createProviderId = (value: string): ProviderId =>
 /** Creates a validated Contribution identity from its canonical name. */
 export const createContributionId = (value: string): ContributionId =>
   createNamespacedId("ContributionId", value);
+/** Creates a validated canonical messaging platform identity. */
+export const createMessagingPlatformId = (value: string): MessagingPlatformId =>
+  createNamespacedId("MessagingPlatformId", value);
 /** Creates a new WorkItem UUID-v7 identity. */
 export const createWorkItemId = (): WorkItemId => createUuidV7Id("WorkItemId");
 /** Creates a new EffectOperation UUID-v7 identity. */

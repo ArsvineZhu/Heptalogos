@@ -1,7 +1,7 @@
 # Q-AI-GATEWAY-CHAT-01 Gateway Chat qualification
 
 qualificationId: Q-AI-GATEWAY-CHAT-01
-plan: project/plans/active/product/gateway-first-airuntime-external-integration-posture-2026-09-03.md
+plan: project/plans/completed/product/gateway-first-airuntime-external-integration-posture-2026-09-03.md
 date: 2026-09-04
 evidenceStatus: BLOCKED
 implementationQualification: PASS
@@ -17,7 +17,7 @@ pnpm: 11.24.0
 postgres: PostgreSQL 18.6
 postgresToolchain: tmp/pg/extracted/pgsql/bin
 preChangeGitRevision: a5287a01b42e3d09f445e96982caf6842ed74674
-productGeneration: d93dcd2afdf651f7dd873a5cb99affe65417dd314b3f377625332e37275bcda5
+productGeneration: 1ab7f31ffe970be8c41924b199c1c02adf4e50544519cb751b7a6ee534649960
 bootstrapRuntimeGeneration: 717b3ab130bfcc5a85a8aff330436ca1027e4790e7fafac91502063e96115ca6
 aiSdk: ai 7.0.91
 chatAdapter: @ai-sdk/openai-compatible 3.0.43

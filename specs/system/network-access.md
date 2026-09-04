@@ -33,7 +33,6 @@ interface NetworkRequestSpec {
   readonly deadline?: Instant;
   readonly requestBodyBudget: ByteBudget;
   readonly responseBodyBudget: ByteBudget;
-  readonly expandedResponseBodyBudget: ByteBudget;
   readonly redirectPolicy: RedirectPolicy;
   readonly signal: AbortSignal;
   readonly executionContext: ExecutionContext;
@@ -46,15 +45,15 @@ interface NetworkResponseKnowledge {
   readonly headers: readonly ResponseHeader[];
   readonly body: Uint8Array;
   readonly bytesRead: number;
-  readonly expandedBytesRead: number;
   readonly lineageContextRef: LineageContextRef;
 }
 ```
 
 RequestHeader and ResponseHeader carry sensitivity classification. A request body
-is streamed under its budget. A response is streamed under both
-compressed/transferred and expanded/decompressed budgets; buffering an
-unbounded body before checking a limit is not conformant.
+is read under its request budget. A response is read under its single decoded
+response-body budget; buffering an unbounded body before checking a limit is not
+conformant. The current Node/Undici boundary exposes decoded response bytes, so
+this contract does not claim raw wire/compressed-byte accounting.
 
 ## Redirect and credential semantics
 
@@ -91,7 +90,6 @@ network.unauthorized_destination
 network.redirect_denied
 network.request_budget_exceeded
 network.response_budget_exceeded
-network.expanded_response_budget_exceeded
 network.timeout
 network.aborted
 network.connection_reset
@@ -108,7 +106,7 @@ consuming owner and existing Foundation WorkItem/EffectOperation contracts.
 - NET-003 Sensitive authorization and cookie headers are not forwarded across unauthorized destination/origin transitions.
 - NET-004 Timeout or abort is transport knowledge, not proof that a consequential external effect failed.
 - NET-005 Request and response budgets are enforced while streaming.
-- NET-006 Compressed responses are bounded by expanded-body limits as well as transfer limits.
+- NET-006 The response body budget bounds decoded bytes exposed to the current JSON consumer.
 - NET-007 Connection reset and transport exceptions become structured Problem/knowledge, not hidden unsafe retry.
 - NET-008 NetworkAccess owns transport policy, not gateway, model, Subject, or external-effect semantics.
 - NET-009 A spawned external process is OPAQUE_EXTERNAL for internal networking unless separately controlled.

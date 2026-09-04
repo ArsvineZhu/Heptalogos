@@ -15,7 +15,6 @@ describe("Configuration current contracts", () => {
         timeoutMs: 60_000,
         requestBodyBudgetBytes: 60_000,
         responseBodyBudgetBytes: 1_048_576,
-        expandedResponseBodyBudgetBytes: 4_194_304,
       }).ok,
     ).toBe(true);
     expect(
@@ -24,7 +23,6 @@ describe("Configuration current contracts", () => {
         timeoutMs: 999,
         requestBodyBudgetBytes: 60_000,
         responseBodyBudgetBytes: 1_048_576,
-        expandedResponseBodyBudgetBytes: 4_194_304,
       }).ok,
     ).toBe(false);
   });
@@ -43,7 +41,6 @@ describe("Configuration current contracts", () => {
           timeoutMs: 60_000,
           requestBodyBudgetBytes: 60_000,
           responseBodyBudgetBytes: 1_048_576,
-          expandedResponseBodyBudgetBytes: 4_194_304,
         },
       }).ok,
     ).toBe(true);

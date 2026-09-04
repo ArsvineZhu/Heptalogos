@@ -355,17 +355,8 @@ export function createNetworkAccessService(
         }
         const responseBody = await boundedBody(
           response,
-          config.expandedResponseBodyBudgetBytes,
+          config.responseBodyBudgetBytes,
         );
-        if (responseBody.byteLength > config.responseBodyBudgetBytes) {
-          throw networkProblem(
-            "network.response_budget_exceeded",
-            "Network response exceeds its budget",
-            "The gateway response exceeded the active response budget",
-            "conflict",
-            "after-change",
-          );
-        }
         return Object.freeze({
           statusCode: response.status,
           finalDestination: url,
@@ -376,7 +367,6 @@ export function createNetworkAccessService(
           ),
           body: responseBody,
           bytesRead: responseBody.byteLength,
-          expandedBytesRead: responseBody.byteLength,
           lineageContextRef,
         });
       } catch (error) {

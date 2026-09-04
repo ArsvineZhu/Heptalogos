@@ -1,3 +1,4 @@
+import { createServer, type Server } from "node:http";
 import { Client } from "pg";
 import { afterEach, describe, expect, it } from "vitest";
 import { createUuidV7Id } from "@heptalogos/foundation-contracts";
@@ -21,12 +22,221 @@ const postgresBin = process.env.HEPTALOGOS_TEST_PG_BIN;
 const suite = postgresBin === undefined ? describe.skip : describe;
 let fixture: ProductHostFixture | undefined;
 let running: RunningHost | undefined;
+let subjectGateway: Awaited<ReturnType<typeof createSubjectGatewayFixture>> | undefined;
+
+async function readJsonBody(request: import("node:http").IncomingMessage) {
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) {
+    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+  }
+  return JSON.parse(Buffer.concat(chunks).toString("utf8")) as Record<string, unknown>;
+}
+
+async function createSubjectGatewayFixture(): Promise<{
+  readonly server: Server;
+  readonly baseUrl: string;
+  readonly waitForSlowPrimary: () => Promise<void>;
+  readonly releaseSlowPrimary: () => void;
+  readonly waitForSlowExpression: () => Promise<void>;
+  readonly releaseSlowExpression: () => void;
+}> {
+  let resolveSlowPrimaryStarted = () => {};
+  let resolveSlowPrimary = () => {};
+  let resolveSlowExpressionStarted = () => {};
+  let resolveSlowExpression = () => {};
+  const slowPrimaryStarted = new Promise<void>((resolve) => {
+    resolveSlowPrimaryStarted = resolve;
+  });
+  const slowPrimaryReleased = new Promise<void>((resolve) => {
+    resolveSlowPrimary = resolve;
+  });
+  const slowExpressionStarted = new Promise<void>((resolve) => {
+    resolveSlowExpressionStarted = resolve;
+  });
+  const slowExpressionReleased = new Promise<void>((resolve) => {
+    resolveSlowExpression = resolve;
+  });
+  const server = createServer((request, response) => {
+    void (async () => {
+      try {
+        const body = await readJsonBody(request);
+        const model = typeof body.model === "string" ? body.model : "";
+        const isExpression = model.includes("expression");
+        const isSilence = model.includes("silence");
+        if (!isExpression && model.includes("slow")) {
+          resolveSlowPrimaryStarted();
+          await slowPrimaryReleased;
+        }
+        if (isExpression && model.includes("slow")) {
+          resolveSlowExpressionStarted();
+          await slowExpressionReleased;
+        }
+        const candidate = isExpression
+          ? { schemaVersion: 1, text: "local expressed reply" }
+          : isSilence
+            ? { schemaVersion: 1, kind: "SILENCE", reason: "local test silence" }
+            : { schemaVersion: 1, kind: "REPLY", text: "local semantic reply" };
+        const path = request.url ?? "";
+        const payload = path.endsWith("/chat/completions")
+          ? {
+              id: "subject-chat-local",
+              object: "chat.completion",
+              created: Math.floor(Date.now() / 1000),
+              model,
+              choices: [
+                {
+                  index: 0,
+                  message: { role: "assistant", content: JSON.stringify(candidate) },
+                  finish_reason: "stop",
+                },
+              ],
+              usage: { prompt_tokens: 7, completion_tokens: 5, total_tokens: 12 },
+            }
+          : path.endsWith("/responses")
+            ? {
+                id: "subject-response-local",
+                object: "response",
+                created_at: Math.floor(Date.now() / 1000),
+                status: "completed",
+                model,
+                output: [
+                  {
+                    id: "subject-message-local",
+                    type: "message",
+                    status: "completed",
+                    role: "assistant",
+                    content: [
+                      {
+                        type: "output_text",
+                        text: JSON.stringify(candidate),
+                        annotations: [],
+                        logprobs: [],
+                      },
+                    ],
+                  },
+                ],
+                usage: {
+                  input_tokens: 7,
+                  output_tokens: 5,
+                  total_tokens: 12,
+                  input_tokens_details: { cached_tokens: 0 },
+                  output_tokens_details: { reasoning_tokens: 0 },
+                },
+              }
+            : undefined;
+        if (payload === undefined) {
+          response.writeHead(404).end();
+          return;
+        }
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(JSON.stringify(payload));
+      } catch (error) {
+        response.writeHead(500, { "content-type": "application/json" });
+        response.end(JSON.stringify({ error: String(error) }));
+      }
+    })();
+  });
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const address = server.address();
+  if (address === null || typeof address === "string") {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    throw new Error("Subject Chat gateway fixture did not expose a port");
+  }
+  return {
+    server,
+    baseUrl: `http://127.0.0.1:${address.port}/v1`,
+    waitForSlowPrimary: () => slowPrimaryStarted,
+    releaseSlowPrimary: () => resolveSlowPrimary(),
+    waitForSlowExpression: () => slowExpressionStarted,
+    releaseSlowExpression: () => resolveSlowExpression(),
+  };
+}
+
+interface SubjectFactSnapshot {
+  readonly reactions: readonly {
+    readonly reactionId: string;
+    readonly state: string;
+    readonly decisionKind: string | null;
+    readonly communicationCommitId: string | null;
+  }[];
+  readonly outboundCount: number;
+}
+
+async function readSubjectFactSnapshot(
+  testFixture: ProductHostFixture,
+  conversationId: string,
+): Promise<SubjectFactSnapshot> {
+  const runtimeKey = {
+    service: "Heptalogos/" + testFixture.installationId,
+    account: "bootstrap/private-postgres-runtime-role",
+  };
+  const runtimePassword = await testFixture.credentialStore.withCredential(
+    runtimeKey,
+    async (bytes) => new TextDecoder().decode(bytes),
+  );
+  const database = new Client({
+    host: "127.0.0.1",
+    port: testFixture.postgresPort,
+    database: "heptalogos",
+    user: "heptalogos_runtime",
+    password: runtimePassword,
+  });
+  await database.connect();
+  try {
+    const reactions = await database.query<{
+      readonly reaction_id: string;
+      readonly state: string;
+      readonly decision_kind: string | null;
+      readonly communication_commit_id: string | null;
+    }>(
+      `SELECT r.reaction_id, r.state, d.decision_kind, c.communication_commit_id
+         FROM "heptalogos"."reaction" r
+         LEFT JOIN "heptalogos"."decision_commit" d
+           ON d.reaction_id = r.reaction_id
+         LEFT JOIN "heptalogos"."communication_commit" c
+           ON c.decision_commit_id = d.decision_commit_id
+        WHERE r.conversation_id = $1
+        ORDER BY r.created_at, r.reaction_id`,
+      [conversationId],
+    );
+    const outbound = await database.query<{ readonly count: string }>(
+      `SELECT count(*)::text AS count
+         FROM "heptalogos"."message_fact"
+        WHERE conversation_id = $1 AND direction = 'OUTBOUND'`,
+      [conversationId],
+    );
+    return {
+      reactions: Object.freeze(
+        reactions.rows.map((row) =>
+          Object.freeze({
+            reactionId: row.reaction_id,
+            state: row.state,
+            decisionKind: row.decision_kind,
+            communicationCommitId: row.communication_commit_id,
+          }),
+        ),
+      ),
+      outboundCount: Number(outbound.rows[0]?.count ?? "0"),
+    };
+  } finally {
+    await database.end();
+  }
+}
 
 afterEach(async () => {
   await running?.stop().catch(() => undefined);
   running = undefined;
   await fixture?.cleanup().catch(() => undefined);
   fixture = undefined;
+  if (subjectGateway !== undefined) {
+    subjectGateway.releaseSlowPrimary();
+    subjectGateway.releaseSlowExpression();
+    await new Promise<void>((resolve) => subjectGateway!.server.close(() => resolve()));
+    subjectGateway = undefined;
+  }
 });
 
 suite("built Product Host process", () => {
@@ -78,7 +288,6 @@ suite("built Product Host process", () => {
       timeoutMs: 60_000,
       requestBodyBudgetBytes: 60_000,
       responseBodyBudgetBytes: 1_048_576,
-      expandedResponseBodyBudgetBytes: 4_194_304,
     };
     const configurationAction = {
       actionId: "configuration.revision.create" as const,
@@ -94,7 +303,7 @@ suite("built Product Host process", () => {
     };
     const actionCatalog = await runCli(fixture, ["action", "catalog", "--json"]);
     expect(actionCatalog.code, actionCatalog.stderr).toBe(0);
-    expect(JSON.parse(actionCatalog.stdout)).toHaveLength(8);
+    expect(JSON.parse(actionCatalog.stdout)).toHaveLength(10);
     const cliPlan = await runCli(
       fixture,
       ["action", "plan", "--input-stdin", "--json"],
@@ -487,6 +696,417 @@ suite("built Product Host process", () => {
       problemCode: "management.contract_unsupported",
       category: "conflict",
       retryClass: "manual",
+    });
+  });
+
+  it("runs the local Subject Chat vertical slice through DBOS and canonical facts", async () => {
+    fixture = await makeFixture(postgresBin!);
+    subjectGateway = await createSubjectGatewayFixture();
+    running = await runHost(fixture);
+
+    const password = "Subject-l4-password-012345";
+    const claimed = await runCli(
+      fixture,
+      ["admin", "claim", "--password-stdin", "--json"],
+      password + "\n",
+    );
+    expect(claimed.code, claimed.stderr).toBe(0);
+    const login = await runCli(
+      fixture,
+      ["auth", "login", "--password-stdin", "--json"],
+      password + "\n",
+    );
+    expect(login.code, login.stderr).toBe(0);
+    const local = await openLocalManagementClient({
+      anchorRoot: fixture.anchorRoot,
+      credentialStore: fixture.credentialStore,
+    });
+    const sessionToken = await local.readSessionToken();
+    expect(sessionToken).toBeDefined();
+    const authenticated = await openLocalManagementClient({
+      anchorRoot: fixture.anchorRoot,
+      sessionToken,
+      credentialStore: fixture.credentialStore,
+    });
+    const client = authenticated.client;
+    const applyAction = async (action: SystemActionRequestInput) => {
+      const plan = await client.planSystemAction(action);
+      const result = await client.executeSystemAction({ plan, action });
+      expect(result.postconditionsVerified).toBe(true);
+      return result;
+    };
+    const scopeRef = {
+      schemaVersion: 1 as const,
+      resourceKind: "installation",
+      resourceId: fixture.installationId,
+    };
+    const transportRevision = await applyAction({
+      actionId: "configuration.revision.create",
+      input: {
+        definitionId: "ai.gateway.transport.v1",
+        scopeRef,
+        value: {
+          schemaVersion: 1,
+          timeoutMs: 30_000,
+          requestBodyBudgetBytes: 60_000,
+          responseBodyBudgetBytes: 1_048_576,
+        },
+      },
+    });
+    const transport = transportRevision.result as { revisionId: string };
+    await applyAction({
+      actionId: "configuration.activate",
+      input: { revisionId: transport.revisionId },
+    });
+    const gatewayProfileId = createUuidV7Id("GatewayProfileId");
+    await applyAction({
+      actionId: "gateway-profile.set",
+      input: {
+        gatewayProfileId,
+        baseUrl: subjectGateway.baseUrl,
+        enabled: true,
+      },
+    });
+    const capabilities: Array<
+      "text-generation" | "structured-output" | "usage-metadata" | "abort-timeout"
+    > = ["text-generation", "structured-output", "usage-metadata", "abort-timeout"];
+    const primaryModelProfileId = createUuidV7Id("ModelProfileId");
+    const expressionModelProfileId = createUuidV7Id("ModelProfileId");
+    await applyAction({
+      actionId: "model-profile.set",
+      input: {
+        modelProfileId: primaryModelProfileId,
+        gatewayProfileId,
+        modelIdentifier: "subject-primary",
+        protocol: "openai-chat",
+        consumedCapabilities: capabilities,
+      },
+    });
+    await applyAction({
+      actionId: "model-profile.set",
+      input: {
+        modelProfileId: expressionModelProfileId,
+        gatewayProfileId,
+        modelIdentifier: "subject-expression",
+        protocol: "openai-responses",
+        consumedCapabilities: capabilities,
+      },
+    });
+    await applyAction({
+      actionId: "model-binding.set",
+      input: { role: "subject.primary", modelProfileId: primaryModelProfileId },
+    });
+    await applyAction({
+      actionId: "model-binding.set",
+      input: {
+        role: "subject.expression",
+        modelProfileId: expressionModelProfileId,
+      },
+    });
+    const setModelProfile = async (
+      modelProfileId: string,
+      modelIdentifier: string,
+      protocol: "openai-chat" | "openai-responses",
+    ) => {
+      await applyAction({
+        actionId: "model-profile.set",
+        input: {
+          modelProfileId,
+          gatewayProfileId,
+          modelIdentifier,
+          protocol,
+          consumedCapabilities: capabilities,
+        },
+      });
+    };
+
+    const beforeStart = await client.getProductState();
+    const subjectBeforeStart = beforeStart.data.subject;
+    expect(subjectBeforeStart.desiredState).toBe("STOPPED");
+    const started = await applyAction({
+      actionId: "subject.start",
+      input: {
+        subjectId: subjectBeforeStart.subjectId,
+        expectedAuthorityRevision: subjectBeforeStart.authorityRevision,
+      },
+    });
+    expect(started.result).toMatchObject({ desiredState: "RUNNING" });
+    await expect
+      .poll(async () => (await client.getProductState()).data.subject.actualState, {
+        timeout: 10_000,
+        interval: 100,
+      })
+      .toBe("READY");
+    const send = async (clientMessageId: string, text: string) => {
+      const response = await fetch(
+        running!.ready.origin + "/subject-chat/v1/messages",
+        {
+          method: "POST",
+          headers: {
+            authorization: `Bearer ${sessionToken}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ clientMessageId, text }),
+        },
+      );
+      return { response, body: (await response.json()) as Record<string, any> };
+    };
+    const first = await send("subject-l4-message-1", "Hello Subject");
+    expect(first.response.status, JSON.stringify(first.body)).toBe(200);
+    expect(first.body).toMatchObject({
+      status: "ACCEPTED",
+      message: { direction: "INBOUND" },
+    });
+
+    let page: Record<string, any> | undefined;
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      const response = await fetch(
+        running.ready.origin + "/subject-chat/v1/messages?limit=100",
+        {
+          headers: { authorization: `Bearer ${sessionToken}` },
+        },
+      );
+      page = (await response.json()) as Record<string, any>;
+      if (
+        Array.isArray(page.messages) &&
+        page.messages.some((message) => message.direction === "OUTBOUND")
+      )
+        break;
+      await new Promise<void>((resolve) => setTimeout(resolve, 250));
+    }
+    expect(page?.messages, `${running.stderr()}`).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ direction: "INBOUND", text: "Hello Subject" }),
+        expect.objectContaining({
+          direction: "OUTBOUND",
+          text: "local expressed reply",
+        }),
+      ]),
+    );
+
+    const replay = await send("subject-l4-message-1", "Hello Subject");
+    expect(replay.body).toMatchObject({
+      status: "EXISTING",
+      message: { sequence: first.body.message.sequence },
+    });
+    const conflict = await send("subject-l4-message-1", "Changed text");
+    expect(conflict.response.status).toBe(409);
+    expect(conflict.body.problemCode).toBe("messaging.idempotency_conflict");
+
+    const conversationId = first.body.message.conversationId as string;
+    const silenceModelProfileId = createUuidV7Id("ModelProfileId");
+    await setModelProfile(
+      silenceModelProfileId,
+      "subject-primary-silence",
+      "openai-chat",
+    );
+    await applyAction({
+      actionId: "model-binding.set",
+      input: { role: "subject.primary", modelProfileId: silenceModelProfileId },
+    });
+    const silence = await send("subject-l4-message-silence", "Please stay quiet");
+    expect(silence.response.status, JSON.stringify(silence.body)).toBe(200);
+    await expect
+      .poll(
+        async () => {
+          const snapshot = await readSubjectFactSnapshot(fixture!, conversationId);
+          return (
+            snapshot.outboundCount === 1 &&
+            snapshot.reactions.some(
+              (reaction) =>
+                reaction.decisionKind === "SILENCE" &&
+                reaction.state === "DELIBERATED_SILENT",
+            )
+          );
+        },
+        { timeout: 20_000, interval: 250 },
+      )
+      .toBe(true);
+    const silenceFacts = await readSubjectFactSnapshot(fixture, conversationId);
+    expect(silenceFacts.reactions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          decisionKind: "SILENCE",
+          state: "DELIBERATED_SILENT",
+          communicationCommitId: null,
+        }),
+      ]),
+    );
+    expect(silenceFacts.outboundCount).toBe(1);
+
+    const beforeStop = await client.getProductState();
+    await applyAction({
+      actionId: "subject.stop",
+      input: {
+        subjectId: subjectBeforeStart.subjectId,
+        expectedAuthorityRevision: beforeStop.data.subject.authorityRevision,
+      },
+    });
+    const stopped = await client.getProductState();
+    expect(stopped.data.subject).toMatchObject({
+      subjectId: subjectBeforeStart.subjectId,
+      desiredState: "STOPPED",
+      actualState: "STOPPED",
+    });
+    const rejectedWhileStopped = await send(
+      "subject-l4-message-stopped",
+      "This must not be accepted",
+    );
+    expect(rejectedWhileStopped.response.status).toBe(409);
+    expect(rejectedWhileStopped.body.problemCode).toBe("subject.not_running");
+
+    await applyAction({
+      actionId: "gateway-profile.set",
+      input: {
+        gatewayProfileId,
+        baseUrl: subjectGateway.baseUrl,
+        enabled: false,
+      },
+    });
+    const stoppedForBlockedStart = await client.getProductState();
+    await applyAction({
+      actionId: "subject.start",
+      input: {
+        subjectId: subjectBeforeStart.subjectId,
+        expectedAuthorityRevision:
+          stoppedForBlockedStart.data.subject.authorityRevision,
+      },
+    });
+    await expect
+      .poll(async () => (await client.getProductState()).data.subject.actualState, {
+        timeout: 10_000,
+        interval: 100,
+      })
+      .toBe("BLOCKED");
+    const rejectedWithoutDependency = await send(
+      "subject-l4-message-blocked",
+      "This must wait for dependencies",
+    );
+    expect(rejectedWithoutDependency.response.status).toBe(503);
+    expect(rejectedWithoutDependency.body.problemCode).toBe(
+      "subject.dependencies_unavailable",
+    );
+    const blockedFacts = await readSubjectFactSnapshot(fixture, conversationId);
+    expect(blockedFacts.reactions).toHaveLength(silenceFacts.reactions.length);
+    await applyAction({
+      actionId: "gateway-profile.set",
+      input: {
+        gatewayProfileId,
+        baseUrl: subjectGateway.baseUrl,
+        enabled: true,
+      },
+    });
+    await expect
+      .poll(async () => (await client.getProductState()).data.subject.actualState, {
+        timeout: 10_000,
+        interval: 100,
+      })
+      .toBe("READY");
+
+    const slowPrimaryModelProfileId = createUuidV7Id("ModelProfileId");
+    await setModelProfile(
+      slowPrimaryModelProfileId,
+      "subject-primary-slow",
+      "openai-chat",
+    );
+    await applyAction({
+      actionId: "model-binding.set",
+      input: { role: "subject.primary", modelProfileId: slowPrimaryModelProfileId },
+    });
+    const supersededA = await send("subject-l4-message-a", "Message A");
+    expect(supersededA.response.status).toBe(200);
+    await subjectGateway.waitForSlowPrimary();
+    const supersededB = await send("subject-l4-message-b", "Message B");
+    expect(supersededB.response.status).toBe(200);
+    subjectGateway.releaseSlowPrimary();
+    await expect
+      .poll(
+        async () => {
+          const snapshot = await readSubjectFactSnapshot(fixture!, conversationId);
+          return (
+            snapshot.outboundCount === 2 &&
+            snapshot.reactions.some((reaction) => reaction.state === "SUPERSEDED") &&
+            snapshot.reactions.some(
+              (reaction) =>
+                reaction.state === "REPLIED" && reaction.decisionKind === "REPLY",
+            )
+          );
+        },
+        { timeout: 30_000, interval: 250 },
+      )
+      .toBe(true);
+    const supersessionFacts = await readSubjectFactSnapshot(fixture, conversationId);
+    expect(supersessionFacts.reactions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ state: "SUPERSEDED", decisionKind: null }),
+      ]),
+    );
+
+    await applyAction({
+      actionId: "model-binding.set",
+      input: { role: "subject.primary", modelProfileId: primaryModelProfileId },
+    });
+    const slowExpressionModelProfileId = createUuidV7Id("ModelProfileId");
+    await setModelProfile(
+      slowExpressionModelProfileId,
+      "subject-expression-slow",
+      "openai-responses",
+    );
+    await applyAction({
+      actionId: "model-binding.set",
+      input: {
+        role: "subject.expression",
+        modelProfileId: slowExpressionModelProfileId,
+      },
+    });
+    const crashMessage = await send("subject-l4-message-crash", "Crash boundary");
+    expect(crashMessage.response.status).toBe(200);
+    await subjectGateway.waitForSlowExpression();
+    await expect
+      .poll(
+        async () => {
+          const snapshot = await readSubjectFactSnapshot(fixture!, conversationId);
+          const latest = snapshot.reactions[snapshot.reactions.length - 1];
+          return (
+            snapshot.outboundCount === 2 &&
+            latest?.state === "DECIDED" &&
+            latest.decisionKind === "REPLY" &&
+            latest.communicationCommitId !== null
+          );
+        },
+        { timeout: 20_000, interval: 250 },
+      )
+      .toBe(true);
+    await running.crash();
+    running = undefined;
+    running = await runHost(fixture, { includeInitialPort: false });
+    subjectGateway.releaseSlowExpression();
+    await expect
+      .poll(
+        async () => {
+          const snapshot = await readSubjectFactSnapshot(fixture!, conversationId);
+          const latest = snapshot.reactions[snapshot.reactions.length - 1];
+          return snapshot.outboundCount === 3 && latest?.state === "REPLIED";
+        },
+        { timeout: 45_000, interval: 250 },
+      )
+      .toBe(true);
+    const restartedLocal = await openLocalManagementClient({
+      anchorRoot: fixture.anchorRoot,
+      credentialStore: fixture.credentialStore,
+    });
+    const restartedToken = await restartedLocal.readSessionToken();
+    expect(restartedToken).toBeDefined();
+    const restartedAuthenticated = await openLocalManagementClient({
+      anchorRoot: fixture.anchorRoot,
+      sessionToken: restartedToken,
+      credentialStore: fixture.credentialStore,
+    });
+    const restarted = await restartedAuthenticated.client.getProductState();
+    expect(restarted.data.subject).toMatchObject({
+      subjectId: subjectBeforeStart.subjectId,
+      desiredState: "RUNNING",
+      actualState: "READY",
     });
   });
 });

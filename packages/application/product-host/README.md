@@ -4,8 +4,9 @@
 
 product-host is the first real headless Product Host executable. It composes
 the existing Bootstrap, private PostgreSQL, Host Ownership, Persistence,
-RuntimeKernel, and Management service, then exposes the canonical Management
-contract over loopback HTTP.
+RuntimeKernel, Management, Messaging, and Subject services, then exposes the
+canonical Management and Subject Chat contracts over one loopback HTTP
+listener.
 
 ## Owns
 
@@ -14,15 +15,18 @@ contract over loopback HTTP.
 - The single Bootstrap-to-Host composition and terminal shutdown order.
 - Management HTTP admission, discovery, claim/session routes, OpenAPI
   artifact, endpoint descriptor, and live first-claim publication/rotation.
+- Product composition of the persistent Subject and Messaging owners with the
+  existing DBOS, WorkQueue, Signal, AIRuntime, and lifecycle boundaries.
+- Subject Chat HTTP admission/read routes and their generated client artifact.
 - A safe public handle limited to Product identity, loopback origin, abort
   signal, and terminal close.
 
 ## Does not own
 
 - Bootstrap, PostgreSQL, Host fence, Persistence, or Runtime semantics.
-- GUI/Presentation, OpenClaw/Machine Operations, gateway/model semantics,
-  Subject, Messaging,
-  or future SystemAction execution.
+- Bootstrap, PostgreSQL, Host fence, Persistence, Runtime, Subject, Messaging,
+  gateway/model, and DBOS/WorkQueue semantic meaning.
+- GUI/Presentation, OpenClaw/Machine Operations, and future Product behavior.
 
 ## Verification
 

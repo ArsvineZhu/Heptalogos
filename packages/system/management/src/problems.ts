@@ -77,6 +77,22 @@ export function managementHttpStatus(problemCode: string): number {
   }
   if (problemCode === "management.first_claim_unavailable") return 503;
   if (problemCode === "management.first_claim_invalid") return 400;
+  if (
+    problemCode === "messaging.idempotency_conflict" ||
+    problemCode === "subject.authority_stale" ||
+    problemCode === "subject.not_running" ||
+    problemCode === "subject.not_found"
+  ) {
+    return 409;
+  }
+  if (
+    problemCode === "messaging.conversation_not_ready" ||
+    problemCode === "subject.dependencies_unavailable" ||
+    problemCode === "subject.primary_unavailable" ||
+    problemCode === "subject.expression_unavailable"
+  ) {
+    return 503;
+  }
   return 400;
 }
 

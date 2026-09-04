@@ -64,21 +64,28 @@ Subject-owned 各领域状态由对应 Service 拥有，不聚合为单个 mega 
 
 ---
 
-## 5. ConversationMailbox
+## 5. CURRENT L4: ConversationMailbox
 
-`ConversationMailbox` 是 cognition-domain aggregate，负责把 canonical Messaging facts 组织成可处理的认知输入。
-
-它可以拥有：
+当前 L4 的 `ConversationMailbox` 是 Subject-owned cognition boundary，只有
+必要的 durable cursor 和 open-Reaction fence：
 
 ```text
-pending canonical fact refs
-retraction/edit/media changes
-open Reaction refs
-supersession relations
-pending outbound plan refs
+conversationId
+mailboxRevision
+consumedThroughSequence
+openReactionId?
 ```
 
-但不复制 Messaging canonical truth。
+待处理输入从 Messaging 的 canonical `MessageFact` sequence 派生，不保存会
+无限增长的 `pendingMessageRefs`，也不复制 Messaging canonical truth。
+
+以下仍是未来语义，不属于当前 L4：
+
+```text
+retraction/edit/media changes
+pending outbound plan refs
+advanced selection/observation windows
+```
 
 ---
 
@@ -100,24 +107,29 @@ Foundation Basic Reaction 使用简单、可验证的 admission policy。未来 
 
 ---
 
-## 7. Reaction
+## 7. CURRENT L4: Reaction
 
-`Reaction` 是语义认知 episode。
-
-可以：
+当前 L4 的 `Reaction` 是一个有明确 mailbox/Subject revision 观测值的
+bounded cognition episode。它最多走：
 
 ```text
-读取多个 Context Facet
-调用一个或多个模型
-调用 capability
-等待媒体或时间
-yield / resume
-supersede
-silence
-产生多个 proposal
+canonical MessageFact range
+→ subject.primary BehaviorIntent
+→ deterministic Review
+→ DecisionCommit
+→ optional CommunicationCommit
+→ subject.expression
+→ local MessageFact
 ```
 
-`Reaction` 状态不是 DBOS workflow state。
+`Reaction` 状态不是 DBOS workflow state；WorkQueue/DBOS 只承载可恢复的
+obligation。
+
+以下仍是未来语义，不在当前 L4 实现：
+
+```text
+多 facet/媒体等待、Yield/resume、多 proposal、advanced observation/debounce
+```
 
 ---
 
@@ -295,22 +307,25 @@ Reflection/Diary/Dream algorithms
 
 ---
 
-## 15. Behavior Authority Spine
+## 15. CURRENT L4: Behavior Authority Spine
 
 Foundation 保留行为 commit spine：
 
 ```text
-Situation / proposal artifacts
+ContextProjection
 → BehaviorIntent
-→ Review
+→ deterministic Review
 → DecisionCommit
 → CommunicationCommit
-→ InteractionPlan / ActionPlan
 → Expression
-→ EffectOperation where consequential
+→ local MessageFact
 ```
 
 模型文本不能直接成为 canonical decision 或外部 effect。
+
+`CognitiveOpportunity`、`ReactionWorkspace`、`Yield`、`PromptProgram`、
+`ActionPlan` 与高级 Observation Window 是保留的未来研究/语义接缝，不是
+当前 L4 的新增 machinery。
 
 ---
 

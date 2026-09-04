@@ -39,6 +39,20 @@ export type HostOwnershipToken = UuidV7Id<"HostOwnershipToken">;
 export type ActivityId = UuidV7Id<"ActivityId">;
 /** Identifies one retained Evidence record. */
 export type EvidenceId = UuidV7Id<"EvidenceId">;
+/** Identifies the persistent logical Subject. */
+export type SubjectId = UuidV7Id<"SubjectId">;
+/** Identifies one canonical messaging account. */
+export type MessagingAccountId = UuidV7Id<"MessagingAccountId">;
+/** Identifies one canonical conversation. */
+export type CanonicalConversationId = UuidV7Id<"CanonicalConversationId">;
+/** Identifies one canonical message fact. */
+export type CanonicalMessageId = UuidV7Id<"CanonicalMessageId">;
+/** Identifies one durable Subject Reaction. */
+export type ReactionId = UuidV7Id<"ReactionId">;
+/** Identifies one immutable Subject DecisionCommit. */
+export type DecisionCommitId = UuidV7Id<"DecisionCommitId">;
+/** Identifies one immutable Subject CommunicationCommit. */
+export type CommunicationCommitId = UuidV7Id<"CommunicationCommitId">;
 /** Represents a normalized UTC instant with millisecond precision. */
 export type Instant = Branded<string, "Instant">;
 
@@ -67,6 +81,25 @@ export const createHostOwnershipToken = (): HostOwnershipToken =>
 export const createActivityId = (): ActivityId => createUuidV7Id("ActivityId");
 /** Creates an Evidence identity for a retained record. */
 export const createEvidenceId = (): EvidenceId => createUuidV7Id("EvidenceId");
+/** Creates a persistent logical Subject identity. */
+export const createSubjectId = (): SubjectId => createUuidV7Id("SubjectId");
+/** Creates a canonical messaging account identity. */
+export const createMessagingAccountId = (): MessagingAccountId =>
+  createUuidV7Id("MessagingAccountId");
+/** Creates a canonical conversation identity. */
+export const createCanonicalConversationId = (): CanonicalConversationId =>
+  createUuidV7Id("CanonicalConversationId");
+/** Creates a canonical message identity. */
+export const createCanonicalMessageId = (): CanonicalMessageId =>
+  createUuidV7Id("CanonicalMessageId");
+/** Creates a durable Subject Reaction identity. */
+export const createReactionId = (): ReactionId => createUuidV7Id("ReactionId");
+/** Creates an immutable Subject DecisionCommit identity. */
+export const createDecisionCommitId = (): DecisionCommitId =>
+  createUuidV7Id("DecisionCommitId");
+/** Creates an immutable Subject CommunicationCommit identity. */
+export const createCommunicationCommitId = (): CommunicationCommitId =>
+  createUuidV7Id("CommunicationCommitId");
 
 /** Accepts only genuine UUID-v7 strings, not merely UUID-shaped text. */
 export function isUuidV7(value: unknown): value is UuidV7Id<string> {
@@ -109,6 +142,32 @@ export const parseActivityId = (value: unknown): ActivityId | undefined =>
 /** Parses an Evidence identity without accepting another UUID brand. */
 export const parseEvidenceId = (value: unknown): EvidenceId | undefined =>
   parseUuidV7Id("EvidenceId", value);
+/** Parses a Subject identity without accepting another UUID brand. */
+export const parseSubjectId = (value: unknown): SubjectId | undefined =>
+  parseUuidV7Id("SubjectId", value);
+/** Parses a canonical messaging account identity. */
+export const parseMessagingAccountId = (
+  value: unknown,
+): MessagingAccountId | undefined => parseUuidV7Id("MessagingAccountId", value);
+/** Parses a canonical conversation identity. */
+export const parseCanonicalConversationId = (
+  value: unknown,
+): CanonicalConversationId | undefined =>
+  parseUuidV7Id("CanonicalConversationId", value);
+/** Parses a canonical message identity. */
+export const parseCanonicalMessageId = (
+  value: unknown,
+): CanonicalMessageId | undefined => parseUuidV7Id("CanonicalMessageId", value);
+/** Parses a durable Subject Reaction identity. */
+export const parseReactionId = (value: unknown): ReactionId | undefined =>
+  parseUuidV7Id("ReactionId", value);
+/** Parses an immutable Subject DecisionCommit identity. */
+export const parseDecisionCommitId = (value: unknown): DecisionCommitId | undefined =>
+  parseUuidV7Id("DecisionCommitId", value);
+/** Parses an immutable Subject CommunicationCommit identity. */
+export const parseCommunicationCommitId = (
+  value: unknown,
+): CommunicationCommitId | undefined => parseUuidV7Id("CommunicationCommitId", value);
 
 /** Parses the canonical UTC instant representation used by durable records. */
 export const parseInstant = (value: unknown): Instant | undefined => {

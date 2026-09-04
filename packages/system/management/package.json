@@ -13,6 +13,7 @@
   "dependencies": {
     "@heptalogos/ai-runtime": "workspace:*",
     "@heptalogos/configuration": "workspace:*",
+    "@heptalogos/evidence": "workspace:*",
     "@heptalogos/execution-lineage": "workspace:*",
     "@heptalogos/foundation-contracts": "workspace:*",
     "@heptalogos/network-access": "workspace:*",

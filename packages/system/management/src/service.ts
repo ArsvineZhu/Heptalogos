@@ -100,6 +100,23 @@ export interface ManagementProductOwners {
   readonly secret: SecretService;
   readonly networkAccess: NetworkAccessService;
   readonly aiRuntime: AIRuntimeService;
+  readonly subject: SubjectManagementPort;
+}
+
+/** Narrow Subject owner seam used by Management without importing Product code. */
+export interface SubjectManagementPort {
+  /** Reads the current Subject status projection. */
+  getStatus(): Promise<import("./contracts.js").SubjectStatusProjection>;
+  /** Starts the current Subject under an authority revision fence. */
+  start(input: {
+    readonly subjectId: string;
+    readonly expectedAuthorityRevision: number;
+  }): Promise<import("./contracts.js").SubjectStatusProjection>;
+  /** Stops the current Subject under an authority revision fence. */
+  stop(input: {
+    readonly subjectId: string;
+    readonly expectedAuthorityRevision: number;
+  }): Promise<import("./contracts.js").SubjectStatusProjection>;
 }
 
 /** Bounds the Management service's canonical mutation activity owner. */
@@ -518,6 +535,18 @@ async function normalizeAction(
     case "model-binding.set":
       requiredUuid("ModelProfileId", action.input.modelProfileId, "modelProfileId");
       return action;
+    case "subject.start":
+    case "subject.stop":
+      requiredUuid("SubjectId", action.input.subjectId, "subjectId");
+      if (
+        !Number.isSafeInteger(action.input.expectedAuthorityRevision) ||
+        action.input.expectedAuthorityRevision < 1
+      ) {
+        throw invalidInputProblem(
+          "expectedAuthorityRevision must be a positive safe integer",
+        );
+      }
+      return action;
   }
 }
 
@@ -637,6 +666,21 @@ async function actionPreconditions(
         ),
       ]);
     }
+    case "subject.start":
+    case "subject.stop": {
+      const status = await owners.subject.getStatus();
+      if (status.subjectId !== action.input.subjectId) {
+        throw managementProblem(
+          "management.subject_not_found",
+          "Subject was not found",
+          "The requested SubjectId is not current for this Installation",
+          "conflict",
+        );
+      }
+      return Object.freeze([
+        precondition("subject", status.subjectId, status, "subject.status.v1"),
+      ]);
+    }
   }
 }
 
@@ -656,6 +700,12 @@ function actionOwners(action: SystemActionRequest): readonly ProductSemanticId[]
     case "model-profile.set":
     case "model-binding.set":
       return Object.freeze(["system.ai-runtime" as ProductSemanticId]);
+    case "subject.start":
+    case "subject.stop":
+      return Object.freeze([
+        "product.subject" as ProductSemanticId,
+        "product.messaging" as ProductSemanticId,
+      ]);
   }
 }
 
@@ -665,7 +715,7 @@ function actionImpact(action: SystemActionRequest): {
 } {
   const readiness = Object.freeze({
     gatewayPrerequisiteReadiness: "re-evaluate",
-    subjectDispatch: "not-currently-implemented",
+    subjectDispatch: "re-evaluate",
   });
   const restart = Object.freeze({
     restartRequired: false,
@@ -843,6 +893,20 @@ async function dispatchAction(
           expectedDigest,
         ),
       ).value;
+    case "subject.start":
+      return canonicalObject(
+        await owners.subject.start({
+          subjectId: action.input.subjectId,
+          expectedAuthorityRevision: action.input.expectedAuthorityRevision,
+        }),
+      ).value;
+    case "subject.stop":
+      return canonicalObject(
+        await owners.subject.stop({
+          subjectId: action.input.subjectId,
+          expectedAuthorityRevision: action.input.expectedAuthorityRevision,
+        }),
+      ).value;
   }
 }
 
@@ -904,6 +968,16 @@ async function verifyPostcondition(
       const current = await owners.aiRuntime.getModelBinding(action.input.role);
       return (
         current !== undefined &&
+        canonicalObject(current).canonical === canonicalValue(result)
+      );
+    }
+    case "subject.start":
+    case "subject.stop": {
+      const current = await owners.subject.getStatus();
+      return (
+        current.subjectId === action.input.subjectId &&
+        current.desiredState ===
+          (action.actionId === "subject.start" ? "RUNNING" : "STOPPED") &&
         canonicalObject(current).canonical === canonicalValue(result)
       );
     }
@@ -1071,6 +1145,7 @@ function createManagementServiceWithRepository(
           modelBindings,
           networkAccess,
           aiReadiness,
+          subject,
         ] = await Promise.all([
           owners.configuration.listRevisions(),
           owners.configuration.listActivations(),
@@ -1080,6 +1155,7 @@ function createManagementServiceWithRepository(
           owners.aiRuntime.listModelBindings(),
           owners.networkAccess.getDiagnostics(),
           owners.aiRuntime.getReadiness(),
+          owners.subject.getStatus(),
         ]);
         const observedAt = options.time.now();
         const data = Object.freeze({
@@ -1095,6 +1171,7 @@ function createManagementServiceWithRepository(
           modelBindings: Object.freeze([...modelBindings]),
           networkAccess,
           aiReadiness,
+          subject,
         });
         return readModelEnvelope(
           options,

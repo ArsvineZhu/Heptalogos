@@ -21,5 +21,9 @@ revalidation ceremony into a property record.
 The current gateway-first AI evidence is recorded in
 [Q-AI-GATEWAY-CHAT-01](Q-AI-GATEWAY-CHAT-01.md).
 
+The current Persistent Subject L4 evidence is split between the local process
+proof in [Q-SUBJECT-L4-LOCAL-01](Q-SUBJECT-L4-LOCAL-01.md) and the unexecuted
+live-provider boundary in [Q-SUBJECT-L4-LIVE-01](Q-SUBJECT-L4-LIVE-01.md).
+
 The [result template](../result-template.md) is optional guidance. Historical
 records may retain their original Q/C names and chronology.

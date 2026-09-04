@@ -88,6 +88,7 @@ interface InvocationSpec {
 interface GenerationResult {
   readonly schemaVersion: 1;
   readonly invocationId: InvocationId;
+  readonly modelBindingId: ModelBindingId;
   readonly bindingRevision: number;
   readonly gatewayProfileId: GatewayProfileId;
   readonly modelProfileId: ModelProfileId;
@@ -135,7 +136,13 @@ Responses mechanics. Both routes use SchemaRuntime/Ajv as the final canonical
 validator. AIRuntime and NetworkAccess preserve the one exact
 ConfigurationRevision selected for the invocation, and GenerationResult records
 that revision. GenerationResult remains proposal/evidence until the consuming
-owner commits it.
+owner commits it. For a consuming canonical commit whose correctness depends on
+current model configuration, AIRuntime exposes a transaction-aware currentness
+assertion. The assertion runs inside that caller-owned Host-fenced transaction
+and fails unless the binding identity/revision, model identity/generation,
+gateway identity, and exact active transport ConfigurationRevision still match
+the GenerationResult. It performs no model or network I/O and does not own
+DecisionCommit.
 
 An invocation may be observed as ADMITTED, RUNNING, SUCCEEDED, FAILED,
 ABORTED, or TIMED_OUT in Activity/diagnostic projections. These are not a

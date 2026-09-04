@@ -26,6 +26,7 @@ import {
   type PersistenceInternalTransaction,
 } from "@heptalogos/persistence/repository";
 import type { PersistenceService } from "@heptalogos/persistence";
+import type { EvidenceRef } from "@heptalogos/evidence";
 import { compileSchema } from "@heptalogos/schema-runtime";
 import {
   GATEWAY_TRANSPORT_DEFINITION_ID,
@@ -87,6 +88,7 @@ interface ActivationRow {
   readonly impact: unknown;
   readonly effective_at: unknown;
   readonly lineage_context_ref: unknown;
+  readonly evidence_refs: unknown;
 }
 
 function asText(value: unknown, name: string): string {
@@ -179,6 +181,48 @@ function lineageRef(value: unknown): LineageContextRef {
   return decodeLineageContextRef(jsonValue(value));
 }
 
+function parseEvidenceRefs(value: unknown): readonly EvidenceRef[] {
+  const parsed = jsonValue(value);
+  if (!Array.isArray(parsed)) {
+    throw configurationProblem(
+      "configuration.repository_invalid",
+      "Configuration repository data is invalid",
+      "evidence_refs is not an array",
+      "integrity",
+    );
+  }
+  return Object.freeze(
+    parsed.map((item) => {
+      if (
+        typeof item !== "object" ||
+        item === null ||
+        Array.isArray(item) ||
+        (item as Record<string, unknown>).schemaVersion !== 1
+      ) {
+        throw configurationProblem(
+          "configuration.repository_invalid",
+          "Configuration repository data is invalid",
+          "evidence_refs contains an invalid EvidenceRef",
+          "integrity",
+        );
+      }
+      const evidenceId = parseUuidV7Id(
+        "EvidenceId",
+        (item as Record<string, unknown>).evidenceId,
+      );
+      if (evidenceId === undefined) {
+        throw configurationProblem(
+          "configuration.repository_invalid",
+          "Configuration repository data is invalid",
+          "evidence_refs contains an invalid EvidenceId",
+          "integrity",
+        );
+      }
+      return Object.freeze({ schemaVersion: 1 as const, evidenceId });
+    }),
+  );
+}
+
 function scopeKey(ref: ConfigurationScopeRef): string {
   if (
     ref.schemaVersion !== 1 ||
@@ -267,6 +311,7 @@ function activationFromRow(row: ActivationRow): ConfigurationActivation {
     impact: asText(row.impact, "impact") as ConfigurationDefinition["activation"],
     effectiveAt: asInstant(row.effective_at),
     lineageContextRef: lineageRef(row.lineage_context_ref),
+    evidenceRefs: parseEvidenceRefs(row.evidence_refs),
   });
 }
 
@@ -298,15 +343,6 @@ function validateGatewayTransport(value: CanonicalJsonValue): GatewayTransportCo
       "configuration.invalid_input",
       "Configuration value is invalid",
       result.issues.map((issue) => issue.instancePath + " " + issue.message).join("; "),
-    );
-  }
-  if (
-    result.value.expandedResponseBodyBudgetBytes < result.value.responseBodyBudgetBytes
-  ) {
-    throw configurationProblem(
-      "configuration.invalid_input",
-      "Configuration value is invalid",
-      "expandedResponseBodyBudgetBytes must be at least responseBodyBudgetBytes",
     );
   }
   return result.value;
@@ -366,7 +402,7 @@ export function createConfigurationService(
       const result = await readRepositorySql<ActivationRow>(
         persistence,
         "SELECT activation_id, scope_ref, active_revision_id, " +
-          "previous_revision_id, impact, effective_at, lineage_context_ref " +
+          "previous_revision_id, impact, effective_at, lineage_context_ref, evidence_refs " +
           'FROM "heptalogos"."configuration_activation" ' +
           "ORDER BY effective_at, activation_id",
         [],
@@ -389,7 +425,7 @@ export function createConfigurationService(
       const result = await readRepositorySql<ActivationRow>(
         persistence,
         "SELECT activation_id, scope_ref, active_revision_id, " +
-          "previous_revision_id, impact, effective_at, lineage_context_ref " +
+          "previous_revision_id, impact, effective_at, lineage_context_ref, evidence_refs " +
           'FROM "heptalogos"."configuration_activation" WHERE scope_key = $1',
         [scopeKey(ref)],
       );
@@ -542,7 +578,7 @@ export function createConfigurationService(
           const currentRows = await rows<ActivationRow>(
             transaction,
             "SELECT activation_id, scope_ref, active_revision_id, " +
-              "previous_revision_id, impact, effective_at, lineage_context_ref " +
+              "previous_revision_id, impact, effective_at, lineage_context_ref, evidence_refs " +
               'FROM "heptalogos"."configuration_activation" ' +
               "WHERE scope_key = $1 FOR UPDATE",
             [key],
@@ -565,13 +601,27 @@ export function createConfigurationService(
               "after-change",
             );
           }
+          const evidence = await options.evidence.recordRequired(context, {
+            evidenceKind: "configuration.activation.committed",
+            evidenceContractVersion: "configuration.v1",
+            objectRef: activationId,
+            factRef: revision.valueDigest,
+            retentionClass: "retained",
+            sensitivity: "operational",
+          });
+          const evidenceRefs: readonly EvidenceRef[] = Object.freeze([
+            Object.freeze({
+              schemaVersion: 1 as const,
+              evidenceId: evidence.evidenceId,
+            }),
+          ]);
           if (current === undefined) {
             await executeRepositorySql(
               transaction,
               'INSERT INTO "heptalogos"."configuration_activation" (' +
                 "activation_id, scope_ref, scope_key, active_revision_id, " +
-                "previous_revision_id, impact, effective_at, lineage_context_ref) " +
-                "VALUES ($1, $2, $3, $4, NULL, $5, $6, $7)",
+                "previous_revision_id, impact, effective_at, lineage_context_ref, evidence_refs) " +
+                "VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, $8)",
               [
                 activationId,
                 revision.scopeRef,
@@ -580,6 +630,7 @@ export function createConfigurationService(
                 definition.activation,
                 effectiveAt,
                 lineageContextRef,
+                JSON.stringify(evidenceRefs),
               ],
             );
           } else {
@@ -588,7 +639,7 @@ export function createConfigurationService(
               'UPDATE "heptalogos"."configuration_activation" ' +
                 "SET activation_id = $1, scope_ref = $2, active_revision_id = $3, " +
                 "previous_revision_id = $4, impact = $5, effective_at = $6, " +
-                "lineage_context_ref = $7 WHERE scope_key = $8",
+                "lineage_context_ref = $7, evidence_refs = $8 WHERE scope_key = $9",
               [
                 activationId,
                 revision.scopeRef,
@@ -597,18 +648,11 @@ export function createConfigurationService(
                 definition.activation,
                 effectiveAt,
                 lineageContextRef,
+                JSON.stringify(evidenceRefs),
                 key,
               ],
             );
           }
-          await options.evidence.recordRequired(context, {
-            evidenceKind: "configuration.activation.committed",
-            evidenceContractVersion: "configuration.v1",
-            objectRef: activationId,
-            factRef: revision.valueDigest,
-            retentionClass: "retained",
-            sensitivity: "operational",
-          });
           result = Object.freeze({
             schemaVersion: 1 as const,
             activationId,
@@ -620,6 +664,7 @@ export function createConfigurationService(
             impact: definition.activation,
             effectiveAt,
             lineageContextRef,
+            evidenceRefs,
           });
         }),
       );

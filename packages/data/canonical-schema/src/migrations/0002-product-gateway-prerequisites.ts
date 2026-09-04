@@ -62,6 +62,7 @@ export const productGatewayPrerequisitesMigration: Migration = {
           `  impact text NOT NULL,`,
           `  effective_at timestamptz(3) NOT NULL,`,
           `  lineage_context_ref jsonb NOT NULL,`,
+          `  evidence_refs jsonb NOT NULL,`,
           `  CONSTRAINT configuration_activation_id_shape_check CHECK (`,
           `    activation_id::text ~ '^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'`,
           `  ),`,

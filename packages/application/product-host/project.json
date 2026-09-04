@@ -27,11 +27,25 @@
         "command": "node packages/application/product-host/scripts/generate-openapi.mjs"
       }
     },
+    "generate:subject-chat-openapi": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node packages/application/product-host/scripts/generate-subject-chat-openapi.mjs"
+      }
+    },
     "check:openapi": {
       "dependsOn": ["build"],
       "executor": "nx:run-commands",
       "options": {
         "command": "node packages/application/product-host/scripts/generate-openapi.mjs --check"
+      }
+    },
+    "check:subject-chat-openapi": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node packages/application/product-host/scripts/generate-subject-chat-openapi.mjs --check"
       }
     },
     "lint": {

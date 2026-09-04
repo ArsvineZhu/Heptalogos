@@ -133,6 +133,7 @@ export interface CanonicalDatabase {
     readonly impact: string;
     readonly effective_at: Date | string;
     readonly lineage_context_ref: unknown;
+    readonly evidence_refs: unknown;
   };
   readonly secret_metadata: {
     readonly secret_id: string;

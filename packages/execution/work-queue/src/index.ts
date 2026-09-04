@@ -55,6 +55,7 @@ export {
   createWorkQueueService,
   type WorkCreationRequest,
   type WorkCreationResult,
+  type PreparedWorkCreation,
   type WorkHandlerResolver,
   type WorkQueueService,
   type WorkQueueServiceOptions,
@@ -73,4 +74,9 @@ export {
   type WorkAttemptExecutor,
   type WorkAttemptExecutorOptions,
 } from "./attempt-executor.js";
+export {
+  createWorkQueueRuntimeComposition,
+  type WorkQueueRuntimeComposition,
+  type WorkQueueRuntimeCompositionOptions,
+} from "./composition.js";
 export { type WorkQueueRepository } from "./repository.js";

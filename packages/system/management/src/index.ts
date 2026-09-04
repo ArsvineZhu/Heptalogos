@@ -41,6 +41,7 @@ export {
 } from "./contracts.js";
 export { lineageContextRefSchema } from "@heptalogos/execution-lineage";
 export type { LineageContextRef } from "@heptalogos/execution-lineage";
+export type { EvidenceRef } from "@heptalogos/evidence";
 export type {
   AdministratorBootstrapState,
   AdministratorId,
@@ -49,7 +50,6 @@ export type {
   ClaimResponse,
   CompatibilityDescriptor,
   ContractRange,
-  EvidenceRef,
   FirstAdministratorClaimId,
   FirstClaimMaterial,
   HostReadModel,
@@ -90,6 +90,8 @@ export type {
   ProductSystemActionId,
   ProductStateData,
   ProductStateReadModel,
+  SubjectStateActionInput,
+  SubjectStatusProjection,
   SystemActionId,
   SystemChangePlan,
   SystemChangePlanId,
@@ -100,6 +102,7 @@ export { createManagementService } from "./service.js";
 export type {
   ManagementProjectionSource,
   ManagementProductOwners,
+  SubjectManagementPort,
   ManagementService,
   ManagementServiceOptions,
 } from "./service.js";

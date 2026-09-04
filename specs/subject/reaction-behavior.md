@@ -60,8 +60,7 @@ interface ConversationMailbox {
   readonly schemaVersion: 1;
   readonly conversationId: CanonicalConversationId;
   readonly mailboxRevision: number;
-  readonly consumedThroughRevision: number;
-  readonly pendingMessageRefs: readonly CanonicalMessageId[];
+  readonly consumedThroughSequence: number;
   readonly openReactionId?: ReactionId;
 }
 ```
@@ -69,8 +68,10 @@ interface ConversationMailbox {
 Every accepted relevant inbound MessageFact advances mailboxRevision. An
 openReactionId is acquired with canonical compare-and-set semantics so
 concurrent WorkItems cannot create multiple current Reactions for one mailbox
-revision. Mailbox organizes MessageFact references and supersession but does
-not copy or re-own MessageFact truth.
+revision. Pending inbound facts are queried from Messaging by canonical sequence
+after consumedThroughSequence; they are not copied into the mailbox. Mailbox
+organizes MessageFact references and supersession but does not copy or re-own
+MessageFact truth.
 
 Do not add attention scores, debounce deadlines, typing state, patience,
 Observation Window scheduling, or a timer merely to implement supersession.
@@ -83,6 +84,7 @@ interface Reaction {
   readonly reactionId: ReactionId;
   readonly conversationId: CanonicalConversationId;
   readonly observedMailboxRevision: number;
+  readonly observedThroughSequence: number;
   readonly observedSubjectAuthorityRevision: number;
   readonly state:
     "OPEN" | "SUPERSEDED" | "DECIDED" | "DELIBERATED_SILENT" | "REPLIED" | "FAILED";
@@ -196,6 +198,24 @@ If mailboxRevision changed, the Reaction is atomically marked SUPERSEDED. It
 does not create DecisionCommit, CommunicationCommit, or outbound MessageFact.
 The newer accepted MessageFact already owns a WorkItem; no timer or debounce
 subsystem is added.
+
+The commit transaction must call the AIRuntime transaction-aware provenance
+assertion inside the same Host-fenced transaction. It validates the exact
+primary `modelBindingId`/revision, ModelProfile generation, GatewayProfile, and
+active transport ConfigurationRevision recorded by GenerationResult. Expression
+uses the same assertion before outbound MessageFact materialization.
+
+Re-entry is reconciliation-style and follows canonical state in this order:
+
+```text
+outbound MessageFact exists → finalize without expression
+DecisionCommit SILENCE exists → finalize silence
+DecisionCommit REPLY + CommunicationCommit exists → expression/materialization only
+DecisionCommit REPLY exists without CommunicationCommit → create/reuse CommunicationCommit
+no DecisionCommit → primary, Review, and commit
+```
+
+An existing DecisionCommit never causes `subject.primary` to decide again.
 
 ## DecisionCommit
 

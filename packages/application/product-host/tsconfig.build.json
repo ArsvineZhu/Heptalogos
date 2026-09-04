@@ -13,6 +13,21 @@
   "exclude": ["test/**/*.ts"],
   "references": [
     {
+      "path": "../../product/subject/tsconfig.build.json"
+    },
+    {
+      "path": "../../product/messaging/tsconfig.build.json"
+    },
+    {
+      "path": "../../execution/durable-execution/tsconfig.build.json"
+    },
+    {
+      "path": "../../execution/work-queue/tsconfig.build.json"
+    },
+    {
+      "path": "../../execution/signal/tsconfig.build.json"
+    },
+    {
       "path": "../../system/ai-runtime/tsconfig.build.json"
     },
     {
