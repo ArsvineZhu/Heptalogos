@@ -184,11 +184,19 @@ expectEqual(
   overrides?.["@types/node"],
   catalog?.["@types/node"],
 );
+const expectedAllowBuilds = {
+  esbuild: true,
+  nx: true,
+  openclaw: true,
+  "@google/genai": false,
+  koffi: false,
+  protobufjs: false,
+  "tree-sitter-bash": false,
+};
 if (
-  JSON.stringify(workspaceDocument.allowBuilds) !==
-  JSON.stringify({ esbuild: true, nx: true })
+  JSON.stringify(workspaceDocument.allowBuilds) !== JSON.stringify(expectedAllowBuilds)
 ) {
-  fail("workspace allowBuilds: expected only esbuild and nx");
+  fail("workspace allowBuilds: expected the reviewed pnpm 11 build policy");
 }
 
 for (const name of toolchainPackageNames) {

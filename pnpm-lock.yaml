@@ -337,6 +337,9 @@ importers:
       '@openclaw/gateway-protocol':
         specifier: 'catalog:'
         version: 2026.9.1
+      execa:
+        specifier: 'catalog:'
+        version: 10.0.1
       fastify:
         specifier: 'catalog:'
         version: 5.12.1

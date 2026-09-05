@@ -69,3 +69,8 @@ catalog:
 allowBuilds:
   esbuild: true
   nx: true
+  openclaw: true
+  "@google/genai": false
+  koffi: false
+  protobufjs: false
+  tree-sitter-bash: false

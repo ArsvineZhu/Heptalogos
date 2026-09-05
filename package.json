@@ -33,7 +33,8 @@
     "check:static": "node scripts/verify/run-nx.mjs run repository:check:static",
     "check:repo": "node scripts/verify/run-nx.mjs run repository:check:repo",
     "clean": "node scripts/maintenance/clean.mjs",
-    "package:portable": "node scripts/package/assemble-portable-product.mjs"
+    "package:portable": "node scripts/package/assemble-portable-product.mjs",
+    "qualify:portable": "node scripts/verify/run-nx.mjs run product-host-integration:qualify-portable"
   },
   "nx": {
     "includedScripts": []

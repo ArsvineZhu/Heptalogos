@@ -123,7 +123,6 @@ export const SUBJECT_COGNITION_CONFIGURATION_DEFINITION_ID =
 export interface SubjectCognitionConfigV1 {
   readonly schemaVersion: 1;
   readonly enabled: boolean;
-  readonly profile: "subject";
   readonly maxOutputTokens: number;
   readonly runTimeoutMs: number;
   readonly maxContextBytes: number;
@@ -134,7 +133,6 @@ export const subjectCognitionConfigSchema = Type.Object(
   {
     schemaVersion: Type.Literal(1),
     enabled: Type.Boolean(),
-    profile: Type.Literal("subject"),
     maxOutputTokens: Type.Integer({ minimum: 1, maximum: 4_096 }),
     runTimeoutMs: Type.Integer({ minimum: 1_000, maximum: 120_000 }),
     maxContextBytes: Type.Integer({ minimum: 4_096, maximum: 262_144 }),
@@ -168,7 +166,6 @@ export const DEFAULT_SUBJECT_COGNITION_CONFIG: SubjectCognitionConfigV1 = Object
   {
     schemaVersion: 1,
     enabled: true,
-    profile: "subject",
     maxOutputTokens: 256,
     runTimeoutMs: 60_000,
     maxContextBytes: 65_536,
@@ -244,7 +241,7 @@ export interface SubjectCognitionProvenance {
   readonly schemaVersion: 1;
   readonly provider: "openclaw";
   readonly runtimeGeneration: string;
-  readonly openclawVersion: "2026.9.1";
+  readonly openclawVersion: string;
   readonly profile: "subject";
   readonly agentId: string;
   readonly sessionKey: string;

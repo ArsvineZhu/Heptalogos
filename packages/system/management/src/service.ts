@@ -6,10 +6,8 @@
 
 import {
   createUuidV7Id,
-  digestCanonicalJson,
   formatInstant,
   parseUuidV7Id,
-  snapshotCanonicalJson,
   type BootId,
   type CanonicalJsonValue,
   type ContinuityEpochId,
@@ -19,16 +17,8 @@ import {
   type Instant,
 } from "@heptalogos/foundation-contracts";
 import type { ExecutionContextRuntime } from "@heptalogos/execution-lineage";
-import type { AIRuntimeService } from "@heptalogos/ai-runtime";
-import type {
-  ConfigurationDefinition,
-  ConfigurationService,
-} from "@heptalogos/configuration";
-import type { NetworkAccessService } from "@heptalogos/network-access";
-import type { SecretService } from "@heptalogos/secret";
 import type { PersistenceService } from "@heptalogos/persistence";
 import type { TimeService } from "@heptalogos/time-service";
-import { compileSchema } from "@heptalogos/schema-runtime";
 import {
   FIRST_CLAIM_LIFETIME_MS,
   MANAGEMENT_API_BASE_PATH,
@@ -56,7 +46,6 @@ import {
   type LoginResponse,
   currentSystemActionCatalog,
   SYSTEM_ACTION_CATALOG_REVISION,
-  systemActionRequestSchema,
   type ProductStateReadModel,
   type ManagementDigest,
   type SystemActionDefinition,
@@ -65,10 +54,6 @@ import {
   type SystemActionRequest,
   type SystemActionId,
   type SystemChangePlan,
-  type TargetPrecondition,
-  type ProductSystemActionId,
-  type ProductSemanticId,
-  type ConfigurationRevisionCreateActionInput,
 } from "./contracts.js";
 import { createManagementRepository, type ManagementRepository } from "./repository.js";
 import {
@@ -80,7 +65,7 @@ import {
   verifyAdministratorPassword,
   ARGON2_PARAMETERS,
 } from "./password.js";
-import { invalidInputProblem, managementProblem } from "./problems.js";
+import { managementProblem } from "./problems.js";
 
 /** Supplies current Host and Runtime read-only projections to Management. */
 export interface ManagementProjectionSource {
@@ -97,43 +82,30 @@ export interface ManagementProjectionSource {
   readonly runtimeSnapshot: () => RuntimeIntrospectionSnapshot;
 }
 
-/** Supplies the current Product prerequisite semantic owners to Management. */
-export interface ManagementProductOwners {
-  readonly configuration: ConfigurationService;
-  readonly secret: SecretService;
-  readonly networkAccess: NetworkAccessService;
-  readonly aiRuntime: AIRuntimeService;
-  readonly subject: SubjectManagementPort;
-}
-
-/** Narrow Subject owner seam used by Management without importing Product code. */
-export interface SubjectManagementPort {
-  /** Reads the current Subject status projection. */
-  getStatus(): Promise<import("./contracts.js").SubjectStatusProjection>;
-  /** Starts the current Subject under an authority revision fence. */
-  start(input: {
-    readonly subjectId: string;
-    readonly expectedAuthorityRevision: number;
-  }): Promise<import("./contracts.js").SubjectStatusProjection>;
-  /** Stops the current Subject under an authority revision fence. */
-  stop(input: {
-    readonly subjectId: string;
-    readonly expectedAuthorityRevision: number;
-  }): Promise<import("./contracts.js").SubjectStatusProjection>;
-  /** Reconciles the Product-supervised cognition runtime after an effective route change. */
-  readonly reconcileRuntime?: () => Promise<void>;
-}
+import {
+  actionPlanDigest,
+  normalizedInputDigest,
+  samePreconditions,
+  validatedAction,
+  type ManagementProductOwners,
+  type SystemActionContext,
+} from "./system-actions/types.js";
+import { systemActionCatalog } from "./system-actions/catalog.js";
+export type {
+  ManagementProductOwners,
+  SubjectManagementPort,
+} from "./system-actions/types.js";
 
 /** Bounds the Management service's canonical mutation activity owner. */
 export interface ManagementServiceOptions extends ManagementProjectionSource {
   readonly persistence: PersistenceService;
   readonly time: TimeService;
-  /** Current owner composition; absent only for legacy auth-only unit fixtures. */
-  readonly productOwners?: ManagementProductOwners;
+  /** Current Product semantic owners required by the Management contract. */
+  readonly productOwners: ManagementProductOwners;
   /** Current execution owner used to attribute ephemeral plans. */
-  readonly execution?: ExecutionContextRuntime;
+  readonly execution: ExecutionContextRuntime;
   /** Runs a side-effect-free plan under an ephemeral Activity context. */
-  readonly runReadActivity?: <T>(
+  readonly runReadActivity: <T>(
     kind: string,
     operation: () => Promise<T>,
   ) => Promise<T>;
@@ -377,724 +349,8 @@ function readModelEnvelope<T>(
   });
 }
 
-const systemActionRequestValidator = compileSchema<SystemActionRequest>(
-  systemActionRequestSchema,
-);
-
-function canonicalObject(value: object): {
-  readonly value: CanonicalJsonValue;
-  readonly canonical: string;
-} {
-  const serialized = JSON.stringify(value);
-  if (serialized === undefined) {
-    throw invalidInputProblem("The Management action could not be canonicalized");
-  }
-  const parsed: unknown = JSON.parse(serialized);
-  const snapshot = snapshotCanonicalJson(parsed as CanonicalJsonValue);
-  return Object.freeze({ value: snapshot.value, canonical: snapshot.canonical });
-}
-
-function canonicalValue(value: CanonicalJsonValue): string {
-  return snapshotCanonicalJson(value).canonical;
-}
-
-function managementDigest(domain: string, value: object): ManagementDigest {
-  return digestCanonicalJson(domain, canonicalObject(value).value)
-    .hex as ManagementDigest;
-}
-
-function requiredUuid(brand: string, value: string, field: string): string {
-  if (parseUuidV7Id(brand, value) === undefined) {
-    throw invalidInputProblem(field + " must be a UUIDv7 identifier");
-  }
-  return value;
-}
-
-function actionDefinition(actionId: ProductSystemActionId): SystemActionDefinition {
-  const definition = currentSystemActionCatalog.find(
-    (candidate) => candidate.actionId === actionId,
-  );
-  if (definition === undefined) {
-    throw invalidInputProblem("The requested SystemAction is not current");
-  }
-  return definition;
-}
-
-function canonicalAction(action: SystemActionRequest): CanonicalJsonValue {
-  return canonicalObject(action).value;
-}
-
-function normalizedInputDigest(action: SystemActionRequest): ManagementDigest {
-  return digestCanonicalJson(
-    "management.system-action.input.v1",
-    canonicalAction(action),
-  ).hex as ManagementDigest;
-}
-
-function exactModelCapabilities(
-  capabilities: readonly string[],
-): capabilities is readonly [
-  "text-generation",
-  "structured-output",
-  "usage-metadata",
-  "abort-timeout",
-] {
-  return (
-    capabilities.length === 4 &&
-    capabilities.every(
-      (capability, index) =>
-        capability ===
-        ["text-generation", "structured-output", "usage-metadata", "abort-timeout"][
-          index
-        ],
-    )
-  );
-}
-
-async function normalizeAction(
-  request: SystemActionRequest,
-  owners: ManagementProductOwners,
-): Promise<SystemActionRequest> {
-  const validation = systemActionRequestValidator.validate(request);
-  if (!validation.ok) {
-    throw invalidInputProblem(
-      validation.issues
-        .map((issue) => issue.instancePath + " " + issue.message)
-        .join("; "),
-    );
-  }
-  const action = validation.value;
-  switch (action.actionId) {
-    case "configuration.revision.create": {
-      const value = owners.configuration.validateValue(
-        action.input.definitionId,
-        action.input.value,
-      );
-      return Object.freeze({
-        actionId: action.actionId,
-        input: Object.freeze({ ...action.input, value }),
-      });
-    }
-    case "configuration.activate":
-      requiredUuid("ConfigurationRevisionId", action.input.revisionId, "revisionId");
-      if (action.input.expectedActiveRevisionId !== undefined) {
-        requiredUuid(
-          "ConfigurationRevisionId",
-          action.input.expectedActiveRevisionId,
-          "expectedActiveRevisionId",
-        );
-      }
-      return action;
-    case "secret.set":
-      if (
-        action.input.purpose !== "ai.gateway.bearer-token" ||
-        action.input.scopeRef?.resourceKind !== "gateway-profile"
-      ) {
-        throw invalidInputProblem(
-          "The current Secret route only accepts an ai.gateway.bearer-token scoped to a gateway-profile",
-        );
-      }
-      return action;
-    case "secret.replace":
-      requiredUuid("SecretId", action.input.secretRef, "secretRef");
-      return action;
-    case "secret.revoke":
-      requiredUuid("SecretId", action.input.secretRef, "secretRef");
-      return action;
-    case "gateway-profile.set":
-      if (action.input.gatewayProfileId !== undefined) {
-        requiredUuid(
-          "GatewayProfileId",
-          action.input.gatewayProfileId,
-          "gatewayProfileId",
-        );
-      }
-      if (action.input.apiTokenSecretRef !== undefined) {
-        if (action.input.gatewayProfileId === undefined) {
-          throw invalidInputProblem(
-            "A gateway token SecretRef requires an explicit gatewayProfileId",
-          );
-        }
-        requiredUuid(
-          "SecretId",
-          action.input.apiTokenSecretRef.secretId,
-          "apiTokenSecretRef.secretId",
-        );
-      }
-      return action;
-    case "model-profile.set":
-      if (action.input.modelProfileId !== undefined) {
-        requiredUuid("ModelProfileId", action.input.modelProfileId, "modelProfileId");
-      }
-      requiredUuid(
-        "GatewayProfileId",
-        action.input.gatewayProfileId,
-        "gatewayProfileId",
-      );
-      if (!exactModelCapabilities(action.input.consumedCapabilities)) {
-        throw invalidInputProblem(
-          "consumedCapabilities must be the exact current four-capability set in order",
-        );
-      }
-      return action;
-    case "model-binding.set":
-      requiredUuid("ModelProfileId", action.input.modelProfileId, "modelProfileId");
-      return action;
-    case "subject.start":
-    case "subject.stop":
-      requiredUuid("SubjectId", action.input.subjectId, "subjectId");
-      if (
-        !Number.isSafeInteger(action.input.expectedAuthorityRevision) ||
-        action.input.expectedAuthorityRevision < 1
-      ) {
-        throw invalidInputProblem(
-          "expectedAuthorityRevision must be a positive safe integer",
-        );
-      }
-      return action;
-  }
-}
-
-function precondition(
-  resourceKind: string,
-  resourceId: string,
-  current: object | undefined,
-  digestDomain = "management.target.v1",
-): TargetPrecondition {
-  return Object.freeze({
-    schemaVersion: 1 as const,
-    resource: Object.freeze({
-      schemaVersion: 1 as const,
-      resourceKind,
-      resourceId,
-    }),
-    ...(current === undefined
-      ? {}
-      : { expectedDigest: managementDigest(digestDomain, current) }),
-  });
-}
-
-function configurationResourceId(
-  ref: ConfigurationRevisionCreateActionInput["scopeRef"],
-): string {
-  return ref.resourceKind + ":" + ref.resourceId;
-}
-
-async function actionPreconditions(
-  action: SystemActionRequest,
-  owners: ManagementProductOwners,
-): Promise<readonly TargetPrecondition[]> {
-  switch (action.actionId) {
-    case "configuration.revision.create": {
-      const activation = await owners.configuration.getActivation(
-        action.input.definitionId,
-        action.input.scopeRef,
-      );
-      return Object.freeze([
-        precondition(
-          "configuration-scope",
-          configurationResourceId(action.input.scopeRef),
-          activation,
-        ),
-      ]);
-    }
-    case "configuration.activate": {
-      const revision = await owners.configuration.getRevision(action.input.revisionId);
-      if (revision === undefined) {
-        throw managementProblem(
-          "management.configuration_revision_not_found",
-          "Configuration revision was not found",
-          "The requested ConfigurationRevision is not current",
-          "conflict",
-        );
-      }
-      const activation = await owners.configuration.getActivation(
-        revision.definitionId,
-        revision.scopeRef,
-      );
-      return Object.freeze([
-        precondition("configuration-revision", revision.revisionId, revision),
-        precondition(
-          "configuration-scope",
-          configurationResourceId(revision.scopeRef),
-          activation,
-        ),
-      ]);
-    }
-    case "secret.set":
-      return Object.freeze([]);
-    case "secret.replace":
-    case "secret.revoke": {
-      const metadata = await owners.secret.getMetadata(action.input.secretRef);
-      if (metadata === undefined) {
-        throw managementProblem(
-          "management.secret_not_found",
-          "Secret was not found",
-          "The requested SecretRef is not current",
-          "conflict",
-        );
-      }
-      return Object.freeze([precondition("secret", metadata.secretId, metadata)]);
-    }
-    case "gateway-profile.set": {
-      if (action.input.gatewayProfileId === undefined) return Object.freeze([]);
-      const profile = await owners.aiRuntime.getGatewayProfile(
-        action.input.gatewayProfileId,
-      );
-      return Object.freeze([
-        precondition(
-          "gateway-profile",
-          action.input.gatewayProfileId,
-          profile,
-          "ai.gateway-profile.v1",
-        ),
-      ]);
-    }
-    case "model-profile.set": {
-      if (action.input.modelProfileId === undefined) return Object.freeze([]);
-      const profile = await owners.aiRuntime.getModelProfile(
-        action.input.modelProfileId,
-      );
-      return Object.freeze([
-        precondition(
-          "model-profile",
-          action.input.modelProfileId,
-          profile,
-          "ai.model-profile.v1",
-        ),
-      ]);
-    }
-    case "model-binding.set": {
-      const binding = await owners.aiRuntime.getModelBinding(action.input.role);
-      return Object.freeze([
-        precondition(
-          "model-binding",
-          action.input.role,
-          binding,
-          "ai.model-binding.v1",
-        ),
-      ]);
-    }
-    case "subject.start":
-    case "subject.stop": {
-      const status = await owners.subject.getStatus();
-      if (status.subjectId !== action.input.subjectId) {
-        throw managementProblem(
-          "management.subject_not_found",
-          "Subject was not found",
-          "The requested SubjectId is not current for this Installation",
-          "conflict",
-        );
-      }
-      return Object.freeze([
-        precondition("subject", status.subjectId, status, "subject.status.v1"),
-      ]);
-    }
-  }
-}
-
-async function configurationDefinitionForAction(
-  action: SystemActionRequest,
-  configuration: ConfigurationService,
-): Promise<ConfigurationDefinition> {
-  let definitionId: string | undefined;
-  if (action.actionId === "configuration.revision.create") {
-    definitionId = action.input.definitionId;
-  } else if (action.actionId === "configuration.activate") {
-    definitionId = (await configuration.getRevision(action.input.revisionId))
-      ?.definitionId;
-  }
-  if (definitionId === undefined) {
-    throw managementProblem(
-      "management.configuration_revision_not_found",
-      "Configuration revision was not found",
-      "The requested ConfigurationRevision is not current",
-      "conflict",
-    );
-  }
-  const definition = configuration.getDefinition(definitionId);
-  if (definition === undefined) {
-    throw managementProblem(
-      "management.configuration_definition_not_found",
-      "Configuration definition was not found",
-      "The requested ConfigurationDefinition is not current",
-      "conflict",
-    );
-  }
-  return definition;
-}
-
-async function actionOwners(
-  action: SystemActionRequest,
-  configuration: ConfigurationService,
-): Promise<readonly ProductSemanticId[]> {
-  switch (action.actionId) {
-    case "configuration.revision.create":
-    case "configuration.activate": {
-      const definition = await configurationDefinitionForAction(action, configuration);
-      return Object.freeze(
-        [
-          "system.configuration" as ProductSemanticId,
-          definition.owner as ProductSemanticId,
-        ].filter((owner, index, owners) => owners.indexOf(owner) === index),
-      );
-    }
-    case "secret.set":
-    case "secret.replace":
-    case "secret.revoke":
-      return Object.freeze(["system.secret" as ProductSemanticId]);
-    case "gateway-profile.set":
-    case "model-profile.set":
-    case "model-binding.set":
-      return Object.freeze(["system.ai-runtime" as ProductSemanticId]);
-    case "subject.start":
-    case "subject.stop":
-      return Object.freeze([
-        "product.subject" as ProductSemanticId,
-        "product.messaging" as ProductSemanticId,
-      ]);
-  }
-}
-
-async function actionImpact(
-  action: SystemActionRequest,
-  configuration: ConfigurationService,
-): Promise<{
-  readonly readiness: CanonicalJsonValue;
-  readonly restart: CanonicalJsonValue;
-}> {
-  if (
-    action.actionId === "configuration.revision.create" ||
-    action.actionId === "configuration.activate"
-  ) {
-    const definition = await configurationDefinitionForAction(action, configuration);
-    const staged = action.actionId === "configuration.revision.create";
-    const activation = definition.activation;
-    const restartRequired =
-      !staged &&
-      (activation === "RESTART_COMPONENT" ||
-        activation === "RESTART_SUBJECT" ||
-        activation === "RESTART_HOST" ||
-        activation === "MAINTENANCE" ||
-        activation === "NEXT_BOOT" ||
-        activation === "IMMUTABLE_AFTER_INIT");
-    const reconciliation = staged
-      ? "staged-until-activation"
-      : activation === "LIVE"
-        ? "immediate"
-        : activation === "RELOAD_COMPONENT"
-          ? "reload-component"
-          : activation === "RESTART_COMPONENT"
-            ? "restart-component"
-            : activation === "RESTART_SUBJECT"
-              ? "restart-subject"
-              : activation === "RESTART_HOST"
-                ? "restart-host"
-                : activation === "MAINTENANCE"
-                  ? "maintenance"
-                  : activation === "NEXT_BOOT"
-                    ? "next-boot"
-                    : "immutable-after-init";
-    return {
-      readiness: Object.freeze({
-        configurationDefinitionId: definition.definitionId,
-        activation,
-        consumerRefs: Object.freeze([...definition.consumerRefs]),
-        effective: staged ? "after-activation" : "active-revision",
-      }) as unknown as CanonicalJsonValue,
-      restart: Object.freeze({
-        restartRequired,
-        activation,
-        reconciliation,
-      }) as unknown as CanonicalJsonValue,
-    };
-  }
-  const readiness = Object.freeze({
-    gatewayPrerequisiteReadiness: "re-evaluate",
-    subjectDispatch: "re-evaluate",
-  });
-  const restart = Object.freeze({
-    restartRequired: false,
-    reconciliation: "immediate",
-  });
-  return { readiness, restart };
-}
-
-function actionReconcilesSubjectRuntime(action: SystemActionRequest): boolean {
-  switch (action.actionId) {
-    case "configuration.activate":
-    case "gateway-profile.set":
-    case "model-profile.set":
-    case "model-binding.set":
-    case "secret.set":
-    case "secret.replace":
-    case "secret.revoke":
-      return true;
-    default:
-      return false;
-  }
-}
-
-function planDigest(plan: SystemChangePlan): ManagementDigest {
-  return digestCanonicalJson(
-    "management.system-change-plan.v1",
-    canonicalObject({
-      schemaVersion: plan.schemaVersion,
-      planId: plan.planId,
-      actionId: plan.actionId,
-      actionVersion: plan.actionVersion,
-      normalizedInputDigest: plan.normalizedInputDigest,
-      targetPreconditions: plan.targetPreconditions,
-      affectedSemanticOwners: plan.affectedSemanticOwners,
-      configurationReadinessSubjectImpact: plan.configurationReadinessSubjectImpact,
-      restartReconcileImpact: plan.restartReconcileImpact,
-      riskClass: plan.riskClass,
-      createdAt: plan.createdAt,
-      lineageContextRef: plan.lineageContextRef,
-    }).value,
-  ).hex as ManagementDigest;
-}
-
-function samePreconditions(
-  left: readonly TargetPrecondition[],
-  right: readonly TargetPrecondition[],
-): boolean {
-  return (
-    canonicalObject({ value: left }).canonical ===
-    canonicalObject({ value: right }).canonical
-  );
-}
-
-function productOwners(options: ManagementServiceOptions): ManagementProductOwners {
-  if (options.productOwners === undefined) {
-    throw managementProblem(
-      "management.product_not_composed",
-      "Product prerequisite services are unavailable",
-      "The current Product Host has not composed the Product prerequisite owners",
-      "unavailable",
-      "after-change",
-    );
-  }
-  return options.productOwners;
-}
-
-function secretRefFromAction(value: {
-  readonly schemaVersion: 1;
-  readonly secretId: string;
-}) {
-  return Object.freeze({
-    schemaVersion: 1 as const,
-    secretId: parseUuidV7Id("SecretId", value.secretId)!,
-  });
-}
-
-function resultField(value: CanonicalJsonValue, field: string): string | undefined {
-  if (typeof value !== "object" || value === null || Array.isArray(value))
-    return undefined;
-  const candidate = (value as { readonly [key: string]: CanonicalJsonValue })[field];
-  return typeof candidate === "string" ? candidate : undefined;
-}
-
-async function dispatchAction(
-  action: SystemActionRequest,
-  owners: ManagementProductOwners,
-  expectedDigest: string | null | undefined,
-): Promise<CanonicalJsonValue> {
-  switch (action.actionId) {
-    case "configuration.revision.create":
-      return canonicalObject(
-        await owners.configuration.createRevision({
-          definitionId: action.input.definitionId,
-          scopeRef: action.input.scopeRef,
-          value: action.input.value,
-        }),
-      ).value;
-    case "configuration.activate":
-      return canonicalObject(
-        await owners.configuration.activate({
-          revisionId: action.input.revisionId,
-          ...(action.input.expectedActiveRevisionId === undefined
-            ? {}
-            : { expectedActiveRevisionId: action.input.expectedActiveRevisionId }),
-        }),
-      ).value;
-    case "secret.set": {
-      const bytes = new TextEncoder().encode(action.input.material);
-      try {
-        const ref = await owners.secret.createOrSet({
-          purpose: action.input.purpose,
-          ...(action.input.scopeRef === undefined
-            ? {}
-            : { scopeRef: action.input.scopeRef }),
-          material: bytes,
-        });
-        return canonicalObject(ref).value;
-      } finally {
-        bytes.fill(0);
-      }
-    }
-    case "secret.replace": {
-      const bytes = new TextEncoder().encode(action.input.material);
-      try {
-        const existing = await owners.secret.getMetadata(action.input.secretRef);
-        if (existing === undefined) {
-          throw managementProblem(
-            "management.secret_not_found",
-            "Secret was not found",
-            "The requested SecretRef is not current",
-            "conflict",
-          );
-        }
-        const ref = await owners.secret.replace(action.input.secretRef, {
-          purpose: existing.purpose,
-          ...(existing.scopeRef === undefined ? {} : { scopeRef: existing.scopeRef }),
-          material: bytes,
-        });
-        return canonicalObject(ref).value;
-      } finally {
-        bytes.fill(0);
-      }
-    }
-    case "secret.revoke":
-      await owners.secret.revoke(action.input.secretRef);
-      return null;
-    case "gateway-profile.set":
-      return canonicalObject(
-        await owners.aiRuntime.setGatewayProfile(
-          {
-            ...(action.input.gatewayProfileId === undefined
-              ? {}
-              : { gatewayProfileId: action.input.gatewayProfileId }),
-            baseUrl: action.input.baseUrl,
-            ...(action.input.apiTokenSecretRef === undefined
-              ? {}
-              : {
-                  apiTokenSecretRef: secretRefFromAction(
-                    action.input.apiTokenSecretRef,
-                  ),
-                }),
-            enabled: action.input.enabled,
-          },
-          expectedDigest,
-        ),
-      ).value;
-    case "model-profile.set":
-      return canonicalObject(
-        await owners.aiRuntime.setModelProfile(
-          {
-            ...(action.input.modelProfileId === undefined
-              ? {}
-              : { modelProfileId: action.input.modelProfileId }),
-            gatewayProfileId: action.input.gatewayProfileId,
-            modelIdentifier: action.input.modelIdentifier,
-            protocol: action.input.protocol,
-            consumedCapabilities: action.input.consumedCapabilities,
-          },
-          expectedDigest,
-        ),
-      ).value;
-    case "model-binding.set":
-      return canonicalObject(
-        await owners.aiRuntime.setModelBinding(
-          {
-            role: action.input.role,
-            modelProfileId: action.input.modelProfileId,
-          },
-          expectedDigest,
-        ),
-      ).value;
-    case "subject.start":
-      return canonicalObject(
-        await owners.subject.start({
-          subjectId: action.input.subjectId,
-          expectedAuthorityRevision: action.input.expectedAuthorityRevision,
-        }),
-      ).value;
-    case "subject.stop":
-      return canonicalObject(
-        await owners.subject.stop({
-          subjectId: action.input.subjectId,
-          expectedAuthorityRevision: action.input.expectedAuthorityRevision,
-        }),
-      ).value;
-  }
-}
-
-async function verifyPostcondition(
-  action: SystemActionRequest,
-  result: CanonicalJsonValue,
-  owners: ManagementProductOwners,
-): Promise<boolean> {
-  switch (action.actionId) {
-    case "configuration.revision.create":
-      return (
-        resultField(result, "revisionId") !== undefined &&
-        (await owners.configuration.getRevision(resultField(result, "revisionId")!)) !==
-          undefined
-      );
-    case "configuration.activate": {
-      const revision = await owners.configuration.getRevision(action.input.revisionId);
-      if (revision === undefined) return false;
-      const activation = await owners.configuration.getActivation(
-        revision.definitionId,
-        revision.scopeRef,
-      );
-      return activation?.activeRevisionId === action.input.revisionId;
-    }
-    case "secret.set":
-      return (
-        resultField(result, "secretId") !== undefined &&
-        (await owners.secret.getMetadata(resultField(result, "secretId")!))?.state ===
-          "ACTIVE"
-      );
-    case "secret.replace":
-      return (
-        (await owners.secret.getMetadata(action.input.secretRef))?.state === "ACTIVE"
-      );
-    case "secret.revoke":
-      return (
-        (await owners.secret.getMetadata(action.input.secretRef))?.state === "REVOKED"
-      );
-    case "gateway-profile.set": {
-      const gatewayProfileId = resultField(result, "gatewayProfileId");
-      const current =
-        gatewayProfileId === undefined
-          ? undefined
-          : await owners.aiRuntime.getGatewayProfile(gatewayProfileId);
-      return (
-        current !== undefined &&
-        canonicalObject(current).canonical === canonicalValue(result)
-      );
-    }
-    case "model-profile.set": {
-      const modelProfileId = resultField(result, "modelProfileId");
-      const current =
-        modelProfileId === undefined
-          ? undefined
-          : await owners.aiRuntime.getModelProfile(modelProfileId);
-      return (
-        current !== undefined &&
-        canonicalObject(current).canonical === canonicalValue(result)
-      );
-    }
-    case "model-binding.set": {
-      const current = await owners.aiRuntime.getModelBinding(action.input.role);
-      return (
-        current !== undefined &&
-        canonicalObject(current).canonical === canonicalValue(result)
-      );
-    }
-    case "subject.start":
-    case "subject.stop": {
-      const current = await owners.subject.getStatus();
-      return (
-        current.subjectId === action.input.subjectId &&
-        current.desiredState ===
-          (action.actionId === "subject.start" ? "RUNNING" : "STOPPED") &&
-        canonicalObject(current).canonical === canonicalValue(result)
-      );
-    }
-  }
+function actionContext(options: ManagementServiceOptions): SystemActionContext {
+  return Object.freeze({ owners: options.productOwners, time: options.time });
 }
 
 function createManagementServiceWithRepository(
@@ -1248,7 +504,7 @@ function createManagementServiceWithRepository(
     },
     async getProductState() {
       const read = async (): Promise<ProductStateReadModel> => {
-        const owners = productOwners(options);
+        const owners = options.productOwners;
         const [
           revisions,
           activations,
@@ -1294,29 +550,22 @@ function createManagementServiceWithRepository(
           data,
         );
       };
-      if (options.runReadActivity !== undefined) {
-        return options.runReadActivity("management.product-state.read", read);
-      }
-      return read();
+      return options.runReadActivity("management.product-state.read", read);
     },
     getSystemActionCatalog() {
       return currentSystemActionCatalog;
     },
     async planAction(request) {
       const plan = async (): Promise<SystemChangePlan> => {
-        const owners = productOwners(options);
-        const action = await normalizeAction(request, owners);
-        const definition = actionDefinition(action.actionId);
-        const preconditions = await actionPreconditions(action, owners);
+        const validated = validatedAction(request);
+        const handler = systemActionCatalog.handlerFor(validated.actionId);
+        const action = handler.normalize(validated, actionContext(options));
+        const definition = systemActionCatalog.definitionFor(action.actionId);
+        const preconditions = await handler.preconditions(
+          action,
+          actionContext(options),
+        );
         const execution = options.execution;
-        if (execution === undefined) {
-          throw managementProblem(
-            "management.plan_activity_required",
-            "SystemAction planning requires an Activity",
-            "The current Management Host did not provide a planning Activity context",
-            "conflict",
-          );
-        }
         let lineageContextRef: SystemChangePlan["lineageContextRef"];
         try {
           lineageContextRef = execution.createLineageContextRef();
@@ -1328,7 +577,7 @@ function createManagementServiceWithRepository(
             "conflict",
           );
         }
-        const impact = await actionImpact(action, owners.configuration);
+        const impact = await handler.impact(action, actionContext(options));
         const draft: SystemChangePlan = Object.freeze({
           schemaVersion: 1,
           planId: createUuidV7Id("SystemChangePlanId"),
@@ -1336,7 +585,10 @@ function createManagementServiceWithRepository(
           actionVersion: definition.actionVersion,
           normalizedInputDigest: normalizedInputDigest(action),
           targetPreconditions: preconditions,
-          affectedSemanticOwners: await actionOwners(action, owners.configuration),
+          affectedSemanticOwners: await handler.affectedOwners(
+            action,
+            actionContext(options),
+          ),
           configurationReadinessSubjectImpact: impact.readiness,
           restartReconcileImpact: impact.restart,
           riskClass: definition.riskClass,
@@ -1344,21 +596,21 @@ function createManagementServiceWithRepository(
           createdAt: options.time.now(),
           lineageContextRef,
         });
-        return Object.freeze({ ...draft, planDigest: planDigest(draft) });
+        return Object.freeze({ ...draft, planDigest: actionPlanDigest(draft) });
       };
-      if (options.runReadActivity !== undefined) {
-        return options.runReadActivity("management.system-action.plan", plan);
-      }
-      return plan();
+      return options.runReadActivity("management.system-action.plan", plan);
     },
     async executeAction(sessionToken, request) {
       await service.authenticate(sessionToken);
       return options.runMutationActivity(
         "management.system-action.execute",
         async () => {
-          const owners = productOwners(options);
-          const action = await normalizeAction(request.action, owners);
-          const definition = actionDefinition(action.actionId);
+          const context = actionContext(options);
+          const owners = context.owners;
+          const validated = validatedAction(request.action);
+          const handler = systemActionCatalog.handlerFor(validated.actionId);
+          const action = handler.normalize(validated, context);
+          const definition = systemActionCatalog.definitionFor(action.actionId);
           if (
             request.plan.actionId !== action.actionId ||
             request.plan.actionVersion !== definition.actionVersion
@@ -1371,7 +623,7 @@ function createManagementServiceWithRepository(
               "after-change",
             );
           }
-          if (planDigest(request.plan) !== request.plan.planDigest) {
+          if (actionPlanDigest(request.plan) !== request.plan.planDigest) {
             throw managementProblem(
               "management.plan_invalid",
               "SystemAction plan is invalid",
@@ -1388,7 +640,7 @@ function createManagementServiceWithRepository(
               "after-change",
             );
           }
-          const currentPreconditions = await actionPreconditions(action, owners);
+          const currentPreconditions = await handler.preconditions(action, context);
           if (
             !samePreconditions(request.plan.targetPreconditions, currentPreconditions)
           ) {
@@ -1400,35 +652,12 @@ function createManagementServiceWithRepository(
               "after-change",
             );
           }
-          const targetPrecondition = request.plan.targetPreconditions.find(
-            (candidate) => {
-              if (action.actionId === "gateway-profile.set") {
-                return candidate.resource.resourceKind === "gateway-profile";
-              }
-              if (action.actionId === "model-profile.set") {
-                return candidate.resource.resourceKind === "model-profile";
-              }
-              if (action.actionId === "model-binding.set") {
-                return candidate.resource.resourceKind === "model-binding";
-              }
-              return false;
-            },
-          );
-          const expectedDigest =
-            targetPrecondition === undefined
-              ? undefined
-              : targetPrecondition.expectedDigest === undefined
-                ? null
-                : targetPrecondition.expectedDigest;
-          const result = await dispatchAction(action, owners, expectedDigest);
-          if (actionReconcilesSubjectRuntime(action)) {
-            await owners.subject.reconcileRuntime?.().catch(() => undefined);
+          const expectedDigest = handler.expectedDigest(action, currentPreconditions);
+          const result = await handler.execute(action, context, expectedDigest);
+          if (handler.reconcilesSubjectRuntime(action)) {
+            await owners.subject.reconcileRuntime().catch(() => undefined);
           }
-          const postconditionsVerified = await verifyPostcondition(
-            action,
-            result,
-            owners,
-          );
+          const postconditionsVerified = await handler.verify(action, result, context);
           return Object.freeze({
             schemaVersion: 1 as const,
             actionId: action.actionId as SystemActionId,

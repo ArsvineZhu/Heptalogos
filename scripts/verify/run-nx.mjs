@@ -27,6 +27,7 @@ const commandLabel = nxArgs.join(" ").slice(0, 180);
 
 function stripAnsi(value) {
   return value.replace(
+    // oxlint-disable-next-line no-control-regex -- ANSI control bytes are the data being removed.
     /[\u001B\u009B][[\]()#;?]*(?:(?:[a-zA-Z\d]*(?:;[-a-zA-Z\d/#&.:=?%@~_]+)*)?\u0007|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/gu,
     "",
   );
@@ -65,16 +66,17 @@ if (nxArgs.length === 0) {
   process.exitCode = 1;
 } else {
   try {
+    const quietEnvironment = {
+      ...process.env,
+      NO_COLOR: "1",
+      NX_DEFAULT_OUTPUT_STYLE: "static",
+    };
+    // FORCE_COLOR wins over NO_COLOR even when set to "0", so remove it
+    // instead of assigning another value that makes Node warn in every child.
+    delete quietEnvironment.FORCE_COLOR;
     const result = await runPnpm(["exec", "nx", ...nxArgs], {
       cwd: root,
-      env: {
-        ...process.env,
-        // Nx otherwise reintroduces FORCE_COLOR for child processes, which
-        // produces one warning per Node worker when NO_COLOR is present.
-        FORCE_COLOR: "0",
-        NO_COLOR: "1",
-        NX_DEFAULT_OUTPUT_STYLE: "static",
-      },
+      env: quietEnvironment,
       stdin: forwardStdin ? "inherit" : "ignore",
     });
 

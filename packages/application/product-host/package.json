@@ -43,6 +43,7 @@
     "@heptalogos/work-queue": "workspace:*",
     "@openclaw/gateway-client": "catalog:",
     "@openclaw/gateway-protocol": "catalog:",
+    "execa": "catalog:",
     "fastify": "catalog:",
     "openclaw": "catalog:",
     "write-file-atomic": "catalog:"

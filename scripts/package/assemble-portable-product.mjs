@@ -1,9 +1,11 @@
 /**
  * Assembles the current built Product Host and reference CLI into one
- * portable Product root. Dependency closure is delegated to pnpm deploy; this
- * script only places that closure beside private runtime payloads and writes
- * an uninitialized assembly inventory. The stable launcher materializes the
- * installation locator from the user's first execution location.
+ * portable Product root. A disposable copy of the repository is assembled in
+ * OS-TEMP so pnpm can materialize the modern deploy closure without touching
+ * the source workspace; this script then places that closure beside private
+ * runtime payloads and writes an uninitialized assembly inventory. The stable
+ * launcher materializes the installation locator from the user's first
+ * execution location.
  * @module assemble-portable-product
  */
 
@@ -13,25 +15,20 @@ import {
   cp,
   lstat,
   mkdir,
+  mkdtemp,
   readFile,
   readdir,
   readlink,
   realpath,
   rm,
-  unlink,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runProcessSync } from "@heptalogos/repo-kit";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const productHostPackage = resolve(repositoryRoot, "packages/application/product-host");
-const cliPackage = resolve(repositoryRoot, "packages/application/cli");
-const productIdentities = resolve(
-  productHostPackage,
-  "dist/generated/build-identities.js",
-);
 const pnpmCommand = "pnpm";
 const requiredPostgresTools =
   process.platform === "win32"
@@ -45,6 +42,12 @@ const requiredPostgresTools =
     : ["postgres", "initdb", "pg_ctl", "pg_controldata", "pg_isready"];
 const exactOpenClawVersion = "2026.9.1";
 const exactOpenClawWireVersion = "4";
+const subprocessEnvironment = {
+  ...process.env,
+  CI: "true",
+  FORCE_COLOR: "0",
+  NO_COLOR: "1",
+};
 
 function fail(message) {
   throw new Error(message);
@@ -105,7 +108,7 @@ async function requireFile(path, label) {
 function run(command, args, cwd) {
   const result = runProcessSync(command, args, {
     cwd,
-    env: { ...process.env, CI: "true" },
+    env: subprocessEnvironment,
     reject: false,
   });
   if (result.stdout.length > 0) process.stdout.write(result.stdout);
@@ -117,6 +120,7 @@ function run(command, args, cwd) {
 function probe(command, args, cwd = repositoryRoot) {
   const result = runProcessSync(command, args, {
     cwd,
+    env: subprocessEnvironment,
     reject: false,
   });
   if (result.failed) {
@@ -163,6 +167,21 @@ async function copyDirectory(source, destination) {
   });
 }
 
+async function copyWorkspaceToStaging(source, destination) {
+  const excluded = new Set([".git", "node_modules", ".nx", "tmp", "dist", "coverage"]);
+  await cp(source, destination, {
+    recursive: true,
+    force: true,
+    dereference: false,
+    verbatimSymlinks: true,
+    filter(sourcePath) {
+      const relativePath = relative(source, sourcePath);
+      if (relativePath === "") return true;
+      return !relativePath.split(sep).some((segment) => excluded.has(segment));
+    },
+  });
+}
+
 async function verifyPortableLinks(root) {
   async function visit(directory) {
     const children = await readdir(directory, { withFileTypes: true });
@@ -181,148 +200,73 @@ async function verifyPortableLinks(root) {
   await visit(root);
 }
 
+function runJson(command, args, cwd) {
+  const result = runProcessSync(command, args, {
+    cwd,
+    env: subprocessEnvironment,
+    reject: false,
+  });
+  if (result.failed) {
+    fail(`${command} ${args.join(" ")} exited with ${String(result.exitCode)}`);
+  }
+  try {
+    return JSON.parse(result.stdout ?? "");
+  } catch (error) {
+    throw new Error(
+      `Could not parse JSON from ${command} ${args.join(" ")}: ${String(error)}`,
+      { cause: error },
+    );
+  }
+}
+
 async function collectPackageLicenses(roots) {
   const packages = new Map();
-  async function visit(root, directory) {
-    const children = await readdir(directory, { withFileTypes: true });
-    for (const child of children) {
-      const path = join(directory, child.name);
-      if (child.isDirectory()) await visit(root, path);
-      else if (child.isFile() && child.name === "package.json") {
-        const packageJson = JSON.parse(await readFile(path, "utf8"));
-        if (typeof packageJson.name !== "string") continue;
-        const version =
-          typeof packageJson.version === "string" ? packageJson.version : "unknown";
-        const key = `${packageJson.name}@${version}`;
-        if (!packages.has(key)) {
-          packages.set(key, {
-            name: packageJson.name,
-            version,
-            license: packageJson.license ?? packageJson.licenses ?? "unknown",
-            packageJson: relative(root, path).split(sep).join("/"),
-          });
+  for (const root of roots) {
+    const byLicense = runJson(
+      pnpmCommand,
+      ["licenses", "list", "--prod", "--json"],
+      root,
+    );
+    for (const [license, entries] of Object.entries(byLicense)) {
+      if (!Array.isArray(entries)) continue;
+      for (const entry of entries) {
+        if (
+          typeof entry !== "object" ||
+          entry === null ||
+          typeof entry.name !== "string" ||
+          !Array.isArray(entry.versions) ||
+          !Array.isArray(entry.paths)
+        ) {
+          continue;
+        }
+        for (let index = 0; index < entry.paths.length; index += 1) {
+          const packagePath = resolve(String(entry.paths[index]));
+          if (!isInside(root, packagePath)) {
+            fail(
+              `License metadata points outside the deployed Product root: ${packagePath}`,
+            );
+          }
+          const version = String(
+            entry.versions[index] ?? entry.versions[0] ?? "unknown",
+          );
+          const packageJson = join(packagePath, "package.json");
+          await requireFile(packageJson, `deployed package manifest for ${entry.name}`);
+          const key = `${entry.name}@${version}`;
+          if (!packages.has(key)) {
+            packages.set(key, {
+              name: entry.name,
+              version,
+              license,
+              packageJson: relative(root, packageJson).split(sep).join("/"),
+            });
+          }
         }
       }
     }
   }
-  for (const root of roots) await visit(root, join(root, "node_modules", ".pnpm"));
   return [...packages.values()].sort((left, right) =>
     `${left.name}@${left.version}`.localeCompare(`${right.name}@${right.version}`),
   );
-}
-
-const packageDependencySections = [
-  "dependencies",
-  "devDependencies",
-  "optionalDependencies",
-  "peerDependencies",
-];
-
-async function visitPackageJson(root, visit) {
-  async function walk(directory) {
-    const children = await readdir(directory, { withFileTypes: true });
-    for (const child of children) {
-      const path = join(directory, child.name);
-      if (child.isDirectory()) {
-        await walk(path);
-      } else if (child.isFile() && child.name === "package.json") {
-        await visit(path);
-      }
-    }
-  }
-  await walk(root);
-}
-
-async function rewriteWorkspaceProtocols(roots) {
-  const paths = [];
-  for (const root of roots) {
-    paths.push(join(root, "package.json"));
-    const scopeRoot = join(root, "node_modules", "@heptalogos");
-    try {
-      for (const child of await readdir(scopeRoot, { withFileTypes: true })) {
-        if (child.isDirectory())
-          paths.push(join(scopeRoot, child.name, "package.json"));
-      }
-    } catch (error) {
-      if (!(error instanceof Error && "code" in error && error.code === "ENOENT"))
-        throw error;
-    }
-  }
-  const workspaceVersions = new Map();
-  for (const path of paths) {
-    const packageJson = JSON.parse(await readFile(path, "utf8"));
-    if (
-      typeof packageJson.name !== "string" ||
-      !packageJson.name.startsWith("@heptalogos/") ||
-      typeof packageJson.version !== "string"
-    )
-      continue;
-    const existing = workspaceVersions.get(packageJson.name);
-    if (existing !== undefined && existing !== packageJson.version) {
-      fail(
-        `Portable closure has multiple versions for workspace dependency ${packageJson.name}: ${existing} and ${packageJson.version}`,
-      );
-    }
-    workspaceVersions.set(packageJson.name, packageJson.version);
-  }
-  for (const path of paths) {
-    const packageJson = JSON.parse(await readFile(path, "utf8"));
-    if (
-      typeof packageJson.name !== "string" ||
-      !packageJson.name.startsWith("@heptalogos/")
-    )
-      continue;
-    let changed = false;
-    for (const sectionName of packageDependencySections) {
-      const section = packageJson[sectionName];
-      if (typeof section !== "object" || section === null || Array.isArray(section))
-        continue;
-      for (const [name, value] of Object.entries(section)) {
-        if (typeof value !== "string" || !value.startsWith("workspace:")) continue;
-        const version = workspaceVersions.get(name);
-        if (version === undefined) {
-          fail(`Portable closure has an unresolved workspace dependency ${name}`);
-        }
-        const protocol = value.slice("workspace:".length);
-        if (protocol === "*") section[name] = version;
-        else if (protocol === "^") section[name] = `^${version}`;
-        else if (protocol === "~") section[name] = `~${version}`;
-        else
-          fail(`Portable closure has an unsupported workspace range ${name}: ${value}`);
-        changed = true;
-      }
-    }
-    if (changed) {
-      // pnpm deploy may materialize workspace manifests as hard links to the
-      // source checkout. Detach before rewriting so the assembly never mutates
-      // the workspace package manifests through a shared inode.
-      await unlink(path);
-      await writeFile(path, JSON.stringify(packageJson, null, 2) + "\n", {
-        encoding: "utf8",
-      });
-    }
-  }
-}
-
-async function preserveWorkspaceManifests(operation) {
-  const paths = [join(repositoryRoot, "package.json")];
-  for (const root of [
-    join(repositoryRoot, "packages"),
-    join(repositoryRoot, "tools"),
-  ]) {
-    await visitPackageJson(root, async (path) => {
-      paths.push(path);
-    });
-  }
-  const contents = new Map();
-  for (const path of paths) contents.set(path, await readFile(path));
-  try {
-    return await operation();
-  } finally {
-    for (const [path, content] of contents) {
-      await writeFile(path, content);
-    }
-  }
 }
 
 async function writeLauncher(target) {
@@ -368,233 +312,229 @@ async function main() {
     ["--version"],
   );
   if (!/18\.6/u.test(postgresVersion))
-    fail(`Expected PostgreSQL 18.6, observed ${postgresVersion}`);
-  await requireFile(join(productHostPackage, "dist/bin.js"), "built Product Host");
-  await requireFile(join(cliPackage, "dist/bin.js"), "built reference CLI");
-  const identityText = await readFile(productIdentities, "utf8");
-  const productGeneration = /PRODUCT_GENERATION_ID = "([0-9a-f]{64})"/u.exec(
-    identityText,
-  )?.[1];
-  const bootstrapGeneration =
-    /BOOTSTRAP_RUNTIME_GENERATION_ID = "([0-9a-f]{64})"/u.exec(identityText)?.[1];
-  if (productGeneration === undefined || bootstrapGeneration === undefined) {
-    fail("Built Product Host identities are missing or invalid");
-  }
+    fail("Expected PostgreSQL 18.6, observed " + postgresVersion);
+  const stagingParent = await mkdtemp(join(tmpdir(), "heptalogos-portable-assembly-"));
+  try {
+    const stagingRoot = join(stagingParent, "workspace");
+    await copyWorkspaceToStaging(repositoryRoot, stagingRoot);
+    run(pnpmCommand, ["install", "--frozen-lockfile"], stagingRoot);
+    run(pnpmCommand, ["exec", "nx", "run", "product-host:build"], stagingRoot);
+    run(pnpmCommand, ["exec", "nx", "run", "management-client:build"], stagingRoot);
+    run(pnpmCommand, ["exec", "nx", "run", "cli:build"], stagingRoot);
+    const stagedProductHostPackage = join(
+      stagingRoot,
+      "packages/application/product-host",
+    );
+    const stagedCliPackage = join(stagingRoot, "packages/application/cli");
+    const stagedProductIdentities = join(
+      stagedProductHostPackage,
+      "dist/generated/build-identities.js",
+    );
+    await requireFile(
+      join(stagedProductHostPackage, "dist/bin.js"),
+      "built Product Host",
+    );
+    await requireFile(join(stagedCliPackage, "dist/bin.js"), "built reference CLI");
+    const identityText = await readFile(stagedProductIdentities, "utf8");
+    const productGeneration = /PRODUCT_GENERATION_ID = "([0-9a-f]{64})"/u.exec(
+      identityText,
+    )?.[1];
+    const bootstrapGeneration =
+      /BOOTSTRAP_RUNTIME_GENERATION_ID = "([0-9a-f]{64})"/u.exec(identityText)?.[1];
+    if (productGeneration === undefined || bootstrapGeneration === undefined) {
+      fail("Built Product Host identities are missing or invalid");
+    }
 
-  const productRoot = join(options.target, "program", "product", productGeneration);
-  const cliRoot = join(productRoot, "cli");
-  await mkdir(join(options.target, "program", "product"), { recursive: true });
-  await preserveWorkspaceManifests(async () => {
+    const productRoot = join(options.target, "program", "product", productGeneration);
+    const cliRoot = join(productRoot, "cli");
+    await mkdir(join(options.target, "program", "product"), { recursive: true });
     run(
       pnpmCommand,
       [
         "--filter",
         "@heptalogos/product-host",
+        "--config.inject-workspace-packages=true",
+        "--prod",
         "deploy",
         productRoot,
-        "--prod",
-        "--legacy",
-        "--config.node-linker=hoisted",
-        "--ignore-scripts",
       ],
-      repositoryRoot,
+      stagingRoot,
     );
     run(
       pnpmCommand,
       [
         "--filter",
         "@heptalogos/cli",
+        "--config.inject-workspace-packages=true",
+        "--prod",
         "deploy",
         cliRoot,
-        "--prod",
-        "--legacy",
-        "--config.node-linker=hoisted",
-        "--ignore-scripts",
       ],
-      repositoryRoot,
+      stagingRoot,
     );
-  });
-  // The legacy deploy implementation prunes the repository's shared
-  // node_modules to the production closure as a side effect. Reify the
-  // workspace development closure before returning so packaging does not
-  // leave the repository's normal verification entrypoint unusable.
-  run(pnpmCommand, ["install", "--frozen-lockfile", "--prod=false"], repositoryRoot);
-  await rewriteWorkspaceProtocols([productRoot, cliRoot]);
-  const hostOpenClawPackage = JSON.parse(
-    await readFile(join(productRoot, "node_modules/openclaw/package.json"), "utf8"),
-  );
-  if (hostOpenClawPackage.version !== exactOpenClawVersion) {
-    fail(
-      `Product deploy did not contain exact OpenClaw ${exactOpenClawVersion}: ${String(hostOpenClawPackage.version)}`,
+    const hostOpenClawPackage = JSON.parse(
+      await readFile(join(productRoot, "node_modules/openclaw/package.json"), "utf8"),
     );
-  }
-  await requireFile(
-    join(productRoot, "node_modules/openclaw/openclaw.mjs"),
-    "deployed OpenClaw executable",
-  );
-  const gatewayClientPackagePath = join(
-    productRoot,
-    "node_modules/@openclaw/gateway-client/package.json",
-  );
-  const gatewayProtocolPackagePath = join(
-    productRoot,
-    "node_modules/@openclaw/gateway-protocol/package.json",
-  );
-  await requireFile(gatewayClientPackagePath, "deployed OpenClaw Gateway client");
-  await requireFile(gatewayProtocolPackagePath, "deployed OpenClaw Gateway protocol");
-  const gatewayClientPackage = JSON.parse(
-    await readFile(gatewayClientPackagePath, "utf8"),
-  );
-  const gatewayProtocolPackage = JSON.parse(
-    await readFile(gatewayProtocolPackagePath, "utf8"),
-  );
-  for (const [label, packageJson] of [
-    ["Gateway client", gatewayClientPackage],
-    ["Gateway protocol", gatewayProtocolPackage],
-  ]) {
-    if (packageJson.version !== exactOpenClawVersion) {
+    if (hostOpenClawPackage.version !== exactOpenClawVersion) {
       fail(
-        `Product deploy did not contain exact OpenClaw ${label} ${exactOpenClawVersion}: ${String(packageJson.version)}`,
+        `Product deploy did not contain exact OpenClaw ${exactOpenClawVersion}: ${String(hostOpenClawPackage.version)}`,
       );
     }
-  }
-  const wireProtocolVersion = probe(
-    nodeExecutable,
-    [
-      "--input-type=module",
-      "--eval",
-      'import { PROTOCOL_VERSION } from "@openclaw/gateway-protocol"; console.log(PROTOCOL_VERSION);',
-    ],
-    productRoot,
-  );
-  if (wireProtocolVersion !== exactOpenClawWireVersion) {
-    fail(
-      `Product deploy did not expose exact OpenClaw wire protocol ${exactOpenClawWireVersion}: ${wireProtocolVersion}`,
+    await requireFile(
+      join(productRoot, "node_modules/openclaw/openclaw.mjs"),
+      "deployed OpenClaw executable",
     );
-  }
+    const gatewayClientPackagePath = join(
+      productRoot,
+      "node_modules/@openclaw/gateway-client/package.json",
+    );
+    const gatewayProtocolPackagePath = join(
+      productRoot,
+      "node_modules/@openclaw/gateway-protocol/package.json",
+    );
+    await requireFile(gatewayClientPackagePath, "deployed OpenClaw Gateway client");
+    await requireFile(gatewayProtocolPackagePath, "deployed OpenClaw Gateway protocol");
+    const gatewayClientPackage = JSON.parse(
+      await readFile(gatewayClientPackagePath, "utf8"),
+    );
+    const gatewayProtocolPackage = JSON.parse(
+      await readFile(gatewayProtocolPackagePath, "utf8"),
+    );
+    for (const [label, packageJson] of [
+      ["Gateway client", gatewayClientPackage],
+      ["Gateway protocol", gatewayProtocolPackage],
+    ]) {
+      if (packageJson.version !== exactOpenClawVersion) {
+        fail(
+          `Product deploy did not contain exact OpenClaw ${label} ${exactOpenClawVersion}: ${String(packageJson.version)}`,
+        );
+      }
+    }
+    const wireProtocolVersion = probe(
+      nodeExecutable,
+      [
+        "--input-type=module",
+        "--eval",
+        'import { PROTOCOL_VERSION } from "@openclaw/gateway-protocol"; console.log(PROTOCOL_VERSION);',
+      ],
+      productRoot,
+    );
+    if (wireProtocolVersion !== exactOpenClawWireVersion) {
+      fail(
+        `Product deploy did not expose exact OpenClaw wire protocol ${exactOpenClawWireVersion}: ${wireProtocolVersion}`,
+      );
+    }
 
-  await requireFile(join(productRoot, "dist/bin.js"), "deployed Product Host");
-  await requireFile(join(cliRoot, "dist/bin.js"), "deployed reference CLI");
-  await copyDirectory(options.nodeRoot, join(options.target, "runtime", "node"));
-  for (const directory of ["bin", "lib", "share"]) {
-    await copyDirectory(
-      join(options.postgresRoot, directory),
-      join(options.target, "runtime", "postgresql", directory),
+    await requireFile(join(productRoot, "dist/bin.js"), "deployed Product Host");
+    await requireFile(join(cliRoot, "dist/bin.js"), "deployed reference CLI");
+    await copyDirectory(options.nodeRoot, join(options.target, "runtime", "node"));
+    for (const directory of ["bin", "lib", "share"]) {
+      await copyDirectory(
+        join(options.postgresRoot, directory),
+        join(options.target, "runtime", "postgresql", directory),
+      );
+    }
+    await mkdir(join(options.target, "licenses"), { recursive: true });
+    await cp(
+      join(options.nodeRoot, "LICENSE"),
+      join(options.target, "licenses/node-LICENSE.txt"),
     );
-  }
-  await mkdir(join(options.target, "licenses"), { recursive: true });
-  await cp(
-    join(options.nodeRoot, "LICENSE"),
-    join(options.target, "licenses/node-LICENSE.txt"),
-  );
-  await cp(
-    join(options.postgresRoot, "server_license.txt"),
-    join(options.target, "licenses/postgresql-server-license.txt"),
-  );
-  await cp(
-    join(options.postgresRoot, "commandlinetools_3rd_party_licenses.txt"),
-    join(options.target, "licenses/postgresql-commandline-third-party.txt"),
-  );
-  const openclawRoot = await realpath(join(productRoot, "node_modules/openclaw"));
-  await cp(
-    join(openclawRoot, "LICENSE"),
-    join(options.target, "licenses/openclaw-LICENSE.txt"),
-  );
-  await cp(
-    join(openclawRoot, "THIRD_PARTY_NOTICES.md"),
-    join(options.target, "licenses/openclaw-THIRD_PARTY_NOTICES.md"),
-  );
-  await writeFile(
-    join(options.target, "licenses/npm-package-license-index.json"),
-    JSON.stringify(
-      {
-        schemaVersion: 1,
-        packages: await collectPackageLicenses([productRoot, cliRoot]),
+    await cp(
+      join(options.postgresRoot, "server_license.txt"),
+      join(options.target, "licenses/postgresql-server-license.txt"),
+    );
+    await cp(
+      join(options.postgresRoot, "commandlinetools_3rd_party_licenses.txt"),
+      join(options.target, "licenses/postgresql-commandline-third-party.txt"),
+    );
+    const openclawRoot = await realpath(join(productRoot, "node_modules/openclaw"));
+    await cp(
+      join(openclawRoot, "LICENSE"),
+      join(options.target, "licenses/openclaw-LICENSE.txt"),
+    );
+    await cp(
+      join(openclawRoot, "THIRD_PARTY_NOTICES.md"),
+      join(options.target, "licenses/openclaw-THIRD_PARTY_NOTICES.md"),
+    );
+    await writeFile(
+      join(options.target, "licenses/npm-package-license-index.json"),
+      JSON.stringify(
+        {
+          schemaVersion: 1,
+          packages: await collectPackageLicenses([productRoot, cliRoot]),
+        },
+        null,
+        2,
+      ),
+      { encoding: "utf8", mode: 0o600 },
+    );
+    await writeLauncher(options.target);
+    await verifyPortableLinks(join(productRoot, "node_modules"));
+    await verifyPortableLinks(join(cliRoot, "node_modules"));
+    const manifest = {
+      schemaVersion: 1,
+      productGeneration,
+      bootstrapGeneration,
+      target: { os: process.platform, arch: process.arch },
+      initialization: {
+        state: "UNINITIALIZED",
+        locator: "created-by-bin/heptalogos.cmd-on-first-run",
+        port: "allocated-by-the-launcher-on-first-start-and-persisted-in-BootstrapState",
       },
-      null,
-      2,
-    ),
-    { encoding: "utf8", mode: 0o600 },
-  );
-  await writeLauncher(options.target);
-  // pnpm deploy retains the workspace package's own virtual-store links.
-  // They point back to the source checkout and are not needed by the built
-  // entrypoints, so remove only those two self-links before the portability
-  // check. All transitive workspace packages remain in the deployed closure.
-  await rm(
-    join(productRoot, "node_modules/.pnpm/node_modules/@heptalogos/product-host"),
-    { force: true },
-  );
-  await rm(join(cliRoot, "node_modules/.pnpm/node_modules/@heptalogos/cli"), {
-    force: true,
-  });
-  await verifyPortableLinks(join(productRoot, "node_modules"));
-  await verifyPortableLinks(join(cliRoot, "node_modules"));
-  for (const root of [productRoot, cliRoot]) {
-    await rm(join(root, "node_modules/.modules.yaml"), { force: true });
-    await rm(join(root, "node_modules/.pnpm/lock.yaml"), { force: true });
-  }
-  const manifest = {
-    schemaVersion: 1,
-    productGeneration,
-    bootstrapGeneration,
-    target: { os: process.platform, arch: process.arch },
-    initialization: {
-      state: "UNINITIALIZED",
-      locator: "created-by-bin/heptalogos.cmd-on-first-run",
-      port: "allocated-by-the-launcher-on-first-start-and-persisted-in-BootstrapState",
-    },
-    openclaw: {
-      rootPackageVersion: hostOpenClawPackage.version,
-      gatewayClientPackageVersion: gatewayClientPackage.version,
-      gatewayProtocolPackageVersion: gatewayProtocolPackage.version,
-      wireProtocolVersion,
-    },
-    assembly: {
-      packageManager: "pnpm@11.24.0",
-      dependencyClosure:
-        "pnpm deploy --legacy --config.node-linker=hoisted --prod --ignore-scripts",
-    },
-    components: [
-      {
-        name: "node",
-        version: nodeVersion.slice(1),
-        digest: await digestTree(join(options.target, "runtime/node")),
-      },
-      {
-        name: "postgresql",
-        version: "18.6",
-        digest: await digestTree(join(options.target, "runtime/postgresql")),
-      },
-      {
-        name: "openclaw",
-        version: hostOpenClawPackage.version,
-        gatewayClientVersion: gatewayClientPackage.version,
-        gatewayProtocolVersion: gatewayProtocolPackage.version,
+      openclaw: {
+        rootPackageVersion: hostOpenClawPackage.version,
+        gatewayClientPackageVersion: gatewayClientPackage.version,
+        gatewayProtocolPackageVersion: gatewayProtocolPackage.version,
         wireProtocolVersion,
-        digest: await digestTree(openclawRoot),
       },
+      assembly: {
+        packageManager: "pnpm@11.24.0",
+        dependencyClosure:
+          "disposable OS-TEMP staging workspace; pnpm --filter @heptalogos/product-host --config.inject-workspace-packages=true --prod deploy <target>",
+      },
+      components: [
+        {
+          name: "node",
+          version: nodeVersion.slice(1),
+          digest: await digestTree(join(options.target, "runtime/node")),
+        },
+        {
+          name: "postgresql",
+          version: "18.6",
+          digest: await digestTree(join(options.target, "runtime/postgresql")),
+        },
+        {
+          name: "openclaw",
+          version: hostOpenClawPackage.version,
+          gatewayClientVersion: gatewayClientPackage.version,
+          gatewayProtocolVersion: gatewayProtocolPackage.version,
+          wireProtocolVersion,
+          digest: await digestTree(openclawRoot),
+        },
+        {
+          name: "product-host",
+          generation: productGeneration,
+          digest: await digestTree(productRoot),
+        },
+        { name: "reference-cli", digest: await digestTree(cliRoot) },
+        {
+          name: "portable-launcher",
+          digest: await digestTree(join(options.target, "bin")),
+        },
+      ],
+    };
+    await writeFile(
+      join(options.target, "manifest.json"),
+      JSON.stringify(manifest, null, 2),
       {
-        name: "product-host",
-        generation: productGeneration,
-        digest: await digestTree(productRoot),
+        encoding: "utf8",
+        mode: 0o600,
       },
-      { name: "reference-cli", digest: await digestTree(cliRoot) },
-      {
-        name: "portable-launcher",
-        digest: await digestTree(join(options.target, "bin")),
-      },
-    ],
-  };
-  await writeFile(
-    join(options.target, "manifest.json"),
-    JSON.stringify(manifest, null, 2),
-    {
-      encoding: "utf8",
-      mode: 0o600,
-    },
-  );
-  console.log(`PASS portable Product assembled at ${options.target}`);
+    );
+    console.log("PASS portable Product assembled at " + options.target);
+  } finally {
+    await rm(stagingParent, { recursive: true, force: true });
+  }
 }
 
 await main();

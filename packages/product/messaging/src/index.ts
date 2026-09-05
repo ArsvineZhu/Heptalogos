@@ -19,5 +19,6 @@ export {
   type MessagingService,
   type MessagingServiceOptions,
 } from "./contracts.js";
-export { encodeMessageCursor, createMessagingService } from "./service.js";
+export { encodeMessageCursor } from "./cursor.js";
+export { createMessagingService } from "./service.js";
 export { messagingProblem } from "./problems.js";

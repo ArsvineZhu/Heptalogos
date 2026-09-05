@@ -28,5 +28,8 @@ The prior [Q-SUBJECT-L4-LOCAL-01](Q-SUBJECT-L4-LOCAL-01.md) and
 evidence for the superseded Subject L4 shape and its unexecuted live-provider
 boundary.
 
+The current Pre-JDD Architecture Debt Refactoring evidence is recorded in
+[Q-PREJDD-ARCHITECTURE-DEBT-20260905](Q-PREJDD-ARCHITECTURE-DEBT-20260905.md).
+
 The [result template](../result-template.md) is optional guidance. Historical
 records may retain their original Q/C names and chronology.

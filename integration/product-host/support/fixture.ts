@@ -26,7 +26,6 @@ const hostBinary = resolve(
   "packages/application/product-host/dist/bin.js",
 );
 const cliBinary = resolve(repositoryRoot, "packages/application/cli/dist/bin.js");
-const directories: string[] = [];
 const execFileAsync = promisify(execFile);
 
 async function stopFixturePrivatePostgres(
@@ -95,14 +94,14 @@ async function freePort(): Promise<number> {
 
 export async function makeFixture(postgresBin: string): Promise<ProductHostFixture> {
   const anchorRoot = await mkdtemp(join(tmpdir(), "heptalogos-product-host-anchor-"));
-  directories.push(anchorRoot);
+  const fixtureDirectories = [anchorRoot];
   const roots = {} as Record<(typeof LIFECYCLE_ROOT_IDS)[number], string>;
   for (const id of LIFECYCLE_ROOT_IDS) {
     roots[id] =
       id === "PROGRAM"
         ? anchorRoot
         : await mkdtemp(join(tmpdir(), `heptalogos-product-host-${id.toLowerCase()}-`));
-    if (id !== "PROGRAM") directories.push(roots[id]);
+    if (id !== "PROGRAM") fixtureDirectories.push(roots[id]);
   }
   const installationId = createInstallationId();
   const instanceId = createInstanceId();
@@ -142,9 +141,9 @@ export async function makeFixture(postgresBin: string): Promise<ProductHostFixtu
         join(roots.DATA, "private-postgres"),
       );
       await Promise.all(
-        directories
-          .splice(0)
-          .map((directory) => rm(directory, { recursive: true, force: true })),
+        fixtureDirectories.map((directory) =>
+          rm(directory, { recursive: true, force: true }),
+        ),
       );
     },
   };

@@ -23,6 +23,16 @@ The independent Expression step consumes the active Subject-scoped
 default is `maxOutputTokens: 256`; the value is managed through the canonical
 Configuration and Management path rather than a duplicate Expression literal.
 
+The internal module ownership is deliberately direct: `repository.ts` owns
+persistence and codecs; `authority.ts` owns Subject lifecycle, admission, and
+the authority fence; `reaction-executor.ts` owns cognition, deterministic
+Review, and CommunicationCommit; `communication-executor.ts` owns Expression,
+outbound materialization, and re-entry; and `service.ts` composes those owners
+with the current handler boundary. An unexpected OpenClaw child exit marks the
+runtime unavailable/failed. Replacement occurs only through an explicit
+`subject.start` or reconcile operation; there is no autonomous retry or
+backoff loop.
+
 ## Current scope
 
 The package registers one generation-pinned `work.subject-reaction` handler.

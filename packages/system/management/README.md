@@ -19,7 +19,10 @@ the reference CLI.
   schema owned by `@heptalogos/execution-lineage`; Management does not define a
   second lineage contract.
 - SystemActionDefinition, SystemChangePlan, and SystemActionExecuteResult
-  contracts plus the eight current Product prerequisite action routes.
+  contracts plus the ten current Product prerequisite action routes.
+- A finite internal SystemAction catalog with one handler per current action
+  ID, grouped into Configuration, Secret, AIRuntime, and Subject handler
+  families. The catalog is not a public plugin or extension registry.
 - Product prerequisite reads for Configuration, Secret metadata, NetworkAccess,
   GatewayProfile, ModelProfile, ModelBinding, and AIRuntime readiness.
 - The system.management MicroSystem definition and service contract.

@@ -346,7 +346,7 @@ foundationAsyncExecution: CLOSED
 foundationFunctional: COMPLETE
 foundationExecutableSpine: PASS
 foundationClosure: CLOSED
-currentRepositoryWork: NONE
+currentRepositoryWork: PRE_JDD_ARCHITECTURE_DEBT_REFACTORING_COMPLETED
 activeImplementationPlan: NONE
 nextAuthorizedPlan: NONE
 githubActions: DISABLED_CURRENT_EXECUTION_POLICY
@@ -544,7 +544,7 @@ normativeProductContracts: FROZEN_FOR_FIRST_PRODUCT_SLICE
 productHost:
   implementation: PRESENT
   closure: CLOSED_CORRECTED
-productHostQualification: HISTORICAL_PARTIAL_WINDOWS_PROFILE
+productHostQualification: WINDOWS_X64_SOURCE_LESS_PASS
 releaseFormProductQualification: REQUIRED_FOR_CORRESPONDING_SHIPPING_RUNTIME_CLAIM
 releaseFormQualificationBlocksIndependentSemanticDevelopment: false
 releaseFormQualificationBlocksIndependentProviderSemanticDevelopment: false
@@ -553,8 +553,8 @@ qualificationRecordAuthority: EVIDENCE_STATUS_ONLY
 providerPrerequisites: COMPLETED
 liveGatewayQualification: BLOCKED
 machineOperationsIntegration: ELIGIBLE_NOT_AUTHORIZED
-activeProductImplementationPlan: NONE_AFTER_P4_BUNDLE
-currentProductWork: PRODUCT_REALITY_CONVERGENCE_COMPLETED
+activeProductImplementationPlan: NONE
+currentProductWork: PRE_JDD_ARCHITECTURE_DEBT_REFACTORING_COMPLETED
 nextEligibleProductWork: FIRST_REAL_IM_DRIVER_OR_OBSERVATION_WINDOW_RESEARCH
 ordinaryGitHubActions: DISABLED_CURRENT_EXECUTION_POLICY
 ```
@@ -619,10 +619,18 @@ P0 corrected current-truth documentation, P1 corrected the current
 communication spine, P2 realized the current configuration consumers, P3
 integrated the isolated Subject OpenClaw runtime, and P4 completed the copied
 source-less portable Product Reality scenario; all five stages are complete.
-The old stage-local STOP wording in the pack did not create an additional human
-approval gate. The bundle's normal STOP is now reached at the P4 Product Reality
-acceptance. The next Product work is a separate future decision for the first
-real IM Driver or Observation Window research.
+The old stage-local STOP wording in the completed pack did not create an
+additional human approval gate. Its exact Windows x64 source-less Product
+Reality result remains PASS in the historical qualification record, while
+other operating systems, service mode, installer, signing, live-provider, and
+other unexecuted boundaries remain NOT_RUN. The Pre-JDD Architecture Debt
+Refactoring is completed in
+project/plans/completed/repository/pre-jdd-architecture-debt-refactoring-2026-09-05.md,
+with current implementation and Windows x64 portable evidence recorded in
+project/qualification/results/Q-PREJDD-ARCHITECTURE-DEBT-20260905.md. No
+implementation Plan is currently active. The first real IM Driver or
+Observation Window research remains the next eligible Product horizon and
+requires separate authorization.
 
 ### Product prerequisites — provider foundations and minimum Management spine
 

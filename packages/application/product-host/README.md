@@ -21,8 +21,9 @@ listener.
   existing DBOS, WorkQueue, Signal, AIRuntime, and lifecycle boundaries.
 - Product-supervised Subject OpenClaw runtime process, isolated profile/state/
   workspace/configuration roots, public Gateway protocol/client lifecycle, and
-  the bounded proposal-tool projection. OpenClaw remains replaceable mechanics;
-  Subject and Review retain canonical authority.
+  the bounded proposal-tool projection. Its projection, Gateway/Execa process
+  adapter, and lifecycle facade are separate internal owners. OpenClaw remains
+  replaceable mechanics; Subject and Review retain canonical authority.
 - Subject Chat HTTP admission/read routes and their generated client artifact.
 - A safe public handle limited to Product identity, loopback origin, abort
   signal, and terminal close.
@@ -42,14 +43,19 @@ the built `heptalogos-host` process with the Product Host scenarios. The process
 must run from a repository-external working directory, but that evidence is not
 source-less release-form qualification.
 
+The dedicated portable-product qualification is run with
+`pnpm qualify:portable`. It is separate from the default test/verification
+surface and currently proves only the Windows x64 boundary.
+
 ## Portable Product root (Windows x64)
 
 The current portable profile is assembled by the repository-owned
 `scripts/package/assemble-portable-product.mjs` command. The assembly carries
 the private Node and PostgreSQL runtimes, the dependency-closed Product Host
 and CLI payloads, the exact Subject OpenClaw packages, and the license/manifest
-inventory. Assembly staging may live under the repository `tmp` directory; the
-source-less qualification object is a copied root outside the repository.
+inventory. Assembly uses a disposable copy/staging workspace under the OS
+temporary directory, then moves or copies the acceptance candidate outside the
+repository. The source workspace is not mutated by assembly.
 
 After copying the assembled root to its final location, use the stable
 entrypoint from that location. The first `start` creates the bootstrap locator,

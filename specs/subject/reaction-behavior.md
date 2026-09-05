@@ -89,6 +89,12 @@ fabricated. No shell/process, arbitrary filesystem, package/Git, service
 manager, PostgreSQL administration, Gateway administration, Machine
 Operations, System Authority, or external-channel bypass tool is exposed.
 
+The Subject runtime has explicit start and stop lifecycle operations. An
+unexpected OpenClaw child exit marks the runtime unavailable/failed; a later
+replacement is permitted only through an explicit `subject.start` or reconcile
+operation. The runtime does not autonomously retry or back off after an
+unexpected exit.
+
 ## ConversationMailbox
 
 ```ts

@@ -24,6 +24,8 @@ import type { FirstAdministratorClaim, ServerSession } from "../../src/contracts
 import { digestManagementSecret } from "../../src/password.js";
 import type { ManagementRepository } from "../../src/repository.js";
 import { createManagementServiceFromRepository } from "../../src/service.js";
+import type { ManagementProductOwners } from "../../src/service.js";
+import { systemActionCatalog } from "../../src/system-actions/catalog.js";
 
 const NOW = "2026-09-03T00:00:00.000Z" as Instant;
 
@@ -109,6 +111,24 @@ function serviceFixture(
   const instanceId = createInstanceId();
   const bootId = createBootId();
   const continuityEpochId = createContinuityEpochId();
+  const productOwners = {
+    configuration: {},
+    secret: {},
+    networkAccess: {},
+    aiRuntime: {},
+    subject: {
+      getStatus: async () => {
+        throw new Error("Subject owner is not used by this authentication fixture");
+      },
+      start: async () => {
+        throw new Error("Subject owner is not used by this authentication fixture");
+      },
+      stop: async () => {
+        throw new Error("Subject owner is not used by this authentication fixture");
+      },
+      reconcileRuntime: async () => undefined,
+    },
+  } as unknown as ManagementProductOwners;
   return createManagementServiceFromRepository(
     {
       installationId,
@@ -134,6 +154,9 @@ function serviceFixture(
         monotonicNow: () => 0n as never,
         elapsedSince: () => 0n as never,
       },
+      productOwners,
+      execution: {} as never,
+      runReadActivity: async (_kind, operation) => operation(),
       runMutationActivity: async (_kind, operation) => operation(),
     },
     repository,
@@ -265,7 +288,7 @@ describe("Management service", () => {
     expect(service.getCapabilityGraph().resource.resourceKind).toBe("capability-graph");
   });
 
-  it("publishes the frozen SystemAction types and schemas without an action runtime", () => {
+  it("publishes the frozen SystemAction types and the exact finite runtime catalog", () => {
     expect(
       currentSystemActionCatalog.map(({ actionId, riskClass, applyMode }) => [
         actionId,
@@ -337,5 +360,11 @@ describe("Management service", () => {
         systemActionExecuteResultSchema,
       ).validate(result).ok,
     ).toBe(true);
+    const staticIds = currentSystemActionCatalog.map((entry) => entry.actionId).sort();
+    const runtimeIds = systemActionCatalog.handlers
+      .flatMap((handler) => handler.actionIds)
+      .sort();
+    expect(runtimeIds).toEqual(staticIds);
+    expect(new Set(runtimeIds).size).toBe(runtimeIds.length);
   });
 });

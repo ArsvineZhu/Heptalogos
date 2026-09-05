@@ -18,6 +18,11 @@ Authentication remains owned by Management. Subject supplies the narrow
 transaction-aware accepted-inbound callback; Messaging does not import Subject
 or create a generic event system.
 
+The internal module split is `repository.ts` for persistence and codecs,
+`cursor.ts` for opaque sequence-cursor encoding/decoding, and `service.ts` for
+the semantic Messaging facade. The split does not change the current protocol
+or ownership boundary.
+
 ## Verification
 
 Run the package unit tests, typecheck, and the Product Host local full-stack

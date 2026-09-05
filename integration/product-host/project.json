@@ -10,6 +10,12 @@
       "options": {
         "command": "pnpm nx run product-host:build && pnpm nx run management-client:build && pnpm nx run cli:build && vitest run --root integration/product-host"
       }
+    },
+    "qualify-portable": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm nx run product-host:build && pnpm nx run management-client:build && pnpm nx run cli:build && vitest run --config vitest.qualification.config.ts --root integration/product-host qualification/portable-product.qualification.test.ts"
+      }
     }
   }
 }

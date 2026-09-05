@@ -13,6 +13,12 @@ and Open Responses-compatible protocol mechanics only inside the runtime boundar
 - Provider-neutral ephemeral messages and structured generation results.
 - SchemaRuntime validation and Lineage/Evidence attribution.
 
+The internal module split is `repository.ts` for persistence and row codecs,
+`routing.ts` for profile/binding and readiness semantics, `invocation.ts` for
+bounded provider invocation mechanics, and `service.ts` for composition. AI
+SDK objects remain behind the runtime boundary; this package does not add a
+ProviderRegistry.
+
 ## Does not own
 
 - Subject identity, prompt/context Authority, behavior commit, or tools/MCP.

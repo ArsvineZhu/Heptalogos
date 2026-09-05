@@ -28,7 +28,7 @@ export const MANAGEMENT_HTTP_ADMISSION_DEFINITION_ID =
   "management.http.admission.v1" as ConfigurationDefinitionId;
 
 /** JSON Schema for the bounded Product Host HTTP admission configuration. */
-export const managementHttpAdmissionConfigSchema = Type.Object(
+const managementHttpAdmissionConfigSchema = Type.Object(
   {
     schemaVersion: Type.Literal(1),
     bodyLimitBytes: Type.Integer({ minimum: 16 * 1024, maximum: 4 * 1024 * 1024 }),

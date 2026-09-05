@@ -28,8 +28,14 @@
       "project": ["src/**/*.ts"]
     },
     "packages/application/product-host": {
-      "entry": ["src/index.ts", "src/bin.ts", "scripts/**/*.mjs"],
+      "entry": [
+        "src/index.ts",
+        "src/bin.ts",
+        "src/subject-openclaw-plugin.ts",
+        "scripts/**/*.mjs"
+      ],
       "project": ["src/**/*.ts", "scripts/**/*.mjs"],
+      "ignoreDependencies": ["@types/ws"],
       "ignoreIssues": {
         "src/subject-chat-http.ts": ["exports"]
       }

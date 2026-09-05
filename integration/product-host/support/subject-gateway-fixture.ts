@@ -273,11 +273,13 @@ export async function createSubjectGatewayFixture(): Promise<{
           return;
         }
         if (isOpenClawPrimary && body.stream === true) {
+          const streamingPayload = payload as {
+            readonly choices: readonly Record<string, any>[];
+          };
           writeStreamingCompletion(
             response,
-            payload,
-            (payload.choices as Array<Record<string, unknown>>)[0]!
-              .finish_reason as string,
+            streamingPayload as Record<string, unknown>,
+            streamingPayload.choices[0]!.finish_reason as string,
           );
         } else {
           response.writeHead(200, { "content-type": "application/json" });
