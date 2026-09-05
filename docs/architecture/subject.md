@@ -129,12 +129,13 @@ bounded conversation cognition episode。它证明的是“消息触发认知并
 
 ```text
 canonical MessageFact range
+→ Product Host's isolated Subject OpenClaw cognition run
 → bounded conversation cognition proposal
    ├─ NO_COMMUNICATION → deterministic acceptance → Reaction completes
    └─ COMMUNICATE(semantic content)
         → deterministic Review
         → CommunicationCommit
-        → subject.expression
+        → AIRuntime subject.expression
         → local outbound MessageFact
 ```
 
@@ -143,8 +144,10 @@ canonical MessageFact range
 facts、purpose、SystemAction、consequential external action 或 permission。
 
 当前切片没有位于 cognition proposal 与 accepted communication 之间的通用
-Subject decision state，也不创建 OpenClaw、ActionPlan 或通用 Decision
-machinery。accepted communication 的 provenance 由 CommunicationCommit 持有。
+Subject decision state，也不创建通用 ActionPlan 或通用 Decision machinery。
+Subject OpenClaw Runtime 只提供公开 agent/tool mechanics；它的 proposal 仍由
+Heptalogos deterministic Review 接受或丢弃。accepted communication 的实际
+cognition provenance 由 CommunicationCommit 持有。
 
 `Reaction` 状态不是 DBOS workflow state；WorkQueue/DBOS 只承载可恢复的
 obligation。
@@ -349,10 +352,27 @@ CommunicationCommit 和 Review/Authority。OpenClaw session/workspace state 只�
 SubjectId。Subject role 必须与高权限 Machine Operations OpenClaw 使用不同的
 process、profile、state/config/workspace、credentials、ports 和 tool policy。
 
-当前内建 Subject Chat 使用 AIRuntime 的 bounded cognition 路径；Subject
-OpenClaw Runtime 若被接入，必须使用公开协议和受控 proposal 边界，把运行时
-输出交回 Heptalogos 的 deterministic Review，而不会把 OpenClaw agent-loop
-升级为 Authority。
+当前内建 Subject Chat 的 primary cognition 使用 Product Host 监督的
+Subject OpenClaw Runtime。它固定为独立的 `subject` profile，使用精确 pin 的
+OpenClaw public Gateway/client protocol 与两个 proposal-only typed tools：
+
+```text
+heptalogos_propose_communication({ semanticContent })
+heptalogos_complete_without_communication({})
+```
+
+Product Host 只接受当前 run 的第一个合法 terminal proposal，然后通过公开
+`chat.abort` / `agent.wait` lifecycle semantics 收束剩余 agent loop；tool
+handler 只返回 acknowledgement，不写 canonical state 或外部 effect。Subject
+OpenClaw 的 `state`、`workspace`、generated config/cache 和 runtime process
+均位于 Product Host 管理的独立生命周期根中，不能读取 OpenClaw private
+SQLite/state 格式，也不能看到 Machine Operations credentials。Subject
+OpenClaw 的 model/provider intent 来自 Heptalogos ModelBinding、
+ConfigurationRevision 与 SecretRef 的 bounded projection；OpenClaw provider
+config 不是第二个可编辑 Authority。Expression 仍使用 AIRuntime。
+
+当前实现使用 OpenClaw `2026.9.1` 与 wire protocol `4`；这些是当前 Product
+candidate 的 mechanics pin，不改变 Subject 或 CommunicationCommit Authority。
 
 ---
 
@@ -362,12 +382,13 @@ Foundation 保留的是 communication decision 与 Expression 的语义接缝：
 
 ```text
 ContextProjection
+→ isolated Subject OpenClaw cognition run
 → bounded conversation cognition proposal
    ├─ NO_COMMUNICATION → local episode completes
    └─ COMMUNICATE(semantic content)
         → deterministic Review
         → CommunicationCommit
-        → Expression
+        → AIRuntime Expression
         → local outbound MessageFact
 ```
 

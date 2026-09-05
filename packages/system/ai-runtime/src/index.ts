@@ -21,6 +21,7 @@ export {
   type InvocationId,
   type InvocationSpec,
   type ModelBinding,
+  type ModelBindingCommitProvenance,
   type ModelBindingId,
   type ModelCapability,
   type ModelProfile,

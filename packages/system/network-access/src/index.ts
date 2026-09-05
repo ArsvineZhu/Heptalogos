@@ -4,8 +4,12 @@
  */
 
 export {
+  GATEWAY_TRANSPORT_DEFINITION_ID,
+  gatewayTransportConfigSchema,
+  gatewayTransportConfigurationDefinition,
   networkAccessDiagnosticsSchema,
   networkAccessPolicySchema,
+  type GatewayTransportConfigV1,
   type GatewayNetworkProtocol,
   type GatewayNetworkTarget,
   type NetworkAccessDiagnostics,

@@ -8,6 +8,8 @@ the narrow custom fetch route required by configured AI gateways.
 ## Owns
 
 - GatewayProfile-derived origin/path/method policy for AI protocol requests.
+- The `ai.gateway.transport.v1` ConfigurationDefinition and JSON Schema for
+  the transport values consumed by this package and AIRuntime.
 - Requester, HTTPS origin/path/method, redirect, header, deadline, and byte
   budget enforcement.
 - Abort/timeout and redacted transport diagnostics.

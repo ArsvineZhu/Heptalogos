@@ -177,7 +177,7 @@ describe("canonical schema adapter", () => {
     expect(sql).toContain(
       'reaction_id uuid NOT NULL UNIQUE REFERENCES "heptalogos"."reaction"',
     );
-    expect(sql).toContain("primary_invocation_id uuid NOT NULL");
+    expect(sql).toContain("primary_cognition_provenance jsonb NOT NULL");
     expect(sql).not.toContain("decision_commit");
     expect(sql).toContain(
       'GRANT SELECT, INSERT ON TABLE "heptalogos"."communication_commit"',

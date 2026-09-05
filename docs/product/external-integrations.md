@@ -72,7 +72,9 @@ dedicated profile/state/configuration roots, start/readiness/stop/replacement
 lifecycle, and bounded Product Configuration/SecretRef projection. It remains
 provider/runtime mechanics: it does not own Subject identity, canonical Subject
 state, CommunicationCommit, or Messaging Authority. The current bounded
-AIRuntime Subject Chat path does not require this runtime.
+Subject Chat primary cognition uses this runtime; its deterministic Review,
+CommunicationCommit, independent Expression, and Messaging remain Heptalogos
+owned. Expression continues through AIRuntime.
 
 No upstream or machine-operator secret is accepted on an argv, ordinary log,
 generated artifact, or durable AIRuntime profile.

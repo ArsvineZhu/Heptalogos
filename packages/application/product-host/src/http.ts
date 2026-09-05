@@ -47,6 +47,10 @@ import {
   toManagementProblemDetails,
 } from "@heptalogos/management";
 import { assertContractHeader, tokenFromRequest } from "./http-auth.js";
+import {
+  DEFAULT_MANAGEMENT_HTTP_ADMISSION_CONFIG,
+  type ManagementHttpAdmissionConfigV1,
+} from "./http-admission.js";
 
 /** Creates a canonical Problem response for the adopted rate-limit plugin. */
 function rateLimitResponse(): ManagementProblemDetails {
@@ -72,6 +76,8 @@ async function authenticate(
 /** Supplies Product Host-local publication cleanup for successful claim use. */
 export interface ManagementHttpOptions {
   readonly onAdministratorClaimed?: () => Promise<void>;
+  /** Effective installation-scoped HTTP admission configuration. */
+  readonly admission?: ManagementHttpAdmissionConfigV1;
   /** Optional current Messaging/Subject protocol routes on the same listener. */
   readonly subjectChat?: SubjectChatHttpOptions;
 }
@@ -81,10 +87,11 @@ export async function createManagementHttpApp(
   service: ManagementService,
   options: ManagementHttpOptions = {},
 ): Promise<FastifyInstance> {
+  const admission = options.admission ?? DEFAULT_MANAGEMENT_HTTP_ADMISSION_CONFIG;
   const app = fastify({
     logger: false,
     trustProxy: false,
-    bodyLimit: 64 * 1024,
+    bodyLimit: admission.bodyLimitBytes,
     exposeHeadRoutes: false,
     return503OnClosing: true,
   });
@@ -154,8 +161,8 @@ export async function createManagementHttpApp(
     {
       config: {
         rateLimit: {
-          max: 5,
-          timeWindow: 60_000,
+          max: admission.claimRateLimit.max,
+          timeWindow: admission.claimRateLimit.windowMs,
           errorResponseBuilder: () => rateLimitResponse(),
         },
       },
@@ -193,8 +200,8 @@ export async function createManagementHttpApp(
     {
       config: {
         rateLimit: {
-          max: 10,
-          timeWindow: 60_000,
+          max: admission.loginRateLimit.max,
+          timeWindow: admission.loginRateLimit.windowMs,
           errorResponseBuilder: () => rateLimitResponse(),
         },
       },

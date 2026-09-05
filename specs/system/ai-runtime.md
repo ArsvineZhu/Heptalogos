@@ -38,7 +38,12 @@ subject.expression
 Both roles may resolve to the same ModelProfile. No current binding exists for
 System Assistant, Operator, reviewer, embedding, Memory, Relationship,
 Attention, or another future cognition subsystem. OpenClaw model configuration
-is OpenClaw-owned and is not a Host AIRuntime binding.
+is provider-private runtime configuration and is not a second Host binding.
+For the current Subject cognition route, Product Host projects the canonical
+`subject.primary` ModelBinding/Profile and gateway SecretRef into the isolated
+Subject OpenClaw adapter. AIRuntime remains the owner of the canonical model
+intent and continues to own the independent `subject.expression` invocation;
+the adapter does not create a second model-selection Authority.
 
 ## Normative types
 
@@ -118,7 +123,7 @@ ContextProjection
 → exact active ConfigurationRevision selected for this invocation
 → authorized Secret resolution
 → exact NetworkAccess target
-→ AI SDK openai-chat or openai-responses mechanics
+→ AI SDK openai-chat or openai-responses mechanics for AIRuntime consumers
 → JSON Schema validation through SchemaRuntime/Ajv
 → consuming owner proposal/review/commit
 ```
@@ -126,7 +131,9 @@ ContextProjection
 AIRuntime does not become Context Authority. ContextProjection is invocation
 input, not long-lived Subject state. Protocol SDK instances may be created or
 closed as runtime resources; their existence is not readiness or Product
-identity.
+identity. Subject primary cognition is currently supplied by the separate
+Product Host `SubjectCognitionRuntime` adapter; its OpenClaw agent/tool loop is
+not an AIRuntime invocation and its proposal is not an AIRuntime Authority.
 
 For `openai-chat`, AIRuntime uses the broad-compatible JSON-object response
 format and adds the InvocationSpec schema requirement to the system text using
@@ -192,7 +199,9 @@ Evidence whenever the Product consumes them.
 - AIR-008 Controllable gateway HTTP traffic uses NetworkAccess and the selected exact destination.
 - AIR-009 Gateway failure before an accepted communication commit cannot fabricate canonical communication.
 - AIR-010 Consumed gateway, model, protocol, binding revision, model generation, configuration revision, and usage metadata remain attributable through Lineage/Evidence.
-- AIR-011 The current Subject slice has no tool authority or tool-loop mechanics.
+- AIR-011 AIRuntime's current Expression path has no tool authority or tool-loop
+  mechanics; Subject primary proposal tools remain behind the separate
+  SubjectCognitionRuntime adapter.
 - AIR-012 AIRuntime defines no internal System Assistant/OpenClaw model binding.
 
 ## Management projection and lifecycle

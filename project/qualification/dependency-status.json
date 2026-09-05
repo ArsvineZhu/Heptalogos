@@ -486,6 +486,16 @@
       "reason": "not a normal Product Management capability; generic shell is reserved for the separately governed external Machine Operations Plane"
     },
     {
+      "id": "product.subject-cognition-runtime",
+      "role": "Product-supervised Subject cognition runtime mechanics",
+      "candidate": "OpenClaw public Gateway/Plugin adapter",
+      "roleDecision": "ADOPTED",
+      "implementationQualification": "REQUIRED",
+      "qualification": "exact pinned release/client/protocol combination, isolated Product Host process, trust/credential separation, and source-less Product qualification",
+      "decisionBasis": "P3 uses OpenClaw only behind the narrow SubjectCognitionRuntime port; Heptalogos retains Subject, Review, CommunicationCommit, Expression, and Messaging Authority",
+      "boundary": "Product Host-owned Subject runtime; never the independent Machine Operations OpenClaw role"
+    },
+    {
       "id": "machine-operations.agent-runtime",
       "role": "external machine/deployment operations agent runtime",
       "candidate": "OpenClaw",

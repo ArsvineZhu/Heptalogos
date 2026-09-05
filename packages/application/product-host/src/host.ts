@@ -17,6 +17,7 @@ import {
   createServiceId,
   createProblemError,
   type BootId,
+  type CanonicalJsonValue,
   type InstallationId,
   type InstanceId,
   type ProductGenerationId,
@@ -46,15 +47,20 @@ import {
   MANAGEMENT_CONTRACT_VERSION,
   createManagementService,
   type ManagementService,
+  type SubjectManagementPort,
   type RuntimeIntrospectionSnapshot,
 } from "@heptalogos/management";
 import { createAIRuntimeService, type AIRuntimeService } from "@heptalogos/ai-runtime";
 import {
   createConfigurationService,
+  type ConfigurationDefinitionId,
+  type ConfigurationRevision,
+  type ConfigurationScopeRef,
   type ConfigurationService,
 } from "@heptalogos/configuration";
 import {
   createNetworkAccessService,
+  gatewayTransportConfigurationDefinition,
   type NetworkAccessService,
 } from "@heptalogos/network-access";
 import { createSecretService, type SecretService } from "@heptalogos/secret";
@@ -81,12 +87,24 @@ import {
 import {
   createSubjectReactionDefinition,
   createSubjectService,
+  DEFAULT_SUBJECT_EXPRESSION_CONFIG,
+  DEFAULT_SUBJECT_COGNITION_CONFIG,
+  SUBJECT_COGNITION_CONFIGURATION_DEFINITION_ID,
+  SUBJECT_EXPRESSION_CONFIGURATION_DEFINITION_ID,
+  subjectCognitionConfigurationDefinition,
+  subjectExpressionConfigurationDefinition,
   SUBJECT_REACTION_CONTRIBUTION_ID,
   SUBJECT_REACTION_QUEUE_PROFILE_ID,
   SUBJECT_SYSTEM_ID,
   type PreparedSubjectInbound,
   type SubjectService,
 } from "@heptalogos/subject";
+import {
+  DEFAULT_MANAGEMENT_HTTP_ADMISSION_CONFIG,
+  MANAGEMENT_HTTP_ADMISSION_DEFINITION_ID,
+  managementHttpAdmissionConfigurationDefinition,
+  type ManagementHttpAdmissionConfigV1,
+} from "./http-admission.js";
 import type { FastifyInstance } from "fastify";
 import {
   BOOTSTRAP_RUNTIME_GENERATION_ID,
@@ -109,6 +127,10 @@ import {
 } from "./files.js";
 import { createManagementHttpApp } from "./http.js";
 import { parseProductHostInputs, type ProductHostInputs } from "./inputs.js";
+import {
+  createSubjectOpenClawRuntime,
+  type SubjectOpenClawRuntimeHandle,
+} from "./subject-openclaw.js";
 
 /** Bounds the existing Foundation composition for one Product Host process. */
 const PRIVATE_POSTGRES_LIFECYCLE = Object.freeze({
@@ -377,6 +399,37 @@ async function runRetainedManagementMutation<T>(
   );
 }
 
+/** Materializes one Product-owned default once for its configured scope. */
+async function materializeConfigurationDefault(
+  configuration: ConfigurationService,
+  runMutationActivity: <T>(kind: string, operation: () => Promise<T>) => Promise<T>,
+  definitionId: ConfigurationDefinitionId,
+  scopeRef: ConfigurationScopeRef,
+  value: CanonicalJsonValue,
+): Promise<ConfigurationRevision> {
+  const existing = await configuration.getEffectiveRevision(definitionId, scopeRef);
+  if (existing !== undefined) return existing;
+  const revision = await runMutationActivity(
+    "product.configuration.default.revision",
+    () =>
+      configuration.createRevision({
+        definitionId,
+        scopeRef,
+        value,
+      }),
+  );
+  await runMutationActivity("product.configuration.default.activation", () =>
+    configuration.activate({ revisionId: revision.revisionId }),
+  );
+  const active = await configuration.getEffectiveRevision(definitionId, scopeRef);
+  if (active === undefined) {
+    throw startupProblem(
+      "The Product default ConfigurationRevision did not become effective",
+    );
+  }
+  return active;
+}
+
 async function runManagementReadActivity<T>(
   runtime: ReturnType<typeof createExecutionContextRuntime>,
   kind: string,
@@ -508,6 +561,7 @@ export async function startProductHost(
   let durable: DurableExecutionRuntime | undefined;
   let reconciler: WorkQueueReconciler | undefined;
   let subject: SubjectService | undefined;
+  let subjectCognitionRuntime: SubjectOpenClawRuntimeHandle | undefined;
   let messaging: MessagingService | undefined;
   let app: FastifyInstance | undefined;
   let endpoint: ManagementEndpointDescriptorV1 | undefined;
@@ -586,6 +640,12 @@ export async function startProductHost(
     const runReadActivity = <T>(kind: string, operation: () => Promise<T>) =>
       runManagementReadActivity(runtime, kind, operation);
     const configuration: ConfigurationService = createConfigurationService({
+      definitions: [
+        gatewayTransportConfigurationDefinition,
+        subjectExpressionConfigurationDefinition,
+        subjectCognitionConfigurationDefinition,
+        managementHttpAdmissionConfigurationDefinition,
+      ],
       persistence,
       time,
       execution: runtime,
@@ -610,6 +670,15 @@ export async function startProductHost(
       configuration,
       secret,
       networkAccess,
+    });
+    subjectCognitionRuntime = createSubjectOpenClawRuntime({
+      installationId: host.installationId,
+      productGeneration,
+      paths: owned.paths,
+      configuration,
+      aiRuntime,
+      networkAccess,
+      secret,
     });
     const reactionTarget = {
       productGenerationId: productGeneration,
@@ -673,6 +742,8 @@ export async function startProductHost(
       messaging,
       workQueue: workQueueForSubject,
       aiRuntime,
+      cognitionRuntime: subjectCognitionRuntime,
+      configuration,
       reactionTarget,
       async getHardPrerequisites() {
         const blockers: Array<{ readonly code: string; readonly detail: string }> = [];
@@ -703,6 +774,13 @@ export async function startProductHost(
             detail: "The current subject.expression ModelBinding is not usable",
           });
         }
+        const cognitionReadiness = await subjectCognitionRuntime!.readiness();
+        for (const blocker of cognitionReadiness.blockers) {
+          blockers.push({
+            code: blocker.code,
+            detail: blocker.detail,
+          });
+        }
         return {
           usable: blockers.length === 0,
           blockers: Object.freeze(blockers),
@@ -710,6 +788,43 @@ export async function startProductHost(
       },
     });
     const subjectAuthority = await subject.ensureCurrent();
+    await materializeConfigurationDefault(
+      configuration,
+      runMutationActivity,
+      SUBJECT_EXPRESSION_CONFIGURATION_DEFINITION_ID,
+      {
+        schemaVersion: 1,
+        resourceKind: "subject",
+        resourceId: subjectAuthority.subjectId,
+      },
+      DEFAULT_SUBJECT_EXPRESSION_CONFIG as unknown as CanonicalJsonValue,
+    );
+    await materializeConfigurationDefault(
+      configuration,
+      runMutationActivity,
+      SUBJECT_COGNITION_CONFIGURATION_DEFINITION_ID,
+      {
+        schemaVersion: 1,
+        resourceKind: "subject",
+        resourceId: subjectAuthority.subjectId,
+      },
+      DEFAULT_SUBJECT_COGNITION_CONFIG as unknown as CanonicalJsonValue,
+    );
+    subjectCognitionRuntime.bindSubject(subjectAuthority.subjectId);
+    await subjectCognitionRuntime.start();
+    const httpAdmissionRevision = await materializeConfigurationDefault(
+      configuration,
+      runMutationActivity,
+      MANAGEMENT_HTTP_ADMISSION_DEFINITION_ID,
+      {
+        schemaVersion: 1,
+        resourceKind: "installation",
+        resourceId: host.installationId,
+      },
+      DEFAULT_MANAGEMENT_HTTP_ADMISSION_CONFIG as unknown as CanonicalJsonValue,
+    );
+    const httpAdmission =
+      httpAdmissionRevision.value as unknown as ManagementHttpAdmissionConfigV1;
     await messaging.ensureCurrentConversation({
       subjectId: subjectAuthority.subjectId,
     });
@@ -726,7 +841,12 @@ export async function startProductHost(
         secret,
         networkAccess,
         aiRuntime,
-        subject,
+        subject: {
+          getStatus: () => subject!.getStatus(),
+          start: (input) => subject!.start(input),
+          stop: (input) => subject!.stop(input),
+          reconcileRuntime: () => subjectCognitionRuntime!.start(),
+        } satisfies SubjectManagementPort,
       },
       execution: runtime,
       runReadActivity,
@@ -895,6 +1015,7 @@ export async function startProductHost(
     const runDirectory = owned!.paths.resolve("RUN").canonicalPath;
 
     app = await createManagementHttpApp(management, {
+      admission: httpAdmission,
       onAdministratorClaimed: async () => {
         await messaging?.ensureCurrentConversation({
           subjectId: subjectAuthority.subjectId,
@@ -949,6 +1070,7 @@ export async function startProductHost(
     const currentReconciler = reconciler;
     const currentDurable = durable;
     const currentApp = app;
+    const currentSubjectCognitionRuntime = subjectCognitionRuntime;
     requestClose = async () => {
       if (closePromise !== undefined) return closePromise;
       closePromise = (async () => {
@@ -959,6 +1081,7 @@ export async function startProductHost(
         await removeCurrentEndpointDescriptor(runDirectory, currentHost.bootId);
         await currentReconciler?.stop().catch(() => undefined);
         await currentDurable?.close().catch(() => undefined);
+        await currentSubjectCognitionRuntime?.stop().catch(() => undefined);
         await currentSupervisor.close().catch(() => undefined);
         await currentPersistence.close().catch(() => undefined);
         if (currentHost.state === "ACTIVE") {
@@ -996,6 +1119,7 @@ export async function startProductHost(
     if (app !== undefined) await app.close().catch(() => undefined);
     await reconciler?.stop().catch(() => undefined);
     await durable?.close().catch(() => undefined);
+    await subjectCognitionRuntime?.stop().catch(() => undefined);
     if (supervisor !== undefined) await supervisor.close().catch(() => undefined);
     if (persistence !== undefined) await persistence.close().catch(() => undefined);
     if (host !== undefined && host.state === "ACTIVE") {

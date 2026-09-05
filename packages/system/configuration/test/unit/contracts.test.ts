@@ -3,44 +3,21 @@ import { compileSchema } from "@heptalogos/schema-runtime";
 import {
   configurationActivateInputSchema,
   configurationRevisionCreateInputSchema,
-  gatewayTransportConfigSchema,
 } from "../../src/index.js";
 
 describe("Configuration current contracts", () => {
-  it("accepts the bounded gateway transport value and rejects out-of-range values", () => {
-    const validator = compileSchema(gatewayTransportConfigSchema);
-    expect(
-      validator.validate({
-        schemaVersion: 1,
-        timeoutMs: 60_000,
-        requestBodyBudgetBytes: 60_000,
-        responseBodyBudgetBytes: 1_048_576,
-      }).ok,
-    ).toBe(true);
-    expect(
-      validator.validate({
-        schemaVersion: 1,
-        timeoutMs: 999,
-        requestBodyBudgetBytes: 60_000,
-        responseBodyBudgetBytes: 1_048_576,
-      }).ok,
-    ).toBe(false);
-  });
-
-  it("keeps revision and activation inputs strict", () => {
+  it("accepts owner-defined values while keeping the revision envelope strict", () => {
     expect(
       compileSchema(configurationRevisionCreateInputSchema).validate({
-        definitionId: "ai.gateway.transport.v1",
+        definitionId: "subject.expression.v1",
         scopeRef: {
           schemaVersion: 1,
-          resourceKind: "installation",
-          resourceId: "installation-1",
+          resourceKind: "subject",
+          resourceId: "subject-1",
         },
         value: {
           schemaVersion: 1,
-          timeoutMs: 60_000,
-          requestBodyBudgetBytes: 60_000,
-          responseBodyBudgetBytes: 1_048_576,
+          maxOutputTokens: 256,
         },
       }).ok,
     ).toBe(true);

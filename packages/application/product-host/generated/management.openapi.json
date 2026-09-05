@@ -3953,9 +3953,8 @@
                         "properties": {
                           "definitionId": {
                             "type": "string",
-                            "enum": [
-                              "ai.gateway.transport.v1"
-                            ]
+                            "minLength": 1,
+                            "maxLength": 256
                           },
                           "scopeRef": {
                             "type": "object",
@@ -3984,39 +3983,7 @@
                             },
                             "additionalProperties": false
                           },
-                          "value": {
-                            "type": "object",
-                            "required": [
-                              "schemaVersion",
-                              "timeoutMs",
-                              "requestBodyBudgetBytes",
-                              "responseBodyBudgetBytes"
-                            ],
-                            "properties": {
-                              "schemaVersion": {
-                                "type": "number",
-                                "enum": [
-                                  1
-                                ]
-                              },
-                              "timeoutMs": {
-                                "type": "integer",
-                                "minimum": 1000,
-                                "maximum": 300000
-                              },
-                              "requestBodyBudgetBytes": {
-                                "type": "integer",
-                                "minimum": 1,
-                                "maximum": 4194304
-                              },
-                              "responseBodyBudgetBytes": {
-                                "type": "integer",
-                                "minimum": 1,
-                                "maximum": 16777216
-                              }
-                            },
-                            "additionalProperties": false
-                          }
+                          "value": {}
                         },
                         "additionalProperties": false
                       }
@@ -5389,9 +5356,8 @@
                             "properties": {
                               "definitionId": {
                                 "type": "string",
-                                "enum": [
-                                  "ai.gateway.transport.v1"
-                                ]
+                                "minLength": 1,
+                                "maxLength": 256
                               },
                               "scopeRef": {
                                 "type": "object",
@@ -5420,39 +5386,7 @@
                                 },
                                 "additionalProperties": false
                               },
-                              "value": {
-                                "type": "object",
-                                "required": [
-                                  "schemaVersion",
-                                  "timeoutMs",
-                                  "requestBodyBudgetBytes",
-                                  "responseBodyBudgetBytes"
-                                ],
-                                "properties": {
-                                  "schemaVersion": {
-                                    "type": "number",
-                                    "enum": [
-                                      1
-                                    ]
-                                  },
-                                  "timeoutMs": {
-                                    "type": "integer",
-                                    "minimum": 1000,
-                                    "maximum": 300000
-                                  },
-                                  "requestBodyBudgetBytes": {
-                                    "type": "integer",
-                                    "minimum": 1,
-                                    "maximum": 4194304
-                                  },
-                                  "responseBodyBudgetBytes": {
-                                    "type": "integer",
-                                    "minimum": 1,
-                                    "maximum": 16777216
-                                  }
-                                },
-                                "additionalProperties": false
-                              }
+                              "value": {}
                             },
                             "additionalProperties": false
                           }

@@ -7,9 +7,21 @@ conversation communication path: ConversationMailbox, Reaction acquisition,
 the cognition proposal, deterministic Review, CommunicationCommit, Expression,
 and expression-driven local reply materialization.
 
+The current primary cognition proposal is supplied through the narrow
+Product-composed `SubjectCognitionRuntime` port. Product Host implements that
+port with one isolated OpenClaw `2026.9.1` public Gateway/client runtime and
+two proposal-only typed tools. The adapter's process/profile/provider state is
+not Subject canonical state; this package still owns the Subject semantics,
+Review, and CommunicationCommit Authority. Expression remains on AIRuntime.
+
 The durable record stores desired Subject state only. Current status is a
 Subject-owned projection over that intent and current runtime/dependency facts;
 there is no second durable `actualState` authority.
+
+The independent Expression step consumes the active Subject-scoped
+`subject.expression.v1` configuration revision. Its first materialized Product
+default is `maxOutputTokens: 256`; the value is managed through the canonical
+Configuration and Management path rather than a duplicate Expression literal.
 
 ## Current scope
 

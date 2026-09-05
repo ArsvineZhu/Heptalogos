@@ -553,9 +553,9 @@ qualificationRecordAuthority: EVIDENCE_STATUS_ONLY
 providerPrerequisites: COMPLETED
 liveGatewayQualification: BLOCKED
 machineOperationsIntegration: ELIGIBLE_NOT_AUTHORIZED
-activeProductImplementationPlan: NONE
-currentProductWork: P1_SUBJECT_COMMUNICATION_SPINE_CORRECTION_COMPLETED
-nextEligibleProductWork: P2_CONFIGURATION_SURFACE_CATCH_UP
+activeProductImplementationPlan: NONE_AFTER_P4_BUNDLE
+currentProductWork: PRODUCT_REALITY_CONVERGENCE_COMPLETED
+nextEligibleProductWork: FIRST_REAL_IM_DRIVER_OR_OBSERVATION_WINDOW_RESEARCH
 ordinaryGitHubActions: DISABLED_CURRENT_EXECUTION_POLICY
 ```
 
@@ -580,8 +580,10 @@ service, platform, or shipping/runtime claim. It is not a universal
 prerequisite for later semantic/product development, provider-prerequisite
 implementation, or independent OpenClaw Machine Operations work that does not
 depend on that boundary. Each workstream remains subject to its own plan and
-evidence boundary. OpenClaw remains an adopted external Machine Operations
-route and is not a provider or Subject readiness dependency.
+evidence boundary. Machine Operations OpenClaw remains an adopted external
+independent route; the current Subject Chat primary cognition path now uses a
+separate Product-supervised Subject OpenClaw runtime and projects readiness
+through that dependency.
 
 The gateway-first AIRuntime and external-integration Plan is completed in
 project/plans/completed/product/gateway-first-airuntime-external-integration-posture-2026-09-03.md.
@@ -593,9 +595,16 @@ its pre-P1 REPLY/SILENCE qualification is not the current conversation shape.
 The P1 Subject communication-spine correction is completed in
 project/plans/completed/product/p1-subject-communication-spine-correction-2026-09-04.md.
 Its current local communication-spine qualification is PASS for the executed
-Windows boundary, while unexecuted external and shipping boundaries remain
-NOT_RUN. The Product Reality Convergence sequence is the following bounded
-planning guidance, with only one implementation Plan active at a time:
+Windows boundary, including the later continuous verification debt evidence;
+unexecuted external and shipping boundaries remain NOT_RUN. P2 configuration
+catch-up is completed in
+project/plans/completed/product/p2-configuration-surface-catch-up-2026-09-04.md.
+P3 Subject OpenClaw runtime integration is now the completed current local
+runtime boundary; its exact pinned release/protocol, isolated process, public
+proposal lifecycle, and Product L4 integration evidence are recorded in its
+qualification result. P4 then completed the exact Windows x64 source-less
+portable Product Reality scenario from a copied artifact. The Product Reality
+Convergence sequence is the following bounded continuous execution pack:
 
 ```text
 documentation semantic correction
@@ -606,11 +615,14 @@ documentation semantic correction
 → first real IM / Observation Window research
 ```
 
-This is sequencing guidance, not a rigid waterfall. P0 corrected current-truth
-documentation and P1 corrected the current communication spine; both are
-complete. P2–P4 are successor specs and require separate activation, each
-stopping at its own completion boundary. No Product implementation Plan is
-currently active.
+P0 corrected current-truth documentation, P1 corrected the current
+communication spine, P2 realized the current configuration consumers, P3
+integrated the isolated Subject OpenClaw runtime, and P4 completed the copied
+source-less portable Product Reality scenario; all five stages are complete.
+The old stage-local STOP wording in the pack did not create an additional human
+approval gate. The bundle's normal STOP is now reached at the P4 Product Reality
+acceptance. The next Product work is a separate future decision for the first
+real IM Driver or Observation Window research.
 
 ### Product prerequisites — provider foundations and minimum Management spine
 
@@ -846,6 +858,8 @@ Convergence sequence.
 - canonical MessagingService facts and Subject Chat ingress;
 - ConversationMailbox ordering and supersession semantics;
 - AIRuntimeService over AI SDK provider/model mechanics;
+- Product-supervised SubjectCognitionRuntime over the exact isolated OpenClaw
+  public Gateway/client/plugin boundary;
 - ModelProfile/Binding conformance and commit-time provenance fencing;
 - bounded ContextProjection;
 - ConversationReactionProposal, deterministic Review, optional
@@ -861,7 +875,7 @@ AI SDK 7 now offers broad agent-platform features, including approvals, durable 
 
 Prove one complete path:
 
-`Subject Chat ingress → durable MessageFact → WorkItem → Reaction → ContextProjection → model Activity → conversation proposal → Review → optional CommunicationCommit → Expression → local outbound MessageFact`.
+`Subject Chat ingress → durable MessageFact → WorkItem → Reaction → bounded ContextProjection → Subject OpenClaw proposal → Review → optional CommunicationCommit → AIRuntime Expression → local outbound MessageFact`.
 
 Then prove non-happy cases:
 

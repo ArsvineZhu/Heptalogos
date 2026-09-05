@@ -79,6 +79,17 @@ export interface ModelBinding {
   readonly enabled: boolean;
 }
 
+/** Provider-neutral model route facts used by a caller-owned commit fence. */
+export interface ModelBindingCommitProvenance {
+  readonly modelBindingId: ModelBindingId;
+  readonly bindingRevision: number;
+  readonly modelProfileId: ModelProfileId;
+  readonly modelProfileGeneration: number;
+  readonly gatewayProfileId: GatewayProfileId;
+  readonly modelIdentifier: string;
+  readonly protocol: ModelInvocationProtocol;
+}
+
 /** Provider-neutral ephemeral message accepted by AIRuntime. */
 export type AIRuntimeMessage =
   | { readonly role: "system"; readonly text: string }
@@ -207,6 +218,11 @@ export interface AIRuntimeService {
   assertGenerationAdmissibleForCommit(
     transaction: import("@heptalogos/persistence").PersistenceMutationTransactionContext,
     provenance: GenerationResult,
+  ): Promise<void>;
+  /** Validates the selected model route without claiming AIRuntime invoked it. */
+  assertModelBindingAdmissibleForCommit(
+    transaction: import("@heptalogos/persistence").PersistenceMutationTransactionContext,
+    provenance: ModelBindingCommitProvenance,
   ): Promise<void>;
   /** Invokes one ephemeral structured generation. */
   invoke(spec: InvocationSpec): Promise<GenerationResult>;

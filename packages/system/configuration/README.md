@@ -4,12 +4,13 @@
 
 configuration owns the current Product ConfigurationDefinition,
 ConfigurationRevision, ConfigurationActivation, and effective-value semantics.
-It provides the bounded managed-revision route consumed by NetworkAccess and
-AIRuntime gateway transport.
+The Product composition supplies the current owner definitions; this package
+provides the generic bounded managed-revision route consumed by their real
+runtime owners.
 
 ## Owns
 
-- Code-owned definitions and their JSON Schema contracts.
+- Composition-provided code-owned definitions and their JSON Schema contracts.
 - Immutable PostgreSQL-backed managed revisions.
 - Explicit Host-fenced activation CAS and effective-value resolution.
 - Configuration metadata and redacted read projections.
@@ -20,6 +21,11 @@ AIRuntime gateway transport.
 - Configuration files, watchers, import/export, or a source registry.
 - Provider SDK objects, runtime reconciliation, or Management authorization.
 - A second persistence or transaction boundary.
+
+The current Product composition registers the NetworkAccess gateway transport,
+Subject cognition runtime and Expression budgets, and Product Host HTTP
+admission definitions. The service has no gateway-specific validation or
+activation lookup.
 
 ## Verification
 

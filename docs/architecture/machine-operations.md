@@ -236,9 +236,12 @@ identity.
 
 The current Machine Operations OpenClaw runtime is an external independently
 operated runtime; it is not bundled, downloaded, started, or updated by Product
-Host. A future distribution may carry the Subject runtime and the independent
-Machine Operations runtime together, but physical colocation does not merge
-their lifecycle, trust, credentials, or state. If an exact release or commit is
+Host. Product Host may independently carry and supervise the separate
+low-privilege Subject OpenClaw runtime for current Subject cognition, but that
+does not make Machine Operations a Product Host child or readiness dependency.
+A distribution may carry the Subject runtime and the independent Machine
+Operations runtime together, but physical colocation does not merge their
+lifecycle, trust, credentials, or state. If an exact release or commit is
 bundled, downloaded, modified, patched, or redistributed, the relevant
 implementation/distribution Plan must re-verify:
 

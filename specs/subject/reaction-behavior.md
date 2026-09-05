@@ -7,10 +7,11 @@ commit spine:
 
 ```text
 ConversationMailbox
-Reaction
-ContextProjection
-ConversationReactionProposal
-deterministic Review
+  Reaction
+  ContextProjection
+  ConversationReactionProposal
+  Subject cognition runtime proposal transport
+  deterministic Review
 CommunicationCommit
 expression
 no-communication
@@ -20,7 +21,9 @@ exactly-once local outbound materialization
 
 It does not define the total Subject behavior space, Persona, Memory,
 Relationship, Attention, Living State, advanced Observation Window, proactive
-behavior, tools, MCP, external Messaging, or a second scheduler.
+behavior, general tools, MCP, external Messaging, or a second scheduler. The
+current Subject cognition runtime has only the two bounded proposal-transport
+tools described below.
 
 ## Ownership and current flow
 
@@ -38,7 +41,7 @@ accepted MessageFact
 → ConversationMailbox revision
 → Reaction acquisition
 → ContextProjection
-→ AIRuntime invocation: subject.primary
+→ Subject OpenClaw Runtime public agent/tool run
 → ConversationReactionProposal
    ├─ NO_COMMUNICATION → successful terminal Reaction
    └─ COMMUNICATE(semantic content)
@@ -52,8 +55,39 @@ accepted MessageFact
 
 `NO_COMMUNICATION` creates no CommunicationCommit or outbound MessageFact. It
 is a legitimate local completion result, not a global durable Silence entity.
-The current AIRuntime path uses structured output; OpenClaw proposal tools are
-outside this bounded slice.
+The primary proposal is transported by the Product Host's isolated Subject
+OpenClaw Runtime; Expression remains on the AIRuntime structured-output path.
+
+## Subject cognition runtime proposal transport
+
+Product Host supervises one exact-pinned OpenClaw Gateway for the Subject role.
+The current candidate uses OpenClaw `2026.9.1`, the public Gateway client and
+wire protocol `4`, and a dedicated `subject` profile with separate process,
+state, configuration, workspace, cache, run roots, and credentials from the
+Machine Operations role. The adapter projects the current Subject primary
+ModelBinding/Profile, gateway transport ConfigurationRevision, cognition
+ConfigurationRevision, and authorized SecretRef into generated provider
+configuration. OpenClaw provider-private state is not canonical Subject state.
+
+The only Product tools exposed to this runtime are:
+
+```ts
+heptalogos_propose_communication({
+  semanticContent: { schemaVersion: 1, content: string },
+});
+heptalogos_complete_without_communication({});
+```
+
+Their handlers return acknowledgement only. They do not write MessageFact,
+CommunicationCommit, SystemAction, filesystem state, or external effects. The
+adapter accepts the first valid terminal proposal for a run, records public
+run/tool/provenance and configuration facts, then uses public `chat.abort` and
+`agent.wait` semantics to settle the remaining agent loop. A public terminal
+status of `error` after that supported cancellation does not erase a proposal
+already observed and reviewed; no proposal before a terminal observation is
+fabricated. No shell/process, arbitrary filesystem, package/Git, service
+manager, PostgreSQL administration, Gateway administration, Machine
+Operations, System Authority, or external-channel bypass tool is exposed.
 
 ## ConversationMailbox
 
@@ -136,12 +170,15 @@ The current ContextProjection includes only:
 ```text
 current selected/pending conversation MessageFacts
 Subject identity and current state
-current Product/governance constraints needed by behavior
-current model/capability facts required for invocation
+  current Product/governance constraints needed by behavior
+  current model/capability facts required for invocation
 ```
 
 It is invocation input, not long-lived Subject state. It does not include
-Persona, Memory, Relationship, Attention, or other advanced cognition state.
+Persona, Memory, Relationship, Attention, Machine Operations workspace,
+administrator/session secrets, repository source, or all Product database
+state. OpenClaw's provider-private session history is not trusted as a
+replacement for this bounded canonical projection.
 
 ## ConversationReactionProposal
 
@@ -201,8 +238,9 @@ Subject state still permits commit
 Subject authorityRevision unchanged
 mailboxRevision unchanged
 Reaction still owns the open-reaction fence
-primary invocation provenance remains admissible
-current Product constraints permit the outcome
+  Subject cognition provenance and current primary model route remain admissible
+  exact active Subject cognition and gateway transport revisions remain current
+  current Product constraints permit the outcome
 ```
 
 If mailboxRevision changed, the Reaction is atomically marked SUPERSEDED. It
@@ -258,7 +296,7 @@ conversationId
 purpose = reply
 semanticContent = { schemaVersion: 1, content: string }
 semanticContentDigest
-accepted primary invocation provenance
+  accepted primary Subject cognition provenance
 committedAt
 Lineage/Evidence
 ```
@@ -317,7 +355,7 @@ obligation.
 
 ## Failure, recovery, and supersession
 
-If subject.primary fails before an accepted terminal proposal:
+If Subject cognition fails before an accepted terminal proposal:
 
 ```text
 no CommunicationCommit
@@ -359,7 +397,8 @@ reaction.commit_conflict
 - REACT-001 Mailbox organizes MessageFact references; it does not re-own Messaging truth.
 - REACT-002 One current open Reaction owns a mailbox revision at a time.
 - REACT-003 Reaction state is semantic cognition state, not DBOS workflow state.
-- REACT-004 Primary model output is a ConversationReactionProposal only.
+- REACT-004 Subject cognition output is a ConversationReactionProposal only;
+  the two current OpenClaw tools are proposal transport, not Authority.
 - REACT-005 Deterministic Review fences Subject authorityRevision and mailboxRevision.
 - REACT-006 A stale or superseded Reaction cannot create CommunicationCommit.
 - REACT-007 NO_COMMUNICATION is a successful local terminal outcome and creates no outbound MessageFact.
@@ -371,7 +410,9 @@ reaction.commit_conflict
 - REACT-013 Accepted expression materializes exactly one outbound MessageFact.
 - REACT-014 Crash after outbound commit does not produce a second reply.
 - REACT-015 Primary failure before accepted proposal produces no fake canonical behavior.
-- REACT-016 The current Subject slice has no tools, MCP, Persona, Memory, Relationship, Attention, or proactive behavior.
+- REACT-016 The current Subject slice has no general tools, MCP, Persona,
+  Memory, Relationship, Attention, or proactive behavior; its two proposal
+  transport tools cannot mutate canonical state or external systems.
 - REACT-017 New-message supersession uses mailbox revision; no new scheduler.
 - REACT-018 Local Subject Chat outbound creates no EffectOperation.
 - REACT-019 Later external effects remain fenced by existing EffectOperation.
@@ -393,7 +434,8 @@ This Spec does not define:
 Persona, Memory, Relationship, Attention, or advanced cognition
 Advanced Observation Window
 reviewer agent
-AI tools or MCP
+  general AI tools or MCP (the two bounded proposal transport tools above are
+  part of the current primary cognition adapter)
 SystemAction or external-action intent classes
 proactive messaging
 external Messaging Driver implementation

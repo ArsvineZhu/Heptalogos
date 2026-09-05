@@ -176,13 +176,14 @@ export async function runHost(
   child.stderr.on("data", (chunk) => {
     stderr += String(chunk);
   });
-  const lineReader = createInterface({ input: child.stdout });
+  const stdoutReader = createInterface({ input: child.stdout });
+  const stderrReader = createInterface({ input: child.stderr });
   const ready = await new Promise<HostReady>((resolvePromise, reject) => {
     const timer = setTimeout(() => {
       reject(new Error("Product Host did not publish READY: " + stderr));
       child.kill();
     }, 150_000);
-    lineReader.on("line", (line) => {
+    const inspectLine = (line: string, stream: "stdout" | "stderr") => {
       try {
         const value = JSON.parse(line) as Partial<HostReady>;
         if (value.type === "READY") {
@@ -190,18 +191,25 @@ export async function runHost(
           resolvePromise(value as HostReady);
         } else if (value.type === "ERROR") {
           clearTimeout(timer);
-          reject(new Error("Product Host startup failed: " + line));
+          reject(
+            new Error(
+              `Product Host startup failed on ${stream}: ${line}${stderr.length === 0 ? "" : `; stderr=${stderr}`}`,
+            ),
+          );
         }
       } catch {
         // Keep waiting for the machine-readable READY line.
       }
-    });
+    };
+    stdoutReader.on("line", (line) => inspectLine(line, "stdout"));
+    stderrReader.on("line", (line) => inspectLine(line, "stderr"));
     child.once("exit", (code) => {
       clearTimeout(timer);
       reject(new Error(`Product Host exited before READY (${code}): ${stderr}`));
     });
   });
-  lineReader.close();
+  stdoutReader.close();
+  stderrReader.close();
   return {
     child,
     ready,

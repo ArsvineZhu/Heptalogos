@@ -49,8 +49,12 @@ import {
   SUBJECT_REACTION_CONTRIBUTION_ID,
   SUBJECT_REACTION_QUEUE_PROFILE_ID,
   SUBJECT_REACTION_RESOURCE_CLASS,
+  SUBJECT_EXPRESSION_CONFIGURATION_DEFINITION_ID,
   SUBJECT_SYSTEM_ID,
+  type SubjectExpressionConfigV1,
   type CommunicationCommit,
+  type SubjectCognitionProposal,
+  type SubjectCognitionProvenance,
   type ConversationReactionProposal,
   type PreparedSubjectInbound,
   type Reaction,
@@ -176,14 +180,7 @@ interface CommunicationRow {
   readonly purpose: unknown;
   readonly semantic_content: unknown;
   readonly semantic_content_digest: unknown;
-  readonly primary_invocation_id: unknown;
-  readonly primary_model_binding_id: unknown;
-  readonly primary_binding_revision: unknown;
-  readonly primary_model_profile_id: unknown;
-  readonly primary_model_profile_generation: unknown;
-  readonly primary_gateway_profile_id: unknown;
-  readonly primary_configuration_revision_id: unknown;
-  readonly primary_protocol: unknown;
+  readonly primary_cognition_provenance: unknown;
   readonly committed_at: unknown;
   readonly lineage_context_ref: unknown;
 }
@@ -202,10 +199,7 @@ const REACTION_COLUMNS = `
 const COMMUNICATION_COLUMNS = `
   communication_commit_id, reaction_id, subject_id, subject_authority_revision,
   mailbox_revision, conversation_id, purpose, semantic_content,
-  semantic_content_digest, primary_invocation_id, primary_model_binding_id,
-  primary_binding_revision, primary_model_profile_id,
-  primary_model_profile_generation, primary_gateway_profile_id,
-  primary_configuration_revision_id, primary_protocol, committed_at,
+  semantic_content_digest, primary_cognition_provenance, committed_at,
   lineage_context_ref`;
 
 function parseJson(value: unknown, field: string): unknown {
@@ -233,6 +227,23 @@ function record(value: unknown, field: string): Record<string, unknown> {
     );
   }
   return parsed as Record<string, unknown>;
+}
+
+function asBoundedText(value: unknown, field: string, maximum: number): string {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > maximum ||
+    value.trim().length === 0
+  ) {
+    throw subjectProblem(
+      "subject.repository_invalid",
+      "Subject repository data is invalid",
+      `${field} is not a bounded non-empty string`,
+      "integrity",
+    );
+  }
+  return value;
 }
 
 function asInstant(value: unknown, field: string): Instant {
@@ -471,13 +482,87 @@ function conversationReactionProposal(value: unknown): ConversationReactionPropo
   );
 }
 
+function cognitionProvenanceFromRow(value: unknown): SubjectCognitionProvenance {
+  const parsed = record(value, "primary_cognition_provenance");
+  if (Object.keys(parsed).length !== 20) {
+    throw subjectProblem(
+      "subject.repository_invalid",
+      "Subject repository data is invalid",
+      "primary_cognition_provenance contains unexpected fields",
+      "integrity",
+    );
+  }
+  const terminalToolName = parsed.terminalToolName;
+  const terminalStatus = parsed.terminalStatus;
+  const protocol = parsed.protocol;
+  if (
+    parsed.schemaVersion !== 1 ||
+    parsed.provider !== "openclaw" ||
+    parsed.openclawVersion !== "2026.9.1" ||
+    parsed.profile !== "subject" ||
+    (terminalToolName !== "heptalogos_propose_communication" &&
+      terminalToolName !== "heptalogos_complete_without_communication") ||
+    (terminalStatus !== "ok" &&
+      terminalStatus !== "error" &&
+      terminalStatus !== "timeout") ||
+    (protocol !== "openai-chat" && protocol !== "openai-responses")
+  ) {
+    throw subjectProblem(
+      "subject.repository_invalid",
+      "Subject repository data is invalid",
+      "primary_cognition_provenance domain values are invalid",
+      "integrity",
+    );
+  }
+  return Object.freeze({
+    schemaVersion: 1 as const,
+    provider: "openclaw" as const,
+    runtimeGeneration: asBoundedText(
+      parsed.runtimeGeneration,
+      "runtimeGeneration",
+      256,
+    ),
+    openclawVersion: "2026.9.1" as const,
+    profile: "subject" as const,
+    agentId: asBoundedText(parsed.agentId, "agentId", 128),
+    sessionKey: asBoundedText(parsed.sessionKey, "sessionKey", 512),
+    runId: asBoundedText(parsed.runId, "runId", 256),
+    modelProvider: asBoundedText(parsed.modelProvider, "modelProvider", 128),
+    modelIdentifier: asBoundedText(parsed.modelIdentifier, "modelIdentifier", 256),
+    modelBindingId: asUuid("ModelBindingId", parsed.modelBindingId, "modelBindingId"),
+    bindingRevision: asInteger(parsed.bindingRevision, "bindingRevision", 1),
+    modelProfileId: asUuid("ModelProfileId", parsed.modelProfileId, "modelProfileId"),
+    modelProfileGeneration: asInteger(
+      parsed.modelProfileGeneration,
+      "modelProfileGeneration",
+      1,
+    ),
+    gatewayProfileId: asUuid(
+      "GatewayProfileId",
+      parsed.gatewayProfileId,
+      "gatewayProfileId",
+    ),
+    configurationRevisionId: asUuid(
+      "ConfigurationRevisionId",
+      parsed.configurationRevisionId,
+      "configurationRevisionId",
+    ),
+    gatewayConfigurationRevisionId: asUuid(
+      "ConfigurationRevisionId",
+      parsed.gatewayConfigurationRevisionId,
+      "gatewayConfigurationRevisionId",
+    ),
+    protocol,
+    terminalToolName,
+    terminalStatus,
+  });
+}
+
 function communicationFromRow(row: CommunicationRow): CommunicationCommit {
   const purpose = row.purpose;
-  const protocol = row.primary_protocol;
   const content = record(row.semantic_content, "semantic_content");
   if (
     purpose !== "reply" ||
-    (protocol !== "openai-chat" && protocol !== "openai-responses") ||
     content.schemaVersion !== 1 ||
     typeof content.content !== "string" ||
     content.content.trim() === "" ||
@@ -516,42 +601,9 @@ function communicationFromRow(row: CommunicationRow): CommunicationCommit {
       content: content.content,
     }),
     semanticContentDigest: String(row.semantic_content_digest),
-    primaryInvocationId: asUuid(
-      "InvocationId",
-      row.primary_invocation_id,
-      "primary_invocation_id",
+    primaryCognitionProvenance: cognitionProvenanceFromRow(
+      row.primary_cognition_provenance,
     ),
-    primaryModelBindingId: asUuid(
-      "ModelBindingId",
-      row.primary_model_binding_id,
-      "primary_model_binding_id",
-    ),
-    primaryBindingRevision: asInteger(
-      row.primary_binding_revision,
-      "primary_binding_revision",
-      1,
-    ),
-    primaryModelProfileId: asUuid(
-      "ModelProfileId",
-      row.primary_model_profile_id,
-      "primary_model_profile_id",
-    ),
-    primaryModelProfileGeneration: asInteger(
-      row.primary_model_profile_generation,
-      "primary_model_profile_generation",
-      1,
-    ),
-    primaryGatewayProfileId: asUuid(
-      "GatewayProfileId",
-      row.primary_gateway_profile_id,
-      "primary_gateway_profile_id",
-    ),
-    primaryConfigurationRevisionId: asUuid(
-      "ConfigurationRevisionId",
-      row.primary_configuration_revision_id,
-      "primary_configuration_revision_id",
-    ),
-    primaryProtocol: protocol,
     committedAt: asInstant(row.committed_at, "committed_at"),
     lineageContextRef: asLineage(row.lineage_context_ref, "lineage_context_ref"),
   });
@@ -1174,24 +1226,7 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
       }),
     );
 
-  function subjectContextMessages(messages: readonly MessageFact[]) {
-    return Object.freeze([
-      Object.freeze({
-        role: "system" as const,
-        text: "You are the current Heptalogos Subject. Return only the requested bounded conversation proposal.",
-      }),
-      ...messages.map((message) =>
-        Object.freeze({ role: "user" as const, text: message.text }),
-      ),
-    ]);
-  }
-
-  const contextProjection = async (
-    reaction: Reaction,
-  ): Promise<{
-    readonly value: CanonicalJsonValue;
-    readonly messages: readonly MessageFact[];
-  }> => {
+  const contextProjection = async (reaction: Reaction): Promise<CanonicalJsonValue> => {
     const authority = await getAuthority();
     const mailbox = await options.persistence.read((context) =>
       useRepositoryReadTransaction(context, (transaction) =>
@@ -1229,37 +1264,19 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
         text: message.text,
       })),
     }).value;
-    return Object.freeze({ value, messages: Object.freeze(selected) });
+    return value;
   };
 
-  const primaryGeneration = async (reaction: Reaction): Promise<GenerationResult> => {
-    const activity = currentActivity(options.execution);
-    const binding = await options.aiRuntime.getModelBinding("subject.primary");
-    if (binding === undefined || !binding.enabled) {
-      throw subjectProblem(
-        "subject.primary_unavailable",
-        "Subject primary binding is unavailable",
-        "The current subject.primary ModelBinding is not usable",
-        "unavailable",
-        "after-change",
-      );
-    }
+  const primaryGeneration = async (
+    reaction: Reaction,
+  ): Promise<SubjectCognitionProposal> => {
     const context = await contextProjection(reaction);
-    const spec: InvocationSpec = {
-      schemaVersion: 1,
-      invocationId: createUuidV7Id("InvocationId"),
-      ownerActivityRef: activity.activityId,
-      modelBindingId: binding.modelBindingId,
-      expectedBindingRevision: binding.revision,
-      contextProjection: context.value,
-      messages: subjectContextMessages(context.messages),
-      objective:
-        "Return exactly one current conversation proposal: NO_COMMUNICATION or COMMUNICATE with semantic content.",
-      outputSchema: conversationReactionProposalSchema,
-      budget: { maxOutputTokens: 256 },
-      lineageContextRef: options.execution.createLineageContextRef(),
-    };
-    return options.aiRuntime.invoke(spec);
+    const authority = await getAuthority();
+    return options.cognitionRuntime.runConversationReaction({
+      subjectId: authority.subjectId,
+      reactionId: reaction.reactionId,
+      contextProjection: context,
+    });
   };
 
   const expressionGeneration = async (
@@ -1276,6 +1293,25 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
         "after-change",
       );
     }
+    const configuration = await options.configuration.getEffectiveRevision(
+      SUBJECT_EXPRESSION_CONFIGURATION_DEFINITION_ID,
+      {
+        schemaVersion: 1,
+        resourceKind: "subject",
+        resourceId: communication.subjectId,
+      },
+    );
+    if (configuration === undefined) {
+      throw subjectProblem(
+        "subject.expression_configuration_unavailable",
+        "Subject expression configuration is unavailable",
+        "An active subject.expression.v1 ConfigurationRevision is required",
+        "unavailable",
+        "after-change",
+      );
+    }
+    const expressionConfig =
+      configuration.value as unknown as SubjectExpressionConfigV1;
     const contextProjection = snapshotCanonicalJson({
       schemaVersion: 1,
       communicationCommitId: communication.communicationCommitId,
@@ -1301,7 +1337,7 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
       ]),
       objective: "Express the already committed semantic reply.",
       outputSchema: expressionOutputSchema,
-      budget: { maxOutputTokens: 256 },
+      budget: { maxOutputTokens: expressionConfig.maxOutputTokens },
       lineageContextRef: options.execution.createLineageContextRef(),
     };
     return options.aiRuntime.invoke(spec);
@@ -1317,7 +1353,7 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
 
   const commitAcceptedProposal = async (
     reaction: Reaction,
-    generation: GenerationResult,
+    generation: SubjectCognitionProposal,
     proposal: ConversationReactionProposal,
   ): Promise<AcceptedProposalCommitResult> =>
     options.persistence.mutate((context) =>
@@ -1396,16 +1432,34 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
             evidenceContractVersion: "subject.v1",
             subjectRef: authority.subjectId,
             objectRef: reaction.reactionId,
-            factRef: generation.invocationId,
+            factRef: generation.provenance.runId,
             retentionClass: "retained",
             sensitivity: "operational",
           });
           return { kind: "SUPERSEDED" as const };
         }
-        await options.aiRuntime.assertGenerationAdmissibleForCommit(
+        await options.aiRuntime.assertModelBindingAdmissibleForCommit(
           context,
-          generation,
+          generation.provenance,
         );
+        await options.configuration.assertActiveRevisionForCommit(context, {
+          definitionId: "subject.cognition.runtime.v1",
+          scopeRef: {
+            schemaVersion: 1,
+            resourceKind: "subject",
+            resourceId: authority.subjectId,
+          },
+          revisionId: generation.provenance.configurationRevisionId,
+        });
+        await options.configuration.assertActiveRevisionForCommit(context, {
+          definitionId: "ai.gateway.transport.v1",
+          scopeRef: {
+            schemaVersion: 1,
+            resourceKind: "installation",
+            resourceId: options.installationId,
+          },
+          revisionId: generation.provenance.gatewayConfigurationRevisionId,
+        });
         const now = options.time.now();
         if (proposal.kind === "NO_COMMUNICATION") {
           await executeRepositorySql(
@@ -1436,7 +1490,7 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
             evidenceContractVersion: "subject.v1",
             subjectRef: authority.subjectId,
             objectRef: reaction.reactionId,
-            factRef: generation.invocationId,
+            factRef: generation.provenance.runId,
             retentionClass: "retained",
             sensitivity: "operational",
           });
@@ -1455,12 +1509,9 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
              communication_commit_id, reaction_id, subject_id,
              subject_authority_revision, mailbox_revision, conversation_id,
              purpose, semantic_content, semantic_content_digest,
-             primary_invocation_id, primary_model_binding_id, primary_binding_revision,
-             primary_model_profile_id, primary_model_profile_generation,
-             primary_gateway_profile_id, primary_configuration_revision_id,
-             primary_protocol, committed_at, lineage_context_ref
+             primary_cognition_provenance, committed_at, lineage_context_ref
            ) VALUES ($1, $2, $3, $4, $5, $6, 'reply', $7, $8, $9, $10,
-                     $11, $12, $13, $14, $15, $16, $17, $18)
+                     $11)
            ON CONFLICT (reaction_id) DO NOTHING`,
           [
             communicationCommitId,
@@ -1471,14 +1522,7 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
             reaction.conversationId,
             JSON.stringify(semanticContent),
             semanticContentDigest,
-            generation.invocationId,
-            generation.modelBindingId,
-            generation.bindingRevision,
-            generation.modelProfileId,
-            generation.modelProfileGeneration,
-            generation.gatewayProfileId,
-            generation.configurationRevisionId,
-            generation.protocol,
+            JSON.stringify(generation.provenance),
             now,
             lineageJson(options.execution),
           ],
@@ -1701,7 +1745,7 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
     }
 
     const primary = await primaryGeneration(reaction);
-    const proposal = conversationReactionProposal(primary.candidate);
+    const proposal = conversationReactionProposal(primary.proposal);
     const accepted = await commitAcceptedProposal(reaction, primary, proposal);
     if (accepted.kind === "SUPERSEDED")
       return Object.freeze({ accepted: true, status: "SUPERSEDED" });
@@ -1754,6 +1798,10 @@ export function createSubjectService(options: SubjectServiceOptions): SubjectSer
       const reasonCode = input.failure.reasonCode;
       if (
         reasonCode === "subject.primary_unavailable" ||
+        reasonCode === "subject.cognition_disabled" ||
+        reasonCode === "subject.cognition_runtime_unavailable" ||
+        reasonCode === "subject.cognition_run_failed" ||
+        reasonCode === "subject.cognition_timeout" ||
         reasonCode === "subject.expression_unavailable" ||
         reasonCode === "ai.gateway_unavailable" ||
         reasonCode === "ai.model_binding_unavailable" ||

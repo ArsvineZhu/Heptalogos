@@ -18,7 +18,10 @@ import { createEvidenceService } from "@heptalogos/evidence";
 import { createSystemTimeService } from "@heptalogos/time-service";
 import { createConfigurationService } from "@heptalogos/configuration";
 import { createSecretService } from "@heptalogos/secret";
-import { createNetworkAccessService } from "@heptalogos/network-access";
+import {
+  createNetworkAccessService,
+  gatewayTransportConfigurationDefinition,
+} from "@heptalogos/network-access";
 import { createAIRuntimeService } from "@heptalogos/ai-runtime";
 import type { OsCredentialKey, OsCredentialStore } from "@heptalogos/os-credential";
 import {
@@ -304,6 +307,7 @@ suite("installed model gateway protocol adapters", () => {
     const lineage = createExecutionLineageService();
     const evidence = createEvidenceService(time);
     const configuration = createConfigurationService({
+      definitions: [gatewayTransportConfigurationDefinition],
       persistence,
       time,
       execution: runtime,

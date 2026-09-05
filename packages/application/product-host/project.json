@@ -6,7 +6,13 @@
   "sourceRoot": "packages/application/product-host/src",
   "targets": {
     "build": {
-      "dependsOn": ["generate:build-identities"]
+      "dependsOn": ["generate:build-identities", "build:subject-openclaw-manifest"]
+    },
+    "build:subject-openclaw-manifest": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node packages/application/product-host/scripts/copy-subject-openclaw-manifest.mjs"
+      }
     },
     "generate:build-identities": {
       "executor": "nx:run-commands",

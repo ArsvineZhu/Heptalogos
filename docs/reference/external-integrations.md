@@ -44,8 +44,9 @@ separate processes/profiles/state roots, credentials, ports, and trust domains.
 The Subject OpenClaw Runtime is a Product-managed low-privilege runtime when
 that cognition route is enabled; its lifecycle and generated configuration are
 owned by Product composition, while its provider-private state is not Subject
-canonical state. The current bounded AIRuntime Subject Chat path does not
-require it.
+canonical state. The current bounded Subject Chat primary cognition route uses
+it; deterministic Review, CommunicationCommit, independent Expression, and
+Messaging remain Heptalogos-owned.
 
 ## FFmpeg
 

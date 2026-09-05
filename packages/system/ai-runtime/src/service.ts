@@ -14,8 +14,10 @@ import {
   type CanonicalJsonValue,
 } from "@heptalogos/foundation-contracts";
 import { decodeLineageContextRef } from "@heptalogos/execution-lineage";
-import { GATEWAY_TRANSPORT_DEFINITION_ID } from "@heptalogos/configuration";
-import type { GatewayNetworkTarget } from "@heptalogos/network-access";
+import {
+  GATEWAY_TRANSPORT_DEFINITION_ID,
+  type GatewayNetworkTarget,
+} from "@heptalogos/network-access";
 import type { PersistenceMutationTransactionContext } from "@heptalogos/persistence";
 import {
   executeRepositorySql,
@@ -37,6 +39,7 @@ import {
   type AIRuntimeServiceOptions,
   type InvocationSpec,
   type ModelBinding,
+  type ModelBindingCommitProvenance,
   type ModelBindingId,
   type ModelCapability,
   type ModelProfile,
@@ -450,6 +453,51 @@ async function readModelForCommit(
   );
   const row = rows[0];
   return row === undefined ? undefined : modelFromRow(row);
+}
+
+async function assertModelBindingAdmissible(
+  transaction: PersistenceInternalTransaction,
+  provenance: ModelBindingCommitProvenance,
+): Promise<void> {
+  const bindingRows = await executeRepositorySql<BindingRow>(
+    transaction,
+    "SELECT model_binding_id, role, model_profile_id, revision, enabled " +
+      'FROM "heptalogos"."model_binding" WHERE model_binding_id = $1 FOR UPDATE',
+    [provenance.modelBindingId],
+  );
+  const bindingRow = bindingRows[0];
+  const binding = bindingRow === undefined ? undefined : bindingFromRow(bindingRow);
+  const model =
+    binding === undefined
+      ? undefined
+      : await readModelForCommit(transaction, binding.modelProfileId);
+  const gateway =
+    model === undefined
+      ? undefined
+      : await readGatewayForCommit(transaction, model.gatewayProfileId);
+  if (
+    binding === undefined ||
+    !binding.enabled ||
+    binding.revision !== provenance.bindingRevision ||
+    binding.modelBindingId !== provenance.modelBindingId ||
+    model === undefined ||
+    model.modelProfileId !== provenance.modelProfileId ||
+    model.generation !== provenance.modelProfileGeneration ||
+    model.gatewayProfileId !== provenance.gatewayProfileId ||
+    model.modelIdentifier !== provenance.modelIdentifier ||
+    model.protocol !== provenance.protocol ||
+    gateway === undefined ||
+    gateway.gatewayProfileId !== provenance.gatewayProfileId ||
+    !gateway.enabled
+  ) {
+    throw aiRuntimeProblem(
+      "ai.generation_mismatch",
+      "AIRuntime model route is no longer admissible",
+      "The binding, model, or gateway changed before the owning commit",
+      "conflict",
+      "after-change",
+    );
+  }
 }
 
 function assertInputText(value: string, field: string, maximum: number): void {
@@ -1039,44 +1087,18 @@ export function createAIRuntimeService(
       await useRepositoryMutationTransaction(
         transaction,
         async (databaseTransaction) => {
-          const bindingRows = await executeRepositorySql<BindingRow>(
-            databaseTransaction,
-            "SELECT model_binding_id, role, model_profile_id, revision, enabled " +
-              'FROM "heptalogos"."model_binding" WHERE model_binding_id = $1 FOR UPDATE',
-            [provenance.modelBindingId],
-          );
-          const bindingRow = bindingRows[0];
-          const binding =
-            bindingRow === undefined ? undefined : bindingFromRow(bindingRow);
-          const model =
-            binding === undefined
-              ? undefined
-              : await readModelForCommit(databaseTransaction, binding.modelProfileId);
-          const gateway =
-            model === undefined
-              ? undefined
-              : await readGatewayForCommit(databaseTransaction, model.gatewayProfileId);
+          await assertModelBindingAdmissible(databaseTransaction, provenance);
           const configurationRows = await executeRepositorySql<{
             readonly active_revision_id: unknown;
           }>(
             databaseTransaction,
-            'SELECT active_revision_id FROM "heptalogos"."configuration_activation" WHERE scope_key = $1 FOR UPDATE',
-            [JSON.stringify(["installation", transaction.execution.installationId])],
+            'SELECT active_revision_id FROM "heptalogos"."configuration_activation" WHERE definition_id = $1 AND scope_key = $2 FOR UPDATE',
+            [
+              GATEWAY_TRANSPORT_DEFINITION_ID,
+              JSON.stringify(["installation", transaction.execution.installationId]),
+            ],
           );
           if (
-            binding === undefined ||
-            !binding.enabled ||
-            binding.revision !== provenance.bindingRevision ||
-            binding.modelBindingId !== provenance.modelBindingId ||
-            model === undefined ||
-            model.modelProfileId !== provenance.modelProfileId ||
-            model.generation !== provenance.modelProfileGeneration ||
-            model.gatewayProfileId !== provenance.gatewayProfileId ||
-            model.modelIdentifier !== provenance.modelIdentifier ||
-            model.protocol !== provenance.protocol ||
-            gateway === undefined ||
-            gateway.gatewayProfileId !== provenance.gatewayProfileId ||
-            !gateway.enabled ||
             configurationRows[0] === undefined ||
             configurationRows[0].active_revision_id !==
               provenance.configurationRevisionId
@@ -1090,6 +1112,14 @@ export function createAIRuntimeService(
             );
           }
         },
+      );
+    },
+    async assertModelBindingAdmissibleForCommit(
+      transaction: PersistenceMutationTransactionContext,
+      provenance: ModelBindingCommitProvenance,
+    ) {
+      await useRepositoryMutationTransaction(transaction, (databaseTransaction) =>
+        assertModelBindingAdmissible(databaseTransaction, provenance),
       );
     },
     async invoke(spec) {

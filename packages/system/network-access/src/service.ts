@@ -5,12 +5,14 @@
  */
 
 import { parseInstant, type Instant } from "@heptalogos/foundation-contracts";
+import type {
+  ConfigurationRevision,
+  ConfigurationService,
+} from "@heptalogos/configuration";
 import {
   GATEWAY_TRANSPORT_DEFINITION_ID,
-  type ConfigurationRevision,
-  type ConfigurationService,
   type GatewayTransportConfigV1,
-} from "@heptalogos/configuration";
+} from "./contracts.js";
 import {
   type GatewayNetworkTarget,
   type NetworkAccessPolicy,

@@ -13,6 +13,7 @@ import {
 } from "@heptalogos/management";
 import { SUBJECT_CHAT_PLATFORM_ID, type MessagingService } from "@heptalogos/messaging";
 import { assertContractHeader, tokenFromRequest } from "./http-auth.js";
+import { DEFAULT_MANAGEMENT_HTTP_ADMISSION_CONFIG } from "./http-admission.js";
 
 const SUBJECT_CHAT_BASE_PATH = "/subject-chat/v1" as const;
 
@@ -196,7 +197,7 @@ export async function createSubjectChatHttpApp(
   const app = fastify({
     logger: false,
     trustProxy: false,
-    bodyLimit: 64 * 1024,
+    bodyLimit: DEFAULT_MANAGEMENT_HTTP_ADMISSION_CONFIG.bodyLimitBytes,
     exposeHeadRoutes: false,
   });
   await app.register(swagger, {

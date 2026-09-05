@@ -4,8 +4,10 @@
  * @module contracts
  */
 
-import type { Instant } from "@heptalogos/foundation-contracts";
+import type { CanonicalJsonValue, Instant } from "@heptalogos/foundation-contracts";
 import type {
+  ConfigurationDefinition,
+  ConfigurationDefinitionId,
   ConfigurationRevisionId,
   ConfigurationService,
 } from "@heptalogos/configuration";
@@ -32,6 +34,53 @@ export interface NetworkAccessPolicy {
   readonly method: "POST";
   readonly redirects: "DENY";
 }
+
+/** The bounded transport value consumed by NetworkAccess and AIRuntime. */
+export interface GatewayTransportConfigV1 {
+  readonly schemaVersion: 1;
+  readonly timeoutMs: number;
+  readonly requestBodyBudgetBytes: number;
+  readonly responseBodyBudgetBytes: number;
+}
+
+/** Stable current gateway transport-definition identity. */
+export const GATEWAY_TRANSPORT_DEFINITION_ID =
+  "ai.gateway.transport.v1" as ConfigurationDefinitionId;
+
+/** JSON Schema for the NetworkAccess gateway transport value. */
+export const gatewayTransportConfigSchema = Type.Object(
+  {
+    schemaVersion: Type.Literal(1),
+    timeoutMs: Type.Integer({ minimum: 1_000, maximum: 300_000 }),
+    requestBodyBudgetBytes: Type.Integer({
+      minimum: 1,
+      maximum: 4 * 1024 * 1024,
+    }),
+    responseBodyBudgetBytes: Type.Integer({
+      minimum: 1,
+      maximum: 16 * 1024 * 1024,
+    }),
+  },
+  { additionalProperties: false },
+);
+
+/** Owner-provided Configuration definition for controlled gateway transport. */
+export const gatewayTransportConfigurationDefinition: ConfigurationDefinition =
+  Object.freeze({
+    schemaVersion: 1 as const,
+    definitionId: GATEWAY_TRANSPORT_DEFINITION_ID,
+    owner: "system.network-access",
+    version: 1,
+    scopeKind: "INSTALLATION" as const,
+    valueSchema: gatewayTransportConfigSchema as unknown as CanonicalJsonValue,
+    classification: "INSTALLATION_CONFIG" as const,
+    visibility: "EXPERT" as const,
+    manageability: "EDITABLE" as const,
+    activation: "LIVE" as const,
+    sensitivity: "INTERNAL" as const,
+    defaultAuthority: "NO_DEFAULT_REQUIRED" as const,
+    consumerRefs: Object.freeze(["system.network-access", "system.ai-runtime"]),
+  });
 
 /** Redacted NetworkAccess diagnostics safe for Management projection. */
 export interface NetworkAccessDiagnostics {

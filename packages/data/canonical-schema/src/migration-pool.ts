@@ -126,6 +126,7 @@ export interface CanonicalDatabase {
   };
   readonly configuration_activation: {
     readonly activation_id: string;
+    readonly definition_id: string;
     readonly scope_ref: unknown;
     readonly scope_key: string;
     readonly active_revision_id: string;

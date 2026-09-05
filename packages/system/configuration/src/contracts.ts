@@ -16,7 +16,10 @@ import type {
   LineageContextRef,
 } from "@heptalogos/execution-lineage";
 import type { EvidenceRef, EvidenceService } from "@heptalogos/evidence";
-import type { PersistenceService } from "@heptalogos/persistence";
+import type {
+  PersistenceMutationTransactionContext,
+  PersistenceService,
+} from "@heptalogos/persistence";
 import type { TimeService } from "@heptalogos/time-service";
 import { Type } from "@heptalogos/schema-runtime/typebox";
 
@@ -66,14 +69,6 @@ export interface ConfigurationDefinition {
   readonly consumerRefs: readonly string[];
 }
 
-/** The only current mutable gateway transport configuration value. */
-export interface GatewayTransportConfigV1 {
-  readonly schemaVersion: 1;
-  readonly timeoutMs: number;
-  readonly requestBodyBudgetBytes: number;
-  readonly responseBodyBudgetBytes: number;
-}
-
 /** A committed immutable managed Configuration revision. */
 export interface ConfigurationRevision {
   readonly schemaVersion: 1;
@@ -93,6 +88,7 @@ export interface ConfigurationRevision {
 export interface ConfigurationActivation {
   readonly schemaVersion: 1;
   readonly activationId: ConfigurationActivationId;
+  readonly definitionId: ConfigurationDefinitionId;
   readonly scopeRef: ConfigurationScopeRef;
   readonly activeRevisionId: ConfigurationRevisionId;
   readonly previousRevisionId?: ConfigurationRevisionId;
@@ -117,6 +113,8 @@ export interface ActivateConfigurationInput {
 
 /** Options binding Configuration to existing Foundation owners. */
 export interface ConfigurationServiceOptions {
+  /** Current Product composition's owner-provided definitions. */
+  readonly definitions: readonly ConfigurationDefinition[];
   readonly persistence: PersistenceService;
   readonly time: TimeService;
   readonly execution: ExecutionContextRuntime;
@@ -141,6 +139,7 @@ export interface ConfigurationService {
   ): Promise<ConfigurationRevision | undefined>;
   /** Reads the active revision for one scope. */
   getActivation(
+    definitionId: ConfigurationDefinitionId | string,
     scopeRef: ConfigurationScopeRef,
   ): Promise<ConfigurationActivation | undefined>;
   /** Resolves the effective revision for one definition and scope. */
@@ -148,6 +147,15 @@ export interface ConfigurationService {
     definitionId: ConfigurationDefinitionId | string,
     scopeRef: ConfigurationScopeRef,
   ): Promise<ConfigurationRevision | undefined>;
+  /** Revalidates one active revision inside a caller-owned mutation transaction. */
+  assertActiveRevisionForCommit(
+    transaction: PersistenceMutationTransactionContext,
+    input: {
+      readonly definitionId: ConfigurationDefinitionId | string;
+      readonly scopeRef: ConfigurationScopeRef;
+      readonly revisionId: ConfigurationRevisionId | string;
+    },
+  ): Promise<void>;
   /** Commits one immutable managed revision. */
   createRevision(
     input: CreateConfigurationRevisionInput,
@@ -161,10 +169,6 @@ export interface ConfigurationService {
   ): CanonicalJsonValue;
 }
 
-/** Stable current gateway transport-definition identity. */
-export const GATEWAY_TRANSPORT_DEFINITION_ID =
-  "ai.gateway.transport.v1" as ConfigurationDefinitionId;
-
 const scopeRefSchema = Type.Object(
   {
     schemaVersion: Type.Literal(1),
@@ -174,29 +178,12 @@ const scopeRefSchema = Type.Object(
   { additionalProperties: false },
 );
 
-/** JSON Schema for the current gateway transport value. */
-export const gatewayTransportConfigSchema = Type.Object(
-  {
-    schemaVersion: Type.Literal(1),
-    timeoutMs: Type.Integer({ minimum: 1_000, maximum: 300_000 }),
-    requestBodyBudgetBytes: Type.Integer({
-      minimum: 1,
-      maximum: 4 * 1024 * 1024,
-    }),
-    responseBodyBudgetBytes: Type.Integer({
-      minimum: 1,
-      maximum: 16 * 1024 * 1024,
-    }),
-  },
-  { additionalProperties: false },
-);
-
 /** JSON Schema for the normalized revision-create action input. */
 export const configurationRevisionCreateInputSchema = Type.Object(
   {
-    definitionId: Type.Literal(GATEWAY_TRANSPORT_DEFINITION_ID),
+    definitionId: Type.String({ minLength: 1, maxLength: 256 }),
     scopeRef: scopeRefSchema,
-    value: gatewayTransportConfigSchema,
+    value: Type.Unknown(),
   },
   { additionalProperties: false },
 );

@@ -20,7 +20,10 @@ import {
 } from "@heptalogos/foundation-contracts";
 import type { ExecutionContextRuntime } from "@heptalogos/execution-lineage";
 import type { AIRuntimeService } from "@heptalogos/ai-runtime";
-import type { ConfigurationService } from "@heptalogos/configuration";
+import type {
+  ConfigurationDefinition,
+  ConfigurationService,
+} from "@heptalogos/configuration";
 import type { NetworkAccessService } from "@heptalogos/network-access";
 import type { SecretService } from "@heptalogos/secret";
 import type { PersistenceService } from "@heptalogos/persistence";
@@ -117,6 +120,8 @@ export interface SubjectManagementPort {
     readonly subjectId: string;
     readonly expectedAuthorityRevision: number;
   }): Promise<import("./contracts.js").SubjectStatusProjection>;
+  /** Reconciles the Product-supervised cognition runtime after an effective route change. */
+  readonly reconcileRuntime?: () => Promise<void>;
 }
 
 /** Bounds the Management service's canonical mutation activity owner. */
@@ -582,6 +587,7 @@ async function actionPreconditions(
   switch (action.actionId) {
     case "configuration.revision.create": {
       const activation = await owners.configuration.getActivation(
+        action.input.definitionId,
         action.input.scopeRef,
       );
       return Object.freeze([
@@ -602,7 +608,10 @@ async function actionPreconditions(
           "conflict",
         );
       }
-      const activation = await owners.configuration.getActivation(revision.scopeRef);
+      const activation = await owners.configuration.getActivation(
+        revision.definitionId,
+        revision.scopeRef,
+      );
       return Object.freeze([
         precondition("configuration-revision", revision.revisionId, revision),
         precondition(
@@ -684,14 +693,52 @@ async function actionPreconditions(
   }
 }
 
-function actionOwners(action: SystemActionRequest): readonly ProductSemanticId[] {
+async function configurationDefinitionForAction(
+  action: SystemActionRequest,
+  configuration: ConfigurationService,
+): Promise<ConfigurationDefinition> {
+  let definitionId: string | undefined;
+  if (action.actionId === "configuration.revision.create") {
+    definitionId = action.input.definitionId;
+  } else if (action.actionId === "configuration.activate") {
+    definitionId = (await configuration.getRevision(action.input.revisionId))
+      ?.definitionId;
+  }
+  if (definitionId === undefined) {
+    throw managementProblem(
+      "management.configuration_revision_not_found",
+      "Configuration revision was not found",
+      "The requested ConfigurationRevision is not current",
+      "conflict",
+    );
+  }
+  const definition = configuration.getDefinition(definitionId);
+  if (definition === undefined) {
+    throw managementProblem(
+      "management.configuration_definition_not_found",
+      "Configuration definition was not found",
+      "The requested ConfigurationDefinition is not current",
+      "conflict",
+    );
+  }
+  return definition;
+}
+
+async function actionOwners(
+  action: SystemActionRequest,
+  configuration: ConfigurationService,
+): Promise<readonly ProductSemanticId[]> {
   switch (action.actionId) {
     case "configuration.revision.create":
-    case "configuration.activate":
-      return Object.freeze([
-        "system.configuration" as ProductSemanticId,
-        "system.network-access" as ProductSemanticId,
-      ]);
+    case "configuration.activate": {
+      const definition = await configurationDefinitionForAction(action, configuration);
+      return Object.freeze(
+        [
+          "system.configuration" as ProductSemanticId,
+          definition.owner as ProductSemanticId,
+        ].filter((owner, index, owners) => owners.indexOf(owner) === index),
+      );
+    }
     case "secret.set":
     case "secret.replace":
     case "secret.revoke":
@@ -709,10 +756,59 @@ function actionOwners(action: SystemActionRequest): readonly ProductSemanticId[]
   }
 }
 
-function actionImpact(action: SystemActionRequest): {
+async function actionImpact(
+  action: SystemActionRequest,
+  configuration: ConfigurationService,
+): Promise<{
   readonly readiness: CanonicalJsonValue;
   readonly restart: CanonicalJsonValue;
-} {
+}> {
+  if (
+    action.actionId === "configuration.revision.create" ||
+    action.actionId === "configuration.activate"
+  ) {
+    const definition = await configurationDefinitionForAction(action, configuration);
+    const staged = action.actionId === "configuration.revision.create";
+    const activation = definition.activation;
+    const restartRequired =
+      !staged &&
+      (activation === "RESTART_COMPONENT" ||
+        activation === "RESTART_SUBJECT" ||
+        activation === "RESTART_HOST" ||
+        activation === "MAINTENANCE" ||
+        activation === "NEXT_BOOT" ||
+        activation === "IMMUTABLE_AFTER_INIT");
+    const reconciliation = staged
+      ? "staged-until-activation"
+      : activation === "LIVE"
+        ? "immediate"
+        : activation === "RELOAD_COMPONENT"
+          ? "reload-component"
+          : activation === "RESTART_COMPONENT"
+            ? "restart-component"
+            : activation === "RESTART_SUBJECT"
+              ? "restart-subject"
+              : activation === "RESTART_HOST"
+                ? "restart-host"
+                : activation === "MAINTENANCE"
+                  ? "maintenance"
+                  : activation === "NEXT_BOOT"
+                    ? "next-boot"
+                    : "immutable-after-init";
+    return {
+      readiness: Object.freeze({
+        configurationDefinitionId: definition.definitionId,
+        activation,
+        consumerRefs: Object.freeze([...definition.consumerRefs]),
+        effective: staged ? "after-activation" : "active-revision",
+      }) as unknown as CanonicalJsonValue,
+      restart: Object.freeze({
+        restartRequired,
+        activation,
+        reconciliation,
+      }) as unknown as CanonicalJsonValue,
+    };
+  }
   const readiness = Object.freeze({
     gatewayPrerequisiteReadiness: "re-evaluate",
     subjectDispatch: "re-evaluate",
@@ -721,8 +817,22 @@ function actionImpact(action: SystemActionRequest): {
     restartRequired: false,
     reconciliation: "immediate",
   });
-  void action;
   return { readiness, restart };
+}
+
+function actionReconcilesSubjectRuntime(action: SystemActionRequest): boolean {
+  switch (action.actionId) {
+    case "configuration.activate":
+    case "gateway-profile.set":
+    case "model-profile.set":
+    case "model-binding.set":
+    case "secret.set":
+    case "secret.replace":
+    case "secret.revoke":
+      return true;
+    default:
+      return false;
+  }
 }
 
 function planDigest(plan: SystemChangePlan): ManagementDigest {
@@ -925,7 +1035,10 @@ async function verifyPostcondition(
     case "configuration.activate": {
       const revision = await owners.configuration.getRevision(action.input.revisionId);
       if (revision === undefined) return false;
-      const activation = await owners.configuration.getActivation(revision.scopeRef);
+      const activation = await owners.configuration.getActivation(
+        revision.definitionId,
+        revision.scopeRef,
+      );
       return activation?.activeRevisionId === action.input.revisionId;
     }
     case "secret.set":
@@ -1215,7 +1328,7 @@ function createManagementServiceWithRepository(
             "conflict",
           );
         }
-        const impact = actionImpact(action);
+        const impact = await actionImpact(action, owners.configuration);
         const draft: SystemChangePlan = Object.freeze({
           schemaVersion: 1,
           planId: createUuidV7Id("SystemChangePlanId"),
@@ -1223,7 +1336,7 @@ function createManagementServiceWithRepository(
           actionVersion: definition.actionVersion,
           normalizedInputDigest: normalizedInputDigest(action),
           targetPreconditions: preconditions,
-          affectedSemanticOwners: actionOwners(action),
+          affectedSemanticOwners: await actionOwners(action, owners.configuration),
           configurationReadinessSubjectImpact: impact.readiness,
           restartReconcileImpact: impact.restart,
           riskClass: definition.riskClass,
@@ -1308,6 +1421,9 @@ function createManagementServiceWithRepository(
                 ? null
                 : targetPrecondition.expectedDigest;
           const result = await dispatchAction(action, owners, expectedDigest);
+          if (actionReconcilesSubjectRuntime(action)) {
+            await owners.subject.reconcileRuntime?.().catch(() => undefined);
+          }
           const postconditionsVerified = await verifyPostcondition(
             action,
             result,

@@ -9,6 +9,7 @@ import {
   type CanonicalConversationId,
   type CanonicalMessageId,
   type CommunicationCommitId,
+  type CanonicalJsonValue,
   type InstallationId,
   type Instant,
   type PackageGenerationId,
@@ -36,6 +37,19 @@ import type {
 } from "@heptalogos/runtime-kernel";
 import type { TimeService } from "@heptalogos/time-service";
 import type {
+  ConfigurationDefinition,
+  ConfigurationDefinitionId,
+  ConfigurationRevisionId,
+  ConfigurationService,
+} from "@heptalogos/configuration";
+import type {
+  GatewayProfileId,
+  ModelInvocationProtocol,
+  ModelBindingId,
+  ModelProfileId,
+} from "@heptalogos/ai-runtime";
+import { Type } from "@heptalogos/schema-runtime/typebox";
+import type {
   PreparedWorkCreation,
   WorkErrorClassifier,
   WorkQueueService,
@@ -59,6 +73,107 @@ export const SUBJECT_REACTION_QUEUE_PROFILE_ID = createMicroSystemId(
 export const SUBJECT_REACTION_RESOURCE_CLASS = createMicroSystemId(
   "resource.subject-reaction",
 ) as never;
+
+/** Stable current Subject Expression configuration-definition identity. */
+export const SUBJECT_EXPRESSION_CONFIGURATION_DEFINITION_ID =
+  "subject.expression.v1" as ConfigurationDefinitionId;
+
+/** Product-owned budget used by the independent Expression invocation. */
+export interface SubjectExpressionConfigV1 {
+  readonly schemaVersion: 1;
+  readonly maxOutputTokens: number;
+}
+
+/** JSON Schema for the current Subject Expression configuration. */
+export const subjectExpressionConfigSchema = Type.Object(
+  {
+    schemaVersion: Type.Literal(1),
+    maxOutputTokens: Type.Integer({ minimum: 1, maximum: 4_096 }),
+  },
+  { additionalProperties: false },
+);
+
+/** Product Subject owner-provided Expression configuration definition. */
+export const subjectExpressionConfigurationDefinition: ConfigurationDefinition =
+  Object.freeze({
+    schemaVersion: 1 as const,
+    definitionId: SUBJECT_EXPRESSION_CONFIGURATION_DEFINITION_ID,
+    owner: "product.subject",
+    version: 1,
+    scopeKind: "SUBJECT" as const,
+    valueSchema: subjectExpressionConfigSchema as unknown as CanonicalJsonValue,
+    classification: "SUBJECT_CONFIG" as const,
+    visibility: "ADVANCED" as const,
+    manageability: "EDITABLE" as const,
+    activation: "LIVE" as const,
+    sensitivity: "INTERNAL" as const,
+    defaultAuthority: "PRODUCT_DEFAULT" as const,
+    consumerRefs: Object.freeze(["product.subject.expression"]),
+  });
+
+/** Explicit Product default pinned on first Subject materialization. */
+export const DEFAULT_SUBJECT_EXPRESSION_CONFIG: SubjectExpressionConfigV1 =
+  Object.freeze({ schemaVersion: 1, maxOutputTokens: 256 });
+
+/** Stable current Subject cognition runtime configuration-definition identity. */
+export const SUBJECT_COGNITION_CONFIGURATION_DEFINITION_ID =
+  "subject.cognition.runtime.v1" as ConfigurationDefinitionId;
+
+/** Product-owned bounds that constrain one OpenClaw cognition run. */
+export interface SubjectCognitionConfigV1 {
+  readonly schemaVersion: 1;
+  readonly enabled: boolean;
+  readonly profile: "subject";
+  readonly maxOutputTokens: number;
+  readonly runTimeoutMs: number;
+  readonly maxContextBytes: number;
+}
+
+/** JSON Schema for the current Subject cognition runtime configuration. */
+export const subjectCognitionConfigSchema = Type.Object(
+  {
+    schemaVersion: Type.Literal(1),
+    enabled: Type.Boolean(),
+    profile: Type.Literal("subject"),
+    maxOutputTokens: Type.Integer({ minimum: 1, maximum: 4_096 }),
+    runTimeoutMs: Type.Integer({ minimum: 1_000, maximum: 120_000 }),
+    maxContextBytes: Type.Integer({ minimum: 4_096, maximum: 262_144 }),
+  },
+  { additionalProperties: false },
+);
+
+/** Product Subject owner-provided cognition runtime configuration definition. */
+export const subjectCognitionConfigurationDefinition: ConfigurationDefinition =
+  Object.freeze({
+    schemaVersion: 1 as const,
+    definitionId: SUBJECT_COGNITION_CONFIGURATION_DEFINITION_ID,
+    owner: "product.subject",
+    version: 1,
+    scopeKind: "SUBJECT" as const,
+    valueSchema: subjectCognitionConfigSchema as unknown as CanonicalJsonValue,
+    classification: "SUBJECT_CONFIG" as const,
+    visibility: "ADVANCED" as const,
+    manageability: "EDITABLE" as const,
+    activation: "LIVE" as const,
+    sensitivity: "INTERNAL" as const,
+    defaultAuthority: "PRODUCT_DEFAULT" as const,
+    consumerRefs: Object.freeze([
+      "product.subject.cognition",
+      "product-host.subject-openclaw",
+    ]),
+  });
+
+/** Explicit Product default pinned on first Subject cognition materialization. */
+export const DEFAULT_SUBJECT_COGNITION_CONFIG: SubjectCognitionConfigV1 = Object.freeze(
+  {
+    schemaVersion: 1,
+    enabled: true,
+    profile: "subject",
+    maxOutputTokens: 256,
+    runTimeoutMs: 60_000,
+    maxContextBytes: 65_536,
+  },
+);
 
 /** Durable Subject authority; desired state is the only persistent lifecycle intent. */
 export interface SubjectAuthorityRecord {
@@ -114,6 +229,64 @@ export type ConversationReactionProposal =
       readonly kind: "NO_COMMUNICATION";
     };
 
+/** Bounded context supplied from the canonical Subject owner to its runtime. */
+export interface ConversationCognitionInput {
+  readonly subjectId: SubjectId;
+  readonly reactionId: ReactionId;
+  readonly contextProjection: CanonicalJsonValue;
+}
+
+/** Public terminal status returned by the OpenClaw agent.wait contract. */
+export type SubjectCognitionTerminalStatus = "ok" | "error" | "timeout";
+
+/** Stable provider provenance captured from one accepted cognition proposal. */
+export interface SubjectCognitionProvenance {
+  readonly schemaVersion: 1;
+  readonly provider: "openclaw";
+  readonly runtimeGeneration: string;
+  readonly openclawVersion: "2026.9.1";
+  readonly profile: "subject";
+  readonly agentId: string;
+  readonly sessionKey: string;
+  readonly runId: string;
+  readonly modelProvider: string;
+  readonly modelIdentifier: string;
+  readonly modelBindingId: ModelBindingId;
+  readonly bindingRevision: number;
+  readonly modelProfileId: ModelProfileId;
+  readonly modelProfileGeneration: number;
+  readonly gatewayProfileId: GatewayProfileId;
+  readonly configurationRevisionId: ConfigurationRevisionId;
+  readonly gatewayConfigurationRevisionId: ConfigurationRevisionId;
+  readonly protocol: ModelInvocationProtocol;
+  readonly terminalToolName:
+    "heptalogos_propose_communication" | "heptalogos_complete_without_communication";
+  readonly terminalStatus: SubjectCognitionTerminalStatus;
+}
+
+/** One bounded proposal plus the provider evidence needed by deterministic Review. */
+export interface SubjectCognitionProposal {
+  readonly proposal: ConversationReactionProposal;
+  readonly provenance: SubjectCognitionProvenance;
+}
+
+/** Current Subject-side cognition runtime readiness projection. */
+export interface SubjectCognitionRuntimeReadiness {
+  readonly schemaVersion: 1;
+  readonly state: "READY" | "BLOCKED";
+  readonly blockers: readonly SubjectBlocker[];
+}
+
+/** Narrow mechanics port between Subject semantics and its cognition harness. */
+export interface SubjectCognitionRuntime {
+  /** Runs one terminal cognition reaction and returns its typed proposal. */
+  runConversationReaction(
+    input: ConversationCognitionInput,
+  ): Promise<SubjectCognitionProposal>;
+  /** Reports readiness for the current effective runtime projection. */
+  readiness(): Promise<SubjectCognitionRuntimeReadiness>;
+}
+
 /** One current durable Reaction workspace owned by Subject. */
 export interface Reaction {
   readonly schemaVersion: 1;
@@ -148,14 +321,7 @@ export interface CommunicationCommit {
   readonly purpose: "reply";
   readonly semanticContent: ConversationSemanticContent;
   readonly semanticContentDigest: string;
-  readonly primaryInvocationId: string;
-  readonly primaryModelBindingId: string;
-  readonly primaryBindingRevision: number;
-  readonly primaryModelProfileId: string;
-  readonly primaryModelProfileGeneration: number;
-  readonly primaryGatewayProfileId: string;
-  readonly primaryConfigurationRevisionId: string;
-  readonly primaryProtocol: "openai-chat" | "openai-responses";
+  readonly primaryCognitionProvenance: SubjectCognitionProvenance;
   readonly committedAt: Instant;
   readonly lineageContextRef: LineageContextRef;
 }
@@ -241,8 +407,12 @@ export interface SubjectServiceOptions {
   readonly messaging: MessagingService;
   /** Narrow WorkQueue creation seam. */
   readonly workQueue: Pick<WorkQueueService, "prepareCreate" | "commitPrepared">;
-  /** AIRuntime invocation and commit-fence owner. */
+  /** AIRuntime Expression invocation and commit-fence owner. */
   readonly aiRuntime: AIRuntimeService;
+  /** Subject cognition mechanics port; the Product Host supplies OpenClaw. */
+  readonly cognitionRuntime: SubjectCognitionRuntime;
+  /** Current managed Product configuration owner. */
+  readonly configuration: ConfigurationService;
   /** Current hard prerequisite projection supplied by ProductHost. */
   readonly getHardPrerequisites: () => Promise<SubjectDependencyReadiness>;
   /** Generation-pinned target for the Subject Reaction handler. */

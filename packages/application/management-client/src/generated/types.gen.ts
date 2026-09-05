@@ -830,18 +830,13 @@ export type PlanSystemActionData = {
     body: {
         actionId: 'configuration.revision.create';
         input: {
-            definitionId: 'ai.gateway.transport.v1';
+            definitionId: string;
             scopeRef: {
                 schemaVersion: 1;
                 resourceKind: string;
                 resourceId: string;
             };
-            value: {
-                schemaVersion: 1;
-                timeoutMs: number;
-                requestBodyBudgetBytes: number;
-                responseBodyBudgetBytes: number;
-            };
+            value: unknown;
         };
     } | {
         actionId: 'configuration.activate';
@@ -1081,18 +1076,13 @@ export type ExecuteSystemActionData = {
         action: {
             actionId: 'configuration.revision.create';
             input: {
-                definitionId: 'ai.gateway.transport.v1';
+                definitionId: string;
                 scopeRef: {
                     schemaVersion: 1;
                     resourceKind: string;
                     resourceId: string;
                 };
-                value: {
-                    schemaVersion: 1;
-                    timeoutMs: number;
-                    requestBodyBudgetBytes: number;
-                    responseBodyBudgetBytes: number;
-                };
+                value: unknown;
             };
         } | {
             actionId: 'configuration.activate';

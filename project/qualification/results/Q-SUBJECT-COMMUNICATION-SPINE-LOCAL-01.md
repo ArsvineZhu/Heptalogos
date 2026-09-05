@@ -7,6 +7,10 @@ date: 2026-09-04
 evidenceStatus: PASS
 testedProperty: accepted MessageFact through bounded conversation proposal, optional CommunicationCommit, independent Expression, and exactly-once local outbound MessageFact with Subject authority fencing and process re-entry
 testedRevision: ddb42f09c83149c024b8165a122c59d1724a5066 baseline plus the current P1 working tree at qualification time
+continuousFollowUp:
+  plan: tmp/heptalogos-next-spec-pack-2026-09-04/P3-subject-openclaw-runtime-integration.md
+  date: 2026-09-05
+  evidenceStatus: PASS
 ```
 
 ## Boundary and environment
@@ -67,12 +71,12 @@ A_no_communication_without_commit_or_outbound: PASS
 B_communication_commit_independent_expression_one_outbound: PASS
 C_stop_before_communication_commit_supersedes_stale_reaction: PASS
 D_stop_after_communication_commit_allows_outbound_completion: PASS
-E_prepared_inbound_old_authority_revision_rejected: NOT_RUN
+E_prepared_inbound_old_authority_revision_rejected: PASS
 F_second_inbound_supersedes_only_precommit_reaction: PASS
 G_context_projection_excludes_consumed_earlier_facts: PASS
 H1_crash_before_proposal_acceptance_retries_primary: PASS
 H2_crash_after_communication_commit_before_outbound_reenters_expression: PASS
-H3_crash_after_outbound_before_work_item_completion: NOT_RUN
+H3_crash_after_outbound_before_work_item_completion: PASS
 current_runtime_obsolete_machinery_absent: PASS
 cross_platform_qualification: NOT_RUN
 source_less_qualification: NOT_RUN
@@ -88,8 +92,14 @@ restart, re-entry resumed Expression without another primary invocation and
 materialized exactly one outbound MessageFact. The integration also proved
 post-commit stop does not erase the committed communication.
 
-E was not separately executed at the internal prepare/commit transaction seam;
-the implementation performs the authorityRevision check inside the commit
-transaction. H3 was not separately executed at the post-outbound/pre-WorkItem
-completion boundary. Neither `NOT_RUN` status is upgraded by the local fixture
-or by repository checks.
+The original P1 execution recorded E and H3 as `NOT_RUN` because those two
+internal timing boundaries were not exercised in that run. During the
+continuing, explicitly authorized P3 execution, the same current Product Host
+and real private PostgreSQL fixture exercised both boundaries: E prepared an
+inbound message under the old Subject authority while a concurrent stop held
+the Subject authority fence and received `subject.stale_authority_revision`;
+H3 held the WorkItem after one outbound MessageFact had committed, crashed the
+Host, and after restart reconciled the existing fact to `SUCCEEDED` without a
+duplicate outbound. The current statuses above are therefore `PASS` for this
+follow-up evidence, while the historical P1 execution state remains
+`NOT_RUN`.

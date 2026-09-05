@@ -27,7 +27,6 @@ const commandLabel = nxArgs.join(" ").slice(0, 180);
 
 function stripAnsi(value) {
   return value.replace(
-    // eslint-disable-next-line no-control-regex
     /[\u001B\u009B][[\]()#;?]*(?:(?:[a-zA-Z\d]*(?:;[-a-zA-Z\d/#&.:=?%@~_]+)*)?\u0007|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/gu,
     "",
   );
@@ -69,6 +68,7 @@ if (nxArgs.length === 0) {
     const result = await runPnpm(["exec", "nx", ...nxArgs], {
       cwd: root,
       env: {
+        ...process.env,
         // Nx otherwise reintroduces FORCE_COLOR for child processes, which
         // produces one warning per Node worker when NO_COLOR is present.
         FORCE_COLOR: "0",

@@ -41,6 +41,8 @@ function normalizePath(root, path) {
 function isPackageBuildInput(path) {
   if (!path.startsWith("packages/")) return false;
   if (path === generatedIdentityPath) return false;
+  if (path === "packages/application/product-host/src/openclaw.plugin.json")
+    return true;
   if (path.includes("/test/") || path.includes("/tests/")) return false;
   if (path.endsWith("/README.md")) return false;
   return (

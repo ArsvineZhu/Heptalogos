@@ -10,10 +10,10 @@ import type { DurableCodeVersion } from "@heptalogos/foundation-contracts";
 import type { BootstrapRuntimeGenerationId } from "@heptalogos/bootstrap-state";
 
 /** Product content identity materialized by the build. */
-export const PRODUCT_GENERATION_ID = "0e87c27a5ed12ab69e99f355e46312430fa9023d22d3d0aadefe7451986186e5" as ProductGenerationId;
+export const PRODUCT_GENERATION_ID = "aa2266e721df50cdc427d8e38e1630a1b659f25cc99c8766f5bb61b343893a4b" as ProductGenerationId;
 /** Bootstrap runtime content identity materialized by the build. */
-export const BOOTSTRAP_RUNTIME_GENERATION_ID = "717b3ab130bfcc5a85a8aff330436ca1027e4790e7fafac91502063e96115ca6" as BootstrapRuntimeGenerationId;
+export const BOOTSTRAP_RUNTIME_GENERATION_ID = "8709e0d74b8e230517fede8596e92a555232949cb10a4ba79a3bac3153e6cb18" as BootstrapRuntimeGenerationId;
 /** Subject package content identity used by the generation-pinned Reaction handler. */
-export const SUBJECT_PACKAGE_GENERATION_ID = "96b8d6f2e26b06e17b78aa04359921e1f706267ee3354aee9e6dfc870ef14717" as PackageGenerationId;
+export const SUBJECT_PACKAGE_GENERATION_ID = "2227b6b4b8ad79cd823cc71b6a058b20ecf0ffaf6e1734dd77286676c478d74e" as PackageGenerationId;
 /** Durable execution code identity projected into DBOS applicationVersion. */
-export const DURABLE_CODE_VERSION = "a2958b98dba06b5b481a3fee08b988507d3c235e930e9f0e587c32a7e21ded9c" as DurableCodeVersion;
+export const DURABLE_CODE_VERSION = "3cf0f2784418cbb6db158305f4739feab290f83c3873fed9e419530d9be6912c" as DurableCodeVersion;

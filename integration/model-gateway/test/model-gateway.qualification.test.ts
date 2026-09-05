@@ -17,7 +17,10 @@ import { createEvidenceService } from "@heptalogos/evidence";
 import { createSystemTimeService } from "@heptalogos/time-service";
 import { createConfigurationService } from "@heptalogos/configuration";
 import { createSecretService } from "@heptalogos/secret";
-import { createNetworkAccessService } from "@heptalogos/network-access";
+import {
+  createNetworkAccessService,
+  gatewayTransportConfigurationDefinition,
+} from "@heptalogos/network-access";
 import { createAIRuntimeService } from "@heptalogos/ai-runtime";
 import {
   boot,
@@ -237,6 +240,7 @@ suite("manual model gateway qualification", () => {
       const lineage = createExecutionLineageService();
       const evidence = createEvidenceService(time);
       const configuration = createConfigurationService({
+        definitions: [gatewayTransportConfigurationDefinition],
         persistence,
         time,
         execution: runtime,

@@ -591,14 +591,14 @@ export function createSecretService(options: SecretServiceOptions): SecretServic
         );
       }
       if (
-        context.consumer !== "system.ai-runtime" ||
+        !["system.ai-runtime", "product.subject.openclaw"].includes(context.consumer) ||
         context.purpose !== "ai.gateway.bearer-token" ||
         context.resourceRef?.resourceKind !== "gateway-profile"
       ) {
         throw secretProblem(
           "secret.unauthorized",
           "Secret consumer is not authorized",
-          "The current Product route only authorizes gateway bearer tokens for AIRuntime",
+          "The current Product route only authorizes gateway bearer tokens for AIRuntime or the isolated Subject OpenClaw runtime",
           "conflict",
           "after-change",
         );

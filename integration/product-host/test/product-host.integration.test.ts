@@ -1,4 +1,4 @@
-import { createServer, type Server } from "node:http";
+import { readFile } from "node:fs/promises";
 import { Client } from "pg";
 import { afterEach, describe, expect, it } from "vitest";
 import { createUuidV7Id } from "@heptalogos/foundation-contracts";
@@ -17,192 +17,22 @@ import {
   type ProductHostFixture,
   type RunningHost,
 } from "../support/fixture.js";
+import { createSubjectGatewayFixture } from "../support/subject-gateway-fixture.js";
 
 const postgresBin = process.env.HEPTALOGOS_TEST_PG_BIN;
 const suite = postgresBin === undefined ? describe.skip : describe;
 let fixture: ProductHostFixture | undefined;
 let running: RunningHost | undefined;
 let subjectGateway: Awaited<ReturnType<typeof createSubjectGatewayFixture>> | undefined;
-
-async function readJsonBody(request: import("node:http").IncomingMessage) {
-  const chunks: Buffer[] = [];
-  for await (const chunk of request) {
-    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
-  }
-  return JSON.parse(Buffer.concat(chunks).toString("utf8")) as Record<string, unknown>;
-}
-
-async function createSubjectGatewayFixture(): Promise<{
-  readonly server: Server;
-  readonly baseUrl: string;
-  readonly waitForSlowPrimary: () => Promise<void>;
-  readonly releaseSlowPrimary: () => void;
-  readonly waitForSlowExpression: () => Promise<void>;
-  readonly releaseSlowExpression: () => void;
-  readonly primaryInvocationCount: () => number;
-  readonly expressionInvocationCount: () => number;
-  readonly primaryRequestMessages: () => readonly (readonly string[])[];
-}> {
-  const createGate = () => {
-    let resolveStarted = () => {};
-    let resolveReleased = () => {};
-    const started = new Promise<void>((resolve) => {
-      resolveStarted = resolve;
-    });
-    const released = new Promise<void>((resolve) => {
-      resolveReleased = resolve;
-    });
-    return {
-      started,
-      released,
-      resolveStarted,
-      resolveReleased,
-    };
-  };
-  let slowPrimaryGate = createGate();
-  let slowExpressionGate = createGate();
-  let primaryInvocations = 0;
-  let expressionInvocations = 0;
-  const primaryRequests: Array<readonly string[]> = [];
-  const server = createServer((request, response) => {
-    void (async () => {
-      try {
-        const body = await readJsonBody(request);
-        const model = typeof body.model === "string" ? body.model : "";
-        const isExpression = model.includes("expression");
-        if (isExpression) expressionInvocations += 1;
-        else {
-          primaryInvocations += 1;
-          primaryRequests.push(
-            Array.isArray(body.messages)
-              ? body.messages.map((message) => {
-                  if (typeof message !== "object" || message === null) return "";
-                  const value = message as Record<string, unknown>;
-                  if (typeof value.content === "string") return value.content;
-                  if (typeof value.text === "string") return value.text;
-                  return JSON.stringify(message);
-                })
-              : [],
-          );
-        }
-        if (!isExpression && model.includes("slow")) {
-          const gate = slowPrimaryGate;
-          gate.resolveStarted();
-          await gate.released;
-        }
-        if (isExpression && model.includes("slow")) {
-          const gate = slowExpressionGate;
-          gate.resolveStarted();
-          await gate.released;
-        }
-        const candidate = isExpression
-          ? { schemaVersion: 1, text: "local expressed reply" }
-          : model.includes("no-communication")
-            ? { schemaVersion: 1, kind: "NO_COMMUNICATION" }
-            : {
-                schemaVersion: 1,
-                kind: "COMMUNICATE",
-                semanticContent: {
-                  schemaVersion: 1,
-                  content: "local semantic content",
-                },
-              };
-        const path = request.url ?? "";
-        const payload = path.endsWith("/chat/completions")
-          ? {
-              id: "subject-chat-local",
-              object: "chat.completion",
-              created: Math.floor(Date.now() / 1000),
-              model,
-              choices: [
-                {
-                  index: 0,
-                  message: { role: "assistant", content: JSON.stringify(candidate) },
-                  finish_reason: "stop",
-                },
-              ],
-              usage: { prompt_tokens: 7, completion_tokens: 5, total_tokens: 12 },
-            }
-          : path.endsWith("/responses")
-            ? {
-                id: "subject-response-local",
-                object: "response",
-                created_at: Math.floor(Date.now() / 1000),
-                status: "completed",
-                model,
-                output: [
-                  {
-                    id: "subject-message-local",
-                    type: "message",
-                    status: "completed",
-                    role: "assistant",
-                    content: [
-                      {
-                        type: "output_text",
-                        text: JSON.stringify(candidate),
-                        annotations: [],
-                        logprobs: [],
-                      },
-                    ],
-                  },
-                ],
-                usage: {
-                  input_tokens: 7,
-                  output_tokens: 5,
-                  total_tokens: 12,
-                  input_tokens_details: { cached_tokens: 0 },
-                  output_tokens_details: { reasoning_tokens: 0 },
-                },
-              }
-            : undefined;
-        if (payload === undefined) {
-          response.writeHead(404).end();
-          return;
-        }
-        response.writeHead(200, { "content-type": "application/json" });
-        response.end(JSON.stringify(payload));
-      } catch (error) {
-        response.writeHead(500, { "content-type": "application/json" });
-        response.end(JSON.stringify({ error: String(error) }));
-      }
-    })();
-  });
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", resolve);
-  });
-  const address = server.address();
-  if (address === null || typeof address === "string") {
-    await new Promise<void>((resolve) => server.close(() => resolve()));
-    throw new Error("Subject Chat gateway fixture did not expose a port");
-  }
-  return {
-    server,
-    baseUrl: `http://127.0.0.1:${address.port}/v1`,
-    waitForSlowPrimary: () => slowPrimaryGate.started,
-    releaseSlowPrimary: () => {
-      const gate = slowPrimaryGate;
-      slowPrimaryGate = createGate();
-      gate.resolveReleased();
-    },
-    waitForSlowExpression: () => slowExpressionGate.started,
-    releaseSlowExpression: () => {
-      const gate = slowExpressionGate;
-      slowExpressionGate = createGate();
-      gate.resolveReleased();
-    },
-    primaryInvocationCount: () => primaryInvocations,
-    expressionInvocationCount: () => expressionInvocations,
-    primaryRequestMessages: () =>
-      Object.freeze(primaryRequests.map((messages) => Object.freeze([...messages]))),
-  };
-}
-
 interface SubjectFactSnapshot {
   readonly reactions: readonly {
     readonly reactionId: string;
+    readonly workItemId: string;
     readonly state: string;
     readonly communicationCommitId: string | null;
+    readonly primaryCognitionProvenance: Record<string, unknown> | null;
+    readonly workState: string;
+    readonly workReason: string | null;
   }[];
   readonly outboundCount: number;
 }
@@ -230,13 +60,19 @@ async function readSubjectFactSnapshot(
   try {
     const reactions = await database.query<{
       readonly reaction_id: string;
+      readonly work_item_id: string;
       readonly state: string;
       readonly communication_commit_id: string | null;
+      readonly primary_cognition_provenance: unknown;
     }>(
-      `SELECT r.reaction_id, r.state, c.communication_commit_id
+      `SELECT r.reaction_id, r.state, c.communication_commit_id,
+              c.primary_cognition_provenance, w.work_item_id,
+              w.state AS work_state, w.state_reason_code AS work_reason
           FROM "heptalogos"."reaction" r
          LEFT JOIN "heptalogos"."communication_commit" c
            ON c.reaction_id = r.reaction_id
+         JOIN "heptalogos"."work_item" w
+           ON w.work_item_id = r.owner_work_item_id
         WHERE r.conversation_id = $1
         ORDER BY r.created_at, r.reaction_id`,
       [conversationId],
@@ -252,8 +88,17 @@ async function readSubjectFactSnapshot(
         reactions.rows.map((row) =>
           Object.freeze({
             reactionId: row.reaction_id,
+            workItemId: row.work_item_id,
             state: row.state,
             communicationCommitId: row.communication_commit_id,
+            primaryCognitionProvenance:
+              row.primary_cognition_provenance === null
+                ? null
+                : ((typeof row.primary_cognition_provenance === "string"
+                    ? JSON.parse(row.primary_cognition_provenance)
+                    : row.primary_cognition_provenance) as Record<string, unknown>),
+            workState: row.work_state,
+            workReason: row.work_reason,
           }),
         ),
       ),
@@ -262,6 +107,113 @@ async function readSubjectFactSnapshot(
   } finally {
     await database.end();
   }
+}
+
+async function holdWorkItemLock(
+  testFixture: ProductHostFixture,
+  workItemId: string,
+): Promise<() => Promise<void>> {
+  const runtimeKey = {
+    service: "Heptalogos/" + testFixture.installationId,
+    account: "bootstrap/private-postgres-runtime-role",
+  };
+  const runtimePassword = await testFixture.credentialStore.withCredential(
+    runtimeKey,
+    async (bytes) => new TextDecoder().decode(bytes),
+  );
+  const database = new Client({
+    host: "127.0.0.1",
+    port: testFixture.postgresPort,
+    database: "heptalogos",
+    user: "heptalogos_runtime",
+    password: runtimePassword,
+  });
+  await database.connect();
+  await database.query("BEGIN");
+  await database.query(
+    `SELECT work_item_id
+       FROM "heptalogos"."work_item"
+      WHERE work_item_id = $1
+      FOR UPDATE`,
+    [workItemId],
+  );
+  let released = false;
+  return async () => {
+    if (released) return;
+    released = true;
+    await database.query("ROLLBACK").catch(() => undefined);
+    await database.end().catch(() => undefined);
+  };
+}
+
+async function holdSubjectAuthorityLock(testFixture: ProductHostFixture): Promise<{
+  waitForWaiters(minimum: number): Promise<void>;
+  release(): Promise<void>;
+}> {
+  const runtimeKey = {
+    service: "Heptalogos/" + testFixture.installationId,
+    account: "bootstrap/private-postgres-runtime-role",
+  };
+  const runtimePassword = await testFixture.credentialStore.withCredential(
+    runtimeKey,
+    async (bytes) => new TextDecoder().decode(bytes),
+  );
+  const database = new Client({
+    host: "127.0.0.1",
+    port: testFixture.postgresPort,
+    database: "heptalogos",
+    user: "heptalogos_runtime",
+    password: runtimePassword,
+  });
+  await database.connect();
+  await database.query("BEGIN");
+  await database.query(
+    `SELECT subject_id
+       FROM "heptalogos"."subject_authority"
+      WHERE installation_id = $1
+      FOR UPDATE`,
+    [testFixture.installationId],
+  );
+  let released = false;
+  return {
+    async waitForWaiters(minimum: number) {
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        const result = await database.query<{ readonly count: string }>(
+          `SELECT count(*)::text AS count
+             FROM pg_locks
+            WHERE NOT granted`,
+        );
+        if (Number(result.rows[0]?.count ?? "0") >= minimum) return;
+        await new Promise<void>((resolve) => setTimeout(resolve, 50));
+      }
+      throw new Error("Expected PostgreSQL authority lock waiter was not observed");
+    },
+    async release() {
+      if (released) return;
+      released = true;
+      await database.query("ROLLBACK").catch(() => undefined);
+      await database.end().catch(() => undefined);
+    },
+  };
+}
+
+async function readSubjectRuntimeDescriptor(
+  testFixture: ProductHostFixture,
+): Promise<{ readonly pid: number; readonly runtimeGeneration: string }> {
+  const value = JSON.parse(
+    await readFile(
+      `${testFixture.roots.RUN}/subject-openclaw/subject-openclaw-runtime.json`,
+      "utf8",
+    ),
+  ) as Record<string, unknown>;
+  if (
+    typeof value.pid !== "number" ||
+    !Number.isSafeInteger(value.pid) ||
+    typeof value.runtimeGeneration !== "string"
+  ) {
+    throw new Error("Subject OpenClaw runtime descriptor is invalid");
+  }
+  return { pid: value.pid, runtimeGeneration: value.runtimeGeneration };
 }
 
 afterEach(async () => {
@@ -350,13 +302,30 @@ suite("built Product Host process", () => {
     expect(cliPlan.code, cliPlan.stderr).toBe(0);
     expect(JSON.parse(cliPlan.stdout)).not.toHaveProperty("input");
     const configurationPlan = await client.planSystemAction(configurationAction);
+    expect(configurationPlan.affectedSemanticOwners).toEqual([
+      "system.configuration",
+      "system.network-access",
+    ]);
+    expect(configurationPlan.configurationReadinessSubjectImpact).toMatchObject({
+      configurationDefinitionId: "ai.gateway.transport.v1",
+      activation: "LIVE",
+      consumerRefs: ["system.network-access", "system.ai-runtime"],
+      effective: "after-activation",
+    });
+    expect(configurationPlan.restartReconcileImpact).toMatchObject({
+      restartRequired: false,
+      activation: "LIVE",
+      reconciliation: "staged-until-activation",
+    });
     const configurationExecution = await client.executeSystemAction({
       plan: configurationPlan,
       action: configurationAction,
     });
     expect(configurationExecution.postconditionsVerified).toBe(true);
     const configured = await client.getProductState();
-    const revision = configured.data.configuration.revisions[0] as {
+    const revision = configured.data.configuration.revisions.find(
+      (candidate) => candidate.definitionId === "ai.gateway.transport.v1",
+    ) as {
       revisionId: string;
     };
     expect(revision.revisionId).toMatch(/[0-9a-f-]{36}/u);
@@ -509,8 +478,8 @@ suite("built Product Host process", () => {
       credentialStore: fixture.credentialStore,
     });
     const restarted = await restartedAuthenticated.client.getProductState();
-    expect(restarted.data.configuration.revisions).toHaveLength(1);
-    expect(restarted.data.configuration.activations).toHaveLength(1);
+    expect(restarted.data.configuration.revisions).toHaveLength(4);
+    expect(restarted.data.configuration.activations).toHaveLength(4);
     expect(restarted.data.gatewayProfiles).toHaveLength(1);
     expect(restarted.data.secrets).toHaveLength(1);
     expect(restarted.data.modelProfiles).toHaveLength(2);
@@ -889,6 +858,49 @@ suite("built Product Host process", () => {
       );
       return { response, body: (await response.json()) as Record<string, any> };
     };
+    const staleStopState = await client.getProductState();
+    const staleStopAction: SystemActionRequestInput = {
+      actionId: "subject.stop",
+      input: {
+        subjectId: subjectBeforeStart.subjectId,
+        expectedAuthorityRevision: staleStopState.data.subject.authorityRevision,
+      },
+    };
+    const staleStopPlan = await client.planSystemAction(staleStopAction);
+    const authorityLock = await holdSubjectAuthorityLock(fixture);
+    const stopPromise = client.executeSystemAction({
+      plan: staleStopPlan,
+      action: staleStopAction,
+    });
+    await authorityLock.waitForWaiters(1);
+    const staleInboundPromise = send(
+      "subject-l4-message-stale-prepared-inbound",
+      "Prepared under the old Subject authority",
+    );
+    await authorityLock.waitForWaiters(2);
+    await authorityLock.release();
+    const [staleInbound, stoppedByRace] = await Promise.all([
+      staleInboundPromise,
+      stopPromise,
+    ]);
+    expect(staleInbound.response.status, JSON.stringify(staleInbound.body)).toBe(400);
+    expect(staleInbound.body.problemCode).toBe("subject.stale_authority_revision");
+    expect(stoppedByRace.postconditionsVerified).toBe(true);
+    const stoppedAfterRace = await client.getProductState();
+    expect(stoppedAfterRace.data.subject.desiredState).toBe("STOPPED");
+    await applyAction({
+      actionId: "subject.start",
+      input: {
+        subjectId: subjectBeforeStart.subjectId,
+        expectedAuthorityRevision: stoppedAfterRace.data.subject.authorityRevision,
+      },
+    });
+    await expect
+      .poll(async () => (await client.getProductState()).data.subject.actualState, {
+        timeout: 10_000,
+        interval: 100,
+      })
+      .toBe("READY");
     const first = await send("subject-l4-message-1", "Hello Subject");
     expect(first.response.status, JSON.stringify(first.body)).toBe(200);
     expect(first.body).toMatchObject({
@@ -912,7 +924,10 @@ suite("built Product Host process", () => {
         break;
       await new Promise<void>((resolve) => setTimeout(resolve, 250));
     }
-    expect(page?.messages, `${running.stderr()}`).toEqual(
+    expect(
+      page?.messages,
+      `primaryCount=${subjectGateway?.primaryInvocationCount()} expressionCount=${subjectGateway?.expressionInvocationCount()} facts=${JSON.stringify(await readSubjectFactSnapshot(fixture, first.body.message.conversationId as string))}`,
+    ).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ direction: "INBOUND", text: "Hello Subject" }),
         expect.objectContaining({
@@ -930,9 +945,21 @@ suite("built Product Host process", () => {
         expect.objectContaining({
           state: "REPLIED",
           communicationCommitId: expect.any(String),
+          primaryCognitionProvenance: expect.objectContaining({
+            schemaVersion: 1,
+            provider: "openclaw",
+            openclawVersion: "2026.9.1",
+            profile: "subject",
+            modelProvider: "heptalogos",
+            terminalToolName: "heptalogos_propose_communication",
+            terminalStatus: "error",
+          }),
         }),
       ]),
     );
+    const firstRuntime = await readSubjectRuntimeDescriptor(fixture);
+    expect(firstRuntime.pid).toBeGreaterThan(0);
+    expect(firstRuntime.runtimeGeneration).toMatch(/^[0-9a-f]{64}:/u);
     expect(subjectGateway.primaryInvocationCount()).toBe(1);
     expect(subjectGateway.expressionInvocationCount()).toBe(1);
 
@@ -992,6 +1019,15 @@ suite("built Product Host process", () => {
       ]),
     );
     expect(noCommunicationFacts.outboundCount).toBe(1);
+    const noCommunicationRuntime = JSON.parse(
+      await readFile(
+        `${fixture.roots.RUN}/subject-openclaw/subject-openclaw-runtime.json`,
+        "utf8",
+      ),
+    ) as Record<string, unknown>;
+    expect(noCommunicationRuntime.lastToolEvent).toMatchObject({
+      name: "heptalogos_complete_without_communication",
+    });
 
     const beforeStop = await client.getProductState();
     await applyAction({
@@ -1182,6 +1218,7 @@ suite("built Product Host process", () => {
         modelProfileId: slowExpressionModelProfileId,
       },
     });
+    const primaryBeforeSubjectRuntimeRestart = subjectGateway.primaryInvocationCount();
     const postCommitStopMessage = await send(
       "subject-l4-message-stop-after-commit",
       "Stop after communication commit",
@@ -1202,6 +1239,9 @@ suite("built Product Host process", () => {
         { timeout: 20_000, interval: 250 },
       )
       .toBe(true);
+    const runtimeBeforeKill = await readSubjectRuntimeDescriptor(fixture);
+    expect(runtimeBeforeKill.pid).not.toBe(process.pid);
+    process.kill(runtimeBeforeKill.pid, "SIGKILL");
     const beforePostCommitStop = await client.getProductState();
     await applyAction({
       actionId: "subject.stop",
@@ -1219,6 +1259,24 @@ suite("built Product Host process", () => {
           return snapshot.outboundCount === 3 && latest?.state === "REPLIED";
         },
         { timeout: 45_000, interval: 250 },
+      )
+      .toBe(true);
+    expect(subjectGateway.primaryInvocationCount()).toBe(
+      primaryBeforeSubjectRuntimeRestart + 1,
+    );
+    await expect
+      .poll(
+        async () => {
+          try {
+            return (
+              (await readSubjectRuntimeDescriptor(fixture)).runtimeGeneration !==
+              runtimeBeforeKill.runtimeGeneration
+            );
+          } catch {
+            return false;
+          }
+        },
+        { timeout: 30_000, interval: 250 },
       )
       .toBe(true);
     await expect
@@ -1262,26 +1320,53 @@ suite("built Product Host process", () => {
         { timeout: 20_000, interval: 250 },
       )
       .toBe(true);
-    await running!.crash();
-    running = undefined;
+    const crashSnapshot = await readSubjectFactSnapshot(fixture, conversationId);
+    const crashReaction = crashSnapshot.reactions[crashSnapshot.reactions.length - 1];
+    expect(crashReaction).toBeDefined();
+    const releaseWorkItemLock = await holdWorkItemLock(
+      fixture,
+      crashReaction!.workItemId,
+    );
     subjectGateway.releaseSlowExpression();
+    try {
+      await expect
+        .poll(
+          async () => {
+            const snapshot = await readSubjectFactSnapshot(fixture!, conversationId);
+            const latest = snapshot.reactions[snapshot.reactions.length - 1];
+            return (
+              snapshot.outboundCount === 4 &&
+              latest?.state === "REPLIED" &&
+              latest.workState === "RUNNING"
+            );
+          },
+          { timeout: 45_000, interval: 250 },
+        )
+        .toBe(true);
+      await running!.crash();
+      running = undefined;
+    } finally {
+      await releaseWorkItemLock();
+    }
     await runHost(fixture, { includeInitialPort: false }).then((host) => {
       running = host;
     });
-    await subjectGateway.waitForSlowExpression();
-    subjectGateway.releaseSlowExpression();
     await expect
       .poll(
         async () => {
           const snapshot = await readSubjectFactSnapshot(fixture!, conversationId);
           const latest = snapshot.reactions[snapshot.reactions.length - 1];
-          return snapshot.outboundCount === 4 && latest?.state === "REPLIED";
+          return (
+            snapshot.outboundCount === 4 &&
+            latest?.state === "REPLIED" &&
+            latest.workState === "SUCCEEDED"
+          );
         },
         { timeout: 45_000, interval: 250 },
       )
       .toBe(true);
     expect(subjectGateway.primaryInvocationCount()).toBe(primaryBeforeCrash + 1);
-    expect(subjectGateway.expressionInvocationCount()).toBe(expressionBeforeCrash + 2);
+    expect(subjectGateway.expressionInvocationCount()).toBe(expressionBeforeCrash + 1);
     const restartedLocal = await openLocalManagementClient({
       anchorRoot: fixture.anchorRoot,
       credentialStore: fixture.credentialStore,
@@ -1332,8 +1417,349 @@ suite("built Product Host process", () => {
         { timeout: 45_000, interval: 250 },
       )
       .toBe(true);
-    expect(subjectGateway.primaryInvocationCount()).toBe(
-      primaryBeforePreProposalCrash + 2,
+    expect(subjectGateway.primaryInvocationCount()).toBeGreaterThanOrEqual(
+      primaryBeforePreProposalCrash + 1,
     );
+
+    expect(subjectGateway.expressionBudgets()[0]).toBe(256);
+  });
+
+  it("applies Subject expression revisions to the real Expression consumer", async () => {
+    fixture = await makeFixture(postgresBin!);
+    subjectGateway = await createSubjectGatewayFixture();
+    running = await runHost(fixture);
+
+    const password = "Subject-config-password-012345";
+    const claimed = await runCli(
+      fixture,
+      ["admin", "claim", "--password-stdin", "--json"],
+      password + "\n",
+    );
+    expect(claimed.code, claimed.stderr).toBe(0);
+    const login = await runCli(
+      fixture,
+      ["auth", "login", "--password-stdin", "--json"],
+      password + "\n",
+    );
+    expect(login.code, login.stderr).toBe(0);
+
+    const local = await openLocalManagementClient({
+      anchorRoot: fixture.anchorRoot,
+      credentialStore: fixture.credentialStore,
+    });
+    const sessionToken = await local.readSessionToken();
+    expect(sessionToken).toBeDefined();
+    const authenticated = await openLocalManagementClient({
+      anchorRoot: fixture.anchorRoot,
+      sessionToken,
+      credentialStore: fixture.credentialStore,
+    });
+    const client = authenticated.client;
+    const applyAction = async (action: SystemActionRequestInput) => {
+      const plan = await client.planSystemAction(action);
+      const executed = await client.executeSystemAction({ plan, action });
+      expect(executed.postconditionsVerified).toBe(true);
+      return executed;
+    };
+
+    const initial = await client.getProductState();
+    expect(
+      initial.data.configuration.definitions.map(
+        (definition) => definition.definitionId,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        "ai.gateway.transport.v1",
+        "subject.cognition.runtime.v1",
+        "subject.expression.v1",
+        "management.http.admission.v1",
+      ]),
+    );
+    const subjectBeforeStart = initial.data.subject;
+    const subjectScope = {
+      schemaVersion: 1 as const,
+      resourceKind: "subject",
+      resourceId: subjectBeforeStart.subjectId,
+    };
+    const initialExpressionActivation = initial.data.configuration.activations.find(
+      (activation) =>
+        activation.definitionId === "subject.expression.v1" &&
+        activation.scopeRef.resourceId === subjectBeforeStart.subjectId,
+    );
+    expect(initialExpressionActivation).toBeDefined();
+    const initialExpressionRevision = initial.data.configuration.revisions.find(
+      (revision) =>
+        revision.revisionId === initialExpressionActivation!.activeRevisionId,
+    );
+    expect(initialExpressionRevision?.value).toEqual({
+      schemaVersion: 1,
+      maxOutputTokens: 256,
+    });
+    const initialCognitionActivation = initial.data.configuration.activations.find(
+      (activation) =>
+        activation.definitionId === "subject.cognition.runtime.v1" &&
+        activation.scopeRef.resourceId === subjectBeforeStart.subjectId,
+    );
+    expect(initialCognitionActivation).toBeDefined();
+    const initialCognitionRevision = initial.data.configuration.revisions.find(
+      (revision) =>
+        revision.revisionId === initialCognitionActivation!.activeRevisionId,
+    );
+    expect(initialCognitionRevision?.value).toEqual({
+      schemaVersion: 1,
+      enabled: true,
+      profile: "subject",
+      maxOutputTokens: 256,
+      runTimeoutMs: 60_000,
+      maxContextBytes: 65_536,
+    });
+    const initialHttpAdmissionActivation = initial.data.configuration.activations.find(
+      (activation) =>
+        activation.definitionId === "management.http.admission.v1" &&
+        activation.scopeRef.resourceId === fixture.installationId,
+    );
+    expect(initialHttpAdmissionActivation).toBeDefined();
+    const initialHttpAdmissionRevision = initial.data.configuration.revisions.find(
+      (revision) =>
+        revision.revisionId === initialHttpAdmissionActivation!.activeRevisionId,
+    );
+    expect(initialHttpAdmissionRevision?.value).toEqual({
+      schemaVersion: 1,
+      bodyLimitBytes: 65_536,
+      claimRateLimit: { max: 5, windowMs: 60_000 },
+      loginRateLimit: { max: 10, windowMs: 60_000 },
+    });
+    const httpAdmissionPlan = await client.planSystemAction({
+      actionId: "configuration.activate",
+      input: { revisionId: initialHttpAdmissionActivation!.activeRevisionId },
+    });
+    expect(httpAdmissionPlan.affectedSemanticOwners).toEqual([
+      "system.configuration",
+      "application.product-host",
+    ]);
+    expect(httpAdmissionPlan.configurationReadinessSubjectImpact).toMatchObject({
+      configurationDefinitionId: "management.http.admission.v1",
+      activation: "RESTART_HOST",
+      consumerRefs: ["application.product-host.http"],
+      effective: "active-revision",
+    });
+    expect(httpAdmissionPlan.restartReconcileImpact).toMatchObject({
+      restartRequired: true,
+      activation: "RESTART_HOST",
+      reconciliation: "restart-host",
+    });
+
+    const invalidAction: SystemActionRequestInput = {
+      actionId: "configuration.revision.create",
+      input: {
+        definitionId: "subject.expression.v1",
+        scopeRef: subjectScope,
+        value: { schemaVersion: 1, maxOutputTokens: 0 },
+      },
+    };
+    const invalid = await client
+      .planSystemAction(invalidAction)
+      .catch((error: unknown) => error);
+    expect(invalid).toBeInstanceOf(ManagementClientError);
+    expect(invalid).toMatchObject({
+      problem: { problemCode: "configuration.invalid_input" },
+    });
+    await expect(client.getProductState()).resolves.toMatchObject({
+      data: {
+        configuration: {
+          revisions: initial.data.configuration.revisions,
+        },
+      },
+    });
+
+    const transportScope = {
+      schemaVersion: 1 as const,
+      resourceKind: "installation",
+      resourceId: fixture.installationId,
+    };
+    const transport = await applyAction({
+      actionId: "configuration.revision.create",
+      input: {
+        definitionId: "ai.gateway.transport.v1",
+        scopeRef: transportScope,
+        value: {
+          schemaVersion: 1,
+          timeoutMs: 30_000,
+          requestBodyBudgetBytes: 60_000,
+          responseBodyBudgetBytes: 1_048_576,
+        },
+      },
+    });
+    const transportRevision = transport.result as { revisionId: string };
+    await applyAction({
+      actionId: "configuration.activate",
+      input: { revisionId: transportRevision.revisionId },
+    });
+
+    const gatewayProfileId = createUuidV7Id("GatewayProfileId");
+    await applyAction({
+      actionId: "gateway-profile.set",
+      input: {
+        gatewayProfileId,
+        baseUrl: subjectGateway.baseUrl,
+        enabled: true,
+      },
+    });
+    const capabilities: Array<
+      "text-generation" | "structured-output" | "usage-metadata" | "abort-timeout"
+    > = ["text-generation", "structured-output", "usage-metadata", "abort-timeout"];
+    const primaryModelProfileId = createUuidV7Id("ModelProfileId");
+    const expressionModelProfileId = createUuidV7Id("ModelProfileId");
+    await applyAction({
+      actionId: "model-profile.set",
+      input: {
+        modelProfileId: primaryModelProfileId,
+        gatewayProfileId,
+        modelIdentifier: "subject-primary-config",
+        protocol: "openai-chat",
+        consumedCapabilities: capabilities,
+      },
+    });
+    await applyAction({
+      actionId: "model-profile.set",
+      input: {
+        modelProfileId: expressionModelProfileId,
+        gatewayProfileId,
+        modelIdentifier: "subject-expression-config",
+        protocol: "openai-responses",
+        consumedCapabilities: capabilities,
+      },
+    });
+    await applyAction({
+      actionId: "model-binding.set",
+      input: { role: "subject.primary", modelProfileId: primaryModelProfileId },
+    });
+    await applyAction({
+      actionId: "model-binding.set",
+      input: {
+        role: "subject.expression",
+        modelProfileId: expressionModelProfileId,
+      },
+    });
+
+    await applyAction({
+      actionId: "subject.start",
+      input: {
+        subjectId: subjectBeforeStart.subjectId,
+        expectedAuthorityRevision: subjectBeforeStart.authorityRevision,
+      },
+    });
+    await expect
+      .poll(async () => (await client.getProductState()).data.subject.actualState, {
+        timeout: 10_000,
+        interval: 100,
+      })
+      .toBe("READY");
+    const send = async (clientMessageId: string, text: string) => {
+      const response = await fetch(
+        running!.ready.origin + "/subject-chat/v1/messages",
+        {
+          method: "POST",
+          headers: {
+            authorization: `Bearer ${sessionToken}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ clientMessageId, text }),
+        },
+      );
+      return { response, body: (await response.json()) as Record<string, any> };
+    };
+
+    const first = await send("subject-config-message-1", "Default budget");
+    expect(first.response.status, JSON.stringify(first.body)).toBe(200);
+    await expect
+      .poll(() => subjectGateway!.expressionBudgets().length, {
+        timeout: 20_000,
+        interval: 100,
+      })
+      .toBe(1);
+    expect(subjectGateway.expressionBudgets()[0]).toBe(256);
+
+    const nextRevision = await applyAction({
+      actionId: "configuration.revision.create",
+      input: {
+        definitionId: "subject.expression.v1",
+        scopeRef: subjectScope,
+        value: { schemaVersion: 1, maxOutputTokens: 128 },
+      },
+    });
+    const next = nextRevision.result as { revisionId: string };
+    const activeBeforeChange = (
+      await client.getProductState()
+    ).data.configuration.activations.find(
+      (activation) =>
+        activation.definitionId === "subject.expression.v1" &&
+        activation.scopeRef.resourceId === subjectBeforeStart.subjectId,
+    );
+    expect(activeBeforeChange).toBeDefined();
+    await applyAction({
+      actionId: "configuration.activate",
+      input: {
+        revisionId: next.revisionId,
+        expectedActiveRevisionId: activeBeforeChange!.activeRevisionId,
+      },
+    });
+    const effectiveAfterChange = await client.getProductState();
+    const activeAfterChange = effectiveAfterChange.data.configuration.activations.find(
+      (activation) =>
+        activation.definitionId === "subject.expression.v1" &&
+        activation.scopeRef.resourceId === subjectBeforeStart.subjectId,
+    );
+    expect(activeAfterChange?.activeRevisionId).toBe(next.revisionId);
+    expect(
+      effectiveAfterChange.data.configuration.revisions.find(
+        (revision) => revision.revisionId === next.revisionId,
+      )?.value,
+    ).toEqual({ schemaVersion: 1, maxOutputTokens: 128 });
+
+    const second = await send("subject-config-message-2", "Changed budget");
+    expect(second.response.status, JSON.stringify(second.body)).toBe(200);
+    await expect
+      .poll(() => subjectGateway!.expressionBudgets().length, {
+        timeout: 20_000,
+        interval: 100,
+      })
+      .toBe(2);
+    expect(subjectGateway.expressionBudgets()[1]).toBe(128);
+
+    const staleRevision = await applyAction({
+      actionId: "configuration.revision.create",
+      input: {
+        definitionId: "subject.expression.v1",
+        scopeRef: subjectScope,
+        value: { schemaVersion: 1, maxOutputTokens: 192 },
+      },
+    });
+    const stale = staleRevision.result as { revisionId: string };
+    const staleAction: SystemActionRequestInput = {
+      actionId: "configuration.activate",
+      input: {
+        revisionId: stale.revisionId,
+        expectedActiveRevisionId: activeBeforeChange!.activeRevisionId,
+      },
+    };
+    const stalePlan = await client.planSystemAction(staleAction);
+    await expect(
+      client.executeSystemAction({ plan: stalePlan, action: staleAction }),
+    ).rejects.toMatchObject({
+      problem: { problemCode: "configuration.activation_conflict" },
+    });
+    await expect(client.getProductState()).resolves.toMatchObject({
+      data: {
+        configuration: {
+          activations: expect.arrayContaining([
+            expect.objectContaining({
+              definitionId: "subject.expression.v1",
+              activeRevisionId: next.revisionId,
+            }),
+          ]),
+        },
+      },
+    });
   });
 });

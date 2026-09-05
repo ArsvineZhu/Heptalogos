@@ -106,6 +106,7 @@ interface ConfigurationRevision {
 interface ConfigurationActivation {
   readonly schemaVersion: 1;
   readonly activationId: ConfigurationActivationId;
+  readonly definitionId: ConfigurationDefinitionId;
   readonly scopeRef: ProductResourceRef;
   readonly activeRevisionId: ConfigurationRevisionId;
   readonly previousRevisionId?: ConfigurationRevisionId;
@@ -125,6 +126,10 @@ Defaults are Authority-labelled inputs. A materialized behavior default is
 stored in the resulting revision or activation context so a dependency or
 ProductGeneration change cannot silently change current behavior.
 
+The current Product composition supplies these definitions through the normal
+owner-injection route; `ConfigurationService` does not special-case any
+definition identifier.
+
 The current gateway transport definition is:
 
 ```text
@@ -135,6 +140,31 @@ consumers = system.network-access, system.ai-runtime
 activation = LIVE
 defaultAuthority = NO_DEFAULT_REQUIRED
 ```
+
+```text
+subject.expression.v1
+scope = SUBJECT
+owner = product.subject
+consumer = product.subject.expression
+activation = LIVE
+defaultAuthority = PRODUCT_DEFAULT
+Product default = { schemaVersion: 1, maxOutputTokens: 256 }
+```
+
+```text
+management.http.admission.v1
+scope = INSTALLATION
+owner = application.product-host
+consumer = application.product-host.http
+activation = RESTART_HOST
+defaultAuthority = PRODUCT_DEFAULT
+```
+
+The current Product Host materializes the Subject Expression and HTTP
+admission defaults as managed revisions and activations on first use. Subject
+WorkQueue/DBOS concurrency, polling, and recovery values remain mechanics
+owned by those existing runtime owners where no current Product configuration
+consumer exists; P2 does not create an editable placeholder for them.
 
 ## Lifecycle and transactions
 
