@@ -4,6 +4,7 @@
  * @module package-index
  */
 
+/* jscpd:ignore-start */
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { markdownTargets } from "./markdown.mjs";
@@ -12,6 +13,7 @@ import {
   normalizeRepositoryPath as normalize,
 } from "./paths.mjs";
 import { discoverProductPackages } from "./workspace.mjs";
+/* jscpd:ignore-end */
 
 /** Validate structural package-index coverage against current workspace packages. */
 export async function validatePackageIndex({

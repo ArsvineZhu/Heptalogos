@@ -5,8 +5,8 @@
  */
 
 import { randomBytes, randomUUID } from "node:crypto";
-import { createRequire } from "node:module";
 import { access, mkdir, unlink } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { createConnection, createServer } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -36,14 +36,8 @@ import {
   type SubjectOpenClawRuntimePaths,
   type SubjectOpenClawRuntimeProjection,
 } from "./subject-openclaw-projection.js";
-
-const require = createRequire(import.meta.url);
-type AtomicWrite = (
-  path: string,
-  data: string,
-  options?: { readonly encoding?: "utf8"; readonly mode?: number },
-) => Promise<void>;
-const writeFileAtomic = require("write-file-atomic") as AtomicWrite;
+import { writeFileAtomic } from "./atomic-file.js";
+import { asRecord } from "./value-utils.js";
 
 const SUBJECT_OPENCLAW_RUNTIME_FILENAME = "subject-openclaw-runtime.json";
 const SUBJECT_OPENCLAW_TOOL_NAMES = Object.freeze([
@@ -53,6 +47,7 @@ const SUBJECT_OPENCLAW_TOOL_NAMES = Object.freeze([
 const SUBJECT_OPENCLAW_PORT_WAIT_MS = 30_000;
 const SUBJECT_OPENCLAW_CONNECT_WAIT_MS = 5_000;
 const SUBJECT_OPENCLAW_STOP_WAIT_MS = 5_000;
+const packageRequire = createRequire(import.meta.url);
 
 type SubjectOpenClawProcess = ResultPromise;
 
@@ -104,12 +99,6 @@ interface StartSubjectOpenClawGatewayOptions {
   readonly fingerprint: string;
   readonly onUnexpectedExit: (runtimeGeneration: string) => void;
   readonly onChanged: () => void;
-}
-
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
 }
 
 function boundedText(value: unknown, field: string, maximum: number): string {
@@ -336,12 +325,9 @@ async function stopProcess(child: SubjectOpenClawProcess): Promise<void> {
 export async function startSubjectOpenClawGateway(
   options: StartSubjectOpenClawGatewayOptions,
 ): Promise<SubjectOpenClawGateway> {
-  const openclawPackageMain = require.resolve("openclaw");
+  const openclawPackageMain = packageRequire.resolve("openclaw");
   const openclawPackageRoot = resolve(dirname(openclawPackageMain), "..");
-  const openclawWorkingDirectory = resolve(
-    dirname(fileURLToPath(import.meta.url)),
-    "../node_modules/openclaw",
-  );
+  const openclawWorkingDirectory = openclawPackageRoot;
   const openclawEntry = join(openclawPackageRoot, "openclaw.mjs");
   const pluginPath = join(
     dirname(fileURLToPath(import.meta.url)),

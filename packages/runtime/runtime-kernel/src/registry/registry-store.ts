@@ -19,6 +19,11 @@ export interface RegistryBinding<
   readonly runtimeActivity?: RuntimeActivityRunner;
 }
 
+/** Builds the stable owner/provider key shared by Runtime registries. */
+export function registryBindingKey(ownerId: string, providerId: ProviderId): string {
+  return `${ownerId}\u0000${providerId}`;
+}
+
 /** Stores runtime bindings by semantic key for registry owners. */
 export class RegistryStore<T> {
   private readonly valuesByKey = new Map<string, T>();

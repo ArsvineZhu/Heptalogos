@@ -15,6 +15,7 @@ import {
   precondition,
   requiredUuid,
   canonicalValue,
+  standardImpact,
   type SystemActionHandler,
 } from "./types.js";
 
@@ -69,16 +70,7 @@ export function createSubjectActionHandler(): SystemActionHandler {
       ]);
     },
     async impact() {
-      return {
-        readiness: Object.freeze({
-          gatewayPrerequisiteReadiness: "re-evaluate",
-          subjectDispatch: "re-evaluate",
-        }) as unknown as CanonicalJsonValue,
-        restart: Object.freeze({
-          restartRequired: false,
-          reconciliation: "immediate",
-        }) as unknown as CanonicalJsonValue,
-      };
+      return standardImpact();
     },
     async execute(request, context): Promise<CanonicalJsonValue> {
       const action = actionInput(request);

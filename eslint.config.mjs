@@ -4,11 +4,15 @@ import jsdocPlugin from "eslint-plugin-jsdoc";
 
 const typescriptLanguageOptions = {
   parser,
-  parserOptions: {
-    projectService: true,
-    tsconfigRootDir: import.meta.dirname,
-  },
 };
+
+const authoredFiles = [
+  "packages/**/*.{ts,tsx}",
+  "integration/**/*.{ts,tsx}",
+  "tools/**/*.{js,mjs,ts}",
+  "scripts/**/*.{js,mjs,ts}",
+  ".agents/**/*.mjs",
+];
 
 const sourceDocumentationRules = {
   "jsdoc/informative-docs": "error",
@@ -53,10 +57,26 @@ export default [
       ".nx/**",
       ".vite/**",
       ".cache/**",
+      "**/generated/**",
+      "**/vendor/**",
       "packages/application/management-client/src/generated/**",
       "packages/application/subject-chat-client/src/generated/**",
       "tests/toolchain/ts6-api-lane.ts",
     ],
+  },
+  {
+    files: authoredFiles,
+    languageOptions: typescriptLanguageOptions,
+    rules: {
+      "max-lines": [
+        "warn",
+        {
+          max: 1000,
+          skipBlankLines: true,
+          skipComments: true,
+        },
+      ],
+    },
   },
   {
     files: [

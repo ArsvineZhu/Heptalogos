@@ -9,7 +9,7 @@
   },
   "scripts": {
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --check --cache --cache-location .nx/prettier-cache .",
     "lint": "node scripts/verify/run-nx.mjs run repository:lint",
     "typecheck": "node scripts/verify/run-nx.mjs run repository:typecheck",
     "tsc6": "tsc6 --noEmit -p tsconfig.ts6.json",

@@ -31,6 +31,7 @@ import type { ExecutionContext } from "@heptalogos/execution-lineage";
 import { createEvidenceService } from "@heptalogos/evidence";
 import {
   prepareBootstrapPrelude,
+  resolveRuntimeLocations,
   type BootstrapManagedHostContext,
 } from "@heptalogos/bootstrap-runtime";
 import { createPersistenceService } from "@heptalogos/persistence";
@@ -573,6 +574,7 @@ export async function startProductHost(
 
   try {
     owned = await prepared.acquireOwnership({ heartbeatMs: 1_000 });
+    const runtimeLocations = resolveRuntimeLocations(owned.paths);
     const state = await owned.ensureBootstrapStateInitialized({
       activeBootstrapRuntimeGeneration: BOOTSTRAP_RUNTIME_GENERATION_ID,
       activeProductGeneration: productGeneration,
@@ -674,7 +676,7 @@ export async function startProductHost(
     subjectCognitionRuntime = createSubjectOpenClawRuntime({
       installationId: host.installationId,
       productGeneration,
-      paths: owned.paths,
+      locations: runtimeLocations,
       configuration,
       aiRuntime,
       networkAccess,
@@ -1012,7 +1014,7 @@ export async function startProductHost(
     await durableRuntime.start();
     await reconciler.start();
 
-    const runDirectory = owned!.paths.resolve("RUN").canonicalPath;
+    const runDirectory = runtimeLocations.runRoot;
 
     app = await createManagementHttpApp(management, {
       admission: httpAdmission,

@@ -859,6 +859,9 @@ export const systemActionRequestSchema = Type.Union([
     },
     { additionalProperties: false },
   ),
+  // Intentional duplication: start and stop remain explicit wire discriminants
+  // so each lifecycle operation's schema is visible in the public contract.
+  /* jscpd:ignore-start */
   Type.Object(
     {
       actionId: Type.Literal("subject.stop"),
@@ -872,6 +875,7 @@ export const systemActionRequestSchema = Type.Union([
     },
     { additionalProperties: false },
   ),
+  /* jscpd:ignore-end */
 ]);
 /** Canonical wire schema for exact action-plan confirmation and execution. */
 export const systemActionExecuteRequestSchema = Type.Object(

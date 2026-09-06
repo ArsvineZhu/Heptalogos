@@ -1,5 +1,15 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { access, mkdtemp, readFile, readdir, rename, rm } from "node:fs/promises";
+import {
+  access,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -89,6 +99,9 @@ function safeEnvironment(): NodeJS.ProcessEnv {
   return environment;
 }
 
+// Intentional duplication: portable qualification captures arbitrary launcher
+// commands, while the support helper owns the Product CLI's fixed invocation.
+/* jscpd:ignore-start */
 function runCommand(
   executable: string,
   args: readonly string[],
@@ -121,6 +134,7 @@ function runCommand(
     else child.stdin.end();
   });
 }
+/* jscpd:ignore-end */
 
 async function runChecked(
   executable: string,
@@ -240,6 +254,10 @@ async function applyAction(
   return executed;
 }
 
+// Intentional duplication: this clean qualification starts the assembled
+// launcher from a source-less Product root; support/fixture.ts starts the
+// repository-built host and has a different lifecycle evidence boundary.
+/* jscpd:ignore-start */
 async function startPortableHost(
   root: string,
   nodeRoot: string,
@@ -318,6 +336,7 @@ async function startPortableHost(
     },
   };
 }
+/* jscpd:ignore-end */
 
 async function waitFor(
   predicate: () => Promise<boolean>,
@@ -503,6 +522,10 @@ async function assembleCandidate(
       resolve(repositoryRoot, "scripts/package/assemble-portable-product.mjs"),
       "--target",
       assemblyRoot,
+      "--host-artifact",
+      resolve(repositoryRoot, "packages/application/product-host/dist"),
+      "--cli-artifact",
+      resolve(repositoryRoot, "packages/application/cli/dist"),
       "--node-root",
       nodeRoot,
       "--postgres-root",
@@ -510,6 +533,55 @@ async function assembleCandidate(
     ],
     repositoryRoot,
   );
+  const assembledManifest = JSON.parse(
+    await readFile(join(assemblyRoot, "manifest.json"), "utf8"),
+  ) as { readonly productGeneration: string };
+  const assembledProductRoot = join(
+    assemblyRoot,
+    "program",
+    "product",
+    assembledManifest.productGeneration,
+  );
+  await mkdir(join(assemblyRoot, "config"), { recursive: true });
+  await writeFile(join(assemblyRoot, "config", "incremental-marker.txt"), "preserve\n");
+  const stablePaths = [
+    join(assemblyRoot, "runtime", "node", nodeExecutableName),
+    join(
+      assemblyRoot,
+      "runtime",
+      "postgresql",
+      "bin",
+      process.platform === "win32" ? "postgres.exe" : "postgres",
+    ),
+    join(assembledProductRoot, "bin.js"),
+  ];
+  const beforeIncremental = await Promise.all(stablePaths.map((path) => lstat(path)));
+  const incrementalOutput = await runChecked(
+    process.execPath,
+    [
+      resolve(repositoryRoot, "scripts/package/assemble-portable-product.mjs"),
+      "--target",
+      assemblyRoot,
+      "--incremental",
+      "--host-artifact",
+      resolve(repositoryRoot, "packages/application/product-host/dist"),
+      "--cli-artifact",
+      resolve(repositoryRoot, "packages/application/cli/dist"),
+      "--node-root",
+      nodeRoot,
+      "--postgres-root",
+      postgresRoot,
+    ],
+    repositoryRoot,
+  );
+  expect(incrementalOutput).toContain("PASS portable Product unchanged");
+  const afterIncremental = await Promise.all(stablePaths.map((path) => lstat(path)));
+  expect(afterIncremental.map((entry) => entry.mtimeMs)).toEqual(
+    beforeIncremental.map((entry) => entry.mtimeMs),
+  );
+  await expect(
+    readFile(join(assemblyRoot, "config", "incremental-marker.txt"), "utf8"),
+  ).resolves.toBe("preserve\n");
   await rename(assemblyRoot, candidateRoot);
   const afterStatus = await runChecked(
     "git",

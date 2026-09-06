@@ -4,7 +4,7 @@
  * @module subject-openclaw
  */
 
-import type { BootstrapPathProfile } from "@heptalogos/bootstrap-runtime";
+import type { RuntimeLocations } from "@heptalogos/bootstrap-runtime";
 import type { AIRuntimeService } from "@heptalogos/ai-runtime";
 import {
   type InstallationId,
@@ -32,18 +32,13 @@ import {
   subjectOpenClawRuntimeFingerprint,
   subjectOpenClawRuntimePaths,
 } from "./subject-openclaw-projection.js";
-
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
+import { asRecord } from "./value-utils.js";
 
 /** Product Host inputs required to supervise the Subject OpenClaw runtime. */
 export interface SubjectOpenClawRuntimeOptions {
   readonly installationId: InstallationId;
   readonly productGeneration: ProductGenerationId;
-  readonly paths: BootstrapPathProfile;
+  readonly locations: RuntimeLocations;
   readonly configuration: ConfigurationService;
   readonly aiRuntime: AIRuntimeService;
   readonly networkAccess: NetworkAccessService;
@@ -64,7 +59,7 @@ export interface SubjectOpenClawRuntimeHandle extends SubjectCognitionRuntime {
 export function createSubjectOpenClawRuntime(
   options: SubjectOpenClawRuntimeOptions,
 ): SubjectOpenClawRuntimeHandle {
-  const paths = subjectOpenClawRuntimePaths(options.paths);
+  const paths = subjectOpenClawRuntimePaths(options.locations);
   let boundSubjectId: SubjectId | undefined;
   let lifecycle: "STOPPED" | "STARTING" | "READY" | "FAILED" | "STOPPING" = "STOPPED";
   let live: SubjectOpenClawGateway | undefined;

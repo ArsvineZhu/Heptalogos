@@ -61,6 +61,23 @@ function boundedFailureDetail(stdout, stderr) {
   return unique.map((line) => line.slice(0, 360)).join("\n");
 }
 
+function boundedWarnings(stdout, stderr) {
+  const lines = [...nonEmptyLines(stdout), ...nonEmptyLines(stderr)];
+  const warnings = [];
+  let currentFile;
+  for (const line of lines) {
+    if (/^(?:[A-Za-z]:[\\/]|\/).+\.(?:c|m)?(?:j|t)sx?$/u.test(line)) {
+      currentFile = line;
+    }
+    if (/\bwarning\b.*\bmax-lines\b/iu.test(line)) {
+      warnings.push(
+        `WARN ${currentFile === undefined ? "" : `${currentFile}: `}${line.trim()}`,
+      );
+    }
+  }
+  return [...new Set(warnings)].slice(0, 24);
+}
+
 if (nxArgs.length === 0) {
   console.error("FAIL repository command: an Nx command is required");
   process.exitCode = 1;
@@ -69,11 +86,11 @@ if (nxArgs.length === 0) {
     const quietEnvironment = {
       ...process.env,
       NO_COLOR: "1",
+      FORCE_COLOR: "0",
       NX_DEFAULT_OUTPUT_STYLE: "static",
     };
-    // FORCE_COLOR wins over NO_COLOR even when set to "0", so remove it
-    // instead of assigning another value that makes Node warn in every child.
-    delete quietEnvironment.FORCE_COLOR;
+    // Nx 23.2 preserves FORCE_COLOR=0 for child tasks, preventing Node from
+    // re-enabling color and emitting a warning about NO_COLOR in every child.
     const result = await runPnpm(["exec", "nx", ...nxArgs], {
       cwd: root,
       env: quietEnvironment,
@@ -83,6 +100,10 @@ if (nxArgs.length === 0) {
     if (showOutput) {
       if (result.stdout.length > 0) process.stdout.write(result.stdout);
       if (result.stderr.length > 0) process.stderr.write(result.stderr);
+    } else {
+      for (const warning of boundedWarnings(result.stdout, result.stderr)) {
+        console.log(warning);
+      }
     }
     console.log(`PASS ${commandLabel}`);
   } catch (error) {

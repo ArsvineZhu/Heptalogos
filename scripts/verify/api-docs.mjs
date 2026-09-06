@@ -82,7 +82,17 @@ async function generate(directory, apiPackages) {
     `${JSON.stringify(
       {
         extends: relativeFrom(temporaryRoot, join(root, "tsconfig.base.json")),
-        compilerOptions: { types: ["node"] },
+        compilerOptions: {
+          types: ["node"],
+          baseUrl: root,
+          ignoreDeprecations: "6.0",
+          paths: Object.fromEntries(
+            apiPackages.map(({ packageName, entryPoint }) => [
+              packageName,
+              [relativeRepositoryPath(entryPoint)],
+            ]),
+          ),
+        },
         files: apiPackages.map(({ entryPoint }) =>
           relativeFrom(temporaryRoot, entryPoint),
         ),

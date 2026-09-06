@@ -37,10 +37,9 @@ export async function cleanupIntegration(state: IntegrationState): Promise<void>
   }
 }
 
-export async function readSubjectFactSnapshot(
+async function connectRuntimeDatabase(
   testFixture: ProductHostFixture,
-  conversationId: string,
-): Promise<SubjectFactSnapshot> {
+): Promise<Client> {
   const runtimeKey = {
     service: "Heptalogos/" + testFixture.installationId,
     account: "bootstrap/private-postgres-runtime-role",
@@ -57,6 +56,14 @@ export async function readSubjectFactSnapshot(
     password: runtimePassword,
   });
   await database.connect();
+  return database;
+}
+
+export async function readSubjectFactSnapshot(
+  testFixture: ProductHostFixture,
+  conversationId: string,
+): Promise<SubjectFactSnapshot> {
+  const database = await connectRuntimeDatabase(testFixture);
   try {
     const reactions = await database.query<{
       readonly reaction_id: string;
@@ -115,22 +122,7 @@ export async function holdWorkItemLock(
   testFixture: ProductHostFixture,
   workItemId: string,
 ): Promise<() => Promise<void>> {
-  const runtimeKey = {
-    service: "Heptalogos/" + testFixture.installationId,
-    account: "bootstrap/private-postgres-runtime-role",
-  };
-  const runtimePassword = await testFixture.credentialStore.withCredential(
-    runtimeKey,
-    async (bytes) => new TextDecoder().decode(bytes),
-  );
-  const database = new Client({
-    host: "127.0.0.1",
-    port: testFixture.postgresPort,
-    database: "heptalogos",
-    user: "heptalogos_runtime",
-    password: runtimePassword,
-  });
-  await database.connect();
+  const database = await connectRuntimeDatabase(testFixture);
   await database.query("BEGIN");
   await database.query(
     `SELECT work_item_id
@@ -154,22 +146,7 @@ export async function holdSubjectAuthorityLock(
   waitForWaiters(minimum: number): Promise<void>;
   release(): Promise<void>;
 }> {
-  const runtimeKey = {
-    service: "Heptalogos/" + testFixture.installationId,
-    account: "bootstrap/private-postgres-runtime-role",
-  };
-  const runtimePassword = await testFixture.credentialStore.withCredential(
-    runtimeKey,
-    async (bytes) => new TextDecoder().decode(bytes),
-  );
-  const database = new Client({
-    host: "127.0.0.1",
-    port: testFixture.postgresPort,
-    database: "heptalogos",
-    user: "heptalogos_runtime",
-    password: runtimePassword,
-  });
-  await database.connect();
+  const database = await connectRuntimeDatabase(testFixture);
   await database.query("BEGIN");
   await database.query(
     `SELECT subject_id

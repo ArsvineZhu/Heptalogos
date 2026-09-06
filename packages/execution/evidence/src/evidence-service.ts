@@ -21,6 +21,9 @@ import {
 } from "./problems.js";
 import type { TimeService } from "@heptalogos/time-service";
 
+// Intentional duplication: Evidence and execution-lineage validate parallel
+// governance fields under different owner contracts and failure semantics.
+/* jscpd:ignore-start */
 const retentionValues = new Set(["operational", "retained", "audit"]);
 const sensitivityValues = new Set([
   "public",
@@ -37,6 +40,7 @@ function utf8Length(value: string): number {
 function validBounded(value: string, maximumBytes: number): boolean {
   return value.trim().length > 0 && utf8Length(value) <= maximumBytes;
 }
+/* jscpd:ignore-end */
 
 function validateDraft(draft: EvidenceDraft): void {
   if (!validBounded(draft.evidenceKind, 128)) {

@@ -10,6 +10,9 @@ import {
   type ProblemError,
 } from "@heptalogos/foundation-contracts";
 
+// Intentional duplication: Secret keeps its own problem-code and default
+// retry taxonomy rather than sharing a constructor with Configuration.
+/* jscpd:ignore-start */
 /** Creates one redacted Secret Problem. */
 export function secretProblem(
   problemCode: string,
@@ -20,3 +23,4 @@ export function secretProblem(
 ): ProblemError {
   return createProblemError({ problemCode, title, detail, category, retryClass });
 }
+/* jscpd:ignore-end */

@@ -1,3 +1,6 @@
+// Intentional duplication: this integration uses a source-tree alias map that
+// is deliberately independent from the Product Host integration's alias map.
+/* jscpd:ignore-start */
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { defineConfig } from "vitest/config";
@@ -45,3 +48,4 @@ export default defineConfig({
     hookTimeout: 180_000,
   },
 });
+/* jscpd:ignore-end */

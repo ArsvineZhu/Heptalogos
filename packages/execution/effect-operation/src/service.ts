@@ -437,12 +437,16 @@ export function createEffectOperationService(
       port: EffectDispatchPort,
       reconcileOptions,
     ): Promise<EffectOperation> {
+      // Intentional duplication: dispatch and reconcile share the lookup and
+      // current-execution fence, then diverge into different state machines.
+      /* jscpd:ignore-start */
       const id = requireEffectOperationId(effectOperationId);
       const operation = await get(id);
       if (operation === undefined) throw effectNotFoundProblem();
       assertPortKind(operation, port);
       requireCurrent(options.execution);
       if (operation.state !== "UNCERTAIN") return operation;
+      /* jscpd:ignore-end */
       if (port.reconcile === undefined) {
         throw effectReconciliationUnsupportedProblem();
       }

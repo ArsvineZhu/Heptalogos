@@ -17,6 +17,10 @@ export {
   type BootstrapPathProfile,
   type ResolvedLifecycleRoot,
 } from "./bootstrap/roots.js";
+export {
+  resolveRuntimeLocations,
+  type RuntimeLocations,
+} from "./bootstrap/runtime-locations.js";
 export type {
   BootstrapOwnershipLease,
   BootstrapOwnershipOptions,

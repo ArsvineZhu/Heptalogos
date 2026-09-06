@@ -29,10 +29,10 @@
       }
     },
     "qualification": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", { "projects": "product-host", "target": "build" }],
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm nx run product-host:build && vitest run --root integration/model-gateway"
+        "command": "vitest run --root integration/model-gateway"
       }
     },
     "lint": {

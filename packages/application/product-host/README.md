@@ -12,6 +12,9 @@ listener.
 
 - Build-time ProductGeneration and BootstrapRuntimeGeneration materialization;
   runtime imports the checked identities without repository scanning.
+- Consumption of Bootstrap's `RuntimeLocations` contract for configuration,
+  durable state, cache, and ephemeral run roots; Product runtime code does not
+  infer installed resources from the repository or invocation cwd.
 - The single Bootstrap-to-Host composition and terminal shutdown order.
 - Management HTTP admission, discovery, claim/session routes, OpenAPI
   artifact, endpoint descriptor, and live first-claim publication/rotation.
@@ -52,10 +55,15 @@ surface and currently proves only the Windows x64 boundary.
 The current portable profile is assembled by the repository-owned
 `scripts/package/assemble-portable-product.mjs` command. The assembly carries
 the private Node and PostgreSQL runtimes, the dependency-closed Product Host
-and CLI payloads, the exact Subject OpenClaw packages, and the license/manifest
-inventory. Assembly uses a disposable copy/staging workspace under the OS
-temporary directory, then moves or copies the acceptance candidate outside the
-repository. The source workspace is not mutated by assembly.
+and CLI application artifacts, the exact Subject OpenClaw packages, and the
+license/manifest inventory. Nx builds and prunes those artifacts, and the
+assembler reconciles each artifact lockfile and uses pnpm's hoisted production
+linker inside the artifact before replacing the application payload in the
+Product root. This keeps package resolution self-contained when the payload is
+copied outside the workspace; it is not a runtime install. The assembler does
+not copy or rebuild the source workspace. Development assembly is incremental: unchanged
+application and private-runtime subtrees remain in place, while clean
+qualification still starts from a fresh target outside the repository.
 
 After copying the assembled root to its final location, use the stable
 entrypoint from that location. The first `start` creates the bootstrap locator,

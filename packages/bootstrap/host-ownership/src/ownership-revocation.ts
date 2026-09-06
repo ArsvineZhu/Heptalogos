@@ -25,6 +25,11 @@ import {
 } from "./bootstrap-admin.js";
 import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
 import { queryWithAuthority as authorizedQuery } from "./authorized-query.js";
+import {
+  FENCE_AFTER_COMMIT,
+  FENCE_FOR_UPDATE,
+  type HostOwnershipFenceRow,
+} from "./fence-queries.js";
 
 /** Reports the fence revision before and after token revocation. */
 export interface HostOwnershipRevocationResult {
@@ -43,27 +48,6 @@ export interface RevokeHostOwnershipTokenOptions {
   readonly passwordProvider: BootstrapAdminPasswordProvider;
   readonly mutationAuthority: BootstrapMutationAuthority;
 }
-
-interface FenceRow {
-  readonly singleton: boolean;
-  readonly instance_id: string;
-  readonly ownership_revision: string | number;
-  readonly host_ownership_token: string | null;
-  readonly boot_id: string | null;
-}
-
-const FENCE_FOR_UPDATE = `
-SELECT singleton, instance_id, ownership_revision, host_ownership_token, boot_id
-FROM "${HOST_OWNERSHIP_SCHEMA}"."${HOST_OWNERSHIP_FENCE_TABLE}"
-WHERE singleton = true
-FOR UPDATE
-`;
-
-const FENCE_AFTER_COMMIT = `
-SELECT singleton, instance_id, ownership_revision, host_ownership_token, boot_id
-FROM "${HOST_OWNERSHIP_SCHEMA}"."${HOST_OWNERSHIP_FENCE_TABLE}"
-WHERE singleton = true
-`;
 
 function revocationProblem(
   problemCode: string,
@@ -125,7 +109,7 @@ function nextRevision(previousRevision: string): string {
 }
 
 function assertSourceFence(
-  row: FenceRow,
+  row: HostOwnershipFenceRow,
   options: RevokeHostOwnershipTokenOptions,
 ): string {
   if (row.singleton !== true || row.instance_id !== options.instanceId) {
@@ -166,7 +150,7 @@ function assertSourceFence(
 }
 
 function assertRevokedFence(
-  row: FenceRow,
+  row: HostOwnershipFenceRow,
   options: RevokeHostOwnershipTokenOptions,
   expectedRevision: string,
 ): void {
@@ -213,7 +197,7 @@ export async function revokeHostOwnershipTokenForBootstrap(
             [`${options.statementTimeoutMs}ms`],
           );
 
-          const locked = await authorizedQuery<FenceRow>(
+          const locked = await authorizedQuery<HostOwnershipFenceRow>(
             client,
             options.mutationAuthority,
             FENCE_FOR_UPDATE,
@@ -255,9 +239,9 @@ WHERE singleton = true`,
             throw committedUnverified();
           }
 
-          let verified: { readonly rows: readonly FenceRow[] };
+          let verified: { readonly rows: readonly HostOwnershipFenceRow[] };
           try {
-            verified = await client.query<FenceRow>(FENCE_AFTER_COMMIT);
+            verified = await client.query<HostOwnershipFenceRow>(FENCE_AFTER_COMMIT);
           } catch {
             throw committedUnverified();
           }

@@ -26,6 +26,7 @@ import {
   encodePostgresScramSha256Verifier,
   matchesPostgresScramSha256Verifier,
 } from "./scram-verifier.js";
+import { asPostgresBoolean } from "./postgres-values.js";
 
 interface BootstrapAdminQueryResult<Row> {
   readonly rows: readonly Row[];
@@ -313,13 +314,6 @@ function decodeUtf8(bytes: Uint8Array): string {
   }
 }
 
-function asBoolean(value: unknown): boolean | undefined {
-  if (typeof value === "boolean") return value;
-  if (value === "t" || value === "true") return true;
-  if (value === "f" || value === "false") return false;
-  return undefined;
-}
-
 async function authorizedMutation<Row = never>(
   client: BootstrapAdminClient,
   authority: BootstrapMutationAuthority,
@@ -360,9 +354,9 @@ function membershipsAreExact(
       (membership) =>
         membership.member_role === required.memberRole &&
         membership.granted_role === required.grantedRole &&
-        asBoolean(membership.admin_option) === required.adminOption &&
-        asBoolean(membership.inherit_option) === required.inheritOption &&
-        asBoolean(membership.set_option) === required.setOption,
+        asPostgresBoolean(membership.admin_option) === required.adminOption &&
+        asPostgresBoolean(membership.inherit_option) === required.inheritOption &&
+        asPostgresBoolean(membership.set_option) === required.setOption,
     ),
   );
 }
@@ -545,7 +539,7 @@ export async function acquireBootstrapHostReservation(
         "SELECT pg_try_advisory_lock($1::integer, $2::integer) AS acquired",
         [options.advisoryKey.key1, options.advisoryKey.key2],
       );
-      const acquired = asBoolean(result.rows[0]?.acquired);
+      const acquired = asPostgresBoolean(result.rows[0]?.acquired);
       if (acquired === undefined) {
         throw provisioningProblem(
           "host-ownership.reservation.invalid_result",
@@ -572,7 +566,7 @@ export async function acquireBootstrapHostReservation(
                 "SELECT pg_advisory_unlock($1::integer, $2::integer) AS released",
                 [options.advisoryKey.key1, options.advisoryKey.key2],
               );
-              if (asBoolean(releasedResult.rows[0]?.released) !== true) {
+              if (asPostgresBoolean(releasedResult.rows[0]?.released) !== true) {
                 throw provisioningProblem(
                   "host-ownership.reservation.release_failed",
                   "Bootstrap Host reservation release failed",

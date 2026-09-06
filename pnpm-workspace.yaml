@@ -14,7 +14,7 @@ overrides:
 catalog:
   "@fastify/rate-limit": 11.2.0
   "@fastify/swagger": 9.8.1
-  "@nx/js": 23.1.2
+  "@nx/js": 23.2.0
   "@hey-api/openapi-ts": 0.99.0
   "@inquirer/password": 5.2.0
   "@napi-rs/keyring": 2.0.0
@@ -32,7 +32,7 @@ catalog:
   jscpd: 5.0.16
   kysely: 0.29.5
   mdast-util-from-markdown: 2.0.3
-  nx: 23.1.2
+  nx: 23.2.0
   oxlint: 1.80.0
   oxlint-tsgolint: 7.0.2001
   pg: 8.23.0
@@ -57,7 +57,7 @@ catalog:
   "@types/ws": 8.18.1
   cordis: 4.0.0-rc.8
   "@dagrejs/graphlib": 4.0.5
-  "@nx/eslint-plugin": 23.1.2
+  "@nx/eslint-plugin": 23.2.0
   "@dbos-inc/dbos-sdk": 4.27.6
   knip: 6.32.3
   ai: 7.0.91

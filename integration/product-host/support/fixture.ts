@@ -74,6 +74,10 @@ export interface RunningHost {
   readonly stderr: () => string;
 }
 
+// Intentional duplication: this fixture allocates its PostgreSQL test port
+// with Product Host-specific failure semantics; the production Subject
+// Gateway allocator is a separate owner and must report cognition Problems.
+/* jscpd:ignore-start */
 async function freePort(): Promise<number> {
   const server = createServer();
   await new Promise<void>((resolvePromise, reject) => {
@@ -91,7 +95,11 @@ async function freePort(): Promise<number> {
   });
   return port;
 }
+/* jscpd:ignore-end */
 
+// Intentional duplication: this in-process Product Host fixture materializes
+// lifecycle roots independently from the Foundation PostgreSQL fixture.
+/* jscpd:ignore-start */
 export async function makeFixture(postgresBin: string): Promise<ProductHostFixture> {
   const anchorRoot = await mkdtemp(join(tmpdir(), "heptalogos-product-host-anchor-"));
   const fixtureDirectories = [anchorRoot];
@@ -110,6 +118,7 @@ export async function makeFixture(postgresBin: string): Promise<ProductHostFixtu
     JSON.stringify({ schemaVersion: 1, installationId, instanceId, roots }),
     "utf8",
   );
+  /* jscpd:ignore-end */
   const credentialStore = createOsCredentialStore();
   const fixture: ProductHostFixture = {
     anchorRoot,

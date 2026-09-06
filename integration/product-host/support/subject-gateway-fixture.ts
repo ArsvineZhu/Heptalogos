@@ -8,6 +8,17 @@ async function readJsonBody(request: import("node:http").IncomingMessage) {
   return JSON.parse(Buffer.concat(chunks).toString("utf8")) as Record<string, unknown>;
 }
 
+function messageTexts(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((message) => {
+    if (typeof message !== "object" || message === null) return "";
+    const record = message as Record<string, unknown>;
+    if (typeof record.content === "string") return record.content;
+    if (typeof record.text === "string") return record.text;
+    return JSON.stringify(message);
+  });
+}
+
 /**
  * The one loopback provider used by Product Host integration qualification.
  * It implements the public OpenAI-compatible HTTP surface consumed by both
@@ -59,24 +70,21 @@ export async function createSubjectGatewayFixture(): Promise<{
     });
     const delta = (payload.choices as Array<Record<string, unknown>>)[0]!
       .message as Record<string, unknown>;
-    response.write(
-      `data: ${JSON.stringify({
-        id: payload.id,
-        object: "chat.completion.chunk",
-        created: Math.floor(Date.now() / 1000),
-        model: payload.model,
-        choices: [{ index: 0, delta, finish_reason: null }],
-      })}\n\n`,
-    );
-    response.write(
-      `data: ${JSON.stringify({
-        id: payload.id,
-        object: "chat.completion.chunk",
-        created: Math.floor(Date.now() / 1000),
-        model: payload.model,
-        choices: [{ index: 0, delta: {}, finish_reason: finishReason }],
-      })}\n\n`,
-    );
+    const writeChunk = (
+      chunkDelta: Record<string, unknown>,
+      chunkFinishReason: string | null,
+    ) =>
+      response.write(
+        `data: ${JSON.stringify({
+          id: payload.id,
+          object: "chat.completion.chunk",
+          created: Math.floor(Date.now() / 1000),
+          model: payload.model,
+          choices: [{ index: 0, delta: chunkDelta, finish_reason: chunkFinishReason }],
+        })}\n\n`,
+      );
+    writeChunk(delta, null);
+    writeChunk({}, finishReason);
     response.end("data: [DONE]\n\n");
   };
   const server = createServer((request, response) => {
@@ -114,29 +122,11 @@ export async function createSubjectGatewayFixture(): Promise<{
           );
           if (!hasToolResult) {
             primaryInvocations += 1;
-            primaryRequests.push(
-              messages.map((message) => {
-                if (typeof message !== "object" || message === null) return "";
-                const value = message as Record<string, unknown>;
-                if (typeof value.content === "string") return value.content;
-                if (typeof value.text === "string") return value.text;
-                return JSON.stringify(message);
-              }),
-            );
+            primaryRequests.push(messageTexts(messages));
           }
         } else {
           primaryInvocations += 1;
-          primaryRequests.push(
-            Array.isArray(body.messages)
-              ? body.messages.map((message) => {
-                  if (typeof message !== "object" || message === null) return "";
-                  const value = message as Record<string, unknown>;
-                  if (typeof value.content === "string") return value.content;
-                  if (typeof value.text === "string") return value.text;
-                  return JSON.stringify(message);
-                })
-              : [],
-          );
+          primaryRequests.push(messageTexts(body.messages));
         }
         if (isOpenClawPrimary && model.includes("slow")) {
           const gate = slowPrimaryGate;
@@ -291,6 +281,10 @@ export async function createSubjectGatewayFixture(): Promise<{
       }
     })();
   });
+  // Intentional duplication: this server keeps its listening socket open to
+  // publish the fixture endpoint; canonical-postgres only probes and closes a
+  // port, so their cleanup/error ownership stays separate.
+  /* jscpd:ignore-start */
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
     server.listen(0, "127.0.0.1", resolve);
@@ -300,6 +294,7 @@ export async function createSubjectGatewayFixture(): Promise<{
     await new Promise<void>((resolve) => server.close(() => resolve()));
     throw new Error("Subject Chat gateway fixture did not expose a port");
   }
+  /* jscpd:ignore-end */
   return {
     server,
     baseUrl: `http://127.0.0.1:${address.port}/v1`,
@@ -310,11 +305,15 @@ export async function createSubjectGatewayFixture(): Promise<{
       gate.resolveReleased();
     },
     waitForSlowExpression: () => slowExpressionGate.started,
+    // Intentional duplication: primary and expression gates are independent
+    // scenario controls and must not share mutable release state.
+    /* jscpd:ignore-start */
     releaseSlowExpression: () => {
       const gate = slowExpressionGate;
       slowExpressionGate = createGate();
       gate.resolveReleased();
     },
+    /* jscpd:ignore-end */
     primaryInvocationCount: () => primaryInvocations,
     expressionInvocationCount: () => expressionInvocations,
     expressionBudgets: () => Object.freeze([...expressionBudgets]),

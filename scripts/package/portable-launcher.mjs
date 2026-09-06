@@ -174,8 +174,8 @@ async function main() {
   }
   await ensureLocator();
   const productRoot = await manifestProductRoot();
-  const hostExecutable = join(productRoot, "dist", "bin.js");
-  const cliExecutable = join(productRoot, "cli", "dist", "bin.js");
+  const hostExecutable = join(productRoot, "bin.js");
+  const cliExecutable = join(productRoot, "cli", "bin.js");
   const postgresBin = join(ROOT, "runtime", "postgresql", "bin");
   const forwarded = userArguments(rawArguments);
   const childArguments =

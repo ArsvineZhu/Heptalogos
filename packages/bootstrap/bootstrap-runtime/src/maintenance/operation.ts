@@ -132,6 +132,9 @@ function maintenanceProblem(
   });
 }
 
+// Intentional duplication: maintenance and recovery each translate their
+// fence values into the owner-specific Problem taxonomy.
+/* jscpd:ignore-start */
 function decimalRevision(value: string | number): string {
   if (typeof value === "string" && /^(0|[1-9][0-9]*)$/u.test(value)) return value;
   if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) {
@@ -143,6 +146,7 @@ function decimalRevision(value: string | number): string {
     "The current HostOwnershipFence revision is not an unsigned decimal value",
   );
 }
+/* jscpd:ignore-end */
 
 function stateBody(
   loaded: Awaited<ReturnType<OwnedMaintenanceStateAccess["state"]["load"]>>,

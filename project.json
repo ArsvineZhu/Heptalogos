@@ -3,6 +3,39 @@
   "name": "repository",
   "projectType": "library",
   "tags": ["kind:tooling", "area:repository"],
+  "implicitDependencies": [
+    "foundation-contracts",
+    "subject-chat-client",
+    "management-client",
+    "bootstrap-runtime",
+    "durable-execution",
+    "execution-lineage",
+    "effect-operation",
+    "private-postgres",
+    "bootstrap-state",
+    "runtime-substrate",
+    "schema-runtime",
+    "host-ownership",
+    "product-host",
+    "time-service",
+    "runtime-kernel",
+    "canonical-schema",
+    "network-access",
+    "configuration",
+    "os-credential",
+    "work-queue",
+    "evidence",
+    "ai-runtime",
+    "management",
+    "messaging",
+    "persistence",
+    "signal",
+    "cli",
+    "product-host-integration",
+    "subject",
+    "secret",
+    "repo-kit"
+  ],
   "targets": {
     "check:agents": {
       "executor": "nx:run-commands",
@@ -63,15 +96,11 @@
       }
     },
     "check:product-artifacts": {
-      "parallelism": false,
-      "executor": "nx:run-commands",
-      "options": {
-        "commands": [
-          "pnpm nx run product-host:check:build-identities",
-          "pnpm nx run management-client:generate:check"
-        ],
-        "parallel": false
-      }
+      "dependsOn": [
+        { "projects": "product-host", "target": "check:build-identities" },
+        { "projects": "management-client", "target": "generate:check" }
+      ],
+      "executor": "nx:noop"
     },
     "check:unused": {
       "executor": "nx:run-commands",
@@ -88,27 +117,24 @@
     "check:duplicates": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "jscpd --config .jscpd.json packages tools scripts .agents"
+        "command": "jscpd --config .jscpd.json packages integration tools scripts .agents"
       }
     },
     "format:check": {
-      "parallelism": false,
       "executor": "nx:run-commands",
       "options": {
-        "command": "prettier --check ."
+        "command": "prettier --check --cache --cache-location .nx/prettier-cache ."
       }
     },
     "boundary": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint packages"
+        "command": "eslint packages integration tools scripts"
       }
     },
     "source-docs:lint": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "eslint \"packages/*/*/src/**/*.{ts,tsx}\" \"tools/*/src/**/*.{js,mjs,ts}\" \"scripts/**/*.{js,mjs,ts}\""
-      }
+      "dependsOn": ["boundary"],
+      "executor": "nx:noop"
     },
     "tooling:lint": {
       "executor": "nx:run-commands",
@@ -124,19 +150,12 @@
       }
     },
     "lint": {
-      "dependsOn": ["boundary", "tooling:lint", "schema:lint"],
-      "parallelism": false,
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "nx run-many -t lint --all --exclude=repository,repo-kit"
-      }
+      "dependsOn": ["^lint", "boundary", "tooling:lint", "schema:lint"],
+      "executor": "nx:noop"
     },
     "typecheck": {
-      "parallelism": false,
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "nx run-many -t typecheck --all --exclude=repository"
-      }
+      "dependsOn": ["^typecheck"],
+      "executor": "nx:noop"
     },
     "tsc6": {
       "executor": "nx:run-commands",
@@ -145,18 +164,15 @@
       }
     },
     "test": {
-      "parallelism": false,
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "nx run-many -t test --all --exclude=repository"
-      }
+      "dependsOn": [
+        "^test",
+        { "projects": "integration-foundation", "target": "test" }
+      ],
+      "executor": "nx:noop"
     },
     "build": {
-      "parallelism": false,
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "nx run-many -t build --all --exclude=repository"
-      }
+      "dependsOn": ["^build"],
+      "executor": "nx:noop"
     },
     "check:repo": {
       "dependsOn": [
@@ -196,11 +212,13 @@
       }
     },
     "verify": {
-      "dependsOn": ["check:static"],
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "nx run-many --targets=test,build --all --exclude=repository,integration-foundation --parallel=1"
-      }
+      "dependsOn": [
+        "check:static",
+        "^test",
+        "^build",
+        { "projects": "model-gateway-integration", "target": "test" }
+      ],
+      "executor": "nx:noop"
     }
   }
 }

@@ -5,7 +5,7 @@
  */
 
 import { join } from "node:path";
-import type { BootstrapPathProfile } from "@heptalogos/bootstrap-runtime";
+import type { RuntimeLocations } from "@heptalogos/bootstrap-runtime";
 import {
   type ConfigurationRevision,
   type ConfigurationService,
@@ -30,6 +30,7 @@ import {
   SUBJECT_COGNITION_CONFIGURATION_DEFINITION_ID,
   type SubjectCognitionConfigV1,
 } from "@heptalogos/subject";
+import { asRecord } from "./value-utils.js";
 
 /** Exact provider evidence selected by the current Product dependency Catalog. */
 export const SUBJECT_OPENCLAW_VERSION = "2026.9.1";
@@ -100,7 +101,7 @@ export interface SubjectOpenClawRuntimeProjection {
 /** Dependencies needed to build one Subject runtime projection. */
 export interface SubjectOpenClawProjectionOptions {
   readonly installationId: InstallationId;
-  readonly paths: BootstrapPathProfile;
+  readonly locations: RuntimeLocations;
   readonly configuration: ConfigurationService;
   readonly aiRuntime: AIRuntimeService;
   readonly networkAccess: NetworkAccessService;
@@ -122,12 +123,6 @@ const cognitionProblem = (
   retryClass: "manual" | "after-change" = "after-change",
 ): Error => createProblemError({ problemCode, category, retryClass, title, detail });
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
-
 function subjectScope(subjectId: SubjectId) {
   return Object.freeze({
     schemaVersion: 1 as const,
@@ -146,15 +141,12 @@ function installationScope(installationId: InstallationId) {
 
 /** Derives the Product-owned isolated runtime roots without reading provider state. */
 export function subjectOpenClawRuntimePaths(
-  profile: BootstrapPathProfile,
+  locations: RuntimeLocations,
 ): SubjectOpenClawRuntimePaths {
-  const data = join(profile.resolve("DATA").canonicalPath, "subject-openclaw");
-  const configuration = join(
-    profile.resolve("CONFIGURATION").canonicalPath,
-    "subject-openclaw",
-  );
-  const cache = join(profile.resolve("CACHE").canonicalPath, "subject-openclaw");
-  const run = join(profile.resolve("RUN").canonicalPath, "subject-openclaw");
+  const data = join(locations.stateRoot, "subject-openclaw");
+  const configuration = join(locations.configRoot, "subject-openclaw");
+  const cache = join(locations.cacheRoot, "subject-openclaw");
+  const run = join(locations.runRoot, "subject-openclaw");
   return Object.freeze({
     data,
     configuration,

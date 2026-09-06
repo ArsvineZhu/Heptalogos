@@ -9,6 +9,7 @@ import {
   type LifecycleRootId,
 } from "@heptalogos/foundation-contracts";
 import { resolveBootstrapPathProfile } from "../../src/bootstrap/roots.js";
+import { resolveRuntimeLocations } from "../../src/bootstrap/runtime-locations.js";
 import type { BootstrapLocatorV1 } from "../../src/bootstrap/locator.js";
 
 const directories: string[] = [];
@@ -86,6 +87,21 @@ describe("bootstrap lifecycle roots", () => {
     );
     expect(profile.list()).toHaveLength(LIFECYCLE_ROOT_IDS.length);
     expect(profile.list().map((root) => root.id)).toEqual([...LIFECYCLE_ROOT_IDS]);
+  });
+
+  it("projects repository and Product bootstrap modes through one location contract", async () => {
+    const roots = await makeRoots();
+    const profile = await resolveBootstrapPathProfile(
+      makeLocator(roots),
+      LIFECYCLE_ROOT_IDS,
+    );
+
+    expect(resolveRuntimeLocations(profile)).toEqual({
+      configRoot: profile.resolve("CONFIGURATION").canonicalPath,
+      stateRoot: profile.resolve("DATA").canonicalPath,
+      cacheRoot: profile.resolve("CACHE").canonicalPath,
+      runRoot: profile.resolve("RUN").canonicalPath,
+    });
   });
 
   it("rejects a configured root that does not exist", async () => {
