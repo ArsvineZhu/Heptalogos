@@ -54,6 +54,8 @@ Subject 可以观察、等待、延迟、审议后沉默、受策略抑制或无
 
 通用机制依次检查标准/OS 能力、当前已采用路线、成熟库或框架、薄适配与组合。自研需要具体不足证据。
 
+依赖决定账本标为 `ADOPTED` 的通用机制或 Provider 必须使用已选路线；`project/dependencies/dependency-routing.json` 是相应的机器可读 route 与 `USE` 指令。实现必须通过声明的适配边界；若需要替换已采用路线，先更新有权威的依赖决定或授权 Plan。
+
 ### E3. Canonical Truth Before Async Work
 
 外部输入先形成 canonical fact，再形成 durable work obligation。Signal 只用于唤醒和变化提示。
@@ -125,6 +127,10 @@ ConfigurationDefinition 描述 schema、scope、Authority、visibility、managea
 ### E20. Executable Truth 独立验证
 
 语义设计正确不代表产品可执行。重要 capability 在实际 boot、compose、work、stop、restart/recover 边界运行之前，其 executable claim 保持未验证。
+
+### E21. Resource Pressure Is Explicit Product State
+
+资源压力及由压力触发的 admission、degradation 和 load shedding 必须具有可观察的产品语义，不能由 Provider、队列或数据库的私有阈值暗中决定。相关架构使用 `NORMAL`、`THROTTLED`、`SHEDDING` 和 `BLOCKED` 表达不同压力状态；状态变化服从 Authority 与 Readiness。
 
 ## 三、优先级
 

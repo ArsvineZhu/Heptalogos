@@ -8,13 +8,13 @@ Kernel 维护运行组合、代次、Service/Capability 注册、Readiness、运
 
 ## 行为领域
 
-Heptalogos 自己维护的 Subject 领域包括 ConversationMailbox、Reaction、Pursuit、BehaviorIntent、Review、DecisionCommit、CommunicationCommit、Interaction/Action、Commitment/Obligation 和 EffectOperation。
+当前代码实现的 Subject 处理链由 ConversationMailbox、Reaction、BehaviorIntent、Review、DecisionCommit、CommunicationCommit 和表达/沉默语义组成；外部效果由 EffectOperation 独立约束。精确实现合同分别见 Subject Reaction/Behavior 与 EffectOperation Specs。
 
-其中 Pursuit 表示跨多次 Reaction 延续的主动追求；当前代码在对应 Plan/Spec 落地前仍以已有 Reaction/Behavior slice 为实现事实。
+目标领域还包括跨多次 Reaction 延续的 Pursuit、ActionPlan/InteractionPlan、Commitment 和 Obligation。它们必须在各自的 Plan/Spec 授权后才进入当前实现。
 
 ## 认知系统
 
-Nous Wave 维护长期 Memory、Self、Social Cognition、Motivation 和 Cognitive Runtime。Heptalogos 通过认知集成合同获取上下文、认知查询结果和提案，不复制这些领域的数据模型。
+目标职责由 Nous Wave 维护长期 Memory、Self、Social Cognition、Motivation 和 Cognitive Runtime。当前 Heptalogos 代码尚未集成 Nous Wave Provider、认知查询或 Context contribution；接口形成前不把这些目标能力视为当前运行组件。规划边界见[认知接入](cognition-integration.md)。
 
 SubjectId 在两个系统之间保持一致。行为状态和认知状态拥有独立的修订与提交路径。
 

@@ -8,7 +8,7 @@
 
 **Reaction**：处理一个当前情境的有界 Subject 行为运行状态。
 
-**Desired Condition**：Nous Wave Motivation 维护的期望条件；它本身不表示已决定行动。
+**Desired Condition**：Nous Wave Motivation 目标设计中的期望条件；它本身不表示已决定行动，当前 Heptalogos 代码尚无对应接口或类型。
 
 **Pursuit**：Heptalogos 对某个 Desired Condition 精确修订形成的持续主动追求。当前属于目标设计，待对应 Plan/Spec 实现。
 
@@ -18,15 +18,15 @@
 
 **CommunicationCommit**：已经决定对外表达的语义承诺。
 
-**ActionPlan / InteractionPlan**：外部动作或交互的实现计划。
+**ActionPlan / InteractionPlan**：目标设计中的外部动作或交互实现计划；当前没有对应的行为 Spec/实现。
 
-**Commitment / Obligation**：Subject 已经承担的约束性行为或社会状态。
+**Commitment / Obligation**：目标设计中的 Subject 约束性行为或社会状态；当前没有对应的行为 Spec/实现。
 
 **EffectOperation**：consequential external effect 的权威记录和不确定性栅栏。
 
 **ConversationMailbox**：组织 canonical MessageFact 引用和当前 Reaction 的会话状态。
 
-**CognitiveOpportunity**：值得进入 Subject 处理的当前机会。
+**CognitiveOpportunity**：目标设计中值得进入 Subject 处理的当前机会；当前没有对应的 Spec/实现。
 
 **ContextProjection**：一次 Reaction 使用的有界上下文投影。
 

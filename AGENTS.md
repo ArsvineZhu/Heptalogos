@@ -39,6 +39,10 @@ Existing code, tests and documents have no preservation privilege. Remove or rew
 
 Canonical mutations stay behind their semantic owner. Use mature libraries and platform facilities for generic mechanics when suitable. Framework objects remain behind owned adapters and do not become product Authority.
 
+Read `project/dependencies/README.md` before changing generic mechanics or Provider routes. The decision ledger records `ADOPTED` roles; `dependency-routing.json` records their machine-readable routes and `USE` directives. Implement the selected route behind its declared adapter; an unresolved foundational Provider choice is `PLAN_GAP`.
+
+Do not let Provider or queue-private pressure thresholds silently decide product admission or degradation. Resource-pressure state and its Authority/Readiness effects belong to the owning product contract.
+
 Do not add speculative state, background workers, rollback paths, recovery machinery, generic abstractions or test seams without a current consumer, invariant, accepted failure model or explicit Plan requirement.
 
 ## Evidence
@@ -48,6 +52,10 @@ Claims use PASS, FAIL, NOT_RUN or BLOCKED and stay within the boundary actually 
 ## Current execution policy
 
 Ordinary GitHub Actions are not a required execution route. Keep `pnpm verify` runnable and use the verification required by the active Plan.
+
+## Verification and process cost
+
+TDD is optional. Tests must protect a current contract, observed risk, or meaningful uncertainty; do not add tests merely to show that unimplemented behavior is absent. During iteration, use the narrowest check that can falsify the change. Do not add speculative validators, recovery layers, or process gates for hypothetical future work.
 
 ## Completion
 

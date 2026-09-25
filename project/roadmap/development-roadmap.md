@@ -1,28 +1,10 @@
 # Heptalogos Development Roadmap
 
-**Status:** living roadmap  
-**Updated:** 2026-09-25  
-**Implementation baseline before this documentation change:** `a5287a01b42e3d09f445e96982caf6842ed74674`
+**Updated:** 2026-09-25
 
-Long-term product design lives in Architecture-Vault. This roadmap only orders implementation capabilities in this repository.
+Long-term product design lives in Architecture-Vault. This roadmap sequences follow-up implementation work in this repository; each item still requires an authorized Plan and current Spec before implementation.
 
-## Current executable foundation
-
-The repository has already established the Foundation and headless Product Host line: bootstrap/host ownership, canonical PostgreSQL mutation, runtime composition, durable work, effect uncertainty, management contracts, a minimal Subject behavior path and a bounded OpenAI provider route. Detailed proof remains in current Specs and qualification records.
-
-Completed plans retain historical execution evidence; they do not define the next product architecture.
-
-## Current architecture transition
-
-The Heptalogos / Nous Wave split is now explicit:
-
-- Nous Wave owns long-term cognition.
-- Heptalogos owns Subject agency, interaction, behavior commits, commitments, effects and product runtime.
-- The two systems share SubjectId and communicate through typed cognition/agency contracts.
-
-Existing basic Reaction/Behavior specs remain current implementation contracts. Pursuit and external cognition integration require new Plans and Specs before implementation.
-
-## Next capability groups
+## Capability sequence
 
 ### 1. Cognition integration contract
 

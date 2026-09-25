@@ -9,7 +9,7 @@ Heptalogos 的行为状态与 Nous Wave 的认知状态分别由各自领域拥�
 ## 主要对象
 
 - `Reaction`：一次当前情境的有界处理状态。
-- `Pursuit`：行为侧对某个 Nous Wave 期望条件形成的持续主动追求。
+- `Pursuit`：目标行为对象，表示行为侧对某个 Nous Wave 期望条件形成的持续主动追求；当前没有 Spec 或实现。
 - `BehaviorIntent`：一次行为决策中的提案。
 - `DecisionCommit`：Subject 正式接受的行为决定。
 - `CommunicationCommit`：已经决定对外表达的语义承诺。
@@ -22,17 +22,18 @@ Nous Wave 的 `Desired Condition` 是认知输入。它的存在不创建 Pursui
 
 ## Authority
 
-| 事实 | Owner |
-|---|---|
-| Subject 逻辑身份和运行状态 | SubjectService / Subject Core |
-| 长期认知 | Nous Wave 相应认知领域 |
-| Pursuit、行为决定和承诺 | Heptalogos Subject behavior domains |
-| Canonical MessageFact | MessagingService |
-| WorkItem | WorkQueueService |
-| 外部效果结果 | EffectOperation owner |
-| 产品管理操作 | Heptalogos System Authority |
-| 机器与部署修复 | Machine Operations Plane |
-| 执行血缘 | ExecutionLineageService |
+| 事实                         | Owner                                                                                                 |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Subject 逻辑身份和运行状态   | SubjectService / Subject Core                                                                         |
+| 长期认知                     | Nous Wave 相应认知领域                                                                                |
+| 当前 Reaction/行为决定       | Heptalogos Subject behavior contracts                                                                 |
+| 目标 Pursuit、行动计划和承诺 | Heptalogos owns these target behavior domains; Pursuit/Commitment have no current Spec/implementation |
+| Canonical MessageFact        | MessagingService                                                                                      |
+| WorkItem                     | WorkQueueService                                                                                      |
+| 外部效果结果                 | EffectOperation owner                                                                                 |
+| 产品管理操作                 | Heptalogos System Authority                                                                           |
+| 机器与部署修复               | Machine Operations Plane                                                                              |
+| 执行血缘                     | ExecutionLineageService                                                                               |
 
 模型输出、检索结果、认知查询和扩展推断默认提供信息或提案。拥有者通过正式提交形成产品权威状态。
 

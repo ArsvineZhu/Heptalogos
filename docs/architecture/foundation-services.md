@@ -32,11 +32,11 @@ Artifact/Blob、Evidence 和 Execution Lineage 分别维护语义内容、需要
 
 `SubjectService` 保存 SubjectId、运行 Desired/Actual state 和 readiness。Reaction/Behavior contracts 保存行为处理与提交。Pursuit、Commitment 等行为域在相应 Plan/Spec 获得实现授权后接入这些基础服务。
 
-## Cognition Integration
+## Planned Cognition Integration
 
-Foundation 提供独立认知系统所需的连接能力：可用性、认知查询、Context contribution、typed proposal/receipt、configuration、Evidence、lifecycle 与 SubjectId 关联。
+当前 Foundation 没有 Nous Wave Provider、认知查询或 Context contribution 合同、typed proposal/receipt 接口、期望条件对象或 Pursuit 实现。形成集成前，需先通过 Plan/Spec 定义产品边界。
 
-Nous Wave 拥有 Memory、Self、Social Cognition、Motivation 和 Cognitive Runtime。Foundation 不定义这些系统的内部 ontology、retrieval algorithm 或 storage schema。
+目标集成应使用通用 Service/Capability、Context、Evidence、lifecycle 和 SubjectId 机制。Memory、Self、Social Cognition、Motivation、认知查询和检索算法的内部 ontology 与 storage schema 由 Nous Wave 拥有，Foundation 不为它们建立专用领域模型。接口方向见[规划中的认知接入边界](cognition-integration.md)。
 
 ## Management 与 Extensions
 

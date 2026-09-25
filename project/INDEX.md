@@ -4,7 +4,7 @@ Use this page when deciding which project-control source is authoritative.
 
 | Area          | Use when / questions answered                                                                    | Primary entry                                         |
 | ------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| Governance    | Standing engineering principles, evolution policy, compatibility obligations, and closure rules. | [Constitution](governance/constitution.md)            |
+| Governance    | Standing engineering principles, evolution policy, compatibility obligations, and closure rules. | [Governance](governance/README.md)                    |
 | Dependencies  | Adopted generic-mechanics/provider roles, implementation routing, and dependency decisions.      | [Dependency routing](dependencies/README.md)          |
 | Roadmap       | Current Horizon, sequencing, eligibility, and product-stage boundaries.                          | [Development roadmap](roadmap/development-roadmap.md) |
 | Plans         | Current approved work authorization and historical execution records.                            | [Implementation plans](plans/README.md)               |

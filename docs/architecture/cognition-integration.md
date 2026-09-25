@@ -1,4 +1,10 @@
-# Nous Wave 认知接入
+# 规划中的 Nous Wave 认知接入
+
+本页描述目标认知接入边界，不代表当前代码已具备相应 Provider、查询或提案能力。
+
+## 当前实现状态
+
+当前 Subject 实现由现有 Reaction/Behavior 合同限定。仓库没有 Nous Wave 客户端、认知查询或 Context contribution 合同、期望条件类型、认知提案/回执合同，也没有 Pursuit Spec 或实现。当前 OpenAI AIRuntime 路由是模型调用能力，不是 Nous Wave 集成。
 
 ## 职责
 
@@ -26,8 +32,8 @@ Decision、Commitment、Action 和 Effect 的结果通过带来源的回执进�
 
 ## 可用性
 
-认知系统是独立产品能力。Heptalogos 根据 Feature Readiness 决定在认知系统缺失或降级时哪些行为仍然可用。管理、恢复和机器运维不依赖 Nous Wave 正常运行。
+认知系统是独立产品能力。目标设计要求 Heptalogos 根据 Feature Readiness 决定认知系统缺失或降级时哪些行为仍然可用；具体可降级与必须阻塞的行为尚未确定。管理、恢复和机器运维不依赖 Nous Wave 正常运行。
 
 ## 设计来源
 
-长期语义见 Architecture-Vault 的 Heptalogos / Nous Wave 目标设计及 `docs/integration/cognition-agency.md`。
+长期语义见 Architecture-Vault 的 [Heptalogos / Nous Wave 目标设计](https://github.com/Heptalogos-Devs/Architecture-Vault)和[认知与主动性合同](https://github.com/Heptalogos-Devs/Architecture-Vault/blob/main/docs/integration/cognition-agency.md)。实现前需要完成合同、规格和授权 Plan。当前降级问题由 Vault 的 Heptalogos [未决问题](https://github.com/Heptalogos-Devs/Architecture-Vault/blob/main/docs/Heptalogos/OPEN_QUESTIONS.md)记录。
