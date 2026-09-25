@@ -1,265 +1,54 @@
 # Heptalogos Project Charter
 
-**Intended repository owner:** `project/governance/project-charter.md`
-**Audience:** Coding Agents, reviewers, architecture sessions, maintainers
-**Purpose:** concise standing project posture and architecture-navigation contract
-**Not:** a milestone plan, implementation history, package inventory, or detailed Spec.
+本文件定义 Heptalogos 代码仓库长期有效的产品姿态和工程执行原则。长期目标设计由 `Heptalogos-Devs/Architecture-Vault` 维护；本仓库负责实现、规格、计划和资格验证。
 
-This file is intentionally short enough to be mandatory reading. Detailed rules remain in their canonical owners.
+## 项目职责
 
----
+Heptalogos 是持续 Subject 的产品宿主与主动行为系统。它负责真实即时通信和其他环境中的交互输入、主动性、行为决定、承诺、外部效果、产品管理和可靠运行。
 
-## 1. Project thesis
+Nous Wave 负责长期认知。Heptalogos 通过正式合同读取认知、接收期望条件并回传行为结果，不复制 Memory、Self、Social Cognition、Motivation 的内部模型。
 
-Heptalogos is a research and prototype system for an AI **Subject** that persists across real instant-messaging events. The research target is continuity of identity, state, memory, relationships, behavior, commitments, timing, silence, and controlled autonomy across messages, processes, models, providers, and platforms.
+## 产品不变量
 
-The system is not a generic agent framework and is not a prompt-persona wrapper.
+1. Subject 与 Model、Provider、Prompt、Session、Host 分离。
+2. 同一 SubjectId 可以跨 Nous Wave 与 Heptalogos 保持身份连续，两侧领域状态分别提交。
+3. 模型、认知查询、检索、工具和扩展推断默认提供信息或提案；正式行为和系统变化经过拥有者提交。
+4. Desired Condition 表示认知期望；Pursuit 表示行为侧持续主动追求；BehaviorIntent、Plan、Commitment 和 Effect 各有独立语义。
+5. Subject Authority、System Authority 与 Machine Operations Authority 分离。
+6. Canonical fact 先于由它产生的异步义务。
+7. 外部效果允许 `uncertain`；无法证明结果时保留不确定性。
+8. 重要行为、状态变化和恢复操作具有可追溯来源和执行血缘。
+9. 运行代次受到 fencing；退休代次不能取得新的当前工作或提交当前结果。
+10. Presentation 只投影产品合同，不持有产品 Authority。
 
-Foundation exists only to make the Subject and real IM execution trustworthy enough to research and operate. Generic infrastructure completeness is not a project goal.
+## PRE_PRODUCTION
 
-## 2. Core product invariants
+当前处于快速研究与原型阶段。开发历史不产生兼容义务。现有内部接口、schema、包结构、测试和文档都可以在当前设计要求下直接删除或重写。
 
-1. **Subject != Model.** Replacing a model/provider/prompt/runtime does not create a new Subject.
-2. **State > Prompt.** Long-lived product state belongs to typed semantic owners; prompts are projections.
-3. **Proposal != Authority within Heptalogos Product Authority.** Model output, retrieval, tools, extensions, and assistants do not become canonical product truth without the owning commit path. External machine/deployment operators act outside this boundary at the OS/deployment layer.
-4. **Subject Authority != System Authority != Machine/Deployment Authority.** Cognitive/social control, normal Heptalogos administration, and machine/deployment maintenance are separate authority domains.
-5. **Canonical truth precedes async work.** Durable obligation follows canonical fact, not the reverse.
-6. **External effects may be uncertain.** `uncertain` is a first-class truthful outcome.
-7. **Signal is a hint.** Wakeups never replace durable/canonical state.
-8. **Execution is attributable.** Important decisions, effects, state changes, and recovery actions retain lineage/evidence appropriate to their semantics.
-9. **Generation is fenced.** Retired/stale generation code cannot receive new current-generation work or commit as current.
-10. **Presentation is projection.** External Browser/Desktop/GUI clients, CLI, and IM adapters do not own product truth. CLI is the headless ManagementClient/reference projection; the Machine Operations Plane is an external machine/deployment authority, not a second Product Authority projection.
+兼容路径只有在当前机器可读兼容义务明确声明时存在。
 
-## 3. Engineering ownership model
+## 工程所有权
 
-Heptalogos owns product semantics and authority. Mature dependencies own generic mechanics where they are suitable.
+Heptalogos 自己维护产品领域语义。数据库、工作流、协议、DI、日志、网络、密码学和其他通用机制优先使用成熟库或平台能力，并放在 Heptalogos-owned adapter 后。
 
-For each non-trivial mechanism identify:
+新增持久状态、后台 worker、恢复路径、公共抽象或安全机制需要当前语义、当前消费者、已接受故障模型或明确 Plan 的支持。
 
-```text
-semantic owner
-mechanics provider
-adapter boundary
-consumer
-failure owner
-```
+## 可靠性
 
-Do not let a framework object, provider status, queue record, database handle, or test fake become product Authority by convenience.
+优先顺序是权威事实、ownership fencing、常见故障恢复、明确降级和可检查失败。恢复能力保持有界；无法安全继续时允许 fail-stop、FENCED、BLOCKED 或人工恢复。
 
-## 4. Library-first
+## 验证
 
-Before implementing generic mechanics, inspect in order:
+测试和资格记录证明明确的合同和执行边界。一个平台不证明另一个平台，source-tree 执行不证明 source-less 分发，mock 不证明真实 provider。
 
-```text
-existing semantic owner
-→ existing repository primitive/adapter
-→ adopted dependency route
-→ Standard / Node / OS facility
-→ mature library/framework
-→ thin adapter/composition
-→ custom mechanic only with concrete insufficiency evidence
-```
+## 知识职责
 
-This applies to state machines, queues, durable workflows, schema validation, process control, database access, filesystem operations, protocol transport, retry/timeouts, observability, crypto, CLI, package acquisition, and repository tooling.
+- Architecture-Vault：长期目标设计、设计决定、论证和跨系统合同。
+- `project/governance/`：本仓库长期工程治理。
+- `specs/`：当前可执行实现合同。
+- `project/plans/`：当前施工授权和完成记录。
+- `project/qualification/`：已经执行的验证证据。
+- `docs/architecture/`：当前实现架构和跨包关系。
+- Git：历史设计、旧实现和开发 chronology。
 
-An `ADOPTED` dependency route is an implementation directive. Do not silently create a parallel provider.
-
-## 5. PRE_PRODUCTION posture
-
-Current mode is active research/development, not production maintenance.
-
-Default permissions:
-
-```text
-rewrite internal APIs
-rewrite current durable V1 in place
-move packages
-change package boundaries
-rebuild development databases/fixtures
-remove development-stage behavior
-reject unsupported old shapes
-keep low-cost future-facing semantic seams
-fail loudly on unsupported rare failures
-restart/reset/operator recovery when adequate
-```
-
-Development history creates no compatibility obligation. A compatibility obligation exists only when declared by the current machine-readable authority.
-
-Do not preserve old names, old paths, old state shapes, old tests, or previous branch behavior merely because they once existed.
-
-Minimal diff is not a project objective, and dependency count is not a quality
-metric. Prefer a suitable mature dependency when it lowers total maintenance
-burden. Do not add a compatibility bridge without a declared obligation.
-
-## 6. Future-aware without speculative machinery
-
-A future-facing **semantic seam** may exist before its consumer when it maps to an approved product direction and is cheap to maintain.
-
-This does not authorize future machinery.
-
-Cheap future-facing structures may include:
-
-```text
-Service/Capability boundary
-typed provider seam
-configuration namespace
-generation identity
-extension contribution point
-network/secret/config semantic slot
-```
-
-Expensive future machinery requires current evidence:
-
-```text
-new durable state
-new background worker
-new recovery protocol
-new compatibility path
-new scheduler
-new provider implementation
-new lifecycle state machine
-new generic framework
-```
-
-Do not apply `no current consumer -> delete` as a universal rule. Do apply `no current reason for permanent machinery -> do not build it`.
-
-## 7. Failure and recovery posture
-
-Truthful failure is preferable to fictitious restoration.
-
-Current reliability priority:
-
-```text
-canonical truth
-→ authority fencing
-→ first-order crash/restart recovery
-→ common operational failure handling
-→ explicit recovery state
-→ fail-stop when proof is insufficient
-```
-
-A recovery path must be smaller than the system it recovers. Recovery-of-recovery is not automatically authorized.
-
-After an authority point of no return, do not construct heroic rollback solely to make the process look graceful. Fenced, terminal, `RECOVERY_REQUIRED`, restart, reset, or operator action are valid outcomes when canonical truth remains inspectable.
-
-## 8. Testing posture
-
-Tests prove owned contracts; they do not create architecture.
-
-A test inconvenience does not authorize:
-
-```text
-public DI
-factory proliferation
-mock-specific product states
-rollback semantics
-recovery branches
-permanent fault hooks
-alternative repositories/providers
-```
-
-Prefer the strongest affordable proof for the claim:
-
-```text
-pure semantic test
-→ package integration
-→ real provider/database boundary
-→ process restart/crash qualification
-→ shipping artifact/platform qualification when claimed
-```
-
-Test count is not a quality target. Delete tests whose behavior is deliberately deleted. Split tests by contract/scenario when a file mixes unrelated concerns.
-
-A pre-implementation failing test is useful only when it yields information:
-reproducing an observed defect, characterizing existing behavior, resolving an
-uncertain contract, or probing an external/runtime property. Do not run a
-failing test solely to demonstrate that not-yet-written functionality is
-absent.
-
-Development history does not create permanent negative repository invariants.
-Once an obsolete internal artifact is removed, Git/history preserves that fact
-unless a current standing rule independently forbids the artifact class.
-
-## 9. Package and code architecture
-
-Packages express semantic ownership or independently replaceable mechanics, not file-size preferences.
-
-Repository layout should make subsystem role visible. The preferred workspace shape is:
-
-```text
-packages/<group>/<package>/
-```
-
-Group directories are containers and documentation scopes, not packages. Grouping follows dependency/co-change/ownership clustering, not aesthetic taxonomy.
-
-Within a package, organize source by responsibility only when the package has multiple stable subareas. Do not create one-file folders or decorative layers.
-
-Cross-package product/integration compositions do not belong inside an unrelated package merely because that package bootstraps the fixture.
-
-## 10. Maintenance-burden objective
-
-Optimize total maintenance burden, not any single metric.
-
-Consider:
-
-```text
-custom LOC
-state-space size
-public API area
-test LOC
-fixture complexity
-debug paths
-cross-platform burden
-provider upgrade burden
-knowledge duplication
-recovery branches
-configuration burden
-```
-
-A refactor is successful when semantic capability is preserved and the permanent system becomes easier to reason about and change.
-
-## 11. Knowledge authority
-
-Use one canonical owner per fact:
-
-```text
-product intent                 docs/product/**
-architecture concepts          docs/architecture/**
-current normative contracts    specs/**
-standing engineering rules    project/governance/**
-provider/dependency decisions  project/dependencies/**
-current development order      project/roadmap/**
-active work authorization      project/plans/active/**
-executed qualification         project/qualification/**
-Agent persistent routing       AGENTS.md
-package ownership              package/group README + packages/INDEX.md
-procedural methods             .agents/skills/**
-```
-
-Historical plans and Git preserve history. Current docs must describe current truth, not narrate obsolete stages.
-
-## 12. Coding-Agent operating rule
-
-Before substantive edits:
-
-1. Read this charter.
-2. Read root and scoped `AGENTS.md`.
-3. Read the current active Plan.
-4. Read affected package/group README and applicable Specs.
-5. Read current dependency routes for any generic mechanic being changed.
-6. Verify the repository state rather than relying on a handoff SHA.
-
-During execution:
-
-```text
-preserve semantic owner
-use adopted mechanics
-keep changes within the active Plan
-update current consumers directly
-remove obsolete paths rather than bridge them
-keep failure claims within tested evidence
-```
-
-Stop the affected branch as `PLAN_GAP` only when execution requires a new semantic owner, new durable distinction, new provider role, new compatibility obligation, or broader failure model not decided by the active Plan.
-
-When acceptance evidence is green, STOP. Do not start a second cleanup or hardening pass.
+当前活动文档只描述当前有效知识。

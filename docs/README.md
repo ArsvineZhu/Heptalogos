@@ -1,17 +1,11 @@
-# Human Knowledge Plane
+# Heptalogos implementation knowledge
 
-docs/ is Heptalogos's Human Knowledge Plane. It helps human designers,
-maintainers, and developers understand product intent, conceptual Architecture,
-and maintained reference material.
+`docs/` describes the current Heptalogos product implementation and maintained developer references.
 
-## Areas
+Long-term target design, design decisions and rationale live in [Heptalogos-Devs/Architecture-Vault](https://github.com/Heptalogos-Devs/Architecture-Vault). The current repository does not maintain a second copy.
 
-- product/ explains product purpose, experience, and research intent.
-- architecture/ explains conceptual system shape, rationale, and boundaries.
-- reference/ provides human and developer lookup material, including generated
-  API reference.
+- `architecture/` explains current product-host structure, ownership and implementation-facing handoffs.
+- `product/` summarizes the current product implementation scope and links to target design.
+- `reference/` provides maintained lookup material.
 
-Current implementation contracts live in specs/. Governance, dependencies,
-roadmap, Plans, qualification, engineering procedures, and Harness-maintainer
-material live in project/. Coding-Agent procedures live in .agents/skills/.
-Use the [global repository INDEX](../INDEX.md) to route cross-plane questions.
+Exact current contracts live in `specs/`. Governance, dependencies, plans and qualification live in `project/`.
