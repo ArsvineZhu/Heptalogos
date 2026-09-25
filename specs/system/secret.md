@@ -26,6 +26,23 @@ references and readiness consequences; they do not read a backend directly.
 Resolved material is an ephemeral process-memory value. It is deliberately not
 a serializable Product DTO and is never a general-purpose repository value.
 
+For the model gateway boundary, SecretService owns only the Heptalogos caller
+token:
+
+```text
+purpose = ai.gateway.bearer-token
+consumer = system.ai-runtime OR product.subject.openclaw
+scope = gateway-profile / GatewayProfileId
+```
+
+SecretService does not own NewAPI administrator credentials, NewAPI upstream
+provider/channel keys, upstream DeepSeek/OpenAI/etc. keys when NewAPI is the
+gateway, or Machine Operations credentials. The Product-supervised Subject
+OpenClaw adapter may resolve the same scoped Heptalogos gateway token under its
+explicit `product.subject.openclaw` consumer and inject it only into the owned
+runtime process; OpenClaw provider-private credentials remain outside this
+normal Secret boundary. No vendor-specific Secret type is defined.
+
 ## Normative types
 
 ```ts
@@ -121,7 +138,9 @@ secret becomes dependent BLOCKED through its owning readiness contract.
 - SEC-005 Replace changes current material state without pretending that all runtime consumers automatically reloaded it.
 - SEC-006 Revoked or unavailable material yields a structured dependent readiness failure; there is no plaintext fallback.
 - SEC-007 BootstrapKeyProvider remains separate from normal SecretService state and ceremony.
-- SEC-008 OpenClaw and Machine Operations credentials are not normal Host SecretService state by default.
+- SEC-008 OpenClaw provider-private and Machine Operations credentials are not
+  normal Host SecretService state; the bounded Subject adapter may consume only
+  the explicitly scoped Heptalogos gateway token under its named consumer.
 - SEC-009 Backend mechanics are platform-composed behind this contract; the current slice does not select one universal secret library.
 - SEC-010 Exact native/source-less backend behavior is an implementation qualification claim, not a current-slice claim.
 
@@ -151,7 +170,7 @@ This Spec does not define:
 
 ```
 BootstrapKeyProvider implementation
-OpenClaw/Gateway credential ownership
+OpenClaw provider-private/Machine Operations credential ownership
 Machine Operations credential storage
 generic secret-manager federation
 ordinary plaintext reveal/export/list

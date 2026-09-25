@@ -14,7 +14,9 @@ function errorCode(error: unknown): string {
 
 function errorMessage(error: unknown): string {
   if (error instanceof CliFailure) return error.message;
-  return "The CLI command could not be completed";
+  return error instanceof Error
+    ? error.message
+    : "The CLI command could not be completed";
 }
 
 try {

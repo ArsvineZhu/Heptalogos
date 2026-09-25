@@ -112,7 +112,15 @@ export interface BootstrapStateGenesisSelection {
 }
 
 const BOOTSTRAP_STATE_DIRECTORY = "bootstrap-state";
-const BOOTSTRAP_PRELUDE_ROOTS = ["INSTANCE", "DATA", "LOG", "TEMP", "RUN"] as const;
+const BOOTSTRAP_PRELUDE_ROOTS = [
+  "INSTANCE",
+  "DATA",
+  "CONFIGURATION",
+  "CACHE",
+  "LOG",
+  "TEMP",
+  "RUN",
+] as const;
 const STAGE_PRELUDE_STARTED = "bootstrap.prelude.started";
 const STAGE_LOCATOR_RESOLVED = "bootstrap.locator.resolved";
 const STAGE_ROOTS_RESOLVED = "bootstrap.roots.resolved";

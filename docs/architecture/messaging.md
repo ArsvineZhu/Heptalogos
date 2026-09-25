@@ -208,6 +208,11 @@ EffectOperation `uncertain`。MessageFact 保持 canonical truth，客户端恢�
 
 客户端恢复后 query/catch-up canonical message。
 
+并非每个 inbound MessageFact 都产生 outbound。若当前 bounded cognition
+episode 以 no-communication 完成，Reaction 不创建 CommunicationCommit，
+Messaging 也不产生对应 outbound MessageFact；这不是 Messaging 的错误或
+空消息。
+
 ---
 
 ## 12. External Driver

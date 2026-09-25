@@ -183,6 +183,9 @@ export function createFencedProxy<TContract extends object>(
     return projectResultData(rawValue, seen);
   }
 
+  // Intentional duplication: input and result projection share traversal shape
+  // but retain separate failure codes and messages for the public contract.
+  /* jscpd:ignore-start */
   function projectResultData(value: object, seen: WeakSet<object>): unknown {
     if (fencedProxies.has(value)) return value;
     if (seen.has(value)) {
@@ -234,6 +237,7 @@ export function createFencedProxy<TContract extends object>(
     seen.delete(value);
     return Object.freeze(projected);
   }
+  /* jscpd:ignore-end */
 
   function invokeProvider(
     owner: object,

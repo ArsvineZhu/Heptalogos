@@ -126,6 +126,7 @@ export interface CanonicalDatabase {
   };
   readonly configuration_activation: {
     readonly activation_id: string;
+    readonly definition_id: string;
     readonly scope_ref: unknown;
     readonly scope_key: string;
     readonly active_revision_id: string;
@@ -133,6 +134,7 @@ export interface CanonicalDatabase {
     readonly impact: string;
     readonly effective_at: Date | string;
     readonly lineage_context_ref: unknown;
+    readonly evidence_refs: unknown;
   };
   readonly secret_metadata: {
     readonly secret_id: string;
@@ -149,22 +151,20 @@ export interface CanonicalDatabase {
     readonly revoked_at: Date | string | null;
     readonly lineage_context_ref: unknown;
   };
-  readonly provider_profile: {
-    readonly provider_profile_id: string;
-    readonly configuration_revision_ref: string;
-    readonly secret_refs: unknown;
-    readonly network_access_profile_ref: string;
+  readonly gateway_profile: {
+    readonly gateway_profile_id: string;
+    readonly base_url: string;
+    readonly api_token_secret_ref: string | null;
     readonly enabled: boolean;
-    readonly provider_settings: unknown;
     readonly lineage_context_ref: unknown;
   };
   readonly model_profile: {
     readonly model_profile_id: string;
-    readonly provider_profile_id: string;
-    readonly provider_model_identifier: string;
+    readonly gateway_profile_id: string;
+    readonly model_identifier: string;
+    readonly protocol: string;
     readonly consumed_capabilities: unknown;
     readonly generation: number | string;
-    readonly configuration_revision_ref: string;
     readonly lineage_context_ref: unknown;
   };
   readonly model_binding: {

@@ -38,14 +38,21 @@ protocol Driver
 → canonical MessageFact
 → WorkItem
 → ConversationMailbox / Reaction
-→ DecisionCommit / CommunicationCommit
-→ Effect boundary
-→ Driver delivery outcome
+→ bounded conversation cognition proposal
+   ├─ NO_COMMUNICATION → local Reaction completes
+   └─ COMMUNICATE(semantic content)
+        → deterministic Review
+        → CommunicationCommit
+        → Expression
+        → local outbound MessageFact
+        → Effect boundary / Driver delivery when an external channel is used
 ```
 
 Subject Chat and external IM use separate transport/projection boundaries while
 remaining on Subject Authority. A model, tool, or Driver proposal does not
-become canonical state by itself.
+become canonical state by itself. The bounded conversation slice does not define
+the total Subject behavior ontology; accepted communication is committed through
+CommunicationCommit before Expression and outbound materialization.
 
 ## Management
 

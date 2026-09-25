@@ -1,43 +1,95 @@
 /**
- * Defines the current outbound NetworkAccess profile, request/response
- * knowledge, and provider custom-fetch boundary.
+ * Defines the current outbound NetworkAccess policy, gateway target
+ * authorization, request/response knowledge, and AI custom-fetch boundary.
  * @module contracts
  */
 
-import type { Branded, Instant } from "@heptalogos/foundation-contracts";
+import type { CanonicalJsonValue, Instant } from "@heptalogos/foundation-contracts";
+import type {
+  ConfigurationDefinition,
+  ConfigurationDefinitionId,
+  ConfigurationRevisionId,
+  ConfigurationService,
+} from "@heptalogos/configuration";
 import type {
   ExecutionContextRuntime,
   LineageContextRef,
 } from "@heptalogos/execution-lineage";
-import type { ConfigurationService } from "@heptalogos/configuration";
 import { Type } from "@heptalogos/schema-runtime/typebox";
 
-/** Identifies a stable NetworkAccess profile. */
-export type NetworkAccessProfileId = Branded<string, "NetworkAccessProfileId">;
+/** The current AI invocation protocols understood by NetworkAccess routing. */
+export type GatewayNetworkProtocol = "openai-chat" | "openai-responses";
 
-/** The current OpenAI NetworkAccess profile identity. */
-export const OPENAI_NETWORK_ACCESS_PROFILE_ID =
-  "network-access.openai-api.v1" as NetworkAccessProfileId;
-
-/** Describes one admitted outbound network profile. */
-export interface NetworkAccessProfile {
+/** Identifies the exact gateway destination authorized for one invocation. */
+export interface GatewayNetworkTarget {
   readonly schemaVersion: 1;
-  readonly profileId: NetworkAccessProfileId;
-  readonly origin: "https://api.openai.com";
-  readonly path: "/v1/**";
+  readonly gatewayProfileId: string;
+  readonly baseUrl: string;
+  readonly protocol: GatewayNetworkProtocol;
+}
+
+/** Describes the fixed transport rules applied to every gateway target. */
+export interface NetworkAccessPolicy {
+  readonly schemaVersion: 1;
   readonly method: "POST";
   readonly redirects: "DENY";
 }
 
+/** The bounded transport value consumed by NetworkAccess and AIRuntime. */
+export interface GatewayTransportConfigV1 {
+  readonly schemaVersion: 1;
+  readonly timeoutMs: number;
+  readonly requestBodyBudgetBytes: number;
+  readonly responseBodyBudgetBytes: number;
+}
+
+/** Stable current gateway transport-definition identity. */
+export const GATEWAY_TRANSPORT_DEFINITION_ID =
+  "ai.gateway.transport.v1" as ConfigurationDefinitionId;
+
+/** JSON Schema for the NetworkAccess gateway transport value. */
+export const gatewayTransportConfigSchema = Type.Object(
+  {
+    schemaVersion: Type.Literal(1),
+    timeoutMs: Type.Integer({ minimum: 1_000, maximum: 300_000 }),
+    requestBodyBudgetBytes: Type.Integer({
+      minimum: 1,
+      maximum: 4 * 1024 * 1024,
+    }),
+    responseBodyBudgetBytes: Type.Integer({
+      minimum: 1,
+      maximum: 16 * 1024 * 1024,
+    }),
+  },
+  { additionalProperties: false },
+);
+
+/** Owner-provided Configuration definition for controlled gateway transport. */
+export const gatewayTransportConfigurationDefinition: ConfigurationDefinition =
+  Object.freeze({
+    schemaVersion: 1 as const,
+    definitionId: GATEWAY_TRANSPORT_DEFINITION_ID,
+    owner: "system.network-access",
+    version: 1,
+    scopeKind: "INSTALLATION" as const,
+    valueSchema: gatewayTransportConfigSchema as unknown as CanonicalJsonValue,
+    classification: "INSTALLATION_CONFIG" as const,
+    visibility: "EXPERT" as const,
+    manageability: "EDITABLE" as const,
+    activation: "LIVE" as const,
+    sensitivity: "INTERNAL" as const,
+    defaultAuthority: "NO_DEFAULT_REQUIRED" as const,
+    consumerRefs: Object.freeze(["system.network-access", "system.ai-runtime"]),
+  });
+
 /** Redacted NetworkAccess diagnostics safe for Management projection. */
 export interface NetworkAccessDiagnostics {
   readonly schemaVersion: 1;
-  readonly profile: NetworkAccessProfile;
+  readonly policy: NetworkAccessPolicy;
   readonly configured: boolean;
   readonly timeoutMs?: number;
   readonly requestBodyBudgetBytes?: number;
   readonly responseBodyBudgetBytes?: number;
-  readonly expandedResponseBodyBudgetBytes?: number;
   readonly blocker?: "configuration";
 }
 
@@ -48,7 +100,6 @@ export interface NetworkResponseKnowledge {
   readonly headers: readonly { readonly name: string; readonly value: string }[];
   readonly body: Uint8Array;
   readonly bytesRead: number;
-  readonly expandedBytesRead: number;
   readonly lineageContextRef: LineageContextRef;
 }
 
@@ -62,28 +113,31 @@ export interface NetworkAccessServiceOptions {
 
 /** Current controlled outbound transport service. */
 export interface NetworkAccessService {
-  /** The fixed current OpenAI transport profile. */
-  readonly profile: NetworkAccessProfile;
   /** Returns redacted transport diagnostics. */
   getDiagnostics(): Promise<NetworkAccessDiagnostics>;
+  /** Validates that a selected GatewayProfile/protocol has a permitted route. */
+  authorizeGatewayTarget(target: GatewayNetworkTarget): void;
   /** Performs one bounded, policy-checked outbound request. */
   request(
     requester: string,
+    target: GatewayNetworkTarget,
+    expectedConfigurationRevisionId: ConfigurationRevisionId,
     input: Parameters<typeof fetch>[0] | URL,
     init?: RequestInit,
     deadline?: Instant,
   ): Promise<NetworkResponseKnowledge>;
-  /** Creates the policy-enforcing fetch passed to the provider SDK. */
-  createProviderFetch(requester: string): typeof fetch;
+  /** Creates the policy-enforcing fetch passed to one AI SDK protocol adapter. */
+  createProviderFetch(
+    requester: string,
+    target: GatewayNetworkTarget,
+    expectedConfigurationRevisionId: ConfigurationRevisionId,
+  ): typeof fetch;
 }
 
-/** JSON Schema for the current NetworkAccess profile. */
-export const networkAccessProfileSchema = Type.Object(
+/** JSON Schema for the fixed NetworkAccess policy. */
+export const networkAccessPolicySchema = Type.Object(
   {
     schemaVersion: Type.Literal(1),
-    profileId: Type.Literal(OPENAI_NETWORK_ACCESS_PROFILE_ID),
-    origin: Type.Literal("https://api.openai.com"),
-    path: Type.Literal("/v1/**"),
     method: Type.Literal("POST"),
     redirects: Type.Literal("DENY"),
   },
@@ -94,12 +148,11 @@ export const networkAccessProfileSchema = Type.Object(
 export const networkAccessDiagnosticsSchema = Type.Object(
   {
     schemaVersion: Type.Literal(1),
-    profile: networkAccessProfileSchema,
+    policy: networkAccessPolicySchema,
     configured: Type.Boolean(),
     timeoutMs: Type.Optional(Type.Integer({ minimum: 1 })),
     requestBodyBudgetBytes: Type.Optional(Type.Integer({ minimum: 1 })),
     responseBodyBudgetBytes: Type.Optional(Type.Integer({ minimum: 1 })),
-    expandedResponseBodyBudgetBytes: Type.Optional(Type.Integer({ minimum: 1 })),
     blocker: Type.Optional(Type.Literal("configuration")),
   },
   { additionalProperties: false },

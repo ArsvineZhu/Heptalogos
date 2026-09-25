@@ -5,7 +5,6 @@
  * @module files
  */
 
-import { createRequire } from "node:module";
 import { readFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -18,14 +17,9 @@ import {
   type Instant,
 } from "@heptalogos/foundation-contracts";
 import type { FirstClaimMaterial } from "@heptalogos/management";
+import { asRecord } from "./value-utils.js";
 
-const require = createRequire(import.meta.url);
-type AtomicWrite = (
-  path: string,
-  data: string,
-  options?: { readonly encoding?: "utf8"; readonly mode?: number },
-) => Promise<void>;
-const writeFileAtomic = require("write-file-atomic") as AtomicWrite;
+import { writeFileAtomic } from "./atomic-file.js";
 
 /** The descriptor written after the loopback HTTP listener is ready. */
 export interface ManagementEndpointDescriptorV1 {
@@ -44,12 +38,6 @@ function endpointPath(runRoot: string): string {
 
 function claimPath(runRoot: string): string {
   return join(runRoot, CLAIM_FILENAME);
-}
-
-function recordValue(value: unknown): Record<string, unknown> | undefined {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
 }
 
 function canonicalClaimSecret(value: unknown): value is string {
@@ -75,7 +63,7 @@ async function readJson(path: string): Promise<unknown> {
 export async function readManagementEndpointDescriptor(
   runRoot: string,
 ): Promise<ManagementEndpointDescriptorV1 | undefined> {
-  const value = recordValue(await readJson(endpointPath(runRoot)));
+  const value = asRecord(await readJson(endpointPath(runRoot)));
   if (
     value === undefined ||
     value.schemaVersion !== 1 ||
@@ -97,7 +85,7 @@ export async function readManagementEndpointDescriptor(
 export async function readFirstClaimMaterial(
   runRoot: string,
 ): Promise<FirstClaimMaterial | undefined> {
-  const value = recordValue(await readJson(claimPath(runRoot)));
+  const value = asRecord(await readJson(claimPath(runRoot)));
   if (
     value === undefined ||
     value.schemaVersion !== 1 ||

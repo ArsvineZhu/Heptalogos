@@ -6,7 +6,46 @@
   "sourceRoot": "packages/application/product-host/src",
   "targets": {
     "build": {
-      "dependsOn": ["generate:build-identities"]
+      "dependsOn": ["generate:build-identities", "build:subject-openclaw-manifest"]
+    },
+    "prune-lockfile": {
+      "dependsOn": ["build"],
+      "cache": true,
+      "executor": "@nx/js:prune-lockfile",
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/pnpm-workspace.yaml",
+        "{workspaceRoot}/package.json",
+        {
+          "runtime": "node -e \"try{console.log('pnpm major '+require('child_process').execFileSync('pnpm',['--version'],{stdio:['ignore','pipe','ignore']}).toString().trim().split('.')[0])}catch{console.log('pnpm major unavailable')}\""
+        }
+      ],
+      "outputs": [
+        "{projectRoot}/dist/package.json",
+        "{projectRoot}/dist/pnpm-lock.yaml",
+        "{projectRoot}/dist/pnpm-workspace.yaml",
+        "{projectRoot}/dist/patches",
+        "{projectRoot}/dist/local_path_modules"
+      ],
+      "options": { "buildTarget": "build" }
+    },
+    "copy-workspace-modules": {
+      "dependsOn": ["build"],
+      "cache": true,
+      "executor": "@nx/js:copy-workspace-modules",
+      "outputs": ["{projectRoot}/dist/workspace_modules"],
+      "options": { "buildTarget": "build" }
+    },
+    "prune": {
+      "dependsOn": ["prune-lockfile", "copy-workspace-modules"],
+      "executor": "nx:noop"
+    },
+    "build:subject-openclaw-manifest": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node packages/application/product-host/scripts/copy-subject-openclaw-manifest.mjs"
+      }
     },
     "generate:build-identities": {
       "executor": "nx:run-commands",
@@ -27,11 +66,25 @@
         "command": "node packages/application/product-host/scripts/generate-openapi.mjs"
       }
     },
+    "generate:subject-chat-openapi": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node packages/application/product-host/scripts/generate-subject-chat-openapi.mjs"
+      }
+    },
     "check:openapi": {
       "dependsOn": ["build"],
       "executor": "nx:run-commands",
       "options": {
         "command": "node packages/application/product-host/scripts/generate-openapi.mjs --check"
+      }
+    },
+    "check:subject-chat-openapi": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node packages/application/product-host/scripts/generate-subject-chat-openapi.mjs --check"
       }
     },
     "lint": {

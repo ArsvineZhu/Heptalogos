@@ -73,8 +73,9 @@ interface MessageFact {
 ```
 
 MessageFact is immutable canonical Messaging truth. Current Subject Chat text must be non-empty
-after protocol canonical input validation. Empty text is not Subject silence;
-silence is a Behavior decision with no outbound MessageFact.
+after protocol canonical input validation. Empty text is not a no-communication
+result; a considered cognition opportunity can complete without creating an
+outbound MessageFact.
 
 ParticipantRef distinguishes canonical Administrator and Subject participants.
 Administrator participation in Subject Chat grants no automatic System
@@ -139,6 +140,12 @@ same key + different canonical content or scope
 → idempotency/identity conflict
 ```
 
+For the built-in Subject Chat path, Messaging owns the canonical transaction
+and invokes one narrow current-consumer Subject obligation port after inserting
+the inbound MessageFact. That port advances ConversationMailbox and commits a
+prepared WorkItem in the same transaction. This is a concrete atomic
+cross-owner seam, not a generic domain-event bus or IdempotencyService.
+
 A client that loses the response may retry the same key and content and obtain
 the already committed result. Idempotency does not accept a changed message
 under an old key.
@@ -157,15 +164,18 @@ It creates no EffectOperation. A local Presentation disconnect, missed live
 event, or closed browser/Desktop client does not create external-effect
 uncertainty. The MessageFact remains queryable and is recovered by catch-up.
 
-A REPLY CommunicationCommit is the semantic cause of the outbound MessageFact.
-A SILENCE DecisionCommit creates neither CommunicationCommit nor outbound
-MessageFact.
+A CommunicationCommit with `purpose = "reply"` is the semantic cause of the outbound MessageFact.
+A `NO_COMMUNICATION` Reaction creates neither CommunicationCommit nor outbound
+MessageFact. The accepted CommunicationCommit is the direct semantic cause of
+the outbound MessageFact; no separate generic decision record is required in
+this current slice.
 
 ## Query and reconnect catch-up
 
 Message query uses an opaque versioned cursor derived from canonical ordering.
-The order is stable by canonical conversation sequence, with createdAt and
-CanonicalMessageId as deterministic tie-break data when required. A query
+The order is the canonical per-conversation sequence, with createdAt and
+CanonicalMessageId retained only as deterministic tie-break data when required
+by a projection. A query
 returns messages after the cursor in that order and a next cursor based on the
 last returned fact. Reconnect always re-queries canonical MessageFact state;
 live projection is optional and never replaces catch-up.
@@ -223,7 +233,8 @@ CommunicationCommit path.
 - MSG-008 Local outbound MessageFact does not use EffectOperation.
 - MSG-009 Presentation disconnect does not make local outbound UNCERTAIN.
 - MSG-010 Reconnect catches up from canonical MessageFact truth.
-- MSG-011 Silence is not an empty outbound MessageFact.
+- MSG-011 No-communication is not an empty outbound MessageFact; it is a local
+  Reaction outcome owned by the Subject/Reaction boundary.
 - MSG-012 External Driver uncertainty remains EffectOperation-owned when external Messaging later enters.
 - MSG-013 The current built-in Subject Chat is text-only; broader segments and media are not implemented by implication.
 
@@ -251,7 +262,7 @@ generic messaging broker
 
 - [Messaging architecture](../../docs/architecture/messaging.md)
 - [Subject Base Spec](../subject/subject-base.md)
-- [Reaction and Behavior Authority](../subject/reaction-behavior.md)
+- [Reaction and Communication Authority](../subject/reaction-behavior.md)
 - [System Authority Spec](../management/system-authority.md)
 - [Work Item](../execution/work-item.md)
 - [Effect Operation](../execution/effect-operation.md)

@@ -334,10 +334,15 @@
     },
     {
       "roleId": "ai.sdk",
-      "route": "AI SDK 7 line with official @ai-sdk/openai Responses provider",
+      "route": "AI SDK 7 line with @ai-sdk/openai-compatible Chat, @ai-sdk/open-responses Responses, and @ai-sdk/provider-utils JSON instruction mechanics",
       "boundary": "AIRuntime",
       "directive": "USE",
-      "packages": ["ai", "@ai-sdk/openai"]
+      "packages": [
+        "ai",
+        "@ai-sdk/openai-compatible",
+        "@ai-sdk/open-responses",
+        "@ai-sdk/provider-utils"
+      ]
     },
     {
       "roleId": "mcp.client",
@@ -390,7 +395,7 @@
     },
     {
       "roleId": "media.ffmpeg",
-      "route": "vendored FFmpeg",
+      "route": "external operator-managed FFmpeg executable",
       "boundary": "AV adapter",
       "directive": "USE",
       "packages": []
@@ -523,6 +528,35 @@
         }
       },
       "packages": ["pidusage", "@types/pidusage"]
+    },
+    {
+      "roleId": "product.subject-cognition-runtime",
+      "route": "OpenClaw public Gateway/Plugin adapter for the Product-supervised Subject cognition runtime; exact release is pinned in the pnpm Catalog",
+      "boundary": "Product Host SubjectCognitionRuntime adapter; isolated Subject profile/state/config/workspace and Product-owned proposal tools",
+      "directive": "USE",
+      "packageVersionConstraints": {
+        "openclaw": {
+          "major": 2026,
+          "minor": 9
+        },
+        "@openclaw/gateway-client": {
+          "major": 2026,
+          "minor": 9
+        },
+        "@openclaw/gateway-protocol": {
+          "major": 2026,
+          "minor": 9
+        },
+        "@types/ws": {
+          "major": 8
+        }
+      },
+      "packages": [
+        "openclaw",
+        "@openclaw/gateway-client",
+        "@openclaw/gateway-protocol",
+        "@types/ws"
+      ]
     },
     {
       "roleId": "machine-operations.agent-runtime",

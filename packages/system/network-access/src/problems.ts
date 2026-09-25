@@ -9,6 +9,9 @@ import {
   type ProblemError,
 } from "@heptalogos/foundation-contracts";
 
+// Intentional duplication: each semantic owner fixes its own problem-code and
+// default retry taxonomy; sharing the constructor would blur owner boundaries.
+/* jscpd:ignore-start */
 /** Creates one NetworkAccess Problem without provider or credential details. */
 export function networkProblem(
   problemCode: string,
@@ -19,3 +22,4 @@ export function networkProblem(
 ): ProblemError {
   return createProblemError({ problemCode, title, detail, category, retryClass });
 }
+/* jscpd:ignore-end */

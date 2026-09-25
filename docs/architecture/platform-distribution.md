@@ -75,6 +75,31 @@ Exact executable/script/wrapper 由平台资格验证，但必须保证 ProductG
 
 BootstrapRuntime 默认可作为稳定 Host shell 在同一 OS process 中加载 ProductGeneration Host entrypoint；ProductGeneration 切换通过 maintenance restart 生效。若平台采用 parent/child launcher，也必须保持同一 ownership/Recovery contract。
 
+当前 P4 Windows portable profile 已落实这一入口边界：Nx 的
+`@nx/js:prune-lockfile` 与 `copy-workspace-modules` 先形成 Product Host/CLI
+application artifacts；仓库 assembler 只在 artifact 内用 pnpm 完成 lockfile
+reconciliation 和 hoisted production dependency materialization，再把 artifact、
+官方 Node、已验证的 PostgreSQL server closure、license inventory 和
+manifest 放入 portable root。它不复制或重建完整 source workspace。
+`bin\heptalogos.cmd` 只定位自身旁的私有 Node 与清晰可读的 launcher；未
+初始化 assembly 不携带绑定组装目录的 locator。开发组装会保留未变化的
+application/private-runtime subtree，只有变化的 payload 被替换；首次启动
+仍由 launcher 从当前位置建立 locator 和 lifecycle roots，并将首次分配的
+loopback PostgreSQL port 交给既有 Bootstrap；同一位置的后续启动复用既有
+身份、数据和持久端口。Release/clean qualification 仍从新的目标目录开始。
+
+当前实现的 Product Host payload、CLI 和 OpenClaw root/client/protocol
+闭包在 portable root 内部解析；P4 的 source-less 证据仅适用于实际执行的
+Windows x64 candidate，不升级其他平台、service install 或 Machine
+Operations runtime 的资格状态。
+
+Repository bootstrap fixtures and installed Product launchers both resolve
+their current filesystem roots into the Bootstrap-owned `RuntimeLocations`
+contract. Product runtime consumers receive configuration, durable state,
+cache, and run roots through that contract; invocation `cwd` and the source
+workspace layout are not installation-location inputs. Package-local static
+resources continue to use `import.meta.url`.
+
 ## 3. Private Runtime
 
 Shipping product 自带并 pin 必要 runtime/toolchain，例如：
@@ -82,12 +107,22 @@ Shipping product 自带并 pin 必要 runtime/toolchain，例如：
 ```text
 Node
 PostgreSQL
-FFmpeg/ffprobe
 platform service helper when used
 other required native/WASM payloads
 ```
 
 正常运行不依赖 global installation 或 developer PATH。
+
+FFmpeg/ffprobe is an external executable prerequisite for an implemented
+audio/video capability. It is installed and configured by the operator or
+deployment profile and is not part of the default Heptalogos payload.
+
+OpenClaw 的分发必须按角色区分：当前 Product Host 的 bounded Subject Chat
+primary cognition 使用一个由 Product Host 管理的 Subject OpenClaw Runtime，
+它与独立的 Machine Operations OpenClaw 不共享 Gateway、state/config/workspace、
+credentials、ports、权限或启动生命周期。Product distribution 可以同时携带
+两种 runtime，但当前 P3 只实现并验证 Subject 角色；Machine Operations 仍是
+外部独立运行域。详见 [Machine Operations Plane](machine-operations.md)。
 
 ---
 
@@ -159,7 +194,7 @@ Release candidate 必须是不可变、可哈希、可复验的 closure：
 ```text
 Host JS/assets
 bundled web/static protocol assets when present
-private Node/PostgreSQL/FFmpeg
+private Node/PostgreSQL
 native/WASM transitive dependencies
 platform helpers
 built-in Extension generations
@@ -196,7 +231,7 @@ Windows SCM wrapper 在当前 Foundation baseline 中 DEFERRED。Windows service
 monorepo/src
 workspace symlink
 Git
-global Node/PostgreSQL/FFmpeg
+global Node/PostgreSQL
 online npm registry
 pnpm/npm install at runtime
 dev server
@@ -240,7 +275,7 @@ OSV/vulnerability scan evidence
 native/WASM dependency inventory
 platform qualification results
 source-less acceptance
-live protocol/provider results for claimed support
+live gateway/protocol results for claimed support
 ```
 
 ## 12. Desktop Presentation 与平台 preset

@@ -19,7 +19,7 @@
       "pg": ["../../packages/data/persistence/node_modules/@types/pg/index.d.ts"]
     }
   },
-  "include": ["test/**/*.ts", "support/**/*.ts"],
+  "include": ["test/**/*.ts", "support/**/*.ts", "qualification/**/*.ts"],
   "references": [
     { "path": "../../packages/foundation/foundation-contracts" },
     { "path": "../../packages/system/os-credential" },

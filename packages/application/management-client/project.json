@@ -6,15 +6,17 @@
   "sourceRoot": "packages/application/management-client/src",
   "targets": {
     "generate": {
+      "dependsOn": [{ "projects": "product-host", "target": "generate:openapi" }],
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm nx run product-host:generate:openapi && node packages/application/management-client/scripts/generate.mjs"
+        "command": "node packages/application/management-client/scripts/generate.mjs"
       }
     },
     "generate:check": {
+      "dependsOn": [{ "projects": "product-host", "target": "check:openapi" }],
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm nx run product-host:check:openapi && node packages/application/management-client/scripts/generate.mjs --check"
+        "command": "node packages/application/management-client/scripts/generate.mjs --check"
       }
     },
     "lint": {

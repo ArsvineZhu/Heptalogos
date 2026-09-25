@@ -12,6 +12,7 @@ import type {
 import {
   activeRegistryBindings,
   invokeRegistryBinding,
+  registryBindingKey,
   RegistryStore,
   registryProviderIds,
   retireRegistryGeneration,
@@ -28,13 +29,6 @@ import type { ProviderId } from "@heptalogos/foundation-contracts";
 import type { RuntimeActivityRunner } from "@heptalogos/execution-lineage/runtime-kernel";
 
 type CapabilityBinding = RegistryBinding<CapabilityProvisionDescriptor>;
-
-function bindingKey(
-  capabilityId: CapabilityProvisionDescriptor["capabilityId"],
-  providerId: ProviderId,
-): string {
-  return `${capabilityId}\u0000${providerId}`;
-}
 
 /** Owns Capability provider registration and generation-pinned resolution. */
 export class CapabilityRegistry {
@@ -54,7 +48,7 @@ export class CapabilityRegistry {
         "Capability provider priority must be a safe integer",
       );
     }
-    const key = bindingKey(descriptor.capabilityId, descriptor.providerId);
+    const key = registryBindingKey(descriptor.capabilityId, descriptor.providerId);
     if (this.bindings.has(key)) {
       throw runtimeKernelProblem(
         "runtime.capability.duplicate_provider",

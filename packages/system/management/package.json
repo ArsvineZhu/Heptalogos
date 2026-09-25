@@ -2,6 +2,9 @@
   "name": "@heptalogos/management",
   "version": "0.0.0",
   "private": true,
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "exports": {
     ".": {
@@ -13,6 +16,7 @@
   "dependencies": {
     "@heptalogos/ai-runtime": "workspace:*",
     "@heptalogos/configuration": "workspace:*",
+    "@heptalogos/evidence": "workspace:*",
     "@heptalogos/execution-lineage": "workspace:*",
     "@heptalogos/foundation-contracts": "workspace:*",
     "@heptalogos/network-access": "workspace:*",

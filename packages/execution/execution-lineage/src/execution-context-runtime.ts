@@ -311,14 +311,27 @@ export function createExecutionContextRuntime(
     );
   };
 
-  const runtime: ExecutionContextRuntime = {
+  const createActivityRunner = (
+    runtimeOrigin: RuntimeExecutionOrigin | undefined,
+  ): InternalRuntimeActivityRunner => ({
     current: () => storage.getStore()?.execution,
     runActivity<T>(
       request: ActivityRequest,
       operation: (context: ExecutionContext) => Promise<T>,
     ): Promise<T> {
-      return runActivity(request, operation, undefined);
+      return runActivity(request, operation, runtimeOrigin);
     },
+    runFromLineageContextRef<T>(
+      ref: LineageContextRefV1,
+      request: Omit<ActivityRequest, "causationActivityId">,
+      operation: (context: ExecutionContext) => Promise<T>,
+    ): Promise<T> {
+      return runFromLineageContextRef(ref, request, operation, runtimeOrigin);
+    },
+  });
+
+  const runtime: ExecutionContextRuntime = {
+    ...createActivityRunner(undefined),
     capture<TArgs extends readonly unknown[], TResult>(
       callback: (...args: TArgs) => TResult,
     ): (...args: TArgs) => TResult {
@@ -340,33 +353,10 @@ export function createExecutionContextRuntime(
         ...(current.telemetry ? { telemetry: current.telemetry } : {}),
       });
     },
-    runFromLineageContextRef<T>(
-      ref: LineageContextRefV1,
-      request: Omit<ActivityRequest, "causationActivityId">,
-      operation: (context: ExecutionContext) => Promise<T>,
-    ): Promise<T> {
-      return runFromLineageContextRef(ref, request, operation, undefined);
-    },
   };
 
   runtimeOriginBinders.set(runtime, (runtimeOrigin) => {
-    const trustedRuntimeOrigin = freezeRuntimeOrigin(runtimeOrigin);
-    return {
-      current: () => storage.getStore()?.execution,
-      runActivity<T>(
-        request: ActivityRequest,
-        operation: (context: ExecutionContext) => Promise<T>,
-      ): Promise<T> {
-        return runActivity(request, operation, trustedRuntimeOrigin);
-      },
-      runFromLineageContextRef<T>(
-        ref: LineageContextRefV1,
-        request: Omit<ActivityRequest, "causationActivityId">,
-        operation: (context: ExecutionContext) => Promise<T>,
-      ): Promise<T> {
-        return runFromLineageContextRef(ref, request, operation, trustedRuntimeOrigin);
-      },
-    };
+    return createActivityRunner(freezeRuntimeOrigin(runtimeOrigin));
   });
 
   return runtime;

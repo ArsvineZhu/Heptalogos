@@ -9,7 +9,6 @@ import type {
   Branded,
   CanonicalJsonValue,
   ContinuityEpochId,
-  EvidenceId,
   InstallationId,
   InstanceId,
   Instant,
@@ -25,6 +24,7 @@ import {
 } from "@heptalogos/foundation-contracts";
 import { lineageContextRefSchema } from "@heptalogos/execution-lineage";
 import type { LineageContextRef } from "@heptalogos/execution-lineage";
+import type { EvidenceRef } from "@heptalogos/evidence";
 import type {
   ConfigurationActivation,
   ConfigurationDefinition,
@@ -40,12 +40,12 @@ import type {
   ModelCapability,
   ModelBinding,
   ModelProfile,
-  ProviderProfile,
+  GatewayProfile,
 } from "@heptalogos/ai-runtime";
 import {
   modelBindingSetInputSchema,
   modelProfileSetInputSchema,
-  providerProfileSetInputSchema,
+  gatewayProfileSetInputSchema,
 } from "@heptalogos/ai-runtime";
 import type { NetworkAccessDiagnostics } from "@heptalogos/network-access";
 import type { SecretMetadata } from "@heptalogos/secret";
@@ -137,11 +137,6 @@ export interface TargetPrecondition {
   readonly expectedRevision?: number;
   readonly expectedDigest?: ManagementDigest;
 }
-/** Stable reference to one retained Evidence record. */
-export interface EvidenceRef {
-  readonly schemaVersion: 1;
-  readonly evidenceId: EvidenceId;
-}
 /** Describes one versioned semantic System action. */
 export interface SystemActionDefinition {
   readonly schemaVersion: 1;
@@ -186,9 +181,11 @@ export type ProductSystemActionId =
   | "secret.set"
   | "secret.replace"
   | "secret.revoke"
-  | "provider-profile.set"
+  | "gateway-profile.set"
   | "model-profile.set"
-  | "model-binding.set";
+  | "model-binding.set"
+  | "subject.start"
+  | "subject.stop";
 
 /** The normalized configuration revision action input. */
 export interface ConfigurationRevisionCreateActionInput {
@@ -220,29 +217,34 @@ interface SecretReplaceActionInput {
 interface SecretRevokeActionInput {
   readonly secretRef: string;
 }
-/** Input to set an OpenAI ProviderProfile and its owned references. */
-interface ProviderProfileSetActionInput {
-  readonly providerProfileId?: string;
-  readonly providerKind: "openai";
-  readonly configurationRevisionRef: string;
-  readonly secretRefs: readonly {
+/** Input to set one configured GatewayProfile. */
+interface GatewayProfileSetActionInput {
+  readonly gatewayProfileId?: string;
+  readonly baseUrl: string;
+  readonly apiTokenSecretRef?: {
     readonly schemaVersion: 1;
     readonly secretId: string;
-  }[];
+  };
   readonly enabled: boolean;
 }
 /** Input to set one model profile consumed by AIRuntime. */
 interface ModelProfileSetActionInput {
   readonly modelProfileId?: string;
-  readonly providerProfileId: string;
-  readonly providerModelIdentifier: string;
+  readonly gatewayProfileId: string;
+  readonly modelIdentifier: string;
+  readonly protocol: "openai-chat" | "openai-responses";
   readonly consumedCapabilities: readonly ModelCapability[];
-  readonly configurationRevisionRef: string;
 }
 /** The exact model binding action input. */
 interface ModelBindingSetActionInput {
   readonly role: "subject.primary" | "subject.expression";
   readonly modelProfileId: string;
+}
+
+/** Input to the current Subject desired-state actions. */
+export interface SubjectStateActionInput {
+  readonly subjectId: string;
+  readonly expectedAuthorityRevision: number;
 }
 
 /** A typed action request accepted by the current Management slice. */
@@ -265,8 +267,8 @@ export type SystemActionRequest =
       readonly input: SecretRevokeActionInput;
     }
   | {
-      readonly actionId: "provider-profile.set";
-      readonly input: ProviderProfileSetActionInput;
+      readonly actionId: "gateway-profile.set";
+      readonly input: GatewayProfileSetActionInput;
     }
   | {
       readonly actionId: "model-profile.set";
@@ -275,12 +277,35 @@ export type SystemActionRequest =
   | {
       readonly actionId: "model-binding.set";
       readonly input: ModelBindingSetActionInput;
-    };
+    }
+  | { readonly actionId: "subject.start"; readonly input: SubjectStateActionInput }
+  | { readonly actionId: "subject.stop"; readonly input: SubjectStateActionInput };
 
 /** The exact request used to confirm and execute a previously planned action. */
 export interface SystemActionExecuteRequest {
   readonly plan: SystemChangePlan;
   readonly action: SystemActionRequest;
+}
+
+/** Current Subject status shape projected by Management without owning Subject state. */
+export interface SubjectStatusProjection {
+  readonly schemaVersion: 1;
+  readonly subjectId: string;
+  readonly desiredState: "STOPPED" | "RUNNING";
+  readonly actualState:
+    | "STOPPED"
+    | "STARTING"
+    | "READY"
+    | "ACTIVE"
+    | "DEGRADED"
+    | "BLOCKED"
+    | "STOPPING"
+    | "FAILED";
+  readonly authorityRevision: number;
+  readonly blockers: readonly {
+    readonly code: string;
+    readonly detail: string;
+  }[];
 }
 
 /** Current redacted Product prerequisite state exposed by Management reads. */
@@ -292,17 +317,18 @@ export interface ProductStateData {
     readonly activations: readonly ConfigurationActivation[];
   };
   readonly secrets: readonly SecretMetadata[];
-  readonly providerProfiles: readonly ProviderProfile[];
+  readonly gatewayProfiles: readonly GatewayProfile[];
   readonly modelProfiles: readonly ModelProfile[];
   readonly modelBindings: readonly ModelBinding[];
   readonly networkAccess: NetworkAccessDiagnostics;
   readonly aiReadiness: AIRuntimeReadiness;
+  readonly subject: SubjectStatusProjection;
 }
 /** Current Product prerequisite read envelope. */
 export type ProductStateReadModel = ReadModelEnvelope<ProductStateData>;
 
 /** The current Product action catalog revision. */
-export const SYSTEM_ACTION_CATALOG_REVISION = 1 as const;
+export const SYSTEM_ACTION_CATALOG_REVISION = 4 as const;
 
 /** The current Management action catalog, without a generic operation store. */
 export const currentSystemActionCatalog: readonly SystemActionDefinition[] =
@@ -380,17 +406,17 @@ export const currentSystemActionCatalog: readonly SystemActionDefinition[] =
     }),
     Object.freeze({
       schemaVersion: 1 as const,
-      actionId: "provider-profile.set" as SystemActionId,
+      actionId: "gateway-profile.set" as SystemActionId,
       actionVersion: 1,
       inputSchema: {
         schemaVersion: 1 as const,
-        schemaId: "provider-profile.set.input",
+        schemaId: "gateway-profile.set.input",
       },
       outputSchema: {
         schemaVersion: 1 as const,
         schemaId: "management.system-action.result",
       },
-      targetKind: "provider-profile",
+      targetKind: "gateway-profile",
       riskClass: "MATERIAL" as const,
       applyMode: "RECONCILE" as const,
     }),
@@ -417,6 +443,32 @@ export const currentSystemActionCatalog: readonly SystemActionDefinition[] =
         schemaId: "management.system-action.result",
       },
       targetKind: "model-binding",
+      riskClass: "MATERIAL" as const,
+      applyMode: "RECONCILE" as const,
+    }),
+    Object.freeze({
+      schemaVersion: 1 as const,
+      actionId: "subject.start" as SystemActionId,
+      actionVersion: 1,
+      inputSchema: { schemaVersion: 1 as const, schemaId: "subject.start.input" },
+      outputSchema: {
+        schemaVersion: 1 as const,
+        schemaId: "management.system-action.result",
+      },
+      targetKind: "subject",
+      riskClass: "MATERIAL" as const,
+      applyMode: "RECONCILE" as const,
+    }),
+    Object.freeze({
+      schemaVersion: 1 as const,
+      actionId: "subject.stop" as SystemActionId,
+      actionVersion: 1,
+      inputSchema: { schemaVersion: 1 as const, schemaId: "subject.stop.input" },
+      outputSchema: {
+        schemaVersion: 1 as const,
+        schemaId: "management.system-action.result",
+      },
+      targetKind: "subject",
       riskClass: "MATERIAL" as const,
       applyMode: "RECONCILE" as const,
     }),
@@ -775,8 +827,8 @@ export const systemActionRequestSchema = Type.Union([
   ),
   Type.Object(
     {
-      actionId: Type.Literal("provider-profile.set"),
-      input: providerProfileSetInputSchema,
+      actionId: Type.Literal("gateway-profile.set"),
+      input: gatewayProfileSetInputSchema,
     },
     { additionalProperties: false },
   ),
@@ -794,6 +846,36 @@ export const systemActionRequestSchema = Type.Union([
     },
     { additionalProperties: false },
   ),
+  Type.Object(
+    {
+      actionId: Type.Literal("subject.start"),
+      input: Type.Object(
+        {
+          subjectId: Type.String({ pattern: UUID_V7_PATTERN }),
+          expectedAuthorityRevision: Type.Integer({ minimum: 1 }),
+        },
+        { additionalProperties: false },
+      ),
+    },
+    { additionalProperties: false },
+  ),
+  // Intentional duplication: start and stop remain explicit wire discriminants
+  // so each lifecycle operation's schema is visible in the public contract.
+  /* jscpd:ignore-start */
+  Type.Object(
+    {
+      actionId: Type.Literal("subject.stop"),
+      input: Type.Object(
+        {
+          subjectId: Type.String({ pattern: UUID_V7_PATTERN }),
+          expectedAuthorityRevision: Type.Integer({ minimum: 1 }),
+        },
+        { additionalProperties: false },
+      ),
+    },
+    { additionalProperties: false },
+  ),
+  /* jscpd:ignore-end */
 ]);
 /** Canonical wire schema for exact action-plan confirmation and execution. */
 export const systemActionExecuteRequestSchema = Type.Object(
@@ -818,11 +900,30 @@ export const productStateSchema = readModelEnvelopeSchema(
         { additionalProperties: false },
       ),
       secrets: Type.Array(Type.Unknown()),
-      providerProfiles: Type.Array(Type.Unknown()),
+      gatewayProfiles: Type.Array(Type.Unknown()),
       modelProfiles: Type.Array(Type.Unknown()),
       modelBindings: Type.Array(Type.Unknown()),
       networkAccess: Type.Unknown(),
       aiReadiness: Type.Unknown(),
+      subject: Type.Object(
+        {
+          schemaVersion: Type.Literal(1),
+          subjectId: Type.String({ pattern: UUID_V7_PATTERN }),
+          desiredState: Type.Union([Type.Literal("STOPPED"), Type.Literal("RUNNING")]),
+          actualState: Type.String({ minLength: 1 }),
+          authorityRevision: Type.Integer({ minimum: 1 }),
+          blockers: Type.Array(
+            Type.Object(
+              {
+                code: Type.String({ minLength: 1 }),
+                detail: Type.String({ minLength: 1 }),
+              },
+              { additionalProperties: false },
+            ),
+          ),
+        },
+        { additionalProperties: false },
+      ),
     },
     { additionalProperties: false },
   ),

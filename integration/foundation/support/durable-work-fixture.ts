@@ -472,6 +472,9 @@ export async function closeComposition(composition: Composition): Promise<void> 
   );
 }
 
+// Intentional duplication: the fixture mirrors the private WorkQueue request
+// shape to inspect durable rows without widening the production helper API.
+/* jscpd:ignore-start */
 export function durableRequest(item: WorkItem): DurableDispatchRequest {
   return {
     workItemId: item.workItemId,
@@ -483,6 +486,7 @@ export function durableRequest(item: WorkItem): DurableDispatchRequest {
     ...(item.notBefore === undefined ? {} : { notBefore: item.notBefore }),
   };
 }
+/* jscpd:ignore-end */
 
 export async function durableWorkflowRow(
   fixture: Awaited<ReturnType<typeof makeFixture>>,

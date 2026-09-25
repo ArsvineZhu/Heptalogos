@@ -182,6 +182,32 @@ ConfigurationDefinition
 └─ version
 ```
 
+### 4.1 Current Product registration
+
+The current Product composition supplies owner-provided definitions to the
+generic `ConfigurationService`; the service validates by the registered JSON
+Schema and does not contain a gateway-specific branch. The current realized
+definitions are:
+
+```text
+ai.gateway.transport.v1
+→ system.network-access / system.ai-runtime transport consumer
+
+subject.expression.v1
+→ product.subject Expression consumer
+→ Subject-scoped Product default maxOutputTokens = 256
+
+management.http.admission.v1
+→ application.product-host Fastify body and claim/login admission consumer
+→ installation-scoped Product default, activation = RESTART_HOST
+```
+
+The Subject Expression and Product Host HTTP defaults are first materialized as
+managed revisions and activations, so the effective behavior is pinned rather
+than silently following a later code or dependency default. Subject WorkQueue
+and DBOS concurrency/recovery values remain mechanics-owned constants where
+there is no current Product consumer that independently needs to vary them.
+
 ---
 
 ## 5. 类型系统
@@ -627,9 +653,13 @@ SystemAction
 ```
 
 EXPERT、INTERNAL、HIDDEN 配置的可见性和可修改性由 Product Management
-Policy 与对应 projection 决定。Machine-level configuration repair belongs
-to the independent Machine Operations Plane and does not add OpenClaw-owned
-configuration to Heptalogos Configuration ownership.
+Policy 与对应 projection 决定。Subject OpenClaw Runtime 若进入 Product，
+Heptalogos 有意控制的 runtime generation/profile、tool policy、预算、超时和
+model/provider intent 属于 typed Product Configuration 或 SecretService；
+adapter 生成的 OpenClaw config/env 只是 provider projection，不是第二个可编辑
+Authority。Machine-level configuration repair belongs to the independent
+Machine Operations Plane and does not silently import its OpenClaw configuration
+into Heptalogos Configuration ownership。
 
 ```text
 EXPERT

@@ -459,6 +459,15 @@ export function createWorkAttemptExecutor(
           const expectedActiveAttemptId = recoveringRunning
             ? expectedAttemptId
             : undefined;
+          const waitForDependency = async (): Promise<WorkAttemptExecutionResult> =>
+            resultForMutation(
+              await options.repository.markWaitingDependency({
+                workItemId: item.workItemId,
+                expectedDispatchRevision: item.dispatchRevision,
+                updatedAt: options.time.now(),
+                onApplied: earlyActivityHook(options, activity, "WAITING_DEPENDENCY"),
+              }),
+            );
           if (requestedTerminal !== undefined) {
             return resultForMutation(
               await options.repository.commitTerminal({
@@ -479,16 +488,7 @@ export function createWorkAttemptExecutor(
             );
           }
 
-          if (lease === undefined) {
-            return resultForMutation(
-              await options.repository.markWaitingDependency({
-                workItemId: item.workItemId,
-                expectedDispatchRevision: item.dispatchRevision,
-                updatedAt: options.time.now(),
-                onApplied: earlyActivityHook(options, activity, "WAITING_DEPENDENCY"),
-              }),
-            );
-          }
+          if (lease === undefined) return waitForDependency();
 
           let payload: unknown;
           try {
@@ -507,14 +507,7 @@ export function createWorkAttemptExecutor(
                   error,
                 );
               }
-              return resultForMutation(
-                await options.repository.markWaitingDependency({
-                  workItemId: item.workItemId,
-                  expectedDispatchRevision: item.dispatchRevision,
-                  updatedAt: options.time.now(),
-                  onApplied: earlyActivityHook(options, activity, "WAITING_DEPENDENCY"),
-                }),
-              );
+              return waitForDependency();
             }
             const reasonCode = payloadValidationReasonCode(error);
             return resultForMutation(

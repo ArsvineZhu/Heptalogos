@@ -16,6 +16,11 @@ import {
 import { HOST_OWNERSHIP_FENCE_TABLE, HOST_OWNERSHIP_SCHEMA } from "./contracts.js";
 import type { HostLeaseConnection } from "./host-lease-connection.js";
 import type { BootstrapMutationAuthority } from "./bootstrap-authority.js";
+import {
+  FENCE_AFTER_COMMIT,
+  FENCE_FOR_UPDATE,
+  type HostOwnershipFenceRow,
+} from "./fence-queries.js";
 
 /** Supplies connection, token, and authority inputs for token publication. */
 export interface PublishHostOwnershipTokenOptions {
@@ -45,27 +50,6 @@ async function authorizedConnectionQuery<Row = never>(
   authority.assertCurrent();
   return result;
 }
-
-interface FenceRow {
-  readonly singleton: boolean;
-  readonly instance_id: string;
-  readonly ownership_revision: string | number;
-  readonly host_ownership_token: string | null;
-  readonly boot_id: string | null;
-}
-
-const FENCE_FOR_UPDATE = `
-SELECT singleton, instance_id, ownership_revision, host_ownership_token, boot_id
-FROM "${HOST_OWNERSHIP_SCHEMA}"."${HOST_OWNERSHIP_FENCE_TABLE}"
-WHERE singleton = true
-FOR UPDATE
-`;
-
-const FENCE_AFTER_COMMIT = `
-SELECT singleton, instance_id, ownership_revision, host_ownership_token, boot_id
-FROM "${HOST_OWNERSHIP_SCHEMA}"."${HOST_OWNERSHIP_FENCE_TABLE}"
-WHERE singleton = true
-`;
 
 function publicationProblem(
   problemCode: string,
@@ -135,7 +119,7 @@ function nextRevision(previousRevision: string): string {
   return (BigInt(previousRevision) + 1n).toString();
 }
 
-function assertFenceRow(row: FenceRow, instanceId: InstanceId): string {
+function assertFenceRow(row: HostOwnershipFenceRow, instanceId: InstanceId): string {
   if (
     row.singleton !== true ||
     row.instance_id !== instanceId ||
@@ -150,7 +134,7 @@ function assertFenceRow(row: FenceRow, instanceId: InstanceId): string {
 }
 
 function assertPublishedRow(
-  row: FenceRow,
+  row: HostOwnershipFenceRow,
   instanceId: InstanceId,
   token: HostOwnershipToken,
   bootId: BootId,
@@ -189,7 +173,7 @@ export async function publishHostOwnershipToken(
       "SELECT set_config('statement_timeout', $1, true)",
       [`${options.statementTimeoutMs}ms`],
     );
-    const locked = await authorizedConnectionQuery<FenceRow>(
+    const locked = await authorizedConnectionQuery<HostOwnershipFenceRow>(
       connection,
       options.mutationAuthority,
       FENCE_FOR_UPDATE,
@@ -216,9 +200,9 @@ WHERE singleton = true`,
     commitAcknowledged = true;
     transactionOpen = false;
 
-    let verified: { readonly rows: readonly FenceRow[] };
+    let verified: { readonly rows: readonly HostOwnershipFenceRow[] };
     try {
-      verified = await authorizedConnectionQuery<FenceRow>(
+      verified = await authorizedConnectionQuery<HostOwnershipFenceRow>(
         connection,
         options.mutationAuthority,
         FENCE_AFTER_COMMIT,

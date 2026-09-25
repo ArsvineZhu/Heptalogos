@@ -2,6 +2,9 @@
   "name": "@heptalogos/ai-runtime",
   "version": "0.0.0",
   "private": true,
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "exports": {
     ".": {
@@ -11,7 +14,9 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai": "catalog:",
+    "@ai-sdk/openai-compatible": "catalog:",
+    "@ai-sdk/open-responses": "catalog:",
+    "@ai-sdk/provider-utils": "catalog:",
     "@heptalogos/configuration": "workspace:*",
     "@heptalogos/evidence": "workspace:*",
     "@heptalogos/execution-lineage": "workspace:*",

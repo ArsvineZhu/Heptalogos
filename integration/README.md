@@ -9,3 +9,6 @@ cross-package scenarios and support needed to prove its declared composition.
 - [Product Host integration](./product-host/README.md) qualifies the built
   headless Host and reference CLI against real PostgreSQL and the current
   native credential-store profile.
+- [Model gateway integration](./model-gateway/README.md) proves the installed
+  Chat/Responses SDK adapters locally and contains the separate protected live
+  NewAPI-to-DeepSeek Chat qualification harness.

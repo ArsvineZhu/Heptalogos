@@ -3953,9 +3953,8 @@
                         "properties": {
                           "definitionId": {
                             "type": "string",
-                            "enum": [
-                              "ai.provider.transport.v1"
-                            ]
+                            "minLength": 1,
+                            "maxLength": 256
                           },
                           "scopeRef": {
                             "type": "object",
@@ -3984,45 +3983,7 @@
                             },
                             "additionalProperties": false
                           },
-                          "value": {
-                            "type": "object",
-                            "required": [
-                              "schemaVersion",
-                              "timeoutMs",
-                              "requestBodyBudgetBytes",
-                              "responseBodyBudgetBytes",
-                              "expandedResponseBodyBudgetBytes"
-                            ],
-                            "properties": {
-                              "schemaVersion": {
-                                "type": "number",
-                                "enum": [
-                                  1
-                                ]
-                              },
-                              "timeoutMs": {
-                                "type": "integer",
-                                "minimum": 1000,
-                                "maximum": 300000
-                              },
-                              "requestBodyBudgetBytes": {
-                                "type": "integer",
-                                "minimum": 1,
-                                "maximum": 4194304
-                              },
-                              "responseBodyBudgetBytes": {
-                                "type": "integer",
-                                "minimum": 1,
-                                "maximum": 16777216
-                              },
-                              "expandedResponseBodyBudgetBytes": {
-                                "type": "integer",
-                                "minimum": 1,
-                                "maximum": 33554432
-                              }
-                            },
-                            "additionalProperties": false
-                          }
+                          "value": {}
                         },
                         "additionalProperties": false
                       }
@@ -4199,55 +4160,44 @@
                       "actionId": {
                         "type": "string",
                         "enum": [
-                          "provider-profile.set"
+                          "gateway-profile.set"
                         ]
                       },
                       "input": {
                         "type": "object",
                         "required": [
-                          "providerKind",
-                          "configurationRevisionRef",
-                          "secretRefs",
+                          "baseUrl",
                           "enabled"
                         ],
                         "properties": {
-                          "providerProfileId": {
+                          "gatewayProfileId": {
                             "type": "string",
                             "minLength": 1
                           },
-                          "providerKind": {
+                          "baseUrl": {
                             "type": "string",
-                            "enum": [
-                              "openai"
-                            ]
+                            "minLength": 1,
+                            "maxLength": 2048
                           },
-                          "configurationRevisionRef": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "secretRefs": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "required": [
-                                "schemaVersion",
-                                "secretId"
-                              ],
-                              "properties": {
-                                "schemaVersion": {
-                                  "type": "number",
-                                  "enum": [
-                                    1
-                                  ]
-                                },
-                                "secretId": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
+                          "apiTokenSecretRef": {
+                            "type": "object",
+                            "required": [
+                              "schemaVersion",
+                              "secretId"
+                            ],
+                            "properties": {
+                              "schemaVersion": {
+                                "type": "number",
+                                "enum": [
+                                  1
+                                ]
                               },
-                              "additionalProperties": false
+                              "secretId": {
+                                "type": "string",
+                                "minLength": 1
+                              }
                             },
-                            "maxItems": 1
+                            "additionalProperties": false
                           },
                           "enabled": {
                             "type": "boolean"
@@ -4274,24 +4224,40 @@
                       "input": {
                         "type": "object",
                         "required": [
-                          "providerProfileId",
-                          "providerModelIdentifier",
-                          "consumedCapabilities",
-                          "configurationRevisionRef"
+                          "gatewayProfileId",
+                          "modelIdentifier",
+                          "protocol",
+                          "consumedCapabilities"
                         ],
                         "properties": {
                           "modelProfileId": {
                             "type": "string",
                             "minLength": 1
                           },
-                          "providerProfileId": {
+                          "gatewayProfileId": {
                             "type": "string",
                             "minLength": 1
                           },
-                          "providerModelIdentifier": {
+                          "modelIdentifier": {
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 256
+                          },
+                          "protocol": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "openai-chat"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "openai-responses"
+                                ]
+                              }
+                            ]
                           },
                           "consumedCapabilities": {
                             "type": "array",
@@ -4325,10 +4291,6 @@
                             },
                             "minItems": 1,
                             "maxItems": 4
-                          },
-                          "configurationRevisionRef": {
-                            "type": "string",
-                            "minLength": 1
                           }
                         },
                         "additionalProperties": false
@@ -4375,6 +4337,74 @@
                           "modelProfileId": {
                             "type": "string",
                             "minLength": 1
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "actionId",
+                      "input"
+                    ],
+                    "properties": {
+                      "actionId": {
+                        "type": "string",
+                        "enum": [
+                          "subject.start"
+                        ]
+                      },
+                      "input": {
+                        "type": "object",
+                        "required": [
+                          "subjectId",
+                          "expectedAuthorityRevision"
+                        ],
+                        "properties": {
+                          "subjectId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                          },
+                          "expectedAuthorityRevision": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "actionId",
+                      "input"
+                    ],
+                    "properties": {
+                      "actionId": {
+                        "type": "string",
+                        "enum": [
+                          "subject.stop"
+                        ]
+                      },
+                      "input": {
+                        "type": "object",
+                        "required": [
+                          "subjectId",
+                          "expectedAuthorityRevision"
+                        ],
+                        "properties": {
+                          "subjectId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                          },
+                          "expectedAuthorityRevision": {
+                            "type": "integer",
+                            "minimum": 1
                           }
                         },
                         "additionalProperties": false
@@ -5326,9 +5356,8 @@
                             "properties": {
                               "definitionId": {
                                 "type": "string",
-                                "enum": [
-                                  "ai.provider.transport.v1"
-                                ]
+                                "minLength": 1,
+                                "maxLength": 256
                               },
                               "scopeRef": {
                                 "type": "object",
@@ -5357,45 +5386,7 @@
                                 },
                                 "additionalProperties": false
                               },
-                              "value": {
-                                "type": "object",
-                                "required": [
-                                  "schemaVersion",
-                                  "timeoutMs",
-                                  "requestBodyBudgetBytes",
-                                  "responseBodyBudgetBytes",
-                                  "expandedResponseBodyBudgetBytes"
-                                ],
-                                "properties": {
-                                  "schemaVersion": {
-                                    "type": "number",
-                                    "enum": [
-                                      1
-                                    ]
-                                  },
-                                  "timeoutMs": {
-                                    "type": "integer",
-                                    "minimum": 1000,
-                                    "maximum": 300000
-                                  },
-                                  "requestBodyBudgetBytes": {
-                                    "type": "integer",
-                                    "minimum": 1,
-                                    "maximum": 4194304
-                                  },
-                                  "responseBodyBudgetBytes": {
-                                    "type": "integer",
-                                    "minimum": 1,
-                                    "maximum": 16777216
-                                  },
-                                  "expandedResponseBodyBudgetBytes": {
-                                    "type": "integer",
-                                    "minimum": 1,
-                                    "maximum": 33554432
-                                  }
-                                },
-                                "additionalProperties": false
-                              }
+                              "value": {}
                             },
                             "additionalProperties": false
                           }
@@ -5572,55 +5563,44 @@
                           "actionId": {
                             "type": "string",
                             "enum": [
-                              "provider-profile.set"
+                              "gateway-profile.set"
                             ]
                           },
                           "input": {
                             "type": "object",
                             "required": [
-                              "providerKind",
-                              "configurationRevisionRef",
-                              "secretRefs",
+                              "baseUrl",
                               "enabled"
                             ],
                             "properties": {
-                              "providerProfileId": {
+                              "gatewayProfileId": {
                                 "type": "string",
                                 "minLength": 1
                               },
-                              "providerKind": {
+                              "baseUrl": {
                                 "type": "string",
-                                "enum": [
-                                  "openai"
-                                ]
+                                "minLength": 1,
+                                "maxLength": 2048
                               },
-                              "configurationRevisionRef": {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              "secretRefs": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "required": [
-                                    "schemaVersion",
-                                    "secretId"
-                                  ],
-                                  "properties": {
-                                    "schemaVersion": {
-                                      "type": "number",
-                                      "enum": [
-                                        1
-                                      ]
-                                    },
-                                    "secretId": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    }
+                              "apiTokenSecretRef": {
+                                "type": "object",
+                                "required": [
+                                  "schemaVersion",
+                                  "secretId"
+                                ],
+                                "properties": {
+                                  "schemaVersion": {
+                                    "type": "number",
+                                    "enum": [
+                                      1
+                                    ]
                                   },
-                                  "additionalProperties": false
+                                  "secretId": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
                                 },
-                                "maxItems": 1
+                                "additionalProperties": false
                               },
                               "enabled": {
                                 "type": "boolean"
@@ -5647,24 +5627,40 @@
                           "input": {
                             "type": "object",
                             "required": [
-                              "providerProfileId",
-                              "providerModelIdentifier",
-                              "consumedCapabilities",
-                              "configurationRevisionRef"
+                              "gatewayProfileId",
+                              "modelIdentifier",
+                              "protocol",
+                              "consumedCapabilities"
                             ],
                             "properties": {
                               "modelProfileId": {
                                 "type": "string",
                                 "minLength": 1
                               },
-                              "providerProfileId": {
+                              "gatewayProfileId": {
                                 "type": "string",
                                 "minLength": 1
                               },
-                              "providerModelIdentifier": {
+                              "modelIdentifier": {
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": 256
+                              },
+                              "protocol": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "openai-chat"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "openai-responses"
+                                    ]
+                                  }
+                                ]
                               },
                               "consumedCapabilities": {
                                 "type": "array",
@@ -5698,10 +5694,6 @@
                                 },
                                 "minItems": 1,
                                 "maxItems": 4
-                              },
-                              "configurationRevisionRef": {
-                                "type": "string",
-                                "minLength": 1
                               }
                             },
                             "additionalProperties": false
@@ -5748,6 +5740,74 @@
                               "modelProfileId": {
                                 "type": "string",
                                 "minLength": 1
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "actionId",
+                          "input"
+                        ],
+                        "properties": {
+                          "actionId": {
+                            "type": "string",
+                            "enum": [
+                              "subject.start"
+                            ]
+                          },
+                          "input": {
+                            "type": "object",
+                            "required": [
+                              "subjectId",
+                              "expectedAuthorityRevision"
+                            ],
+                            "properties": {
+                              "subjectId": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                              },
+                              "expectedAuthorityRevision": {
+                                "type": "integer",
+                                "minimum": 1
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "actionId",
+                          "input"
+                        ],
+                        "properties": {
+                          "actionId": {
+                            "type": "string",
+                            "enum": [
+                              "subject.stop"
+                            ]
+                          },
+                          "input": {
+                            "type": "object",
+                            "required": [
+                              "subjectId",
+                              "expectedAuthorityRevision"
+                            ],
+                            "properties": {
+                              "subjectId": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                              },
+                              "expectedAuthorityRevision": {
+                                "type": "integer",
+                                "minimum": 1
                               }
                             },
                             "additionalProperties": false
@@ -6353,11 +6413,12 @@
                         "schemaVersion",
                         "configuration",
                         "secrets",
-                        "providerProfiles",
+                        "gatewayProfiles",
                         "modelProfiles",
                         "modelBindings",
                         "networkAccess",
-                        "aiReadiness"
+                        "aiReadiness",
+                        "subject"
                       ],
                       "properties": {
                         "schemaVersion": {
@@ -6393,7 +6454,7 @@
                           "type": "array",
                           "items": {}
                         },
-                        "providerProfiles": {
+                        "gatewayProfiles": {
                           "type": "array",
                           "items": {}
                         },
@@ -6406,7 +6467,76 @@
                           "items": {}
                         },
                         "networkAccess": {},
-                        "aiReadiness": {}
+                        "aiReadiness": {},
+                        "subject": {
+                          "type": "object",
+                          "required": [
+                            "schemaVersion",
+                            "subjectId",
+                            "desiredState",
+                            "actualState",
+                            "authorityRevision",
+                            "blockers"
+                          ],
+                          "properties": {
+                            "schemaVersion": {
+                              "type": "number",
+                              "enum": [
+                                1
+                              ]
+                            },
+                            "subjectId": {
+                              "type": "string",
+                              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+                            },
+                            "desiredState": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "STOPPED"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "RUNNING"
+                                  ]
+                                }
+                              ]
+                            },
+                            "actualState": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "authorityRevision": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "blockers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "code",
+                                  "detail"
+                                ],
+                                "properties": {
+                                  "code": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "detail": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "additionalProperties": false
+                        }
                       },
                       "additionalProperties": false
                     },

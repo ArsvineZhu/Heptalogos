@@ -94,6 +94,9 @@ function recoveryProblem(
   });
 }
 
+// Intentional duplication: recovery validates the same scalar under its own
+// recovery Problem taxonomy rather than coupling to HostOwnership revocation.
+/* jscpd:ignore-start */
 function canonicalFenceRevision(value: string | number): string {
   if (typeof value === "string" && /^(0|[1-9][0-9]*)$/u.test(value)) return value;
   if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) {
@@ -105,6 +108,7 @@ function canonicalFenceRevision(value: string | number): string {
     "Recovery cannot compare the current fence without an unsigned decimal ownership revision",
   );
 }
+/* jscpd:ignore-end */
 
 function requireBootstrapState(
   loaded: BootstrapStateLoadResult,

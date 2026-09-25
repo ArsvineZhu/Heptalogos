@@ -124,7 +124,8 @@ export interface WorkItemInsertResult {
   readonly item: WorkItem;
 }
 
-interface WorkItemInsertOptions {
+/** Optional same-transaction hook for an insert or deduplication result. */
+export interface WorkItemInsertOptions {
   readonly onWithinTransaction?: (
     result: WorkItemInsertResult,
     transaction: PersistenceMutationTransactionContext,
@@ -855,19 +856,21 @@ function serializeItem(item: WorkItem): readonly unknown[] {
 
 const INSERT_COLUMNS = WORK_ITEM_COLUMNS.replaceAll("\n", "").replaceAll("  ", "");
 
-/** Create the Foundation-owned WorkQueue repository over the supplied persistence service. */
-export function createWorkQueueRepository(
-  persistence: PersistenceService,
-): WorkQueueRepository {
-  return {
-    async insertWorkItem(item, options) {
-      const result = await mutationContext(
-        persistence,
-        async (transaction, context) => {
-          let insertResult: WorkItemInsertResult;
-          const insertRows = await executeSql(
-            transaction,
-            `INSERT INTO "heptalogos"."work_item" (${INSERT_COLUMNS}) VALUES (
+/**
+ * Inserts or deduplicates one WorkItem in an already-open mutation transaction.
+ * The caller owns the transaction lifetime; this helper performs no nested
+ * persistence mutation and keeps WorkQueue SQL behind its repository boundary.
+ */
+export async function insertWorkItemWithinTransaction(
+  transaction: PersistenceInternalTransaction,
+  context: PersistenceMutationTransactionContext,
+  item: WorkItem,
+  options?: WorkItemInsertOptions,
+): Promise<WorkItemInsertResult> {
+  let insertResult: WorkItemInsertResult;
+  const insertRows = await executeSql(
+    transaction,
+    `INSERT INTO "heptalogos"."work_item" (${INSERT_COLUMNS}) VALUES (
               $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
               $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26,
               $27, $28, $29
@@ -877,28 +880,28 @@ export function createWorkQueueRepository(
                 'WAITING_RESTORE_RECONCILIATION'
               ) DO NOTHING
             RETURNING ${WORK_ITEM_COLUMNS}`,
-            serializeItem(item),
-          );
-          if (insertRows[0] !== undefined) {
-            insertResult = {
-              status: "INSERTED",
-              item: parsePersistedWorkItem(insertRows[0]),
-            };
-            if (options?.onWithinTransaction !== undefined) {
-              await options.onWithinTransaction(insertResult, context);
-            }
-            return insertResult;
-          }
+    serializeItem(item),
+  );
+  if (insertRows[0] !== undefined) {
+    insertResult = {
+      status: "INSERTED",
+      item: parsePersistedWorkItem(insertRows[0]),
+    };
+    if (options?.onWithinTransaction !== undefined) {
+      await options.onWithinTransaction(insertResult, context);
+    }
+    return insertResult;
+  }
 
-          if (item.dedupKey === undefined) {
-            throw workQueueProblem(
-              "work_queue.insert_conflict",
-              "WorkItem insert did not return a row and has no dedup key to reconcile",
-            );
-          }
-          const rows = await executeSql(
-            transaction,
-            `SELECT ${WORK_ITEM_COLUMNS}
+  if (item.dedupKey === undefined) {
+    throw workQueueProblem(
+      "work_queue.insert_conflict",
+      "WorkItem insert did not return a row and has no dedup key to reconcile",
+    );
+  }
+  const rows = await executeSql(
+    transaction,
+    `SELECT ${WORK_ITEM_COLUMNS}
            FROM "heptalogos"."work_item"
            WHERE handler_micro_system_id = $1
              AND handler_contribution_id = $2
@@ -906,25 +909,33 @@ export function createWorkQueueRepository(
              AND state IN ('PENDING', 'RUNNING', 'WAITING_DEPENDENCY', 'RETRY_WAIT', 'WAITING_RESTORE_RECONCILIATION')
            ORDER BY created_at ASC, work_item_id ASC
            LIMIT 1`,
-            [item.handler.microSystemId, item.handler.contributionId, item.dedupKey],
-          );
-          if (rows[0] === undefined) {
-            throw workQueueProblem(
-              "work_queue.insert_conflict",
-              "WorkItem deduplication conflict did not expose an existing non-terminal item",
-            );
-          }
-          insertResult = {
-            status: "EXISTING",
-            item: parsePersistedWorkItem(rows[0]),
-          };
-          if (options?.onWithinTransaction !== undefined) {
-            await options.onWithinTransaction(insertResult, context);
-          }
-          return insertResult;
-        },
+    [item.handler.microSystemId, item.handler.contributionId, item.dedupKey],
+  );
+  if (rows[0] === undefined) {
+    throw workQueueProblem(
+      "work_queue.insert_conflict",
+      "WorkItem deduplication conflict did not expose an existing non-terminal item",
+    );
+  }
+  insertResult = {
+    status: "EXISTING",
+    item: parsePersistedWorkItem(rows[0]),
+  };
+  if (options?.onWithinTransaction !== undefined) {
+    await options.onWithinTransaction(insertResult, context);
+  }
+  return insertResult;
+}
+
+/** Create the Foundation-owned WorkQueue repository over the supplied persistence service. */
+export function createWorkQueueRepository(
+  persistence: PersistenceService,
+): WorkQueueRepository {
+  return {
+    async insertWorkItem(item, options) {
+      return mutationContext(persistence, (transaction, context) =>
+        insertWorkItemWithinTransaction(transaction, context, item, options),
       );
-      return result;
     },
 
     async getWorkItem(workItemId) {

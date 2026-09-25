@@ -5,15 +5,15 @@
 Canonical configuration/domain state 保存：
 
 ```text
-ProviderProfile
+GatewayProfile
 ModelProfile
 ModelBinding
 SecretRef
 ```
 
-运行时才 materialize SDK/provider/model objects。
+运行时才 materialize SDK/protocol/model objects。
 
-模型、Provider、SDK generation 的变化不会自动创建新 Subject。
+模型、Gateway、protocol、SDK generation 的变化不会自动创建新 Subject。
 
 ---
 
@@ -22,7 +22,7 @@ SecretRef
 AI SDK 承担 generic mechanics：
 
 ```text
-provider/model interface
+gateway/protocol/model interface
 text/stream
 structured output
 usage
@@ -32,8 +32,10 @@ middleware
 
 AI SDK may expose broader mechanics, but the current Subject Product path consumes
 only text generation, structured output, usage when supplied, and
-abort/timeout. Tool and autonomous-step mechanics remain future integration
-choices and do not create current AIRuntime Authority.
+abort/timeout. The current AIRuntime selects an external gateway and exactly
+one of the openai-chat or openai-responses protocol boundaries. Tool and
+autonomous-step mechanics remain future integration choices and do not create
+current AIRuntime Authority.
 
 Heptalogos 拥有：
 
@@ -42,14 +44,33 @@ InvocationSpec
 ModelBinding
 ContextProjection
 Capability policy
-Behavior Authority
+Subject/domain Authority boundaries
 Effect fences
 Evidence
 ```
 
 ---
 
-## 3. ModelBinding
+## 3. Gateway、Model 与 Binding
+
+当前 Product 的模型集成边界是：
+
+```text
+GatewayProfile
+→ 已配置的 inference endpoint、enabled state、可选 gateway bearer-token SecretRef
+
+ModelProfile
+→ GatewayProfile + modelIdentifier + ModelInvocationProtocol + capability set + generation
+
+ModelBinding
+→ Subject role 到 ModelProfile 的精确选择
+```
+
+`ModelInvocationProtocol` 当前只有 `openai-chat` 和 `openai-responses`。
+GatewayProfile 不编码 OpenAI、DeepSeek、NewAPI 或其他 upstream vendor 身份；
+gateway 的 upstream credentials、channels、routing 和生命周期由外部实现拥有。
+
+## 3.1 ModelBinding
 
 逻辑角色可包括：
 
@@ -63,8 +84,12 @@ future.embedding
 当前 Heptalogos AIRuntime 只定义 `subject.primary` 和
 `subject.expression` 两个 ModelBinding 角色；它们可以绑定同一个
 ModelProfile。`future.*` 只表示未来可扩展的命名空间，不表示当前存在
-Operator 或 System Assistant 的内部模型绑定。OpenClaw 的模型配置由
-OpenClaw 自己拥有，不是 Heptalogos AIRuntime 配置。
+Operator 或 System Assistant 的内部模型绑定。当前 AIRuntime 不拥有
+OpenClaw 的 provider-private 模型配置。Subject OpenClaw Runtime 使用时，
+Heptalogos 控制的 runtime generation、tool policy、budgets 和 model/provider
+intent 应来自 typed Product Configuration 与 SecretRef，再由 Subject adapter
+投影给 OpenClaw；生成的 provider config 不是第二个可编辑 Authority。Machine
+Operations OpenClaw 的配置仍由独立 operations plane 拥有。
 
 ---
 
@@ -82,12 +107,26 @@ available capabilities
 output schema
 budget
 timeout/cancel
-protocol/provider provenance
+gateway/model/protocol provenance
 ```
 
 高级 cognition subsystem 若存在，可以通过 Context/Activity contract 贡献数据；Foundation 不固定 Persona/Memory 等内部表示。
 
 AI SDK messages/tools 只是 `InvocationSpec` 的编译结果。
+
+GatewayProfile.baseUrl is the external gateway destination. It is
+canonicalized, credential-free, and exact-target checked by NetworkAccess;
+remote HTTP is rejected while literal loopback HTTP is allowed for local
+fixtures/development. The gateway may be NewAPI or another OpenAI-compatible
+external service, but its process, administration, upstream credentials, and
+upgrade lifecycle remain outside Heptalogos.
+
+For `openai-chat`, the runtime requests broad-compatible JSON-object output,
+adds the output schema requirement to the system text through the adopted AI
+SDK helper, and keeps SchemaRuntime/Ajv as the final validator. It makes no
+universal native `json_schema` claim. Responses uses the adopted
+`openai-responses` mechanics. Both paths retain the exact ConfigurationRevision
+selected for the invocation.
 
 ---
 
@@ -97,7 +136,7 @@ AI SDK messages/tools 只是 `InvocationSpec` 的编译结果。
 
 ```text
 Situation proposal
-BehaviorIntent
+ConversationReactionProposal
 ToolIntent
 ExpressionPlan
 Review proposal
@@ -125,7 +164,7 @@ scope
 Secret requirements
 network requirements
 idempotency/reconciliation
-provider generation
+gateway/model generation
 availability
 ```
 
@@ -140,18 +179,17 @@ Capability 可被 Reactor、deterministic code、Operator support code 或其他
 负责：
 
 ```text
-availability/provider selection
-scope
+availability and scope
 policy
 Secret resolution
 NetworkAccess policy integration
-invoke
-retry/idempotency handling
+invoke admission
 Evidence
 generation fence
 ```
 
-不负责 Subject behavior decision，也不负责 SystemAction approval。
+不负责 Subject conversation/action Authority，也不负责 SystemAction approval。
+当前 AIRuntime 不拥有 provider/gateway selection、retry、failover 或 fallback。
 
 ---
 
@@ -316,11 +354,14 @@ network-policy enforcement
 
 ---
 
-## 15. Failover
+## 15. Gateway routing boundary
 
-只有在 Authority commit 前且 policy 允许时才可 fallback。
+当前 AIRuntime 不实现 provider fleet、gateway selection、failover 或 global
+fallback。ModelBinding → ModelProfile → GatewayProfile 是单一路由；没有
+fallback chain。外部 gateway 返回响应前进行的 retry/failover 属于外部
+gateway 行为，不是 Heptalogos 的 Product Authority。
 
-实际 provider/model/protocol revision/generation 必须进入 Evidence。
+实际 gateway/model/protocol revision/generation 必须进入 Evidence。
 
 不同模型输出不能复用同一 committed artifact identity。
 

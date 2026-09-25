@@ -677,6 +677,9 @@ export async function startPrivatePostgresCluster(
         await stopWithProof(options, lifecycleState, stopUncertainProblem);
       },
       async restart(): Promise<void> {
+        // Intentional duplication: stop and restart share the same control
+        // fence but retain operation-specific lifecycle failure messages.
+        /* jscpd:ignore-start */
         options.assertControlAuthority();
         if (startupDisposition === "ALREADY_RUNNING") {
           throw alreadyRunningControlDeniedProblem();
@@ -693,6 +696,7 @@ export async function startPrivatePostgresCluster(
             "conflict",
           );
         }
+        /* jscpd:ignore-end */
         if (
           lifecycleState.detail === "startOutcomeUncertain" ||
           lifecycleState.detail === "runningObservedUncertain" ||

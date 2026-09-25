@@ -12,10 +12,10 @@ describe("Secret current contracts", () => {
       schemaVersion: 1,
       secretId: "01j00000000000000000000000",
       state: "ACTIVE",
-      purpose: "provider.openai.api-key",
+      purpose: "ai.gateway.bearer-token",
       scopeRef: {
         schemaVersion: 1,
-        resourceKind: "provider-profile",
+        resourceKind: "gateway-profile",
         resourceId: "01j00000000000000000000001",
       },
       backendKind: "os-credential",
@@ -31,10 +31,10 @@ describe("Secret current contracts", () => {
   it("keeps protected input and exact resolution context bounded", () => {
     expect(
       compileSchema(secretSetInputSchema).validate({
-        purpose: "provider.openai.api-key",
+        purpose: "ai.gateway.bearer-token",
         scopeRef: {
           schemaVersion: 1,
-          resourceKind: "provider-profile",
+          resourceKind: "gateway-profile",
           resourceId: "01j00000000000000000000001",
         },
         material: "protected-input",
@@ -43,7 +43,7 @@ describe("Secret current contracts", () => {
     expect(
       compileSchema(secretResolutionContextSchema).validate({
         consumer: "system.ai-runtime",
-        purpose: "provider.openai.api-key",
+        purpose: "ai.gateway.bearer-token",
       }).ok,
     ).toBe(true);
   });

@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { compileSchema } from "@heptalogos/schema-runtime";
 import {
   CURRENT_MODEL_CAPABILITIES,
+  gatewayProfileSchema,
   modelBindingSchema,
   modelProfileSchema,
-  providerProfileSchema,
 } from "../../src/index.js";
 
-describe("AIRuntime current contracts", () => {
-  it("keeps the exact four-capability and two-binding surface", () => {
+describe("AIRuntime current gateway-first contracts", () => {
+  it("keeps the exact four-capability, two-protocol, and two-binding surface", () => {
     expect(CURRENT_MODEL_CAPABILITIES).toEqual([
       "text-generation",
       "structured-output",
@@ -37,34 +37,41 @@ describe("AIRuntime current contracts", () => {
     ).toBe(false);
   });
 
-  it("requires the fixed OpenAI Responses settings", () => {
-    const base = {
+  it("requires gateway/model/protocol fields and no upstream vendor fields", () => {
+    const gateway = {
       schemaVersion: 1,
-      providerProfileId: "01j00000000000000000000000",
-      providerKind: "openai",
-      configurationRevisionRef: "01j00000000000000000000001",
-      secretRefs: [],
-      networkAccessProfileRef: "network-access.openai-api.v1",
-      enabled: false,
-      providerSettings: { api: "responses", store: false },
+      gatewayProfileId: "01j00000000000000000000000",
+      baseUrl: "https://gateway.example.com/v1",
+      enabled: true,
     };
-    expect(compileSchema(providerProfileSchema).validate(base).ok).toBe(true);
+    expect(compileSchema(gatewayProfileSchema).validate(gateway).ok).toBe(true);
     expect(
-      compileSchema(providerProfileSchema).validate({
-        ...base,
-        providerSettings: { api: "chat", store: true },
+      compileSchema(gatewayProfileSchema).validate({
+        ...gateway,
+        providerKind: "openai",
       }).ok,
     ).toBe(false);
     expect(
       compileSchema(modelProfileSchema).validate({
         schemaVersion: 1,
         modelProfileId: "01j00000000000000000000001",
-        providerProfileId: "01j00000000000000000000000",
-        providerModelIdentifier: "gpt-5.6-luna",
+        gatewayProfileId: "01j00000000000000000000000",
+        modelIdentifier: "gateway-model",
+        protocol: "openai-chat",
         consumedCapabilities: [...CURRENT_MODEL_CAPABILITIES],
         generation: 1,
-        configurationRevisionRef: "01j00000000000000000000001",
       }).ok,
     ).toBe(true);
+    expect(
+      compileSchema(modelProfileSchema).validate({
+        schemaVersion: 1,
+        modelProfileId: "01j00000000000000000000001",
+        gatewayProfileId: "01j00000000000000000000000",
+        modelIdentifier: "gateway-model",
+        protocol: "vendor-specific",
+        consumedCapabilities: [...CURRENT_MODEL_CAPABILITIES],
+        generation: 1,
+      }).ok,
+    ).toBe(false);
   });
 });

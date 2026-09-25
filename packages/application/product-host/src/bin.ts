@@ -17,7 +17,9 @@ function reportFailure(error: unknown): void {
   const detail =
     error instanceof ProblemError
       ? (error.problem.detail ?? error.problem.title)
-      : undefined;
+      : error instanceof Error
+        ? error.message
+        : String(error);
   process.stderr.write(
     JSON.stringify({
       type: "ERROR",

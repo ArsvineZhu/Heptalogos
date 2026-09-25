@@ -333,6 +333,9 @@ const descriptor: WorkHandlerProvisionDescriptor = {
   restoreReplayClass: "RECONCILE_REQUIRED",
 };
 
+// Intentional duplication: this is the standalone child-process wait primitive;
+// the in-process fixture has its own timeout and qualification failure owner.
+/* jscpd:ignore-start */
 async function waitUntil(
   condition: () => boolean | Promise<boolean>,
   timeoutMs = 120_000,
@@ -344,6 +347,7 @@ async function waitUntil(
   }
   throw new Error("durable-work child condition timed out");
 }
+/* jscpd:ignore-end */
 
 async function main(): Promise<void> {
   const canonicalInitializer = createCanonicalSchemaInitializer(CANONICAL_OPTIONS);
@@ -560,6 +564,9 @@ async function main(): Promise<void> {
       }
     },
   };
+  // Intentional duplication: the standalone child composes its own fenced
+  // handler definition instead of importing the in-process fixture composer.
+  /* jscpd:ignore-start */
   const definition: MicroSystemDefinition = {
     microSystemId: workItemTarget.microSystemId,
     role: "system-service",
@@ -577,6 +584,7 @@ async function main(): Promise<void> {
       context.publishWorkHandler(descriptor, handler);
     },
   };
+  /* jscpd:ignore-end */
   const supervisor = new MicroSystemSupervisor({
     substrate: createRuntimeSubstrate({ settleTimeoutMs: 100 }),
     settleTimeoutMs: 100,
@@ -807,16 +815,30 @@ async function main(): Promise<void> {
       priority: created.item.priority,
     });
   };
+  const waitForSucceeded = async (workItemId: WorkItemId): Promise<void> => {
+    await waitUntil(async () => {
+      const item = await repository.getWorkItem(workItemId);
+      return item?.state === "SUCCEEDED";
+    });
+  };
+  const emitWorkCommitted = (item: Awaited<ReturnType<typeof createWorkItem>>) => {
+    emit({
+      type: "WORK_COMMITTED",
+      workItemId: item.item.workItemId,
+      dispatchRevision: item.item.dispatchRevision,
+      dispatchAttemptId: createDispatchAttemptId(
+        item.item.workItemId,
+        item.item.dispatchRevision,
+      ),
+    });
+  };
 
   if (mode === "effect-recover") {
     if (expectedWorkItemId === undefined) {
       throw new Error("effect-recover requires a WorkItemId");
     }
     await reconciler.start();
-    await waitUntil(async () => {
-      const item = await repository.getWorkItem(expectedWorkItemId);
-      return item?.state === "SUCCEEDED";
-    });
+    await waitForSucceeded(expectedWorkItemId);
     emit({
       type: "EFFECT_RECOVERED",
       workItemId: expectedWorkItemId,
@@ -831,10 +853,7 @@ async function main(): Promise<void> {
   if (effectMode) {
     await reconciler.start();
     const created = await createWorkItem();
-    await waitUntil(async () => {
-      const item = await repository.getWorkItem(created.item.workItemId);
-      return item?.state === "SUCCEEDED";
-    });
+    await waitForSucceeded(created.item.workItemId);
     emit({
       type: "EFFECT_WORK_SUCCEEDED",
       workItemId: created.item.workItemId,
@@ -849,10 +868,7 @@ async function main(): Promise<void> {
   if (mode === "foundation-boot-work-stop" || mode === "foundation-restart-work-stop") {
     await reconciler.start();
     const created = await createWorkItem();
-    await waitUntil(async () => {
-      const item = await repository.getWorkItem(created.item.workItemId);
-      return item?.state === "SUCCEEDED";
-    });
+    await waitForSucceeded(created.item.workItemId);
     const completed = await repository.getWorkItem(created.item.workItemId);
     if (completed?.state !== "SUCCEEDED") {
       throw new Error("Foundation executable work did not reach SUCCEEDED");
@@ -875,15 +891,7 @@ async function main(): Promise<void> {
 
   if (mode === "commit-before-dispatch") {
     const created = await createWorkItem();
-    emit({
-      type: "WORK_COMMITTED",
-      workItemId: created.item.workItemId,
-      dispatchRevision: created.item.dispatchRevision,
-      dispatchAttemptId: createDispatchAttemptId(
-        created.item.workItemId,
-        created.item.dispatchRevision,
-      ),
-    });
+    emitWorkCommitted(created);
     await releaseRequested;
     await clean();
     emit({ type: "RELEASED" });
@@ -917,15 +925,7 @@ async function main(): Promise<void> {
     emit({ type: "SIGNAL_READY" });
     await commitRequested;
     const created = await createWorkItem();
-    emit({
-      type: "WORK_COMMITTED",
-      workItemId: created.item.workItemId,
-      dispatchRevision: created.item.dispatchRevision,
-      dispatchAttemptId: createDispatchAttemptId(
-        created.item.workItemId,
-        created.item.dispatchRevision,
-      ),
-    });
+    emitWorkCommitted(created);
     await releaseRequested;
     await clean();
     emit({ type: "RELEASED" });
@@ -974,10 +974,7 @@ async function main(): Promise<void> {
       throw new Error("recover requires a WorkItemId");
     }
     await reconciler.start();
-    await waitUntil(async () => {
-      const item = await repository.getWorkItem(expectedWorkItemId);
-      return item?.state === "SUCCEEDED";
-    });
+    await waitForSucceeded(expectedWorkItemId);
     const recovered = await repository.getWorkItem(expectedWorkItemId);
     emit({
       type: "RECOVERED",

@@ -255,8 +255,8 @@ dedicated connection ownership
 
 ```text
 MessageFact/WorkItem authoritative commit 后 dispatch 前
-Reaction result 后 Review/DecisionCommit 前
-DecisionCommit 后 Action execution 前
+Reaction proposal 后 owning domain commit 前
+CommunicationCommit 后 Expression/outbound 前
 Effect dispatching commit 后 external call 前
 external response 后 terminal commit 前
 approval wait

@@ -13,6 +13,12 @@ import type {
 } from "@heptalogos/foundation-contracts";
 import type { PersistenceMutationTransactionContext } from "@heptalogos/persistence";
 
+/** Stable reference to one retained Evidence record. */
+export interface EvidenceRef {
+  readonly schemaVersion: 1;
+  readonly evidenceId: EvidenceId;
+}
+
 /** Describes an Evidence fact before its identity and Activity are assigned. */
 export interface EvidenceDraft {
   readonly evidenceKind: string;

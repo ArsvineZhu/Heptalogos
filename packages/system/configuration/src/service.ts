@@ -26,10 +26,9 @@ import {
   type PersistenceInternalTransaction,
 } from "@heptalogos/persistence/repository";
 import type { PersistenceService } from "@heptalogos/persistence";
-import { compileSchema } from "@heptalogos/schema-runtime";
+import type { EvidenceRef } from "@heptalogos/evidence";
+import { compileSchema, type SchemaValidator } from "@heptalogos/schema-runtime";
 import {
-  PROVIDER_TRANSPORT_DEFINITION_ID,
-  providerTransportConfigSchema,
   type ActivateConfigurationInput,
   type ConfigurationActivation,
   type ConfigurationDefinition,
@@ -40,31 +39,8 @@ import {
   type ConfigurationService,
   type ConfigurationServiceOptions,
   type CreateConfigurationRevisionInput,
-  type ProviderTransportConfigV1,
 } from "./contracts.js";
 import { configurationProblem } from "./problems.js";
-
-const providerTransportValidator = compileSchema<ProviderTransportConfigV1>(
-  providerTransportConfigSchema,
-);
-
-const definitions: readonly ConfigurationDefinition[] = Object.freeze([
-  Object.freeze({
-    schemaVersion: 1 as const,
-    definitionId: PROVIDER_TRANSPORT_DEFINITION_ID,
-    owner: "system.network-access",
-    version: 1,
-    scopeKind: "INSTALLATION" as const,
-    valueSchema: providerTransportConfigSchema as unknown as CanonicalJsonValue,
-    classification: "INSTALLATION_CONFIG" as const,
-    visibility: "EXPERT" as const,
-    manageability: "EDITABLE" as const,
-    activation: "LIVE" as const,
-    sensitivity: "INTERNAL" as const,
-    defaultAuthority: "NO_DEFAULT_REQUIRED" as const,
-    consumerRefs: Object.freeze(["system.network-access", "system.ai-runtime"]),
-  }),
-]);
 
 interface RevisionRow {
   readonly revision_id: unknown;
@@ -81,12 +57,14 @@ interface RevisionRow {
 
 interface ActivationRow {
   readonly activation_id: unknown;
+  readonly definition_id: unknown;
   readonly scope_ref: unknown;
   readonly active_revision_id: unknown;
   readonly previous_revision_id: unknown;
   readonly impact: unknown;
   readonly effective_at: unknown;
   readonly lineage_context_ref: unknown;
+  readonly evidence_refs: unknown;
 }
 
 function asText(value: unknown, name: string): string {
@@ -179,6 +157,48 @@ function lineageRef(value: unknown): LineageContextRef {
   return decodeLineageContextRef(jsonValue(value));
 }
 
+function parseEvidenceRefs(value: unknown): readonly EvidenceRef[] {
+  const parsed = jsonValue(value);
+  if (!Array.isArray(parsed)) {
+    throw configurationProblem(
+      "configuration.repository_invalid",
+      "Configuration repository data is invalid",
+      "evidence_refs is not an array",
+      "integrity",
+    );
+  }
+  return Object.freeze(
+    parsed.map((item) => {
+      if (
+        typeof item !== "object" ||
+        item === null ||
+        Array.isArray(item) ||
+        (item as Record<string, unknown>).schemaVersion !== 1
+      ) {
+        throw configurationProblem(
+          "configuration.repository_invalid",
+          "Configuration repository data is invalid",
+          "evidence_refs contains an invalid EvidenceRef",
+          "integrity",
+        );
+      }
+      const evidenceId = parseUuidV7Id(
+        "EvidenceId",
+        (item as Record<string, unknown>).evidenceId,
+      );
+      if (evidenceId === undefined) {
+        throw configurationProblem(
+          "configuration.repository_invalid",
+          "Configuration repository data is invalid",
+          "evidence_refs contains an invalid EvidenceId",
+          "integrity",
+        );
+      }
+      return Object.freeze({ schemaVersion: 1 as const, evidenceId });
+    }),
+  );
+}
+
 function scopeKey(ref: ConfigurationScopeRef): string {
   if (
     ref.schemaVersion !== 1 ||
@@ -249,6 +269,10 @@ function activationFromRow(row: ActivationRow): ConfigurationActivation {
       row.activation_id,
       "activation_id",
     ),
+    definitionId: asText(
+      row.definition_id,
+      "definition_id",
+    ) as ConfigurationDefinitionId,
     scopeRef: scopeRef(row.scope_ref),
     activeRevisionId: asUuid(
       "ConfigurationRevisionId",
@@ -267,6 +291,7 @@ function activationFromRow(row: ActivationRow): ConfigurationActivation {
     impact: asText(row.impact, "impact") as ConfigurationDefinition["activation"],
     effectiveAt: asInstant(row.effective_at),
     lineageContextRef: lineageRef(row.lineage_context_ref),
+    evidenceRefs: parseEvidenceRefs(row.evidence_refs),
   });
 }
 
@@ -291,28 +316,8 @@ function activityRef(execution: ExecutionContextRuntime): LineageContextRef {
   return execution.createLineageContextRef();
 }
 
-function validateTransport(value: CanonicalJsonValue): ProviderTransportConfigV1 {
-  const result = providerTransportValidator.validate(value);
-  if (!result.ok) {
-    throw configurationProblem(
-      "configuration.invalid_input",
-      "Configuration value is invalid",
-      result.issues.map((issue) => issue.instancePath + " " + issue.message).join("; "),
-    );
-  }
-  if (
-    result.value.expandedResponseBodyBudgetBytes < result.value.responseBodyBudgetBytes
-  ) {
-    throw configurationProblem(
-      "configuration.invalid_input",
-      "Configuration value is invalid",
-      "expandedResponseBodyBudgetBytes must be at least responseBodyBudgetBytes",
-    );
-  }
-  return result.value;
-}
-
 function definitionFor(
+  definitions: readonly ConfigurationDefinition[],
   definitionId: ConfigurationDefinitionId | string,
 ): ConfigurationDefinition {
   const definition = definitions.find((item) => item.definitionId === definitionId);
@@ -345,6 +350,31 @@ export function createConfigurationService(
   options: ConfigurationServiceOptions,
 ): ConfigurationService {
   const persistence: PersistenceService = options.persistence;
+  const definitions: readonly ConfigurationDefinition[] = Object.freeze(
+    options.definitions.map((definition) =>
+      Object.freeze({
+        ...definition,
+        consumerRefs: Object.freeze([...definition.consumerRefs]),
+      }),
+    ),
+  );
+  const validators = new Map<ConfigurationDefinitionId, SchemaValidator<unknown>>();
+  for (const definition of definitions) {
+    if (validators.has(definition.definitionId)) {
+      throw configurationProblem(
+        "configuration.definition_conflict",
+        "Configuration definitions conflict",
+        "Each current ConfigurationDefinitionId must be registered exactly once",
+        "conflict",
+      );
+    }
+    validators.set(
+      definition.definitionId,
+      compileSchema<unknown>(definition.valueSchema as object),
+    );
+  }
+  const currentDefinition = (definitionId: ConfigurationDefinitionId | string) =>
+    definitionFor(definitions, definitionId);
 
   const service: ConfigurationService = {
     definitions,
@@ -365,8 +395,8 @@ export function createConfigurationService(
     async listActivations() {
       const result = await readRepositorySql<ActivationRow>(
         persistence,
-        "SELECT activation_id, scope_ref, active_revision_id, " +
-          "previous_revision_id, impact, effective_at, lineage_context_ref " +
+        "SELECT activation_id, definition_id, scope_ref, active_revision_id, " +
+          "previous_revision_id, impact, effective_at, lineage_context_ref, evidence_refs " +
           'FROM "heptalogos"."configuration_activation" ' +
           "ORDER BY effective_at, activation_id",
         [],
@@ -385,20 +415,21 @@ export function createConfigurationService(
       const row = result[0];
       return row === undefined ? undefined : revisionFromRow(row);
     },
-    async getActivation(ref) {
+    async getActivation(definitionId, ref) {
+      const definition = currentDefinition(definitionId);
       const result = await readRepositorySql<ActivationRow>(
         persistence,
-        "SELECT activation_id, scope_ref, active_revision_id, " +
-          "previous_revision_id, impact, effective_at, lineage_context_ref " +
-          'FROM "heptalogos"."configuration_activation" WHERE scope_key = $1',
-        [scopeKey(ref)],
+        "SELECT activation_id, definition_id, scope_ref, active_revision_id, " +
+          "previous_revision_id, impact, effective_at, lineage_context_ref, evidence_refs " +
+          'FROM "heptalogos"."configuration_activation" WHERE definition_id = $1 AND scope_key = $2',
+        [definition.definitionId, scopeKey(ref)],
       );
       const row = result[0];
       return row === undefined ? undefined : activationFromRow(row);
     },
     async getEffectiveRevision(definitionId, ref) {
-      const definition = definitionFor(definitionId);
-      const activation = await service.getActivation(ref);
+      const definition = currentDefinition(definitionId);
+      const activation = await service.getActivation(definition.definitionId, ref);
       if (activation === undefined) return undefined;
       const revision = await service.getRevision(activation.activeRevisionId);
       if (revision === undefined || revision.definitionId !== definition.definitionId) {
@@ -409,21 +440,78 @@ export function createConfigurationService(
           "integrity",
         );
       }
+      service.validateValue(definition.definitionId, revision.value);
       return revision;
     },
-    validateValue(definitionId, value) {
-      const definition = definitionFor(definitionId);
-      if (definition.definitionId === PROVIDER_TRANSPORT_DEFINITION_ID) {
-        return Object.freeze({ ...validateTransport(value) });
-      }
-      throw configurationProblem(
-        "configuration.unsupported_definition",
-        "Configuration definition is unsupported",
-        "No validator exists for '" + definition.definitionId + "'",
+    async assertActiveRevisionForCommit(transaction, input) {
+      const definition = currentDefinition(input.definitionId);
+      const expectedRevisionId = asUuid(
+        "ConfigurationRevisionId",
+        input.revisionId,
+        "revisionId",
+      );
+      const key = scopeKey(input.scopeRef);
+      await useRepositoryMutationTransaction(
+        transaction,
+        async (databaseTransaction) => {
+          const currentRows = await rows<{
+            readonly definition_id: unknown;
+            readonly scope_ref: unknown;
+            readonly active_revision_id: unknown;
+          }>(
+            databaseTransaction,
+            "SELECT definition_id, scope_ref, active_revision_id " +
+              'FROM "heptalogos"."configuration_activation" ' +
+              "WHERE definition_id = $1 AND scope_key = $2 FOR UPDATE",
+            [definition.definitionId, key],
+          );
+          const current = currentRows[0];
+          if (
+            current === undefined ||
+            asText(current.definition_id, "definition_id") !==
+              definition.definitionId ||
+            scopeKey(scopeRef(current.scope_ref)) !== key ||
+            asUuid(
+              "ConfigurationRevisionId",
+              current.active_revision_id,
+              "active_revision_id",
+            ) !== expectedRevisionId
+          ) {
+            throw configurationProblem(
+              "configuration.activation_conflict",
+              "Configuration activation is no longer admissible",
+              "The configuration revision changed before the owning commit",
+              "conflict",
+              "after-change",
+            );
+          }
+        },
       );
     },
+    validateValue(definitionId, value) {
+      const definition = currentDefinition(definitionId);
+      const validator = validators.get(definition.definitionId);
+      if (validator === undefined) {
+        throw configurationProblem(
+          "configuration.unsupported_definition",
+          "Configuration definition is unsupported",
+          "No validator exists for '" + definition.definitionId + "'",
+        );
+      }
+      const result = validator.validate(value);
+      if (!result.ok) {
+        throw configurationProblem(
+          "configuration.invalid_input",
+          "Configuration value is invalid",
+          result.issues
+            .map((issue) => issue.instancePath + " " + issue.message)
+            .join("; "),
+        );
+      }
+      return snapshotCanonicalJson(result.value as CanonicalJsonValue).value;
+    },
     async createRevision(input: CreateConfigurationRevisionInput) {
-      const definition = definitionFor(input.definitionId);
+      const definition = currentDefinition(input.definitionId);
       const value = service.validateValue(definition.definitionId, input.value);
       const ref = Object.freeze({
         schemaVersion: 1 as const,
@@ -531,7 +619,7 @@ export function createConfigurationService(
         );
       }
       const revision = revisionFromRow(revisionRow);
-      const definition = definitionFor(revision.definitionId);
+      const definition = currentDefinition(revision.definitionId);
       const key = scopeKey(revision.scopeRef);
       const activationId = createUuidV7Id("ConfigurationActivationId");
       const effectiveAt = options.time.now();
@@ -541,11 +629,11 @@ export function createConfigurationService(
         useRepositoryMutationTransaction(context, async (transaction) => {
           const currentRows = await rows<ActivationRow>(
             transaction,
-            "SELECT activation_id, scope_ref, active_revision_id, " +
-              "previous_revision_id, impact, effective_at, lineage_context_ref " +
+            "SELECT activation_id, definition_id, scope_ref, active_revision_id, " +
+              "previous_revision_id, impact, effective_at, lineage_context_ref, evidence_refs " +
               'FROM "heptalogos"."configuration_activation" ' +
-              "WHERE scope_key = $1 FOR UPDATE",
-            [key],
+              "WHERE definition_id = $1 AND scope_key = $2 FOR UPDATE",
+            [definition.definitionId, key],
           );
           const current = currentRows[0];
           const currentRevisionId =
@@ -565,43 +653,7 @@ export function createConfigurationService(
               "after-change",
             );
           }
-          if (current === undefined) {
-            await executeRepositorySql(
-              transaction,
-              'INSERT INTO "heptalogos"."configuration_activation" (' +
-                "activation_id, scope_ref, scope_key, active_revision_id, " +
-                "previous_revision_id, impact, effective_at, lineage_context_ref) " +
-                "VALUES ($1, $2, $3, $4, NULL, $5, $6, $7)",
-              [
-                activationId,
-                revision.scopeRef,
-                key,
-                revision.revisionId,
-                definition.activation,
-                effectiveAt,
-                lineageContextRef,
-              ],
-            );
-          } else {
-            await executeRepositorySql(
-              transaction,
-              'UPDATE "heptalogos"."configuration_activation" ' +
-                "SET activation_id = $1, scope_ref = $2, active_revision_id = $3, " +
-                "previous_revision_id = $4, impact = $5, effective_at = $6, " +
-                "lineage_context_ref = $7 WHERE scope_key = $8",
-              [
-                activationId,
-                revision.scopeRef,
-                revision.revisionId,
-                currentRevisionId,
-                definition.activation,
-                effectiveAt,
-                lineageContextRef,
-                key,
-              ],
-            );
-          }
-          await options.evidence.recordRequired(context, {
+          const evidence = await options.evidence.recordRequired(context, {
             evidenceKind: "configuration.activation.committed",
             evidenceContractVersion: "configuration.v1",
             objectRef: activationId,
@@ -609,9 +661,57 @@ export function createConfigurationService(
             retentionClass: "retained",
             sensitivity: "operational",
           });
+          const evidenceRefs: readonly EvidenceRef[] = Object.freeze([
+            Object.freeze({
+              schemaVersion: 1 as const,
+              evidenceId: evidence.evidenceId,
+            }),
+          ]);
+          if (current === undefined) {
+            await executeRepositorySql(
+              transaction,
+              'INSERT INTO "heptalogos"."configuration_activation" (' +
+                "activation_id, definition_id, scope_ref, scope_key, active_revision_id, " +
+                "previous_revision_id, impact, effective_at, lineage_context_ref, evidence_refs) " +
+                "VALUES ($1, $2, $3, $4, $5, NULL, $6, $7, $8, $9)",
+              [
+                activationId,
+                definition.definitionId,
+                revision.scopeRef,
+                key,
+                revision.revisionId,
+                definition.activation,
+                effectiveAt,
+                lineageContextRef,
+                JSON.stringify(evidenceRefs),
+              ],
+            );
+          } else {
+            await executeRepositorySql(
+              transaction,
+              'UPDATE "heptalogos"."configuration_activation" ' +
+                "SET activation_id = $1, definition_id = $2, scope_ref = $3, active_revision_id = $4, " +
+                "previous_revision_id = $5, impact = $6, effective_at = $7, " +
+                "lineage_context_ref = $8, evidence_refs = $9 WHERE definition_id = $10 AND scope_key = $11",
+              [
+                activationId,
+                definition.definitionId,
+                revision.scopeRef,
+                revision.revisionId,
+                currentRevisionId,
+                definition.activation,
+                effectiveAt,
+                lineageContextRef,
+                JSON.stringify(evidenceRefs),
+                definition.definitionId,
+                key,
+              ],
+            );
+          }
           result = Object.freeze({
             schemaVersion: 1 as const,
             activationId,
+            definitionId: definition.definitionId,
             scopeRef: revision.scopeRef,
             activeRevisionId: revision.revisionId,
             ...(currentRevisionId === undefined
@@ -620,6 +720,7 @@ export function createConfigurationService(
             impact: definition.activation,
             effectiveAt,
             lineageContextRef,
+            evidenceRefs,
           });
         }),
       );

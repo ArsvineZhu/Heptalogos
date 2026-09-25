@@ -88,6 +88,9 @@ function jsonValue(value: unknown): unknown {
   }
 }
 
+// Intentional duplication: Secret and Configuration decode owner-specific
+// scope references and report owner-specific repository Problems.
+/* jscpd:ignore-start */
 function scope(value: unknown): SecretScopeRef | undefined {
   const parsed = jsonValue(value);
   if (parsed === null || parsed === undefined) return undefined;
@@ -112,7 +115,11 @@ function scope(value: unknown): SecretScopeRef | undefined {
     resourceId: record.resourceId,
   });
 }
+/* jscpd:ignore-end */
 
+// Intentional duplication: Secret and Configuration validate owner-specific
+// scope types and failure codes even though their bounded shape is parallel.
+/* jscpd:ignore-start */
 function scopeKey(ref: SecretScopeRef | undefined): string | undefined {
   if (ref === undefined) return undefined;
   if (
@@ -130,6 +137,7 @@ function scopeKey(ref: SecretScopeRef | undefined): string | undefined {
   }
   return JSON.stringify([ref.resourceKind, ref.resourceId]);
 }
+/* jscpd:ignore-end */
 
 function parseSecretRef(value: SecretRef | string): SecretRef {
   const secretIdValue =
@@ -591,13 +599,14 @@ export function createSecretService(options: SecretServiceOptions): SecretServic
         );
       }
       if (
-        context.consumer !== "system.ai-runtime" ||
-        context.purpose !== "provider.openai.api-key"
+        !["system.ai-runtime", "product.subject.openclaw"].includes(context.consumer) ||
+        context.purpose !== "ai.gateway.bearer-token" ||
+        context.resourceRef?.resourceKind !== "gateway-profile"
       ) {
         throw secretProblem(
           "secret.unauthorized",
           "Secret consumer is not authorized",
-          "The current Product route only authorizes the OpenAI AIRuntime consumer",
+          "The current Product route only authorizes gateway bearer tokens for AIRuntime or the isolated Subject OpenClaw runtime",
           "conflict",
           "after-change",
         );

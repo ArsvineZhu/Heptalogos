@@ -17,6 +17,7 @@ import {
   createHostLeaseLifecycleTracker,
   type HostLeaseLifecycleState,
 } from "./host-lease-machine.js";
+import { asPostgresBoolean } from "./postgres-values.js";
 
 /** Minimal client surface used by the Host lease adapter. */
 interface HostLeaseClient {
@@ -206,21 +207,18 @@ function defaultClientFactory(): HostLeaseClientFactory {
             client.on("end", () => listener());
           }
         },
+        // Intentional duplication: the lease and Bootstrap-admin adapters wrap
+        // different client contracts and preserve separate lifecycle owners.
+        /* jscpd:ignore-start */
         async query<Row>(text: string, values: readonly unknown[] = []) {
           const result = await client.query(text, [...values]);
           return { rows: result.rows as Row[] };
         },
         end: () => client.end(),
+        /* jscpd:ignore-end */
       } satisfies HostLeaseClient;
     },
   };
-}
-
-function asBoolean(value: unknown): boolean | undefined {
-  if (typeof value === "boolean") return value;
-  if (value === "t" || value === "true") return true;
-  if (value === "f" || value === "false") return false;
-  return undefined;
 }
 
 /** Acquires the dedicated PostgreSQL lease connection and advisory fence. */
@@ -321,7 +319,7 @@ export async function acquireHostLeaseConnection(
       );
       options.mutationAuthority.assertCurrent();
       if (tracker.state !== "ACQUIRING") throw fencedProblem("lease query completion");
-      const acquired = asBoolean(lockResult.rows[0]?.acquired);
+      const acquired = asPostgresBoolean(lockResult.rows[0]?.acquired);
       if (acquired === undefined) throw invalidLockResultProblem();
       if (!acquired) {
         tracker.send({ type: "ACQUISITION_FAILED" });

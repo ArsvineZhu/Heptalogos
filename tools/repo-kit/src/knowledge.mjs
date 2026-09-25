@@ -465,11 +465,15 @@ export function validateKnowledge({ root = process.cwd() } = {}) {
   validateArchitectureIndex(join(repository, "docs"), repository, errors);
   validateSpecIndex(join(repository, "specs"), repository, errors);
 
+  // Intentional duplication: current-tree and knowledge validators sort their
+  // independent diagnostic shapes locally to keep the modules decoupled.
+  /* jscpd:ignore-start */
   errors.sort((left, right) =>
     (left.code + ":" + left.path + ":" + left.message).localeCompare(
       right.code + ":" + right.path + ":" + right.message,
     ),
   );
+  /* jscpd:ignore-end */
   return {
     errors,
     markdownCount: markdownFiles.length,

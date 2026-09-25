@@ -28,10 +28,20 @@ ModelBinding changes, Presentation disconnect, Reaction completion, and
 Product process restart.
 
 ```ts
-interface SubjectRecord {
+interface SubjectAuthorityRecord {
   readonly schemaVersion: 1;
   readonly subjectId: SubjectId;
   readonly installationId: InstallationId;
+  readonly desiredState: "STOPPED" | "RUNNING";
+  readonly authorityRevision: number;
+  readonly createdAt: Instant;
+  readonly updatedAt: Instant;
+  readonly lineageContextRef: LineageContextRef;
+}
+
+interface SubjectStatus {
+  readonly schemaVersion: 1;
+  readonly subjectId: SubjectId;
   readonly desiredState: "STOPPED" | "RUNNING";
   readonly actualState:
     | "STOPPED"
@@ -43,16 +53,20 @@ interface SubjectRecord {
     | "STOPPING"
     | "FAILED";
   readonly authorityRevision: number;
-  readonly createdAt: Instant;
-  readonly updatedAt: Instant;
-  readonly lineageContextRef: LineageContextRef;
+  readonly blockers: readonly SubjectBlocker[];
 }
 ```
 
 SubjectId is a stable semantic identity. It is not derived from a ModelProfile,
-ProviderProfile, ModelBinding, SessionId, ReactionId, or Host generation.
+GatewayProfile, ModelBinding, SessionId, ReactionId, or Host generation.
 Host startup does not create a new Subject because an in-process object is
 absent.
+
+DesiredState and authorityRevision are durable Subject Authority. ActualState
+is a Subject-owned current projection derived from durable intent and current
+runtime/dependency facts; it is not a second durable column. Host restart
+recomputes ActualState without resetting DesiredState. Presentation cannot
+infer or assign ActualState.
 
 ## Desired State
 
@@ -85,16 +99,16 @@ FAILED
 
 The canonical meanings are:
 
-| ActualState | Meaning                                                                                                                                       |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| STOPPED     | DesiredState is STOPPED; new Subject cognition is not admitted and no current activation is active.                                           |
-| STARTING    | DesiredState is RUNNING; hard prerequisites are being resolved or activated and usable cognition readiness has not been reached.              |
-| READY       | DesiredState is RUNNING; all hard Subject-slice prerequisites are ready and no current Reaction is executing.                                 |
-| ACTIVE      | DesiredState is RUNNING; hard prerequisites remain acceptable and at least one current Reaction is active.                                    |
-| DEGRADED    | DesiredState is RUNNING; the current reply/silence path remains usable while an optional or non-hard current capability is degraded.          |
-| BLOCKED     | DesiredState is RUNNING; a hard prerequisite is absent/unready and the Subject has not entered an intrinsic unrecoverable failure.            |
-| STOPPING    | DesiredState is STOPPED; new cognition admission is closed and current process-memory work is quiescing or cancelling. Durable truth remains. |
-| FAILED      | Subject-owned runtime/control logic itself cannot safely continue and the failure is not truthfully a dependency BLOCKED condition.           |
+| ActualState | Meaning                                                                                                                                                   |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| STOPPED     | DesiredState is STOPPED; new Subject cognition is not admitted and no current activation is active.                                                       |
+| STARTING    | DesiredState is RUNNING; hard prerequisites are being resolved or activated and usable cognition readiness has not been reached.                          |
+| READY       | DesiredState is RUNNING; all hard Subject-slice prerequisites are ready and no current Reaction is executing.                                             |
+| ACTIVE      | DesiredState is RUNNING; hard prerequisites remain acceptable and at least one current Reaction is active.                                                |
+| DEGRADED    | DesiredState is RUNNING; the current bounded conversation communication path remains usable while an optional or non-hard current capability is degraded. |
+| BLOCKED     | DesiredState is RUNNING; a hard prerequisite is absent/unready and the Subject has not entered an intrinsic unrecoverable failure.                        |
+| STOPPING    | DesiredState is STOPPED; new cognition admission is closed and current process-memory work is quiescing or cancelling. Durable truth remains.             |
+| FAILED      | Subject-owned runtime/control logic itself cannot safely continue and the failure is not truthfully a dependency BLOCKED condition.                       |
 
 Missing dependency is not automatically FAILED. A runtime control defect may be
 FAILED even when dependencies are otherwise ready.
@@ -116,7 +130,7 @@ DesiredState = RUNNING
 ```
 
 Optional capability degradation may project READY or ACTIVE to DEGRADED while
-the current reply/silence path remains usable. A missing hard prerequisite projects
+the current conversation cognition/communication slice remains usable. A missing hard prerequisite projects
 the running desired state to BLOCKED. Setting DesiredState to STOPPED closes new
 cognition admission and converges through:
 
@@ -142,9 +156,12 @@ required provider NetworkAccess
 usable AIRuntime route
 ```
 
-The same ModelProfile may serve both binding roles. OpenClaw, System
-Assistant, GUI, external IM, MCP, and advanced cognition are not hard
-readiness dependencies.
+The same ModelProfile may serve both binding roles. The current AIRuntime-based
+Subject path remains a bounded implementation slice; a future Product-supervised
+Subject OpenClaw Runtime is a separate integration and is not silently merged
+with the independent Machine Operations OpenClaw role. OpenClaw, System
+Assistant, GUI, external IM, MCP, and advanced cognition are not hard readiness
+dependencies for this current Subject Base contract.
 
 authorityRevision is monotonic. DesiredState changes and other later-authorized
 Subject governance mutations increment it. Incoming messages advance
@@ -237,7 +254,7 @@ physical SQL schema or migrations
 - [System Authority Spec](../management/system-authority.md)
 - [AI Runtime Spec](../system/ai-runtime.md)
 - [Messaging and Subject Chat](../messaging/messaging-subject-chat.md)
-- [Reaction and Behavior Authority](./reaction-behavior.md)
+- [Reaction and Communication Authority](./reaction-behavior.md)
 - [Service, Capability, and Readiness](../core/service-capability-readiness.md)
 - [Host Ownership](../runtime/host-ownership.md)
 - [Persistence Transactions](../data/persistence-transactions.md)

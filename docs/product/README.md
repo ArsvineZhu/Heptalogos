@@ -14,6 +14,7 @@ implementation authorization.
 | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | [Product goals](product-goals.md)                       | Asking what Heptalogos is researching and how it differs from a chatbot or generic agent framework.                    | Product proposition, research purpose, and differentiation.                                                     |
 | [Product shape](product-shape.md)                       | Asking what the product consists of, which administrator surfaces exist, or which authority owns an interaction.       | Durable product composition, Control Plane shape, Subject/System Authority boundaries, and carrier semantics.   |
+| [External integrations](external-integrations.md)       | Asking how model gateways and machine-operation dependencies are operated.                                             | External lifecycle, credential ownership, and the boundary between Heptalogos and independently operated tools. |
 | [Control Plane experience](control-plane-experience.md) | Asking how the living product surface behaves at rest, during attention, in conversation, or during system management. | Stable interaction semantics for Home, Subject Chat, Direct Management, System Assistant, and live projections. |
 
 ## Ownership boundaries
